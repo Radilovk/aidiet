@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диетичен План</title>
+    <!-- Font Awesome за икони -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-red: #e74c3c;
+            --soft-red: #fadbd8;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0,0,0,0.05);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            padding-bottom: 80px; /* Място за чат бутона */
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--card-bg);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            cursor: pointer;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            background-color: var(--soft-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-red);
+            font-weight: bold;
+        }
+
+        /* --- DAY NAVIGATION (Horizontal Scroll) --- */
+        .days-nav {
+            display: flex;
+            overflow-x: auto;
+            padding: 15px 10px;
+            background: var(--bg-color);
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Hide scrollbar Firefox */
+        }
+        .days-nav::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome */
+
+        .day-chip {
+            background: var(--card-bg);
+            border: 1px solid #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 0 5px;
+            white-space: nowrap;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .day-chip.active {
+            background-color: var(--primary-red);
+            color: white;
+            border-color: var(--primary-red);
+            box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        /* --- MAIN CONTAINER --- */
+        .container {
+            padding: 10px 15px;
+        }
+
+        /* --- MEAL CARDS --- */
+        .meal-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary-red);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-info {
+            flex: 1;
+        }
+
+        .meal-type {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--primary-red);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .meal-name {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .meal-weight {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .info-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--soft-red);
+            color: var(--primary-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: transform 0.2s;
+        }
+        .info-btn:active { transform: scale(0.9); }
+
+        /* --- COLLAPSIBLE SECTIONS (ACCORDION) --- */
+        .accordion {
+            margin-top: 25px;
+        }
+
+        .acc-item {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .acc-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: white;
+            font-weight: 600;
+        }
+        
+        .acc-header i { color: var(--primary-red); margin-right: 10px; width: 20px;}
+        .chevron { transition: transform 0.3s; color: var(--text-light) !important; margin-right: 0 !important;}
+        .acc-item.open .chevron { transform: rotate(180deg); }
+
+        .acc-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background-color: #fafafa;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .acc-content-inner {
+            padding: 15px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-dark);
+        }
+
+        /* Specific list styling inside accordions */
+        .good-list li { color: #27ae60; margin-bottom: 5px; list-style-type: none; }
+        .good-list li:before { content: '✓'; margin-right: 8px; font-weight: bold; }
+        
+        .bad-list li { color: #c0392b; margin-bottom: 5px; list-style-type: none; }
+        .bad-list li:before { content: '✕'; margin-right: 8px; font-weight: bold; }
+
+        /* --- CHAT FAB --- */
+        .fab-chat {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: var(--primary-red);
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            border: none;
+            cursor: pointer;
+            z-index: 900;
+            transition: transform 0.2s;
+        }
+        .fab-chat:active { transform: scale(0.95); }
+
+        /* --- MODAL (POPUP) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+            position: relative;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            border: none;
+            background: none;
+            font-size: 1.2rem;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .modal-title {
+            color: var(--primary-red);
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .modal-benefit {
+            margin-top: 15px;
+            padding: 10px;
+            background: var(--soft-red);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #c0392b;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
+        <h1>Моят Хранителен План</h1>
+        <div class="user-avatar">И</div>
+    </header>
+
+    <!-- Navigation: Days of the week -->
+    <nav class="days-nav" id="daysContainer">
+        <!-- Will be populated by JS or Static -->
+        <div class="day-chip active" onclick="selectDay(1)">Ден 1</div>
+        <div class="day-chip" onclick="selectDay(2)">Ден 2</div>
+        <div class="day-chip" onclick="selectDay(3)">Ден 3</div>
+        <div class="day-chip" onclick="selectDay(4)">Ден 4</div>
+        <div class="day-chip" onclick="selectDay(5)">Ден 5</div>
+        <div class="day-chip" onclick="selectDay(6)">Ден 6</div>
+        <div class="day-chip" onclick="selectDay(7)">Ден 7</div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        
+        <!-- MEAL PLAN SECTION -->
+        <div id="mealContainer">
+            <!-- Примерно съдържание (ще се замести от JSON logic) -->
+            
+            <!-- Закуска -->
+            <div class="meal-card">
+                <div class="meal-info">
+                    <div class="meal-type">Закуска (08:00)</div>
+                    <div class="meal-name">Овесена каша с горски плодове</div>
+                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> 250 гр.</div>
+                </div>
+                <button class="info-btn" onclick="openModal('Овесена каша', 'Богата на фибри. Бавните въглехидрати осигуряват енергия за целия ден.', 'Подобрява храносмилането и контролира кръвната захар.')">
+                    <i class="fas fa-info"></i>
+                </button>
+            </div>
+
+            <!-- Обяд -->
+            <div class="meal-card">
+                <div class="meal-info">
+                    <div class="meal-type">Обяд (13:00)</div>
+                    <div class="meal-name">Пилешка пържола на скара със салата</div>
+                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> 350 гр.</div>
+                </div>
+                <button class="info-btn" onclick="openModal('Пилешко със салата', 'Високо съдържание на протеин с минимални мазнини.', 'Подпомага мускулното възстановяване.')">
+                    <i class="fas fa-info"></i>
+                </button>
+            </div>
+
+            <!-- Вечеря -->
+            <div class="meal-card">
+                <div class="meal-info">
+                    <div class="meal-type">Вечеря (19:30)</div>
+                    <div class="meal-name">Бяла риба със задушени зеленчуци</div>
+                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> 300 гр.</div>
+                </div>
+                <button class="info-btn" onclick="openModal('Риба със зеленчуци', 'Лека вечеря, богата на Омега-3 мастни киселини.', 'Лесна за усвояване преди сън.')">
+                    <i class="fas fa-info"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- COLLAPSIBLE SECTIONS -->
+        <div class="accordion">
+            
+            <!-- 1. Препоръчителни храни -->
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-check-circle"></i> Препоръчителни храни</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner">
+                        <ul class="good-list">
+                            <li>Вода (минимум 2.5л на ден)</li>
+                            <li>Зеленолистни зеленчуци</li>
+                            <li>Чисто месо (пилешко, пуешко)</li>
+                            <li>Риба и морски дарове</li>
+                            <li>Сурови ядки (в умерени количества)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Забранени храни -->
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-ban"></i> Забранени храни</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner">
+                        <ul class="bad-list">
+                            <li>Газирани напитки със захар</li>
+                            <li>Пържени храни и фаст фууд</li>
+                            <li>Сладкиши и рафинирана захар</li>
+                            <li>Алкохол (особено концентрати)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Психологически съвети -->
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-brain"></i> Психология и съвети</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner">
+                        <p><strong>Не се обвинявайте:</strong> Ако "съгрешите" с едно хранене, просто продължете по план следващия път. Едно хранене не разваля прогреса.</p>
+                        <br>
+                        <p><strong>Слушайте тялото си:</strong> Хранете се, когато сте гладни, а не когато сте емоционални или отегчени.</p>
+                        <div class="modal-benefit" style="margin-top:10px; color: var(--text-dark); background: #fff3e0;">
+                            <i class="fas fa-star"></i> Съвет: Водете си дневник на емоциите при хранене.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Chat Assistant Button -->
+    <button class="fab-chat" onclick="openChat()">
+        <i class="fas fa-comment-dots"></i>
+    </button>
+
+    <!-- INFO MODAL -->
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title" id="mTitle">Заглавие</h3>
+            <div class="modal-body">
+                <p id="mDesc">Описание...</p>
+                <div class="modal-benefit">
+                    <strong><i class="fas fa-heartbeat"></i> Ползи:</strong> <span id="mBenefit">Текст ползи...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Navigation Logic ---
+        function goBack() {
+            // Логика за връщане назад (history back или навигация)
+            if(document.referrer) {
+                window.history.back();
+            } else {
+                alert("Връщане към главното меню...");
+            }
+        }
+
+        function selectDay(dayNum) {
+            // 1. Update UI classes
+            const chips = document.querySelectorAll('.day-chip');
+            chips.forEach(chip => chip.classList.remove('active'));
+            chips[dayNum - 1].classList.add('active');
+
+            // 2. Load Data Logic (Here you would parse your JSON)
+            console.log("Loading data for Day " + dayNum);
+            // Example: renderMeals(json_data[dayNum]);
+        }
+
+        // --- Accordion Logic ---
+        function toggleAccordion(header) {
+            const item = header.parentElement;
+            const content = item.querySelector('.acc-content');
+            
+            // Toggle current
+            item.classList.toggle('open');
+            
+            if (item.classList.contains('open')) {
+                content.style.maxHeight = content.scrollHeight + "px";
+            } else {
+                content.style.maxHeight = "0";
+            }
+        }
+
+        // --- Modal Logic ---
+        const modal = document.getElementById('infoModal');
+        const mTitle = document.getElementById('mTitle');
+        const mDesc = document.getElementById('mDesc');
+        const mBenefit = document.getElementById('mBenefit');
+
+        function openModal(title, description, benefit) {
+            mTitle.textContent = title;
+            mDesc.textContent = description;
+            mBenefit.textContent = benefit;
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        // Close modal if clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // --- Chat Logic ---
+        function openChat() {
+            alert("Отваряне на AI Чат Асистент...");
+            // Тук добавете логика за отваряне на чат прозорец
+        }
+
+        // --- JSON Parsing Setup (Template for your logic) ---
+        /*
+        async function loadDietData() {
+            try {
+                const response = await fetch('diet_plan.json');
+                const data = await response.json();
+                // Логика за рендиране на данните
+            } catch (error) {
+                console.error('Error loading JSON:', error);
+            }
+        }
+        // loadDietData();
+        */
+
+    </script>
+</body>
+</html>
