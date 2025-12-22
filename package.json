@@ -1,0 +1,29 @@
+{
+  "name": "aidiet",
+  "version": "1.0.0",
+  "description": "AI-powered personalized nutrition planning application",
+  "main": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "serve": "python -m http.server 8000",
+    "test": "echo \"Open test.html in browser to test the application\""
+  },
+  "keywords": [
+    "ai",
+    "diet",
+    "nutrition",
+    "cloudflare-workers",
+    "openai",
+    "gemini"
+  ],
+  "author": "Radilov-K",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Radilovk/aidiet.git"
+  }
+}
