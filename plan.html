@@ -452,14 +452,116 @@
     </div>
 
     <script>
+        // Global state
+        let dietPlan = null;
+        let userId = null;
+        let userData = null;
+        let currentDay = 1;
+        let chatVisible = false;
+        let conversationId = Date.now().toString();
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', function() {
+            loadDietData();
+        });
+
+        // --- Load Diet Data ---
+        function loadDietData() {
+            try {
+                // Load from localStorage
+                const planData = localStorage.getItem('dietPlan');
+                userId = localStorage.getItem('userId');
+                const userDataStr = localStorage.getItem('userData');
+                
+                if (!planData || !userId) {
+                    // Redirect to questionnaire if no data
+                    alert('Няма намерен план. Моля, попълнете въпросника.');
+                    window.location.href = 'questionnaire.html';
+                    return;
+                }
+
+                dietPlan = JSON.parse(planData);
+                userData = userDataStr ? JSON.parse(userDataStr) : {};
+                
+                // Update user avatar with first letter of name
+                const avatar = document.querySelector('.user-avatar');
+                if (userData.name) {
+                    avatar.textContent = userData.name.charAt(0).toUpperCase();
+                }
+
+                // Render initial data
+                renderDay(1);
+                renderRecommendations();
+                
+            } catch (error) {
+                console.error('Error loading diet data:', error);
+                alert('Грешка при зареждане на данните.');
+            }
+        }
+
+        // --- Render Day Meals ---
+        function renderDay(dayNum) {
+            currentDay = dayNum;
+            const dayKey = `day${dayNum}`;
+            const dayData = dietPlan.weekPlan && dietPlan.weekPlan[dayKey];
+            
+            if (!dayData || !dayData.meals) {
+                console.warn(`No data for ${dayKey}`);
+                return;
+            }
+
+            const mealContainer = document.getElementById('mealContainer');
+            mealContainer.innerHTML = '';
+
+            dayData.meals.forEach(meal => {
+                const mealCard = document.createElement('div');
+                mealCard.className = 'meal-card';
+                mealCard.innerHTML = `
+                    <div class="meal-info">
+                        <div class="meal-type">${meal.type} (${meal.time})</div>
+                        <div class="meal-name">${meal.name}</div>
+                        <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${meal.weight}${meal.calories ? ` • ${meal.calories} kcal` : ''}</div>
+                    </div>
+                    <button class="info-btn" onclick='openModal("${escapeHtml(meal.name)}", "${escapeHtml(meal.description || '')}", "${escapeHtml(meal.benefits || '')}")'>
+                        <i class="fas fa-info"></i>
+                    </button>
+                `;
+                mealContainer.appendChild(mealCard);
+            });
+        }
+
+        // --- Render Recommendations ---
+        function renderRecommendations() {
+            if (!dietPlan) return;
+
+            // Update recommendations section
+            if (dietPlan.recommendations) {
+                const recList = document.querySelector('.acc-item:nth-child(1) .good-list');
+                if (recList) {
+                    recList.innerHTML = dietPlan.recommendations.map(r => `<li>${r}</li>`).join('');
+                }
+            }
+
+            // Update forbidden foods
+            if (dietPlan.forbidden) {
+                const forbiddenList = document.querySelector('.acc-item:nth-child(2) .bad-list');
+                if (forbiddenList) {
+                    forbiddenList.innerHTML = dietPlan.forbidden.map(f => `<li>${f}</li>`).join('');
+                }
+            }
+
+            // Update psychology section
+            if (dietPlan.psychology) {
+                const psychContent = document.querySelector('.acc-item:nth-child(3) .acc-content-inner');
+                if (psychContent) {
+                    psychContent.innerHTML = `<p>${dietPlan.psychology}</p>`;
+                }
+            }
+        }
+
         // --- Navigation Logic ---
         function goBack() {
-            // Логика за връщане назад (history back или навигация)
-            if(document.referrer) {
-                window.history.back();
-            } else {
-                alert("Връщане към главното меню...");
-            }
+            window.location.href = 'index.html';
         }
 
         function selectDay(dayNum) {
@@ -468,9 +570,8 @@
             chips.forEach(chip => chip.classList.remove('active'));
             chips[dayNum - 1].classList.add('active');
 
-            // 2. Load Data Logic (Here you would parse your JSON)
-            console.log("Loading data for Day " + dayNum);
-            // Example: renderMeals(json_data[dayNum]);
+            // 2. Load day data
+            renderDay(dayNum);
         }
 
         // --- Accordion Logic ---
@@ -512,23 +613,208 @@
 
         // --- Chat Logic ---
         function openChat() {
-            alert("Отваряне на AI Чат Асистент...");
-            // Тук добавете логика за отваряне на чат прозорец
+            if (chatVisible) {
+                closeChatWindow();
+                return;
+            }
+
+            // Create chat window
+            const chatWindow = document.createElement('div');
+            chatWindow.id = 'chatWindow';
+            chatWindow.style.cssText = `
+                position: fixed;
+                bottom: 90px;
+                right: 20px;
+                width: 350px;
+                max-width: calc(100vw - 40px);
+                height: 500px;
+                max-height: calc(100vh - 150px);
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                display: flex;
+                flex-direction: column;
+                z-index: 999;
+                animation: slideUp 0.3s ease;
+            `;
+
+            chatWindow.innerHTML = `
+                <div style="padding: 15px; background: var(--primary-red); color: white; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; font-size: 1rem;"><i class="fas fa-user-md"></i> AI Диетолог Асистент</h3>
+                    <button onclick="closeChatWindow()" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 15px; background: #f5f5f5;">
+                    <div class="chat-message assistant">
+                        <div class="message-bubble" style="background: white; padding: 10px 15px; border-radius: 12px; margin-bottom: 10px; max-width: 80%;">
+                            <p style="margin: 0; font-size: 0.9rem;">Здравейте, ${userData.name || 'приятелю'}! 👋</p>
+                            <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Аз съм вашият AI диетолог асистент. Как мога да ви помогна днес?</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding: 15px; border-top: 1px solid #e0e0e0; background: white; border-radius: 0 0 16px 16px;">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="chatInput" placeholder="Напишете съобщение..." 
+                            style="flex: 1; padding: 10px 15px; border: 1px solid #e0e0e0; border-radius: 20px; outline: none; font-size: 0.9rem;"
+                            onkeypress="if(event.key==='Enter') sendMessage()">
+                        <button onclick="sendMessage()" style="background: var(--primary-red); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(chatWindow);
+            chatVisible = true;
+
+            // Focus input
+            setTimeout(() => {
+                document.getElementById('chatInput').focus();
+            }, 100);
         }
 
-        // --- JSON Parsing Setup (Template for your logic) ---
-        /*
-        async function loadDietData() {
-            try {
-                const response = await fetch('diet_plan.json');
-                const data = await response.json();
-                // Логика за рендиране на данните
-            } catch (error) {
-                console.error('Error loading JSON:', error);
+        function closeChatWindow() {
+            const chatWindow = document.getElementById('chatWindow');
+            if (chatWindow) {
+                chatWindow.remove();
+                chatVisible = false;
             }
         }
-        // loadDietData();
-        */
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // Clear input
+            input.value = '';
+
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+
+            // Show typing indicator
+            const typingId = addTypingIndicator();
+
+            try {
+                // Send to backend
+                const response = await fetch('https://aidiet.radilov-k.workers.dev/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        message: message,
+                        conversationId: conversationId
+                    })
+                });
+
+                const result = await response.json();
+
+                // Remove typing indicator
+                removeTypingIndicator(typingId);
+
+                if (result.success) {
+                    addMessageToChat(result.response, 'assistant');
+                } else {
+                    addMessageToChat('Съжалявам, имаше проблем. Моля, опитайте отново.', 'assistant');
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                removeTypingIndicator(typingId);
+                addMessageToChat('Грешка при свързване със сървъра. Моля, проверете интернет връзката си.', 'assistant');
+            }
+        }
+
+        function addMessageToChat(message, role) {
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return;
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${role}`;
+            messageDiv.style.cssText = `
+                display: flex;
+                justify-content: ${role === 'user' ? 'flex-end' : 'flex-start'};
+                margin-bottom: 10px;
+            `;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.style.cssText = `
+                background: ${role === 'user' ? 'var(--primary-red)' : 'white'};
+                color: ${role === 'user' ? 'white' : 'var(--text-dark)'};
+                padding: 10px 15px;
+                border-radius: 12px;
+                max-width: 80%;
+                font-size: 0.9rem;
+                line-height: 1.4;
+                word-wrap: break-word;
+            `;
+            bubble.textContent = message;
+
+            messageDiv.appendChild(bubble);
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return null;
+
+            const typingDiv = document.createElement('div');
+            const id = 'typing-' + Date.now();
+            typingDiv.id = id;
+            typingDiv.style.cssText = 'display: flex; justify-content: flex-start; margin-bottom: 10px;';
+            typingDiv.innerHTML = `
+                <div style="background: white; padding: 10px 15px; border-radius: 12px; font-size: 0.9rem; color: #999;">
+                    <i class="fas fa-ellipsis-h fa-pulse"></i> Пише...
+                </div>
+            `;
+
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            return id;
+        }
+
+        function removeTypingIndicator(id) {
+            const indicator = document.getElementById(id);
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // Helper function
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Add animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideUp {
+                from {
+                    transform: translateY(20px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
 
     </script>
 </body>

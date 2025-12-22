@@ -1,0 +1,503 @@
+/**
+ * Cloudflare Worker for AI Diet Application
+ * Backend endpoint: https://aidiet.radilov-k.workers.dev/
+ */
+
+// CORS headers for client-side requests
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json'
+};
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: CORS_HEADERS });
+    }
+
+    try {
+      // Route handling
+      if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
+        return await handleGeneratePlan(request, env);
+      } else if (url.pathname === '/api/chat' && request.method === 'POST') {
+        return await handleChat(request, env);
+      } else if (url.pathname === '/api/get-plan' && request.method === 'GET') {
+        return await handleGetPlan(request, env);
+      } else {
+        return jsonResponse({ error: 'Not found' }, 404);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      return jsonResponse({ error: error.message }, 500);
+    }
+  }
+};
+
+/**
+ * Generate nutrition plan from questionnaire data
+ */
+async function handleGeneratePlan(request, env) {
+  try {
+    const data = await request.json();
+    
+    // Validate required fields
+    if (!data.name || !data.age || !data.weight || !data.height) {
+      return jsonResponse({ error: 'Missing required fields' }, 400);
+    }
+
+    // Generate unique user ID (could be email or session-based)
+    const userId = data.email || generateUserId(data);
+    
+    // Check if plan exists in cache
+    const cachedPlan = await getCachedPlan(env, userId);
+    if (cachedPlan) {
+      console.log('Returning cached plan for user:', userId);
+      return jsonResponse({ 
+        success: true, 
+        plan: cachedPlan,
+        cached: true,
+        userId: userId 
+      });
+    }
+
+    // Generate prompt for AI model
+    const prompt = generateNutritionPrompt(data);
+    
+    // Call AI model (placeholder - will be configured with Gemini or OpenAI)
+    const aiResponse = await callAIModel(env, prompt);
+    
+    // Parse and structure the response
+    const structuredPlan = parseAIResponse(aiResponse);
+    
+    // Cache the plan and user data
+    await cachePlan(env, userId, structuredPlan);
+    await cacheUserData(env, userId, data);
+    
+    return jsonResponse({ 
+      success: true, 
+      plan: structuredPlan,
+      cached: false,
+      userId: userId 
+    });
+  } catch (error) {
+    console.error('Error generating plan:', error);
+    return jsonResponse({ error: 'Failed to generate plan: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Handle chat assistant requests
+ */
+async function handleChat(request, env) {
+  try {
+    const { message, userId, conversationId } = await request.json();
+    
+    if (!message || !userId) {
+      return jsonResponse({ error: 'Missing message or userId' }, 400);
+    }
+
+    // Get user context from cache
+    const userData = await getCachedUserData(env, userId);
+    const userPlan = await getCachedPlan(env, userId);
+    
+    if (!userData || !userPlan) {
+      return jsonResponse({ 
+        error: 'User data not found. Please complete the questionnaire first.' 
+      }, 404);
+    }
+
+    // Get conversation history
+    const conversationKey = `chat_${userId}_${conversationId || 'default'}`;
+    const conversationHistory = await getConversationHistory(env, conversationKey);
+    
+    // Build chat prompt with context
+    const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory);
+    
+    // Call AI model
+    const aiResponse = await callAIModel(env, chatPrompt);
+    
+    // Update conversation history
+    await updateConversationHistory(env, conversationKey, message, aiResponse);
+    
+    return jsonResponse({ 
+      success: true, 
+      response: aiResponse 
+    });
+  } catch (error) {
+    console.error('Error in chat:', error);
+    return jsonResponse({ error: 'Chat failed: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Get cached plan for a user
+ */
+async function handleGetPlan(request, env) {
+  const url = new URL(request.url);
+  const userId = url.searchParams.get('userId');
+  
+  if (!userId) {
+    return jsonResponse({ error: 'Missing userId' }, 400);
+  }
+
+  const cachedPlan = await getCachedPlan(env, userId);
+  
+  if (!cachedPlan) {
+    return jsonResponse({ error: 'Plan not found' }, 404);
+  }
+
+  return jsonResponse({ 
+    success: true, 
+    plan: cachedPlan 
+  });
+}
+
+/**
+ * Generate nutrition plan prompt for AI
+ */
+function generateNutritionPrompt(data) {
+  return `Ти си професионален диетолог и здравен консултант. Създай подробен 7-дневен хранителен план за клиент със следните характеристики:
+
+ОСНОВНИ ДАННИ:
+- Име: ${data.name}
+- Пол: ${data.gender}
+- Възраст: ${data.age} години
+- Ръст: ${data.height} см
+- Тегло: ${data.weight} кг
+- Цел: ${data.goal}
+${data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : ''}
+
+ЗДРАВОСЛОВЕН ПРОФИЛ:
+- Сън: ${data.sleepHours} часа
+- Хронотип: ${data.chronotype}
+- Активност през деня: ${data.dailyActivityLevel}
+- Стрес: ${data.stressLevel}
+- Спортна активност: ${data.sportActivity}
+
+ХРАНИТЕЛНИ НАВИЦИ:
+- Вода: ${data.waterIntake}
+- Прекомерно хранене: ${data.overeatingFrequency}
+- Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
+
+ПРЕДПОЧИТАНИЯ:
+- Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
+- Не обича/непоносимост: ${data.dietDislike || 'Няма'}
+- Любими храни: ${data.dietLove || 'Няма'}
+
+МЕДИЦИНСКИ СЪСТОЯНИЯ:
+- Състояния: ${JSON.stringify(data.medicalConditions || [])}
+- Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
+
+Моля, върни отговора в следния JSON формат:
+
+{
+  "summary": {
+    "bmr": "базова метаболитна скорост в калории",
+    "dailyCalories": "препоръчителен дневен прием калории",
+    "macros": {
+      "protein": "протеин в грамове",
+      "carbs": "въглехидрати в грамове", 
+      "fats": "мазнини в грамове"
+    }
+  },
+  "weekPlan": {
+    "day1": {
+      "meals": [
+        {
+          "type": "Закуска",
+          "time": "08:00",
+          "name": "Име на ястието",
+          "weight": "250g",
+          "description": "Кратко описание",
+          "benefits": "Ползи за здравето",
+          "calories": 350
+        }
+      ]
+    }
+  },
+  "recommendations": ["препоръка 1", "препоръка 2"],
+  "forbidden": ["забранена храна 1", "забранена храна 2"],
+  "psychology": "Психологически съвети и мотивация",
+  "waterIntake": "Препоръчителен прием на вода",
+  "supplements": "Препоръки за хранителни добавки"
+}
+
+Включи 3-5 хранения на ден за всеки от 7-те дни. Адаптирай плана към целите, предпочитанията и здравословното състояние на клиента.`;
+}
+
+/**
+ * Generate chat prompt with full context
+ */
+function generateChatPrompt(userMessage, userData, userPlan, conversationHistory) {
+  const context = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
+
+КЛИЕНТСКИ ПРОФИЛ:
+${JSON.stringify(userData, null, 2)}
+
+ХРАНИТЕЛЕН ПЛАН:
+${JSON.stringify(userPlan.summary || {}, null, 2)}
+
+${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
+
+Отговори на въпроса на клиента като професионален диетолог, психолог и здравен консултант. Използвай информацията от неговия профил и план, за да дадеш персонализиран съвет. Бъди топъл, подкрепящ и мотивиращ.
+
+КЛИЕНТ: ${userMessage}
+
+АСИСТЕНТ:`;
+
+  return context;
+}
+
+/**
+ * Call AI model (placeholder for Gemini or OpenAI)
+ */
+async function callAIModel(env, prompt) {
+  // This is a placeholder. Will be configured with actual API keys
+  // For now, return a mock response to test the flow
+  
+  // Check if API keys are configured
+  if (env.OPENAI_API_KEY) {
+    return await callOpenAI(env, prompt);
+  } else if (env.GEMINI_API_KEY) {
+    return await callGemini(env, prompt);
+  } else {
+    // Return mock response for development
+    console.warn('No AI API key configured. Returning mock response.');
+    return generateMockResponse(prompt);
+  }
+}
+
+/**
+ * Call OpenAI API
+ */
+async function callOpenAI(env, prompt) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7
+    })
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+/**
+ * Call Gemini API
+ */
+async function callGemini(env, prompt) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    }
+  );
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
+}
+
+/**
+ * Generate mock response for development
+ */
+function generateMockResponse(prompt) {
+  if (prompt.includes('7-дневен хранителен план')) {
+    return JSON.stringify({
+      summary: {
+        bmr: "1650",
+        dailyCalories: "1800",
+        macros: {
+          protein: "120g",
+          carbs: "180g",
+          fats: "60g"
+        }
+      },
+      weekPlan: {
+        day1: {
+          meals: [
+            {
+              type: "Закуска",
+              time: "08:00",
+              name: "Овесена каша с горски плодове",
+              weight: "250g",
+              description: "Богата на фибри. Бавните въглехидрати осигуряват енергия за целия ден.",
+              benefits: "Подобрява храносмилането и контролира кръвната захар.",
+              calories: 350
+            },
+            {
+              type: "Обяд",
+              time: "13:00",
+              name: "Пилешка пържола на скара със салата",
+              weight: "350g",
+              description: "Високо съдържание на протеин с минимални мазнини.",
+              benefits: "Подпомага мускулното възстановяване.",
+              calories: 450
+            },
+            {
+              type: "Вечеря",
+              time: "19:30",
+              name: "Бяла риба със задушени зеленчуци",
+              weight: "300g",
+              description: "Лека вечеря, богата на Омега-3 мастни киселини.",
+              benefits: "Лесна за усвояване преди сън.",
+              calories: 380
+            }
+          ]
+        },
+        day2: {
+          meals: [
+            {
+              type: "Закуска",
+              time: "08:00",
+              name: "Гръцко кисело мляко с мюсли",
+              weight: "200g",
+              description: "Протеини и пробиотици за добро храносмилане.",
+              benefits: "Подпомага чревното здраве.",
+              calories: 320
+            },
+            {
+              type: "Обяд",
+              time: "13:00",
+              name: "Телешко със зеленчуци на тиган",
+              weight: "350g",
+              description: "Балансирано ястие с протеини и витамини.",
+              benefits: "Осигурява енергия и минерали.",
+              calories: 480
+            },
+            {
+              type: "Вечеря",
+              time: "19:30",
+              name: "Пълнозърнести макарони с пуешко",
+              weight: "300g",
+              description: "Комплексни въглехидрати и постно месо.",
+              benefits: "Продължително чувство за ситост.",
+              calories: 420
+            }
+          ]
+        }
+      },
+      recommendations: [
+        "Вода (минимум 2.5л на ден)",
+        "Зеленолистни зеленчуци",
+        "Чисто месо (пилешко, пуешко)",
+        "Риба и морски дарове",
+        "Сурови ядки (в умерени количества)"
+      ],
+      forbidden: [
+        "Газирани напитки със захар",
+        "Пържени храни и фаст фууд",
+        "Сладкиши и рафинирана захар",
+        "Алкохол (особено концентрати)"
+      ],
+      psychology: "Не се обвинявайте: Ако 'съгрешите' с едно хранене, просто продължете по план следващия път. Едно хранене не разваля прогреса. Слушайте тялото си: Хранете се, когато сте гладни, а не когато сте емоционални или отегчени.",
+      waterIntake: "Поне 2.5 литра вода дневно, разпределени през целия ден",
+      supplements: "Витамин D3 (2000 IU), Омега-3 (1000mg), Магнезий (200mg)"
+    });
+  } else {
+    // Mock chat response
+    return "Благодаря за въпроса! Като ваш личен диетолог, бих искал да ви подкрепя в постигането на целите ви. Важно е да следвате плана, но също така да слушате тялото си. Имате ли конкретен въпрос за храненията или нуждаете ли се от допълнителна мотивация?";
+  }
+}
+
+/**
+ * Parse AI response to structured format
+ */
+function parseAIResponse(response) {
+  try {
+    // Try to extract JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    // If no JSON found, return the response as-is wrapped in a structure
+    return { error: 'Could not parse AI response', raw: response };
+  } catch (error) {
+    console.error('Error parsing AI response:', error);
+    return { error: 'Failed to parse response', raw: response };
+  }
+}
+
+/**
+ * Cache management functions using KV
+ */
+async function getCachedPlan(env, userId) {
+  if (!env.page_content) return null;
+  const cached = await env.page_content.get(`plan_${userId}`);
+  return cached ? JSON.parse(cached) : null;
+}
+
+async function cachePlan(env, userId, plan) {
+  if (!env.page_content) return;
+  // Cache for 7 days
+  await env.page_content.put(`plan_${userId}`, JSON.stringify(plan), {
+    expirationTtl: 60 * 60 * 24 * 7
+  });
+}
+
+async function getCachedUserData(env, userId) {
+  if (!env.page_content) return null;
+  const cached = await env.page_content.get(`user_${userId}`);
+  return cached ? JSON.parse(cached) : null;
+}
+
+async function cacheUserData(env, userId, data) {
+  if (!env.page_content) return;
+  // Cache for 7 days
+  await env.page_content.put(`user_${userId}`, JSON.stringify(data), {
+    expirationTtl: 60 * 60 * 24 * 7
+  });
+}
+
+async function getConversationHistory(env, conversationKey) {
+  if (!env.page_content) return [];
+  const cached = await env.page_content.get(conversationKey);
+  return cached ? JSON.parse(cached) : [];
+}
+
+async function updateConversationHistory(env, conversationKey, userMessage, aiResponse) {
+  if (!env.page_content) return;
+  const history = await getConversationHistory(env, conversationKey);
+  history.push(
+    { role: 'user', content: userMessage },
+    { role: 'assistant', content: aiResponse }
+  );
+  // Keep last 20 messages
+  const trimmed = history.slice(-20);
+  // Cache for 24 hours
+  await env.page_content.put(conversationKey, JSON.stringify(trimmed), {
+    expirationTtl: 60 * 60 * 24
+  });
+}
+
+/**
+ * Generate user ID from data
+ */
+function generateUserId(data) {
+  const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
+  return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+}
+
+/**
+ * Helper to create JSON response
+ */
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: CORS_HEADERS
+  });
+}
