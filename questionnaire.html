@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Въпросник за Хранителен Режим</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-red: #e74c3c;
+            --primary-red-hover: #c0392b;
+            --soft-red: #fceceb;
+            --text-dark: #2c3e50;
+            --text-gray: #95a5a6;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --input-bg: #f0f2f5;
+            --shadow: 0 10px 30px rgba(0,0,0,0.08);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent scrolling, we handle it internally */
+        }
+
+        /* --- PROGRESS BAR --- */
+        .progress-container {
+            padding: 20px 20px 0 20px;
+            background: var(--bg-color);
+            z-index: 10;
+        }
+        .progress-track {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-red);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .step-indicator {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            margin-top: 8px;
+            font-weight: 600;
+        }
+
+        /* --- MAIN CONTAINER --- */
+        .question-wrapper {
+            flex: 1;
+            position: relative;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .question-card {
+            width: 100%;
+            max-width: 500px;
+            background: transparent; 
+            /* On desktop we might want a white card, but for mobile full width feels better */
+            animation: fadeIn 0.5s forwards;
+        }
+
+        /* --- TYPOGRAPHY & INPUTS --- */
+        h2.q-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            line-height: 1.3;
+            color: var(--text-dark);
+        }
+
+        .section-title-screen {
+            text-align: center;
+        }
+        .section-icon {
+            font-size: 3rem;
+            color: var(--primary-red);
+            margin-bottom: 20px;
+            display: inline-block;
+            background: var(--soft-red);
+            padding: 20px;
+            border-radius: 50%;
+        }
+        .section-title-text {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+            font-weight: 800;
+        }
+
+        /* Input Groups */
+        .input-group { margin-bottom: 15px; position: relative; }
+
+        /* Text/Number/Email Inputs */
+        .modern-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            border: 2px solid transparent;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            transition: var(--transition);
+            outline: none;
+        }
+        .modern-input:focus {
+            border-color: var(--primary-red);
+            background: #fff;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.15);
+        }
+
+        /* Radio & Checkbox Tiles */
+        .options-grid {
+            display: grid;
+            gap: 12px;
+        }
+        .option-label {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            background: var(--card-bg);
+            border: 2px solid transparent;
+            border-radius: var(--radius);
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: var(--transition);
+            position: relative;
+            font-weight: 500;
+        }
+        .option-label:active { transform: scale(0.98); }
+        
+        .option-input { display: none; } /* Hide default radio/checkbox */
+
+        /* Checkmark/Radio Circle visual */
+        .custom-check {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        .option-input[type="checkbox"] + .custom-check { border-radius: 6px; }
+
+        .custom-check::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%; /* or 2px for checkbox */
+            opacity: 0;
+            transform: scale(0);
+            transition: var(--transition);
+        }
+        .option-input[type="checkbox"] + .custom-check::after { border-radius: 2px; }
+
+        /* Selected State */
+        .option-input:checked + .custom-check {
+            background-color: var(--primary-red);
+            border-color: var(--primary-red);
+        }
+        .option-input:checked + .custom-check::after {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .option-label.selected {
+            border-color: var(--primary-red);
+            background-color: var(--soft-red);
+            color: var(--primary-red);
+            font-weight: 700;
+        }
+
+        /* Textarea */
+        textarea.modern-input {
+            min-height: 120px;
+            resize: none;
+        }
+
+        /* Other Input (Hidden by default) */
+        .other-input-container {
+            margin-top: 10px;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        .other-input-container.active { display: block; }
+
+        /* --- FOOTER NAVIGATION --- */
+        .nav-footer {
+            padding: 20px;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+
+        .btn {
+            border: none;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-prev {
+            background: transparent;
+            color: var(--text-gray);
+        }
+        .btn-prev:hover { color: var(--text-dark); }
+
+        .btn-next {
+            background-color: var(--primary-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            min-width: 120px;
+        }
+        .btn-next:disabled {
+            background-color: #e0e0e0;
+            box-shadow: none;
+            cursor: not-allowed;
+            color: #a0a0a0;
+        }
+        .btn-next i { margin-left: 8px; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Helper for hiding */
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Progress -->
+    <div class="progress-container">
+        <div class="progress-track">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <div class="step-indicator" id="stepIndicator">Въпрос 1</div>
+    </div>
+
+    <!-- Dynamic Content Area -->
+    <div class="question-wrapper" id="questionContainer">
+        <!-- Content injected by JS -->
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-footer">
+        <button class="btn btn-prev" id="prevBtn" onclick="prevStep()">
+            <i class="fas fa-arrow-left"></i> &nbsp;Назад
+        </button>
+        <button class="btn btn-next" id="nextBtn" onclick="nextStep()" disabled>
+            Напред <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <script>
+        // --- JSON DATA (Inserted directly from your file) ---
+        const rawQuestions = [
+            { "id": "secBasics", "type": "section", "sectionTitle": "Основни данни" },
+            { "id": "name", "text": "Въведете вашето име:", "type": "text", "options": [] },
+            { "id": "gender", "text": "Моля, изберете вашия пол:", "type": "radio", "options": ["Мъж", "Жена"] },
+            { "id": "age", "text": "Въведете вашата възраст:", "type": "number", "options": [] },
+            { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
+            { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
+            { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
+            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Оформяне", "Покачване на мускулна маса", "Антиейджинг"], "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] } },
+            { "id": "secLifestyle", "type": "section", "sectionTitle": "Сън, ритъм и активност" },
+            { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
+            { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
+            { "id": "chronotype", "text": "Вашият хронотип:", "type": "radio", "options": ["Сутрешен", "Вечерен", "Неутрален"] },
+            { "id": "dailyActivityLevel", "text": "Ниво на активност през деня:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
+            { "id": "stressLevel", "text": "Ниво на стрес:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
+            { "id": "sportActivity", "text": "Ниво на спортна активност:", "type": "radio", "options": ["Висока (5–7 дни седмично)", "Средна (2–4 дни седмично)", "Ниска (1–2 дни седмично)", "Никаква (0 дни седмично)"] },
+            { "id": "secHydration", "type": "section", "sectionTitle": "Прием на течности" },
+            { "id": "waterIntake", "text": "Колко вода пиете дневно?", "type": "radio", "options": ["под 1 л", "1–1.5 л", "1.5–2 л", "над 2 л"] },
+            { "id": "drinksSweet", "text": "Сокове, газирани напитки, фрешове:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
+            { "id": "drinksAlcohol", "text": "Напитки с алкохолно съдържание:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
+            { "id": "secEating", "type": "section", "sectionTitle": "Хранене и поведение" },
+            { "id": "weightChange", "text": "Имали ли сте рязко покачване на тегло?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и успяхте ли да ги свалите?", "type": "textarea", "options": [] }] } },
+            { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
+            { "id": "overeatingFrequency", "text": "Колко често ядете повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
+            { "id": "foodCravings", "text": "Често изпитвате нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / снакс", "Друго"], "hasOtherInput": true },
+            { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за храна?", "type": "checkbox", "options": ["Напрежение", "Скука", "Тъга", "Социални събития", "Нито едно", "Друго"], "hasOtherInput": true },
+            { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна"] },
+            { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true },
+            { "id": "socialComparison", "text": "Колко често се сравнявате с други хора (вкл. социални мрежи)?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
+            { "id": "secPreferences", "type": "section", "sectionTitle": "Хранителни предпочитания" },
+            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго"], "hasOtherInput": true },
+            { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [] },
+            { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [] },
+            { "id": "secMedical", "type": "section", "sectionTitle": "Медицинско състояние" },
+            { "id": "medicalConditions", "text": "Имате ли някое от следните медицински състояния?", "type": "checkbox", "options": ["Инсулинова резистентност", "Диабет", "Хашимото", "Депресия", "Тревожност", "IBS", "IBD", "Алергии", "Автоимунно", "Рефлукс", "Друго", "Нямам"], "hasOtherInput": true },
+            { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
+            { "id": "secExtra", "type": "section", "sectionTitle": "Допълнителна информация" },
+            { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [] }
+        ];
+
+        // --- STATE MANAGEMENT ---
+        let currentQueue = [...rawQuestions]; // Queue that expands dynamically
+        let currentIndex = 0;
+        let answers = {};
+        
+        // --- DOM ELEMENTS ---
+        const container = document.getElementById('questionContainer');
+        const nextBtn = document.getElementById('nextBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const progressBar = document.getElementById('progressBar');
+        const stepIndicator = document.getElementById('stepIndicator');
+
+        // --- INITIALIZATION ---
+        function init() {
+            renderStep();
+        }
+
+        // --- CORE RENDER FUNCTION ---
+        function renderStep() {
+            const step = currentQueue[currentIndex];
+            
+            // Update Progress
+            const percent = ((currentIndex + 1) / currentQueue.length) * 100;
+            progressBar.style.width = `${percent}%`;
+            stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${currentQueue.length}`;
+            
+            // Animation out
+            container.innerHTML = ''; 
+
+            const card = document.createElement('div');
+            card.className = 'question-card';
+
+            if (step.type === 'section') {
+                renderSectionTitle(card, step);
+                nextBtn.textContent = 'Продължи';
+                nextBtn.removeAttribute('disabled');
+                // Auto-advance logic could go here, but manual is safer UX
+            } else {
+                renderQuestion(card, step);
+                nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
+                validateInput(); // Check if already answered (when going back)
+            }
+
+            container.appendChild(card);
+            
+            // Manage Buttons
+            prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
+            
+            if(currentIndex === currentQueue.length - 1 && step.type !== 'section') {
+                nextBtn.innerHTML = 'Завърши <i class="fas fa-check"></i>';
+            }
+        }
+
+        // --- RENDER HELPERS ---
+        function renderSectionTitle(card, step) {
+            let icon = 'fa-list-ul';
+            if(step.id.includes('Basics')) icon = 'fa-user';
+            if(step.id.includes('Lifestyle')) icon = 'fa-bed';
+            if(step.id.includes('Hydration')) icon = 'fa-tint';
+            if(step.id.includes('Eating')) icon = 'fa-utensils';
+            if(step.id.includes('Medical')) icon = 'fa-heartbeat';
+
+            card.innerHTML = `
+                <div class="section-title-screen">
+                    <div class="section-icon"><i class="fas ${icon}"></i></div>
+                    <h2 class="section-title-text">${step.sectionTitle}</h2>
+                </div>
+            `;
+        }
+
+        function renderQuestion(card, step) {
+            const h2 = document.createElement('h2');
+            h2.className = 'q-text';
+            h2.textContent = step.text;
+            card.appendChild(h2);
+
+            // Determine input type
+            if (['text', 'number', 'email'].includes(step.type)) {
+                const input = document.createElement('input');
+                input.type = step.type;
+                input.className = 'modern-input';
+                input.placeholder = 'Вашият отговор...';
+                input.value = answers[step.id] || '';
+                input.oninput = (e) => saveAnswer(step.id, e.target.value);
+                card.appendChild(input);
+            } 
+            else if (step.type === 'textarea') {
+                const input = document.createElement('textarea');
+                input.className = 'modern-input';
+                input.placeholder = 'Напишете тук...';
+                input.value = answers[step.id] || '';
+                input.oninput = (e) => saveAnswer(step.id, e.target.value);
+                card.appendChild(input);
+            }
+            else if (['radio', 'checkbox'].includes(step.type)) {
+                const grid = document.createElement('div');
+                grid.className = 'options-grid';
+                
+                step.options.forEach(opt => {
+                    const label = document.createElement('label');
+                    label.className = 'option-label';
+                    
+                    const input = document.createElement('input');
+                    input.type = step.type;
+                    input.name = step.id; // Group for radios
+                    input.value = opt;
+                    input.className = 'option-input';
+                    
+                    // Check if selected previously
+                    if(answers[step.id]) {
+                        if(step.type === 'radio' && answers[step.id] === opt) {
+                            input.checked = true;
+                            label.classList.add('selected');
+                        }
+                        if(step.type === 'checkbox' && Array.isArray(answers[step.id]) && answers[step.id].includes(opt)) {
+                            input.checked = true;
+                            label.classList.add('selected');
+                        }
+                    }
+
+                    // Event Listener
+                    input.onchange = (e) => handleSelection(e, step.id, step.type, label);
+
+                    const checkmark = document.createElement('div');
+                    checkmark.className = 'custom-check';
+
+                    label.appendChild(input);
+                    label.appendChild(checkmark);
+                    label.appendChild(document.createTextNode(opt));
+                    grid.appendChild(label);
+                });
+                
+                card.appendChild(grid);
+
+                // Handle "Other" field if needed
+                if(step.hasOtherInput) {
+                    const otherContainer = document.createElement('div');
+                    otherContainer.className = 'other-input-container';
+                    otherContainer.id = `other_${step.id}`;
+                    
+                    const otherInput = document.createElement('input');
+                    otherInput.type = 'text';
+                    otherInput.className = 'modern-input';
+                    otherInput.placeholder = 'Моля уточнете...';
+                    otherInput.style.marginTop = '10px';
+                    otherInput.oninput = (e) => saveOther(step.id, e.target.value);
+
+                    otherContainer.appendChild(otherInput);
+                    card.appendChild(otherContainer);
+
+                    // Check if we need to show it initially (if user went back)
+                    if(answers[step.id] && (Array.isArray(answers[step.id]) && answers[step.id].includes('Друго'))) {
+                        otherContainer.classList.add('active');
+                        if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
+                    }
+                }
+            }
+        }
+
+        // --- LOGIC HANDLERS ---
+
+        function handleSelection(e, qId, type, labelElem) {
+            const val = e.target.value;
+            
+            if (type === 'radio') {
+                // Remove selected class from others
+                document.querySelectorAll(`input[name="${qId}"]`).forEach(inp => {
+                    inp.parentElement.classList.remove('selected');
+                });
+                labelElem.classList.add('selected');
+                saveAnswer(qId, val);
+            } 
+            else if (type === 'checkbox') {
+                labelElem.classList.toggle('selected');
+                // Collect all checked
+                const checked = Array.from(document.querySelectorAll(`input[name="${qId}"]:checked`)).map(cb => cb.value);
+                saveAnswer(qId, checked);
+
+                // Handle "Other" display
+                const otherContainer = document.getElementById(`other_${qId}`);
+                if(otherContainer) {
+                    if(checked.includes('Друго')) {
+                        otherContainer.classList.add('active');
+                    } else {
+                        otherContainer.classList.remove('active');
+                    }
+                }
+            }
+        }
+
+        function saveAnswer(id, value) {
+            answers[id] = value;
+            validateInput();
+        }
+
+        function saveOther(parentId, value) {
+            answers[`${parentId}_other`] = value;
+        }
+
+        function validateInput() {
+            const step = currentQueue[currentIndex];
+            if(step.type === 'section') {
+                nextBtn.disabled = false;
+                return;
+            }
+
+            const val = answers[step.id];
+            
+            // Simple validation: not empty, not null, if array not empty
+            let isValid = false;
+            if (val) {
+                if(Array.isArray(val)) {
+                    isValid = val.length > 0;
+                } else {
+                    isValid = String(val).trim().length > 0;
+                }
+            }
+            
+            // For optional "notes" fields, you might want to always allow true
+            if(step.id === 'additionalNotes') isValid = true;
+
+            nextBtn.disabled = !isValid;
+        }
+
+        // --- NAVIGATION & BRANCHING ---
+
+        function nextStep() {
+            const currentQ = currentQueue[currentIndex];
+            
+            // BRANCHING LOGIC: Check if current answer triggers children
+            if (currentQ.children && answers[currentQ.id]) {
+                const answerVal = answers[currentQ.id];
+                // Check if the specific answer has children in the JSON
+                if(currentQ.children[answerVal]) {
+                    const childrenToAdd = currentQ.children[answerVal];
+                    
+                    // Insert children into queue immediately after current index
+                    // But first check if they are already there to avoid duplicates if user goes back/forth
+                    const nextQ = currentQueue[currentIndex + 1];
+                    if(!nextQ || nextQ.id !== childrenToAdd[0].id) {
+                         currentQueue.splice(currentIndex + 1, 0, ...childrenToAdd);
+                    }
+                }
+            }
+
+            if (currentIndex < currentQueue.length - 1) {
+                currentIndex++;
+                renderStep();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function prevStep() {
+            if (currentIndex > 0) {
+                // Here we might want to logic to "remove" injected children if answer changed, 
+                // but for simplicity in this demo, we just go back. 
+                // The forward logic handles re-injection.
+                currentIndex--;
+                renderStep();
+            }
+        }
+
+        function finishQuiz() {
+            console.log("Final JSON:", JSON.stringify(answers, null, 2));
+            container.innerHTML = `
+                <div style="text-align:center; animation: fadeIn 0.5s;">
+                    <div class="section-icon" style="background:#e8f8f5; color:#27ae60;">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h2 class="q-text">Благодарим ви!</h2>
+                    <p style="color:#7f8c8d; margin-bottom:20px;">Вашият профил е създаден успешно.</p>
+                    <button class="btn btn-next" onclick="alert('Данните са готови за изпращане!')" style="margin:0 auto;">Готово</button>
+                </div>
+            `;
+            document.querySelector('.nav-footer').style.display = 'none';
+            document.querySelector('.progress-container').style.display = 'none';
+        }
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>
