@@ -163,11 +163,11 @@ async function handleGeneratePlan(request, env) {
 }
 
 /**
- * Helper function to clean a response by removing UPDATE_PLAN from a given index
+ * Helper function to clean a response by removing REGENERATE_PLAN from a given index
  * Returns a fallback error message if the cleaned response is empty
  */
-function cleanResponseFromUpdatePlan(aiResponse, updatePlanIndex) {
-  const cleanedResponse = aiResponse.substring(0, updatePlanIndex).trim();
+function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
+  const cleanedResponse = aiResponse.substring(0, regenerateIndex).trim();
   return cleanedResponse || ERROR_MESSAGE_PARSE_FAILURE;
 }
 
@@ -202,20 +202,20 @@ async function handleChat(request, env) {
     // Build chat prompt with context and mode
     const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory, chatMode);
     
-    // Call AI model with increased token limit to accommodate plan updates (4000 tokens for full week plan updates)
-    const aiResponse = await callAIModel(env, chatPrompt, 4000);
+    // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
+    const aiResponse = await callAIModel(env, chatPrompt, 2000);
     
-    // Check if the response contains a plan update instruction
-    const updatePlanIndex = aiResponse.indexOf('[UPDATE_PLAN:');
+    // Check if the response contains a plan regeneration instruction
+    const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
     let finalResponse = aiResponse;
     let planWasUpdated = false;
     
-    if (updatePlanIndex !== -1) {
-      // Always parse and remove UPDATE_PLAN from the response, regardless of mode
+    if (regenerateIndex !== -1) {
+      // Always parse and remove REGENERATE_PLAN from the response, regardless of mode
       try {
-        // Find the JSON content between [UPDATE_PLAN: and the matching closing ]
-        const jsonStart = updatePlanIndex + '[UPDATE_PLAN:'.length;
-        let jsonEnd = -1; // Will be set when we find the closing bracket
+        // Find the JSON content between [REGENERATE_PLAN: and the matching closing ]
+        const jsonStart = regenerateIndex + '[REGENERATE_PLAN:'.length;
+        let jsonEnd = -1;
         let bracketCount = 0;
         let braceCount = 0;
         let inString = false;
@@ -225,7 +225,6 @@ async function handleChat(request, env) {
         for (let i = jsonStart; i < aiResponse.length; i++) {
           const char = aiResponse[i];
           
-          // Handle escape sequences in strings
           if (escapeNext) {
             escapeNext = false;
             continue;
@@ -236,13 +235,11 @@ async function handleChat(request, env) {
             continue;
           }
           
-          // Track whether we're inside a string
           if (char === '"') {
             inString = !inString;
             continue;
           }
           
-          // Only count brackets/braces outside of strings
           if (!inString) {
             if (char === '{') {
               braceCount++;
@@ -251,7 +248,6 @@ async function handleChat(request, env) {
             } else if (char === '[') {
               bracketCount++;
             } else if (char === ']') {
-              // If both counts are 0 before decrementing, this ] closes UPDATE_PLAN
               if (braceCount === 0 && bracketCount === 0) {
                 jsonEnd = i;
                 break;
@@ -264,45 +260,46 @@ async function handleChat(request, env) {
         if (jsonEnd > jsonStart) {
           const jsonContent = aiResponse.substring(jsonStart, jsonEnd);
           
-          // Remove the UPDATE_PLAN instruction from the response (always, regardless of mode)
-          const beforeUpdate = aiResponse.substring(0, updatePlanIndex);
-          const afterUpdate = aiResponse.substring(jsonEnd + 1); // +1 to skip the closing ]
-          finalResponse = (beforeUpdate + afterUpdate).trim();
+          // Remove the REGENERATE_PLAN instruction from the response
+          const beforeRegenerate = aiResponse.substring(0, regenerateIndex);
+          const afterRegenerate = aiResponse.substring(jsonEnd + 1);
+          finalResponse = (beforeRegenerate + afterRegenerate).trim();
           
-          // Only actually apply the update if we're in modification mode
+          // Only actually regenerate if we're in modification mode
           if (chatMode === 'modification') {
-            console.log('UPDATE_PLAN detected and parsed successfully (length:', jsonContent.length, 'chars)');
+            console.log('REGENERATE_PLAN detected, regenerating plan with modifications');
             
-            const updateData = JSON.parse(jsonContent);
+            const regenerateData = JSON.parse(jsonContent);
+            const modifications = regenerateData.modifications || [];
             
-            // Update the plan in cache
-            const updatedPlan = {
-              ...userPlan,
-              ...updateData,
-              lastModified: new Date().toISOString(),
-              modificationReason: 'User requested change via assistant'
+            // Apply modifications to user data and regenerate plan
+            const modifiedUserData = {
+              ...userData,
+              planModifications: [...(userData.planModifications || []), ...modifications]
             };
-            await cachePlan(env, userId, updatedPlan);
+            
+            // Regenerate the plan using multi-step approach with new criteria
+            const newPlan = await generatePlanMultiStep(env, modifiedUserData);
+            
+            // Cache the updated plan and user data
+            await cachePlan(env, userId, newPlan);
+            await cacheUserData(env, userId, modifiedUserData);
             planWasUpdated = true;
             
-            console.log('Plan updated successfully');
+            console.log('Plan regenerated successfully with modifications:', modifications);
           } else {
-            console.log('UPDATE_PLAN instruction removed from response (not in modification mode)');
+            console.log('REGENERATE_PLAN instruction removed from response (not in modification mode)');
           }
         } else {
-          // Parsing failed - still try to remove the UPDATE_PLAN section
-          console.error('Could not find closing bracket for UPDATE_PLAN');
+          console.error('Could not find closing bracket for REGENERATE_PLAN');
           console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
-          // Remove everything from [UPDATE_PLAN: onwards to avoid showing broken JSON
-          finalResponse = cleanResponseFromUpdatePlan(aiResponse, updatePlanIndex);
+          finalResponse = cleanResponseFromRegenerate(aiResponse, regenerateIndex);
         }
       } catch (error) {
-        // Error occurred - still try to remove the UPDATE_PLAN section
-        console.error('Error parsing plan update:', error);
+        console.error('Error processing plan regeneration:', error);
         console.error('Error details:', error.message);
         console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
-        // Remove everything from [UPDATE_PLAN: onwards to avoid showing broken JSON
-        finalResponse = cleanResponseFromUpdatePlan(aiResponse, updatePlanIndex);
+        finalResponse = cleanResponseFromRegenerate(aiResponse, regenerateIndex);
       }
     }
     
@@ -558,6 +555,28 @@ function generateMealPlanPrompt(data, analysis, strategy) {
     }
   }
   
+  // Build modifications section if any
+  let modificationsSection = '';
+  if (data.planModifications && data.planModifications.length > 0) {
+    modificationsSection = `
+СПЕЦИАЛНИ МОДИФИКАЦИИ НА ПЛАНА:
+${data.planModifications.map(mod => {
+  const modDescriptions = {
+    'no_intermediate_meals': '- БЕЗ междинни хранения/закуски - само основни хранения (закуска, обяд, вечеря)',
+    '3_meals_per_day': '- Точно 3 хранения на ден (закуска, обяд, вечеря)',
+    '4_meals_per_day': '- 4 хранения на ден (закуска, обяд, следобедна закуска, вечеря)',
+    'vegetarian': '- ВЕГЕТАРИАНСКО хранене - без месо и риба',
+    'no_dairy': '- БЕЗ млечни продукти',
+    'low_carb': '- Нисковъглехидратна диета',
+    'increase_protein': '- Повишен прием на протеини'
+  };
+  return modDescriptions[mod] || `- ${mod}`;
+}).join('\n')}
+
+ВАЖНО: Спазвай СТРИКТНО тези модификации при генерирането на плана!
+`;
+  }
+  
   return `Създай подробен 7-дневен хранителен план, базиран на анализа и стратегията:
 
 КЛИЕНТ: ${data.name}
@@ -565,7 +584,7 @@ function generateMealPlanPrompt(data, analysis, strategy) {
 
 СТРАТЕГИЯ:
 ${JSON.stringify(strategy, null, 2)}
-
+${modificationsSection}
 ВАЖНИ НАСОКИ:
 1. Използвай САМО храни, които клиентът обича или няма непоносимост към
 2. Избягвай: ${data.dietDislike || 'няма'}
@@ -779,7 +798,7 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
 5. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
 6. Не давай дълги обяснения, освен ако не е необходимо
 7. Винаги поддържай мотивиращ тон
-8. НИКОГА не използвай [UPDATE_PLAN:...] инструкции в консултационен режим
+8. НИКОГА не използвай [REGENERATE_PLAN:...] инструкции в консултационен режим
 
 Примери за правилни отговори в консултационен режим:
 - "Закуската ти съдържа овесени ядки с банан (350 калории). За да я сменя, активирай режима за промяна на плана."
@@ -793,39 +812,32 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
 
 ВАЖНИ ПРАВИЛА ЗА ПРОМЕНИ В ПЛАНА:
 1. Ти си в режим за промяна на плана. Можеш да четеш И да променяш плана.
-2. Ако клиентът иска промяна в плана (замяна на храна, промяна на време на хранене, премахване на хранене, промяна на количество и т.н.):
+2. Ако клиентът иска промяна в плана (премахване на междинни хранения, промяна на брой хранения, диетични ограничения и т.н.):
    - Анализирай дали желанието е разумно и здравословно
-   - Ако промяната е здравословна, ОДОБРИ Я и приложи промяната към плана
+   - Ако промяната е здравословна, ОДОБРИ Я и приложи я
    - Ако промяната е нездравословна, обясни защо и предложи по-добра алтернатива
-3. За да приложиш промяна в плана, добави към края на отговора си специална инструкция във формат:
-   [UPDATE_PLAN:{"weekPlan":{"day1":{"meals":[...новите ястия за ден 1...]}}, "recommendations":[...], "forbidden":[...]}]
+
+3. За да приложиш промяна, използвай ОПРОСТЕН формат за регенериране на плана:
+   [REGENERATE_PLAN:{"modifications":["кратко_описание_на_промяната"]}]
    
-   ВАЖНО: Винаги включвай ЦЕЛИЯ масив meals за дните, които променяш, дори ако променяш само едно хранене!
+   Примери за модификации:
+   - "no_intermediate_meals" - без междинни хранения/закуски
+   - "3_meals_per_day" - само 3 хранения на ден
+   - "4_meals_per_day" - 4 хранения на ден
+   - "vegetarian" - вегетарианско хранене
+   - "no_dairy" - без млечни продукти
+   - "low_carb" - нисковъглехидратна диета
+   - "increase_protein" - повече протеини
    
-   Примери:
-   - Премахване на последното хранене от Ден 1: включи целия масив meals за day1 БЕЗ последното хранене
-   - Замяна на закуската за Ден 2: включи целия масив meals за day2 с новата закуска
-   - Промяна на ястия за няколко дни: включи целите масиви meals за всички променени дни
-   - Промяна на препоръки: [UPDATE_PLAN:{"recommendations":[...новите препоръки...]}]
-   
-4. Структурата на meals за всеки ден е масив от обекти във формат:
-   {
-     "type": "Закуска/Обяд/Вечеря/Следобедна закуска/Междинно хранене",
-     "time": "08:00",
-     "name": "Име на ястието",
-     "weight": "250g",
-     "calories": 350,
-     "description": "Описание",
-     "benefits": "Ползи"
-   }
-   ВАЖНО: 
-   - calories трябва да е число (без "kcal" текст)
-   - weight използвай формат "250g" (предпочитан) или "250 гр." (приемлив)
-   
-5. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
-6. Не давай дълги обяснения, освен ако не е необходимо
+   Примери за употреба:
+   - Клиент: "премахни междинните хранения" → [REGENERATE_PLAN:{"modifications":["no_intermediate_meals"]}]
+   - Клиент: "искам вегетарианско меню" → [REGENERATE_PLAN:{"modifications":["vegetarian"]}]
+   - Клиент: "само 3 хранения на ден" → [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]
+
+4. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
+5. След като одобриш промяна, кажи "✓ Промяната е одобрена! Регенерирам плана..." и добави инструкцията
+6. Системата автоматично ще регенерира целия план с новите критерии - ти НЕ трябва да изброяваш ястията
 7. Винаги поддържай мотивиращ тон
-8. След като приложиш промяна, кажи на клиента "✓ Промяната е приложена!" и обясни кратко какво е променено
 `;
   }
 
