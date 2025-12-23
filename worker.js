@@ -285,7 +285,7 @@ async function handleChat(request, env) {
             await cachePlan(env, userId, updatedPlan);
             planWasUpdated = true;
             
-            console.log('Plan updated successfully, planWasUpdated:', planWasUpdated);
+            console.log('Plan updated successfully');
           } else {
             console.log('UPDATE_PLAN instruction removed from response (not in modification mode)');
           }
