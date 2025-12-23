@@ -193,9 +193,12 @@ async function handleChat(request, env) {
     const aiResponse = await callAIModel(env, chatPrompt, 2000);
     
     // Check if the response contains a plan update instruction
-    // Only process UPDATE_PLAN if we're in modification mode
     const updatePlanIndex = aiResponse.indexOf('[UPDATE_PLAN:');
-    if (updatePlanIndex !== -1 && chatMode === 'modification') {
+    let finalResponse = aiResponse;
+    let planWasUpdated = false;
+    
+    if (updatePlanIndex !== -1) {
+      // Always parse and remove UPDATE_PLAN from the response, regardless of mode
       try {
         // Find the JSON content between [UPDATE_PLAN: and the matching closing ]
         const jsonStart = updatePlanIndex + '[UPDATE_PLAN:'.length;
@@ -247,53 +250,52 @@ async function handleChat(request, env) {
         
         if (jsonEnd > jsonStart) {
           const jsonContent = aiResponse.substring(jsonStart, jsonEnd);
-          console.log('UPDATE_PLAN detected and parsed successfully (length:', jsonContent.length, 'chars)');
           
-          const updateData = JSON.parse(jsonContent);
-          
-          // Update the plan in cache
-          const updatedPlan = {
-            ...userPlan,
-            ...updateData,
-            lastModified: new Date().toISOString(),
-            modificationReason: 'User requested change via assistant'
-          };
-          await cachePlan(env, userId, updatedPlan);
-          
-          // Remove the update instruction from the response
+          // Remove the UPDATE_PLAN instruction from the response (always, regardless of mode)
           const beforeUpdate = aiResponse.substring(0, updatePlanIndex);
           const afterUpdate = aiResponse.substring(jsonEnd + 1); // +1 to skip the closing ]
-          const cleanResponse = (beforeUpdate + afterUpdate).trim();
+          finalResponse = (beforeUpdate + afterUpdate).trim();
           
-          console.log('Plan updated successfully');
-          
-          // Update conversation history with the clean response
-          await updateConversationHistory(env, conversationKey, message, cleanResponse);
-          
-          return jsonResponse({ 
-            success: true, 
-            response: cleanResponse,
-            planUpdated: true
-          });
+          // Only actually apply the update if we're in modification mode
+          if (chatMode === 'modification') {
+            console.log('UPDATE_PLAN detected and parsed successfully (length:', jsonContent.length, 'chars)');
+            
+            const updateData = JSON.parse(jsonContent);
+            
+            // Update the plan in cache
+            const updatedPlan = {
+              ...userPlan,
+              ...updateData,
+              lastModified: new Date().toISOString(),
+              modificationReason: 'User requested change via assistant'
+            };
+            await cachePlan(env, userId, updatedPlan);
+            planWasUpdated = true;
+            
+            console.log('Plan updated successfully');
+          } else {
+            console.log('UPDATE_PLAN instruction removed from response (not in modification mode)');
+          }
         } else {
           console.error('Could not find closing bracket for UPDATE_PLAN');
           console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
-          // Fall through to return the original response without plan update
+          // Use original response if parsing failed
         }
       } catch (error) {
         console.error('Error parsing plan update:', error);
         console.error('Error details:', error.message);
         console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
-        // Fall through to return the original response without plan update
+        // Use original response if error occurred
       }
     }
     
-    // Update conversation history
-    await updateConversationHistory(env, conversationKey, message, aiResponse);
+    // Update conversation history with the final (cleaned) response
+    await updateConversationHistory(env, conversationKey, message, finalResponse);
     
     return jsonResponse({ 
       success: true, 
-      response: aiResponse 
+      response: finalResponse,
+      planUpdated: planWasUpdated
     });
   } catch (error) {
     console.error('Error in chat:', error);
