@@ -569,6 +569,32 @@
         let currentDay = 1;
         let chatVisible = false;
         let conversationId = Date.now().toString();
+        let chatMode = 'consultation'; // 'consultation' or 'modification'
+        
+        // UI strings for chat modes
+        const CHAT_MODE_STRINGS = {
+            consultation: {
+                activatedMessage: '🔒 Режимът за консултация е активиран. Мога да отговарям на въпроси, но не мога да променям плана.',
+                modeLabel: 'Режим: Консултация',
+                icon: { color: '#4CAF50' },
+                background: '#E8F5E9'
+            },
+            modification: {
+                activatedMessage: '🔓 Режимът за промяна на плана е активиран. Сега мога да променям вашия план според желанията ви.',
+                modeLabel: 'Режим: Промяна на план',
+                icon: { color: '#FF5722' },
+                background: '#FFEBEE'
+            },
+            // Button labels for switching modes (key is the target mode)
+            toggleButtons: {
+                toModification: '<i class="fas fa-edit"></i><span>Промени план</span>',
+                toConsultation: '<i class="fas fa-comment"></i><span>Консултация</span>'
+            },
+            buttonColors: {
+                toModification: 'var(--primary-red)',
+                toConsultation: '#4CAF50'
+            }
+        };
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', function() {
@@ -816,6 +842,16 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
+                <div id="chatModeIndicator" style="padding: 10px 15px; background: #f0f0f0; border-bottom: 1px solid var(--text-light); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-circle" id="modeIcon" style="font-size: 0.6rem; color: #4CAF50;"></i>
+                        <span id="modeText" style="font-size: 0.85rem; color: var(--text-dark); font-weight: 500;">Режим: Консултация</span>
+                    </div>
+                    <button onclick="toggleChatMode()" id="modeToggleBtn" style="background: var(--primary-red); color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
+                        <i class="fas fa-edit"></i>
+                        <span>Промени план</span>
+                    </button>
+                </div>
                 <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 15px; background: var(--bg-color);">
                     <div class="chat-message assistant">
                         <div class="message-bubble" style="background: var(--card-bg); padding: 10px 15px; border-radius: 12px; margin-bottom: 10px; max-width: 80%;">
@@ -850,6 +886,50 @@
             if (chatWindow) {
                 chatWindow.remove();
                 chatVisible = false;
+                // Reset to consultation mode when closing chat
+                chatMode = 'consultation';
+            }
+        }
+
+        function toggleChatMode() {
+            // Toggle between consultation and modification modes
+            if (chatMode === 'consultation') {
+                chatMode = 'modification';
+            } else {
+                chatMode = 'consultation';
+            }
+            
+            // Update UI to reflect the new mode
+            updateModeUI();
+            
+            // Add a system message to inform the user
+            const modeMessage = CHAT_MODE_STRINGS[chatMode].activatedMessage;
+            
+            addMessageToChat(modeMessage, 'assistant');
+        }
+
+        function updateModeUI() {
+            const modeText = document.getElementById('modeText');
+            const modeIcon = document.getElementById('modeIcon');
+            const modeToggleBtn = document.getElementById('modeToggleBtn');
+            const modeIndicator = document.getElementById('chatModeIndicator');
+            
+            if (!modeText || !modeIcon || !modeToggleBtn || !modeIndicator) return;
+            
+            const currentModeConfig = CHAT_MODE_STRINGS[chatMode];
+            
+            // Update mode label and icon
+            modeText.textContent = currentModeConfig.modeLabel;
+            modeIcon.style.color = currentModeConfig.icon.color;
+            modeIndicator.style.background = currentModeConfig.background;
+            
+            // Update toggle button (shows button to switch to the OTHER mode)
+            if (chatMode === 'modification') {
+                modeToggleBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toConsultation;
+                modeToggleBtn.style.background = CHAT_MODE_STRINGS.buttonColors.toConsultation;
+            } else {
+                modeToggleBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toModification;
+                modeToggleBtn.style.background = CHAT_MODE_STRINGS.buttonColors.toModification;
             }
         }
 
@@ -882,7 +962,8 @@
                     body: JSON.stringify({
                         userId: userId,
                         message: message,
-                        conversationId: conversationId
+                        conversationId: conversationId,
+                        mode: chatMode
                     }),
                     signal: controller.signal
                 });

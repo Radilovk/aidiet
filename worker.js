@@ -163,7 +163,7 @@ async function handleGeneratePlan(request, env) {
  */
 async function handleChat(request, env) {
   try {
-    const { message, userId, conversationId } = await request.json();
+    const { message, userId, conversationId, mode } = await request.json();
     
     if (!message || !userId) {
       return jsonResponse({ error: 'Missing message or userId' }, 400);
@@ -183,16 +183,19 @@ async function handleChat(request, env) {
     const conversationKey = `chat_${userId}_${conversationId || 'default'}`;
     const conversationHistory = await getConversationHistory(env, conversationKey);
     
-    // Build chat prompt with context
-    const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory);
+    // Determine chat mode (default: consultation)
+    const chatMode = mode || 'consultation';
+    
+    // Build chat prompt with context and mode
+    const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory, chatMode);
     
     // Call AI model with increased token limit to accommodate plan updates (2000 tokens for full week plan updates)
     const aiResponse = await callAIModel(env, chatPrompt, 2000);
     
     // Check if the response contains a plan update instruction
-    // Use a more robust method to extract the JSON from [UPDATE_PLAN:...] that handles nested structures
+    // Only process UPDATE_PLAN if we're in modification mode
     const updatePlanIndex = aiResponse.indexOf('[UPDATE_PLAN:');
-    if (updatePlanIndex !== -1) {
+    if (updatePlanIndex !== -1 && chatMode === 'modification') {
       try {
         // Find the JSON content between [UPDATE_PLAN: and the matching closing ]
         const jsonStart = updatePlanIndex + '[UPDATE_PLAN:'.length;
@@ -728,23 +731,54 @@ async function generateNutritionPrompt(data, env) {
 /**
  * Generate chat prompt with full context
  */
-function generateChatPrompt(userMessage, userData, userPlan, conversationHistory) {
-  const context = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
+function generateChatPrompt(userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
+  // Base context that's always included
+  const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
 КЛИЕНТСКИ ПРОФИЛ:
 ${JSON.stringify(userData, null, 2)}
 
-ПЪЛЕН ХРАНИТЕЛЕН ПЛАН (Четене и Промяна):
+ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
 ${JSON.stringify(userPlan, null, 2)}
 
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
+`;
+
+  // Mode-specific instructions
+  let modeInstructions = '';
+  
+  if (mode === 'consultation') {
+    // Consultation mode: CANNOT modify the plan
+    modeInstructions = `
+ТЕКУЩ РЕЖИМ: КОНСУЛТАЦИЯ
+
+ВАЖНИ ПРАВИЛА:
+1. Ти си в режим на консултация. Можеш да четеш плана, но НЕ МОЖЕШ да го променяш.
+2. Ако клиентът иска промяна в плана, обясни му че трябва да активира режима за промяна на плана
+3. Кажи: "За да променя плана, моля активирай режима за промяна в интерфейса на чата."
+4. Можеш да даваш съвети, да отговаряш на въпроси и да обясняваш плана
+5. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
+6. Не давай дълги обяснения, освен ако не е необходимо
+7. Винаги поддържай мотивиращ тон
+8. НИКОГА не използвай [UPDATE_PLAN:...] инструкции в консултационен режим
+
+Примери за правилни отговори в консултационен режим:
+- "Закуската ти съдържа овесени ядки с банан (350 калории). За да я сменя, активирай режима за промяна на плана."
+- "Можеш да замениш рибата с пилешко месо - и двете са отлични източници на протеин. За промяна, активирай режима за промяна на плана."
+- "Количеството кашкавал в момента е 100г. Това е добро количество за твоята цел."
+`;
+  } else if (mode === 'modification') {
+    // Modification mode: CAN modify the plan
+    modeInstructions = `
+ТЕКУЩ РЕЖИМ: ПРОМЯНА НА ПЛАНА
 
 ВАЖНИ ПРАВИЛА ЗА ПРОМЕНИ В ПЛАНА:
-1. Ако клиентът иска промяна в плана (замяна на храна, промяна на време на хранене, премахване на хранене, промяна на количество и т.н.):
+1. Ти си в режим за промяна на плана. Можеш да четеш И да променяш плана.
+2. Ако клиентът иска промяна в плана (замяна на храна, промяна на време на хранене, премахване на хранене, промяна на количество и т.н.):
    - Анализирай дали желанието е разумно и здравословно
    - Ако промяната е здравословна, ОДОБРИ Я и приложи промяната към плана
    - Ако промяната е нездравословна, обясни защо и предложи по-добра алтернатива
-2. За да приложиш промяна в плана, добави към края на отговора си специална инструкция във формат:
+3. За да приложиш промяна в плана, добави към края на отговора си специална инструкция във формат:
    [UPDATE_PLAN:{"weekPlan":{"day1":{"meals":[...новите ястия за ден 1...]}}, "recommendations":[...], "forbidden":[...]}]
    
    ВАЖНО: Винаги включвай ЦЕЛИЯ масив meals за дните, които променяш, дори ако променяш само едно хранене!
@@ -755,7 +789,7 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
    - Промяна на ястия за няколко дни: включи целите масиви meals за всички променени дни
    - Промяна на препоръки: [UPDATE_PLAN:{"recommendations":[...новите препоръки...]}]
    
-3. Структурата на meals за всеки ден е масив от обекти във формат:
+4. Структурата на meals за всеки ден е масив от обекти във формат:
    {
      "type": "Закуска/Обяд/Вечеря/Следобедна закуска/Междинно хранене",
      "time": "08:00",
@@ -769,16 +803,21 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
    - calories трябва да е число (без "kcal" текст)
    - weight използвай формат "250g" (предпочитан) или "250 гр." (приемлив)
    
-4. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
-5. Не давай дълги обяснения, освен ако не е необходимо
-6. Винаги поддържай мотивиращ тон
-7. След като приложиш промяна, кажи на клиента "✓ Промяната е приложена!" и обясни кратко какво е променено
+5. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
+6. Не давай дълги обяснения, освен ако не е необходимо
+7. Винаги поддържай мотивиращ тон
+8. След като приложиш промяна, кажи на клиента "✓ Промяната е приложена!" и обясни кратко какво е променено
+`;
+  }
+
+  const fullPrompt = `${baseContext}
+${modeInstructions}
 
 КЛИЕНТ: ${userMessage}
 
 АСИСТЕНТ (отговори КРАТКО):`;
 
-  return context;
+  return fullPrompt;
 }
 
 /**
