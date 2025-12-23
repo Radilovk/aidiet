@@ -272,20 +272,30 @@ async function handleChat(request, env) {
             await cachePlan(env, userId, updatedPlan);
             planWasUpdated = true;
             
-            console.log('Plan updated successfully');
+            console.log('Plan updated successfully, planWasUpdated:', planWasUpdated);
           } else {
             console.log('UPDATE_PLAN instruction removed from response (not in modification mode)');
           }
         } else {
+          // Parsing failed - still try to remove the UPDATE_PLAN section
           console.error('Could not find closing bracket for UPDATE_PLAN');
           console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
-          // Use original response if parsing failed
+          // Remove everything from [UPDATE_PLAN: onwards to avoid showing broken JSON
+          finalResponse = aiResponse.substring(0, updatePlanIndex).trim();
+          if (!finalResponse) {
+            finalResponse = 'Имаше проблем с обработката на отговора. Моля опитайте отново.';
+          }
         }
       } catch (error) {
+        // Error occurred - still try to remove the UPDATE_PLAN section
         console.error('Error parsing plan update:', error);
         console.error('Error details:', error.message);
         console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
-        // Use original response if error occurred
+        // Remove everything from [UPDATE_PLAN: onwards to avoid showing broken JSON
+        finalResponse = aiResponse.substring(0, updatePlanIndex).trim();
+        if (!finalResponse) {
+          finalResponse = 'Имаше проблем с обработката на отговора. Моля опитайте отново.';
+        }
       }
     }
     
