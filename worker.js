@@ -202,8 +202,8 @@ async function handleChat(request, env) {
     // Build chat prompt with context and mode
     const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory, chatMode);
     
-    // Call AI model with increased token limit to accommodate plan updates (2000 tokens for full week plan updates)
-    const aiResponse = await callAIModel(env, chatPrompt, 2000);
+    // Call AI model with increased token limit to accommodate plan updates (4000 tokens for full week plan updates)
+    const aiResponse = await callAIModel(env, chatPrompt, 4000);
     
     // Check if the response contains a plan update instruction
     const updatePlanIndex = aiResponse.indexOf('[UPDATE_PLAN:');
