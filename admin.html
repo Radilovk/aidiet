@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Админ Панел - NutriPlan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-red: #e74c3c;
+            --primary-dark: #c0392b;
+            --soft-red: #fadbd8;
+            --bg-color: #f8f9fa;
+            --text-dark: #2c3e50;
+            --text-gray: #636e72;
+            --white: #ffffff;
+            --shadow: 0 10px 30px rgba(0,0,0,0.08);
+            --radius: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+        }
+
+        .logout-btn {
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--text-dark);
+            border-bottom: 2px solid var(--soft-red);
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-red);
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn {
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info-box {
+            background: #e8f8f5;
+            border-left: 4px solid #27ae60;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .login-card h1 {
+            margin-bottom: 30px;
+            color: var(--primary-red);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <h1><i class="fas fa-shield-alt"></i> Админ Вход</h1>
+            <div class="form-group">
+                <input type="password" id="adminPassword" placeholder="Парола" onkeypress="if(event.key==='Enter') login()">
+            </div>
+            <button class="btn" onclick="login()">
+                <i class="fas fa-sign-in-alt"></i> Вход
+            </button>
+            <div id="loginError" class="error-message" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" style="display: none;">
+        <div class="container">
+            <header>
+                <h1><i class="fas fa-cog"></i> Админ Панел</h1>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Изход
+                </button>
+            </header>
+
+            <!-- Stats Section -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="totalUsers">-</h3>
+                    <p>Общо Потребители</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalPlans">-</h3>
+                    <p>Генерирани Планове</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="currentModel">-</h3>
+                    <p>Активен AI Модел</p>
+                </div>
+            </div>
+
+            <div id="successMessage" class="success-message"></div>
+            <div id="errorMessage" class="error-message"></div>
+
+            <!-- AI Model Selection -->
+            <div class="card">
+                <h2><i class="fas fa-robot"></i> AI Модел</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Изберете кой AI модел да се използва за генериране на планове и чат.
+                </div>
+                <div class="form-group">
+                    <label for="aiModel">Избери AI Модел:</label>
+                    <select id="aiModel">
+                        <option value="openai">OpenAI GPT-4o-mini (Препоръчително)</option>
+                        <option value="gemini">Google Gemini Pro</option>
+                        <option value="mock">Mock (За тестване без API)</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="saveAIModel()">
+                    <i class="fas fa-save"></i> Запази Модел
+                </button>
+            </div>
+
+            <!-- AI Prompt Editor -->
+            <div class="card">
+                <h2><i class="fas fa-pen-fancy"></i> AI Промпт за Генериране на План</h2>
+                <div class="warning-box">
+                    <strong>Внимание:</strong> Променете промпта само ако знаете какво правите. Грешен промпт може да доведе до некоректни планове.
+                </div>
+                <div class="form-group">
+                    <label for="aiPrompt">Промпт Шаблон:</label>
+                    <textarea id="aiPrompt" placeholder="Въведете промпт шаблон..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Променливи:</strong> Използвайте {name}, {age}, {weight}, {height}, {goal} и други полета от въпросника.
+                </div>
+                <button class="btn" onclick="saveAIPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт
+                </button>
+                <button class="btn" onclick="resetPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
+            <!-- Chat Prompt Editor -->
+            <div class="card">
+                <h2><i class="fas fa-comments"></i> AI Промпт за Чат Асистент</h2>
+                <div class="form-group">
+                    <label for="chatPrompt">Чат Промпт Шаблон:</label>
+                    <textarea id="chatPrompt" placeholder="Въведете чат промпт шаблон..."></textarea>
+                </div>
+                <button class="btn" onclick="saveChatPrompt()">
+                    <i class="fas fa-save"></i> Запази Чат Промпт
+                </button>
+            </div>
+
+            <!-- System Actions -->
+            <div class="card">
+                <h2><i class="fas fa-tools"></i> Системни Действия</h2>
+                <button class="btn" onclick="clearCache()" style="background: #e67e22;">
+                    <i class="fas fa-trash"></i> Изчисти Кеш
+                </button>
+                <button class="btn" onclick="viewLogs()" style="background: #3498db; margin-left: 10px;">
+                    <i class="fas fa-file-alt"></i> Преглед на Логове
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WARNING: This is a basic client-side authentication for demonstration purposes.
+        // For production use, implement proper server-side authentication with the worker.
+        // This password is visible in the browser source code and should not be used for security.
+        const ADMIN_PASSWORD = 'nutriplan2024'; // TODO: Move to server-side auth
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+
+        // Default prompts
+        const DEFAULT_PLAN_PROMPT = `Ти си професионален диетолог и здравен консултант. Създай подробен 7-дневен хранителен план за клиент със следните характеристики:
+
+ОСНОВНИ ДАННИ:
+- Име: {name}
+- Пол: {gender}
+- Възраст: {age} години
+- Ръст: {height} см
+- Тегло: {weight} кг
+- Цел: {goal}
+
+ЗДРАВОСЛОВЕН ПРОФИЛ:
+- Сън: {sleepHours} часа
+- Хронотип: {chronotype}
+- Активност през деня: {dailyActivityLevel}
+- Стрес: {stressLevel}
+- Спортна активност: {sportActivity}
+
+ХРАНИТЕЛНИ НАВИЦИ:
+- Вода: {waterIntake}
+- Прекомерно хранене: {overeatingFrequency}
+
+ПРЕДПОЧИТАНИЯ:
+- Диетични предпочитания: {dietPreference}
+- Не обича/непоносимост: {dietDislike}
+- Любими храни: {dietLove}
+
+МЕДИЦИНСКИ СЪСТОЯНИЯ:
+- Състояния: {medicalConditions}
+- Лекарства: {medications}
+
+Моля, върни отговора в JSON формат с weekPlan, recommendations, forbidden, psychology, waterIntake, supplements.
+Включи 3-5 хранения на ден за всеки от 7-те дни.`;
+
+        const DEFAULT_CHAT_PROMPT = `Ти си личен диетолог, психолог и здравен асистент за {name}.
+Отговори на въпроса като професионален консултант. Бъди топъл, подкрепящ и мотивиращ.`;
+
+        // Check if logged in
+        function checkAuth() {
+            const isLoggedIn = sessionStorage.getItem('adminLoggedIn');
+            if (isLoggedIn === 'true') {
+                showDashboard();
+            }
+        }
+
+        // Login
+        function login() {
+            const password = document.getElementById('adminPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (password === ADMIN_PASSWORD) {
+                sessionStorage.setItem('adminLoggedIn', 'true');
+                showDashboard();
+            } else {
+                errorDiv.textContent = 'Грешна парола!';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Logout
+        function logout() {
+            sessionStorage.removeItem('adminLoggedIn');
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('adminDashboard').style.display = 'none';
+        }
+
+        // Show Dashboard
+        function showDashboard() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'block';
+            loadSettings();
+            loadStats();
+        }
+
+        // Load Settings
+        async function loadSettings() {
+            try {
+                // Try to load from server (KV storage) first
+                try {
+                    const response = await fetch(WORKER_URL + '/api/admin/get-config');
+                    if (response.ok) {
+                        const config = await response.json();
+                        if (config.success) {
+                            // Use server data if available
+                            if (config.model) {
+                                document.getElementById('aiModel').value = config.model;
+                                document.getElementById('currentModel').textContent = config.model.toUpperCase();
+                                localStorage.setItem('adminAIModel', config.model);
+                            }
+                            if (config.planPrompt) {
+                                document.getElementById('aiPrompt').value = config.planPrompt;
+                                localStorage.setItem('adminAIPrompt', config.planPrompt);
+                            }
+                            if (config.chatPrompt) {
+                                document.getElementById('chatPrompt').value = config.chatPrompt;
+                                localStorage.setItem('adminChatPrompt', config.chatPrompt);
+                            }
+                            return; // Successfully loaded from server
+                        }
+                    }
+                } catch (serverError) {
+                    console.warn('Could not load from server, using local cache:', serverError);
+                }
+
+                // Fallback to localStorage if server is unavailable
+                const savedModel = localStorage.getItem('adminAIModel') || 'openai';
+                document.getElementById('aiModel').value = savedModel;
+                document.getElementById('currentModel').textContent = savedModel.toUpperCase();
+
+                const savedPrompt = localStorage.getItem('adminAIPrompt') || DEFAULT_PLAN_PROMPT;
+                document.getElementById('aiPrompt').value = savedPrompt;
+
+                const savedChatPrompt = localStorage.getItem('adminChatPrompt') || DEFAULT_CHAT_PROMPT;
+                document.getElementById('chatPrompt').value = savedChatPrompt;
+
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Load Stats
+        function loadStats() {
+            // Mock stats - in production these would come from KV or analytics
+            document.getElementById('totalUsers').textContent = '-';
+            document.getElementById('totalPlans').textContent = '-';
+        }
+
+        // Save AI Model
+        async function saveAIModel() {
+            const model = document.getElementById('aiModel').value;
+            localStorage.setItem('adminAIModel', model);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('AI модел запазен успешно!');
+                document.getElementById('currentModel').textContent = model.toUpperCase();
+            } catch (error) {
+                console.error('Error saving model:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save AI Prompt
+        async function saveAIPrompt() {
+            const prompt = document.getElementById('aiPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminAIPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'plan', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('AI промпт запазен успешно!');
+            } catch (error) {
+                console.error('Error saving prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Chat Prompt
+        async function saveChatPrompt() {
+            const prompt = document.getElementById('chatPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Чат промптът не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminChatPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'chat', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Чат промпт запазен успешно!');
+            } catch (error) {
+                console.error('Error saving chat prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Reset Prompt
+        function resetPrompt() {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта по подразбиране?')) {
+                document.getElementById('aiPrompt').value = DEFAULT_PLAN_PROMPT;
+                showSuccess('Промпт възстановен по подразбиране.');
+            }
+        }
+
+        // Clear Cache
+        function clearCache() {
+            if (confirm('Сигурни ли сте, че искате да изчистите целия кеш? Това ще премахне всички запазени планове и данни.')) {
+                // In production, call worker API to clear KV
+                localStorage.clear();
+                sessionStorage.setItem('adminLoggedIn', 'true'); // Keep logged in
+                showSuccess('Кешът е изчистен успешно!');
+            }
+        }
+
+        // View Logs
+        function viewLogs() {
+            alert('Преглед на логове ще бъде имплементиран в бъдеща версия.\nЗа текущи логове, проверете Cloudflare Dashboard.');
+        }
+
+        // Helper Functions
+        function showSuccess(message) {
+            const div = document.getElementById('successMessage');
+            div.textContent = message;
+            div.style.display = 'block';
+            setTimeout(() => div.style.display = 'none', 5000);
+        }
+
+        function showError(message) {
+            const div = document.getElementById('errorMessage');
+            div.textContent = message;
+            div.style.display = 'block';
+            setTimeout(() => div.style.display = 'none', 5000);
+        }
+
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>
