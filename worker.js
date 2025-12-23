@@ -288,9 +288,13 @@ async function handleChat(request, env) {
             const modifications = regenerateData.modifications || [];
             
             // Apply modifications to user data and regenerate plan
+            // Use Set to avoid duplicates when accumulating modifications
+            const existingMods = new Set(userData.planModifications || []);
+            modifications.forEach(mod => existingMods.add(mod));
+            
             const modifiedUserData = {
               ...userData,
-              planModifications: [...(userData.planModifications || []), ...modifications]
+              planModifications: Array.from(existingMods)
             };
             
             // Regenerate the plan using multi-step approach with new criteria
@@ -573,12 +577,18 @@ function generateMealPlanPrompt(data, analysis, strategy) {
   // Build modifications section if any
   let modificationsSection = '';
   if (data.planModifications && data.planModifications.length > 0) {
-    modificationsSection = `
+    const modLines = data.planModifications
+      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
+      .filter(desc => desc !== undefined); // Skip unknown modifications
+    
+    if (modLines.length > 0) {
+      modificationsSection = `
 СПЕЦИАЛНИ МОДИФИКАЦИИ НА ПЛАНА:
-${data.planModifications.map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod] || `- ${mod}`).join('\n')}
+${modLines.join('\n')}
 
 ВАЖНО: Спазвай СТРИКТНО тези модификации при генерирането на плана!
 `;
+    }
   }
   
   return `Създай подробен 7-дневен хранителен план, базиран на анализа и стратегията:
