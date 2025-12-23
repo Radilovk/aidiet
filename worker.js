@@ -7,6 +7,47 @@
 const DEFAULT_BMR = 1650;
 const DEFAULT_DAILY_CALORIES = 1800;
 
+/**
+ * Calculate BMR using Mifflin-St Jeor Equation
+ * Men: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) + 5
+ * Women: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) - 161
+ */
+function calculateBMR(data) {
+  if (!data.weight || !data.height || !data.age || !data.gender) {
+    return DEFAULT_BMR;
+  }
+  
+  const weight = parseFloat(data.weight);
+  const height = parseFloat(data.height);
+  const age = parseFloat(data.age);
+  
+  let bmr = 10 * weight + 6.25 * height - 5 * age;
+  
+  if (data.gender === 'Мъж') {
+    bmr += 5;
+  } else if (data.gender === 'Жена') {
+    bmr -= 161;
+  }
+  
+  return Math.round(bmr);
+}
+
+/**
+ * Calculate TDEE (Total Daily Energy Expenditure) based on activity level
+ */
+function calculateTDEE(bmr, activityLevel) {
+  const activityMultipliers = {
+    'Никаква (0 дни седмично)': 1.2,
+    'Ниска (1–2 дни седмично)': 1.375,
+    'Средна (2–4 дни седмично)': 1.55,
+    'Висока (5–7 дни седмично)': 1.725,
+    'default': 1.4
+  };
+  
+  const multiplier = activityMultipliers[activityLevel] || activityMultipliers['default'];
+  return Math.round(bmr * multiplier);
+}
+
 // CORS headers for client-side requests
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -335,8 +376,22 @@ ${JSON.stringify(analysis, null, 2)}
  * Step 3: Generate prompt for detailed meal plan
  */
 function generateMealPlanPrompt(data, analysis, strategy) {
-  const recommendedCalories = analysis.recommendedCalories || DEFAULT_DAILY_CALORIES;
-  const bmr = analysis.bmr || DEFAULT_BMR;
+  // Use analysis values or calculate from user data
+  let bmr = analysis.bmr || calculateBMR(data);
+  let recommendedCalories = analysis.recommendedCalories;
+  
+  // If no recommended calories from analysis, calculate TDEE
+  if (!recommendedCalories) {
+    const tdee = calculateTDEE(bmr, data.sportActivity);
+    // Adjust based on goal
+    if (data.goal === 'Отслабване') {
+      recommendedCalories = Math.round(tdee * 0.85); // 15% deficit
+    } else if (data.goal === 'Покачване на мускулна маса') {
+      recommendedCalories = Math.round(tdee * 1.1); // 10% surplus
+    } else {
+      recommendedCalories = tdee; // Maintenance
+    }
+  }
   
   return `Създай подробен 7-дневен хранителен план, базиран на анализа и стратегията:
 
