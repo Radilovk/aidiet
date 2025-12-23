@@ -60,7 +60,6 @@ async function handleGeneratePlan(request, env) {
   try {
     console.log('handleGeneratePlan: Starting');
     const data = await request.json();
-    console.log('handleGeneratePlan: Data received', JSON.stringify(data).substring(0, 100));
     
     // Validate required fields
     if (!data.name || !data.age || !data.weight || !data.height) {
@@ -70,7 +69,7 @@ async function handleGeneratePlan(request, env) {
 
     // Generate unique user ID (could be email or session-based)
     const userId = data.email || generateUserId(data);
-    console.log('handleGeneratePlan: Generated userId', userId);
+    console.log('handleGeneratePlan: Request received for userId:', userId);
     
     // Check if plan exists in cache
     const cachedPlan = await getCachedPlan(env, userId);
@@ -84,22 +83,22 @@ async function handleGeneratePlan(request, env) {
       });
     }
 
-    console.log('handleGeneratePlan: Generating new plan');
+    console.log('handleGeneratePlan: Generating new plan for userId:', userId);
     // Generate prompt for AI model (check KV for custom prompt)
     const prompt = await generateNutritionPrompt(data, env);
     
     // Call AI model (placeholder - will be configured with Gemini or OpenAI)
     const aiResponse = await callAIModel(env, prompt);
-    console.log('handleGeneratePlan: AI response received');
+    console.log('handleGeneratePlan: AI response received for userId:', userId);
     
     // Parse and structure the response
     const structuredPlan = parseAIResponse(aiResponse);
-    console.log('handleGeneratePlan: Plan structured');
+    console.log('handleGeneratePlan: Plan structured for userId:', userId);
     
     // Cache the plan and user data
     await cachePlan(env, userId, structuredPlan);
     await cacheUserData(env, userId, data);
-    console.log('handleGeneratePlan: Plan cached');
+    console.log('handleGeneratePlan: Plan cached for userId:', userId);
     
     return jsonResponse({ 
       success: true, 

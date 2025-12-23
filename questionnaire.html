@@ -673,9 +673,8 @@
                 console.log('Response status:', response.status);
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Server error:', response.status, errorText);
-                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                    console.error('Server error:', response.status);
+                    throw new Error(`Server error: ${response.status}`);
                 }
 
                 const result = await response.json();
