@@ -28,6 +28,14 @@ export default {
         return await handleChat(request, env);
       } else if (url.pathname === '/api/get-plan' && request.method === 'GET') {
         return await handleGetPlan(request, env);
+      } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
+        return await handleSavePrompt(request, env);
+      } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
+        return await handleGetPrompt(request, env);
+      } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
+        return await handleSaveModel(request, env);
+      } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
+        return await handleGetConfig(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }
@@ -65,8 +73,8 @@ async function handleGeneratePlan(request, env) {
       });
     }
 
-    // Generate prompt for AI model
-    const prompt = generateNutritionPrompt(data);
+    // Generate prompt for AI model (check KV for custom prompt)
+    const prompt = await generateNutritionPrompt(data, env);
     
     // Call AI model (placeholder - will be configured with Gemini or OpenAI)
     const aiResponse = await callAIModel(env, prompt);
@@ -160,38 +168,46 @@ async function handleGetPlan(request, env) {
 /**
  * Generate nutrition plan prompt for AI
  */
-function generateNutritionPrompt(data) {
-  return `Ти си професионален диетолог и здравен консултант. Създай подробен 7-дневен хранителен план за клиент със следните характеристики:
+async function generateNutritionPrompt(data, env) {
+  // Try to get custom prompt from KV
+  let promptTemplate = null;
+  if (env.page_content) {
+    promptTemplate = await env.page_content.get('admin_plan_prompt');
+  }
+
+  // Use default if no custom prompt
+  if (!promptTemplate) {
+    promptTemplate = `Ти си професионален диетолог и здравен консултант. Създай подробен 7-дневен хранителен план за клиент със следните характеристики:
 
 ОСНОВНИ ДАННИ:
-- Име: ${data.name}
-- Пол: ${data.gender}
-- Възраст: ${data.age} години
-- Ръст: ${data.height} см
-- Тегло: ${data.weight} кг
-- Цел: ${data.goal}
-${data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : ''}
+- Име: {name}
+- Пол: {gender}
+- Възраст: {age} години
+- Ръст: {height} см
+- Тегло: {weight} кг
+- Цел: {goal}
+{lossKg}
 
 ЗДРАВОСЛОВЕН ПРОФИЛ:
-- Сън: ${data.sleepHours} часа
-- Хронотип: ${data.chronotype}
-- Активност през деня: ${data.dailyActivityLevel}
-- Стрес: ${data.stressLevel}
-- Спортна активност: ${data.sportActivity}
+- Сън: {sleepHours} часа
+- Хронотип: {chronotype}
+- Активност през деня: {dailyActivityLevel}
+- Стрес: {stressLevel}
+- Спортна активност: {sportActivity}
 
 ХРАНИТЕЛНИ НАВИЦИ:
-- Вода: ${data.waterIntake}
-- Прекомерно хранене: ${data.overeatingFrequency}
-- Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
+- Вода: {waterIntake}
+- Прекомерно хранене: {overeatingFrequency}
+- Хранителни навици: {eatingHabits}
 
 ПРЕДПОЧИТАНИЯ:
-- Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
-- Не обича/непоносимост: ${data.dietDislike || 'Няма'}
-- Любими храни: ${data.dietLove || 'Няма'}
+- Диетични предпочитания: {dietPreference}
+- Не обича/непоносимост: {dietDislike}
+- Любими храни: {dietLove}
 
 МЕДИЦИНСКИ СЪСТОЯНИЯ:
-- Състояния: ${JSON.stringify(data.medicalConditions || [])}
-- Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
+- Състояния: {medicalConditions}
+- Лекарства: {medications}
 
 Моля, върни отговора в следния JSON формат:
 
@@ -228,6 +244,33 @@ ${data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : ''}
 }
 
 Включи 3-5 хранения на ден за всеки от 7-те дни. Адаптирай плана към целите, предпочитанията и здравословното състояние на клиента.`;
+  }
+
+  // Replace template variables with actual data
+  return promptTemplate
+    .replace(/{name}/g, data.name || '')
+    .replace(/{gender}/g, data.gender || '')
+    .replace(/{age}/g, data.age || '')
+    .replace(/{height}/g, data.height || '')
+    .replace(/{weight}/g, data.weight || '')
+    .replace(/{goal}/g, data.goal || '')
+    .replace(/{lossKg}/g, data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : '')
+    .replace(/{sleepHours}/g, data.sleepHours || '')
+    .replace(/{chronotype}/g, data.chronotype || '')
+    .replace(/{dailyActivityLevel}/g, data.dailyActivityLevel || '')
+    .replace(/{stressLevel}/g, data.stressLevel || '')
+    .replace(/{sportActivity}/g, data.sportActivity || '')
+    .replace(/{waterIntake}/g, data.waterIntake || '')
+    .replace(/{overeatingFrequency}/g, data.overeatingFrequency || '')
+    .replace(/{eatingHabits}/g, JSON.stringify(data.eatingHabits || []))
+    .replace(/{dietPreference}/g, JSON.stringify(data.dietPreference || []))
+    .replace(/{dietDislike}/g, data.dietDislike || 'Няма')
+    .replace(/{dietLove}/g, data.dietLove || 'Няма')
+    .replace(/{medicalConditions}/g, JSON.stringify(data.medicalConditions || []))
+    .replace(/{medications}/g, data.medications === 'Да' ? data.medicationsDetails : 'Не приема');
+}
+
+Включи 3-5 хранения на ден за всеки от 7-те дни. Адаптирай плана към целите, предпочитанията и здравословното състояние на клиента.`;
 }
 
 /**
@@ -257,10 +300,29 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
  * Call AI model (placeholder for Gemini or OpenAI)
  */
 async function callAIModel(env, prompt) {
-  // This is a placeholder. Will be configured with actual API keys
-  // For now, return a mock response to test the flow
+  // Check admin preference for AI model
+  let preferredModel = 'openai'; // default
+  if (env.page_content) {
+    const savedModel = await env.page_content.get('admin_ai_model');
+    if (savedModel) {
+      preferredModel = savedModel;
+    }
+  }
+
+  // If mock is selected, return mock response
+  if (preferredModel === 'mock') {
+    console.warn('Mock mode selected. Returning mock response.');
+    return generateMockResponse(prompt);
+  }
+
+  // Try preferred model first
+  if (preferredModel === 'openai' && env.OPENAI_API_KEY) {
+    return await callOpenAI(env, prompt);
+  } else if (preferredModel === 'gemini' && env.GEMINI_API_KEY) {
+    return await callGemini(env, prompt);
+  }
   
-  // Check if API keys are configured
+  // Fallback to any available API key
   if (env.OPENAI_API_KEY) {
     return await callOpenAI(env, prompt);
   } else if (env.GEMINI_API_KEY) {
@@ -674,6 +736,106 @@ async function updateConversationHistory(env, conversationKey, userMessage, aiRe
 function generateUserId(data) {
   const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
   return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+}
+
+/**
+ * Admin: Save AI prompt to KV
+ */
+async function handleSavePrompt(request, env) {
+  try {
+    const { type, prompt } = await request.json();
+    
+    if (!type || !prompt) {
+      return jsonResponse({ error: 'Missing type or prompt' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const key = type === 'chat' ? 'admin_chat_prompt' : 'admin_plan_prompt';
+    await env.page_content.put(key, prompt);
+    
+    return jsonResponse({ success: true, message: 'Prompt saved successfully' });
+  } catch (error) {
+    console.error('Error saving prompt:', error);
+    return jsonResponse({ error: 'Failed to save prompt: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Get AI prompt from KV
+ */
+async function handleGetPrompt(request, env) {
+  try {
+    const url = new URL(request.url);
+    const type = url.searchParams.get('type') || 'plan';
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const key = type === 'chat' ? 'admin_chat_prompt' : 'admin_plan_prompt';
+    const prompt = await env.page_content.get(key);
+    
+    return jsonResponse({ success: true, prompt: prompt || null });
+  } catch (error) {
+    console.error('Error getting prompt:', error);
+    return jsonResponse({ error: 'Failed to get prompt: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Save AI model preference to KV
+ */
+async function handleSaveModel(request, env) {
+  try {
+    const { model } = await request.json();
+    
+    if (!model) {
+      return jsonResponse({ error: 'Missing model' }, 400);
+    }
+
+    if (!['openai', 'gemini', 'mock'].includes(model)) {
+      return jsonResponse({ error: 'Invalid model type' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    await env.page_content.put('admin_ai_model', model);
+    
+    return jsonResponse({ success: true, message: 'Model saved successfully' });
+  } catch (error) {
+    console.error('Error saving model:', error);
+    return jsonResponse({ error: 'Failed to save model: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Get admin configuration from KV
+ */
+async function handleGetConfig(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const model = await env.page_content.get('admin_ai_model') || 'openai';
+    const planPrompt = await env.page_content.get('admin_plan_prompt');
+    const chatPrompt = await env.page_content.get('admin_chat_prompt');
+    
+    return jsonResponse({ 
+      success: true, 
+      model,
+      planPrompt,
+      chatPrompt
+    });
+  } catch (error) {
+    console.error('Error getting config:', error);
+    return jsonResponse({ error: 'Failed to get config: ' + error.message }, 500);
+  }
 }
 
 /**

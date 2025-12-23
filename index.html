@@ -300,6 +300,14 @@
                 width: 100%;
                 text-align: center;
             }
+            nav > div {
+                flex-direction: column;
+                gap: 5px;
+            }
+            nav .nav-btn {
+                font-size: 0.85rem;
+                padding: 8px 15px;
+            }
             .hero-image { margin-top: 30px; width: 100%; }
             .phone-mockup { width: 260px; height: 520px; }
             .feature-grid {
@@ -346,7 +354,12 @@
     <!-- Navigation -->
     <nav>
         <a href="#" class="logo"><i class="fas fa-apple-alt"></i> NutriPlan</a>
-        <a href="questionnaire.html" class="nav-btn">Започни Сега</a>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="plan.html" class="nav-btn" id="myPlanBtn" style="display: none; background-color: #27ae60;">
+                <i class="fas fa-user-check"></i> Моят План
+            </a>
+            <a href="questionnaire.html" class="nav-btn">Започни Сега</a>
+        </div>
     </nav>
 
     <!-- Hero Section -->
@@ -467,6 +480,19 @@
     </footer>
 
     <script>
+        // --- Check for existing plan and show "Моят План" button ---
+        window.addEventListener('DOMContentLoaded', function() {
+            const dietPlan = localStorage.getItem('dietPlan');
+            const userId = localStorage.getItem('userId');
+            
+            if (dietPlan && userId) {
+                const myPlanBtn = document.getElementById('myPlanBtn');
+                if (myPlanBtn) {
+                    myPlanBtn.style.display = 'inline-block';
+                }
+            }
+        });
+        
         // --- Scroll Reveal Animation Logic ---
         window.addEventListener('scroll', reveal);
 

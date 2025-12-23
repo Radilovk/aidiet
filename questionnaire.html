@@ -29,6 +29,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden; /* Prevent scrolling, we handle it internally */
+            padding-bottom: 0; /* Fixed footer handles spacing */
         }
 
         /* --- PROGRESS BAR --- */
@@ -219,6 +220,11 @@
             align-items: center;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
             z-index: 100;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
         }
 
         .btn {
@@ -354,6 +360,17 @@
         let currentQueue = [...rawQuestions]; // Queue that expands dynamically
         let currentIndex = 0;
         let answers = {};
+        
+        // Load saved answers from localStorage if available
+        const savedAnswers = localStorage.getItem('questionnaireAnswers');
+        if (savedAnswers) {
+            try {
+                answers = JSON.parse(savedAnswers);
+                console.log('Restored saved answers from localStorage');
+            } catch (e) {
+                console.error('Error loading saved answers:', e);
+            }
+        }
         
         // --- DOM ELEMENTS ---
         const container = document.getElementById('questionContainer');
@@ -542,11 +559,15 @@
 
         function saveAnswer(id, value) {
             answers[id] = value;
+            // Persist to localStorage
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
             validateInput();
         }
 
         function saveOther(parentId, value) {
             answers[`${parentId}_other`] = value;
+            // Persist to localStorage
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
         }
 
         function validateInput() {
@@ -630,9 +651,9 @@
             document.querySelector('.progress-container').style.display = 'none';
 
             try {
-                // Add timeout for slow connections (30 seconds)
+                // Add timeout for slow connections (60 seconds to allow AI processing)
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
 
                 // Submit data to backend
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan', {
@@ -657,6 +678,9 @@
                     localStorage.setItem('dietPlan', JSON.stringify(result.plan));
                     localStorage.setItem('userId', result.userId);
                     localStorage.setItem('userData', JSON.stringify(answers));
+                    
+                    // Clear the saved questionnaire answers since plan was generated successfully
+                    localStorage.removeItem('questionnaireAnswers');
                     
                     // Show success message
                     container.innerHTML = `
