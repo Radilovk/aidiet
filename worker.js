@@ -80,6 +80,8 @@ export default {
         return await handleChat(request, env);
       } else if (url.pathname === '/api/get-plan' && request.method === 'GET') {
         return await handleGetPlan(request, env);
+      } else if (url.pathname === '/api/update-plan' && request.method === 'POST') {
+        return await handleUpdatePlan(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
         return await handleSavePrompt(request, env);
       } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
@@ -216,6 +218,46 @@ async function handleGetPlan(request, env) {
     success: true, 
     plan: cachedPlan 
   });
+}
+
+/**
+ * Update plan for a user (after AI assistant approval)
+ */
+async function handleUpdatePlan(request, env) {
+  try {
+    const { userId, updatedPlan, changeReason } = await request.json();
+    
+    if (!userId || !updatedPlan) {
+      return jsonResponse({ error: 'Missing userId or updatedPlan' }, 400);
+    }
+
+    // Get existing plan
+    const existingPlan = await getCachedPlan(env, userId);
+    
+    if (!existingPlan) {
+      return jsonResponse({ error: 'Plan not found' }, 404);
+    }
+
+    // Merge the updated plan with existing plan
+    const mergedPlan = {
+      ...existingPlan,
+      ...updatedPlan,
+      lastModified: new Date().toISOString(),
+      modificationReason: changeReason || 'User requested change'
+    };
+
+    // Cache the updated plan
+    await cachePlan(env, userId, mergedPlan);
+    
+    return jsonResponse({ 
+      success: true, 
+      plan: mergedPlan,
+      message: 'Plan updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating plan:', error);
+    return jsonResponse({ error: 'Failed to update plan: ' + error.message }, 500);
+  }
 }
 
 /**
@@ -596,7 +638,22 @@ ${JSON.stringify(userPlan.summary || {}, null, 2)}
 
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 
-Отговори на въпроса на клиента като професионален диетолог, психолог и здравен консултант. Използвай информацията от неговия профил и план, за да дадеш персонализиран съвет. Бъди топъл, подкрепящ и мотивиращ.
+ВАЖНИ ПРАВИЛА ЗА ПРОМЕНИ В ПЛАНА:
+1. НИКОГА не променяй хранителния план директно без изрично съгласие от клиента след дискусия
+2. Ако клиентът иска промяна в плана, първо:
+   - Анализирай дали желанието е разумно и здравословно
+   - Ако промяната противоречи на здравословни принципи, обясни защо и предложи по-добра алтернатива
+   - Водете дискусия за ползите и рисковете
+   - Предложи здравословна алтернатива, която да е близка до желанието на клиента
+3. САМО след като клиентът изрично потвърди съгласие с предложената здравословна промяна, можеш да му дадеш инструкции как да приложи промяната
+4. За всяка промяна в плана, обясни ясно WHY тя е здравословна и съобразена с целите на клиента
+5. Ако промяната е нездравословна или противоречи на медицинските условия, категорично откажи и обясни защо
+
+ФОРМАТ НА ОТГОВОР:
+- Бъди топъл, подкрепящ и мотивиращ
+- Винаги обяснявай здравословните аспекти
+- Водете съзнателна дискусия преди всяка промяна
+- Не давай готови решения, без да обясниш процеса на мислене
 
 КЛИЕНТ: ${userMessage}
 
