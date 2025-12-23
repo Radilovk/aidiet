@@ -8,8 +8,19 @@ const DEFAULT_BMR = 1650;
 const DEFAULT_DAILY_CALORIES = 1800;
 
 // Error messages
-// Bulgarian error message shown when UPDATE_PLAN parsing fails and no clean response text remains
+// Bulgarian error message shown when REGENERATE_PLAN parsing fails and no clean response text remains
 const ERROR_MESSAGE_PARSE_FAILURE = 'Имаше проблем с обработката на отговора. Моля опитайте отново.';
+
+// Plan modification descriptions for AI prompts
+const PLAN_MODIFICATION_DESCRIPTIONS = {
+  'no_intermediate_meals': '- БЕЗ междинни хранения/закуски - само основни хранения (закуска, обяд, вечеря)',
+  '3_meals_per_day': '- Точно 3 хранения на ден (закуска, обяд, вечеря)',
+  '4_meals_per_day': '- 4 хранения на ден (закуска, обяд, следобедна закуска, вечеря)',
+  'vegetarian': '- ВЕГЕТАРИАНСКО хранене - без месо и риба',
+  'no_dairy': '- БЕЗ млечни продукти',
+  'low_carb': '- Нисковъглехидратна диета',
+  'increase_protein': '- Повишен прием на протеини'
+};
 
 /**
  * Calculate BMR using Mifflin-St Jeor Equation
@@ -225,6 +236,7 @@ async function handleChat(request, env) {
         for (let i = jsonStart; i < aiResponse.length; i++) {
           const char = aiResponse[i];
           
+          // Handle escape sequences in strings (e.g., \", \\)
           if (escapeNext) {
             escapeNext = false;
             continue;
@@ -235,11 +247,13 @@ async function handleChat(request, env) {
             continue;
           }
           
+          // Track whether we're inside a string (to ignore brackets in string values)
           if (char === '"') {
             inString = !inString;
             continue;
           }
           
+          // Only count brackets/braces outside of strings
           if (!inString) {
             if (char === '{') {
               braceCount++;
@@ -248,6 +262,7 @@ async function handleChat(request, env) {
             } else if (char === '[') {
               bracketCount++;
             } else if (char === ']') {
+              // If both counts are 0 before decrementing, this ] closes REGENERATE_PLAN
               if (braceCount === 0 && bracketCount === 0) {
                 jsonEnd = i;
                 break;
@@ -560,18 +575,7 @@ function generateMealPlanPrompt(data, analysis, strategy) {
   if (data.planModifications && data.planModifications.length > 0) {
     modificationsSection = `
 СПЕЦИАЛНИ МОДИФИКАЦИИ НА ПЛАНА:
-${data.planModifications.map(mod => {
-  const modDescriptions = {
-    'no_intermediate_meals': '- БЕЗ междинни хранения/закуски - само основни хранения (закуска, обяд, вечеря)',
-    '3_meals_per_day': '- Точно 3 хранения на ден (закуска, обяд, вечеря)',
-    '4_meals_per_day': '- 4 хранения на ден (закуска, обяд, следобедна закуска, вечеря)',
-    'vegetarian': '- ВЕГЕТАРИАНСКО хранене - без месо и риба',
-    'no_dairy': '- БЕЗ млечни продукти',
-    'low_carb': '- Нисковъглехидратна диета',
-    'increase_protein': '- Повишен прием на протеини'
-  };
-  return modDescriptions[mod] || `- ${mod}`;
-}).join('\n')}
+${data.planModifications.map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod] || `- ${mod}`).join('\n')}
 
 ВАЖНО: Спазвай СТРИКТНО тези модификации при генерирането на плана!
 `;
