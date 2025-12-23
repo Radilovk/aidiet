@@ -651,7 +651,7 @@
             document.querySelector('.progress-container').style.display = 'none';
 
             try {
-                // Add timeout for slow connections (60 seconds to allow AI processing)
+                // Increase HTTP request timeout to 60 seconds to allow for AI model processing time
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 60000);
 

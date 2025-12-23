@@ -348,7 +348,10 @@
     </div>
 
     <script>
-        const ADMIN_PASSWORD = 'nutriplan2024'; // Change this in production!
+        // WARNING: This is a basic client-side authentication for demonstration purposes.
+        // For production use, implement proper server-side authentication with the worker.
+        // This password is visible in the browser source code and should not be used for security.
+        const ADMIN_PASSWORD = 'nutriplan2024'; // TODO: Move to server-side auth
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
         // Default prompts
@@ -453,17 +456,32 @@
         }
 
         // Save AI Model
-        function saveAIModel() {
+        async function saveAIModel() {
             const model = document.getElementById('aiModel').value;
             localStorage.setItem('adminAIModel', model);
             
-            // In production, this would send to worker to update KV
-            showSuccess('AI модел запазен успешно!');
-            document.getElementById('currentModel').textContent = model.toUpperCase();
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('AI модел запазен успешно!');
+                document.getElementById('currentModel').textContent = model.toUpperCase();
+            } catch (error) {
+                console.error('Error saving model:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
         }
 
         // Save AI Prompt
-        function saveAIPrompt() {
+        async function saveAIPrompt() {
             const prompt = document.getElementById('aiPrompt').value.trim();
             
             if (!prompt) {
@@ -473,14 +491,27 @@
 
             localStorage.setItem('adminAIPrompt', prompt);
             
-            // In production, send to worker API
-            // await fetch(WORKER_URL + '/api/admin/save-prompt', { ... });
-            
-            showSuccess('AI промпт запазен успешно!');
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'plan', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('AI промпт запазен успешно!');
+            } catch (error) {
+                console.error('Error saving prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
         }
 
         // Save Chat Prompt
-        function saveChatPrompt() {
+        async function saveChatPrompt() {
             const prompt = document.getElementById('chatPrompt').value.trim();
             
             if (!prompt) {
@@ -489,7 +520,24 @@
             }
 
             localStorage.setItem('adminChatPrompt', prompt);
-            showSuccess('Чат промпт запазен успешно!');
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'chat', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Чат промпт запазен успешно!');
+            } catch (error) {
+                console.error('Error saving chat prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
         }
 
         // Reset Prompt

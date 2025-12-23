@@ -270,9 +270,6 @@ async function generateNutritionPrompt(data, env) {
     .replace(/{medications}/g, data.medications === 'Да' ? data.medicationsDetails : 'Не приема');
 }
 
-Включи 3-5 хранения на ден за всеки от 7-те дни. Адаптирай плана към целите, предпочитанията и здравословното състояние на клиента.`;
-}
-
 /**
  * Generate chat prompt with full context
  */
