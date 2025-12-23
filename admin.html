@@ -431,12 +431,38 @@
         // Load Settings
         async function loadSettings() {
             try {
-                // Load AI Model from localStorage (since we can't access KV directly from frontend)
+                // Try to load from server (KV storage) first
+                try {
+                    const response = await fetch(WORKER_URL + '/api/admin/get-config');
+                    if (response.ok) {
+                        const config = await response.json();
+                        if (config.success) {
+                            // Use server data if available
+                            if (config.model) {
+                                document.getElementById('aiModel').value = config.model;
+                                document.getElementById('currentModel').textContent = config.model.toUpperCase();
+                                localStorage.setItem('adminAIModel', config.model);
+                            }
+                            if (config.planPrompt) {
+                                document.getElementById('aiPrompt').value = config.planPrompt;
+                                localStorage.setItem('adminAIPrompt', config.planPrompt);
+                            }
+                            if (config.chatPrompt) {
+                                document.getElementById('chatPrompt').value = config.chatPrompt;
+                                localStorage.setItem('adminChatPrompt', config.chatPrompt);
+                            }
+                            return; // Successfully loaded from server
+                        }
+                    }
+                } catch (serverError) {
+                    console.warn('Could not load from server, using local cache:', serverError);
+                }
+
+                // Fallback to localStorage if server is unavailable
                 const savedModel = localStorage.getItem('adminAIModel') || 'openai';
                 document.getElementById('aiModel').value = savedModel;
                 document.getElementById('currentModel').textContent = savedModel.toUpperCase();
 
-                // Load Prompts
                 const savedPrompt = localStorage.getItem('adminAIPrompt') || DEFAULT_PLAN_PROMPT;
                 document.getElementById('aiPrompt').value = savedPrompt;
 
