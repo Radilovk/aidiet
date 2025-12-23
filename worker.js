@@ -54,7 +54,7 @@ export default {
 };
 
 /**
- * Generate nutrition plan from questionnaire data
+ * Generate nutrition plan from questionnaire data using multi-step approach
  */
 async function handleGeneratePlan(request, env) {
   try {
@@ -83,16 +83,10 @@ async function handleGeneratePlan(request, env) {
       });
     }
 
-    console.log('handleGeneratePlan: Generating new plan for userId:', userId);
-    // Generate prompt for AI model (check KV for custom prompt)
-    const prompt = await generateNutritionPrompt(data, env);
+    console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
     
-    // Call AI model (placeholder - will be configured with Gemini or OpenAI)
-    const aiResponse = await callAIModel(env, prompt);
-    console.log('handleGeneratePlan: AI response received for userId:', userId);
-    
-    // Parse and structure the response
-    const structuredPlan = parseAIResponse(aiResponse);
+    // Use multi-step approach for better individualization
+    const structuredPlan = await generatePlanMultiStep(env, data);
     console.log('handleGeneratePlan: Plan structured for userId:', userId);
     
     // Cache the plan and user data
@@ -180,7 +174,205 @@ async function handleGetPlan(request, env) {
 }
 
 /**
- * Generate nutrition plan prompt for AI
+ * Multi-step plan generation for better individualization
+ * Step 1: Analyze user profile and health status
+ * Step 2: Determine dietary strategy and restrictions
+ * Step 3: Generate detailed meal plan
+ */
+async function generatePlanMultiStep(env, data) {
+  console.log('Multi-step generation: Starting');
+  
+  // Step 1: Analyze user profile
+  const analysisPrompt = generateAnalysisPrompt(data);
+  const analysisResponse = await callAIModel(env, analysisPrompt);
+  const analysis = parseAIResponse(analysisResponse);
+  console.log('Multi-step generation: Analysis complete');
+  
+  // Step 2: Generate dietary strategy based on analysis
+  const strategyPrompt = generateStrategyPrompt(data, analysis);
+  const strategyResponse = await callAIModel(env, strategyPrompt);
+  const strategy = parseAIResponse(strategyResponse);
+  console.log('Multi-step generation: Strategy complete');
+  
+  // Step 3: Generate detailed meal plan
+  const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
+  const mealPlanResponse = await callAIModel(env, mealPlanPrompt);
+  const mealPlan = parseAIResponse(mealPlanResponse);
+  console.log('Multi-step generation: Meal plan complete');
+  
+  // Combine all parts into final plan
+  return {
+    ...mealPlan,
+    analysis: analysis,
+    strategy: strategy
+  };
+}
+
+/**
+ * Step 1: Generate prompt for user profile analysis
+ */
+function generateAnalysisPrompt(data) {
+  return `Ти си опитен диетолог и ендокринолог. Анализирай здравословния профил на този клиент:
+
+ОСНОВНИ ДАННИ:
+- Име: ${data.name}
+- Пол: ${data.gender}
+- Възраст: ${data.age} години
+- Ръст: ${data.height} см
+- Тегло: ${data.weight} кг
+- Цел: ${data.goal}
+${data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : ''}
+
+ЗДРАВОСЛОВЕН ПРОФИЛ:
+- Сън: ${data.sleepHours} часа (прекъсвания: ${data.sleepInterrupt})
+- Хронотип: ${data.chronotype}
+- Активност през деня: ${data.dailyActivityLevel}
+- Стрес: ${data.stressLevel}
+- Спортна активност: ${data.sportActivity}
+- Прием на вода: ${data.waterIntake}
+
+ХРАНИТЕЛНИ НАВИЦИ И ПОВЕДЕНИЕ:
+- Прекомерно хранене: ${data.overeatingFrequency}
+- Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
+- Желания за храна: ${JSON.stringify(data.foodCravings || [])}
+- Тригери за хранене: ${JSON.stringify(data.foodTriggers || [])}
+- Методи за компенсация: ${JSON.stringify(data.compensationMethods || [])}
+- Социално сравнение: ${data.socialComparison}
+
+МЕДИЦИНСКИ СЪСТОЯНИЯ:
+- Състояния: ${JSON.stringify(data.medicalConditions || [])}
+- Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
+
+ХРАНИТЕЛНА ИСТОРИЯ:
+- Рязко покачване на тегло: ${data.weightChange === 'Да' ? data.weightChangeDetails : 'Не'}
+- Диети в миналото: ${data.dietHistory === 'Да' ? `Тип: ${data.dietType}, Резултат: ${data.dietResult}` : 'Не'}
+
+ВърниJSON с анализ на:
+{
+  "bmr": "изчислена базова метаболитна скорост",
+  "tdee": "общ дневен разход на енергия",
+  "recommendedCalories": "препоръчителен калориен прием",
+  "macroRatios": {
+    "protein": "препоръчителен процент протеини",
+    "carbs": "препоръчителен процент въглехидрати",
+    "fats": "препоръчителен процент мазнини"
+  },
+  "metabolicProfile": "описание на метаболитния профил",
+  "healthRisks": ["риск 1", "риск 2"],
+  "nutritionalNeeds": ["нужда 1", "нужда 2"],
+  "psychologicalProfile": "анализ на психологическите фактори и взаимоотношението с храната"
+}`;
+}
+
+/**
+ * Step 2: Generate prompt for dietary strategy
+ */
+function generateStrategyPrompt(data, analysis) {
+  return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
+
+КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
+
+АНАЛИЗ:
+${JSON.stringify(analysis, null, 2)}
+
+ПРЕДПОЧИТАНИЯ:
+- Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
+- Не обича/непоносимост: ${data.dietDislike || 'Няма'}
+- Любими храни: ${data.dietLove || 'Няма'}
+
+ВАЖНО: Вземи предвид:
+1. Медицинските състояния и лекарства
+2. Хранителните непоносимости и алергии
+3. Личните предпочитания и любими храни
+4. Хронотипа и дневния ритъм
+5. Нивото на стрес и емоционалното хранене
+6. Културния контекст (български традиции и налични продукти)
+
+Върни JSON със стратегия:
+{
+  "dietType": "тип диета (напр. средиземноморска, балансирана, ниско-въглехидратна)",
+  "mealTiming": {
+    "breakfast": "оптимално време за закуска",
+    "lunch": "оптимално време за обяд",
+    "dinner": "оптимално време за вечеря",
+    "snacks": "брой и време на снакове"
+  },
+  "keyPrinciples": ["принцип 1", "принцип 2", "принцип 3"],
+  "foodsToInclude": ["храна 1", "храна 2", "храна 3"],
+  "foodsToAvoid": ["храна 1", "храна 2", "храна 3"],
+  "supplementRecommendations": ["добавка 1", "добавка 2"],
+  "hydrationStrategy": "препоръки за прием на течности",
+  "psychologicalSupport": "специфични психологически съвети базирани на профила"
+}`;
+}
+
+/**
+ * Step 3: Generate prompt for detailed meal plan
+ */
+function generateMealPlanPrompt(data, analysis, strategy) {
+  return `Създай подробен 7-дневен хранителен план, базиран на анализа и стратегията:
+
+КЛИЕНТ: ${data.name}
+ЦЕЛИ: Калории: ${analysis.recommendedCalories || '1800'} kcal/ден, ${data.goal}
+
+СТРАТЕГИЯ:
+${JSON.stringify(strategy, null, 2)}
+
+ВАЖНИ НАСОКИ:
+1. Използвай САМО храни, които клиентът обича или няма непоносимост към
+2. Избягвай: ${data.dietDislike || 'няма'}
+3. Включвай любимите храни: ${data.dietLove || 'няма'}, но в здравословен контекст
+4. Спазвай медицинските ограничения: ${JSON.stringify(data.medicalConditions || [])}
+5. Използвай РАЗНООБРАЗНИ храни - избягвай повторения на едни и същи ястия
+6. Всички ястия трябва да бъдат реалистични и лесни за приготвяне
+7. Използвай български и средиземноморски продукти
+8. Адаптирай времето на хранене към хронотипа: ${data.chronotype}
+9. Всяко ястие да е балансирано и подходящо за целта ${data.goal}
+
+ВАЖНО - ИЗБЯГВАЙ:
+- Странни комбинации от храни (напр. чийзкейк със салата, пица с тофу)
+- Екзотични продукти, които са трудно достъпни в България
+- Повтаряне на едни и същи храни в различни дни
+- Комбинации, които не са традиционни за българската/средиземноморска кухня
+
+Върни JSON формат:
+{
+  "summary": {
+    "bmr": "${analysis.bmr || '1650'}",
+    "dailyCalories": "${analysis.recommendedCalories || '1800'}",
+    "macros": {
+      "protein": "грамове протеин",
+      "carbs": "грамове въглехидрати",
+      "fats": "грамове мазнини"
+    }
+  },
+  "weekPlan": {
+    "day1": {
+      "meals": [
+        {
+          "type": "Закуска",
+          "time": "${strategy.mealTiming?.breakfast || '08:00'}",
+          "name": "име на реалистично и вкусно българско/средиземноморско ястие",
+          "weight": "точно тегло в грамове",
+          "description": "кратко описание на ястието и съставки",
+          "benefits": "конкретни ползи за здравето",
+          "calories": "точни калории"
+        }
+      ]
+    }
+  },
+  "recommendations": ["конкретна препоръка 1", "конкретна препоръка 2"],
+  "forbidden": ["конкретна забранена храна 1", "конкретна забранена храна 2"],
+  "psychology": "${strategy.psychologicalSupport || 'психологически съвети'}",
+  "waterIntake": "${strategy.hydrationStrategy || 'препоръки за вода'}",
+  "supplements": "${JSON.stringify(strategy.supplementRecommendations || [])}"
+}
+
+Създай пълни 7 дни (day1 до day7) с по 3-4 хранения на ден. Всяко хранене трябва да е уникално, балансирано и подходящо за целите на клиента.`;
+}
+
+/**
+ * Generate nutrition plan prompt for AI (legacy single-step approach, kept for backward compatibility)
  */
 async function generateNutritionPrompt(data, env) {
   // Try to get custom prompt from KV
@@ -191,7 +383,7 @@ async function generateNutritionPrompt(data, env) {
 
   // Use default if no custom prompt
   if (!promptTemplate) {
-    promptTemplate = `Ти си професионален диетолог и здравен консултант. Създай подробен 7-дневен хранителен план за клиент със следните характеристики:
+    promptTemplate = `Ти си професионален диетолог, ендокринолог и здравен консултант. Създай подробен, индивидуализиран 7-дневен хранителен план за клиент със следните характеристики:
 
 ОСНОВНИ ДАННИ:
 - Име: {name}
@@ -203,7 +395,7 @@ async function generateNutritionPrompt(data, env) {
 {lossKg}
 
 ЗДРАВОСЛОВЕН ПРОФИЛ:
-- Сън: {sleepHours} часа
+- Сън: {sleepHours} часа (прекъсвания: {sleepInterrupt})
 - Хронотип: {chronotype}
 - Активност през деня: {dailyActivityLevel}
 - Стрес: {stressLevel}
@@ -213,15 +405,35 @@ async function generateNutritionPrompt(data, env) {
 - Вода: {waterIntake}
 - Прекомерно хранене: {overeatingFrequency}
 - Хранителни навици: {eatingHabits}
+- Желания за храна: {foodCravings}
+- Тригери за хранене: {foodTriggers}
 
 ПРЕДПОЧИТАНИЯ:
 - Диетични предпочитания: {dietPreference}
-- Не обича/непоносимост: {dietDislike}
+- Не обича/непоносимост/алергия: {dietDislike}
 - Любими храни: {dietLove}
 
 МЕДИЦИНСКИ СЪСТОЯНИЯ:
 - Състояния: {medicalConditions}
 - Лекарства: {medications}
+
+ВАЖНИ НАСОКИ ЗА СЪЗДАВАНЕ НА ПЛАНА:
+1. Използвай САМО храни, които клиентът обича или няма непоносимост към
+2. СТРОГО избягвай храните от списъка с непоносимости и алергии
+3. Включвай любимите храни в здравословен контекст
+4. Спазвай медицинските ограничения
+5. Използвай РАЗНООБРАЗНИ храни - избягвай повторения
+6. Всички ястия трябва да бъдат реалистични и лесни за приготвяне
+7. Използвай български и средиземноморски продукти
+8. Адаптирай времето на хранене към хронотипа
+9. Всяко ястие да е балансирано и подходящо за целта
+
+СТРОГО ЗАБРАНЕНО:
+- Странни комбинации от храни (напр. чийзкейк със салата)
+- Екзотични продукти, трудно достъпни в България
+- Повтаряне на едни и същи храни в различни дни
+- Комбинации, нетипични за българската/средиземноморска кухня
+- Храни от списъка с непоносимости
 
 Моля, върни отговора в следния JSON формат:
 
@@ -241,23 +453,23 @@ async function generateNutritionPrompt(data, env) {
         {
           "type": "Закуска",
           "time": "08:00",
-          "name": "Име на ястието",
+          "name": "Име на реалистично българско/средиземноморско ястие",
           "weight": "250g",
-          "description": "Кратко описание",
-          "benefits": "Ползи за здравето",
+          "description": "Детайлно описание на ястието и съставки",
+          "benefits": "Конкретни ползи за здравето на клиента",
           "calories": 350
         }
       ]
     }
   },
-  "recommendations": ["препоръка 1", "препоръка 2"],
-  "forbidden": ["забранена храна 1", "забранена храна 2"],
-  "psychology": "Психологически съвети и мотивация",
-  "waterIntake": "Препоръчителен прием на вода",
-  "supplements": "Препоръки за хранителни добавки"
+  "recommendations": ["конкретна препоръка 1", "конкретна препоръка 2"],
+  "forbidden": ["конкретна забранена храна 1", "конкретна забранена храна 2"],
+  "psychology": "Персонализирани психологически съвети базирани на емоционалното хранене и поведението на клиента",
+  "waterIntake": "Детайлен препоръчителен прием на вода",
+  "supplements": "Специфични препоръки за хранителни добавки базирани на здравословното състояние"
 }
 
-Включи 3-5 хранения на ден за всеки от 7-те дни. Адаптирай плана към целите, предпочитанията и здравословното състояние на клиента.`;
+Създай пълни 7 дни (day1 до day7) с по 3-4 хранения на ден. Всяко хранене трябва да е УНИКАЛНО, балансирано и строго съобразено с индивидуалните нужди, предпочитания и здравословно състояние на клиента.`;
   }
 
   // Replace template variables with actual data
@@ -270,6 +482,7 @@ async function generateNutritionPrompt(data, env) {
     .replace(/{goal}/g, data.goal || '')
     .replace(/{lossKg}/g, data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : '')
     .replace(/{sleepHours}/g, data.sleepHours || '')
+    .replace(/{sleepInterrupt}/g, data.sleepInterrupt || 'Не')
     .replace(/{chronotype}/g, data.chronotype || '')
     .replace(/{dailyActivityLevel}/g, data.dailyActivityLevel || '')
     .replace(/{stressLevel}/g, data.stressLevel || '')
@@ -277,6 +490,8 @@ async function generateNutritionPrompt(data, env) {
     .replace(/{waterIntake}/g, data.waterIntake || '')
     .replace(/{overeatingFrequency}/g, data.overeatingFrequency || '')
     .replace(/{eatingHabits}/g, JSON.stringify(data.eatingHabits || []))
+    .replace(/{foodCravings}/g, JSON.stringify(data.foodCravings || []))
+    .replace(/{foodTriggers}/g, JSON.stringify(data.foodTriggers || []))
     .replace(/{dietPreference}/g, JSON.stringify(data.dietPreference || []))
     .replace(/{dietDislike}/g, data.dietDislike || 'Няма')
     .replace(/{dietLove}/g, data.dietLove || 'Няма')
