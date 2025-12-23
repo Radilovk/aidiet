@@ -576,12 +576,23 @@
             consultation: {
                 activatedMessage: '🔒 Режимът за консултация е активиран. Мога да отговарям на въпроси, но не мога да променям плана.',
                 modeLabel: 'Режим: Консултация',
-                buttonLabel: '<i class="fas fa-edit"></i><span>Промени план</span>'
+                icon: { color: '#4CAF50' },
+                background: '#E8F5E9'
             },
             modification: {
                 activatedMessage: '🔓 Режимът за промяна на плана е активиран. Сега мога да променям вашия план според желанията ви.',
                 modeLabel: 'Режим: Промяна на план',
-                buttonLabel: '<i class="fas fa-comment"></i><span>Консултация</span>'
+                icon: { color: '#FF5722' },
+                background: '#FFEBEE'
+            },
+            // Button labels for switching modes (key is the target mode)
+            toggleButtons: {
+                toModification: '<i class="fas fa-edit"></i><span>Промени план</span>',
+                toConsultation: '<i class="fas fa-comment"></i><span>Консултация</span>'
+            },
+            buttonColors: {
+                toModification: 'var(--primary-red)',
+                toConsultation: '#4CAF50'
             }
         };
 
@@ -905,20 +916,20 @@
             
             if (!modeText || !modeIcon || !modeToggleBtn || !modeIndicator) return;
             
+            const currentModeConfig = CHAT_MODE_STRINGS[chatMode];
+            
+            // Update mode label and icon
+            modeText.textContent = currentModeConfig.modeLabel;
+            modeIcon.style.color = currentModeConfig.icon.color;
+            modeIndicator.style.background = currentModeConfig.background;
+            
+            // Update toggle button (shows button to switch to the OTHER mode)
             if (chatMode === 'modification') {
-                // Modification mode styling
-                modeText.textContent = CHAT_MODE_STRINGS.modification.modeLabel;
-                modeIcon.style.color = '#FF5722'; // Red/orange for modification
-                modeToggleBtn.innerHTML = CHAT_MODE_STRINGS.consultation.buttonLabel;
-                modeToggleBtn.style.background = '#4CAF50'; // Green for consultation button
-                modeIndicator.style.background = '#FFEBEE'; // Light red background
+                modeToggleBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toConsultation;
+                modeToggleBtn.style.background = CHAT_MODE_STRINGS.buttonColors.toConsultation;
             } else {
-                // Consultation mode styling
-                modeText.textContent = CHAT_MODE_STRINGS.consultation.modeLabel;
-                modeIcon.style.color = '#4CAF50'; // Green for consultation
-                modeToggleBtn.innerHTML = CHAT_MODE_STRINGS.modification.buttonLabel;
-                modeToggleBtn.style.background = 'var(--primary-red)'; // Red for modification button
-                modeIndicator.style.background = '#E8F5E9'; // Light green background
+                modeToggleBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toModification;
+                modeToggleBtn.style.background = CHAT_MODE_STRINGS.buttonColors.toModification;
             }
         }
 
