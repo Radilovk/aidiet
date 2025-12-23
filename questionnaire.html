@@ -20,6 +20,21 @@
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
+        /* Dark theme */
+        [data-theme="dark"] {
+            --primary-red: #e74c3c;
+            --primary-red-hover: #c0392b;
+            --soft-red: #5a3a38;
+            --text-dark: #e0e0e0;
+            --text-gray: #b0b0b0;
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --input-bg: #3a3a3a;
+            --shadow: 0 10px 30px rgba(0,0,0,0.5);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
 
         body {
@@ -30,6 +45,7 @@
             flex-direction: column;
             overflow: hidden; /* Prevent scrolling, we handle it internally */
             padding-bottom: 0; /* Fixed footer handles spacing */
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         /* --- PROGRESS BAR --- */
@@ -262,6 +278,28 @@
             transform: scale(0.95);
             box-shadow: 0 2px 10px rgba(231, 76, 60, 0.5);
         }
+
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--card-bg);
+            border: 2px solid var(--text-gray);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        .theme-toggle:hover {
+            border-color: var(--primary-red);
+            transform: scale(1.05);
+        }
         .btn-next:disabled {
             background-color: #e0e0e0;
             box-shadow: none;
@@ -291,6 +329,11 @@
 </head>
 <body>
 
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
     <!-- Progress -->
     <div class="progress-container">
         <div class="progress-track">
@@ -315,6 +358,31 @@
     </div>
 
     <script>
+        // --- Theme Management ---
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        // Initialize theme on load
+        initializeTheme();
+
         // --- JSON DATA (Inserted directly from your file) ---
         const rawQuestions = [
             { "id": "secBasics", "type": "section", "sectionTitle": "Основни данни" },
