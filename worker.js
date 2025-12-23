@@ -186,8 +186,38 @@ async function handleChat(request, env) {
     // Build chat prompt with context
     const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory);
     
-    // Call AI model
-    const aiResponse = await callAIModel(env, chatPrompt);
+    // Call AI model with token limit for concise responses (150 tokens ~= 100-120 words)
+    const aiResponse = await callAIModel(env, chatPrompt, 200);
+    
+    // Check if the response contains a plan update instruction
+    const planUpdateMatch = aiResponse.match(/\[UPDATE_PLAN:(.+?)\]/s);
+    if (planUpdateMatch) {
+      try {
+        const updateData = JSON.parse(planUpdateMatch[1]);
+        // Update the plan in cache
+        const updatedPlan = {
+          ...userPlan,
+          ...updateData,
+          lastModified: new Date().toISOString(),
+          modificationReason: 'User requested change via assistant'
+        };
+        await cachePlan(env, userId, updatedPlan);
+        
+        // Remove the update instruction from the response
+        const cleanResponse = aiResponse.replace(/\[UPDATE_PLAN:.+?\]/s, '').trim();
+        
+        // Update conversation history
+        await updateConversationHistory(env, conversationKey, message, cleanResponse);
+        
+        return jsonResponse({ 
+          success: true, 
+          response: cleanResponse,
+          planUpdated: true
+        });
+      } catch (error) {
+        console.error('Error parsing plan update:', error);
+      }
+    }
     
     // Update conversation history
     await updateConversationHistory(env, conversationKey, message, aiResponse);
@@ -644,25 +674,18 @@ ${JSON.stringify(userPlan.summary || {}, null, 2)}
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 
 ВАЖНИ ПРАВИЛА ЗА ПРОМЕНИ В ПЛАНА:
-1. НИКОГА не променяй хранителния план директно без изрично съгласие от клиента след дискусия
-2. Ако клиентът иска промяна в плана, първо:
+1. Ако клиентът иска промяна в плана (замяна на храна, промяна на време на хранене и т.н.):
    - Анализирай дали желанието е разумно и здравословно
-   - Ако промяната противоречи на здравословни принципи, обясни защо и предложи по-добра алтернатива
-   - Водете дискусия за ползите и рисковете
-   - Предложи здравословна алтернатива, която да е близка до желанието на клиента
-3. САМО след като клиентът изрично потвърди съгласие с предложената здравословна промяна, можеш да му дадеш инструкции как да приложи промяната
-4. За всяка промяна в плана, обясни ясно WHY тя е здравословна и съобразена с целите на клиента
-5. Ако промяната е нездравословна или противоречи на медицинските условия, категорично откажи и обясни защо
-
-ФОРМАТ НА ОТГОВОР:
-- Бъди топъл, подкрепящ и мотивиращ
-- Винаги обяснявай здравословните аспекти
-- Водете съзнателна дискусия преди всяка промяна
-- Не давай готови решения, без да обясниш процеса на мислене
+   - Ако промяната е здравословна, ОДОБРИ Я и приложи промяната към плана
+   - Ако промяната е нездравословна, обясни защо и предложи по-добра алтернатива
+2. За да приложиш промяна, добави към края на отговора си: [UPDATE_PLAN:{"weekPlan":{"day1":{"meals":[...]}}}] със съответните промени
+3. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
+4. Не давай дълги обяснения, освен ако не е необходимо
+5. Винаги поддържай мотивиращ тон
 
 КЛИЕНТ: ${userMessage}
 
-АСИСТЕНТ:`;
+АСИСТЕНТ (отговори КРАТКО):`;
 
   return context;
 }
@@ -704,7 +727,7 @@ async function getAdminConfig(env) {
 /**
  * Call AI model (placeholder for Gemini or OpenAI)
  */
-async function callAIModel(env, prompt) {
+async function callAIModel(env, prompt, maxTokens = null) {
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
   const config = await getAdminConfig(env);
   const preferredProvider = config.provider;
@@ -718,16 +741,16 @@ async function callAIModel(env, prompt) {
 
   // Try preferred provider first
   if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
-    return await callOpenAI(env, prompt, modelName);
+    return await callOpenAI(env, prompt, modelName, maxTokens);
   } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-    return await callGemini(env, prompt, modelName);
+    return await callGemini(env, prompt, modelName, maxTokens);
   }
   
   // Fallback to any available API key
   if (env.OPENAI_API_KEY) {
-    return await callOpenAI(env, prompt, modelName);
+    return await callOpenAI(env, prompt, modelName, maxTokens);
   } else if (env.GEMINI_API_KEY) {
-    return await callGemini(env, prompt, modelName);
+    return await callGemini(env, prompt, modelName, maxTokens);
   } else {
     // Return mock response for development
     console.warn('No AI API key configured. Returning mock response.');
@@ -738,19 +761,26 @@ async function callAIModel(env, prompt) {
 /**
  * Call OpenAI API
  */
-async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini') {
+async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = null) {
   try {
+    const requestBody = {
+      model: modelName,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7
+    };
+    
+    // Add max_tokens only if specified
+    if (maxTokens) {
+      requestBody.max_tokens = maxTokens;
+    }
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
@@ -773,16 +803,25 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini') {
 /**
  * Call Gemini API
  */
-async function callGemini(env, prompt, modelName = 'gemini-pro') {
+async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = null) {
   try {
+    const requestBody = {
+      contents: [{ parts: [{ text: prompt }] }]
+    };
+    
+    // Add maxOutputTokens if specified
+    if (maxTokens) {
+      requestBody.generationConfig = {
+        maxOutputTokens: maxTokens
+      };
+    }
+    
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
+        body: JSON.stringify(requestBody)
       }
     );
 
