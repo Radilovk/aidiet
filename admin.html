@@ -18,6 +18,19 @@
             --radius: 16px;
         }
 
+        /* Dark theme */
+        [data-theme="dark"] {
+            --primary-red: #e74c3c;
+            --primary-dark: #c0392b;
+            --soft-red: #5a3a38;
+            --bg-color: #1a1a1a;
+            --text-dark: #e0e0e0;
+            --text-gray: #b0b0b0;
+            --white: #2d2d2d;
+            --shadow: 0 10px 30px rgba(0,0,0,0.5);
+            --radius: 16px;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -30,6 +43,7 @@
             color: var(--text-dark);
             min-height: 100vh;
             padding: 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .container {
@@ -38,7 +52,7 @@
         }
 
         header {
-            background: white;
+            background: var(--white);
             padding: 20px 30px;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
@@ -46,6 +60,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: background-color 0.3s ease;
         }
 
         h1 {
@@ -58,6 +73,25 @@
             color: white;
             border: none;
             padding: 10px 20px;
+
+        .theme-toggle {
+            background: var(--bg-color);
+            border: 2px solid var(--text-gray);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+        .theme-toggle:hover {
+            border-color: var(--primary-red);
+            transform: scale(1.05);
+        }
             border-radius: 25px;
             cursor: pointer;
             font-weight: 600;
@@ -258,9 +292,14 @@
         <div class="container">
             <header>
                 <h1><i class="fas fa-cog"></i> Админ Панел</h1>
-                <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> Изход
-                </button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Изход
+                    </button>
+                </div>
             </header>
 
             <!-- Stats Section -->
@@ -356,6 +395,31 @@
     </div>
 
     <script>
+        // --- Theme Management ---
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        // Initialize theme on load
+        initializeTheme();
+
         // WARNING: This is a basic client-side authentication for demonstration purposes.
         // For production use, implement proper server-side authentication with the worker.
         // This password is visible in the browser source code and should not be used for security.
