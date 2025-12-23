@@ -190,32 +190,94 @@ async function handleChat(request, env) {
     const aiResponse = await callAIModel(env, chatPrompt, 500);
     
     // Check if the response contains a plan update instruction
-    const planUpdateMatch = aiResponse.match(/\[UPDATE_PLAN:(.+?)\]/s);
-    if (planUpdateMatch) {
+    // Use a more robust method to extract the JSON from [UPDATE_PLAN:...] that handles nested structures
+    const updatePlanIndex = aiResponse.indexOf('[UPDATE_PLAN:');
+    if (updatePlanIndex !== -1) {
       try {
-        const updateData = JSON.parse(planUpdateMatch[1]);
-        // Update the plan in cache
-        const updatedPlan = {
-          ...userPlan,
-          ...updateData,
-          lastModified: new Date().toISOString(),
-          modificationReason: 'User requested change via assistant'
-        };
-        await cachePlan(env, userId, updatedPlan);
+        // Find the JSON content between [UPDATE_PLAN: and the matching closing ]
+        const jsonStart = updatePlanIndex + '[UPDATE_PLAN:'.length;
+        let jsonEnd = jsonStart;
+        let bracketCount = 0;
+        let braceCount = 0;
+        let inString = false;
+        let escapeNext = false;
         
-        // Remove the update instruction from the response
-        const cleanResponse = aiResponse.replace(/\[UPDATE_PLAN:.+?\]/s, '').trim();
+        // Parse character by character to find where the JSON ends
+        for (let i = jsonStart; i < aiResponse.length; i++) {
+          const char = aiResponse[i];
+          
+          // Handle escape sequences in strings
+          if (escapeNext) {
+            escapeNext = false;
+            continue;
+          }
+          
+          if (char === '\\') {
+            escapeNext = true;
+            continue;
+          }
+          
+          // Track whether we're inside a string
+          if (char === '"') {
+            inString = !inString;
+            continue;
+          }
+          
+          // Only count brackets/braces outside of strings
+          if (!inString) {
+            if (char === '{') {
+              braceCount++;
+            } else if (char === '}') {
+              braceCount--;
+            } else if (char === '[') {
+              bracketCount++;
+            } else if (char === ']') {
+              // If both counts are 0 before decrementing, this ] closes UPDATE_PLAN
+              if (braceCount === 0 && bracketCount === 0) {
+                jsonEnd = i;
+                break;
+              }
+              bracketCount--;
+            }
+          }
+        }
         
-        // Update conversation history
-        await updateConversationHistory(env, conversationKey, message, cleanResponse);
-        
-        return jsonResponse({ 
-          success: true, 
-          response: cleanResponse,
-          planUpdated: true
-        });
+        if (jsonEnd > jsonStart) {
+          const jsonContent = aiResponse.substring(jsonStart, jsonEnd);
+          console.log('Extracted UPDATE_PLAN JSON:', jsonContent.substring(0, 200) + '...');
+          
+          const updateData = JSON.parse(jsonContent);
+          
+          // Update the plan in cache
+          const updatedPlan = {
+            ...userPlan,
+            ...updateData,
+            lastModified: new Date().toISOString(),
+            modificationReason: 'User requested change via assistant'
+          };
+          await cachePlan(env, userId, updatedPlan);
+          
+          // Remove the update instruction from the response
+          const beforeUpdate = aiResponse.substring(0, updatePlanIndex);
+          const afterUpdate = aiResponse.substring(jsonEnd + 1); // +1 to skip the closing ]
+          const cleanResponse = (beforeUpdate + afterUpdate).trim();
+          
+          console.log('Plan updated successfully, sending clean response');
+          
+          // Update conversation history with the clean response
+          await updateConversationHistory(env, conversationKey, message, cleanResponse);
+          
+          return jsonResponse({ 
+            success: true, 
+            response: cleanResponse,
+            planUpdated: true
+          });
+        } else {
+          console.error('Could not find closing bracket for UPDATE_PLAN');
+        }
       } catch (error) {
         console.error('Error parsing plan update:', error);
+        console.error('Error details:', error.message);
       }
     }
     
