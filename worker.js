@@ -57,6 +57,11 @@ const CORS_HEADERS = {
   'Content-Type': 'application/json'
 };
 
+// Cache for admin configuration to reduce KV reads
+let adminConfigCache = null;
+let adminConfigCacheTime = 0;
+const ADMIN_CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -80,6 +85,8 @@ export default {
         return await handleChat(request, env);
       } else if (url.pathname === '/api/get-plan' && request.method === 'GET') {
         return await handleGetPlan(request, env);
+      } else if (url.pathname === '/api/update-plan' && request.method === 'POST') {
+        return await handleUpdatePlan(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
         return await handleSavePrompt(request, env);
       } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
@@ -216,6 +223,46 @@ async function handleGetPlan(request, env) {
     success: true, 
     plan: cachedPlan 
   });
+}
+
+/**
+ * Update plan for a user (after AI assistant approval)
+ */
+async function handleUpdatePlan(request, env) {
+  try {
+    const { userId, updatedPlan, changeReason } = await request.json();
+    
+    if (!userId || !updatedPlan) {
+      return jsonResponse({ error: 'Missing userId or updatedPlan' }, 400);
+    }
+
+    // Get existing plan
+    const existingPlan = await getCachedPlan(env, userId);
+    
+    if (!existingPlan) {
+      return jsonResponse({ error: 'Plan not found' }, 404);
+    }
+
+    // Merge the updated plan with existing plan
+    const mergedPlan = {
+      ...existingPlan,
+      ...updatedPlan,
+      lastModified: new Date().toISOString(),
+      modificationReason: changeReason || 'User requested change'
+    };
+
+    // Cache the updated plan
+    await cachePlan(env, userId, mergedPlan);
+    
+    return jsonResponse({ 
+      success: true, 
+      plan: mergedPlan,
+      message: 'Plan updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating plan:', error);
+    return jsonResponse({ error: 'Failed to update plan: ' + error.message }, 500);
+  }
 }
 
 /**
@@ -596,7 +643,22 @@ ${JSON.stringify(userPlan.summary || {}, null, 2)}
 
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 
-Отговори на въпроса на клиента като професионален диетолог, психолог и здравен консултант. Използвай информацията от неговия профил и план, за да дадеш персонализиран съвет. Бъди топъл, подкрепящ и мотивиращ.
+ВАЖНИ ПРАВИЛА ЗА ПРОМЕНИ В ПЛАНА:
+1. НИКОГА не променяй хранителния план директно без изрично съгласие от клиента след дискусия
+2. Ако клиентът иска промяна в плана, първо:
+   - Анализирай дали желанието е разумно и здравословно
+   - Ако промяната противоречи на здравословни принципи, обясни защо и предложи по-добра алтернатива
+   - Водете дискусия за ползите и рисковете
+   - Предложи здравословна алтернатива, която да е близка до желанието на клиента
+3. САМО след като клиентът изрично потвърди съгласие с предложената здравословна промяна, можеш да му дадеш инструкции как да приложи промяната
+4. За всяка промяна в плана, обясни ясно WHY тя е здравословна и съобразена с целите на клиента
+5. Ако промяната е нездравословна или противоречи на медицинските условия, категорично откажи и обясни защо
+
+ФОРМАТ НА ОТГОВОР:
+- Бъди топъл, подкрепящ и мотивиращ
+- Винаги обяснявай здравословните аспекти
+- Водете съзнателна дискусия преди всяка промяна
+- Не давай готови решения, без да обясниш процеса на мислене
 
 КЛИЕНТ: ${userMessage}
 
@@ -606,36 +668,66 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
 }
 
 /**
+ * Get admin configuration with caching to reduce KV reads
+ */
+async function getAdminConfig(env) {
+  // Return cached config if still valid
+  const now = Date.now();
+  if (adminConfigCache && (now - adminConfigCacheTime) < ADMIN_CONFIG_CACHE_TTL) {
+    return adminConfigCache;
+  }
+
+  // Fetch fresh config from KV
+  const config = {
+    provider: 'openai',
+    modelName: 'gpt-4o-mini'
+  };
+
+  if (env.page_content) {
+    // Use Promise.all to fetch both values in parallel
+    const [savedProvider, savedModelName] = await Promise.all([
+      env.page_content.get('admin_ai_provider'),
+      env.page_content.get('admin_ai_model_name')
+    ]);
+
+    if (savedProvider) config.provider = savedProvider;
+    if (savedModelName) config.modelName = savedModelName;
+  }
+
+  // Update cache
+  adminConfigCache = config;
+  adminConfigCacheTime = now;
+
+  return config;
+}
+
+/**
  * Call AI model (placeholder for Gemini or OpenAI)
  */
 async function callAIModel(env, prompt) {
-  // Check admin preference for AI model
-  let preferredModel = 'openai'; // default
-  if (env.page_content) {
-    const savedModel = await env.page_content.get('admin_ai_model');
-    if (savedModel) {
-      preferredModel = savedModel;
-    }
-  }
+  // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
+  const config = await getAdminConfig(env);
+  const preferredProvider = config.provider;
+  const modelName = config.modelName;
 
   // If mock is selected, return mock response
-  if (preferredModel === 'mock') {
+  if (preferredProvider === 'mock') {
     console.warn('Mock mode selected. Returning mock response.');
     return generateMockResponse(prompt);
   }
 
-  // Try preferred model first
-  if (preferredModel === 'openai' && env.OPENAI_API_KEY) {
-    return await callOpenAI(env, prompt);
-  } else if (preferredModel === 'gemini' && env.GEMINI_API_KEY) {
-    return await callGemini(env, prompt);
+  // Try preferred provider first
+  if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
+    return await callOpenAI(env, prompt, modelName);
+  } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
+    return await callGemini(env, prompt, modelName);
   }
   
   // Fallback to any available API key
   if (env.OPENAI_API_KEY) {
-    return await callOpenAI(env, prompt);
+    return await callOpenAI(env, prompt, modelName);
   } else if (env.GEMINI_API_KEY) {
-    return await callGemini(env, prompt);
+    return await callGemini(env, prompt, modelName);
   } else {
     // Return mock response for development
     console.warn('No AI API key configured. Returning mock response.');
@@ -646,7 +738,7 @@ async function callAIModel(env, prompt) {
 /**
  * Call OpenAI API
  */
-async function callOpenAI(env, prompt) {
+async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini') {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -655,7 +747,7 @@ async function callOpenAI(env, prompt) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: modelName,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7
       })
@@ -681,10 +773,10 @@ async function callOpenAI(env, prompt) {
 /**
  * Call Gemini API
  */
-async function callGemini(env, prompt) {
+async function callGemini(env, prompt, modelName = 'gemini-pro') {
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1099,21 +1191,29 @@ async function handleGetPrompt(request, env) {
  */
 async function handleSaveModel(request, env) {
   try {
-    const { model } = await request.json();
+    const { provider, modelName } = await request.json();
     
-    if (!model) {
-      return jsonResponse({ error: 'Missing model' }, 400);
+    if (!provider || !modelName) {
+      return jsonResponse({ error: 'Missing provider or modelName' }, 400);
     }
 
-    if (!['openai', 'gemini', 'mock'].includes(model)) {
-      return jsonResponse({ error: 'Invalid model type' }, 400);
+    if (!['openai', 'google', 'mock'].includes(provider)) {
+      return jsonResponse({ error: 'Invalid provider type' }, 400);
     }
 
     if (!env.page_content) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    await env.page_content.put('admin_ai_model', model);
+    // Use Promise.all to save both values in parallel
+    await Promise.all([
+      env.page_content.put('admin_ai_provider', provider),
+      env.page_content.put('admin_ai_model_name', modelName)
+    ]);
+    
+    // Invalidate cache so next request gets fresh config
+    adminConfigCache = null;
+    adminConfigCacheTime = 0;
     
     return jsonResponse({ success: true, message: 'Model saved successfully' });
   } catch (error) {
@@ -1131,13 +1231,18 @@ async function handleGetConfig(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const model = await env.page_content.get('admin_ai_model') || 'openai';
-    const planPrompt = await env.page_content.get('admin_plan_prompt');
-    const chatPrompt = await env.page_content.get('admin_chat_prompt');
+    // Use Promise.all to fetch all config values in parallel (reduces sequential KV reads)
+    const [provider, modelName, planPrompt, chatPrompt] = await Promise.all([
+      env.page_content.get('admin_ai_provider'),
+      env.page_content.get('admin_ai_model_name'),
+      env.page_content.get('admin_plan_prompt'),
+      env.page_content.get('admin_chat_prompt')
+    ]);
     
     return jsonResponse({ 
       success: true, 
-      model,
+      provider: provider || 'openai',
+      modelName: modelName || 'gpt-4o-mini',
       planPrompt,
       chatPrompt
     });

@@ -286,15 +286,23 @@
             <div class="card">
                 <h2><i class="fas fa-robot"></i> AI Модел</h2>
                 <div class="info-box">
-                    <strong>Информация:</strong> Изберете кой AI модел да се използва за генериране на планове и чат.
+                    <strong>Информация:</strong> Изберете AI провайдър и конкретен модел за генериране на планове и чат.
                 </div>
                 <div class="form-group">
-                    <label for="aiModel">Избери AI Модел:</label>
-                    <select id="aiModel">
-                        <option value="openai">OpenAI GPT-4o-mini (Препоръчително)</option>
-                        <option value="gemini">Google Gemini Pro</option>
+                    <label for="aiProvider">Избери AI Провайдър:</label>
+                    <select id="aiProvider">
+                        <option value="openai">OpenAI</option>
+                        <option value="google">Google</option>
                         <option value="mock">Mock (За тестване без API)</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="aiModelName">Име на модел:</label>
+                    <input type="text" id="aiModelName" placeholder="напр. gpt-4o, gemini-2.0-flash-exp">
+                    <small style="display: block; margin-top: 5px; color: var(--text-gray);">
+                        OpenAI примери: gpt-4o, gpt-4o-mini, gpt-4-turbo<br>
+                        Google примери: gemini-pro, gemini-2.0-flash-exp, gemini-1.5-pro
+                    </small>
                 </div>
                 <button class="btn" onclick="saveAIModel()">
                     <i class="fas fa-save"></i> Запази Модел
@@ -438,10 +446,14 @@
                         const config = await response.json();
                         if (config.success) {
                             // Use server data if available
-                            if (config.model) {
-                                document.getElementById('aiModel').value = config.model;
-                                document.getElementById('currentModel').textContent = config.model.toUpperCase();
-                                localStorage.setItem('adminAIModel', config.model);
+                            if (config.provider) {
+                                document.getElementById('aiProvider').value = config.provider;
+                                localStorage.setItem('adminAIProvider', config.provider);
+                            }
+                            if (config.modelName) {
+                                document.getElementById('aiModelName').value = config.modelName;
+                                document.getElementById('currentModel').textContent = config.modelName.toUpperCase();
+                                localStorage.setItem('adminAIModelName', config.modelName);
                             }
                             if (config.planPrompt) {
                                 document.getElementById('aiPrompt').value = config.planPrompt;
@@ -459,9 +471,12 @@
                 }
 
                 // Fallback to localStorage if server is unavailable
-                const savedModel = localStorage.getItem('adminAIModel') || 'openai';
-                document.getElementById('aiModel').value = savedModel;
-                document.getElementById('currentModel').textContent = savedModel.toUpperCase();
+                const savedProvider = localStorage.getItem('adminAIProvider') || 'openai';
+                document.getElementById('aiProvider').value = savedProvider;
+                
+                const savedModelName = localStorage.getItem('adminAIModelName') || 'gpt-4o-mini';
+                document.getElementById('aiModelName').value = savedModelName;
+                document.getElementById('currentModel').textContent = savedModelName.toUpperCase();
 
                 const savedPrompt = localStorage.getItem('adminAIPrompt') || DEFAULT_PLAN_PROMPT;
                 document.getElementById('aiPrompt').value = savedPrompt;
@@ -483,15 +498,23 @@
 
         // Save AI Model
         async function saveAIModel() {
-            const model = document.getElementById('aiModel').value;
-            localStorage.setItem('adminAIModel', model);
+            const provider = document.getElementById('aiProvider').value;
+            const modelName = document.getElementById('aiModelName').value.trim();
+            
+            if (!modelName) {
+                showError('Моля, въведете име на модел!');
+                return;
+            }
+            
+            localStorage.setItem('adminAIProvider', provider);
+            localStorage.setItem('adminAIModelName', modelName);
             
             // Save to KV via worker API
             try {
                 const response = await fetch(WORKER_URL + '/api/admin/save-model', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model })
+                    body: JSON.stringify({ provider, modelName })
                 });
                 
                 if (!response.ok) {
@@ -499,7 +522,7 @@
                 }
                 
                 showSuccess('AI модел запазен успешно!');
-                document.getElementById('currentModel').textContent = model.toUpperCase();
+                document.getElementById('currentModel').textContent = modelName.toUpperCase();
             } catch (error) {
                 console.error('Error saving model:', error);
                 showError('Грешка при записване: ' + error.message);
