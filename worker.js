@@ -3,6 +3,10 @@
  * Backend endpoint: https://aidiet.radilov-k.workers.dev/
  */
 
+// Constants for nutrition calculations
+const DEFAULT_BMR = 1650;
+const DEFAULT_DAILY_CALORIES = 1800;
+
 // CORS headers for client-side requests
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -182,30 +186,51 @@ async function handleGetPlan(request, env) {
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting');
   
-  // Step 1: Analyze user profile
-  const analysisPrompt = generateAnalysisPrompt(data);
-  const analysisResponse = await callAIModel(env, analysisPrompt);
-  const analysis = parseAIResponse(analysisResponse);
-  console.log('Multi-step generation: Analysis complete');
-  
-  // Step 2: Generate dietary strategy based on analysis
-  const strategyPrompt = generateStrategyPrompt(data, analysis);
-  const strategyResponse = await callAIModel(env, strategyPrompt);
-  const strategy = parseAIResponse(strategyResponse);
-  console.log('Multi-step generation: Strategy complete');
-  
-  // Step 3: Generate detailed meal plan
-  const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
-  const mealPlanResponse = await callAIModel(env, mealPlanPrompt);
-  const mealPlan = parseAIResponse(mealPlanResponse);
-  console.log('Multi-step generation: Meal plan complete');
-  
-  // Combine all parts into final plan
-  return {
-    ...mealPlan,
-    analysis: analysis,
-    strategy: strategy
-  };
+  try {
+    // Step 1: Analyze user profile
+    const analysisPrompt = generateAnalysisPrompt(data);
+    const analysisResponse = await callAIModel(env, analysisPrompt);
+    const analysis = parseAIResponse(analysisResponse);
+    
+    if (!analysis || analysis.error) {
+      throw new Error('Failed to parse analysis response');
+    }
+    console.log('Multi-step generation: Analysis complete');
+    
+    // Step 2: Generate dietary strategy based on analysis
+    const strategyPrompt = generateStrategyPrompt(data, analysis);
+    const strategyResponse = await callAIModel(env, strategyPrompt);
+    const strategy = parseAIResponse(strategyResponse);
+    
+    if (!strategy || strategy.error) {
+      throw new Error('Failed to parse strategy response');
+    }
+    console.log('Multi-step generation: Strategy complete');
+    
+    // Step 3: Generate detailed meal plan
+    const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
+    const mealPlanResponse = await callAIModel(env, mealPlanPrompt);
+    const mealPlan = parseAIResponse(mealPlanResponse);
+    
+    if (!mealPlan || mealPlan.error) {
+      throw new Error('Failed to parse meal plan response');
+    }
+    console.log('Multi-step generation: Meal plan complete');
+    
+    // Combine all parts into final plan (meal plan takes precedence)
+    return {
+      ...mealPlan,
+      analysis: analysis,
+      strategy: strategy
+    };
+  } catch (error) {
+    console.error('Multi-step generation failed:', error);
+    // Fall back to single-step generation if multi-step fails
+    console.log('Falling back to single-step generation');
+    const prompt = await generateNutritionPrompt(data, env);
+    const response = await callAIModel(env, prompt);
+    return parseAIResponse(response);
+  }
 }
 
 /**
@@ -247,7 +272,7 @@ ${data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : ''}
 - Рязко покачване на тегло: ${data.weightChange === 'Да' ? data.weightChangeDetails : 'Не'}
 - Диети в миналото: ${data.dietHistory === 'Да' ? `Тип: ${data.dietType}, Резултат: ${data.dietResult}` : 'Не'}
 
-ВърниJSON с анализ на:
+Върни JSON с анализ на:
 {
   "bmr": "изчислена базова метаболитна скорост",
   "tdee": "общ дневен разход на енергия",
@@ -310,10 +335,13 @@ ${JSON.stringify(analysis, null, 2)}
  * Step 3: Generate prompt for detailed meal plan
  */
 function generateMealPlanPrompt(data, analysis, strategy) {
+  const recommendedCalories = analysis.recommendedCalories || DEFAULT_DAILY_CALORIES;
+  const bmr = analysis.bmr || DEFAULT_BMR;
+  
   return `Създай подробен 7-дневен хранителен план, базиран на анализа и стратегията:
 
 КЛИЕНТ: ${data.name}
-ЦЕЛИ: Калории: ${analysis.recommendedCalories || '1800'} kcal/ден, ${data.goal}
+ЦЕЛИ: Калории: ${recommendedCalories} kcal/ден, ${data.goal}
 
 СТРАТЕГИЯ:
 ${JSON.stringify(strategy, null, 2)}
@@ -338,8 +366,8 @@ ${JSON.stringify(strategy, null, 2)}
 Върни JSON формат:
 {
   "summary": {
-    "bmr": "${analysis.bmr || '1650'}",
-    "dailyCalories": "${analysis.recommendedCalories || '1800'}",
+    "bmr": "${bmr}",
+    "dailyCalories": "${recommendedCalories}",
     "macros": {
       "protein": "грамове протеин",
       "carbs": "грамове въглехидрати",
@@ -636,8 +664,8 @@ function generateMockResponse(prompt) {
   if (prompt.includes('7-дневен хранителен план')) {
     return JSON.stringify({
       summary: {
-        bmr: "1650",
-        dailyCalories: "1800",
+        bmr: String(DEFAULT_BMR),
+        dailyCalories: String(DEFAULT_DAILY_CALORIES),
         macros: {
           protein: "120g",
           carbs: "180g",
