@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Diet - Test Page</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .test-section h2 {
+            color: #e74c3c;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #c0392b;
+        }
+
+        button.secondary {
+            background: #3498db;
+        }
+
+        button.secondary:hover {
+            background: #2980b9;
+        }
+
+        .output {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .feature-list li:before {
+            content: '✓';
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .link-box {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .link-box a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+        .link-box a:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-flask"></i> AI Diet - Test & Validation Page</h1>
+
+        <!-- Navigation Links -->
+        <div class="test-section">
+            <h2><i class="fas fa-link"></i> Quick Navigation</h2>
+            <div class="link-box">
+                <a href="index.html"><i class="fas fa-home"></i> Home Page</a>
+                <a href="questionnaire.html"><i class="fas fa-clipboard-list"></i> Questionnaire</a>
+                <a href="plan.html"><i class="fas fa-utensils"></i> Diet Plan</a>
+            </div>
+        </div>
+
+        <!-- Features Overview -->
+        <div class="test-section">
+            <h2><i class="fas fa-check-circle"></i> Implemented Features</h2>
+            <ul class="feature-list">
+                <li>Cloudflare Worker backend (worker.js)</li>
+                <li>KV storage with caching (7 days for plans, 24h for chats)</li>
+                <li>Dynamic questionnaire with 30+ questions</li>
+                <li>AI integration (OpenAI GPT-4o-mini / Gemini Pro)</li>
+                <li>7-day personalized nutrition plan generation</li>
+                <li>Interactive plan display with day navigation</li>
+                <li>AI chat assistant with full context awareness</li>
+                <li>localStorage data persistence</li>
+                <li>Mobile-first responsive design</li>
+                <li>Mock data support for development</li>
+            </ul>
+        </div>
+
+        <!-- API Tests -->
+        <div class="test-section">
+            <h2><i class="fas fa-vial"></i> API Endpoint Tests</h2>
+            <p style="margin-bottom: 15px; color: #666;">
+                Test the backend endpoints. Note: Will use mock data if API keys are not configured.
+            </p>
+            
+            <button onclick="testGeneratePlan()">
+                <i class="fas fa-play"></i> Test Generate Plan
+            </button>
+            <button onclick="testChat()" class="secondary">
+                <i class="fas fa-comment"></i> Test Chat
+            </button>
+            <button onclick="clearCache()">
+                <i class="fas fa-trash"></i> Clear localStorage
+            </button>
+            
+            <div id="apiOutput" class="output" style="display: none;"></div>
+        </div>
+
+        <!-- localStorage Inspector -->
+        <div class="test-section">
+            <h2><i class="fas fa-database"></i> localStorage Inspector</h2>
+            <button onclick="inspectLocalStorage()">
+                <i class="fas fa-search"></i> Inspect Data
+            </button>
+            <div id="storageOutput" class="output" style="display: none;"></div>
+        </div>
+
+        <!-- Deployment Info -->
+        <div class="test-section">
+            <h2><i class="fas fa-rocket"></i> Deployment Instructions</h2>
+            <ol style="line-height: 1.8;">
+                <li>Install Wrangler CLI: <code>npm install -g wrangler</code></li>
+                <li>Login: <code>wrangler login</code></li>
+                <li>Create KV namespace: <code>wrangler kv:namespace create "page_content"</code></li>
+                <li>Update KV ID in wrangler.toml</li>
+                <li>Set API key: <code>wrangler secret put OPENAI_API_KEY</code> or <code>wrangler secret put GEMINI_API_KEY</code></li>
+                <li>Deploy: <code>wrangler deploy</code></li>
+            </ol>
+            <p style="margin-top: 15px;">
+                <strong>Note:</strong> See <a href="WORKER_README.md" style="color: #e74c3c;">WORKER_README.md</a> for detailed instructions.
+            </p>
+        </div>
+
+        <!-- Mock Data Info -->
+        <div class="test-section">
+            <h2><i class="fas fa-info-circle"></i> Development Mode</h2>
+            <p style="line-height: 1.6;">
+                The worker automatically returns mock data when no API keys are configured. This allows you to test the entire flow without setting up OpenAI or Gemini accounts.
+            </p>
+            <p style="margin-top: 10px; line-height: 1.6;">
+                Mock data includes a sample 7-day nutrition plan with meals, recommendations, and chat responses.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://aidiet.radilov-k.workers.dev';
+
+        async function testGeneratePlan() {
+            const output = document.getElementById('apiOutput');
+            output.style.display = 'block';
+            output.textContent = 'Testing /api/generate-plan...\n\n';
+
+            const testData = {
+                name: "Тест Потребител",
+                gender: "Мъж",
+                age: 30,
+                height: 180,
+                weight: 85,
+                email: "test@example.com",
+                goal: "Отслабване",
+                lossKg: 5,
+                sleepHours: "7-8",
+                chronotype: "Сутрешен",
+                dailyActivityLevel: "Средно",
+                stressLevel: "Средно",
+                sportActivity: "Средна (2-4 дни седмично)",
+                waterIntake: "1.5-2 л",
+                overeatingFrequency: "Понякога",
+                dietPreference: ["Високопротеинова"],
+                medicalConditions: ["Нямам"]
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/generate-plan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                output.textContent += `Status: ${response.status}\n\n`;
+                output.textContent += JSON.stringify(result, null, 2);
+
+                if (result.success) {
+                    showStatus('success', 'Plan generated successfully!');
+                    // Store in localStorage for testing plan.html
+                    localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+                    localStorage.setItem('userId', result.userId);
+                    localStorage.setItem('userData', JSON.stringify(testData));
+                }
+            } catch (error) {
+                output.textContent += `\nError: ${error.message}`;
+                showStatus('error', 'Failed to generate plan: ' + error.message);
+            }
+        }
+
+        async function testChat() {
+            const output = document.getElementById('apiOutput');
+            output.style.display = 'block';
+            
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                output.textContent = 'Error: No userId found. Please generate a plan first.';
+                showStatus('error', 'Generate a plan before testing chat');
+                return;
+            }
+
+            output.textContent = 'Testing /api/chat...\n\n';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userId,
+                        message: "Може ли да ям банани?",
+                        conversationId: "test-" + Date.now()
+                    })
+                });
+
+                const result = await response.json();
+                output.textContent += `Status: ${response.status}\n\n`;
+                output.textContent += JSON.stringify(result, null, 2);
+
+                if (result.success) {
+                    showStatus('success', 'Chat response received!');
+                }
+            } catch (error) {
+                output.textContent += `\nError: ${error.message}`;
+                showStatus('error', 'Chat failed: ' + error.message);
+            }
+        }
+
+        function inspectLocalStorage() {
+            const output = document.getElementById('storageOutput');
+            output.style.display = 'block';
+            
+            const data = {
+                userId: localStorage.getItem('userId'),
+                hasUserData: !!localStorage.getItem('userData'),
+                hasDietPlan: !!localStorage.getItem('dietPlan')
+            };
+
+            output.textContent = 'localStorage Contents:\n\n';
+            output.textContent += JSON.stringify(data, null, 2);
+
+            if (data.hasUserData) {
+                output.textContent += '\n\nUser Data:\n';
+                output.textContent += localStorage.getItem('userData');
+            }
+
+            if (data.hasDietPlan) {
+                const plan = JSON.parse(localStorage.getItem('dietPlan'));
+                output.textContent += '\n\nDiet Plan Summary:\n';
+                output.textContent += JSON.stringify(plan.summary || {}, null, 2);
+            }
+        }
+
+        function clearCache() {
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userData');
+            localStorage.removeItem('dietPlan');
+            showStatus('success', 'localStorage cleared!');
+        }
+
+        function showStatus(type, message) {
+            const existingStatus = document.querySelector('.status');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'times'}-circle"></i> ${message}`;
+            
+            document.querySelector('.container').insertBefore(
+                status, 
+                document.querySelector('.test-section')
+            );
+
+            setTimeout(() => status.remove(), 5000);
+        }
+
+        // Auto-inspect on load
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('userId')) {
+                showStatus('info', 'Found cached data. Click "Inspect Data" to view.');
+            }
+        });
+    </script>
+</body>
+</html>

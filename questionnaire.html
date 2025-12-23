@@ -110,7 +110,7 @@
         /* Text/Number/Email Inputs */
         .modern-input {
             width: 100%;
-            padding: 15px;
+            padding: 16px;
             font-size: 1.1rem;
             border: 2px solid transparent;
             background: var(--card-bg);
@@ -118,6 +118,8 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
             transition: var(--transition);
             outline: none;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .modern-input:focus {
             border-color: var(--primary-red);
@@ -128,7 +130,7 @@
         /* Radio & Checkbox Tiles */
         .options-grid {
             display: grid;
-            gap: 12px;
+            gap: 14px;
         }
         .option-label {
             display: flex;
@@ -142,8 +144,13 @@
             transition: var(--transition);
             position: relative;
             font-weight: 500;
+            min-height: 56px;
+            -webkit-tap-highlight-color: transparent;
         }
-        .option-label:active { transform: scale(0.98); }
+        .option-label:active { 
+            transform: scale(0.98); 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
         
         .option-input { display: none; } /* Hide default radio/checkbox */
 
@@ -216,7 +223,7 @@
 
         .btn {
             border: none;
-            padding: 14px 28px;
+            padding: 16px 32px;
             border-radius: 30px;
             font-size: 1rem;
             font-weight: 600;
@@ -225,19 +232,29 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 48px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-prev {
             background: transparent;
             color: var(--text-gray);
+            min-width: 100px;
         }
-        .btn-prev:hover { color: var(--text-dark); }
+        .btn-prev:active { 
+            color: var(--text-dark); 
+            transform: scale(0.95);
+        }
 
         .btn-next {
             background-color: var(--primary-red);
             color: white;
             box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
-            min-width: 120px;
+            min-width: 140px;
+        }
+        .btn-next:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.5);
         }
         .btn-next:disabled {
             background-color: #e0e0e0;
@@ -596,20 +613,84 @@
             }
         }
 
-        function finishQuiz() {
+        async function finishQuiz() {
             console.log("Final JSON:", JSON.stringify(answers, null, 2));
+            
+            // Show loading state
             container.innerHTML = `
                 <div style="text-align:center; animation: fadeIn 0.5s;">
                     <div class="section-icon" style="background:#e8f8f5; color:#27ae60;">
-                        <i class="fas fa-check"></i>
+                        <i class="fas fa-spinner fa-spin"></i>
                     </div>
-                    <h2 class="q-text">Благодарим ви!</h2>
-                    <p style="color:#7f8c8d; margin-bottom:20px;">Вашият профил е създаден успешно.</p>
-                    <button class="btn btn-next" onclick="alert('Данните са готови за изпращане!')" style="margin:0 auto;">Готово</button>
+                    <h2 class="q-text">Генериране на вашия план...</h2>
+                    <p style="color:#7f8c8d; margin-bottom:20px;">Моля, изчакайте. Това може да отнеме няколко секунди.</p>
                 </div>
             `;
             document.querySelector('.nav-footer').style.display = 'none';
             document.querySelector('.progress-container').style.display = 'none';
+
+            try {
+                // Add timeout for slow connections (30 seconds)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+                // Submit data to backend
+                const response = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(answers),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Store plan and userId in localStorage for use in plan.html
+                    localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+                    localStorage.setItem('userId', result.userId);
+                    localStorage.setItem('userData', JSON.stringify(answers));
+                    
+                    // Show success message
+                    container.innerHTML = `
+                        <div style="text-align:center; animation: fadeIn 0.5s;">
+                            <div class="section-icon" style="background:#e8f8f5; color:#27ae60;">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h2 class="q-text">Успешно!</h2>
+                            <p style="color:#7f8c8d; margin-bottom:20px;">Вашият хранителен план е готов.</p>
+                            <button class="btn btn-next" onclick="window.location.href='plan.html'" style="margin:0 auto;">Виж плана</button>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error submitting data:', error);
+                
+                let errorMessage = error.message;
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Заявката отне твърде дълго време. Моля, проверете интернет връзката и опитайте отново.';
+                }
+                
+                container.innerHTML = `
+                    <div style="text-align:center; animation: fadeIn 0.5s;">
+                        <div class="section-icon" style="background:#ffe8e8; color:#e74c3c;">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <h2 class="q-text">Грешка</h2>
+                        <p style="color:#7f8c8d; margin-bottom:20px;">${errorMessage}</p>
+                        <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
+                    </div>
+                `;
+            }
         }
 
         // Start

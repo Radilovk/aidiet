@@ -1,0 +1,20 @@
+name = "aidiet-worker"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# KV Namespace binding
+[[kv_namespaces]]
+binding = "page_content"
+id = "YOUR_KV_NAMESPACE_ID"  # Replace with actual KV namespace ID when created
+
+# Environment variables for API keys (configure via wrangler secret)
+# Run: wrangler secret put OPENAI_API_KEY
+# Run: wrangler secret put GEMINI_API_KEY
+
+[env.production]
+name = "aidiet-worker"
+route = "aidiet.radilov-k.workers.dev/*"
+
+[[env.production.kv_namespaces]]
+binding = "page_content"
+id = "YOUR_KV_NAMESPACE_ID"  # Replace with actual production KV namespace ID

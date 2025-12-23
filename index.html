@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NutriPlan - Твоят Персонален Режим</title>
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -279,12 +279,53 @@
         .copyright { color: #7f8c8d; font-size: 0.9rem; }
 
         /* --- RESPONSIVE --- */
+        /* Mobile-first design - optimize for mobile browsers only */
         @media (max-width: 768px) {
-            .hero { flex-direction: column; text-align: center; padding-top: 120px; }
-            .hero h1 { font-size: 2.5rem; }
-            .cta-group { justify-content: center; }
-            .hero-image { margin-top: 50px; width: 100%; }
-            .phone-mockup { width: 280px; height: 550px; }
+            .hero { 
+                flex-direction: column; 
+                text-align: center; 
+                padding-top: 100px;
+                padding-bottom: 30px;
+            }
+            .hero h1 { font-size: 2.2rem; line-height: 1.3; }
+            .hero p { font-size: 1rem; }
+            .cta-group { 
+                justify-content: center; 
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+            .nav-btn, .btn-outline {
+                width: 100%;
+                text-align: center;
+            }
+            .hero-image { margin-top: 30px; width: 100%; }
+            .phone-mockup { width: 260px; height: 520px; }
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            .feature-card {
+                padding: 30px 20px;
+            }
+            nav {
+                padding: 15px 20px;
+            }
+            .logo {
+                font-size: 1.3rem;
+            }
+            .steps-container {
+                flex-direction: column;
+            }
+            .step-item {
+                min-width: 100%;
+            }
+        }
+
+        /* Ensure touch-friendly elements */
+        button, a, .nav-btn, .btn-outline {
+            min-height: 44px;
+            min-width: 44px;
         }
 
         /* --- ANIMATION CLASSES (JS Triggered) --- */
