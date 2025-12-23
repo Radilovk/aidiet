@@ -7,6 +7,9 @@
 const DEFAULT_BMR = 1650;
 const DEFAULT_DAILY_CALORIES = 1800;
 
+// Error messages
+const ERROR_MESSAGE_PARSE_FAILURE = 'Имаше проблем с обработката на отговора. Моля опитайте отново.';
+
 /**
  * Calculate BMR using Mifflin-St Jeor Equation
  * Men: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) + 5
@@ -283,7 +286,7 @@ async function handleChat(request, env) {
           // Remove everything from [UPDATE_PLAN: onwards to avoid showing broken JSON
           finalResponse = aiResponse.substring(0, updatePlanIndex).trim();
           if (!finalResponse) {
-            finalResponse = 'Имаше проблем с обработката на отговора. Моля опитайте отново.';
+            finalResponse = ERROR_MESSAGE_PARSE_FAILURE;
           }
         }
       } catch (error) {
@@ -294,7 +297,7 @@ async function handleChat(request, env) {
         // Remove everything from [UPDATE_PLAN: onwards to avoid showing broken JSON
         finalResponse = aiResponse.substring(0, updatePlanIndex).trim();
         if (!finalResponse) {
-          finalResponse = 'Имаше проблем с обработката на отговора. Моля опитайте отново.';
+          finalResponse = ERROR_MESSAGE_PARSE_FAILURE;
         }
       }
     }
