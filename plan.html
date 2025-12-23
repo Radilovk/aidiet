@@ -521,6 +521,14 @@
                     throw new Error('Invalid plan structure');
                 }
                 
+                // Validate at least one day exists with meals
+                const hasDays = Object.keys(dietPlan.weekPlan).some(key => 
+                    dietPlan.weekPlan[key] && Array.isArray(dietPlan.weekPlan[key].meals)
+                );
+                if (!hasDays) {
+                    throw new Error('No meal data found in plan');
+                }
+                
                 // Update user avatar with first letter of name
                 const avatar = document.querySelector('.user-avatar');
                 if (userData.name) {

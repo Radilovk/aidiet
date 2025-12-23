@@ -329,7 +329,8 @@ async function callGemini(env, prompt) {
 
     const data = await response.json();
     
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || 
+        !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
       throw new Error('Invalid response format from Gemini API');
     }
     
