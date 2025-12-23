@@ -186,8 +186,8 @@ async function handleChat(request, env) {
     // Build chat prompt with context
     const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory);
     
-    // Call AI model with token limit for concise responses (150 tokens ~= 100-120 words)
-    const aiResponse = await callAIModel(env, chatPrompt, 200);
+    // Call AI model with increased token limit to accommodate plan updates (500 tokens)
+    const aiResponse = await callAIModel(env, chatPrompt, 500);
     
     // Check if the response contains a plan update instruction
     const planUpdateMatch = aiResponse.match(/\[UPDATE_PLAN:(.+?)\]/s);
@@ -668,20 +668,39 @@ function generateChatPrompt(userMessage, userData, userPlan, conversationHistory
 КЛИЕНТСКИ ПРОФИЛ:
 ${JSON.stringify(userData, null, 2)}
 
-ХРАНИТЕЛЕН ПЛАН:
-${JSON.stringify(userPlan.summary || {}, null, 2)}
+ПЪЛЕН ХРАНИТЕЛЕН ПЛАН (Четене и Промяна):
+${JSON.stringify(userPlan, null, 2)}
 
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 
 ВАЖНИ ПРАВИЛА ЗА ПРОМЕНИ В ПЛАНА:
-1. Ако клиентът иска промяна в плана (замяна на храна, промяна на време на хранене и т.н.):
+1. Ако клиентът иска промяна в плана (замяна на храна, промяна на време на хранене, промяна на количество и т.н.):
    - Анализирай дали желанието е разумно и здравословно
    - Ако промяната е здравословна, ОДОБРИ Я и приложи промяната към плана
    - Ако промяната е нездравословна, обясни защо и предложи по-добра алтернатива
-2. За да приложиш промяна, добави към края на отговора си: [UPDATE_PLAN:{"weekPlan":{"day1":{"meals":[...]}}}] със съответните промени
-3. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
-4. Не давай дълги обяснения, освен ако не е необходимо
-5. Винаги поддържай мотивиращ тон
+2. За да приложиш промяна в плана, добави към края на отговора си специална инструкция във формат:
+   [UPDATE_PLAN:{"weekPlan":{"day1":{"meals":[...новите ястия за ден 1...]}}, "recommendations":[...], "forbidden":[...]}]
+   
+   ВАЖНО: В UPDATE_PLAN включи САМО частите на плана, които променяш. Примери:
+   - Промяна на ястия за Ден 3: [UPDATE_PLAN:{"weekPlan":{"day3":{"meals":[...]}}}]
+   - Промяна само на закуската за Ден 1: включи целия масив meals за day1 с променената закуска
+   - Промяна на препоръки: [UPDATE_PLAN:{"recommendations":[...новите препоръки...]}]
+   
+3. Структурата на meals за всеки ден е масив от обекти във формат:
+   {
+     "type": "Закуска/Обяд/Вечеря/Снек",
+     "time": "08:00",
+     "name": "Име на ястието",
+     "weight": "250 гр.",
+     "calories": "350 kcal",
+     "description": "Описание",
+     "benefits": "Ползи"
+   }
+   
+4. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
+5. Не давай дълги обяснения, освен ако не е необходимо
+6. Винаги поддържай мотивиращ тон
+7. След като приложиш промяна, кажи на клиента "✓ Промяната е приложена!" и обясни кратко какво е променено
 
 КЛИЕНТ: ${userMessage}
 
