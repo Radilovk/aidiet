@@ -5,7 +5,7 @@ compatibility_date = "2024-01-01"
 # KV Namespace binding
 [[kv_namespaces]]
 binding = "page_content"
-id = "YOUR_KV_NAMESPACE_ID"  # Replace with actual KV namespace ID when created
+id = "81fc0991b2764918b682f9ca170abd4b"
 
 # Environment variables for API keys (configure via wrangler secret)
 # Run: wrangler secret put OPENAI_API_KEY
@@ -17,4 +17,4 @@ route = "aidiet.radilov-k.workers.dev/*"
 
 [[env.production.kv_namespaces]]
 binding = "page_content"
-id = "YOUR_KV_NAMESPACE_ID"  # Replace with actual production KV namespace ID
+id = "81fc0991b2764918b682f9ca170abd4b"
