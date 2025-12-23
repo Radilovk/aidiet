@@ -149,18 +149,21 @@
 
         .day-chip {
             background: var(--card-bg);
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--text-light);
             padding: 10px 18px;
             border-radius: 25px;
             margin: 0 6px;
             white-space: nowrap;
             font-size: 0.95rem;
             font-weight: 600;
-            color: var(--text-light);
+            color: var(--text-dark);
             cursor: pointer;
             transition: all 0.3s ease;
             min-width: 70px;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -223,7 +226,7 @@
         .meal-weight {
             font-size: 0.85rem;
             color: var(--text-light);
-            background: #f0f0f0;
+            background: var(--soft-red);
             padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
@@ -269,7 +272,7 @@
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
-            background: white;
+            background: var(--card-bg);
             font-weight: 600;
             font-size: 1rem;
             transition: background-color 0.2s;
@@ -277,7 +280,7 @@
         }
         
         .acc-header:active {
-            background-color: #f8f8f8;
+            background-color: var(--soft-red);
         }
         
         .acc-header i { color: var(--primary-red); margin-right: 10px; width: 20px;}
@@ -288,8 +291,8 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease-out;
-            background-color: #fafafa;
-            border-top: 1px solid #f0f0f0;
+            background-color: var(--bg-color);
+            border-top: 1px solid var(--text-light);
         }
 
         .acc-content-inner {
@@ -356,7 +359,7 @@
         }
 
         .modal-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 16px;
             padding: 20px;
             width: 100%;
@@ -377,7 +380,7 @@
             border: none;
             background: none;
             font-size: 1.2rem;
-            color: #aaa;
+            color: var(--text-light);
             cursor: pointer;
         }
 
@@ -529,7 +532,7 @@
                         <p><strong>Не се обвинявайте:</strong> Ако "съгрешите" с едно хранене, просто продължете по план следващия път. Едно хранене не разваля прогреса.</p>
                         <br>
                         <p><strong>Слушайте тялото си:</strong> Хранете се, когато сте гладни, а не когато сте емоционални или отегчени.</p>
-                        <div class="modal-benefit" style="margin-top:10px; color: var(--text-dark); background: #fff3e0;">
+                        <div class="modal-benefit" style="margin-top:10px; color: var(--text-dark); background: var(--soft-red);">
                             <i class="fas fa-star"></i> Съвет: Водете си дневник на емоциите при хранене.
                         </div>
                     </div>
@@ -813,18 +816,18 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 15px; background: #f5f5f5;">
+                <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 15px; background: var(--bg-color);">
                     <div class="chat-message assistant">
-                        <div class="message-bubble" style="background: white; padding: 10px 15px; border-radius: 12px; margin-bottom: 10px; max-width: 80%;">
-                            <p style="margin: 0; font-size: 0.9rem;">Здравейте, ${userData.name || 'приятелю'}! 👋</p>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Аз съм вашият AI диетолог асистент. Как мога да ви помогна днес?</p>
+                        <div class="message-bubble" style="background: var(--card-bg); padding: 10px 15px; border-radius: 12px; margin-bottom: 10px; max-width: 80%;">
+                            <p style="margin: 0; font-size: 0.9rem; color: var(--text-dark);">Здравейте, ${userData.name || 'приятелю'}! 👋</p>
+                            <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-dark);">Аз съм вашият AI диетолог асистент. Как мога да ви помогна днес?</p>
                         </div>
                     </div>
                 </div>
-                <div style="padding: 15px; border-top: 1px solid #e0e0e0; background: white; border-radius: 0 0 16px 16px;">
+                <div style="padding: 15px; border-top: 1px solid var(--text-light); background: var(--card-bg); border-radius: 0 0 16px 16px;">
                     <div style="display: flex; gap: 10px;">
                         <input type="text" id="chatInput" placeholder="Напишете съобщение..." 
-                            style="flex: 1; padding: 10px 15px; border: 1px solid #e0e0e0; border-radius: 20px; outline: none; font-size: 0.9rem;"
+                            style="flex: 1; padding: 10px 15px; border: 1px solid var(--text-light); border-radius: 20px; outline: none; font-size: 0.9rem; background: var(--card-bg); color: var(--text-dark);"
                             onkeypress="if(event.key==='Enter') sendMessage()">
                         <button onclick="sendMessage()" style="background: var(--primary-red); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                             <i class="fas fa-paper-plane"></i>
