@@ -196,7 +196,7 @@ async function handleChat(request, env) {
       try {
         // Find the JSON content between [UPDATE_PLAN: and the matching closing ]
         const jsonStart = updatePlanIndex + '[UPDATE_PLAN:'.length;
-        let jsonEnd = jsonStart;
+        let jsonEnd = -1; // Will be set when we find the closing bracket
         let bracketCount = 0;
         let braceCount = 0;
         let inString = false;
@@ -244,7 +244,7 @@ async function handleChat(request, env) {
         
         if (jsonEnd > jsonStart) {
           const jsonContent = aiResponse.substring(jsonStart, jsonEnd);
-          console.log('Extracted UPDATE_PLAN JSON:', jsonContent.substring(0, 200) + '...');
+          console.log('UPDATE_PLAN detected and parsed successfully (length:', jsonContent.length, 'chars)');
           
           const updateData = JSON.parse(jsonContent);
           
@@ -262,7 +262,7 @@ async function handleChat(request, env) {
           const afterUpdate = aiResponse.substring(jsonEnd + 1); // +1 to skip the closing ]
           const cleanResponse = (beforeUpdate + afterUpdate).trim();
           
-          console.log('Plan updated successfully, sending clean response');
+          console.log('Plan updated successfully');
           
           // Update conversation history with the clean response
           await updateConversationHistory(env, conversationKey, message, cleanResponse);
@@ -274,10 +274,12 @@ async function handleChat(request, env) {
           });
         } else {
           console.error('Could not find closing bracket for UPDATE_PLAN');
+          // Fall through to return the original response without plan update
         }
       } catch (error) {
         console.error('Error parsing plan update:', error);
         console.error('Error details:', error.message);
+        // Fall through to return the original response without plan update
       }
     }
     
