@@ -609,33 +609,40 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
  * Call AI model (placeholder for Gemini or OpenAI)
  */
 async function callAIModel(env, prompt) {
-  // Check admin preference for AI model
-  let preferredModel = 'openai'; // default
+  // Check admin preference for AI provider and model
+  let preferredProvider = 'openai'; // default
+  let modelName = 'gpt-4o-mini'; // default
+  
   if (env.page_content) {
-    const savedModel = await env.page_content.get('admin_ai_model');
-    if (savedModel) {
-      preferredModel = savedModel;
+    const savedProvider = await env.page_content.get('admin_ai_provider');
+    const savedModelName = await env.page_content.get('admin_ai_model_name');
+    
+    if (savedProvider) {
+      preferredProvider = savedProvider;
+    }
+    if (savedModelName) {
+      modelName = savedModelName;
     }
   }
 
   // If mock is selected, return mock response
-  if (preferredModel === 'mock') {
+  if (preferredProvider === 'mock') {
     console.warn('Mock mode selected. Returning mock response.');
     return generateMockResponse(prompt);
   }
 
-  // Try preferred model first
-  if (preferredModel === 'openai' && env.OPENAI_API_KEY) {
-    return await callOpenAI(env, prompt);
-  } else if (preferredModel === 'gemini' && env.GEMINI_API_KEY) {
-    return await callGemini(env, prompt);
+  // Try preferred provider first
+  if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
+    return await callOpenAI(env, prompt, modelName);
+  } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
+    return await callGemini(env, prompt, modelName);
   }
   
   // Fallback to any available API key
   if (env.OPENAI_API_KEY) {
-    return await callOpenAI(env, prompt);
+    return await callOpenAI(env, prompt, modelName);
   } else if (env.GEMINI_API_KEY) {
-    return await callGemini(env, prompt);
+    return await callGemini(env, prompt, modelName);
   } else {
     // Return mock response for development
     console.warn('No AI API key configured. Returning mock response.');
@@ -646,7 +653,7 @@ async function callAIModel(env, prompt) {
 /**
  * Call OpenAI API
  */
-async function callOpenAI(env, prompt) {
+async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini') {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -655,7 +662,7 @@ async function callOpenAI(env, prompt) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: modelName,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7
       })
@@ -681,10 +688,10 @@ async function callOpenAI(env, prompt) {
 /**
  * Call Gemini API
  */
-async function callGemini(env, prompt) {
+async function callGemini(env, prompt, modelName = 'gemini-pro') {
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1099,21 +1106,22 @@ async function handleGetPrompt(request, env) {
  */
 async function handleSaveModel(request, env) {
   try {
-    const { model } = await request.json();
+    const { provider, modelName } = await request.json();
     
-    if (!model) {
-      return jsonResponse({ error: 'Missing model' }, 400);
+    if (!provider || !modelName) {
+      return jsonResponse({ error: 'Missing provider or modelName' }, 400);
     }
 
-    if (!['openai', 'gemini', 'mock'].includes(model)) {
-      return jsonResponse({ error: 'Invalid model type' }, 400);
+    if (!['openai', 'google', 'mock'].includes(provider)) {
+      return jsonResponse({ error: 'Invalid provider type' }, 400);
     }
 
     if (!env.page_content) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    await env.page_content.put('admin_ai_model', model);
+    await env.page_content.put('admin_ai_provider', provider);
+    await env.page_content.put('admin_ai_model_name', modelName);
     
     return jsonResponse({ success: true, message: 'Model saved successfully' });
   } catch (error) {
@@ -1131,13 +1139,15 @@ async function handleGetConfig(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const model = await env.page_content.get('admin_ai_model') || 'openai';
+    const provider = await env.page_content.get('admin_ai_provider') || 'openai';
+    const modelName = await env.page_content.get('admin_ai_model_name') || 'gpt-4o-mini';
     const planPrompt = await env.page_content.get('admin_plan_prompt');
     const chatPrompt = await env.page_content.get('admin_chat_prompt');
     
     return jsonResponse({ 
       success: true, 
-      model,
+      provider,
+      modelName,
       planPrompt,
       chatPrompt
     });
