@@ -186,8 +186,8 @@ async function handleChat(request, env) {
     // Build chat prompt with context
     const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory);
     
-    // Call AI model with increased token limit to accommodate plan updates (500 tokens)
-    const aiResponse = await callAIModel(env, chatPrompt, 500);
+    // Call AI model with increased token limit to accommodate plan updates (2000 tokens for full week plan updates)
+    const aiResponse = await callAIModel(env, chatPrompt, 2000);
     
     // Check if the response contains a plan update instruction
     // Use a more robust method to extract the JSON from [UPDATE_PLAN:...] that handles nested structures
@@ -274,11 +274,13 @@ async function handleChat(request, env) {
           });
         } else {
           console.error('Could not find closing bracket for UPDATE_PLAN');
+          console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
           // Fall through to return the original response without plan update
         }
       } catch (error) {
         console.error('Error parsing plan update:', error);
         console.error('Error details:', error.message);
+        console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
         // Fall through to return the original response without plan update
       }
     }
@@ -738,28 +740,34 @@ ${JSON.stringify(userPlan, null, 2)}
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 
 ВАЖНИ ПРАВИЛА ЗА ПРОМЕНИ В ПЛАНА:
-1. Ако клиентът иска промяна в плана (замяна на храна, промяна на време на хранене, промяна на количество и т.н.):
+1. Ако клиентът иска промяна в плана (замяна на храна, промяна на време на хранене, премахване на хранене, промяна на количество и т.н.):
    - Анализирай дали желанието е разумно и здравословно
    - Ако промяната е здравословна, ОДОБРИ Я и приложи промяната към плана
    - Ако промяната е нездравословна, обясни защо и предложи по-добра алтернатива
 2. За да приложиш промяна в плана, добави към края на отговора си специална инструкция във формат:
    [UPDATE_PLAN:{"weekPlan":{"day1":{"meals":[...новите ястия за ден 1...]}}, "recommendations":[...], "forbidden":[...]}]
    
-   ВАЖНО: В UPDATE_PLAN включи САМО частите на плана, които променяш. Примери:
-   - Промяна на ястия за Ден 3: [UPDATE_PLAN:{"weekPlan":{"day3":{"meals":[...]}}}]
-   - Промяна само на закуската за Ден 1: включи целия масив meals за day1 с променената закуска
+   ВАЖНО: Винаги включвай ЦЕЛИЯ масив meals за дните, които променяш, дори ако променяш само едно хранене!
+   
+   Примери:
+   - Премахване на последното хранене от Ден 1: включи целия масив meals за day1 БЕЗ последното хранене
+   - Замяна на закуската за Ден 2: включи целия масив meals за day2 с новата закуска
+   - Промяна на ястия за няколко дни: включи целите масиви meals за всички променени дни
    - Промяна на препоръки: [UPDATE_PLAN:{"recommendations":[...новите препоръки...]}]
    
 3. Структурата на meals за всеки ден е масив от обекти във формат:
    {
-     "type": "Закуска/Обяд/Вечеря/Снек",
+     "type": "Закуска/Обяд/Вечеря/Следобедна закуска/Междинно хранене",
      "time": "08:00",
      "name": "Име на ястието",
-     "weight": "250 гр.",
-     "calories": "350 kcal",
+     "weight": "250g",
+     "calories": 350,
      "description": "Описание",
      "benefits": "Ползи"
    }
+   ВАЖНО: 
+   - calories трябва да е число (без "kcal" текст)
+   - weight използвай формат "250g" (предпочитан) или "250 гр." (приемлив)
    
 4. Бъди КРАТЪК и КОНКРЕТЕН в отговорите си (максимум 2-3 изречения)
 5. Не давай дълги обяснения, освен ако не е необходимо
