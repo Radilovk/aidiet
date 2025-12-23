@@ -57,6 +57,11 @@ const CORS_HEADERS = {
   'Content-Type': 'application/json'
 };
 
+// Cache for admin configuration to reduce KV reads
+let adminConfigCache = null;
+let adminConfigCacheTime = 0;
+const ADMIN_CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -663,24 +668,47 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
 }
 
 /**
+ * Get admin configuration with caching to reduce KV reads
+ */
+async function getAdminConfig(env) {
+  // Return cached config if still valid
+  const now = Date.now();
+  if (adminConfigCache && (now - adminConfigCacheTime) < ADMIN_CONFIG_CACHE_TTL) {
+    return adminConfigCache;
+  }
+
+  // Fetch fresh config from KV
+  const config = {
+    provider: 'openai',
+    modelName: 'gpt-4o-mini'
+  };
+
+  if (env.page_content) {
+    // Use Promise.all to fetch both values in parallel
+    const [savedProvider, savedModelName] = await Promise.all([
+      env.page_content.get('admin_ai_provider'),
+      env.page_content.get('admin_ai_model_name')
+    ]);
+
+    if (savedProvider) config.provider = savedProvider;
+    if (savedModelName) config.modelName = savedModelName;
+  }
+
+  // Update cache
+  adminConfigCache = config;
+  adminConfigCacheTime = now;
+
+  return config;
+}
+
+/**
  * Call AI model (placeholder for Gemini or OpenAI)
  */
 async function callAIModel(env, prompt) {
-  // Check admin preference for AI provider and model
-  let preferredProvider = 'openai'; // default
-  let modelName = 'gpt-4o-mini'; // default
-  
-  if (env.page_content) {
-    const savedProvider = await env.page_content.get('admin_ai_provider');
-    const savedModelName = await env.page_content.get('admin_ai_model_name');
-    
-    if (savedProvider) {
-      preferredProvider = savedProvider;
-    }
-    if (savedModelName) {
-      modelName = savedModelName;
-    }
-  }
+  // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
+  const config = await getAdminConfig(env);
+  const preferredProvider = config.provider;
+  const modelName = config.modelName;
 
   // If mock is selected, return mock response
   if (preferredProvider === 'mock') {
@@ -1177,8 +1205,15 @@ async function handleSaveModel(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    await env.page_content.put('admin_ai_provider', provider);
-    await env.page_content.put('admin_ai_model_name', modelName);
+    // Use Promise.all to save both values in parallel
+    await Promise.all([
+      env.page_content.put('admin_ai_provider', provider),
+      env.page_content.put('admin_ai_model_name', modelName)
+    ]);
+    
+    // Invalidate cache so next request gets fresh config
+    adminConfigCache = null;
+    adminConfigCacheTime = 0;
     
     return jsonResponse({ success: true, message: 'Model saved successfully' });
   } catch (error) {
@@ -1196,15 +1231,18 @@ async function handleGetConfig(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const provider = await env.page_content.get('admin_ai_provider') || 'openai';
-    const modelName = await env.page_content.get('admin_ai_model_name') || 'gpt-4o-mini';
-    const planPrompt = await env.page_content.get('admin_plan_prompt');
-    const chatPrompt = await env.page_content.get('admin_chat_prompt');
+    // Use Promise.all to fetch all config values in parallel (reduces sequential KV reads)
+    const [provider, modelName, planPrompt, chatPrompt] = await Promise.all([
+      env.page_content.get('admin_ai_provider'),
+      env.page_content.get('admin_ai_model_name'),
+      env.page_content.get('admin_plan_prompt'),
+      env.page_content.get('admin_chat_prompt')
+    ]);
     
     return jsonResponse({ 
       success: true, 
-      provider,
-      modelName,
+      provider: provider || 'openai',
+      modelName: modelName || 'gpt-4o-mini',
       planPrompt,
       chatPrompt
     });
