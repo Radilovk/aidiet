@@ -570,6 +570,20 @@
         let chatVisible = false;
         let conversationId = Date.now().toString();
         let chatMode = 'consultation'; // 'consultation' or 'modification'
+        
+        // UI strings for chat modes
+        const CHAT_MODE_STRINGS = {
+            consultation: {
+                activatedMessage: '🔒 Режимът за консултация е активиран. Мога да отговарям на въпроси, но не мога да променям плана.',
+                modeLabel: 'Режим: Консултация',
+                buttonLabel: '<i class="fas fa-edit"></i><span>Промени план</span>'
+            },
+            modification: {
+                activatedMessage: '🔓 Режимът за промяна на плана е активиран. Сега мога да променям вашия план според желанията ви.',
+                modeLabel: 'Режим: Промяна на план',
+                buttonLabel: '<i class="fas fa-comment"></i><span>Консултация</span>'
+            }
+        };
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', function() {
@@ -878,9 +892,7 @@
             updateModeUI();
             
             // Add a system message to inform the user
-            const modeMessage = chatMode === 'modification' 
-                ? '🔓 Режимът за промяна на плана е активиран. Сега мога да променям вашия план според желанията ви.'
-                : '🔒 Режимът за консултация е активиран. Мога да отговарям на въпроси, но не мога да променям плана.';
+            const modeMessage = CHAT_MODE_STRINGS[chatMode].activatedMessage;
             
             addMessageToChat(modeMessage, 'assistant');
         }
@@ -895,16 +907,16 @@
             
             if (chatMode === 'modification') {
                 // Modification mode styling
-                modeText.textContent = 'Режим: Промяна на план';
+                modeText.textContent = CHAT_MODE_STRINGS.modification.modeLabel;
                 modeIcon.style.color = '#FF5722'; // Red/orange for modification
-                modeToggleBtn.innerHTML = '<i class="fas fa-comment"></i><span>Консултация</span>';
+                modeToggleBtn.innerHTML = CHAT_MODE_STRINGS.consultation.buttonLabel;
                 modeToggleBtn.style.background = '#4CAF50'; // Green for consultation button
                 modeIndicator.style.background = '#FFEBEE'; // Light red background
             } else {
                 // Consultation mode styling
-                modeText.textContent = 'Режим: Консултация';
+                modeText.textContent = CHAT_MODE_STRINGS.consultation.modeLabel;
                 modeIcon.style.color = '#4CAF50'; // Green for consultation
-                modeToggleBtn.innerHTML = '<i class="fas fa-edit"></i><span>Промени план</span>';
+                modeToggleBtn.innerHTML = CHAT_MODE_STRINGS.modification.buttonLabel;
                 modeToggleBtn.style.background = 'var(--primary-red)'; // Red for modification button
                 modeIndicator.style.background = '#E8F5E9'; // Light green background
             }
