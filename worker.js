@@ -8,6 +8,7 @@ const DEFAULT_BMR = 1650;
 const DEFAULT_DAILY_CALORIES = 1800;
 
 // Error messages
+// Bulgarian error message shown when UPDATE_PLAN parsing fails and no clean response text remains
 const ERROR_MESSAGE_PARSE_FAILURE = 'Имаше проблем с обработката на отговора. Моля опитайте отново.';
 
 /**
@@ -162,6 +163,15 @@ async function handleGeneratePlan(request, env) {
 }
 
 /**
+ * Helper function to clean a response by removing UPDATE_PLAN from a given index
+ * Returns a fallback error message if the cleaned response is empty
+ */
+function cleanResponseFromUpdatePlan(aiResponse, updatePlanIndex) {
+  const cleanedResponse = aiResponse.substring(0, updatePlanIndex).trim();
+  return cleanedResponse || ERROR_MESSAGE_PARSE_FAILURE;
+}
+
+/**
  * Handle chat assistant requests
  */
 async function handleChat(request, env) {
@@ -284,10 +294,7 @@ async function handleChat(request, env) {
           console.error('Could not find closing bracket for UPDATE_PLAN');
           console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
           // Remove everything from [UPDATE_PLAN: onwards to avoid showing broken JSON
-          finalResponse = aiResponse.substring(0, updatePlanIndex).trim();
-          if (!finalResponse) {
-            finalResponse = ERROR_MESSAGE_PARSE_FAILURE;
-          }
+          finalResponse = cleanResponseFromUpdatePlan(aiResponse, updatePlanIndex);
         }
       } catch (error) {
         // Error occurred - still try to remove the UPDATE_PLAN section
@@ -295,10 +302,7 @@ async function handleChat(request, env) {
         console.error('Error details:', error.message);
         console.error('AI Response excerpt (last 500 chars):', aiResponse.substring(Math.max(0, aiResponse.length - 500)));
         // Remove everything from [UPDATE_PLAN: onwards to avoid showing broken JSON
-        finalResponse = aiResponse.substring(0, updatePlanIndex).trim();
-        if (!finalResponse) {
-          finalResponse = ERROR_MESSAGE_PARSE_FAILURE;
-        }
+        finalResponse = cleanResponseFromUpdatePlan(aiResponse, updatePlanIndex);
       }
     }
     
