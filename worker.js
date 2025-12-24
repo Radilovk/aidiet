@@ -295,11 +295,25 @@ async function handleChat(request, env) {
             // Apply modifications to user data and regenerate plan
             // Use Set to avoid duplicates when accumulating modifications
             const existingMods = new Set(userData.planModifications || []);
-            modifications.forEach(mod => existingMods.add(mod));
+            const excludedFoods = new Set((userData.dietDislike || '').split(',').map(f => f.trim()).filter(f => f));
+            
+            modifications.forEach(mod => {
+              if (mod.startsWith('exclude_food:')) {
+                // Extract food name from "exclude_food:име_на_храна"
+                const foodName = mod.substring('exclude_food:'.length).trim();
+                if (foodName) {
+                  excludedFoods.add(foodName);
+                  console.log('Adding food exclusion:', foodName);
+                }
+              } else {
+                existingMods.add(mod);
+              }
+            });
             
             const modifiedUserData = {
               ...userData,
-              planModifications: Array.from(existingMods)
+              planModifications: Array.from(existingMods),
+              dietDislike: Array.from(excludedFoods).join(', ')
             };
             
             // Regenerate the plan using multi-step approach with new criteria
@@ -895,18 +909,36 @@ async function getChatPrompts(env) {
    - Запитай с 1 въпрос за потвърждение
    - След потвърждение, приложи с [REGENERATE_PLAN:{"modifications":["описание"]}]
 
-3. НИКОГА не прилагай директно промяна без обсъждане! Винаги обясни и консултирай първо.
+3. РАЗПОЗНАВАНЕ НА ПОТВЪРЖДЕНИЕ:
+   - "да", "yes", "добре", "ок", "окей", "сигурен", "сигурна" = ПОТВЪРЖДЕНИЕ
+   - Ако клиентът потвърди (каже "да"), НЕ питай отново! Приложи промяната ВЕДНАГА.
+   - Ако вече си задавал същия въпрос в историята, НЕ го питай отново - приложи промяната!
+   - НИКОГА не задавай един и същ въпрос повече от ВЕДНЪЖ.
 
-4. ПРИМЕР:
+4. НИКОГА не прилагай директно промяна без обсъждане! Винаги обясни и консултирай първо.
+
+5. ЗА ПРЕМАХВАНЕ НА КОНКРЕТНИ ХРАНИ:
+   - Ако клиентът иска да премахне конкретна храна (напр. "овесени ядки"), използвай специален модификатор:
+   - Формат: "exclude_food:име_на_храната" (напр. "exclude_food:овесени ядки")
+   - Пример: [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]
+   - Това ще регенерира плана БЕЗ тази храна
+
+6. ПРИМЕР:
    Клиент: "премахни междинните хранения"
    Отговор: "Разбирам. Премахването може да опрости храненето, но може и да доведе до преяждане. За твоята цел препоръчвам 1 здравословна закуска вместо пълно премахване. Премахваме всички или оставяме 1?"
    
    [ЧАКАЙ потвърждение преди REGENERATE_PLAN]
    
-   Клиент: "добре, премахни всички"
+   Клиент: "да" или "добре, премахни всички"
    Отговор: "✓ Разбрано! Регенерирам плана със 3 основни хранения. [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]"
+   
+   ПРИМЕР ЗА ПРЕМАХВАНЕ НА ХРАНА:
+   Клиент: "махни овесените ядки"
+   Отговор: "Разбирам, Камен. Премахването на овесените ядки ще намали фибрите. Искаш ли да ги премахна от всички дни?"
+   Клиент: "да"
+   Отговор: "✓ Разбрано! Премахвам овесените ядки от плана. [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]"
 
-5. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
+7. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
    - "no_intermediate_meals" - без междинни хранения
    - "3_meals_per_day" - 3 хранения дневно
    - "4_meals_per_day" - 4 хранения дневно
@@ -914,8 +946,9 @@ async function getChatPrompts(env) {
    - "no_dairy" - без млечни продукти
    - "low_carb" - нисковъглехидратна диета
    - "increase_protein" - повече протеини
+   - "exclude_food:име_на_храна" - премахване на конкретна храна
 
-ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос!`
+ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос! АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`
   };
 
   if (env.page_content) {

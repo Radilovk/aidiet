@@ -951,7 +951,7 @@
             try {
                 // Add timeout for slow connections (60 seconds to allow AI more time)
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000);
+                const timeoutId = setTimeout(() => controller.abort('Request timeout after 60 seconds'), 60000);
 
                 // Send to backend
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/chat', {
