@@ -10,38 +10,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
-            --primary-red: #FF3B5C;
-            --primary-accent: #FF6B8A;
-            --secondary-accent: #FFB347;
-            --soft-red: #FFE5E9;
-            --text-dark: #2c3e50;
-            --text-light: #7f8c8d;
-            --bg-color: #f8f9fa;
+            --primary-red: #4CAF50;
+            --primary-accent: #66BB6A;
+            --secondary-accent: #42A5F5;
+            --soft-red: #E8F5E9;
+            --text-dark: #1a1a1a;
+            --text-light: #757575;
+            --bg-color: #F5F7FA;
             --card-bg: #ffffff;
             --shadow: 0 8px 20px rgba(0,0,0,0.08);
             --shadow-hover: 0 12px 28px rgba(0,0,0,0.12);
             --radius: 16px;
-            --gradient-primary: linear-gradient(135deg, #FF3B5C 0%, #FF6B8A 100%);
-            --gradient-secondary: linear-gradient(135deg, #FFB347 0%, #FFCC70 100%);
-            --gradient-card: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+            --gradient-primary: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+            --gradient-secondary: linear-gradient(135deg, #42A5F5 0%, #64B5F6 100%);
+            --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
         }
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #FF5A7A;
-            --primary-accent: #FF7B9F;
-            --secondary-accent: #FFC76B;
-            --soft-red: #3a2830;
-            --text-dark: #f0f0f0;
-            --text-light: #b8b8b8;
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
+            --primary-red: #66BB6A;
+            --primary-accent: #81C784;
+            --secondary-accent: #64B5F6;
+            --soft-red: #1B5E20;
+            --text-dark: #E8EAED;
+            --text-light: #9AA0A6;
+            --bg-color: #202124;
+            --card-bg: #292A2D;
             --shadow: 0 8px 20px rgba(0,0,0,0.5);
             --shadow-hover: 0 12px 28px rgba(0,0,0,0.7);
             --radius: 16px;
-            --gradient-primary: linear-gradient(135deg, #FF5A7A 0%, #FF7B9F 100%);
-            --gradient-secondary: linear-gradient(135deg, #FFC76B 0%, #FFD98F 100%);
-            --gradient-card: linear-gradient(145deg, #1e1e1e 0%, #252525 100%);
+            --gradient-primary: linear-gradient(135deg, #66BB6A 0%, #81C784 100%);
+            --gradient-secondary: linear-gradient(135deg, #64B5F6 0%, #90CAF9 100%);
+            --gradient-card: linear-gradient(145deg, #292A2D 0%, #35363A 100%);
         }
 
         * {
@@ -104,12 +104,12 @@
             font-size: 1.1rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(255, 59, 92, 0.4);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
         }
 
         .export-btn:hover {
             transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 6px 16px rgba(255, 59, 92, 0.6);
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.6);
         }
 
         .export-btn:active {
@@ -129,12 +129,12 @@
             font-size: 1.1rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(255, 179, 71, 0.4);
+            box-shadow: 0 4px 12px rgba(66, 165, 245, 0.4);
         }
 
         .theme-toggle-btn:hover {
             transform: scale(1.1) rotate(-10deg);
-            box-shadow: 0 6px 16px rgba(255, 179, 71, 0.6);
+            box-shadow: 0 6px 16px rgba(66, 165, 245, 0.6);
         }
 
         .theme-toggle-btn:active {
@@ -161,13 +161,13 @@
             color: white;
             font-weight: bold;
             font-size: 1.1rem;
-            box-shadow: 0 4px 12px rgba(255, 59, 92, 0.3);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
             transition: all 0.3s ease;
         }
 
         .user-avatar:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(255, 59, 92, 0.5);
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.5);
         }
 
         /* --- DAY NAVIGATION (Horizontal Scroll) --- */
@@ -227,7 +227,7 @@
             background: var(--gradient-primary);
             color: white;
             border-color: transparent;
-            box-shadow: 0 6px 20px rgba(255, 59, 92, 0.5);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
             transform: translateY(-3px) scale(1.05);
         }
 
@@ -318,7 +318,7 @@
             border-radius: 20px;
             display: inline-block;
             font-weight: 600;
-            box-shadow: 0 2px 6px rgba(255, 59, 92, 0.15);
+            box-shadow: 0 2px 6px rgba(76, 175, 80, 0.15);
         }
 
         .info-btn {
@@ -336,14 +336,14 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-size: 18px;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 4px 12px rgba(255, 179, 71, 0.3);
+            box-shadow: 0 4px 12px rgba(66, 165, 245, 0.3);
             position: relative;
             z-index: 1;
         }
         
         .info-btn:hover { 
             transform: scale(1.1) rotate(10deg);
-            box-shadow: 0 6px 16px rgba(255, 179, 71, 0.5);
+            box-shadow: 0 6px 16px rgba(66, 165, 245, 0.5);
         }
         
         .info-btn:active { 
@@ -361,7 +361,7 @@
             margin-bottom: 16px;
             box-shadow: var(--shadow);
             overflow: hidden;
-            border: 1px solid rgba(255, 59, 92, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.1);
             transition: all 0.3s ease;
         }
 
@@ -512,17 +512,17 @@
             line-height: 1.7;
             display: flex;
             align-items: flex-start;
-            background: rgba(255, 107, 138, 0.08);
+            background: rgba(102, 187, 106, 0.08);
             border-radius: 12px;
             transition: all 0.3s ease;
             border-left: 3px solid transparent;
         }
         
         .info-list li:hover {
-            background: rgba(255, 107, 138, 0.15);
+            background: rgba(102, 187, 106, 0.15);
             transform: translateX(4px);
             border-left-color: var(--primary-accent);
-            box-shadow: 0 4px 12px rgba(255, 107, 138, 0.15);
+            box-shadow: 0 4px 12px rgba(102, 187, 106, 0.15);
         }
         
         .info-list li i {
@@ -540,7 +540,7 @@
             height: 68px;
             background: var(--gradient-primary);
             border-radius: 50%;
-            box-shadow: 0 8px 24px rgba(255, 59, 92, 0.5);
+            box-shadow: 0 8px 24px rgba(76, 175, 80, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -556,21 +556,21 @@
 
         @keyframes pulse {
             0%, 100% {
-                box-shadow: 0 8px 24px rgba(255, 59, 92, 0.5);
+                box-shadow: 0 8px 24px rgba(76, 175, 80, 0.5);
             }
             50% {
-                box-shadow: 0 8px 32px rgba(255, 59, 92, 0.8);
+                box-shadow: 0 8px 32px rgba(76, 175, 80, 0.8);
             }
         }
 
         .fab-chat:hover {
             transform: scale(1.1) rotate(10deg);
-            box-shadow: 0 12px 32px rgba(255, 59, 92, 0.7);
+            box-shadow: 0 12px 32px rgba(76, 175, 80, 0.7);
         }
 
         .fab-chat:active { 
             transform: scale(0.95);
-            box-shadow: 0 6px 20px rgba(255, 59, 92, 0.6);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
         }
 
         /* --- MODAL (POPUP) --- */
@@ -607,7 +607,7 @@
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            border: 2px solid rgba(255, 59, 92, 0.1);
+            border: 2px solid rgba(76, 175, 80, 0.1);
         }
 
         .modal-overlay.active .modal-card {
@@ -658,12 +658,12 @@
         .modal-benefit {
             margin-top: 20px;
             padding: 16px 20px;
-            background: linear-gradient(135deg, var(--soft-red) 0%, rgba(255, 179, 71, 0.15) 100%);
+            background: linear-gradient(135deg, var(--soft-red) 0%, rgba(66, 165, 245, 0.15) 100%);
             border-radius: 12px;
             font-size: 0.9rem;
             color: var(--text-dark);
             border-left: 4px solid var(--primary-accent);
-            box-shadow: 0 4px 12px rgba(255, 59, 92, 0.15);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
         }
 
         .modal-benefit i {
