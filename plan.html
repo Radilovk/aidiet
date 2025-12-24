@@ -358,7 +358,7 @@
 
         .meal-weight {
             font-size: 0.85rem;
-            color: var(--text-dark);
+            color: var(--primary-red);
             background: var(--soft-red);
             padding: 4px 12px;
             border-radius: 20px;
@@ -824,40 +824,92 @@
         (function() {
             const colorSchemes = {
                 'purple-pink': {
-                    '--primary-red': '#8B5CF6',
-                    '--primary-accent': '#A78BFA',
-                    '--secondary-accent': '#EC4899',
-                    '--soft-red': '#F5F3FF'
+                    light: {
+                        '--primary-red': '#8B5CF6',
+                        '--primary-accent': '#A78BFA',
+                        '--secondary-accent': '#EC4899',
+                        '--soft-red': '#F5F3FF'
+                    },
+                    dark: {
+                        '--primary-red': '#A78BFA',
+                        '--primary-accent': '#C4B5FD',
+                        '--secondary-accent': '#F472B6',
+                        '--soft-red': '#2E1065'
+                    }
                 },
                 'green-blue': {
-                    '--primary-red': '#4CAF50',
-                    '--primary-accent': '#66BB6A',
-                    '--secondary-accent': '#42A5F5',
-                    '--soft-red': '#E8F5E9'
+                    light: {
+                        '--primary-red': '#4CAF50',
+                        '--primary-accent': '#66BB6A',
+                        '--secondary-accent': '#42A5F5',
+                        '--soft-red': '#E8F5E9'
+                    },
+                    dark: {
+                        '--primary-red': '#66BB6A',
+                        '--primary-accent': '#81C784',
+                        '--secondary-accent': '#64B5F6',
+                        '--soft-red': '#1B5E20'
+                    }
                 },
                 'blue-indigo': {
-                    '--primary-red': '#3B82F6',
-                    '--primary-accent': '#60A5FA',
-                    '--secondary-accent': '#6366F1',
-                    '--soft-red': '#EFF6FF'
+                    light: {
+                        '--primary-red': '#3B82F6',
+                        '--primary-accent': '#60A5FA',
+                        '--secondary-accent': '#6366F1',
+                        '--soft-red': '#EFF6FF'
+                    },
+                    dark: {
+                        '--primary-red': '#60A5FA',
+                        '--primary-accent': '#93C5FD',
+                        '--secondary-accent': '#818CF8',
+                        '--soft-red': '#1E3A8A'
+                    }
                 },
                 'orange-red': {
-                    '--primary-red': '#F97316',
-                    '--primary-accent': '#FB923C',
-                    '--secondary-accent': '#EF4444',
-                    '--soft-red': '#FFF7ED'
+                    light: {
+                        '--primary-red': '#F97316',
+                        '--primary-accent': '#FB923C',
+                        '--secondary-accent': '#EF4444',
+                        '--soft-red': '#FFF7ED'
+                    },
+                    dark: {
+                        '--primary-red': '#FB923C',
+                        '--primary-accent': '#FDBA74',
+                        '--secondary-accent': '#F87171',
+                        '--soft-red': '#7C2D12'
+                    }
                 }
             };
 
-            const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
-            const colors = colorSchemes[savedScheme];
-            
-            if (colors && savedScheme !== 'purple-pink') {
-                const root = document.documentElement;
-                Object.keys(colors).forEach(key => {
-                    root.style.setProperty(key, colors[key]);
-                });
+            function applyColorScheme() {
+                const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const colors = colorSchemes[savedScheme]?.[currentTheme];
+                
+                if (colors) {
+                    const root = document.documentElement;
+                    Object.keys(colors).forEach(key => {
+                        root.style.setProperty(key, colors[key]);
+                    });
+                }
             }
+
+            // Apply on load
+            applyColorScheme();
+
+            // Listen for theme changes
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                        applyColorScheme();
+                    }
+                });
+            });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme']
+            });
         })();
     </script>
 </head>
