@@ -469,6 +469,10 @@
                 <label class="form-label">Цел</label>
                 <input type="text" class="form-input" id="goal" data-field="goal" data-diet-related="true" disabled>
             </div>
+            <div class="form-group">
+                <label class="form-label">Желано отслабване (кг)</label>
+                <input type="number" class="form-input" id="lossKg" data-field="lossKg" data-diet-related="true" disabled>
+            </div>
         </div>
 
         <!-- Lifestyle Section -->
@@ -482,12 +486,96 @@
                 <input type="text" class="form-input" id="sleepHours" data-field="sleepHours" data-diet-related="true" disabled>
             </div>
             <div class="form-group">
+                <label class="form-label">Прекъсвания на съня</label>
+                <input type="text" class="form-input" id="sleepInterrupt" data-field="sleepInterrupt" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Хронотип</label>
+                <input type="text" class="form-input" id="chronotype" data-field="chronotype" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ниво на активност през деня</label>
+                <input type="text" class="form-input" id="dailyActivityLevel" data-field="dailyActivityLevel" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ниво на стрес</label>
+                <input type="text" class="form-input" id="stressLevel" data-field="stressLevel" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
                 <label class="form-label">Ниво на спортна активност</label>
                 <input type="text" class="form-input" id="sportActivity" data-field="sportActivity" data-diet-related="true" disabled>
+            </div>
+        </div>
+
+        <!-- Hydration Section -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-tint"></i>
+                Прием на течности
             </div>
             <div class="form-group">
                 <label class="form-label">Прием на вода</label>
                 <input type="text" class="form-input" id="waterIntake" data-field="waterIntake" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Сладки напитки (сокове, газирани)</label>
+                <input type="text" class="form-input" id="drinksSweet" data-field="drinksSweet" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Алкохол</label>
+                <input type="text" class="form-input" id="drinksAlcohol" data-field="drinksAlcohol" data-diet-related="true" disabled>
+            </div>
+        </div>
+
+        <!-- Eating Behavior Section -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-apple-alt"></i>
+                Хранителни навици и поведение
+            </div>
+            <div class="form-group">
+                <label class="form-label">Рязко покачване на тегло</label>
+                <input type="text" class="form-input" id="weightChange" data-field="weightChange" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Детайли за покачване на тегло</label>
+                <textarea class="form-textarea" id="weightChangeDetails" data-field="weightChangeDetails" data-diet-related="true" disabled></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Диета в миналото</label>
+                <input type="text" class="form-input" id="dietHistory" data-field="dietHistory" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Тип диета</label>
+                <input type="text" class="form-input" id="dietType" data-field="dietType" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Резултат от диета</label>
+                <textarea class="form-textarea" id="dietResult" data-field="dietResult" data-diet-related="true" disabled></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Прекомерно хранене</label>
+                <input type="text" class="form-input" id="overeatingFrequency" data-field="overeatingFrequency" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Желания за храна</label>
+                <textarea class="form-textarea" id="foodCravings" data-field="foodCravings" data-diet-related="true" disabled></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Тригери за хранене</label>
+                <textarea class="form-textarea" id="foodTriggers" data-field="foodTriggers" data-diet-related="true" disabled></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Хранителни навици</label>
+                <textarea class="form-textarea" id="eatingHabits" data-field="eatingHabits" data-diet-related="true" disabled></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Компенсаторни методи</label>
+                <textarea class="form-textarea" id="compensationMethods" data-field="compensationMethods" data-diet-related="true" disabled></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Социално сравнение</label>
+                <input type="text" class="form-input" id="socialComparison" data-field="socialComparison" data-diet-related="true" disabled>
             </div>
         </div>
 
@@ -498,11 +586,11 @@
                 Хранителни предпочитания
             </div>
             <div class="form-group">
-                <label class="form-label">Предпочитани храни</label>
+                <label class="form-label">Предпочитани храни и диети</label>
                 <textarea class="form-textarea" id="dietPreference" data-field="dietPreference" data-diet-related="true" disabled></textarea>
             </div>
             <div class="form-group">
-                <label class="form-label">Не обичам / алергия</label>
+                <label class="form-label">Не обичам / непоносимост / алергия</label>
                 <textarea class="form-textarea" id="dietDislike" data-field="dietDislike" data-diet-related="true" disabled></textarea>
             </div>
             <div class="form-group">
@@ -523,7 +611,11 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Лекарства и добавки</label>
-                <textarea class="form-textarea" id="medications" data-field="medications" data-diet-related="true" disabled></textarea>
+                <input type="text" class="form-input" id="medications" data-field="medications" data-diet-related="true" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Детайли за лекарства и добавки</label>
+                <textarea class="form-textarea" id="medicationsDetails" data-field="medicationsDetails" data-diet-related="true" disabled></textarea>
             </div>
         </div>
 
