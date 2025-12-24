@@ -1599,23 +1599,36 @@
                 const hasListItems = lines.some(line => /^\s*[-•*]\s+/.test(line));
                 
                 if (hasListItems) {
-                    // Convert to HTML list
-                    let listHTML = '<ul style="margin: 8px 0; padding-left: 20px;">';
+                    // Convert to HTML list - handle mixed content properly
+                    let result = '';
+                    let inList = false;
+                    
                     lines.forEach(line => {
                         const trimmed = line.trim();
                         if (/^[-•*]\s+/.test(trimmed)) {
                             // List item
+                            if (!inList) {
+                                result += '<ul style="margin: 8px 0; padding-left: 20px;">';
+                                inList = true;
+                            }
                             const content = trimmed.replace(/^[-•*]\s+/, '');
-                            listHTML += `<li style="margin: 4px 0;">${content}</li>`;
+                            result += `<li style="margin: 4px 0;">${content}</li>`;
                         } else if (trimmed) {
-                            // Non-list line in a list paragraph - close list, add text, reopen list
-                            listHTML += `</ul><div style="margin: 4px 0;">${trimmed}</div><ul style="margin: 8px 0; padding-left: 20px;">`;
+                            // Non-list line - close list if open, add as paragraph
+                            if (inList) {
+                                result += '</ul>';
+                                inList = false;
+                            }
+                            result += `<p style="margin: 8px 0;">${trimmed}</p>`;
                         }
                     });
-                    listHTML += '</ul>';
-                    // Clean up empty lists
-                    listHTML = listHTML.replace(/<ul[^>]*><\/ul>/g, '');
-                    return listHTML;
+                    
+                    // Close list if still open
+                    if (inList) {
+                        result += '</ul>';
+                    }
+                    
+                    return result;
                 } else {
                     // Regular paragraph - convert single line breaks to <br>
                     return '<p style="margin: 8px 0;">' + para.replace(/\n/g, '<br>') + '</p>';
@@ -1625,8 +1638,7 @@
             formatted = paragraphs.join('');
             
             // Clean up empty paragraphs
-            formatted = formatted.replace(/<p[^>]*><\/p>/g, '');
-            formatted = formatted.replace(/<p[^>]*><br><\/p>/g, '<br>');
+            formatted = formatted.replace(/<p[^>]*>\s*<\/p>/g, '');
             
             return formatted;
         }
