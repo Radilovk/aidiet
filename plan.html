@@ -949,9 +949,9 @@
             const typingId = addTypingIndicator();
 
             try {
-                // Add timeout for slow connections (20 seconds)
+                // Add timeout for slow connections (60 seconds to allow AI more time)
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 20000);
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
 
                 // Send to backend
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/chat', {
@@ -1032,16 +1032,42 @@
                 border-radius: 12px;
                 max-width: 80%;
                 font-size: 0.9rem;
-                line-height: 1.4;
+                line-height: 1.6;
                 word-wrap: break-word;
+                white-space: pre-wrap;
             `;
-            bubble.textContent = message;
+            
+            // Format message to preserve line breaks and structure
+            const formattedMessage = formatChatMessage(message);
+            bubble.innerHTML = formattedMessage;
 
             messageDiv.appendChild(bubble);
             chatMessages.appendChild(messageDiv);
 
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function formatChatMessage(message) {
+            // Escape HTML to prevent XSS
+            let formatted = escapeHtml(message);
+            
+            // Convert double line breaks to paragraphs
+            formatted = formatted.replace(/\n\n+/g, '</p><p>');
+            
+            // Convert single line breaks to <br>
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            // Wrap in paragraph if we created paragraphs
+            if (formatted.includes('<br>') || formatted.includes('</p>')) {
+                formatted = '<p>' + formatted + '</p>';
+            }
+            
+            // Clean up any empty paragraphs
+            formatted = formatted.replace(/<p><\/p>/g, '');
+            formatted = formatted.replace(/<p><br><\/p>/g, '<br>');
+            
+            return formatted;
         }
 
         function addTypingIndicator() {
