@@ -363,20 +363,20 @@
                 <div class="form-group">
                     <label for="colorScheme">Избери Цветова Палитра:</label>
                     <select id="colorScheme" onchange="previewColorScheme()">
-                        <option value="purple-pink">Виолетово-Розова (Модерна Premium)</option>
+                        <option value="purple-pink">Зелено-Жълта (Модерна Premium)</option>
                         <option value="green-blue">Зелено-Синя (Здравословна)</option>
                         <option value="blue-indigo">Синьо-Индиго (Професионална)</option>
                         <option value="orange-red">Оранжево-Червена (Енергична)</option>
                     </select>
                 </div>
                 <div id="colorPreview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; padding: 20px; background: var(--bg-light); border-radius: 12px;">
-                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);">
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: linear-gradient(135deg, #10b981 0%, #fbbf24 100%);">
                         Главен
                     </div>
-                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);">
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);">
                         Допълнителен
                     </div>
-                    <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: #8B5CF6; background: #F5F3FF;">
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: #10b981; background: #ecfdf5;">
                         Акцент
                     </div>
                 </div>
@@ -806,13 +806,13 @@
         // Color Scheme Functions
         const colorSchemes = {
             'purple-pink': {
-                primary: '#8B5CF6',
-                primaryAccent: '#A78BFA',
-                secondary: '#EC4899',
-                soft: '#F5F3FF',
-                gradientPrimary: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
-                gradientSecondary: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
-                name: 'Виолетово-Розова'
+                primary: '#10b981',
+                primaryAccent: '#34d399',
+                secondary: '#fbbf24',
+                soft: '#ecfdf5',
+                gradientPrimary: 'linear-gradient(135deg, #10b981 0%, #fbbf24 100%)',
+                gradientSecondary: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                name: 'Зелено-Жълта'
             },
             'green-blue': {
                 primary: '#4CAF50',
