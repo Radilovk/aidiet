@@ -369,15 +369,33 @@
                 </button>
             </div>
 
-            <!-- Chat Prompt Editor -->
+            <!-- Chat Prompt Editor - Consultation Mode -->
             <div class="card">
-                <h2><i class="fas fa-comments"></i> AI Промпт за Чат Асистент</h2>
-                <div class="form-group">
-                    <label for="chatPrompt">Чат Промпт Шаблон:</label>
-                    <textarea id="chatPrompt" placeholder="Въведете чат промпт шаблон..."></textarea>
+                <h2><i class="fas fa-comments"></i> AI Промпт за Чат Асистент - Режим Консултация</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Този промпт се използва когато потребителят е в режим на консултация (само четене на плана).
                 </div>
-                <button class="btn" onclick="saveChatPrompt()">
-                    <i class="fas fa-save"></i> Запази Чат Промпт
+                <div class="form-group">
+                    <label for="consultationPrompt">Промпт за Консултационен Режим:</label>
+                    <textarea id="consultationPrompt" placeholder="Въведете промпт за консултационен режим..."></textarea>
+                </div>
+                <button class="btn" onclick="saveConsultationPrompt()">
+                    <i class="fas fa-save"></i> Запази Консултационен Промпт
+                </button>
+            </div>
+
+            <!-- Chat Prompt Editor - Modification Mode -->
+            <div class="card">
+                <h2><i class="fas fa-edit"></i> AI Промпт за Чат Асистент - Режим Промяна на План</h2>
+                <div class="warning-box">
+                    <strong>Внимание:</strong> Този промпт се използва когато потребителят иска да промени хранителния си план.
+                </div>
+                <div class="form-group">
+                    <label for="modificationPrompt">Промпт за Режим Промяна:</label>
+                    <textarea id="modificationPrompt" placeholder="Въведете промпт за режим промяна на план..."></textarea>
+                </div>
+                <button class="btn" onclick="saveModificationPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Промяна
                 </button>
             </div>
 
@@ -463,6 +481,56 @@
         const DEFAULT_CHAT_PROMPT = `Ти си личен диетолог, психолог и здравен асистент за {name}.
 Отговори на въпроса като професионален консултант. Бъди топъл, подкрепящ и мотивиращ.`;
 
+        const DEFAULT_CONSULTATION_PROMPT = `ТЕКУЩ РЕЖИМ: КОНСУЛТАЦИЯ
+
+ВАЖНИ ПРАВИЛА:
+1. Можеш да четеш плана, но НЕ МОЖЕШ да го променяш.
+2. Бъди КРАТЪК - максимум 2-3 изречения, прост език.
+3. Ако клиентът иска промяна, кажи: "За промяна активирай режима за промяна на плана."
+4. НИКОГА не използвай [REGENERATE_PLAN:...] инструкции.
+5. Винаги поддържай мотивиращ тон.
+
+ПРИМЕРИ:
+- "Закуската съдържа овесени ядки с банан (350 калории). За промяна, активирай режима за промяна."
+- "Можеш да замениш рибата с пилешко - и двете са отлични източници на протеин. За промяна, активирай режима за промяна."`;
+
+        const DEFAULT_MODIFICATION_PROMPT = `ТЕКУЩ РЕЖИМ: ПРОМЯНА НА ПЛАНА
+
+ВАЖНИ ПРАВИЛА:
+1. Ти си професионален диетолог. Бъди КРАТЪК, ЯСЕН и директен.
+2. Използвай ПРОСТ език, лесно разбираем.
+3. Ограничи се до МАКСИМУМ 3-4 изречения в отговор.
+4. Задавай МАКСИМУМ 1 въпрос на отговор.
+
+2. Когато клиентът иска промяна:
+   - Анализирай дали е здравословно за цел: {goal}
+   - Обясни КРАТКО последиците (само основното)
+   - Ако има по-добра алтернатива, предложи я с 1 изречение
+   - Запитай с 1 въпрос за потвърждение
+   - След потвърждение, приложи с [REGENERATE_PLAN:{"modifications":["описание"]}]
+
+3. НИКОГА не прилагай директно промяна без обсъждане! Винаги обясни и консултирай първо.
+
+4. ПРИМЕР:
+   Клиент: "премахни междинните хранения"
+   Отговор: "Разбирам. Премахването може да опрости храненето, но може и да доведе до преяждане. За твоята цел препоръчвам 1 здравословна закуска вместо пълно премахване. Премахваме всички или оставяме 1?"
+   
+   [ЧАКАЙ потвърждение преди REGENERATE_PLAN]
+   
+   Клиент: "добре, премахни всички"
+   Отговор: "✓ Разбрано! Регенерирам плана със 3 основни хранения. [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]"
+
+5. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
+   - "no_intermediate_meals" - без междинни хранения
+   - "3_meals_per_day" - 3 хранения дневно
+   - "4_meals_per_day" - 4 хранения дневно
+   - "vegetarian" - вегетариански план
+   - "no_dairy" - без млечни продукти
+   - "low_carb" - нисковъглехидратна диета
+   - "increase_protein" - повече протеини
+
+ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос!`;
+
         // Check if logged in
         function checkAuth() {
             const isLoggedIn = sessionStorage.getItem('adminLoggedIn');
@@ -523,9 +591,13 @@
                                 document.getElementById('aiPrompt').value = config.planPrompt;
                                 localStorage.setItem('adminAIPrompt', config.planPrompt);
                             }
-                            if (config.chatPrompt) {
-                                document.getElementById('chatPrompt').value = config.chatPrompt;
-                                localStorage.setItem('adminChatPrompt', config.chatPrompt);
+                            if (config.consultationPrompt) {
+                                document.getElementById('consultationPrompt').value = config.consultationPrompt;
+                                localStorage.setItem('adminConsultationPrompt', config.consultationPrompt);
+                            }
+                            if (config.modificationPrompt) {
+                                document.getElementById('modificationPrompt').value = config.modificationPrompt;
+                                localStorage.setItem('adminModificationPrompt', config.modificationPrompt);
                             }
                             return; // Successfully loaded from server
                         }
@@ -545,8 +617,11 @@
                 const savedPrompt = localStorage.getItem('adminAIPrompt') || DEFAULT_PLAN_PROMPT;
                 document.getElementById('aiPrompt').value = savedPrompt;
 
-                const savedChatPrompt = localStorage.getItem('adminChatPrompt') || DEFAULT_CHAT_PROMPT;
-                document.getElementById('chatPrompt').value = savedChatPrompt;
+                const savedConsultationPrompt = localStorage.getItem('adminConsultationPrompt') || DEFAULT_CONSULTATION_PROMPT;
+                document.getElementById('consultationPrompt').value = savedConsultationPrompt;
+
+                const savedModificationPrompt = localStorage.getItem('adminModificationPrompt') || DEFAULT_MODIFICATION_PROMPT;
+                document.getElementById('modificationPrompt').value = savedModificationPrompt;
 
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -623,32 +698,62 @@
             }
         }
 
-        // Save Chat Prompt
-        async function saveChatPrompt() {
-            const prompt = document.getElementById('chatPrompt').value.trim();
+        // Save Chat Prompt - Consultation Mode
+        async function saveConsultationPrompt() {
+            const prompt = document.getElementById('consultationPrompt').value.trim();
             
             if (!prompt) {
-                showError('Чат промптът не може да бъде празен!');
+                showError('Консултационният промпт не може да бъде празен!');
                 return;
             }
 
-            localStorage.setItem('adminChatPrompt', prompt);
+            localStorage.setItem('adminConsultationPrompt', prompt);
             
             // Save to KV via worker API
             try {
                 const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'chat', prompt })
+                    body: JSON.stringify({ type: 'consultation', prompt })
                 });
                 
                 if (!response.ok) {
                     throw new Error('Failed to save to server');
                 }
                 
-                showSuccess('Чат промпт запазен успешно!');
+                showSuccess('Консултационен промпт запазен успешно!');
             } catch (error) {
-                console.error('Error saving chat prompt:', error);
+                console.error('Error saving consultation prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Chat Prompt - Modification Mode
+        async function saveModificationPrompt() {
+            const prompt = document.getElementById('modificationPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за промяна не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminModificationPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'modification', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за промяна запазен успешно!');
+            } catch (error) {
+                console.error('Error saving modification prompt:', error);
                 showError('Грешка при записване: ' + error.message);
             }
         }
