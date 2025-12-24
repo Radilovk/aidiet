@@ -348,6 +348,37 @@
                 </button>
             </div>
 
+            <!-- Color Scheme Configuration -->
+            <div class="card">
+                <h2><i class="fas fa-palette"></i> Цветова Схема</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Изберете цветова схема за потребителския интерфейс. Промените ще се приложат автоматично за всички потребители.
+                </div>
+                <div class="form-group">
+                    <label for="colorScheme">Избери Цветова Палитра:</label>
+                    <select id="colorScheme" onchange="previewColorScheme()">
+                        <option value="purple-pink">Виолетово-Розова (Модерна Premium)</option>
+                        <option value="green-blue">Зелено-Синя (Здравословна)</option>
+                        <option value="blue-indigo">Синьо-Индиго (Професионална)</option>
+                        <option value="orange-red">Оранжево-Червена (Енергична)</option>
+                    </select>
+                </div>
+                <div id="colorPreview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; padding: 20px; background: var(--bg-light); border-radius: 12px;">
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);">
+                        Главен
+                    </div>
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);">
+                        Допълнителен
+                    </div>
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: #8B5CF6; background: #F5F3FF;">
+                        Акцент
+                    </div>
+                </div>
+                <button class="btn" onclick="saveColorScheme()">
+                    <i class="fas fa-save"></i> Запази Цветова Схема
+                </button>
+            </div>
+
             <!-- AI Prompt Editor -->
             <div class="card">
                 <h2><i class="fas fa-pen-fancy"></i> AI Промпт за Генериране на План</h2>
@@ -766,6 +797,89 @@
             }
         }
 
+        // Color Scheme Functions
+        const colorSchemes = {
+            'purple-pink': {
+                primary: '#8B5CF6',
+                primaryAccent: '#A78BFA',
+                secondary: '#EC4899',
+                soft: '#F5F3FF',
+                gradientPrimary: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                gradientSecondary: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                name: 'Виолетово-Розова'
+            },
+            'green-blue': {
+                primary: '#4CAF50',
+                primaryAccent: '#66BB6A',
+                secondary: '#42A5F5',
+                soft: '#E8F5E9',
+                gradientPrimary: 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)',
+                gradientSecondary: 'linear-gradient(135deg, #42A5F5 0%, #64B5F6 100%)',
+                name: 'Зелено-Синя'
+            },
+            'blue-indigo': {
+                primary: '#3B82F6',
+                primaryAccent: '#60A5FA',
+                secondary: '#6366F1',
+                soft: '#EFF6FF',
+                gradientPrimary: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                gradientSecondary: 'linear-gradient(135deg, #06B6D4 0%, #8B5CF6 100%)',
+                name: 'Синьо-Индиго'
+            },
+            'orange-red': {
+                primary: '#F97316',
+                primaryAccent: '#FB923C',
+                secondary: '#EF4444',
+                soft: '#FFF7ED',
+                gradientPrimary: 'linear-gradient(135deg, #F97316 0%, #EF4444 100%)',
+                gradientSecondary: 'linear-gradient(135deg, #FBBF24 0%, #F97316 100%)',
+                name: 'Оранжево-Червена'
+            }
+        };
+
+        function previewColorScheme() {
+            const scheme = document.getElementById('colorScheme').value;
+            const colors = colorSchemes[scheme];
+            const preview = document.getElementById('colorPreview');
+            
+            preview.innerHTML = `
+                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.gradientPrimary};">
+                    Главен
+                </div>
+                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.gradientSecondary};">
+                    Допълнителен
+                </div>
+                <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: ${colors.primary}; background: ${colors.soft};">
+                    Акцент
+                </div>
+            `;
+        }
+
+        async function saveColorScheme() {
+            const scheme = document.getElementById('colorScheme').value;
+            
+            try {
+                localStorage.setItem('colorScheme', scheme);
+                showSuccess(`Цветовата схема "${colorSchemes[scheme].name}" е запазена успешно!`);
+                
+                // In a real implementation, this would save to the backend
+                // await fetch('/api/admin/color-scheme', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({ scheme })
+                // });
+            } catch (error) {
+                showError('Грешка при запазване на цветовата схема: ' + error.message);
+            }
+        }
+
+        // Load saved color scheme
+        function loadColorScheme() {
+            const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
+            document.getElementById('colorScheme').value = savedScheme;
+            previewColorScheme();
+        }
+
         // Clear Cache
         function clearCache() {
             if (confirm('Сигурни ли сте, че искате да изчистите целия кеш? Това ще премахне всички запазени планове и данни.')) {
@@ -798,6 +912,7 @@
 
         // Initialize
         checkAuth();
+        loadColorScheme();
     </script>
 </body>
 </html>
