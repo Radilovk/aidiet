@@ -297,16 +297,31 @@ async function handleChat(request, env) {
             const existingMods = new Set(userData.planModifications || []);
             const excludedFoods = new Set((userData.dietDislike || '').split(',').map(f => f.trim()).filter(f => f));
             
+            // Enhancement #4: Validate food exclusions against current plan
+            const validatedModifications = [];
+            
             modifications.forEach(mod => {
               if (mod.startsWith('exclude_food:')) {
                 // Extract food name from "exclude_food:име_на_храна"
                 const foodName = mod.substring('exclude_food:'.length).trim();
                 if (foodName) {
-                  excludedFoods.add(foodName);
-                  console.log('Adding food exclusion:', foodName);
+                  // Enhancement #4: Check if food exists in plan (case-insensitive)
+                  const foodExistsInPlan = checkFoodExistsInPlan(userPlan, foodName);
+                  
+                  if (foodExistsInPlan) {
+                    excludedFoods.add(foodName);
+                    validatedModifications.push(mod);
+                    console.log('Adding food exclusion (validated):', foodName);
+                  } else {
+                    console.log('Food not found in plan, skipping exclusion:', foodName);
+                    // Food doesn't exist, but we'll still add it to dietDislike as a preference
+                    excludedFoods.add(foodName);
+                    validatedModifications.push(mod);
+                  }
                 }
               } else {
                 existingMods.add(mod);
+                validatedModifications.push(mod);
               }
             });
             
@@ -324,7 +339,7 @@ async function handleChat(request, env) {
             await cacheUserData(env, userId, modifiedUserData);
             planWasUpdated = true;
             
-            console.log('Plan regenerated successfully with modifications:', modifications);
+            console.log('Plan regenerated successfully with modifications:', validatedModifications);
           } else {
             console.log('REGENERATE_PLAN instruction removed from response (not in modification mode)');
           }
@@ -1400,6 +1415,11 @@ async function getConversationHistory(env, conversationKey) {
   return cached ? JSON.parse(cached) : [];
 }
 
+// Enhancement #3: Estimate tokens for a message (rough estimation: ~4 chars per token)
+function estimateTokens(text) {
+  return Math.ceil(text.length / 4);
+}
+
 async function updateConversationHistory(env, conversationKey, userMessage, aiResponse) {
   if (!env.page_content) return;
   const history = await getConversationHistory(env, conversationKey);
@@ -1407,10 +1427,30 @@ async function updateConversationHistory(env, conversationKey, userMessage, aiRe
     { role: 'user', content: userMessage },
     { role: 'assistant', content: aiResponse }
   );
-  // Keep last 20 messages
-  const trimmed = history.slice(-20);
+  
+  // Enhancement #3: Keep conversation within token budget (approx 1500 tokens = 6000 chars)
+  const MAX_HISTORY_TOKENS = 1500;
+  let totalTokens = 0;
+  const trimmedHistory = [];
+  
+  // Process history in reverse to keep most recent messages
+  for (let i = history.length - 1; i >= 0; i--) {
+    const message = history[i];
+    const messageTokens = estimateTokens(message.content);
+    
+    if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
+      trimmedHistory.unshift(message);
+      totalTokens += messageTokens;
+    } else {
+      // Stop adding older messages
+      break;
+    }
+  }
+  
+  console.log(`Conversation history trimmed to ${trimmedHistory.length} messages (~${totalTokens} tokens)`);
+  
   // Cache for 24 hours
-  await env.page_content.put(conversationKey, JSON.stringify(trimmed), {
+  await env.page_content.put(conversationKey, JSON.stringify(trimmedHistory), {
     expirationTtl: 60 * 60 * 24
   });
 }
@@ -1421,6 +1461,31 @@ async function updateConversationHistory(env, conversationKey, userMessage, aiRe
 function generateUserId(data) {
   const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
   return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+}
+
+// Enhancement #4: Check if a food item exists in the meal plan (case-insensitive, partial match)
+function checkFoodExistsInPlan(plan, foodName) {
+  if (!plan || !plan.weekPlan) return false;
+  
+  const searchTerm = foodName.toLowerCase();
+  
+  // Search through all days and meals
+  for (const dayKey in plan.weekPlan) {
+    const day = plan.weekPlan[dayKey];
+    if (day && Array.isArray(day.meals)) {
+      for (const meal of day.meals) {
+        // Check meal name and description
+        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (meal.description && meal.description.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
 }
 
 /**
