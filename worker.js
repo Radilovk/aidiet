@@ -143,16 +143,23 @@ async function handleGeneratePlan(request, env) {
     const userId = data.email || generateUserId(data);
     console.log('handleGeneratePlan: Request received for userId:', userId);
     
-    // Check if plan exists in cache
-    const cachedPlan = await getCachedPlan(env, userId);
-    if (cachedPlan) {
-      console.log('handleGeneratePlan: Returning cached plan for user:', userId);
-      return jsonResponse({ 
-        success: true, 
-        plan: cachedPlan,
-        cached: true,
-        userId: userId 
-      });
+    // Check for force regeneration flag (e.g., from profile update)
+    const forceRegenerate = data.forceRegenerate === true;
+    
+    // Check if plan exists in cache (skip if forceRegenerate is true)
+    if (!forceRegenerate) {
+      const cachedPlan = await getCachedPlan(env, userId);
+      if (cachedPlan) {
+        console.log('handleGeneratePlan: Returning cached plan for user:', userId);
+        return jsonResponse({ 
+          success: true, 
+          plan: cachedPlan,
+          cached: true,
+          userId: userId 
+        });
+      }
+    } else {
+      console.log('handleGeneratePlan: Force regenerate requested for userId:', userId);
     }
 
     console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
@@ -900,10 +907,12 @@ async function getChatPrompts(env) {
 
 ВАЖНИ ПРАВИЛА:
 1. Можеш да четеш плана, но НЕ МОЖЕШ да го променяш.
-2. Бъди КРАТЪК - максимум 2-3 изречения, прост език.
+2. Бъди КРАТЪК но информативен - максимум 3-4 изречения, прост език.
 3. Ако клиентът иска промяна, кажи: "За промяна активирай режима за промяна на плана."
 4. НИКОГА не използвай [REGENERATE_PLAN:...] инструкции.
 5. Винаги поддържай мотивиращ тон.
+6. Форматирай отговорите си ясно - използвай нови редове за разделяне на мисли.
+7. Задавай максимум 1 въпрос на отговор.
 
 ПРИМЕРИ:
 - "Закуската съдържа овесени ядки с банан (350 калории). За промяна, активирай режима за промяна."
@@ -911,10 +920,14 @@ async function getChatPrompts(env) {
     modification: `ТЕКУЩ РЕЖИМ: ПРОМЯНА НА ПЛАНА
 
 ВАЖНИ ПРАВИЛА:
-1. Ти си професионален диетолог. Бъди КРАТЪК, ЯСЕН и директен.
+1. Ти си професионален диетолог. Бъди КРАТЪК но информативен, ЯСЕН и директен.
 2. Използвай ПРОСТ език, лесно разбираем.
 3. Ограничи се до МАКСИМУМ 3-4 изречения в отговор.
 4. Задавай МАКСИМУМ 1 въпрос на отговор.
+5. Форматирай отговорите си ясно:
+   - Използвай нови редове за разделяне на различни мисли
+   - Когато изброяваш опции, сложи всяка на нов ред с тире (-)
+   - Използвай празни редове за по-добра четимост между параграфи
 
 2. Когато клиентът иска промяна:
    - Анализирай дали е здравословно за цел: {goal}
@@ -937,20 +950,37 @@ async function getChatPrompts(env) {
    - Пример: [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]
    - Това ще регенерира плана БЕЗ тази храна
 
-6. ПРИМЕР:
+6. ПРИМЕР С ФОРМАТИРАНЕ:
    Клиент: "премахни междинните хранения"
-   Отговор: "Разбирам. Премахването може да опрости храненето, но може и да доведе до преяждане. За твоята цел препоръчвам 1 здравословна закуска вместо пълно премахване. Премахваме всички или оставяме 1?"
+   
+   Отговор: "Разбирам. Премахването може да опрости храненето, но може и да доведе до преяждане.
+   
+   За твоята цел препоръчвам една от двете:
+   - Премахване на всички междинни хранения (само 3 основни)
+   - Оставяне на 1 здравословна закуска (по-балансирано)
+   
+   Какво предпочиташ?"
    
    [ЧАКАЙ потвърждение преди REGENERATE_PLAN]
    
    Клиент: "да" или "добре, премахни всички"
-   Отговор: "✓ Разбрано! Регенерирам плана със 3 основни хранения. [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]"
+   
+   Отговор: "✓ Разбрано! Регенерирам плана със 3 основни хранения.
+   
+   [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]"
    
    ПРИМЕР ЗА ПРЕМАХВАНЕ НА ХРАНА:
    Клиент: "махни овесените ядки"
-   Отговор: "Разбирам, Камен. Премахването на овесените ядки ще намали фибрите. Искаш ли да ги премахна от всички дни?"
+   
+   Отговор: "Разбирам. Премахването на овесените ядки ще намали фибрите в закуската.
+   
+   Искаш ли да ги премахна от всички дни?"
+   
    Клиент: "да"
-   Отговор: "✓ Разбрано! Премахвам овесените ядки от плана. [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]"
+   
+   Отговор: "✓ Разбрано! Премахвам овесените ядки от плана.
+   
+   [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]"
 
 7. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
    - "no_intermediate_meals" - без междинни хранения
@@ -962,7 +992,11 @@ async function getChatPrompts(env) {
    - "increase_protein" - повече протеини
    - "exclude_food:име_на_храна" - премахване на конкретна храна
 
-ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос! АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`
+ПОМНИ: 
+- Форматирай ясно с нови редове и изброяване
+- Максимум 3-4 изречения
+- Максимум 1 въпрос
+- АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`
   };
 
   if (env.page_content) {

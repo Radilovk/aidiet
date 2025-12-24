@@ -308,6 +308,19 @@
         
         .bad-list li { color: #c0392b; margin-bottom: 5px; list-style-type: none; }
         .bad-list li:before { content: '✕'; margin-right: 8px; font-weight: bold; }
+        
+        .info-list { list-style-type: none; padding: 0; margin: 0; }
+        .info-list li { 
+            color: var(--text-dark); 
+            margin-bottom: 10px; 
+            line-height: 1.6;
+            display: flex;
+            align-items: flex-start;
+        }
+        .info-list li i {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
 
         /* --- CHAT FAB --- */
         .fab-chat {
@@ -883,6 +896,37 @@
             });
         }
 
+        // --- Helper function to format text with bullet points ---
+        function formatContentWithBulletPoints(text) {
+            if (!text) return '';
+            
+            // Split by newlines or double newlines
+            const lines = text.split(/\n+/);
+            let formattedHTML = '<ul class="info-list">';
+            
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (trimmedLine) {
+                    // Check if line starts with bullet point indicators
+                    if (trimmedLine.match(/^[-•*]\s*/)) {
+                        // Remove the bullet indicator and add as list item
+                        const content = trimmedLine.replace(/^[-•*]\s*/, '');
+                        formattedHTML += `<li><i class="fas fa-check-circle" style="color: var(--primary-red); margin-right: 8px;"></i>${content}</li>`;
+                    } else if (trimmedLine.match(/^\d+\.\s*/)) {
+                        // Numbered list
+                        const content = trimmedLine.replace(/^\d+\.\s*/, '');
+                        formattedHTML += `<li><i class="fas fa-check-circle" style="color: var(--primary-red); margin-right: 8px;"></i>${content}</li>`;
+                    } else {
+                        // Regular paragraph - add as list item with icon
+                        formattedHTML += `<li><i class="fas fa-lightbulb" style="color: var(--primary-red); margin-right: 8px;"></i>${trimmedLine}</li>`;
+                    }
+                }
+            });
+            
+            formattedHTML += '</ul>';
+            return formattedHTML;
+        }
+
         // --- Render Recommendations ---
         function renderRecommendations() {
             if (!dietPlan) return;
@@ -907,7 +951,7 @@
             if (dietPlan.psychology) {
                 const psychContent = document.querySelector('.acc-item:nth-child(3) .acc-content-inner');
                 if (psychContent) {
-                    psychContent.innerHTML = `<p>${dietPlan.psychology}</p>`;
+                    psychContent.innerHTML = formatContentWithBulletPoints(dietPlan.psychology);
                 }
             }
 
@@ -925,38 +969,25 @@
                 
                 // Check if supplements is a string or array
                 if (typeof dietPlan.supplements === 'string') {
-                    // If it's a string, display it as-is
-                    supplementsHTML = `<p style="line-height: 1.6;">${dietPlan.supplements}</p>`;
+                    // If it's a string, format it with bullet points
+                    supplementsHTML = formatContentWithBulletPoints(dietPlan.supplements);
                 } else if (Array.isArray(dietPlan.supplements) && dietPlan.supplements.length > 0) {
                     // If it's an array, display each supplement
-                    supplementsHTML = '<div style="display: flex; flex-direction: column; gap: 15px;">';
-                    dietPlan.supplements.slice(0, 3).forEach((supplement, index) => {
+                    supplementsHTML = '<ul class="info-list">';
+                    dietPlan.supplements.forEach((supplement, index) => {
                         if (typeof supplement === 'string') {
-                            supplementsHTML += `
-                                <div style="background: var(--soft-red); padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary-red);">
-                                    <div style="font-weight: 600; margin-bottom: 5px; color: var(--text-dark);">
-                                        <i class="fas fa-capsules" style="color: var(--primary-red); margin-right: 5px;"></i>
-                                        Добавка ${index + 1}
-                                    </div>
-                                    <p style="margin: 0; color: var(--text-dark); line-height: 1.5;">${supplement}</p>
-                                </div>
-                            `;
+                            supplementsHTML += `<li><i class="fas fa-capsules" style="color: var(--primary-red); margin-right: 8px;"></i>${supplement}</li>`;
                         } else if (typeof supplement === 'object') {
                             // Structured supplement object
-                            supplementsHTML += `
-                                <div style="background: var(--soft-red); padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary-red);">
-                                    <div style="font-weight: 600; margin-bottom: 5px; color: var(--text-dark);">
-                                        <i class="fas fa-capsules" style="color: var(--primary-red); margin-right: 5px;"></i>
-                                        ${supplement.name || `Добавка ${index + 1}`}
-                                    </div>
-                                    ${supplement.dosage ? `<p style="margin: 5px 0; font-size: 0.85rem; color: var(--text-dark);"><strong>Дозировка:</strong> ${supplement.dosage}</p>` : ''}
-                                    ${supplement.intake ? `<p style="margin: 5px 0; font-size: 0.85rem; color: var(--text-dark);"><strong>Прием:</strong> ${supplement.intake}</p>` : ''}
-                                    ${supplement.description ? `<p style="margin: 5px 0 0 0; color: var(--text-dark); line-height: 1.5;">${supplement.description}</p>` : ''}
-                                </div>
-                            `;
+                            const name = supplement.name || `Добавка ${index + 1}`;
+                            let details = name;
+                            if (supplement.dosage) details += ` - Дозировка: ${supplement.dosage}`;
+                            if (supplement.intake) details += ` - Прием: ${supplement.intake}`;
+                            if (supplement.description) details += ` - ${supplement.description}`;
+                            supplementsHTML += `<li><i class="fas fa-capsules" style="color: var(--primary-red); margin-right: 8px;"></i>${details}</li>`;
                         }
                     });
-                    supplementsHTML += '</div>';
+                    supplementsHTML += '</ul>';
                 } else {
                     supplementsHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични препоръки за хранителни добавки.</p>';
                 }
@@ -1558,20 +1589,56 @@
             // Escape HTML to prevent XSS
             let formatted = escapeHtml(message);
             
-            // Convert double line breaks to paragraphs
-            formatted = formatted.replace(/\n\n+/g, '</p><p>');
+            // Split by double line breaks for paragraphs
+            let paragraphs = formatted.split(/\n\n+/);
             
-            // Convert single line breaks to <br>
-            formatted = formatted.replace(/\n/g, '<br>');
+            // Process each paragraph
+            paragraphs = paragraphs.map(para => {
+                // Check if paragraph contains list items (lines starting with -, •, or *)
+                const lines = para.split('\n');
+                const hasListItems = lines.some(line => /^\s*[-•*]\s+/.test(line));
+                
+                if (hasListItems) {
+                    // Convert to HTML list - handle mixed content properly
+                    let result = '';
+                    let inList = false;
+                    
+                    lines.forEach(line => {
+                        const trimmed = line.trim();
+                        if (/^[-•*]\s+/.test(trimmed)) {
+                            // List item
+                            if (!inList) {
+                                result += '<ul style="margin: 8px 0; padding-left: 20px;">';
+                                inList = true;
+                            }
+                            const content = trimmed.replace(/^[-•*]\s+/, '');
+                            result += `<li style="margin: 4px 0;">${content}</li>`;
+                        } else if (trimmed) {
+                            // Non-list line - close list if open, add as paragraph
+                            if (inList) {
+                                result += '</ul>';
+                                inList = false;
+                            }
+                            result += `<p style="margin: 8px 0;">${trimmed}</p>`;
+                        }
+                    });
+                    
+                    // Close list if still open
+                    if (inList) {
+                        result += '</ul>';
+                    }
+                    
+                    return result;
+                } else {
+                    // Regular paragraph - convert single line breaks to <br>
+                    return '<p style="margin: 8px 0;">' + para.replace(/\n/g, '<br>') + '</p>';
+                }
+            });
             
-            // Wrap in paragraph if we created paragraphs
-            if (formatted.includes('<br>') || formatted.includes('</p>')) {
-                formatted = '<p>' + formatted + '</p>';
-            }
+            formatted = paragraphs.join('');
             
-            // Clean up any empty paragraphs
-            formatted = formatted.replace(/<p><\/p>/g, '');
-            formatted = formatted.replace(/<p><br><\/p>/g, '<br>');
+            // Clean up empty paragraphs
+            formatted = formatted.replace(/<p[^>]*>\s*<\/p>/g, '');
             
             return formatted;
         }
