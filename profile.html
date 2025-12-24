@@ -331,6 +331,83 @@
             }
         }
     </style>
+    <script>
+        // Apply color scheme from admin settings
+        (function() {
+            const colorSchemes = {
+                'purple-pink': {
+                    light: {
+                        '--primary-red': '#8B5CF6',
+                        '--soft-red': '#F5F3FF'
+                    },
+                    dark: {
+                        '--primary-red': '#A78BFA',
+                        '--soft-red': '#2E1065'
+                    }
+                },
+                'green-blue': {
+                    light: {
+                        '--primary-red': '#4CAF50',
+                        '--soft-red': '#E8F5E9'
+                    },
+                    dark: {
+                        '--primary-red': '#66BB6A',
+                        '--soft-red': '#1B5E20'
+                    }
+                },
+                'blue-indigo': {
+                    light: {
+                        '--primary-red': '#3B82F6',
+                        '--soft-red': '#EFF6FF'
+                    },
+                    dark: {
+                        '--primary-red': '#60A5FA',
+                        '--soft-red': '#1E3A8A'
+                    }
+                },
+                'orange-red': {
+                    light: {
+                        '--primary-red': '#F97316',
+                        '--soft-red': '#FFF7ED'
+                    },
+                    dark: {
+                        '--primary-red': '#FB923C',
+                        '--soft-red': '#7C2D12'
+                    }
+                }
+            };
+
+            function applyColorScheme() {
+                const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const colors = colorSchemes[savedScheme]?.[currentTheme];
+                
+                if (colors) {
+                    const root = document.documentElement;
+                    Object.keys(colors).forEach(key => {
+                        root.style.setProperty(key, colors[key]);
+                    });
+                }
+            }
+
+            // Apply on load
+            applyColorScheme();
+
+            // Listen for theme changes
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                        applyColorScheme();
+                    }
+                });
+            });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme']
+            });
+        })();
+    </script>
 </head>
 <body>
     <!-- Header -->

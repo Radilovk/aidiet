@@ -381,6 +381,91 @@
         }
 
     </style>
+    <script>
+        // Apply color scheme from admin settings
+        (function() {
+            const colorSchemes = {
+                'purple-pink': {
+                    light: {
+                        '--primary-red': '#8B5CF6',
+                        '--primary-dark': '#7C3AED',
+                        '--soft-red': '#F5F3FF'
+                    },
+                    dark: {
+                        '--primary-red': '#A78BFA',
+                        '--primary-dark': '#8B5CF6',
+                        '--soft-red': '#2E1065'
+                    }
+                },
+                'green-blue': {
+                    light: {
+                        '--primary-red': '#4CAF50',
+                        '--primary-dark': '#388E3C',
+                        '--soft-red': '#E8F5E9'
+                    },
+                    dark: {
+                        '--primary-red': '#66BB6A',
+                        '--primary-dark': '#4CAF50',
+                        '--soft-red': '#1B5E20'
+                    }
+                },
+                'blue-indigo': {
+                    light: {
+                        '--primary-red': '#3B82F6',
+                        '--primary-dark': '#2563EB',
+                        '--soft-red': '#EFF6FF'
+                    },
+                    dark: {
+                        '--primary-red': '#60A5FA',
+                        '--primary-dark': '#3B82F6',
+                        '--soft-red': '#1E3A8A'
+                    }
+                },
+                'orange-red': {
+                    light: {
+                        '--primary-red': '#F97316',
+                        '--primary-dark': '#EA580C',
+                        '--soft-red': '#FFF7ED'
+                    },
+                    dark: {
+                        '--primary-red': '#FB923C',
+                        '--primary-dark': '#F97316',
+                        '--soft-red': '#7C2D12'
+                    }
+                }
+            };
+
+            function applyColorScheme() {
+                const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const colors = colorSchemes[savedScheme]?.[currentTheme];
+                
+                if (colors) {
+                    const root = document.documentElement;
+                    Object.keys(colors).forEach(key => {
+                        root.style.setProperty(key, colors[key]);
+                    });
+                }
+            }
+
+            // Apply on load
+            applyColorScheme();
+
+            // Listen for theme changes
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                        applyColorScheme();
+                    }
+                });
+            });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme']
+            });
+        })();
+    </script>
 </head>
 <body>
 
