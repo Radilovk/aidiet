@@ -435,6 +435,52 @@
             }
         }
 
+        /* Mobile-specific improvements */
+        @media (max-width: 600px) {
+            .fab-chat {
+                width: 56px;
+                height: 56px;
+                font-size: 22px;
+                bottom: 15px;
+                right: 15px;
+            }
+            
+            .days-nav {
+                padding: 10px 5px;
+            }
+            
+            .day-chip {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+                min-width: 60px;
+            }
+            
+            .meal-card {
+                padding: 14px;
+                font-size: 0.9rem;
+            }
+            
+            h1 {
+                font-size: 1rem;
+            }
+            
+            .container {
+                padding: 10px 10px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .export-btn, .theme-toggle-btn, .user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
+            }
+            
+            header {
+                padding: 12px 15px;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -450,7 +496,7 @@
             <button class="export-btn" onclick="exportToPDF()" title="Изтегли като PDF">
                 <i class="fas fa-file-pdf"></i>
             </button>
-            <div class="user-avatar">И</div>
+            <div class="user-avatar" onclick="goToProfile()" style="cursor: pointer;" title="Моят профил"></div>
         </div>
     </header>
 
@@ -568,6 +614,19 @@
                 </div>
             </div>
 
+            <!-- 4. Хранителни добавки -->
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-pills"></i> Хранителни добавки</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner" id="supplementsContent">
+                        <p style="color: var(--text-light); font-style: italic;">Препоръки за хранителни добавки...</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -599,6 +658,7 @@
         let chatVisible = false;
         let conversationId = Date.now().toString();
         let chatMode = 'consultation'; // 'consultation' or 'modification'
+        let chatHistory = []; // Store chat messages for persistence
         
         // Enhancement #1: Retry mechanism state
         let isSending = false;
@@ -629,13 +689,15 @@
                 activatedMessage: '🔒 Режимът за консултация е активиран. Мога да отговарям на въпроси, но не мога да променям плана.',
                 modeLabel: 'Режим: Консултация',
                 icon: { color: '#4CAF50' },
-                background: '#E8F5E9'
+                background: '#E8F5E9',
+                backgroundDark: '#2d4a2e'
             },
             modification: {
                 activatedMessage: '🔓 Режимът за промяна на плана е активиран. Сега мога да променям вашия план според желанията ви.',
                 modeLabel: 'Режим: Промяна на план',
                 icon: { color: '#FF5722' },
-                background: '#FFEBEE'
+                background: '#FFEBEE',
+                backgroundDark: '#4a2d2d'
             },
             // Button labels for switching modes (key is the target mode)
             toggleButtons: {
@@ -691,6 +753,8 @@
             loadOfflineQueue();
             // Enhancement #6: Load plan history
             loadPlanHistory();
+            // Load chat history
+            loadChatHistory();
         });
 
         // --- Theme Management ---
@@ -846,11 +910,70 @@
                     psychContent.innerHTML = `<p>${dietPlan.psychology}</p>`;
                 }
             }
+
+            // Update supplements section
+            renderSupplements();
+        }
+
+        // --- Render Supplements ---
+        function renderSupplements() {
+            const supplementsContent = document.getElementById('supplementsContent');
+            if (!supplementsContent) return;
+
+            if (dietPlan.supplements) {
+                let supplementsHTML = '';
+                
+                // Check if supplements is a string or array
+                if (typeof dietPlan.supplements === 'string') {
+                    // If it's a string, display it as-is
+                    supplementsHTML = `<p style="line-height: 1.6;">${dietPlan.supplements}</p>`;
+                } else if (Array.isArray(dietPlan.supplements) && dietPlan.supplements.length > 0) {
+                    // If it's an array, display each supplement
+                    supplementsHTML = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+                    dietPlan.supplements.slice(0, 3).forEach((supplement, index) => {
+                        if (typeof supplement === 'string') {
+                            supplementsHTML += `
+                                <div style="background: var(--soft-red); padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary-red);">
+                                    <div style="font-weight: 600; margin-bottom: 5px; color: var(--text-dark);">
+                                        <i class="fas fa-capsules" style="color: var(--primary-red); margin-right: 5px;"></i>
+                                        Добавка ${index + 1}
+                                    </div>
+                                    <p style="margin: 0; color: var(--text-dark); line-height: 1.5;">${supplement}</p>
+                                </div>
+                            `;
+                        } else if (typeof supplement === 'object') {
+                            // Structured supplement object
+                            supplementsHTML += `
+                                <div style="background: var(--soft-red); padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary-red);">
+                                    <div style="font-weight: 600; margin-bottom: 5px; color: var(--text-dark);">
+                                        <i class="fas fa-capsules" style="color: var(--primary-red); margin-right: 5px;"></i>
+                                        ${supplement.name || `Добавка ${index + 1}`}
+                                    </div>
+                                    ${supplement.dosage ? `<p style="margin: 5px 0; font-size: 0.85rem; color: var(--text-dark);"><strong>Дозировка:</strong> ${supplement.dosage}</p>` : ''}
+                                    ${supplement.intake ? `<p style="margin: 5px 0; font-size: 0.85rem; color: var(--text-dark);"><strong>Прием:</strong> ${supplement.intake}</p>` : ''}
+                                    ${supplement.description ? `<p style="margin: 5px 0 0 0; color: var(--text-dark); line-height: 1.5;">${supplement.description}</p>` : ''}
+                                </div>
+                            `;
+                        }
+                    });
+                    supplementsHTML += '</div>';
+                } else {
+                    supplementsHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични препоръки за хранителни добавки.</p>';
+                }
+                
+                supplementsContent.innerHTML = supplementsHTML;
+            } else {
+                supplementsContent.innerHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични препоръки за хранителни добавки.</p>';
+            }
         }
 
         // --- Navigation Logic ---
         function goBack() {
             window.location.href = 'index.html';
+        }
+
+        function goToProfile() {
+            window.location.href = 'profile.html';
         }
 
         function selectDay(dayNum) {
@@ -916,7 +1039,8 @@
                 left: 0;
                 right: 0;
                 width: 100%;
-                height: 75vh;
+                height: 70vh;
+                max-height: 600px;
                 background: var(--card-bg);
                 border-radius: 16px 16px 0 0;
                 box-shadow: 0 -5px 40px rgba(0,0,0,0.3);
@@ -929,14 +1053,19 @@
             chatWindow.innerHTML = `
                 <div style="padding: 15px; background: var(--primary-red); color: white; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="margin: 0; font-size: 1rem;"><i class="fas fa-user-md"></i> AI Диетолог Асистент</h3>
-                    <button onclick="closeChatWindow()" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="startNewChat()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 500;" title="Нов чат">
+                            <i class="fas fa-plus"></i> Нов чат
+                        </button>
+                        <button onclick="closeChatWindow()" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <div id="chatModeIndicator" style="padding: 10px 15px; background: #f0f0f0; border-bottom: 1px solid var(--text-light); display: flex; justify-content: space-between; align-items: center;">
+                <div id="chatModeIndicator" style="padding: 10px 15px; border-bottom: 1px solid var(--text-light); display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-circle" id="modeIcon" style="font-size: 0.6rem; color: #4CAF50;"></i>
-                        <span id="modeText" style="font-size: 0.85rem; color: var(--text-dark); font-weight: 500;">Режим: Консултация</span>
+                        <span id="modeText" style="font-size: 0.85rem; font-weight: 500;">Режим: Консултация</span>
                     </div>
                     <button onclick="toggleChatMode()" id="modeToggleBtn" style="background: var(--primary-red); color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
                         <i class="fas fa-edit"></i>
@@ -944,12 +1073,6 @@
                     </button>
                 </div>
                 <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 15px; background: var(--bg-color);">
-                    <div class="chat-message assistant">
-                        <div class="message-bubble" style="background: var(--card-bg); padding: 10px 15px; border-radius: 12px; margin-bottom: 10px; max-width: 80%;">
-                            <p style="margin: 0; font-size: 0.9rem; color: var(--text-dark);">Здравейте, ${userData.name || 'приятелю'}! 👋</p>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-dark);">Аз съм вашият AI диетолог асистент. Как мога да ви помогна днес?</p>
-                        </div>
-                    </div>
                 </div>
                 <div style="padding: 15px; border-top: 1px solid var(--text-light); background: var(--card-bg); border-radius: 0 0 16px 16px;">
                     <div style="display: flex; gap: 10px;">
@@ -966,19 +1089,40 @@
             document.body.appendChild(chatWindow);
             chatVisible = true;
 
-            // Focus input
+            // Update mode UI to reflect current mode
+            updateModeUI();
+
+            // Load chat history or show welcome message
+            if (chatHistory.length > 0) {
+                // Restore chat history
+                chatHistory.forEach(msg => {
+                    addMessageToChat(msg.text, msg.role, false); // false = don't save to history
+                });
+            } else {
+                // Show welcome message
+                addMessageToChat(`Здравейте, ${userData.name || 'приятелю'}! 👋\n\nАз съм вашият AI диетолог асистент. Как мога да ви помогна днес?`, 'assistant', false);
+            }
+
+            // Focus input only on desktop (prevent keyboard popup on mobile)
             setTimeout(() => {
-                document.getElementById('chatInput').focus();
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (!isMobile) {
+                    const chatInput = document.getElementById('chatInput');
+                    if (chatInput) {
+                        chatInput.focus();
+                    }
+                }
             }, 100);
         }
 
         function closeChatWindow() {
             const chatWindow = document.getElementById('chatWindow');
             if (chatWindow) {
+                // Save chat history before closing
+                saveChatHistory();
                 chatWindow.remove();
                 chatVisible = false;
-                // Reset to consultation mode when closing chat
-                chatMode = 'consultation';
+                // DO NOT reset chatMode - keep it for next time chat opens
             }
         }
 
@@ -1008,11 +1152,18 @@
             if (!modeText || !modeIcon || !modeToggleBtn || !modeIndicator) return;
             
             const currentModeConfig = CHAT_MODE_STRINGS[chatMode];
+            const currentTheme = document.documentElement.getAttribute('data-theme');
             
             // Update mode label and icon
             modeText.textContent = currentModeConfig.modeLabel;
             modeIcon.style.color = currentModeConfig.icon.color;
-            modeIndicator.style.background = currentModeConfig.background;
+            
+            // Use theme-aware background
+            const bgColor = currentTheme === 'dark' ? currentModeConfig.backgroundDark : currentModeConfig.background;
+            modeIndicator.style.background = bgColor;
+            
+            // Ensure text color is appropriate for current theme
+            modeText.style.color = 'var(--text-dark)';
             
             // Update toggle button (shows button to switch to the OTHER mode)
             if (chatMode === 'modification') {
@@ -1360,7 +1511,7 @@
             }, 100);
         }
 
-        function addMessageToChat(message, role) {
+        function addMessageToChat(message, role, saveToHistory = true) {
             const chatMessages = document.getElementById('chatMessages');
             if (!chatMessages) return;
 
@@ -1395,6 +1546,12 @@
 
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Save to chat history if requested
+            if (saveToHistory) {
+                chatHistory.push({ text: message, role: role, timestamp: Date.now() });
+                saveChatHistory();
+            }
         }
         
         function formatChatMessage(message) {
@@ -1456,6 +1613,87 @@
                 "'": '&#039;'
             };
             return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Chat history management functions
+        function saveChatHistory() {
+            try {
+                // Limit history size to prevent localStorage quota issues
+                const maxHistoryItems = 50;
+                if (chatHistory.length > maxHistoryItems) {
+                    chatHistory = chatHistory.slice(-maxHistoryItems);
+                }
+                
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                localStorage.setItem('chatMode', chatMode);
+                localStorage.setItem('conversationId', conversationId);
+            } catch (e) {
+                console.error('Failed to save chat history:', e);
+                // If quota exceeded, try to clear old data and retry
+                if (e.name === 'QuotaExceededError') {
+                    try {
+                        chatHistory = chatHistory.slice(-20); // Keep only last 20
+                        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                    } catch (retryError) {
+                        console.error('Failed to save even after cleanup:', retryError);
+                    }
+                }
+            }
+        }
+
+        function loadChatHistory() {
+            try {
+                const saved = localStorage.getItem('chatHistory');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    // Validate that it's an array
+                    if (Array.isArray(parsed)) {
+                        chatHistory = parsed;
+                    } else {
+                        console.warn('Invalid chat history format, resetting');
+                        chatHistory = [];
+                    }
+                }
+                const savedMode = localStorage.getItem('chatMode');
+                if (savedMode && (savedMode === 'consultation' || savedMode === 'modification')) {
+                    chatMode = savedMode;
+                }
+                const savedConversationId = localStorage.getItem('conversationId');
+                if (savedConversationId) {
+                    conversationId = savedConversationId;
+                }
+            } catch (e) {
+                console.error('Failed to load chat history:', e);
+                chatHistory = [];
+                // Clear corrupted data
+                localStorage.removeItem('chatHistory');
+            }
+        }
+
+        function startNewChat() {
+            // Confirm before clearing history
+            if (chatHistory.length > 0) {
+                if (!confirm('Това ще изтрие цялата история на чата. Сигурни ли сте?')) {
+                    return;
+                }
+            }
+            
+            // Clear chat history
+            chatHistory = [];
+            chatMode = 'consultation';
+            conversationId = Date.now().toString();
+            saveChatHistory();
+            
+            // Clear chat messages from UI
+            const chatMessages = document.getElementById('chatMessages');
+            if (chatMessages) {
+                chatMessages.innerHTML = '';
+                // Show welcome message
+                addMessageToChat(`Здравейте, ${userData.name || 'приятелю'}! 👋\n\nАз съм вашият AI диетолог асистент. Как мога да ви помогна днес?`, 'assistant', false);
+            }
+            
+            // Reset mode UI
+            updateModeUI();
         }
 
         // Add animation
