@@ -435,6 +435,52 @@
             }
         }
 
+        /* Mobile-specific improvements */
+        @media (max-width: 600px) {
+            .fab-chat {
+                width: 56px;
+                height: 56px;
+                font-size: 22px;
+                bottom: 15px;
+                right: 15px;
+            }
+            
+            .days-nav {
+                padding: 10px 5px;
+            }
+            
+            .day-chip {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+                min-width: 60px;
+            }
+            
+            .meal-card {
+                padding: 14px;
+                font-size: 0.9rem;
+            }
+            
+            h1 {
+                font-size: 1rem;
+            }
+            
+            .container {
+                padding: 10px 10px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .export-btn, .theme-toggle-btn, .user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
+            }
+            
+            header {
+                padding: 12px 15px;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -993,7 +1039,8 @@
                 left: 0;
                 right: 0;
                 width: 100%;
-                height: 75vh;
+                height: 70vh;
+                max-height: 600px;
                 background: var(--card-bg);
                 border-radius: 16px 16px 0 0;
                 box-shadow: 0 -5px 40px rgba(0,0,0,0.3);
@@ -1056,9 +1103,15 @@
                 addMessageToChat(`Здравейте, ${userData.name || 'приятелю'}! 👋\n\nАз съм вашият AI диетолог асистент. Как мога да ви помогна днес?`, 'assistant', false);
             }
 
-            // Focus input
+            // Focus input only on desktop (prevent keyboard popup on mobile)
             setTimeout(() => {
-                document.getElementById('chatInput').focus();
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (!isMobile) {
+                    const chatInput = document.getElementById('chatInput');
+                    if (chatInput) {
+                        chatInput.focus();
+                    }
+                }
             }, 100);
         }
 
@@ -1565,11 +1618,26 @@
         // Chat history management functions
         function saveChatHistory() {
             try {
+                // Limit history size to prevent localStorage quota issues
+                const maxHistoryItems = 50;
+                if (chatHistory.length > maxHistoryItems) {
+                    chatHistory = chatHistory.slice(-maxHistoryItems);
+                }
+                
                 localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
                 localStorage.setItem('chatMode', chatMode);
                 localStorage.setItem('conversationId', conversationId);
             } catch (e) {
                 console.error('Failed to save chat history:', e);
+                // If quota exceeded, try to clear old data and retry
+                if (e.name === 'QuotaExceededError') {
+                    try {
+                        chatHistory = chatHistory.slice(-20); // Keep only last 20
+                        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                    } catch (retryError) {
+                        console.error('Failed to save even after cleanup:', retryError);
+                    }
+                }
             }
         }
 
@@ -1577,10 +1645,17 @@
             try {
                 const saved = localStorage.getItem('chatHistory');
                 if (saved) {
-                    chatHistory = JSON.parse(saved);
+                    const parsed = JSON.parse(saved);
+                    // Validate that it's an array
+                    if (Array.isArray(parsed)) {
+                        chatHistory = parsed;
+                    } else {
+                        console.warn('Invalid chat history format, resetting');
+                        chatHistory = [];
+                    }
                 }
                 const savedMode = localStorage.getItem('chatMode');
-                if (savedMode) {
+                if (savedMode && (savedMode === 'consultation' || savedMode === 'modification')) {
                     chatMode = savedMode;
                 }
                 const savedConversationId = localStorage.getItem('conversationId');
@@ -1590,10 +1665,19 @@
             } catch (e) {
                 console.error('Failed to load chat history:', e);
                 chatHistory = [];
+                // Clear corrupted data
+                localStorage.removeItem('chatHistory');
             }
         }
 
         function startNewChat() {
+            // Confirm before clearing history
+            if (chatHistory.length > 0) {
+                if (!confirm('Това ще изтрие цялата история на чата. Сигурни ли сте?')) {
+                    return;
+                }
+            }
+            
             // Clear chat history
             chatHistory = [];
             chatMode = 'consultation';

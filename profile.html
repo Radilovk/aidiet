@@ -191,6 +191,7 @@
             gap: 10px;
             margin-top: 20px;
             flex-wrap: wrap;
+            justify-content: center;
         }
 
         .btn {
@@ -204,6 +205,16 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex: 1;
+            min-width: 150px;
+            justify-content: center;
+        }
+
+        @media (max-width: 600px) {
+            .btn {
+                flex: 1 1 100%;
+                padding: 14px 20px;
+            }
         }
 
         .btn-primary {
@@ -278,6 +289,46 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Mobile-specific improvements */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .form-section {
+                padding: 15px;
+            }
+            
+            .profile-avatar {
+                width: 70px;
+                height: 70px;
+                font-size: 1.8rem;
+            }
+            
+            .profile-name {
+                font-size: 1.3rem;
+            }
+            
+            .section-title {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-input, .form-textarea {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+            
+            h1 {
+                font-size: 1rem;
+            }
+            
+            .btn {
+                font-size: 0.95rem;
+                padding: 12px 16px;
+            }
         }
     </style>
 </head>
@@ -603,6 +654,12 @@
         });
 
         async function saveChanges() {
+            // Validate data before saving
+            if (!validateFormData()) {
+                showAlert('⚠️ Моля, попълнете всички задължителни полета правилно.', 'warning');
+                return;
+            }
+            
             // Collect updated data
             const inputs = document.querySelectorAll('[data-field]');
             const updatedData = { ...userData };
@@ -612,25 +669,41 @@
                 updatedData[field] = input.value.trim();
             });
 
-            // Save to localStorage
-            localStorage.setItem('userData', JSON.stringify(updatedData));
-            userData = updatedData;
-            originalData = JSON.parse(JSON.stringify(updatedData));
+            try {
+                // Save to localStorage
+                localStorage.setItem('userData', JSON.stringify(updatedData));
+                userData = updatedData;
+                originalData = JSON.parse(JSON.stringify(updatedData));
 
-            // Update UI
-            if (updatedData.name) {
-                document.getElementById('profileAvatar').textContent = updatedData.name.charAt(0).toUpperCase();
-                document.getElementById('profileName').textContent = updatedData.name;
-            }
-            if (updatedData.email) {
-                document.getElementById('profileEmail').textContent = updatedData.email;
-            }
+                // Update UI
+                if (updatedData.name) {
+                    document.getElementById('profileAvatar').textContent = updatedData.name.charAt(0).toUpperCase();
+                    document.getElementById('profileName').textContent = updatedData.name;
+                }
+                if (updatedData.email) {
+                    document.getElementById('profileEmail').textContent = updatedData.email;
+                }
 
-            showAlert('✓ Данните са запазени успешно!', 'info');
-            cancelEditing();
+                showAlert('✓ Данните са запазени успешно!', 'info');
+                cancelEditing();
+            } catch (error) {
+                console.error('Error saving data:', error);
+                showAlert('⚠️ Грешка при запазване на данните. Моля, опитайте отново.', 'warning');
+            }
         }
 
         async function saveAndRegeneratePlan() {
+            // Validate data before saving
+            if (!validateFormData()) {
+                showAlert('⚠️ Моля, попълнете всички задължителни полета правилно.', 'warning');
+                return;
+            }
+            
+            // Confirm before regenerating (important action)
+            if (!confirm('Регенерирането на плана ще отнеме време. Сигурни ли сте, че искате да продължите?')) {
+                return;
+            }
+            
             // First save the changes
             const inputs = document.querySelectorAll('[data-field]');
             const updatedData = { ...userData };
@@ -640,29 +713,36 @@
                 updatedData[field] = input.value.trim();
             });
 
-            // Save to localStorage
-            localStorage.setItem('userData', JSON.stringify(updatedData));
-            userData = updatedData;
-
-            // Show loading state
-            const btn = document.getElementById('saveAndRegenerateBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<div class="spinner"></div> Регенериране на план...';
-
-            showAlert('Генерирам нов план на базата на актуализираните данни...', 'info');
-
             try {
+                // Save to localStorage
+                localStorage.setItem('userData', JSON.stringify(updatedData));
+                userData = updatedData;
+
+                // Show loading state
+                const btn = document.getElementById('saveAndRegenerateBtn');
+                const originalBtnContent = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div> Регенериране на план...';
+
+                showAlert('Генерирам нов план на базата на актуализираните данни...', 'info');
+
                 // Call API to regenerate plan
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(updatedData)
+                    body: JSON.stringify(updatedData),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
+
                 if (!response.ok) {
-                    throw new Error('Failed to generate plan');
+                    throw new Error(`Server returned ${response.status}`);
                 }
 
                 const result = await response.json();
@@ -685,10 +765,48 @@
 
             } catch (error) {
                 console.error('Error regenerating plan:', error);
-                showAlert('⚠️ Грешка при регенериране на плана. Моля, опитайте отново.', 'warning');
+                const btn = document.getElementById('saveAndRegenerateBtn');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i> Запази и регенерирай план';
+                
+                if (error.name === 'AbortError') {
+                    showAlert('⚠️ Заявката отне твърде много време. Моля, опитайте отново.', 'warning');
+                } else {
+                    showAlert('⚠️ Грешка при регенериране на плана. Моля, опитайте отново.', 'warning');
+                }
             }
+        }
+
+        // Validation function
+        function validateFormData() {
+            const requiredFields = ['name', 'email', 'gender', 'age', 'height', 'weight', 'goal'];
+            const inputs = document.querySelectorAll('[data-field]');
+            
+            for (const input of inputs) {
+                const field = input.getAttribute('data-field');
+                if (requiredFields.includes(field)) {
+                    const value = input.value.trim();
+                    if (!value) {
+                        input.focus();
+                        return false;
+                    }
+                    
+                    // Additional validation
+                    if (field === 'email' && !isValidEmail(value)) {
+                        input.focus();
+                        return false;
+                    }
+                    if ((field === 'age' || field === 'height' || field === 'weight') && (isNaN(value) || value <= 0)) {
+                        input.focus();
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
 
         // --- Alert Functions ---
