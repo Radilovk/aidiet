@@ -77,6 +77,11 @@ let adminConfigCache = null;
 let adminConfigCacheTime = 0;
 const ADMIN_CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
+// Cache for chat prompts to reduce KV reads
+let chatPromptsCache = null;
+let chatPromptsCacheTime = 0;
+const CHAT_PROMPTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -211,7 +216,7 @@ async function handleChat(request, env) {
     const chatMode = mode || 'consultation';
     
     // Build chat prompt with context and mode
-    const chatPrompt = generateChatPrompt(message, userData, userPlan, conversationHistory, chatMode);
+    const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, conversationHistory, chatMode);
     
     // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
     const aiResponse = await callAIModel(env, chatPrompt, 2000);
@@ -783,7 +788,7 @@ async function generateNutritionPrompt(data, env) {
 /**
  * Generate chat prompt with full context
  */
-function generateChatPrompt(userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
+async function generateChatPrompt(env, userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
   // Base context that's always included
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
@@ -796,65 +801,15 @@ ${JSON.stringify(userPlan, null, 2)}
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 `;
 
-  // Mode-specific instructions
+  // Get mode-specific instructions from KV (with caching)
+  const chatPrompts = await getChatPrompts(env);
   let modeInstructions = '';
   
   if (mode === 'consultation') {
-    // Consultation mode: CANNOT modify the plan
-    modeInstructions = `
-ТЕКУЩ РЕЖИМ: КОНСУЛТАЦИЯ
-
-ВАЖНИ ПРАВИЛА:
-1. Можеш да четеш плана, но НЕ МОЖЕШ да го променяш.
-2. Бъди КРАТЪК - максимум 2-3 изречения, прост език.
-3. Ако клиентът иска промяна, кажи: "За промяна активирай режима за промяна на плана."
-4. НИКОГА не използвай [REGENERATE_PLAN:...] инструкции.
-5. Винаги поддържай мотивиращ тон.
-
-ПРИМЕРИ:
-- "Закуската съдържа овесени ядки с банан (350 калории). За промяна, активирай режима за промяна."
-- "Можеш да замениш рибата с пилешко - и двете са отлични източници на протеин. За промяна, активирай режима за промяна."
-`;
+    modeInstructions = chatPrompts.consultation;
   } else if (mode === 'modification') {
-    // Modification mode: CAN modify the plan
-    modeInstructions = `
-ТЕКУЩ РЕЖИМ: ПРОМЯНА НА ПЛАНА
-
-ВАЖНИ ПРАВИЛА:
-1. Ти си професионален диетолог. Бъди КРАТЪК, ЯСЕН и директен.
-2. Използвай ПРОСТ език, лесно разбираем.
-3. Ограничи се до МАКСИМУМ 3-4 изречения в отговор.
-4. Задавай МАКСИМУМ 1 въпрос на отговор.
-
-2. Когато клиентът иска промяна:
-   - Анализирай дали е здравословно за цел: ${userData.goal}
-   - Обясни КРАТКО последиците (само основното)
-   - Ако има по-добра алтернатива, предложи я с 1 изречение
-   - Запитай с 1 въпрос за потвърждение
-   - След потвърждение, приложи с [REGENERATE_PLAN:{"modifications":["описание"]}]
-
-3. НИКОГА не прилагай директно промяна без обсъждане! Винаги обясни и консултирай първо.
-
-4. ПРИМЕР:
-   Клиент: "премахни междинните хранения"
-   Отговор: "Разбирам. Премахването може да опрости храненето, но може и да доведе до преяждане. За твоята цел препоръчвам 1 здравословна закуска вместо пълно премахване. Премахваме всички или оставяме 1?"
-   
-   [ЧАКАЙ потвърждение преди REGENERATE_PLAN]
-   
-   Клиент: "добре, премахни всички"
-   Отговор: "✓ Разбрано! Регенерирам плана със 3 основни хранения. [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]"
-
-5. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
-   - "no_intermediate_meals" - без междинни хранения
-   - "3_meals_per_day" - 3 хранения дневно
-   - "4_meals_per_day" - 4 хранения дневно
-   - "vegetarian" - вегетариански план
-   - "no_dairy" - без млечни продукти
-   - "low_carb" - нисковъглехидратна диета
-   - "increase_protein" - повече протеини
-
-ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос!
-`;
+    // Replace {goal} placeholder with actual user goal
+    modeInstructions = chatPrompts.modification.replace(/{goal}/g, userData.goal || 'твоята цел');
   }
 
   const fullPrompt = `${baseContext}
@@ -899,6 +854,86 @@ async function getAdminConfig(env) {
   adminConfigCacheTime = now;
 
   return config;
+}
+
+/**
+ * Get chat prompts configuration with caching to reduce KV reads
+ */
+async function getChatPrompts(env) {
+  // Return cached prompts if still valid
+  const now = Date.now();
+  if (chatPromptsCache && (now - chatPromptsCacheTime) < CHAT_PROMPTS_CACHE_TTL) {
+    return chatPromptsCache;
+  }
+
+  // Default prompts
+  const prompts = {
+    consultation: `ТЕКУЩ РЕЖИМ: КОНСУЛТАЦИЯ
+
+ВАЖНИ ПРАВИЛА:
+1. Можеш да четеш плана, но НЕ МОЖЕШ да го променяш.
+2. Бъди КРАТЪК - максимум 2-3 изречения, прост език.
+3. Ако клиентът иска промяна, кажи: "За промяна активирай режима за промяна на плана."
+4. НИКОГА не използвай [REGENERATE_PLAN:...] инструкции.
+5. Винаги поддържай мотивиращ тон.
+
+ПРИМЕРИ:
+- "Закуската съдържа овесени ядки с банан (350 калории). За промяна, активирай режима за промяна."
+- "Можеш да замениш рибата с пилешко - и двете са отлични източници на протеин. За промяна, активирай режима за промяна."`,
+    modification: `ТЕКУЩ РЕЖИМ: ПРОМЯНА НА ПЛАНА
+
+ВАЖНИ ПРАВИЛА:
+1. Ти си професионален диетолог. Бъди КРАТЪК, ЯСЕН и директен.
+2. Използвай ПРОСТ език, лесно разбираем.
+3. Ограничи се до МАКСИМУМ 3-4 изречения в отговор.
+4. Задавай МАКСИМУМ 1 въпрос на отговор.
+
+2. Когато клиентът иска промяна:
+   - Анализирай дали е здравословно за цел: {goal}
+   - Обясни КРАТКО последиците (само основното)
+   - Ако има по-добра алтернатива, предложи я с 1 изречение
+   - Запитай с 1 въпрос за потвърждение
+   - След потвърждение, приложи с [REGENERATE_PLAN:{"modifications":["описание"]}]
+
+3. НИКОГА не прилагай директно промяна без обсъждане! Винаги обясни и консултирай първо.
+
+4. ПРИМЕР:
+   Клиент: "премахни междинните хранения"
+   Отговор: "Разбирам. Премахването може да опрости храненето, но може и да доведе до преяждане. За твоята цел препоръчвам 1 здравословна закуска вместо пълно премахване. Премахваме всички или оставяме 1?"
+   
+   [ЧАКАЙ потвърждение преди REGENERATE_PLAN]
+   
+   Клиент: "добре, премахни всички"
+   Отговор: "✓ Разбрано! Регенерирам плана със 3 основни хранения. [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]"
+
+5. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
+   - "no_intermediate_meals" - без междинни хранения
+   - "3_meals_per_day" - 3 хранения дневно
+   - "4_meals_per_day" - 4 хранения дневно
+   - "vegetarian" - вегетариански план
+   - "no_dairy" - без млечни продукти
+   - "low_carb" - нисковъглехидратна диета
+   - "increase_protein" - повече протеини
+
+ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос!`
+  };
+
+  if (env.page_content) {
+    // Fetch custom prompts from KV in parallel
+    const [savedConsultation, savedModification] = await Promise.all([
+      env.page_content.get('admin_consultation_prompt'),
+      env.page_content.get('admin_modification_prompt')
+    ]);
+
+    if (savedConsultation) prompts.consultation = savedConsultation;
+    if (savedModification) prompts.modification = savedModification;
+  }
+
+  // Update cache
+  chatPromptsCache = prompts;
+  chatPromptsCacheTime = now;
+
+  return prompts;
 }
 
 /**
@@ -1370,8 +1405,24 @@ async function handleSavePrompt(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const key = type === 'chat' ? 'admin_chat_prompt' : 'admin_plan_prompt';
+    let key;
+    if (type === 'consultation') {
+      key = 'admin_consultation_prompt';
+    } else if (type === 'modification') {
+      key = 'admin_modification_prompt';
+    } else if (type === 'chat') {
+      key = 'admin_chat_prompt'; // Keep for backward compatibility
+    } else {
+      key = 'admin_plan_prompt';
+    }
+    
     await env.page_content.put(key, prompt);
+    
+    // Invalidate chat prompts cache if consultation or modification prompt was updated
+    if (type === 'consultation' || type === 'modification') {
+      chatPromptsCache = null;
+      chatPromptsCacheTime = 0;
+    }
     
     return jsonResponse({ success: true, message: 'Prompt saved successfully' });
   } catch (error) {
@@ -1448,11 +1499,13 @@ async function handleGetConfig(request, env) {
     }
 
     // Use Promise.all to fetch all config values in parallel (reduces sequential KV reads)
-    const [provider, modelName, planPrompt, chatPrompt] = await Promise.all([
+    const [provider, modelName, planPrompt, chatPrompt, consultationPrompt, modificationPrompt] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
       env.page_content.get('admin_plan_prompt'),
-      env.page_content.get('admin_chat_prompt')
+      env.page_content.get('admin_chat_prompt'),
+      env.page_content.get('admin_consultation_prompt'),
+      env.page_content.get('admin_modification_prompt')
     ]);
     
     return jsonResponse({ 
@@ -1460,7 +1513,9 @@ async function handleGetConfig(request, env) {
       provider: provider || 'openai',
       modelName: modelName || 'gpt-4o-mini',
       planPrompt,
-      chatPrompt
+      chatPrompt,
+      consultationPrompt,
+      modificationPrompt
     });
   } catch (error) {
     console.error('Error getting config:', error);
