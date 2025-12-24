@@ -103,7 +103,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 120px 5% 50px 5%;
-            background: #ffffff;
+            background: var(--white);
             position: relative;
         }
 
@@ -155,9 +155,9 @@
         .phone-mockup {
             width: 300px;
             height: 600px;
-            background: white;
+            background: var(--white);
             border-radius: 40px;
-            border: 12px solid #2d3436;
+            border: 12px solid var(--text-gray);
             position: relative;
             overflow: hidden;
             box-shadow: 0 20px 50px rgba(0,0,0,0.2);
@@ -167,19 +167,24 @@
         /* Fake Screen Content inside phone */
         .screen-content {
             padding: 20px;
-            background: #f8f9fa;
+            background: var(--bg-color);
             height: 100%;
         }
         .screen-header {
             height: 40px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;
         }
         .screen-card {
-            background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px;
+            background: var(--white); border-radius: 12px; padding: 15px; margin-bottom: 10px;
             border-left: 4px solid var(--primary-red);
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        .screen-line { height: 10px; background: #eee; border-radius: 5px; margin-bottom: 5px; width: 60%; }
+        .screen-line { height: 10px; background: var(--text-gray); border-radius: 5px; margin-bottom: 5px; width: 60%; opacity: 0.3; }
         .screen-line.short { width: 40%; }
+        .screen-header-title { font-weight:bold; font-size:14px; color: var(--text-dark); }
+        .screen-header-avatar { width:25px; height:25px; background: var(--soft-red); border-radius:50%; }
+        .screen-meal-label { font-size:10px; color: var(--primary-red); font-weight:bold; margin-bottom:5px; }
+        .screen-meal-title { font-weight:600; font-size:14px; color: var(--text-dark); }
+        .screen-meal-amount { font-size:12px; color: var(--text-gray); }
         .fab-mock {
             width: 50px; height: 50px; background: var(--primary-red); border-radius: 50%;
             position: absolute; bottom: 20px; right: 20px;
@@ -195,7 +200,7 @@
         /* --- FEATURES SECTION --- */
         .features {
             padding: 80px 5%;
-            background: white;
+            background: var(--white);
         }
 
         .section-title {
@@ -221,7 +226,7 @@
         }
         .feature-card:hover {
             transform: translateY(-10px);
-            background: white;
+            background: var(--white);
             box-shadow: var(--shadow);
             border-color: var(--soft-red);
         }
@@ -424,14 +429,60 @@
             function applyColorScheme() {
                 const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
                 const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-                const colors = colorSchemes[savedScheme]?.[currentTheme];
                 
-                if (colors) {
-                    const root = document.documentElement;
-                    Object.keys(colors).forEach(key => {
-                        root.style.setProperty(key, colors[key]);
-                    });
+                // Handle custom color scheme
+                if (savedScheme === 'custom') {
+                    const customColors = localStorage.getItem('customColors');
+                    if (customColors) {
+                        const colors = JSON.parse(customColors);
+                        const root = document.documentElement;
+                        
+                        if (currentTheme === 'dark') {
+                            // Use slightly lighter versions for dark theme
+                            root.style.setProperty('--primary-red', lightenColor(colors.primary, 20));
+                            root.style.setProperty('--primary-dark', colors.primary);
+                            root.style.setProperty('--soft-red', darkenColor(colors.primary, 60));
+                        } else {
+                            root.style.setProperty('--primary-red', colors.primary);
+                            root.style.setProperty('--primary-dark', darkenColor(colors.primary, 15));
+                            root.style.setProperty('--soft-red', lightenColor(colors.primary, 80));
+                        }
+                    }
+                } else {
+                    const colors = colorSchemes[savedScheme]?.[currentTheme];
+                    
+                    if (colors) {
+                        const root = document.documentElement;
+                        Object.keys(colors).forEach(key => {
+                            root.style.setProperty(key, colors[key]);
+                        });
+                    }
                 }
+            }
+            
+            // Helper functions for color manipulation
+            function lightenColor(hex, percent) {
+                const num = parseInt(hex.replace('#', ''), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = (num >> 16) + amt;
+                const G = (num >> 8 & 0x00FF) + amt;
+                const B = (num & 0x0000FF) + amt;
+                return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                    (B < 255 ? B < 1 ? 0 : B : 255))
+                    .toString(16).slice(1);
+            }
+            
+            function darkenColor(hex, percent) {
+                const num = parseInt(hex.replace('#', ''), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = (num >> 16) - amt;
+                const G = (num >> 8 & 0x00FF) - amt;
+                const B = (num & 0x0000FF) - amt;
+                return '#' + (0x1000000 + (R > 0 ? R : 0) * 0x10000 +
+                    (G > 0 ? G : 0) * 0x100 +
+                    (B > 0 ? B : 0))
+                    .toString(16).slice(1);
             }
 
             // Apply on load
@@ -482,26 +533,26 @@
             <div class="phone-mockup">
                 <div class="screen-content">
                     <div class="screen-header">
-                        <span style="font-weight:bold; font-size:14px;">Моят План</span>
-                        <div style="width:25px; height:25px; background:#fadbd8; border-radius:50%;"></div>
+                        <span class="screen-header-title">Моят План</span>
+                        <div class="screen-header-avatar"></div>
                     </div>
                     <!-- Fake Card 1 -->
                     <div class="screen-card">
-                        <div style="font-size:10px; color:#10b981; font-weight:bold; margin-bottom:5px;">ЗАКУСКА</div>
-                        <div style="font-weight:600; font-size:14px;">Овесена каша</div>
-                        <div style="font-size:12px; color:gray;">250 гр.</div>
+                        <div class="screen-meal-label">ЗАКУСКА</div>
+                        <div class="screen-meal-title">Овесена каша</div>
+                        <div class="screen-meal-amount">250 гр.</div>
                     </div>
                     <!-- Fake Card 2 -->
                     <div class="screen-card">
-                        <div style="font-size:10px; color:#10b981; font-weight:bold; margin-bottom:5px;">ОБЯД</div>
-                        <div style="font-weight:600; font-size:14px;">Пилешко филе</div>
-                        <div style="font-size:12px; color:gray;">350 гр.</div>
+                        <div class="screen-meal-label">ОБЯД</div>
+                        <div class="screen-meal-title">Пилешко филе</div>
+                        <div class="screen-meal-amount">350 гр.</div>
                     </div>
                     <!-- Fake Card 3 -->
                     <div class="screen-card">
-                        <div style="font-size:10px; color:#10b981; font-weight:bold; margin-bottom:5px;">ВЕЧЕРЯ</div>
-                        <div style="font-weight:600; font-size:14px;">Риба на скара</div>
-                        <div style="font-size:12px; color:gray;">300 гр.</div>
+                        <div class="screen-meal-label">ВЕЧЕРЯ</div>
+                        <div class="screen-meal-title">Риба на скара</div>
+                        <div class="screen-meal-amount">300 гр.</div>
                     </div>
                     
                     <div class="fab-mock"><i class="fas fa-comment"></i></div>
