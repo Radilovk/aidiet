@@ -70,11 +70,9 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow), 0 2px 0 0 var(--primary-accent);
             backdrop-filter: blur(10px);
             transition: all 0.3s ease;
-            border-bottom: 2px solid transparent;
-            border-image: var(--gradient-primary) 1;
         }
 
         .back-btn {
@@ -253,8 +251,6 @@
             padding: 20px;
             margin-bottom: 18px;
             box-shadow: var(--shadow);
-            border-left: 5px solid;
-            border-image: var(--gradient-primary) 1;
             display: flex;
             justify-content: space-between;
             align-items: center;
