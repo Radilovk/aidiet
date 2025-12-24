@@ -244,7 +244,7 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, var(--primary-red), var(--primary-dark));
+            background: var(--primary-red);
             color: white;
             padding: 20px;
             border-radius: var(--radius);
@@ -370,14 +370,14 @@
                     </select>
                 </div>
                 <div id="colorPreview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; padding: 20px; background: var(--bg-light); border-radius: 12px;">
-                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: linear-gradient(135deg, #10b981 0%, #fbbf24 100%);">
-                        Главен
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #10b981;">
+                        Зелено
                     </div>
-                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);">
-                        Допълнителен
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #3b82f6;">
+                        Синьо
                     </div>
-                    <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: #10b981; background: #ecfdf5;">
-                        Акцент
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: white; background: #ff7f6a;">
+                        Корал
                     </div>
                 </div>
                 <button class="btn" onclick="saveColorScheme()">
@@ -808,38 +808,34 @@
             'purple-pink': {
                 primary: '#10b981',
                 primaryAccent: '#34d399',
-                secondary: '#fbbf24',
+                secondary: '#3b82f6',
+                tertiary: '#ff7f6a',
                 soft: '#ecfdf5',
-                gradientPrimary: 'linear-gradient(135deg, #10b981 0%, #fbbf24 100%)',
-                gradientSecondary: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
-                name: 'Зелено-Жълта'
+                name: 'Зелено-Синьо-Корал'
             },
             'green-blue': {
                 primary: '#4CAF50',
                 primaryAccent: '#66BB6A',
                 secondary: '#42A5F5',
+                tertiary: '#ff8a65',
                 soft: '#E8F5E9',
-                gradientPrimary: 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)',
-                gradientSecondary: 'linear-gradient(135deg, #42A5F5 0%, #64B5F6 100%)',
-                name: 'Зелено-Синя'
+                name: 'Зелено-Синя-Корал'
             },
             'blue-indigo': {
                 primary: '#3B82F6',
                 primaryAccent: '#60A5FA',
                 secondary: '#6366F1',
+                tertiary: '#ff7f6a',
                 soft: '#EFF6FF',
-                gradientPrimary: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                gradientSecondary: 'linear-gradient(135deg, #06B6D4 0%, #8B5CF6 100%)',
-                name: 'Синьо-Индиго'
+                name: 'Синьо-Индиго-Корал'
             },
             'orange-red': {
                 primary: '#F97316',
                 primaryAccent: '#FB923C',
                 secondary: '#EF4444',
+                tertiary: '#ff7f6a',
                 soft: '#FFF7ED',
-                gradientPrimary: 'linear-gradient(135deg, #F97316 0%, #EF4444 100%)',
-                gradientSecondary: 'linear-gradient(135deg, #FBBF24 0%, #F97316 100%)',
-                name: 'Оранжево-Червена'
+                name: 'Оранжево-Червено-Корал'
             }
         };
 
@@ -849,14 +845,14 @@
             const preview = document.getElementById('colorPreview');
             
             preview.innerHTML = `
-                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.gradientPrimary};">
-                    Главен
+                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.primary};">
+                    Зелено
                 </div>
-                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.gradientSecondary};">
-                    Допълнителен
+                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.secondary};">
+                    Синьо
                 </div>
-                <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: ${colors.primary}; background: ${colors.soft};">
-                    Акцент
+                <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: white; background: ${colors.tertiary};">
+                    Корал
                 </div>
             `;
         }
