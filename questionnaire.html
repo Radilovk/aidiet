@@ -86,10 +86,13 @@
             flex: 1;
             position: relative;
             padding: 20px;
+            padding-bottom: 100px; /* Extra padding for footer */
             display: flex;
-            align-items: center;
+            align-items: flex-start; /* Changed from center to allow scrolling from top */
             justify-content: center;
             overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
 
         .question-card {
@@ -135,8 +138,9 @@
             width: 100%;
             padding: 16px;
             font-size: 1.1rem;
-            border: 2px solid transparent;
+            border: 2px solid #d1d5db;
             background: var(--card-bg);
+            color: var(--text-dark);
             border-radius: var(--radius);
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
             transition: var(--transition);
@@ -149,6 +153,17 @@
             background: #fff;
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
         }
+        .modern-input::placeholder {
+            color: var(--text-gray);
+            opacity: 0.7;
+        }
+        
+        [data-theme="dark"] .modern-input {
+            border-color: #374151;
+        }
+        [data-theme="dark"] .modern-input:focus {
+            background: var(--card-bg);
+        }
 
         /* Radio & Checkbox Tiles */
         .options-grid {
@@ -160,7 +175,7 @@
             align-items: center;
             padding: 18px 20px;
             background: var(--card-bg);
-            border: 2px solid transparent;
+            border: 2px solid #e5e7eb;
             border-radius: var(--radius);
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.02);
@@ -168,7 +183,12 @@
             position: relative;
             font-weight: 500;
             min-height: 56px;
+            color: var(--text-dark);
             -webkit-tap-highlight-color: transparent;
+        }
+        
+        [data-theme="dark"] .option-label {
+            border-color: #374151;
         }
         .option-label:active { 
             transform: scale(0.98); 
@@ -182,14 +202,19 @@
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            border: 2px solid #ddd;
+            border: 2px solid #9ca3af;
             margin-right: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: var(--transition);
+            flex-shrink: 0;
         }
         .option-input[type="checkbox"] + .custom-check { border-radius: 6px; }
+        
+        [data-theme="dark"] .custom-check {
+            border-color: #6b7280;
+        }
 
         .custom-check::after {
             content: '';
@@ -483,7 +508,7 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Оформяне", "Покачване на мускулна маса", "Антиейджинг"], "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] } },
+            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг"], "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] } },
             { "id": "secLifestyle", "type": "section", "sectionTitle": "Сън, ритъм и активност" },
             { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
             { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
@@ -500,16 +525,16 @@
             { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
             { "id": "overeatingFrequency", "text": "Колко често ядете повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
             { "id": "foodCravings", "text": "Често изпитвате нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / снакс", "Друго"], "hasOtherInput": true },
-            { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за храна?", "type": "checkbox", "options": ["Напрежение", "Скука", "Тъга", "Социални събития", "Нито едно", "Друго"], "hasOtherInput": true },
-            { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна"] },
-            { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true },
+            { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за храна?", "type": "checkbox", "options": ["Напрежение", "Скука", "Тъга", "Социални събития", "Друго", "Нито едно"], "hasOtherInput": true, "negativeOption": "Нито едно" },
+            { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна", "Нито една"], "negativeOption": "Нито една" },
+            { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true, "negativeOption": "Не" },
             { "id": "socialComparison", "text": "Колко често се сравнявате с други хора (вкл. социални мрежи)?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
             { "id": "secPreferences", "type": "section", "sectionTitle": "Хранителни предпочитания" },
-            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго"], "hasOtherInput": true },
-            { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [] },
-            { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [] },
+            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго", "Нямам предпочитания"], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
+            { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [], "optional": true },
+            { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
             { "id": "secMedical", "type": "section", "sectionTitle": "Медицинско състояние" },
-            { "id": "medicalConditions", "text": "Имате ли някое от следните медицински състояния?", "type": "checkbox", "options": ["Инсулинова резистентност", "Диабет", "Хашимото", "Депресия", "Тревожност", "IBS", "IBD", "Алергии", "Автоимунно", "Рефлукс", "Друго", "Нямам"], "hasOtherInput": true },
+            { "id": "medicalConditions", "text": "Имате ли някое от следните медицински състояния?", "type": "checkbox", "options": ["Инсулинова резистентност", "Диабет", "Хашимото", "Депресия", "Тревожност", "IBS", "IBD", "Алергии", "Автоимунно", "Рефлукс", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам", "specialDetailOptions": ["Алергии", "Автоимунно"] },
             { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
             { "id": "secExtra", "type": "section", "sectionTitle": "Допълнителна информация" },
             { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [] }
@@ -682,6 +707,31 @@
                         if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
                     }
                 }
+                
+                // Handle special detail fields for specific options (like Allergies, Autoimmune)
+                if(step.specialDetailOptions) {
+                    step.specialDetailOptions.forEach(specialOpt => {
+                        const detailContainer = document.createElement('div');
+                        detailContainer.className = 'other-input-container';
+                        detailContainer.id = `detail_${step.id}_${specialOpt}`;
+                        
+                        const detailInput = document.createElement('input');
+                        detailInput.type = 'text';
+                        detailInput.className = 'modern-input';
+                        detailInput.placeholder = `Моля уточнете ${specialOpt.toLowerCase()}...`;
+                        detailInput.style.marginTop = '10px';
+                        detailInput.oninput = (e) => saveOther(`${step.id}_${specialOpt}`, e.target.value);
+
+                        detailContainer.appendChild(detailInput);
+                        card.appendChild(detailContainer);
+
+                        // Check if we need to show it initially (if user went back)
+                        if(answers[step.id] && (Array.isArray(answers[step.id]) && answers[step.id].includes(specialOpt))) {
+                            detailContainer.classList.add('active');
+                            if(answers[`${step.id}_${specialOpt}`]) detailInput.value = answers[`${step.id}_${specialOpt}`];
+                        }
+                    });
+                }
             }
         }
 
@@ -689,6 +739,7 @@
 
         function handleSelection(e, qId, type, labelElem) {
             const val = e.target.value;
+            const currentStep = currentQueue[currentIndex];
             
             if (type === 'radio') {
                 // Remove selected class from others
@@ -699,7 +750,33 @@
                 saveAnswer(qId, val);
             } 
             else if (type === 'checkbox') {
-                labelElem.classList.toggle('selected');
+                // Handle mutual exclusion for negative options
+                const negativeOption = currentStep.negativeOption;
+                if (negativeOption) {
+                    if (val === negativeOption) {
+                        // If negative option is selected, uncheck all others
+                        if (e.target.checked) {
+                            document.querySelectorAll(`input[name="${qId}"]`).forEach(inp => {
+                                if (inp.value !== negativeOption) {
+                                    inp.checked = false;
+                                    inp.parentElement.classList.remove('selected');
+                                }
+                            });
+                        }
+                    } else {
+                        // If any other option is selected, uncheck negative option
+                        if (e.target.checked) {
+                            const negativeInput = document.querySelector(`input[name="${qId}"][value="${negativeOption}"]`);
+                            if (negativeInput && negativeInput.checked) {
+                                negativeInput.checked = false;
+                                negativeInput.parentElement.classList.remove('selected');
+                            }
+                        }
+                    }
+                }
+                
+                labelElem.classList.toggle('selected', e.target.checked);
+                
                 // Collect all checked
                 const checked = Array.from(document.querySelectorAll(`input[name="${qId}"]:checked`)).map(cb => cb.value);
                 saveAnswer(qId, checked);
@@ -712,6 +789,20 @@
                     } else {
                         otherContainer.classList.remove('active');
                     }
+                }
+                
+                // Handle special detail fields for specific options
+                if (currentStep.specialDetailOptions) {
+                    currentStep.specialDetailOptions.forEach(specialOpt => {
+                        const detailContainer = document.getElementById(`detail_${qId}_${specialOpt}`);
+                        if (detailContainer) {
+                            if (checked.includes(specialOpt)) {
+                                detailContainer.classList.add('active');
+                            } else {
+                                detailContainer.classList.remove('active');
+                            }
+                        }
+                    });
                 }
             }
         }
@@ -737,6 +828,13 @@
             }
 
             const val = answers[step.id];
+            
+            // Check if field is optional
+            if (step.optional === true) {
+                // Optional fields are always valid
+                nextBtn.disabled = false;
+                return;
+            }
             
             // Simple validation: not empty, not null, if array not empty
             let isValid = false;
