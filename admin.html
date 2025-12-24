@@ -885,10 +885,18 @@
                     document.getElementById('customSecondary').value = colors.secondary;
                     document.getElementById('customAccent').value = colors.tertiary;
                 }
-                // Add event listeners to update preview in real-time
-                document.getElementById('customPrimary').addEventListener('input', updateCustomPreview);
-                document.getElementById('customSecondary').addEventListener('input', updateCustomPreview);
-                document.getElementById('customAccent').addEventListener('input', updateCustomPreview);
+                // Add event listeners to update preview in real-time (remove old ones first to avoid duplicates)
+                const primaryInput = document.getElementById('customPrimary');
+                const secondaryInput = document.getElementById('customSecondary');
+                const accentInput = document.getElementById('customAccent');
+                
+                primaryInput.removeEventListener('input', updateCustomPreview);
+                secondaryInput.removeEventListener('input', updateCustomPreview);
+                accentInput.removeEventListener('input', updateCustomPreview);
+                
+                primaryInput.addEventListener('input', updateCustomPreview);
+                secondaryInput.addEventListener('input', updateCustomPreview);
+                accentInput.addEventListener('input', updateCustomPreview);
                 updateCustomPreview();
             } else {
                 customSection.style.display = 'none';
@@ -961,13 +969,17 @@
             }
         }
         
-        // Helper function to lighten colors
+        // Helper function to lighten colors for soft backgrounds and light theme variants
         function lightenColor(hex, percent) {
+            // Parse hex color to integer
             const num = parseInt(hex.replace('#', ''), 16);
+            // Calculate amount to add (percent of 255)
             const amt = Math.round(2.55 * percent);
-            const R = (num >> 16) + amt;
-            const G = (num >> 8 & 0x00FF) + amt;
-            const B = (num & 0x0000FF) + amt;
+            // Extract RGB channels using bit shifting and add amount
+            const R = (num >> 16) + amt;  // Red channel (bits 16-23)
+            const G = (num >> 8 & 0x00FF) + amt;  // Green channel (bits 8-15)
+            const B = (num & 0x0000FF) + amt;  // Blue channel (bits 0-7)
+            // Clamp values to 0-255 range and reconstruct hex
             return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
                 (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
                 (B < 255 ? B < 1 ? 0 : B : 255))
