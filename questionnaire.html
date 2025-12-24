@@ -7,30 +7,36 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-red: #e74c3c;
-            --primary-red-hover: #c0392b;
-            --soft-red: #fceceb;
-            --text-dark: #2c3e50;
-            --text-gray: #95a5a6;
-            --bg-color: #f8f9fa;
+            --primary-red: #10b981;
+            --primary-red-hover: #059669;
+            --soft-red: #d1fae5;
+            --accent-yellow: #fbbf24;
+            --accent-blue: #3b82f6;
+            --accent-light-red: #f87171;
+            --text-dark: #1e3a20;
+            --text-gray: #6b7280;
+            --bg-color: #fefce8;
             --card-bg: #ffffff;
-            --input-bg: #f0f2f5;
-            --shadow: 0 10px 30px rgba(0,0,0,0.08);
+            --input-bg: #f3f4f6;
+            --shadow: 0 10px 30px rgba(16,185,129,0.12);
             --radius: 16px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #e74c3c;
-            --primary-red-hover: #c0392b;
-            --soft-red: #5a3a38;
-            --text-dark: #e0e0e0;
-            --text-gray: #b0b0b0;
-            --bg-color: #1a1a1a;
-            --card-bg: #2d2d2d;
-            --input-bg: #3a3a3a;
-            --shadow: 0 10px 30px rgba(0,0,0,0.5);
+            --primary-red: #34d399;
+            --primary-red-hover: #10b981;
+            --soft-red: #064e3b;
+            --accent-yellow: #fcd34d;
+            --accent-blue: #60a5fa;
+            --accent-light-red: #fca5a5;
+            --text-dark: #e5f3e8;
+            --text-gray: #9ca3af;
+            --bg-color: #0f1419;
+            --card-bg: #1a2028;
+            --input-bg: #252b35;
+            --shadow: 0 10px 30px rgba(52,211,153,0.25);
             --radius: 16px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
@@ -141,7 +147,7 @@
         .modern-input:focus {
             border-color: var(--primary-red);
             background: #fff;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.15);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
         }
 
         /* Radio & Checkbox Tiles */
@@ -271,12 +277,12 @@
         .btn-next {
             background-color: var(--primary-red);
             color: white;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
             min-width: 140px;
         }
         .btn-next:active {
             transform: scale(0.95);
-            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.5);
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.5);
         }
 
         .theme-toggle {
@@ -868,7 +874,7 @@
                 
                 container.innerHTML = `
                     <div style="text-align:center; animation: fadeIn 0.5s;">
-                        <div class="section-icon" style="background:#ffe8e8; color:#e74c3c;">
+                        <div class="section-icon" style="background:#d1fae5; color:#10b981;">
                             <i class="fas fa-exclamation-circle"></i>
                         </div>
                         <h2 class="q-text">Грешка</h2>
