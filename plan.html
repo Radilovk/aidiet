@@ -62,7 +62,6 @@
 
         body {
             background: var(--bg-color);
-            background-image: var(--gradient-mesh);
             color: var(--text-dark);
             padding-bottom: 90px; /* Място за чат бутона */
             -webkit-overflow-scrolling: touch;
@@ -79,7 +78,6 @@
             height: 100%;
             background: var(--gradient-mesh);
             z-index: -1;
-            opacity: 1;
         }
 
         /* --- HEADER --- */
@@ -821,6 +819,47 @@
         }
 
     </style>
+    <script>
+        // Apply color scheme from admin settings
+        (function() {
+            const colorSchemes = {
+                'purple-pink': {
+                    '--primary-red': '#8B5CF6',
+                    '--primary-accent': '#A78BFA',
+                    '--secondary-accent': '#EC4899',
+                    '--soft-red': '#F5F3FF'
+                },
+                'green-blue': {
+                    '--primary-red': '#4CAF50',
+                    '--primary-accent': '#66BB6A',
+                    '--secondary-accent': '#42A5F5',
+                    '--soft-red': '#E8F5E9'
+                },
+                'blue-indigo': {
+                    '--primary-red': '#3B82F6',
+                    '--primary-accent': '#60A5FA',
+                    '--secondary-accent': '#6366F1',
+                    '--soft-red': '#EFF6FF'
+                },
+                'orange-red': {
+                    '--primary-red': '#F97316',
+                    '--primary-accent': '#FB923C',
+                    '--secondary-accent': '#EF4444',
+                    '--soft-red': '#FFF7ED'
+                }
+            };
+
+            const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
+            const colors = colorSchemes[savedScheme];
+            
+            if (colors && savedScheme !== 'purple-pink') {
+                const root = document.documentElement;
+                Object.keys(colors).forEach(key => {
+                    root.style.setProperty(key, colors[key]);
+                });
+            }
+        })();
+    </script>
 </head>
 <body>
 
