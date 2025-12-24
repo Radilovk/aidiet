@@ -10,27 +10,33 @@
     
     <style>
         :root {
-            --primary-red: #e74c3c;
-            --primary-dark: #c0392b;
-            --soft-red: #fadbd8;
-            --bg-color: #f8f9fa;
-            --text-dark: #2c3e50;
-            --text-gray: #636e72;
+            --primary-red: #10b981;
+            --primary-dark: #059669;
+            --soft-red: #d1fae5;
+            --accent-yellow: #fbbf24;
+            --accent-blue: #3b82f6;
+            --accent-light-red: #f87171;
+            --bg-color: #fefce8;
+            --text-dark: #1e3a20;
+            --text-gray: #4b5563;
             --white: #ffffff;
-            --shadow: 0 10px 30px rgba(0,0,0,0.08);
+            --shadow: 0 10px 30px rgba(16,185,129,0.15);
             --radius: 16px;
         }
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #e74c3c;
-            --primary-dark: #c0392b;
-            --soft-red: #5a3a38;
-            --bg-color: #1a1a1a;
-            --text-dark: #e0e0e0;
-            --text-gray: #b0b0b0;
-            --white: #2d2d2d;
-            --shadow: 0 10px 30px rgba(0,0,0,0.5);
+            --primary-red: #34d399;
+            --primary-dark: #10b981;
+            --soft-red: #064e3b;
+            --accent-yellow: #fcd34d;
+            --accent-blue: #60a5fa;
+            --accent-light-red: #fca5a5;
+            --bg-color: #0f1419;
+            --text-dark: #e5f3e8;
+            --text-gray: #9ca3af;
+            --white: #1a2028;
+            --shadow: 0 10px 30px rgba(52,211,153,0.3);
             --radius: 16px;
         }
 
@@ -83,7 +89,7 @@
             text-decoration: none;
             font-weight: 600;
             transition: 0.3s;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
         }
         .nav-btn:hover {
             background-color: var(--primary-dark);
@@ -263,7 +269,7 @@
         /* Decorational circle */
         .steps::before {
             content: ''; position: absolute; top: -100px; left: -100px; width: 300px; height: 300px;
-            background: rgba(231, 76, 60, 0.1); border-radius: 50%;
+            background: rgba(16, 185, 129, 0.1); border-radius: 50%;
         }
 
         .steps-container {
@@ -284,7 +290,7 @@
         .step-number {
             font-size: 4rem;
             font-weight: 800;
-            color: rgba(231, 76, 60, 0.2);
+            color: rgba(16, 185, 129, 0.2);
             position: absolute;
             top: -30px;
             left: 50%;
@@ -387,14 +393,14 @@
             const colorSchemes = {
                 'purple-pink': {
                     light: {
-                        '--primary-red': '#8B5CF6',
-                        '--primary-dark': '#7C3AED',
-                        '--soft-red': '#F5F3FF'
+                        '--primary-red': '#10b981',
+                        '--primary-dark': '#059669',
+                        '--soft-red': '#d1fae5'
                     },
                     dark: {
-                        '--primary-red': '#A78BFA',
-                        '--primary-dark': '#8B5CF6',
-                        '--soft-red': '#2E1065'
+                        '--primary-red': '#34d399',
+                        '--primary-dark': '#10b981',
+                        '--soft-red': '#064e3b'
                     }
                 },
                 'green-blue': {
@@ -504,19 +510,19 @@
                     </div>
                     <!-- Fake Card 1 -->
                     <div class="screen-card">
-                        <div style="font-size:10px; color:#e74c3c; font-weight:bold; margin-bottom:5px;">ЗАКУСКА</div>
+                        <div style="font-size:10px; color:#10b981; font-weight:bold; margin-bottom:5px;">ЗАКУСКА</div>
                         <div style="font-weight:600; font-size:14px;">Овесена каша</div>
                         <div style="font-size:12px; color:gray;">250 гр.</div>
                     </div>
                     <!-- Fake Card 2 -->
                     <div class="screen-card">
-                        <div style="font-size:10px; color:#e74c3c; font-weight:bold; margin-bottom:5px;">ОБЯД</div>
+                        <div style="font-size:10px; color:#10b981; font-weight:bold; margin-bottom:5px;">ОБЯД</div>
                         <div style="font-weight:600; font-size:14px;">Пилешко филе</div>
                         <div style="font-size:12px; color:gray;">350 гр.</div>
                     </div>
                     <!-- Fake Card 3 -->
                     <div class="screen-card">
-                        <div style="font-size:10px; color:#e74c3c; font-weight:bold; margin-bottom:5px;">ВЕЧЕРЯ</div>
+                        <div style="font-size:10px; color:#10b981; font-weight:bold; margin-bottom:5px;">ВЕЧЕРЯ</div>
                         <div style="font-weight:600; font-size:14px;">Риба на скара</div>
                         <div style="font-size:12px; color:gray;">300 гр.</div>
                     </div>
