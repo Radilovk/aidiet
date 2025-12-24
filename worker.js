@@ -517,17 +517,25 @@ ${data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : ''}
 - Стрес: ${data.stressLevel}
 - Спортна активност: ${data.sportActivity}
 - Прием на вода: ${data.waterIntake}
+- Сладки напитки: ${data.drinksSweet || 'Не е посочено'}
+- Алкохол: ${data.drinksAlcohol || 'Не е посочено'}
 
 ХРАНИТЕЛНИ НАВИЦИ И ПОВЕДЕНИЕ:
 - Прекомерно хранене: ${data.overeatingFrequency}
 - Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
 - Желания за храна: ${JSON.stringify(data.foodCravings || [])}
+${data.foodCravings_other ? `  (Друго: ${data.foodCravings_other})` : ''}
 - Тригери за хранене: ${JSON.stringify(data.foodTriggers || [])}
+${data.foodTriggers_other ? `  (Друго: ${data.foodTriggers_other})` : ''}
 - Методи за компенсация: ${JSON.stringify(data.compensationMethods || [])}
+${data.compensationMethods_other ? `  (Друго: ${data.compensationMethods_other})` : ''}
 - Социално сравнение: ${data.socialComparison}
 
 МЕДИЦИНСКИ СЪСТОЯНИЯ:
 - Състояния: ${JSON.stringify(data.medicalConditions || [])}
+${data['medicalConditions_Алергии'] ? `- Детайли за алергии: ${data['medicalConditions_Алергии']}` : ''}
+${data['medicalConditions_Автоимунно'] ? `- Детайли за автоимунно заболяване: ${data['medicalConditions_Автоимунно']}` : ''}
+${data.medicalConditions_other ? `- Други медицински състояния: ${data.medicalConditions_other}` : ''}
 - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
 
 ХРАНИТЕЛНА ИСТОРИЯ:
@@ -564,6 +572,7 @@ ${JSON.stringify(analysis, null, 2)}
 
 ПРЕДПОЧИТАНИЯ:
 - Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
+${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : ''}
 - Не обича/непоносимост: ${data.dietDislike || 'Няма'}
 - Любими храни: ${data.dietLove || 'Няма'}
 
