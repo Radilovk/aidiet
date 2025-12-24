@@ -367,7 +367,30 @@
                         <option value="green-blue">Зелено-Синя (Здравословна)</option>
                         <option value="blue-indigo">Синьо-Индиго (Професионална)</option>
                         <option value="orange-red">Оранжево-Червена (Енергична)</option>
+                        <option value="custom">Персонализирана (Избери свои цветове)</option>
                     </select>
+                </div>
+                
+                <!-- Custom Color Picker Section -->
+                <div id="customColorSection" style="display: none; margin: 20px 0; padding: 20px; background: var(--bg-color); border-radius: 12px; border: 2px solid var(--primary-red);">
+                    <h3 style="margin-bottom: 15px; color: var(--text-dark);"><i class="fas fa-paint-brush"></i> Избери 3 Основни Цвята</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div class="form-group">
+                            <label for="customPrimary">Основен Цвят (Primary):</label>
+                            <input type="color" id="customPrimary" value="#10b981" style="width: 100%; height: 50px; cursor: pointer;">
+                            <small style="display: block; margin-top: 5px; color: var(--text-gray);">За бутони и акценти</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="customSecondary">Вторичен Цвят (Secondary):</label>
+                            <input type="color" id="customSecondary" value="#3b82f6" style="width: 100%; height: 50px; cursor: pointer;">
+                            <small style="display: block; margin-top: 5px; color: var(--text-gray);">За подчертаване</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="customAccent">Акцентиращ Цвят (Accent):</label>
+                            <input type="color" id="customAccent" value="#ff7f6a" style="width: 100%; height: 50px; cursor: pointer;">
+                            <small style="display: block; margin-top: 5px; color: var(--text-gray);">За специални елементи</small>
+                        </div>
+                    </div>
                 </div>
                 <div id="colorPreview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; padding: 20px; background: var(--bg-light); border-radius: 12px;">
                     <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #10b981;">
@@ -836,23 +859,79 @@
                 tertiary: '#ff7f6a',
                 soft: '#FFF7ED',
                 name: 'Оранжево-Червено-Корал'
+            },
+            'custom': {
+                primary: '#10b981',
+                primaryAccent: '#34d399',
+                secondary: '#3b82f6',
+                tertiary: '#ff7f6a',
+                soft: '#ecfdf5',
+                name: 'Персонализирана'
             }
         };
 
         function previewColorScheme() {
             const scheme = document.getElementById('colorScheme').value;
-            const colors = colorSchemes[scheme];
+            const customSection = document.getElementById('customColorSection');
+            
+            // Show/hide custom color picker
+            if (scheme === 'custom') {
+                customSection.style.display = 'block';
+                // Load saved custom colors or use defaults
+                const savedCustomColors = localStorage.getItem('customColors');
+                if (savedCustomColors) {
+                    const colors = JSON.parse(savedCustomColors);
+                    document.getElementById('customPrimary').value = colors.primary;
+                    document.getElementById('customSecondary').value = colors.secondary;
+                    document.getElementById('customAccent').value = colors.tertiary;
+                }
+                // Add event listeners to update preview in real-time (remove old ones first to avoid duplicates)
+                const primaryInput = document.getElementById('customPrimary');
+                const secondaryInput = document.getElementById('customSecondary');
+                const accentInput = document.getElementById('customAccent');
+                
+                primaryInput.removeEventListener('input', updateCustomPreview);
+                secondaryInput.removeEventListener('input', updateCustomPreview);
+                accentInput.removeEventListener('input', updateCustomPreview);
+                
+                primaryInput.addEventListener('input', updateCustomPreview);
+                secondaryInput.addEventListener('input', updateCustomPreview);
+                accentInput.addEventListener('input', updateCustomPreview);
+                updateCustomPreview();
+            } else {
+                customSection.style.display = 'none';
+                const colors = colorSchemes[scheme];
+                const preview = document.getElementById('colorPreview');
+                
+                preview.innerHTML = `
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.primary};">
+                        Основен
+                    </div>
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.secondary};">
+                        Вторичен
+                    </div>
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: white; background: ${colors.tertiary};">
+                        Акцент
+                    </div>
+                `;
+            }
+        }
+        
+        function updateCustomPreview() {
+            const primary = document.getElementById('customPrimary').value;
+            const secondary = document.getElementById('customSecondary').value;
+            const accent = document.getElementById('customAccent').value;
             const preview = document.getElementById('colorPreview');
             
             preview.innerHTML = `
-                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.primary};">
-                    Зелено
+                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${primary};">
+                    Основен
                 </div>
-                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${colors.secondary};">
-                    Синьо
+                <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: ${secondary};">
+                    Вторичен
                 </div>
-                <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: white; background: ${colors.tertiary};">
-                    Корал
+                <div style="padding: 30px; border-radius: 12px; text-align: center; font-weight: bold; color: white; background: ${accent};">
+                    Акцент
                 </div>
             `;
         }
@@ -861,8 +940,23 @@
             const scheme = document.getElementById('colorScheme').value;
             
             try {
-                localStorage.setItem('colorScheme', scheme);
-                showSuccess(`Цветовата схема "${colorSchemes[scheme].name}" е запазена успешно!`);
+                if (scheme === 'custom') {
+                    // Save custom colors
+                    const customColors = {
+                        primary: document.getElementById('customPrimary').value,
+                        secondary: document.getElementById('customSecondary').value,
+                        tertiary: document.getElementById('customAccent').value,
+                        // Generate light version (slightly lighter) and dark version
+                        primaryAccent: lightenColor(document.getElementById('customPrimary').value, 20),
+                        soft: lightenColor(document.getElementById('customPrimary').value, 80)
+                    };
+                    localStorage.setItem('customColors', JSON.stringify(customColors));
+                    localStorage.setItem('colorScheme', scheme);
+                    showSuccess('Персонализираната цветова схема е запазена успешно!');
+                } else {
+                    localStorage.setItem('colorScheme', scheme);
+                    showSuccess(`Цветовата схема "${colorSchemes[scheme].name}" е запазена успешно!`);
+                }
                 
                 // In a real implementation, this would save to the backend
                 // await fetch('/api/admin/color-scheme', {
@@ -873,6 +967,23 @@
             } catch (error) {
                 showError('Грешка при запазване на цветовата схема: ' + error.message);
             }
+        }
+        
+        // Helper function to lighten colors for soft backgrounds and light theme variants
+        function lightenColor(hex, percent) {
+            // Parse hex color to integer
+            const num = parseInt(hex.replace('#', ''), 16);
+            // Calculate amount to add (percent of 255)
+            const amt = Math.round(2.55 * percent);
+            // Extract RGB channels using bit shifting and add amount
+            const R = (num >> 16) + amt;  // Red channel (bits 16-23)
+            const G = (num >> 8 & 0x00FF) + amt;  // Green channel (bits 8-15)
+            const B = (num & 0x0000FF) + amt;  // Blue channel (bits 0-7)
+            // Clamp values to 0-255 range and reconstruct hex
+            return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255))
+                .toString(16).slice(1);
         }
 
         // Load saved color scheme
