@@ -295,11 +295,39 @@ async function handleChat(request, env) {
             // Apply modifications to user data and regenerate plan
             // Use Set to avoid duplicates when accumulating modifications
             const existingMods = new Set(userData.planModifications || []);
-            modifications.forEach(mod => existingMods.add(mod));
+            const excludedFoods = new Set((userData.dietDislike || '').split(',').map(f => f.trim()).filter(f => f));
+            
+            // Enhancement #4: Validate food exclusions against current plan
+            const validatedModifications = [];
+            
+            modifications.forEach(mod => {
+              if (mod.startsWith('exclude_food:')) {
+                // Extract food name from "exclude_food:име_на_храна"
+                const foodName = mod.substring('exclude_food:'.length).trim();
+                if (foodName) {
+                  // Enhancement #4: Check if food exists in plan (case-insensitive)
+                  const foodExistsInPlan = checkFoodExistsInPlan(userPlan, foodName);
+                  
+                  // Add to excluded foods regardless (as preference for future plan generations)
+                  excludedFoods.add(foodName);
+                  validatedModifications.push(mod);
+                  
+                  if (foodExistsInPlan) {
+                    console.log('Adding food exclusion (found in current plan):', foodName);
+                  } else {
+                    console.log('Adding food exclusion (preference for future plans):', foodName);
+                  }
+                }
+              } else {
+                existingMods.add(mod);
+                validatedModifications.push(mod);
+              }
+            });
             
             const modifiedUserData = {
               ...userData,
-              planModifications: Array.from(existingMods)
+              planModifications: Array.from(existingMods),
+              dietDislike: Array.from(excludedFoods).join(', ')
             };
             
             // Regenerate the plan using multi-step approach with new criteria
@@ -310,7 +338,7 @@ async function handleChat(request, env) {
             await cacheUserData(env, userId, modifiedUserData);
             planWasUpdated = true;
             
-            console.log('Plan regenerated successfully with modifications:', modifications);
+            console.log('Plan regenerated successfully with modifications:', validatedModifications);
           } else {
             console.log('REGENERATE_PLAN instruction removed from response (not in modification mode)');
           }
@@ -895,18 +923,36 @@ async function getChatPrompts(env) {
    - Запитай с 1 въпрос за потвърждение
    - След потвърждение, приложи с [REGENERATE_PLAN:{"modifications":["описание"]}]
 
-3. НИКОГА не прилагай директно промяна без обсъждане! Винаги обясни и консултирай първо.
+3. РАЗПОЗНАВАНЕ НА ПОТВЪРЖДЕНИЕ:
+   - "да", "yes", "добре", "ок", "окей", "сигурен", "сигурна" = ПОТВЪРЖДЕНИЕ
+   - Ако клиентът потвърди (каже "да"), НЕ питай отново! Приложи промяната ВЕДНАГА.
+   - Ако вече си задавал същия въпрос в историята, НЕ го питай отново - приложи промяната!
+   - НИКОГА не задавай един и същ въпрос повече от ВЕДНЪЖ.
 
-4. ПРИМЕР:
+4. НИКОГА не прилагай директно промяна без обсъждане! Винаги обясни и консултирай първо.
+
+5. ЗА ПРЕМАХВАНЕ НА КОНКРЕТНИ ХРАНИ:
+   - Ако клиентът иска да премахне конкретна храна (напр. "овесени ядки"), използвай специален модификатор:
+   - Формат: "exclude_food:име_на_храната" (напр. "exclude_food:овесени ядки")
+   - Пример: [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]
+   - Това ще регенерира плана БЕЗ тази храна
+
+6. ПРИМЕР:
    Клиент: "премахни междинните хранения"
    Отговор: "Разбирам. Премахването може да опрости храненето, но може и да доведе до преяждане. За твоята цел препоръчвам 1 здравословна закуска вместо пълно премахване. Премахваме всички или оставяме 1?"
    
    [ЧАКАЙ потвърждение преди REGENERATE_PLAN]
    
-   Клиент: "добре, премахни всички"
+   Клиент: "да" или "добре, премахни всички"
    Отговор: "✓ Разбрано! Регенерирам плана със 3 основни хранения. [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]"
+   
+   ПРИМЕР ЗА ПРЕМАХВАНЕ НА ХРАНА:
+   Клиент: "махни овесените ядки"
+   Отговор: "Разбирам, Камен. Премахването на овесените ядки ще намали фибрите. Искаш ли да ги премахна от всички дни?"
+   Клиент: "да"
+   Отговор: "✓ Разбрано! Премахвам овесените ядки от плана. [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]"
 
-5. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
+7. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
    - "no_intermediate_meals" - без междинни хранения
    - "3_meals_per_day" - 3 хранения дневно
    - "4_meals_per_day" - 4 хранения дневно
@@ -914,8 +960,9 @@ async function getChatPrompts(env) {
    - "no_dairy" - без млечни продукти
    - "low_carb" - нисковъглехидратна диета
    - "increase_protein" - повече протеини
+   - "exclude_food:име_на_храна" - премахване на конкретна храна
 
-ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос!`
+ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос! АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`
   };
 
   if (env.page_content) {
@@ -1367,6 +1414,14 @@ async function getConversationHistory(env, conversationKey) {
   return cached ? JSON.parse(cached) : [];
 }
 
+// Enhancement #3: Estimate tokens for a message
+// Note: This is a rough approximation (~4 chars per token for mixed content).
+// Actual GPT tokenization varies by language and content. This is sufficient
+// for conversation history management where approximate limits are acceptable.
+function estimateTokens(text) {
+  return Math.ceil(text.length / 4);
+}
+
 async function updateConversationHistory(env, conversationKey, userMessage, aiResponse) {
   if (!env.page_content) return;
   const history = await getConversationHistory(env, conversationKey);
@@ -1374,10 +1429,30 @@ async function updateConversationHistory(env, conversationKey, userMessage, aiRe
     { role: 'user', content: userMessage },
     { role: 'assistant', content: aiResponse }
   );
-  // Keep last 20 messages
-  const trimmed = history.slice(-20);
+  
+  // Enhancement #3: Keep conversation within token budget (approx 1500 tokens = 6000 chars)
+  const MAX_HISTORY_TOKENS = 1500;
+  let totalTokens = 0;
+  const trimmedHistory = [];
+  
+  // Process history in reverse to keep most recent messages
+  for (let i = history.length - 1; i >= 0; i--) {
+    const message = history[i];
+    const messageTokens = estimateTokens(message.content);
+    
+    if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
+      trimmedHistory.unshift(message);
+      totalTokens += messageTokens;
+    } else {
+      // Stop adding older messages
+      break;
+    }
+  }
+  
+  console.log(`Conversation history trimmed to ${trimmedHistory.length} messages (~${totalTokens} tokens)`);
+  
   // Cache for 24 hours
-  await env.page_content.put(conversationKey, JSON.stringify(trimmed), {
+  await env.page_content.put(conversationKey, JSON.stringify(trimmedHistory), {
     expirationTtl: 60 * 60 * 24
   });
 }
@@ -1388,6 +1463,31 @@ async function updateConversationHistory(env, conversationKey, userMessage, aiRe
 function generateUserId(data) {
   const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
   return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+}
+
+// Enhancement #4: Check if a food item exists in the meal plan (case-insensitive, partial match)
+function checkFoodExistsInPlan(plan, foodName) {
+  if (!plan || !plan.weekPlan) return false;
+  
+  const searchTerm = foodName.toLowerCase();
+  
+  // Search through all days and meals
+  for (const dayKey in plan.weekPlan) {
+    const day = plan.weekPlan[dayKey];
+    if (day && Array.isArray(day.meals)) {
+      for (const meal of day.meals) {
+        // Check meal name and description
+        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (meal.description && meal.description.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
 }
 
 /**

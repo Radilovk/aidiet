@@ -405,6 +405,35 @@
             font-size: 0.85rem;
             color: #c0392b;
         }
+        
+        /* Enhancement #5: Highlight animation for changed meals */
+        @keyframes highlightPulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 8px 16px rgba(231, 76, 60, 0.3);
+                border-left: 4px solid var(--primary-red);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            }
+        }
+        
+        /* Fade in animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
     </style>
 </head>
@@ -571,6 +600,29 @@
         let conversationId = Date.now().toString();
         let chatMode = 'consultation'; // 'consultation' or 'modification'
         
+        // Enhancement #1: Retry mechanism state
+        let isSending = false;
+        const MAX_RETRIES = 2;
+        const RETRY_DELAYS = [2000, 5000]; // Exponential backoff delays in ms
+        
+        // Enhancement #2: Debouncing state
+        let sendMessageTimeout = null;
+        const DEBOUNCE_DELAY = 300; // ms
+        
+        // Enhancement #6: Undo functionality - Plan history
+        let planHistory = [];
+        const MAX_HISTORY_SIZE = 5;
+        
+        // Enhancement #7: Rate limiting
+        let messageTimestamps = [];
+        const RATE_LIMIT_WINDOW = 60000; // 1 minute
+        const MAX_MESSAGES_PER_WINDOW = 10;
+        
+        // Enhancement #8: Offline message queue with deduplication
+        let offlineMessageQueue = [];
+        let messageIdCounter = 0;
+        let isOnline = navigator.onLine;
+        
         // UI strings for chat modes
         const CHAT_MODE_STRINGS = {
             consultation: {
@@ -595,11 +647,50 @@
                 toConsultation: '#4CAF50'
             }
         };
+        
+        // Enhancement #8: Online/Offline event listeners
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        
+        function handleOnline() {
+            isOnline = true;
+            console.log('Connection restored');
+            // Process queued messages
+            processOfflineQueue();
+        }
+        
+        function handleOffline() {
+            isOnline = false;
+            console.log('Connection lost');
+            addMessageToChat('⚠️ Няма връзка с интернет. Съобщенията ще бъдат изпратени при възстановяване на връзката.', 'assistant');
+        }
+        
+        async function processOfflineQueue() {
+            if (offlineMessageQueue.length === 0) return;
+            
+            addMessageToChat('✓ Връзката е възстановена. Изпращам запазени съобщения...', 'assistant');
+            
+            const queue = [...offlineMessageQueue];
+            offlineMessageQueue = [];
+            
+            for (const messageObj of queue) {
+                // Start with retry count 0 for queued messages (fresh attempt)
+                await sendMessageInternal(messageObj.text, 0, messageObj.id);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
+            }
+            
+            // Clear localStorage after successful processing
+            saveOfflineQueue();
+        }
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
             loadDietData();
+            // Enhancement #8: Load offline queue
+            loadOfflineQueue();
+            // Enhancement #6: Load plan history
+            loadPlanHistory();
         });
 
         // --- Theme Management ---
@@ -938,12 +1029,98 @@
             const message = input.value.trim();
             
             if (!message) return;
-
-            // Clear input
+            
+            // Enhancement #2: Debouncing - Clear any pending send
+            if (sendMessageTimeout) {
+                clearTimeout(sendMessageTimeout);
+            }
+            
+            // Enhancement #7: Rate limiting check
+            if (!checkRateLimit()) {
+                addMessageToChat('⚠️ Твърде много съобщения. Моля, изчакайте малко.', 'assistant');
+                return;
+            }
+            
+            // Clear input immediately for better UX
             input.value = '';
 
-            // Add user message to chat
-            addMessageToChat(message, 'user');
+            // Enhancement #2: Debounce - Wait before actually sending
+            sendMessageTimeout = setTimeout(() => {
+                sendMessageWithRetry(message);
+            }, DEBOUNCE_DELAY);
+        }
+        
+        // Enhancement #7: Rate limiting check
+        function checkRateLimit() {
+            const now = Date.now();
+            // Remove timestamps older than the window
+            messageTimestamps = messageTimestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW);
+            
+            if (messageTimestamps.length >= MAX_MESSAGES_PER_WINDOW) {
+                return false;
+            }
+            
+            messageTimestamps.push(now);
+            return true;
+        }
+        
+        // Enhancement #1: Retry wrapper
+        async function sendMessageWithRetry(message, retryCount = 0) {
+            // Enhancement #8: Generate unique message ID for deduplication
+            const messageId = `msg_${++messageIdCounter}_${Date.now()}`;
+            
+            // Enhancement #8: Offline handling
+            if (!isOnline) {
+                // Check if message already in queue (by text)
+                const alreadyQueued = offlineMessageQueue.some(m => m.text === message);
+                if (!alreadyQueued) {
+                    offlineMessageQueue.push({ id: messageId, text: message, timestamp: Date.now() });
+                    addMessageToChat(message, 'user');
+                    addMessageToChat('📤 Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
+                    // Save to localStorage for persistence
+                    saveOfflineQueue();
+                }
+                return;
+            }
+            
+            try {
+                await sendMessageInternal(message, retryCount, messageId);
+            } catch (error) {
+                console.error('Message send failed:', error);
+                
+                // Enhancement #1: Retry logic
+                if (retryCount < MAX_RETRIES) {
+                    const delay = RETRY_DELAYS[retryCount];
+                    addMessageToChat(`⚠️ Грешка при изпращане. Опитвам отново след ${delay/1000} секунди... (опит ${retryCount + 1}/${MAX_RETRIES})`, 'assistant');
+                    
+                    setTimeout(() => {
+                        sendMessageWithRetry(message, retryCount + 1);
+                    }, delay);
+                } else {
+                    // All retries exhausted - add to offline queue if not already there
+                    const alreadyQueued = offlineMessageQueue.some(m => m.id === messageId);
+                    if (!alreadyQueued) {
+                        offlineMessageQueue.push({ id: messageId, text: message, timestamp: Date.now() });
+                        saveOfflineQueue();
+                    }
+                    addMessageToChat('❌ Не успях да изпратя съобщението след няколко опита. Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
+                }
+            }
+        }
+        
+        // Core send message logic (Enhancement #1: Extracted for retry)
+        async function sendMessageInternal(message, retryCount, messageId) {
+            // Prevent multiple simultaneous sends
+            if (isSending) {
+                return;
+            }
+            
+            isSending = true;
+            
+            // Add user message to chat only on first attempt
+            if (retryCount === 0) {
+                addMessageToChat(message, 'user');
+            }
 
             // Show typing indicator
             const typingId = addTypingIndicator();
@@ -951,7 +1128,7 @@
             try {
                 // Add timeout for slow connections (60 seconds to allow AI more time)
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000);
+                const timeoutId = setTimeout(() => controller.abort('Request timeout after 60 seconds'), 60000);
 
                 // Send to backend
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/chat', {
@@ -970,16 +1147,30 @@
 
                 clearTimeout(timeoutId);
 
+                if (!response.ok) {
+                    const errorText = await response.text().catch(() => 'Unable to read error');
+                    throw new Error(`HTTP ${response.status} ${response.statusText}: ${errorText}`);
+                }
+
                 const result = await response.json();
 
                 // Remove typing indicator
                 removeTypingIndicator(typingId);
 
                 if (result.success) {
+                    // Remove from offline queue if it was queued (successful send)
+                    if (messageId) {
+                        offlineMessageQueue = offlineMessageQueue.filter(m => m.id !== messageId);
+                        saveOfflineQueue();
+                    }
+                    
                     addMessageToChat(result.response, 'assistant');
                     
                     // If plan was updated, reload the plan from server
                     if (result.planUpdated) {
+                        // Enhancement #6: Save current plan to history before updating
+                        savePlanToHistory();
+                        
                         setTimeout(async () => {
                             try {
                                 const planResponse = await fetch(`https://aidiet.radilov-k.workers.dev/api/get-plan?userId=${userId}`);
@@ -987,8 +1178,14 @@
                                 if (planData.success) {
                                     dietPlan = planData.plan;
                                     localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
+                                    
+                                    // Enhancement #5: Visual indicator - Highlight changed meals
+                                    highlightChangedMeals(currentDay);
                                     renderDay(currentDay);
+                                    
+                                    // Enhancement #5: Show undo button
                                     addMessageToChat('✓ Планът е актуализиран успешно!', 'assistant');
+                                    showUndoButton();
                                 }
                             } catch (error) {
                                 console.error('Error reloading plan:', error);
@@ -997,18 +1194,170 @@
                     }
                 } else {
                     addMessageToChat('Съжалявам, имаше проблем. Моля, опитайте отново.', 'assistant');
+                    throw new Error('Backend returned error');
                 }
             } catch (error) {
                 console.error('Chat error:', error);
                 removeTypingIndicator(typingId);
                 
-                let errorMsg = 'Грешка при свързване със сървъра. Моля, проверете интернет връзката си.';
-                if (error.name === 'AbortError') {
-                    errorMsg = 'Отговорът отне твърде дълго време. Моля, опитайте отново.';
-                }
-                
-                addMessageToChat(errorMsg, 'assistant');
+                // Re-throw to let retry logic handle it
+                throw error;
+            } finally {
+                isSending = false;
             }
+        }
+        
+        // Enhancement #8: Save offline queue to localStorage
+        function saveOfflineQueue() {
+            try {
+                localStorage.setItem('offlineMessageQueue', JSON.stringify(offlineMessageQueue));
+            } catch (e) {
+                console.error('Failed to save offline queue:', e);
+            }
+        }
+        
+        // Enhancement #8: Load offline queue from localStorage
+        function loadOfflineQueue() {
+            try {
+                const saved = localStorage.getItem('offlineMessageQueue');
+                if (saved) {
+                    offlineMessageQueue = JSON.parse(saved);
+                    if (offlineMessageQueue.length > 0 && isOnline) {
+                        processOfflineQueue();
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load offline queue:', e);
+            }
+        }
+        
+        // Enhancement #6: Load plan history from localStorage
+        function loadPlanHistory() {
+            try {
+                const saved = localStorage.getItem('planHistory');
+                if (saved) {
+                    planHistory = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Failed to load plan history:', e);
+                planHistory = [];
+            }
+        }
+        
+        // Enhancement #6: Save plan to history
+        function savePlanToHistory() {
+            if (!dietPlan) return;
+            
+            const snapshot = {
+                plan: JSON.parse(JSON.stringify(dietPlan)),
+                timestamp: Date.now()
+            };
+            
+            planHistory.push(snapshot);
+            
+            // Keep only last MAX_HISTORY_SIZE items
+            if (planHistory.length > MAX_HISTORY_SIZE) {
+                planHistory.shift();
+            }
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('planHistory', JSON.stringify(planHistory));
+            } catch (e) {
+                console.error('Failed to save plan history:', e);
+            }
+        }
+        
+        // Enhancement #6: Undo last change
+        function undoLastChange() {
+            if (planHistory.length === 0) {
+                addMessageToChat('⚠️ Няма налични промени за връщане.', 'assistant');
+                return;
+            }
+            
+            const lastSnapshot = planHistory.pop();
+            dietPlan = lastSnapshot.plan;
+            
+            // Save to localStorage and backend
+            localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
+            
+            // Update UI
+            renderDay(currentDay);
+            addMessageToChat('↩️ Промяната е отменена успешно!', 'assistant');
+            
+            // Hide undo button if no more history
+            if (planHistory.length === 0) {
+                hideUndoButton();
+            }
+            
+            // Update history in localStorage
+            try {
+                localStorage.setItem('planHistory', JSON.stringify(planHistory));
+            } catch (e) {
+                console.error('Failed to save plan history:', e);
+            }
+        }
+        
+        // Enhancement #5 & #6: Show undo button
+        function showUndoButton() {
+            // Check if undo button already exists
+            let undoBtn = document.getElementById('undoButton');
+            if (!undoBtn) {
+                const chatMessages = document.getElementById('chatMessages');
+                if (!chatMessages) return;
+                
+                undoBtn = document.createElement('div');
+                undoBtn.id = 'undoButton';
+                undoBtn.style.cssText = `
+                    display: flex;
+                    justify-content: center;
+                    margin: 10px 0;
+                    animation: fadeIn 0.3s ease-in;
+                `;
+                undoBtn.innerHTML = `
+                    <button onclick="undoLastChange()" style="
+                        background: #FF9800;
+                        color: white;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 20px;
+                        cursor: pointer;
+                        font-size: 0.85rem;
+                        font-weight: 500;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <i class="fas fa-undo"></i> Отмени промяната
+                    </button>
+                `;
+                chatMessages.appendChild(undoBtn);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+        
+        // Enhancement #6: Hide undo button
+        function hideUndoButton() {
+            const undoBtn = document.getElementById('undoButton');
+            if (undoBtn) {
+                undoBtn.remove();
+            }
+        }
+        
+        // Enhancement #5: Highlight changed meals
+        function highlightChangedMeals(dayNum) {
+            // Add a temporary highlight animation to meal cards
+            setTimeout(() => {
+                const mealCards = document.querySelectorAll('.meal-card');
+                mealCards.forEach(card => {
+                    card.style.animation = 'highlightPulse 1.5s ease-in-out';
+                    setTimeout(() => {
+                        card.style.animation = '';
+                    }, 1500);
+                });
+            }, 100);
         }
 
         function addMessageToChat(message, role) {
