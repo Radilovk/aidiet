@@ -473,13 +473,10 @@
     <nav>
         <a href="#" class="logo"><i class="fas fa-apple-alt"></i> NutriPlan</a>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема">
-                <i class="fas fa-moon" id="themeIcon"></i>
-            </button>
             <a href="plan.html" class="nav-btn" id="myPlanBtn" style="display: none; background-color: #27ae60;">
                 <i class="fas fa-user-check"></i> Моят План
             </a>
-            <a href="questionnaire.html" class="nav-btn">Започни Сега</a>
+            <a href="questionnaire.html" class="nav-btn" id="startNowBtn" style="display: none;">Започни Сега</a>
         </div>
     </nav>
 
@@ -623,17 +620,31 @@
             }
         }
 
-        // --- Check for existing plan and show "Моят План" button ---
+        // --- Check for existing plan and show appropriate button ---
         window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
             
             const dietPlan = localStorage.getItem('dietPlan');
             const userId = localStorage.getItem('userId');
             
+            const myPlanBtn = document.getElementById('myPlanBtn');
+            const startNowBtn = document.getElementById('startNowBtn');
+            
             if (dietPlan && userId) {
-                const myPlanBtn = document.getElementById('myPlanBtn');
+                // User has a plan - show "Моят План" button
                 if (myPlanBtn) {
                     myPlanBtn.style.display = 'inline-block';
+                }
+                if (startNowBtn) {
+                    startNowBtn.style.display = 'none';
+                }
+            } else {
+                // User doesn't have a plan - show "Започни Сега" button
+                if (myPlanBtn) {
+                    myPlanBtn.style.display = 'none';
+                }
+                if (startNowBtn) {
+                    startNowBtn.style.display = 'inline-block';
                 }
             }
         });
