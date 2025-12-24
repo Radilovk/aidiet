@@ -618,8 +618,9 @@
         const RATE_LIMIT_WINDOW = 60000; // 1 minute
         const MAX_MESSAGES_PER_WINDOW = 10;
         
-        // Enhancement #8: Offline message queue
+        // Enhancement #8: Offline message queue with deduplication
         let offlineMessageQueue = [];
+        let messageIdCounter = 0;
         let isOnline = navigator.onLine;
         
         // UI strings for chat modes
@@ -672,10 +673,14 @@
             const queue = [...offlineMessageQueue];
             offlineMessageQueue = [];
             
-            for (const message of queue) {
-                await sendMessageInternal(message, 0);
+            for (const messageObj of queue) {
+                // Start with retry count 0 for queued messages (fresh attempt)
+                await sendMessageInternal(messageObj.text, 0, messageObj.id);
                 await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
             }
+            
+            // Clear localStorage after successful processing
+            saveOfflineQueue();
         }
 
         // --- Initialization ---
@@ -1061,18 +1066,25 @@
         
         // Enhancement #1: Retry wrapper
         async function sendMessageWithRetry(message, retryCount = 0) {
+            // Enhancement #8: Generate unique message ID for deduplication
+            const messageId = `msg_${++messageIdCounter}_${Date.now()}`;
+            
             // Enhancement #8: Offline handling
             if (!isOnline) {
-                offlineMessageQueue.push(message);
-                addMessageToChat(message, 'user');
-                addMessageToChat('📤 Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
-                // Save to localStorage for persistence
-                saveOfflineQueue();
+                // Check if message already in queue (by text)
+                const alreadyQueued = offlineMessageQueue.some(m => m.text === message);
+                if (!alreadyQueued) {
+                    offlineMessageQueue.push({ id: messageId, text: message, timestamp: Date.now() });
+                    addMessageToChat(message, 'user');
+                    addMessageToChat('📤 Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
+                    // Save to localStorage for persistence
+                    saveOfflineQueue();
+                }
                 return;
             }
             
             try {
-                await sendMessageInternal(message, retryCount);
+                await sendMessageInternal(message, retryCount, messageId);
             } catch (error) {
                 console.error('Message send failed:', error);
                 
@@ -1085,17 +1097,19 @@
                         sendMessageWithRetry(message, retryCount + 1);
                     }, delay);
                 } else {
-                    // All retries exhausted
-                    addMessageToChat('❌ Не успях да изпратя съобщението след няколко опита. Моля, проверете връзката си и опитайте отново.', 'assistant');
-                    // Enhancement #8: Save to offline queue
-                    offlineMessageQueue.push(message);
-                    saveOfflineQueue();
+                    // All retries exhausted - add to offline queue if not already there
+                    const alreadyQueued = offlineMessageQueue.some(m => m.id === messageId);
+                    if (!alreadyQueued) {
+                        offlineMessageQueue.push({ id: messageId, text: message, timestamp: Date.now() });
+                        saveOfflineQueue();
+                    }
+                    addMessageToChat('❌ Не успях да изпратя съобщението след няколко опита. Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
                 }
             }
         }
         
         // Core send message logic (Enhancement #1: Extracted for retry)
-        async function sendMessageInternal(message, retryCount) {
+        async function sendMessageInternal(message, retryCount, messageId) {
             // Prevent multiple simultaneous sends
             if (isSending) {
                 return;
@@ -1134,7 +1148,8 @@
                 clearTimeout(timeoutId);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text().catch(() => 'Unable to read error');
+                    throw new Error(`HTTP ${response.status} ${response.statusText}: ${errorText}`);
                 }
 
                 const result = await response.json();
@@ -1143,6 +1158,12 @@
                 removeTypingIndicator(typingId);
 
                 if (result.success) {
+                    // Remove from offline queue if it was queued (successful send)
+                    if (messageId) {
+                        offlineMessageQueue = offlineMessageQueue.filter(m => m.id !== messageId);
+                        saveOfflineQueue();
+                    }
+                    
                     addMessageToChat(result.response, 'assistant');
                     
                     // If plan was updated, reload the plan from server

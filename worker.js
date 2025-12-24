@@ -308,15 +308,14 @@ async function handleChat(request, env) {
                   // Enhancement #4: Check if food exists in plan (case-insensitive)
                   const foodExistsInPlan = checkFoodExistsInPlan(userPlan, foodName);
                   
+                  // Add to excluded foods regardless (as preference for future plan generations)
+                  excludedFoods.add(foodName);
+                  validatedModifications.push(mod);
+                  
                   if (foodExistsInPlan) {
-                    excludedFoods.add(foodName);
-                    validatedModifications.push(mod);
-                    console.log('Adding food exclusion (validated):', foodName);
+                    console.log('Adding food exclusion (found in current plan):', foodName);
                   } else {
-                    console.log('Food not found in plan, skipping exclusion:', foodName);
-                    // Food doesn't exist, but we'll still add it to dietDislike as a preference
-                    excludedFoods.add(foodName);
-                    validatedModifications.push(mod);
+                    console.log('Adding food exclusion (preference for future plans):', foodName);
                   }
                 }
               } else {
@@ -1415,7 +1414,10 @@ async function getConversationHistory(env, conversationKey) {
   return cached ? JSON.parse(cached) : [];
 }
 
-// Enhancement #3: Estimate tokens for a message (rough estimation: ~4 chars per token)
+// Enhancement #3: Estimate tokens for a message
+// Note: This is a rough approximation (~4 chars per token for mixed content).
+// Actual GPT tokenization varies by language and content. This is sufficient
+// for conversation history management where approximate limits are acceptable.
 function estimateTokens(text) {
   return Math.ceil(text.length / 4);
 }
