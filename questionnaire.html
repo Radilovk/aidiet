@@ -701,7 +701,7 @@
                         grid.appendChild(detailContainer);
 
                         // Check if we need to show it initially (if user went back)
-                        if(answers[step.id] && answers[step.id].includes(opt)) {
+                        if(answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes(opt)) {
                             detailContainer.classList.add('active');
                             if(answers[`${step.id}_${opt}`]) detailInput.value = answers[`${step.id}_${opt}`];
                         }
@@ -727,7 +727,7 @@
                     card.appendChild(otherContainer);
 
                     // Check if we need to show it initially (if user went back)
-                    if(answers[step.id] && (Array.isArray(answers[step.id]) && answers[step.id].includes('Друго'))) {
+                    if(answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes('Друго')) {
                         otherContainer.classList.add('active');
                         if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
                     }
