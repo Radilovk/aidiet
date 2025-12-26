@@ -86,13 +86,14 @@
             flex: 1;
             position: relative;
             padding: 20px;
-            padding-bottom: 100px; /* Extra padding for footer */
+            padding-bottom: 120px; /* Increased padding for footer to prevent content hiding */
             display: flex;
             align-items: flex-start; /* Changed from center to allow scrolling from top */
             justify-content: center;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            scroll-padding-bottom: 120px; /* Ensure scroll area accounts for fixed footer */
         }
 
         .question-card {
@@ -147,6 +148,7 @@
             outline: none;
             -webkit-appearance: none;
             -webkit-tap-highlight-color: transparent;
+            margin-bottom: 20px; /* Add spacing below text inputs */
         }
         .modern-input:focus {
             border-color: var(--primary-red);
@@ -521,10 +523,10 @@
             { "id": "drinksSweet", "text": "Сокове, газирани напитки, фрешове:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
             { "id": "drinksAlcohol", "text": "Напитки с алкохолно съдържание:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
             { "id": "secEating", "type": "section", "sectionTitle": "Хранене и поведение" },
-            { "id": "weightChange", "text": "Имали ли сте рязко покачване на тегло?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и успяхте ли да ги свалите?", "type": "textarea", "options": [] }] } },
+            { "id": "weightChange", "text": "Имали ли сте рязко покачване на теглото или отслабване в последната една година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и как се справихте с промяната?", "type": "textarea", "options": [] }] } },
             { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
             { "id": "overeatingFrequency", "text": "Колко често ядете повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
-            { "id": "foodCravings", "text": "Често изпитвате нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / снакс", "Друго"], "hasOtherInput": true },
+            { "id": "foodCravings", "text": "Често изпитвате нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / снакс", "Друго", "Не изпитвам такава"], "hasOtherInput": true, "negativeOption": "Не изпитвам такава" },
             { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за храна?", "type": "checkbox", "options": ["Напрежение", "Скука", "Тъга", "Социални събития", "Друго", "Нито едно"], "hasOtherInput": true, "negativeOption": "Нито едно" },
             { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна", "Нито една"], "negativeOption": "Нито една" },
             { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true, "negativeOption": "Не" },
@@ -681,11 +683,34 @@
                     label.appendChild(checkmark);
                     label.appendChild(document.createTextNode(opt));
                     grid.appendChild(label);
+                    
+                    // Insert detail field immediately after specific options (like Allergies, Autoimmune)
+                    if(step.specialDetailOptions && step.specialDetailOptions.includes(opt)) {
+                        const detailContainer = document.createElement('div');
+                        detailContainer.className = 'other-input-container';
+                        detailContainer.id = `detail_${step.id}_${opt}`;
+                        
+                        const detailInput = document.createElement('input');
+                        detailInput.type = 'text';
+                        detailInput.className = 'modern-input';
+                        detailInput.placeholder = `Моля уточнете ${opt.toLowerCase()}...`;
+                        detailInput.style.marginTop = '10px';
+                        detailInput.oninput = (e) => saveOther(`${step.id}_${opt}`, e.target.value);
+
+                        detailContainer.appendChild(detailInput);
+                        grid.appendChild(detailContainer);
+
+                        // Check if we need to show it initially (if user went back)
+                        if(answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes(opt)) {
+                            detailContainer.classList.add('active');
+                            if(answers[`${step.id}_${opt}`]) detailInput.value = answers[`${step.id}_${opt}`];
+                        }
+                    }
                 });
                 
                 card.appendChild(grid);
 
-                // Handle "Other" field if needed
+                // Handle "Other" field if needed (at the end)
                 if(step.hasOtherInput) {
                     const otherContainer = document.createElement('div');
                     otherContainer.className = 'other-input-container';
@@ -696,41 +721,16 @@
                     otherInput.className = 'modern-input';
                     otherInput.placeholder = 'Моля уточнете...';
                     otherInput.style.marginTop = '10px';
-                    otherInput.oninput = (e) => saveOther(step.id, e.target.value);
+                    otherInput.oninput = (e) => saveOther(`${step.id}_other`, e.target.value);
 
                     otherContainer.appendChild(otherInput);
                     card.appendChild(otherContainer);
 
                     // Check if we need to show it initially (if user went back)
-                    if(answers[step.id] && (Array.isArray(answers[step.id]) && answers[step.id].includes('Друго'))) {
+                    if(answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes('Друго')) {
                         otherContainer.classList.add('active');
                         if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
                     }
-                }
-                
-                // Handle special detail fields for specific options (like Allergies, Autoimmune)
-                if(step.specialDetailOptions) {
-                    step.specialDetailOptions.forEach(specialOpt => {
-                        const detailContainer = document.createElement('div');
-                        detailContainer.className = 'other-input-container';
-                        detailContainer.id = `detail_${step.id}_${specialOpt}`;
-                        
-                        const detailInput = document.createElement('input');
-                        detailInput.type = 'text';
-                        detailInput.className = 'modern-input';
-                        detailInput.placeholder = `Моля уточнете ${specialOpt.toLowerCase()}...`;
-                        detailInput.style.marginTop = '10px';
-                        detailInput.oninput = (e) => saveOther(`${step.id}_${specialOpt}`, e.target.value);
-
-                        detailContainer.appendChild(detailInput);
-                        card.appendChild(detailContainer);
-
-                        // Check if we need to show it initially (if user went back)
-                        if(answers[step.id] && (Array.isArray(answers[step.id]) && answers[step.id].includes(specialOpt))) {
-                            detailContainer.classList.add('active');
-                            if(answers[`${step.id}_${specialOpt}`]) detailInput.value = answers[`${step.id}_${specialOpt}`];
-                        }
-                    });
                 }
             }
         }
@@ -814,8 +814,8 @@
             validateInput();
         }
 
-        function saveOther(parentId, value) {
-            answers[`${parentId}_other`] = value;
+        function saveOther(key, value) {
+            answers[key] = value;
             // Persist to localStorage
             localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
         }

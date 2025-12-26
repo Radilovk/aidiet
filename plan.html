@@ -1292,7 +1292,7 @@
         }
 
         // --- Helper function to format text with bullet points ---
-        function formatContentWithBulletPoints(text) {
+        function formatContentWithBulletPoints(text, icon = 'fa-check-circle') {
             if (!text) return '';
             
             // Split by newlines or double newlines
@@ -1306,14 +1306,14 @@
                     if (trimmedLine.match(/^[-•*]\s*/)) {
                         // Remove the bullet indicator and add as list item
                         const content = trimmedLine.replace(/^[-•*]\s*/, '');
-                        formattedHTML += `<li><i class="fas fa-check-circle" style="color: var(--primary-accent); margin-right: 8px;"></i>${content}</li>`;
+                        formattedHTML += `<li><i class="fas ${icon}" style="color: var(--primary-accent); margin-right: 8px;"></i>${content}</li>`;
                     } else if (trimmedLine.match(/^\d+\.\s*/)) {
                         // Numbered list
                         const content = trimmedLine.replace(/^\d+\.\s*/, '');
-                        formattedHTML += `<li><i class="fas fa-check-circle" style="color: var(--primary-accent); margin-right: 8px;"></i>${content}</li>`;
+                        formattedHTML += `<li><i class="fas ${icon}" style="color: var(--primary-accent); margin-right: 8px;"></i>${content}</li>`;
                     } else {
                         // Regular paragraph - add as list item with icon
-                        formattedHTML += `<li><i class="fas fa-lightbulb" style="color: var(--secondary-accent); margin-right: 8px;"></i>${trimmedLine}</li>`;
+                        formattedHTML += `<li><i class="fas ${icon}" style="color: var(--secondary-accent); margin-right: 8px;"></i>${trimmedLine}</li>`;
                     }
                 }
             });
@@ -1360,19 +1360,19 @@
                 // Check if psychology is a string or array
                 if (typeof dietPlan.psychology === 'string') {
                     // If it's a string, format it with bullet points
-                    psychologyHTML = formatContentWithBulletPoints(dietPlan.psychology);
+                    psychologyHTML = formatContentWithBulletPoints(dietPlan.psychology, 'fa-brain');
                 } else if (Array.isArray(dietPlan.psychology) && dietPlan.psychology.length > 0) {
                     // If it's an array, display each tip
                     psychologyHTML = '<ul class="info-list">';
                     dietPlan.psychology.forEach((tip, index) => {
                         if (typeof tip === 'string') {
-                            psychologyHTML += `<li><i class="fas fa-lightbulb" style="color: var(--primary-accent); margin-right: 8px;"></i>${tip}</li>`;
+                            psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${tip}</li>`;
                         } else if (typeof tip === 'object') {
                             // Structured tip object
                             const title = tip.title || `Съвет ${index + 1}`;
                             let details = title;
                             if (tip.description) details += ` - ${tip.description}`;
-                            psychologyHTML += `<li><i class="fas fa-lightbulb" style="color: var(--primary-accent); margin-right: 8px;"></i>${details}</li>`;
+                            psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${details}</li>`;
                         }
                     });
                     psychologyHTML += '</ul>';
@@ -1397,13 +1397,13 @@
                 // Check if supplements is a string or array
                 if (typeof dietPlan.supplements === 'string') {
                     // If it's a string, format it with bullet points
-                    supplementsHTML = formatContentWithBulletPoints(dietPlan.supplements);
+                    supplementsHTML = formatContentWithBulletPoints(dietPlan.supplements, 'fa-pills');
                 } else if (Array.isArray(dietPlan.supplements) && dietPlan.supplements.length > 0) {
                     // If it's an array, display each supplement
                     supplementsHTML = '<ul class="info-list">';
                     dietPlan.supplements.forEach((supplement, index) => {
                         if (typeof supplement === 'string') {
-                            supplementsHTML += `<li><i class="fas fa-capsules" style="color: var(--primary-accent); margin-right: 8px;"></i>${supplement}</li>`;
+                            supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${supplement}</li>`;
                         } else if (typeof supplement === 'object') {
                             // Structured supplement object
                             const name = supplement.name || `Добавка ${index + 1}`;
@@ -1411,7 +1411,7 @@
                             if (supplement.dosage) details += ` - Дозировка: ${supplement.dosage}`;
                             if (supplement.intake) details += ` - Прием: ${supplement.intake}`;
                             if (supplement.description) details += ` - ${supplement.description}`;
-                            supplementsHTML += `<li><i class="fas fa-capsules" style="color: var(--primary-accent); margin-right: 8px;"></i>${details}</li>`;
+                            supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${details}</li>`;
                         }
                     });
                     supplementsHTML += '</ul>';
