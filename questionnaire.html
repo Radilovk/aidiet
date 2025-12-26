@@ -523,7 +523,7 @@
             { "id": "drinksSweet", "text": "Сокове, газирани напитки, фрешове:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
             { "id": "drinksAlcohol", "text": "Напитки с алкохолно съдържание:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
             { "id": "secEating", "type": "section", "sectionTitle": "Хранене и поведение" },
-            { "id": "weightChange", "text": "Имали ли сте рязко покачване на теглото или отслабване в последната една година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и успяхте ли да ги свалите?", "type": "textarea", "options": [] }] } },
+            { "id": "weightChange", "text": "Имали ли сте рязко покачване на теглото или отслабване в последната една година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и как се справихте с промяната?", "type": "textarea", "options": [] }] } },
             { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
             { "id": "overeatingFrequency", "text": "Колко често ядете повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
             { "id": "foodCravings", "text": "Често изпитвате нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / снакс", "Друго", "Не изпитвам такава"], "hasOtherInput": true, "negativeOption": "Не изпитвам такава" },
@@ -701,7 +701,7 @@
                         grid.appendChild(detailContainer);
 
                         // Check if we need to show it initially (if user went back)
-                        if(answers[step.id] && (Array.isArray(answers[step.id]) && answers[step.id].includes(opt))) {
+                        if(answers[step.id] && answers[step.id].includes(opt)) {
                             detailContainer.classList.add('active');
                             if(answers[`${step.id}_${opt}`]) detailInput.value = answers[`${step.id}_${opt}`];
                         }
