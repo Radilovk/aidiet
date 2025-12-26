@@ -721,7 +721,7 @@
                     otherInput.className = 'modern-input';
                     otherInput.placeholder = 'Моля уточнете...';
                     otherInput.style.marginTop = '10px';
-                    otherInput.oninput = (e) => saveOther(step.id, e.target.value);
+                    otherInput.oninput = (e) => saveOther(`${step.id}_other`, e.target.value);
 
                     otherContainer.appendChild(otherInput);
                     card.appendChild(otherContainer);
@@ -814,8 +814,8 @@
             validateInput();
         }
 
-        function saveOther(parentId, value) {
-            answers[`${parentId}_other`] = value;
+        function saveOther(key, value) {
+            answers[key] = value;
             // Persist to localStorage
             localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
         }
