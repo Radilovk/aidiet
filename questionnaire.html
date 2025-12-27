@@ -26,6 +26,7 @@
             --footer-padding-v: 12px;
             --footer-padding-h: 20px;
             --footer-input-gap: 8px;
+            --footer-button-min-height: 44px;
             --wrapper-padding-default: 100px;
         }
 
@@ -104,7 +105,7 @@
         
         /* Compact layout for input-only questions - less padding for footer to be closer */
         .question-wrapper.compact {
-            padding-bottom: calc(var(--footer-padding-v) * 2 + 44px + var(--footer-input-gap)); /* footer height + gap */
+            padding-bottom: calc(var(--footer-padding-v) * 2 + var(--footer-button-min-height) + var(--footer-input-gap)); /* footer height + gap */
         }
 
         .question-card {
@@ -601,14 +602,9 @@
             const card = document.createElement('div');
             card.className = 'question-card';
             
-            // Determine if this is an input-only question (text, number, email, textarea)
+            // Determine if this is an input-only question and toggle compact layout
             const isInputOnly = INPUT_ONLY_TYPES.includes(step.type);
-            
-            if (isInputOnly) {
-                container.classList.add('compact');
-            } else {
-                container.classList.remove('compact');
-            }
+            container.classList.toggle('compact', isInputOnly);
 
             if (step.type === 'section') {
                 renderSectionTitle(card, step);
