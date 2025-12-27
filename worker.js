@@ -159,7 +159,9 @@ async function handleGeneratePlan(request, env) {
         });
       }
     } else {
-      console.log('handleGeneratePlan: Force regenerate requested for userId:', userId);
+      console.log('handleGeneratePlan: Force regenerate requested - clearing all cached data for userId:', userId);
+      // Clear ALL cached data (plan, user data, conversation history) before regenerating
+      await clearUserCache(env, userId);
     }
 
     console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
@@ -337,6 +339,10 @@ async function handleChat(request, env) {
               dietDislike: Array.from(excludedFoods).join(', ')
             };
             
+            // Clear conversation history before regenerating plan to avoid cross-contamination
+            console.log('Clearing conversation history before plan regeneration');
+            await env.page_content.delete(conversationKey);
+            
             // Regenerate the plan using multi-step approach with new criteria
             const newPlan = await generatePlanMultiStep(env, modifiedUserData);
             
@@ -499,7 +505,7 @@ async function generatePlanMultiStep(env, data) {
  * Step 1: Generate prompt for user profile analysis
  */
 function generateAnalysisPrompt(data) {
-  return `Ти си опитен диетолог и ендокринолог. Анализирай здравословния профил на този клиент:
+  return `Ти си опитен диетолог и ендокринолог с ДЪЛБОКИ познания за КОРЕЛАЦИИ между различни здравословни параметри. Направи ЗАДЪЛБОЧЕН ХОЛИСТИЧЕН АНАЛИЗ на този клиент:
 
 ОСНОВНИ ДАННИ:
 - Име: ${data.name}
@@ -542,20 +548,29 @@ ${data.medicalConditions_other ? `- Други медицински състоя
 - Рязко покачване на тегло: ${data.weightChange === 'Да' ? data.weightChangeDetails : 'Не'}
 - Диети в миналото: ${data.dietHistory === 'Да' ? `Тип: ${data.dietType}, Резултат: ${data.dietResult}` : 'Не'}
 
-Върни JSON с анализ на:
+ИЗИСКВАНИЯ ЗА АНАЛИЗ:
+1. Анализирай КОРЕЛАЦИИТЕ между сън, стрес и хранителни желания
+2. Определи как медицинските състояния влияят на хранителните нужди
+3. Разбери ПСИХОЛОГИЧЕСКИЯ профил - връзката между емоции и хранене
+4. Идентифицирай МЕТАБОЛИТНИ особености базирани на всички параметри
+5. Прецени как хронотипът влияе на храносмилането и енергията
+6. Определи СПЕЦИФИЧНИТЕ нужди от макронутриенти въз основа на целите, активност и медицински състояния
+7. Създай ИНДИВИДУАЛИЗИРАН подход, който отчита ВСИЧКИ фактори заедно
+
+Върни JSON с ДЕТАЙЛЕН анализ:
 {
-  "bmr": "изчислена базова метаболитна скорост",
-  "tdee": "общ дневен разход на енергия",
-  "recommendedCalories": "препоръчителен калориен прием",
+  "bmr": "изчислена базова метаболитна скорост с обяснение",
+  "tdee": "общ дневен разход на енергия с детайли",
+  "recommendedCalories": "препоръчителен калориен прием БАЗИРАН НА ЦЯЛОСТНИЯ АНАЛИЗ",
   "macroRatios": {
-    "protein": "препоръчителен процент протеини",
-    "carbs": "препоръчителен процент въглехидрати",
-    "fats": "препоръчителен процент мазнини"
+    "protein": "препоръчителен процент протеини С ОБОСНОВКА",
+    "carbs": "препоръчителен процент въглехидрати С ОБОСНОВКА",
+    "fats": "препоръчителен процент мазнини С ОБОСНОВКА"
   },
-  "metabolicProfile": "описание на метаболитния профил",
-  "healthRisks": ["риск 1", "риск 2"],
-  "nutritionalNeeds": ["нужда 1", "нужда 2"],
-  "psychologicalProfile": "анализ на психологическите фактори и взаимоотношението с храната"
+  "metabolicProfile": "ЗАДЪЛБОЧЕНО описание на метаболитния профил и корелации",
+  "healthRisks": ["специфичен риск 1 с обяснение", "специфичен риск 2 с обяснение"],
+  "nutritionalNeeds": ["специфична нужда 1 базирана на профила", "специфична нужда 2 базирана на профила"],
+  "psychologicalProfile": "ДЕТАЙЛЕН анализ на психологическите фактори, емоционалното хранене и корелации със стрес, сън и поведение"
 }`;
 }
 
@@ -576,13 +591,18 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 - Не обича/непоносимост: ${data.dietDislike || 'Няма'}
 - Любими храни: ${data.dietLove || 'Няма'}
 
-ВАЖНО: Вземи предвид:
-1. Медицинските състояния и лекарства
-2. Хранителните непоносимости и алергии
-3. Личните предпочитания и любими храни
-4. Хронотипа и дневния ритъм
-5. Нивото на стрес и емоционалното хранене
+ВАЖНО: Вземи предвид ВСИЧКИ параметри холистично и създай КОРЕЛАЦИИ между тях:
+1. Медицинските състояния и лекарства - как влияят на хранителните нужди
+2. Хранителните непоносимости и алергии - строго ограничение
+3. Личните предпочитания и любими храни - за дългосрочна устойчивост
+4. Хронотипа и дневния ритъм - оптимално време на хранене
+5. Нивото на стрес и емоционалното хранене - психологическа подкрепа
 6. Културния контекст (български традиции и налични продукти)
+7. КОРЕЛАЦИИ между сън, стрес и хранителни желания
+8. ВРЪЗКАТА между физическа активност и калорийни нужди
+9. ВЗАИМОВРЪЗКАТА между медицински състояния и хранителни потребности
+
+Анализирай ЗАДЪЛБОЧЕНО как всеки параметър влияе и взаимодейства с другите.
 
 Върни JSON със стратегия:
 {
@@ -591,14 +611,14 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
     "breakfast": "оптимално време за закуска",
     "lunch": "оптимално време за обяд",
     "dinner": "оптимално време за вечеря",
-    "snacks": "брой и време на снакове"
+    "snacks": "брой и време на междинни хранения"
   },
   "keyPrinciples": ["принцип 1", "принцип 2", "принцип 3"],
   "foodsToInclude": ["храна 1", "храна 2", "храна 3"],
   "foodsToAvoid": ["храна 1", "храна 2", "храна 3"],
-  "supplementRecommendations": ["добавка 1", "добавка 2"],
+  "supplementRecommendations": ["! добавка 1", "! добавка 2", "! добавка 3"],
   "hydrationStrategy": "препоръки за прием на течности",
-  "psychologicalSupport": "специфични психологически съвети базирани на профила"
+  "psychologicalSupport": ["! психологически съвет 1", "! психологически съвет 2", "! психологически съвет 3"]
 }`;
 }
 
@@ -693,9 +713,9 @@ ${modificationsSection}
   },
   "recommendations": ["конкретна препоръка 1", "конкретна препоръка 2"],
   "forbidden": ["конкретна забранена храна 1", "конкретна забранена храна 2"],
-  "psychology": "${strategy.psychologicalSupport || 'психологически съвети'}",
+  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["! психологически съвет 1", "! психологически съвет 2", "! психологически съвет 3"]'},
   "waterIntake": "${strategy.hydrationStrategy || 'препоръки за вода'}",
-  "supplements": "${JSON.stringify(strategy.supplementRecommendations || [])}"
+  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["! добавка 1", "! добавка 2", "! добавка 3"]'}
 }
 
 Създай пълни 7 дни (day1 до day7) с по 3-4 хранения на ден. Всяко хранене трябва да е уникално, балансирано и подходящо за целите на клиента.`;
@@ -751,12 +771,19 @@ async function generateNutritionPrompt(data, env) {
 1. Използвай САМО храни, които клиентът обича или няма непоносимост към
 2. СТРОГО избягвай храните от списъка с непоносимости и алергии
 3. Включвай любимите храни в здравословен контекст
-4. Спазвай медицинските ограничения
+4. Спазвай медицинските ограничения и корелирай ги с хранителните нужди
 5. Използвай РАЗНООБРАЗНИ храни - избягвай повторения
 6. Всички ястия трябва да бъдат реалистични и лесни за приготвяне
 7. Използвай български и средиземноморски продукти
-8. Адаптирай времето на хранене към хронотипа
-9. Всяко ястие да е балансирано и подходящо за целта
+8. Адаптирай времето на хранене към хронотипа {chronotype}
+9. Всяко ястие да е балансирано и подходящо за целта {goal}
+10. АНАЛИЗИРАЙ корелациите между сън, стрес и хранителни нужди
+11. ИНДИВИДУАЛИЗИРАЙ макронутриентите според активност, медицински състояния и цели
+
+КРИТИЧНО ИЗИСКВАНЕ ЗА ИНДИВИДУАЛИЗАЦИЯ:
+- Този план е САМО за {name} и трябва да отразява УНИКАЛНИЯ профил
+- Вземи предвид ХОЛИСТИЧНО всички параметри и тяхната взаимовръзка
+- Психологическите съвети и хранителните добавки трябва да са СПЕЦИФИЧНИ за този клиент
 
 СТРОГО ЗАБРАНЕНО:
 - Странни комбинации от храни (напр. чийзкейк със салата)
@@ -794,9 +821,9 @@ async function generateNutritionPrompt(data, env) {
   },
   "recommendations": ["конкретна препоръка 1", "конкретна препоръка 2"],
   "forbidden": ["конкретна забранена храна 1", "конкретна забранена храна 2"],
-  "psychology": "Персонализирани психологически съвети базирани на емоционалното хранене и поведението на клиента",
+  "psychology": ["! психологически съвет 1 базиран на емоционалното хранене", "! психологически съвет 2 базиран на поведението", "! психологически съвет 3 за мотивация"],
   "waterIntake": "Детайлен препоръчителен прием на вода",
-  "supplements": "Специфични препоръки за хранителни добавки базирани на здравословното състояние"
+  "supplements": ["! добавка 1 с дозировка", "! добавка 2 с дозировка", "! добавка 3 с дозировка"]
 }
 
 Създай пълни 7 дни (day1 до day7) с по 3-4 хранения на ден. Всяко хранене трябва да е УНИКАЛНО, балансирано и строго съобразено с индивидуалните нужди, предпочитания и здравословно състояние на клиента.`;
@@ -1449,6 +1476,34 @@ async function cacheUserData(env, userId, data) {
   await env.page_content.put(`user_${userId}`, JSON.stringify(data), {
     expirationTtl: 60 * 60 * 24 * 7
   });
+}
+
+/**
+ * Clear all cached data for a user
+ * This includes: plan, user data, and conversation history
+ */
+async function clearUserCache(env, userId) {
+  if (!env.page_content) return;
+  
+  console.log(`Clearing all cached data for userId: ${userId}`);
+  
+  try {
+    // Delete plan cache
+    await env.page_content.delete(`plan_${userId}`);
+    
+    // Delete user data cache
+    await env.page_content.delete(`user_${userId}`);
+    
+    // Delete conversation histories - we need to delete all possible conversation keys
+    // Standard chat conversations
+    await env.page_content.delete(`chat_${userId}_default`);
+    await env.page_content.delete(`chat_${userId}_consultation`);
+    await env.page_content.delete(`chat_${userId}_modification`);
+    
+    console.log(`Successfully cleared cache for userId: ${userId}`);
+  } catch (error) {
+    console.error(`Error clearing cache for userId ${userId}:`, error);
+  }
 }
 
 async function getConversationHistory(env, conversationKey) {
