@@ -1365,9 +1365,10 @@
             const iconClass = ICON_CLASSES[contentType] || 'fa-info-circle';
             
             if (typeof content === 'string') {
+                // Remove any "!" prefix if present (for backward compatibility)
                 const cleanContent = content.replace(/^!\s*/, '').trim();
                 if (cleanContent) {
-                    return `<li><i class="fas ${iconClass}" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanContent}</li>`;
+                    return `<li>${cleanContent}</li>`;
                 }
             } else if (typeof content === 'object' && content !== null) {
                 // Handle structured objects (for psychology tips or supplement objects)
@@ -1382,7 +1383,7 @@
                 if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
                 if (content.intake) details += ` - Прием: ${content.intake}`;
                 
-                return `<li><i class="fas ${iconClass}" style="color: var(--primary-accent); margin-right: 8px;"></i>${details}</li>`;
+                return `<li>${details}</li>`;
             }
             return '';
         }
@@ -1430,10 +1431,15 @@
                 );
                 
                 if (normalized) {
-                    // Successfully normalized to array
+                    // Successfully normalized to array - use info-list style like recommendations/forbidden
                     psychologyHTML = '<ul class="info-list">';
                     normalized.forEach((tip, index) => {
-                        psychologyHTML += generateListItem(tip, 'psychology', index);
+                        const item = generateListItem(tip, 'psychology', index);
+                        if (item) {
+                            // Wrap item content with icon
+                            const cleanItem = item.replace('<li>', '').replace('</li>', '');
+                            psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanItem}</li>`;
+                        }
                     });
                     psychologyHTML += '</ul>';
                 } else if (typeof dietPlan.psychology === 'string') {
@@ -1465,10 +1471,15 @@
                 );
                 
                 if (normalized) {
-                    // Successfully normalized to array
+                    // Successfully normalized to array - use info-list style like recommendations/forbidden
                     supplementsHTML = '<ul class="info-list">';
                     normalized.forEach((supplement, index) => {
-                        supplementsHTML += generateListItem(supplement, 'supplements', index);
+                        const item = generateListItem(supplement, 'supplements', index);
+                        if (item) {
+                            // Wrap item content with icon
+                            const cleanItem = item.replace('<li>', '').replace('</li>', '');
+                            supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanItem}</li>`;
+                        }
                     });
                     supplementsHTML += '</ul>';
                 } else if (typeof dietPlan.supplements === 'string') {

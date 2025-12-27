@@ -29,7 +29,7 @@
             --footer-button-min-height: 44px;
             --wrapper-padding-default: 100px;
             --wrapper-padding-compact: 80px;
-            --footer-position-delay: 50; /* ms - delay for DOM rendering before positioning */
+            --footer-position-delay-ms: 50; /* Delay in milliseconds for DOM rendering before positioning */
         }
 
         /* Dark theme */
@@ -641,7 +641,7 @@
         function positionFooterBelowInput() {
             // Wait for DOM to render - using CSS variable for delay
             const delay = parseInt(getComputedStyle(document.documentElement)
-                .getPropertyValue('--footer-position-delay')) || 50;
+                .getPropertyValue('--footer-position-delay-ms')) || 50;
             
             setTimeout(() => {
                 const input = document.querySelector('.modern-input');
