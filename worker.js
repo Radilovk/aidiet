@@ -111,6 +111,12 @@ export default {
         return await handleSaveModel(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
         return await handleGetConfig(request, env);
+      } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
+        return await handlePushSubscribe(request, env);
+      } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
+        return await handlePushSend(request, env);
+      } else if (url.pathname === '/api/push/vapid-public-key' && request.method === 'GET') {
+        return await handleGetVapidPublicKey(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }
@@ -1602,6 +1608,117 @@ async function handleGetConfig(request, env) {
   } catch (error) {
     console.error('Error getting config:', error);
     return jsonResponse({ error: 'Failed to get config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Push Notifications: Get VAPID public key
+ */
+async function handleGetVapidPublicKey(request, env) {
+  try {
+    // VAPID keys should be stored in environment variables
+    // For development, return a placeholder
+    const publicKey = env.VAPID_PUBLIC_KEY || 'VAPID_PUBLIC_KEY_NOT_CONFIGURED';
+    
+    return jsonResponse({ 
+      success: true,
+      publicKey: publicKey
+    });
+  } catch (error) {
+    console.error('Error getting VAPID public key:', error);
+    return jsonResponse({ error: 'Failed to get VAPID public key: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Push Notifications: Subscribe user to push notifications
+ */
+async function handlePushSubscribe(request, env) {
+  try {
+    const { userId, subscription } = await request.json();
+    
+    if (!userId || !subscription) {
+      return jsonResponse({ error: 'Missing userId or subscription' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    // Store subscription in KV with user ID as key
+    const subscriptionKey = `push_subscription_${userId}`;
+    await env.page_content.put(subscriptionKey, JSON.stringify(subscription));
+    
+    console.log(`Push subscription saved for user: ${userId}`);
+    
+    return jsonResponse({ 
+      success: true,
+      message: 'Subscription saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving push subscription:', error);
+    return jsonResponse({ error: 'Failed to save subscription: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Push Notifications: Send push notification to user
+ * This is a simplified implementation. In production, you would use Web Push protocol
+ * with proper VAPID authentication and encryption.
+ */
+async function handlePushSend(request, env) {
+  try {
+    const { userId, title, body, url } = await request.json();
+    
+    if (!userId) {
+      return jsonResponse({ error: 'Missing userId' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    // Retrieve subscription from KV
+    const subscriptionKey = `push_subscription_${userId}`;
+    const subscriptionData = await env.page_content.get(subscriptionKey);
+    
+    if (!subscriptionData) {
+      return jsonResponse({ error: 'No subscription found for user' }, 404);
+    }
+
+    const subscription = JSON.parse(subscriptionData);
+    
+    // Prepare push message
+    const pushMessage = {
+      title: title || 'NutriPlan',
+      body: body || 'Ново напомняне от NutriPlan',
+      url: url || '/'
+    };
+
+    // In a production environment, you would:
+    // 1. Use the web-push library or similar to send the actual push notification
+    // 2. Use VAPID keys for authentication
+    // 3. Encrypt the payload according to Web Push protocol
+    
+    // For now, we'll just log that we would send the notification
+    console.log(`Would send push notification to user ${userId}:`, pushMessage);
+    console.log('Subscription endpoint:', subscription.endpoint);
+    
+    // TODO: Implement actual Web Push sending with VAPID
+    // This requires the 'web-push' library or manual implementation of the Web Push protocol
+    // Example with web-push library (needs to be imported):
+    // const webpush = require('web-push');
+    // webpush.setVapidDetails('mailto:example@domain.com', env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
+    // await webpush.sendNotification(subscription, JSON.stringify(pushMessage));
+    
+    return jsonResponse({ 
+      success: true,
+      message: 'Push notification sent (simulated)',
+      note: 'Full Web Push implementation requires VAPID keys and web-push library'
+    });
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+    return jsonResponse({ error: 'Failed to send notification: ' + error.message }, 500);
   }
 }
 

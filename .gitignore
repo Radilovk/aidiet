@@ -28,3 +28,9 @@ Thumbs.db
 
 # Build artifacts
 *.log
+
+# Temporary scripts
+*.sh
+!deploy.sh
+*.py
+!setup.py
