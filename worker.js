@@ -384,15 +384,30 @@ async function handleChat(request, env) {
 
 /**
  * Multi-step plan generation for better individualization
- * Step 1: Analyze user profile and health status
- * Step 2: Determine dietary strategy and restrictions
- * Step 3: Generate detailed meal plan
+ * 
+ * This approach uses MULTIPLE AI requests for maximum precision and personalization:
+ * Step 1: Analyze user profile and health status (holistic health analysis)
+ * Step 2: Determine dietary strategy and restrictions (personalized strategy)
+ * Step 3: Generate detailed meal plan (specific meals based on analysis + strategy)
+ * 
+ * Benefits of multi-step approach:
+ * ✅ Better individualization - Each step builds on previous insights
+ * ✅ More precise analysis - Dedicated AI focus per step
+ * ✅ Higher quality output - Strategy informs meal generation
+ * ✅ Deeper understanding - Correlations between health parameters
+ * ✅ Can be extended - Additional steps can be added for more data/precision
+ * 
+ * Each step receives progressively more refined context:
+ * - Step 1: Raw user data → Health analysis
+ * - Step 2: User data + Analysis → Dietary strategy
+ * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 async function generatePlanMultiStep(env, data) {
-  console.log('Multi-step generation: Starting');
+  console.log('Multi-step generation: Starting (3 AI requests for precision)');
   
   try {
-    // Step 1: Analyze user profile
+    // Step 1: Analyze user profile (1st AI request)
+    // Focus: Deep health analysis, metabolic profile, correlations
     const analysisPrompt = generateAnalysisPrompt(data);
     const analysisResponse = await callAIModel(env, analysisPrompt);
     const analysis = parseAIResponse(analysisResponse);
@@ -400,9 +415,10 @@ async function generatePlanMultiStep(env, data) {
     if (!analysis || analysis.error) {
       throw new Error('Failed to parse analysis response');
     }
-    console.log('Multi-step generation: Analysis complete');
+    console.log('Multi-step generation: Analysis complete (1/3)');
     
-    // Step 2: Generate dietary strategy based on analysis
+    // Step 2: Generate dietary strategy based on analysis (2nd AI request)
+    // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = generateStrategyPrompt(data, analysis);
     const strategyResponse = await callAIModel(env, strategyPrompt);
     const strategy = parseAIResponse(strategyResponse);
@@ -410,9 +426,10 @@ async function generatePlanMultiStep(env, data) {
     if (!strategy || strategy.error) {
       throw new Error('Failed to parse strategy response');
     }
-    console.log('Multi-step generation: Strategy complete');
+    console.log('Multi-step generation: Strategy complete (2/3)');
     
-    // Step 3: Generate detailed meal plan
+    // Step 3: Generate detailed meal plan (3rd AI request)
+    // Focus: Specific meals, portions, timing based on strategy
     const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
     const mealPlanResponse = await callAIModel(env, mealPlanPrompt);
     const mealPlan = parseAIResponse(mealPlanResponse);
@@ -420,9 +437,10 @@ async function generatePlanMultiStep(env, data) {
     if (!mealPlan || mealPlan.error) {
       throw new Error('Failed to parse meal plan response');
     }
-    console.log('Multi-step generation: Meal plan complete');
+    console.log('Multi-step generation: Meal plan complete (3/3)');
     
     // Combine all parts into final plan (meal plan takes precedence)
+    // Returns comprehensive plan with analysis and strategy included
     return {
       ...mealPlan,
       analysis: analysis,
