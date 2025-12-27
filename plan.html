@@ -1279,7 +1279,7 @@
                 mealCard.className = 'meal-card';
                 mealCard.innerHTML = `
                     <div class="meal-info">
-                        <div class="meal-type">${meal.type} (${meal.time})</div>
+                        <div class="meal-type">${meal.type}</div>
                         <div class="meal-name">${meal.name}</div>
                         <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${meal.weight}${meal.calories ? ` • ${meal.calories} kcal` : ''}</div>
                     </div>
@@ -1708,11 +1708,11 @@
          * Reduces payload size by ~60-70% while keeping essential meal information
          * 
          * FULL meal object: ~200-300 bytes (with description, benefits, weight)
-         * COMPACT meal object: ~60-80 bytes (only type, name, time, calories)
+         * COMPACT meal object: ~50-70 bytes (only type, name, calories)
          * 
          * For a 7-day plan with 3 meals/day = 21 meals:
          * - Full: ~5-6 KB
-         * - Compact: ~1.5-2 KB
+         * - Compact: ~1.2-1.5 KB
          * 
          * This optimization allows AI to understand the meal plan context
          * without needing detailed descriptions for consultation questions.
@@ -1727,9 +1727,8 @@
                         meals: weekPlan[dayKey].meals.map(meal => ({
                             type: meal.type,
                             name: meal.name,
-                            time: meal.time,
                             calories: meal.calories
-                            // Omit: description, benefits, weight (not needed for consultation)
+                            // Omit: time (removed), description, benefits, weight (not needed for consultation)
                         }))
                     };
                 }
@@ -2471,7 +2470,7 @@
                             
                             doc.setFontSize(11);
                             doc.setFont('helvetica', 'bold');
-                            doc.text(`${meal.type} (${meal.time || 'N/A'})`, marginLeft + 5, yPos);
+                            doc.text(`${meal.type}`, marginLeft + 5, yPos);
                             yPos += 5;
                             
                             doc.setFont('helvetica', 'normal');
