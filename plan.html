@@ -1302,10 +1302,10 @@
             lines.forEach(line => {
                 const trimmedLine = line.trim();
                 if (trimmedLine) {
-                    // Check if line starts with bullet point indicators
-                    if (trimmedLine.match(/^[-•*]\s*/)) {
+                    // Check if line starts with bullet point indicators (including !)
+                    if (trimmedLine.match(/^[!-•*]\s*/)) {
                         // Remove the bullet indicator and add as list item
-                        const content = trimmedLine.replace(/^[-•*]\s*/, '');
+                        const content = trimmedLine.replace(/^[!-•*]\s*/, '');
                         formattedHTML += `<li><i class="fas ${icon}" style="color: var(--primary-accent); margin-right: 8px;"></i>${content}</li>`;
                     } else if (trimmedLine.match(/^\d+\.\s*/)) {
                         // Numbered list
@@ -1366,7 +1366,9 @@
                     psychologyHTML = '<ul class="info-list">';
                     dietPlan.psychology.forEach((tip, index) => {
                         if (typeof tip === 'string') {
-                            psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${tip}</li>`;
+                            // Remove "!" prefix if present
+                            const cleanTip = tip.replace(/^!\s*/, '');
+                            psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanTip}</li>`;
                         } else if (typeof tip === 'object') {
                             // Structured tip object
                             const title = tip.title || `Съвет ${index + 1}`;
@@ -1403,7 +1405,9 @@
                     supplementsHTML = '<ul class="info-list">';
                     dietPlan.supplements.forEach((supplement, index) => {
                         if (typeof supplement === 'string') {
-                            supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${supplement}</li>`;
+                            // Remove "!" prefix if present
+                            const cleanSupplement = supplement.replace(/^!\s*/, '');
+                            supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanSupplement}</li>`;
                         } else if (typeof supplement === 'object') {
                             // Structured supplement object
                             const name = supplement.name || `Добавка ${index + 1}`;
