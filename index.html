@@ -924,6 +924,7 @@
         // Constants
         const INSTALL_BANNER_DISMISS_DAYS = 7; // Number of days before showing banner again
         const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+        const PWA_DEBUG = false; // Set to true for debugging PWA installation issues
         
         // Helper function to check if banner was recently dismissed
         function wasBannerRecentlyDismissed() {
@@ -932,7 +933,7 @@
                 const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / MILLISECONDS_PER_DAY;
                 // Show again after configured number of days
                 if (daysSinceDismissed < INSTALL_BANNER_DISMISS_DAYS) {
-                    console.log('Install banner was recently dismissed');
+                    if (PWA_DEBUG) console.log('Install banner was recently dismissed');
                     return true;
                 }
             }
@@ -941,7 +942,7 @@
         
         // Capture the beforeinstallprompt event
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('beforeinstallprompt fired');
+            if (PWA_DEBUG) console.log('beforeinstallprompt fired');
             e.preventDefault();
             deferredPrompt = e;
             
@@ -972,7 +973,7 @@
         if (installBtn) {
             installBtn.addEventListener('click', async () => {
                 if (!deferredPrompt) {
-                    console.log('No deferred prompt available');
+                    if (PWA_DEBUG) console.log('No deferred prompt available');
                     return;
                 }
 
@@ -981,7 +982,7 @@
                 
                 // Wait for the user to respond to the prompt
                 const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response to the install prompt: ${outcome}`);
+                if (PWA_DEBUG) console.log(`User response to the install prompt: ${outcome}`);
                 
                 // Hide the banner
                 hideInstallBanner();
@@ -1004,7 +1005,7 @@
 
         // Listen for app installed event
         window.addEventListener('appinstalled', () => {
-            console.log('PWA was installed');
+            if (PWA_DEBUG) console.log('PWA was installed');
             hideInstallBanner();
             deferredPrompt = null;
         });
