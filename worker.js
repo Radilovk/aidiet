@@ -103,10 +103,6 @@ export default {
         return await handleGeneratePlan(request, env);
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
         return await handleChat(request, env);
-      } else if (url.pathname === '/api/get-plan' && request.method === 'GET') {
-        return await handleGetPlan(request, env);
-      } else if (url.pathname === '/api/update-plan' && request.method === 'POST') {
-        return await handleUpdatePlan(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
         return await handleSavePrompt(request, env);
       } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
@@ -143,42 +139,16 @@ async function handleGeneratePlan(request, env) {
     const userId = data.email || generateUserId(data);
     console.log('handleGeneratePlan: Request received for userId:', userId);
     
-    // Check for force regeneration flag (e.g., from profile update)
-    const forceRegenerate = data.forceRegenerate === true;
-    
-    // Check if plan exists in cache (skip if forceRegenerate is true)
-    if (!forceRegenerate) {
-      const cachedPlan = await getCachedPlan(env, userId);
-      if (cachedPlan) {
-        console.log('handleGeneratePlan: Returning cached plan for user:', userId);
-        return jsonResponse({ 
-          success: true, 
-          plan: cachedPlan,
-          cached: true,
-          userId: userId 
-        });
-      }
-    } else {
-      console.log('handleGeneratePlan: Force regenerate requested - clearing all cached data for userId:', userId);
-      // Clear ALL cached data (plan, user data, conversation history) before regenerating
-      await clearUserCache(env, userId);
-    }
-
     console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
     
     // Use multi-step approach for better individualization
+    // No caching - client stores plan locally
     const structuredPlan = await generatePlanMultiStep(env, data);
     console.log('handleGeneratePlan: Plan structured for userId:', userId);
-    
-    // Cache the plan and user data
-    await cachePlan(env, userId, structuredPlan);
-    await cacheUserData(env, userId, data);
-    console.log('handleGeneratePlan: Plan cached for userId:', userId);
     
     return jsonResponse({ 
       success: true, 
       plan: structuredPlan,
-      cached: false,
       userId: userId 
     });
   } catch (error) {
@@ -198,34 +168,31 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 
 /**
  * Handle chat assistant requests
+ * No longer uses KV storage - all context is provided by client
  */
 async function handleChat(request, env) {
   try {
-    const { message, userId, conversationId, mode } = await request.json();
+    const { message, userId, conversationId, mode, userData, userPlan, conversationHistory } = await request.json();
     
-    if (!message || !userId) {
-      return jsonResponse({ error: 'Missing message or userId' }, 400);
+    if (!message) {
+      return jsonResponse({ error: 'Missing message' }, 400);
     }
 
-    // Get user context from cache
-    const userData = await getCachedUserData(env, userId);
-    const userPlan = await getCachedPlan(env, userId);
-    
+    // Validate that required context is provided by client
     if (!userData || !userPlan) {
       return jsonResponse({ 
-        error: 'User data not found. Please complete the questionnaire first.' 
-      }, 404);
+        error: 'Missing user data or plan. Please provide full context in request.' 
+      }, 400);
     }
 
-    // Get conversation history
-    const conversationKey = `chat_${userId}_${conversationId || 'default'}`;
-    const conversationHistory = await getConversationHistory(env, conversationKey);
+    // Use conversation history from client (defaults to empty array)
+    const chatHistory = conversationHistory || [];
     
     // Determine chat mode (default: consultation)
     const chatMode = mode || 'consultation';
     
     // Build chat prompt with context and mode
-    const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, conversationHistory, chatMode);
+    const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, chatHistory, chatMode);
     
     // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
     const aiResponse = await callAIModel(env, chatPrompt, 2000);
@@ -234,6 +201,8 @@ async function handleChat(request, env) {
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
     let finalResponse = aiResponse;
     let planWasUpdated = false;
+    let updatedPlan = null;
+    let updatedUserData = null;
     
     if (regenerateIndex !== -1) {
       // Always parse and remove REGENERATE_PLAN from the response, regardless of mode
@@ -339,17 +308,13 @@ async function handleChat(request, env) {
               dietDislike: Array.from(excludedFoods).join(', ')
             };
             
-            // Clear conversation history before regenerating plan to avoid cross-contamination
-            console.log('Clearing conversation history before plan regeneration');
-            await env.page_content.delete(conversationKey);
-            
             // Regenerate the plan using multi-step approach with new criteria
+            // Return updated data to client - no server storage
             const newPlan = await generatePlanMultiStep(env, modifiedUserData);
             
-            // Cache the updated plan and user data
-            await cachePlan(env, userId, newPlan);
-            await cacheUserData(env, userId, modifiedUserData);
             planWasUpdated = true;
+            updatedPlan = newPlan;
+            updatedUserData = modifiedUserData;
             
             console.log('Plan regenerated successfully with modifications:', validatedModifications);
           } else {
@@ -368,82 +333,54 @@ async function handleChat(request, env) {
       }
     }
     
-    // Update conversation history with the final (cleaned) response
-    await updateConversationHistory(env, conversationKey, message, finalResponse);
+    // Build updated conversation history for client to store
+    const updatedHistory = [...chatHistory];
+    updatedHistory.push(
+      { role: 'user', content: message },
+      { role: 'assistant', content: finalResponse }
+    );
     
-    return jsonResponse({ 
+    // Trim history to keep within token budget (approx 1500 tokens = 6000 chars)
+    const MAX_HISTORY_TOKENS = 1500;
+    let totalTokens = 0;
+    const trimmedHistory = [];
+    
+    // Process history in reverse to keep most recent messages
+    for (let i = updatedHistory.length - 1; i >= 0; i--) {
+      const msg = updatedHistory[i];
+      const messageTokens = estimateTokens(msg.content);
+      
+      if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
+        trimmedHistory.unshift(msg);
+        totalTokens += messageTokens;
+      } else {
+        // Stop adding older messages
+        break;
+      }
+    }
+    
+    console.log(`Conversation history trimmed to ${trimmedHistory.length} messages (~${totalTokens} tokens)`);
+    
+    const responseData = { 
       success: true, 
       response: finalResponse,
+      conversationHistory: trimmedHistory,
       planUpdated: planWasUpdated
-    });
+    };
+    
+    // Include updated plan and userData if plan was regenerated
+    if (planWasUpdated) {
+      responseData.updatedPlan = updatedPlan;
+      responseData.updatedUserData = updatedUserData;
+    }
+    
+    return jsonResponse(responseData);
   } catch (error) {
     console.error('Error in chat:', error);
     return jsonResponse({ error: 'Chat failed: ' + error.message }, 500);
   }
 }
 
-/**
- * Get cached plan for a user
- */
-async function handleGetPlan(request, env) {
-  const url = new URL(request.url);
-  const userId = url.searchParams.get('userId');
-  
-  if (!userId) {
-    return jsonResponse({ error: 'Missing userId' }, 400);
-  }
-
-  const cachedPlan = await getCachedPlan(env, userId);
-  
-  if (!cachedPlan) {
-    return jsonResponse({ error: 'Plan not found' }, 404);
-  }
-
-  return jsonResponse({ 
-    success: true, 
-    plan: cachedPlan 
-  });
-}
-
-/**
- * Update plan for a user (after AI assistant approval)
- */
-async function handleUpdatePlan(request, env) {
-  try {
-    const { userId, updatedPlan, changeReason } = await request.json();
-    
-    if (!userId || !updatedPlan) {
-      return jsonResponse({ error: 'Missing userId or updatedPlan' }, 400);
-    }
-
-    // Get existing plan
-    const existingPlan = await getCachedPlan(env, userId);
-    
-    if (!existingPlan) {
-      return jsonResponse({ error: 'Plan not found' }, 404);
-    }
-
-    // Merge the updated plan with existing plan
-    const mergedPlan = {
-      ...existingPlan,
-      ...updatedPlan,
-      lastModified: new Date().toISOString(),
-      modificationReason: changeReason || 'User requested change'
-    };
-
-    // Cache the updated plan
-    await cachePlan(env, userId, mergedPlan);
-    
-    return jsonResponse({ 
-      success: true, 
-      plan: mergedPlan,
-      message: 'Plan updated successfully'
-    });
-  } catch (error) {
-    console.error('Error updating plan:', error);
-    return jsonResponse({ error: 'Failed to update plan: ' + error.message }, 500);
-  }
-}
 
 /**
  * Multi-step plan generation for better individualization
@@ -1482,112 +1419,12 @@ function parseAIResponse(response) {
   }
 }
 
-/**
- * Cache management functions using KV
- */
-async function getCachedPlan(env, userId) {
-  if (!env.page_content) return null;
-  const cached = await env.page_content.get(`plan_${userId}`);
-  return cached ? JSON.parse(cached) : null;
-}
-
-async function cachePlan(env, userId, plan) {
-  if (!env.page_content) return;
-  // Cache for 7 days
-  await env.page_content.put(`plan_${userId}`, JSON.stringify(plan), {
-    expirationTtl: 60 * 60 * 24 * 7
-  });
-}
-
-async function getCachedUserData(env, userId) {
-  if (!env.page_content) return null;
-  const cached = await env.page_content.get(`user_${userId}`);
-  return cached ? JSON.parse(cached) : null;
-}
-
-async function cacheUserData(env, userId, data) {
-  if (!env.page_content) return;
-  // Cache for 7 days
-  await env.page_content.put(`user_${userId}`, JSON.stringify(data), {
-    expirationTtl: 60 * 60 * 24 * 7
-  });
-}
-
-/**
- * Clear all cached data for a user
- * This includes: plan, user data, and conversation history
- */
-async function clearUserCache(env, userId) {
-  if (!env.page_content) return;
-  
-  console.log(`Clearing all cached data for userId: ${userId}`);
-  
-  try {
-    // Delete plan cache
-    await env.page_content.delete(`plan_${userId}`);
-    
-    // Delete user data cache
-    await env.page_content.delete(`user_${userId}`);
-    
-    // Delete conversation histories - we need to delete all possible conversation keys
-    // Standard chat conversations
-    await env.page_content.delete(`chat_${userId}_default`);
-    await env.page_content.delete(`chat_${userId}_consultation`);
-    await env.page_content.delete(`chat_${userId}_modification`);
-    
-    console.log(`Successfully cleared cache for userId: ${userId}`);
-  } catch (error) {
-    console.error(`Error clearing cache for userId ${userId}:`, error);
-  }
-}
-
-async function getConversationHistory(env, conversationKey) {
-  if (!env.page_content) return [];
-  const cached = await env.page_content.get(conversationKey);
-  return cached ? JSON.parse(cached) : [];
-}
-
 // Enhancement #3: Estimate tokens for a message
 // Note: This is a rough approximation (~4 chars per token for mixed content).
 // Actual GPT tokenization varies by language and content. This is sufficient
 // for conversation history management where approximate limits are acceptable.
 function estimateTokens(text) {
   return Math.ceil(text.length / 4);
-}
-
-async function updateConversationHistory(env, conversationKey, userMessage, aiResponse) {
-  if (!env.page_content) return;
-  const history = await getConversationHistory(env, conversationKey);
-  history.push(
-    { role: 'user', content: userMessage },
-    { role: 'assistant', content: aiResponse }
-  );
-  
-  // Enhancement #3: Keep conversation within token budget (approx 1500 tokens = 6000 chars)
-  const MAX_HISTORY_TOKENS = 1500;
-  let totalTokens = 0;
-  const trimmedHistory = [];
-  
-  // Process history in reverse to keep most recent messages
-  for (let i = history.length - 1; i >= 0; i--) {
-    const message = history[i];
-    const messageTokens = estimateTokens(message.content);
-    
-    if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
-      trimmedHistory.unshift(message);
-      totalTokens += messageTokens;
-    } else {
-      // Stop adding older messages
-      break;
-    }
-  }
-  
-  console.log(`Conversation history trimmed to ${trimmedHistory.length} messages (~${totalTokens} tokens)`);
-  
-  // Cache for 24 hours
-  await env.page_content.put(conversationKey, JSON.stringify(trimmedHistory), {
-    expirationTtl: 60 * 60 * 24
-  });
 }
 
 /**
