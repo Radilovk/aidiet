@@ -21,6 +21,13 @@
             --shadow: 0 10px 30px rgba(16,185,129,0.12);
             --radius: 16px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            /* Footer spacing variables */
+            --footer-padding-v: 12px;
+            --footer-padding-h: 20px;
+            --footer-input-gap: 8px;
+            --footer-button-min-height: 44px;
+            --wrapper-padding-default: 100px;
         }
 
         /* Dark theme */
@@ -86,14 +93,19 @@
             flex: 1;
             position: relative;
             padding: 20px;
-            padding-bottom: 120px; /* Increased padding for footer to prevent content hiding */
+            padding-bottom: var(--wrapper-padding-default); /* Reduced padding for footer to prevent content hiding */
             display: flex;
             align-items: flex-start; /* Changed from center to allow scrolling from top */
             justify-content: center;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-            scroll-padding-bottom: 120px; /* Ensure scroll area accounts for fixed footer */
+            scroll-padding-bottom: var(--wrapper-padding-default); /* Ensure scroll area accounts for fixed footer */
+        }
+        
+        /* Compact layout for input-only questions - less padding for footer to be closer */
+        .question-wrapper.compact {
+            padding-bottom: calc(var(--footer-padding-v) * 2 + var(--footer-button-min-height) + var(--footer-input-gap)); /* footer height + gap */
         }
 
         .question-card {
@@ -262,7 +274,7 @@
 
         /* --- FOOTER NAVIGATION --- */
         .nav-footer {
-            padding: 20px;
+            padding: var(--footer-padding-v) var(--footer-padding-h);
             background: var(--card-bg);
             display: flex;
             justify-content: space-between;
@@ -274,11 +286,12 @@
             left: 0;
             right: 0;
             width: 100%;
+            transition: var(--transition);
         }
 
         .btn {
             border: none;
-            padding: 16px 32px;
+            padding: 12px 28px;
             border-radius: 30px;
             font-size: 1rem;
             font-weight: 600;
@@ -287,7 +300,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 48px;
+            min-height: 44px;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -542,6 +555,10 @@
             { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [] }
         ];
 
+        // --- CONFIGURATION ---
+        // Question types that should use compact footer layout (closer to input field)
+        const INPUT_ONLY_TYPES = ['text', 'number', 'email', 'textarea'];
+
         // --- STATE MANAGEMENT ---
         let currentQueue = [...rawQuestions]; // Queue that expands dynamically
         let currentIndex = 0;
@@ -584,6 +601,10 @@
 
             const card = document.createElement('div');
             card.className = 'question-card';
+            
+            // Determine if this is an input-only question and toggle compact layout
+            const isInputOnly = INPUT_ONLY_TYPES.includes(step.type);
+            container.classList.toggle('compact', isInputOnly);
 
             if (step.type === 'section') {
                 renderSectionTitle(card, step);
