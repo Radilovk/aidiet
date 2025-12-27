@@ -921,13 +921,17 @@
         // --- Push Notifications Support ---
         let deferredPrompt;
         
+        // Constants
+        const INSTALL_BANNER_DISMISS_DAYS = 7; // Number of days before showing banner again
+        const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+        
         // Helper function to check if banner was recently dismissed
         function wasBannerRecentlyDismissed() {
             const dismissedTime = localStorage.getItem('installBannerDismissed');
             if (dismissedTime) {
-                const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
-                // Show again after 7 days
-                if (daysSinceDismissed < 7) {
+                const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / MILLISECONDS_PER_DAY;
+                // Show again after configured number of days
+                if (daysSinceDismissed < INSTALL_BANNER_DISMISS_DAYS) {
                     console.log('Install banner was recently dismissed');
                     return true;
                 }
