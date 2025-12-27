@@ -921,14 +921,30 @@
         // --- Push Notifications Support ---
         let deferredPrompt;
         
+        // Helper function to check if banner was recently dismissed
+        function wasBannerRecentlyDismissed() {
+            const dismissedTime = localStorage.getItem('installBannerDismissed');
+            if (dismissedTime) {
+                const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
+                // Show again after 7 days
+                if (daysSinceDismissed < 7) {
+                    console.log('Install banner was recently dismissed');
+                    return true;
+                }
+            }
+            return false;
+        }
+        
         // Capture the beforeinstallprompt event
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('beforeinstallprompt fired');
             e.preventDefault();
             deferredPrompt = e;
             
-            // Show the install banner
-            showInstallBanner();
+            // Show the install banner only if not recently dismissed
+            if (!wasBannerRecentlyDismissed()) {
+                showInstallBanner();
+            }
         });
 
         // Show install banner
@@ -977,22 +993,10 @@
             dismissInstallBtn.addEventListener('click', () => {
                 hideInstallBanner();
                 
-                // Store dismissal in localStorage (optional - to not show again for some time)
+                // Store dismissal in localStorage (to not show again for 7 days)
                 localStorage.setItem('installBannerDismissed', Date.now().toString());
             });
         }
-
-        // Check if banner was recently dismissed
-        window.addEventListener('DOMContentLoaded', () => {
-            const dismissedTime = localStorage.getItem('installBannerDismissed');
-            if (dismissedTime) {
-                const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
-                // Show again after 7 days
-                if (daysSinceDismissed < 7) {
-                    console.log('Install banner was recently dismissed');
-                }
-            }
-        });
 
         // Listen for app installed event
         window.addEventListener('appinstalled', () => {
