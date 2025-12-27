@@ -424,6 +424,108 @@
             color: var(--primary-red);
         }
 
+        /* --- INSTALL APP BANNER --- */
+        .install-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--white);
+            color: var(--text-dark);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: none;
+            align-items: center;
+            gap: 15px;
+            z-index: 1001;
+            max-width: 90%;
+            animation: slideUp 0.3s ease;
+        }
+
+        .install-banner.show {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .install-banner-icon {
+            font-size: 2rem;
+            color: var(--primary-red);
+        }
+
+        .install-banner-content {
+            flex: 1;
+        }
+
+        .install-banner-title {
+            font-weight: 600;
+            margin-bottom: 3px;
+            font-size: 0.95rem;
+        }
+
+        .install-banner-text {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        .install-banner-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .install-banner-btn {
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .install-banner-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .install-banner-btn.dismiss {
+            background: transparent;
+            color: var(--text-gray);
+        }
+
+        .install-banner-btn.dismiss:hover {
+            background: var(--soft-red);
+            color: var(--text-dark);
+        }
+
+        @media (max-width: 768px) {
+            .install-banner {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px;
+                bottom: 10px;
+            }
+
+            .install-banner-actions {
+                width: 100%;
+            }
+
+            .install-banner-btn {
+                flex: 1;
+            }
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -710,6 +812,25 @@
         <p class="copyright">&copy; 2024 NutriPlan. Всички права запазени.</p>
     </footer>
 
+    <!-- Install App Banner -->
+    <div class="install-banner" id="installBanner">
+        <div class="install-banner-icon">
+            <i class="fas fa-mobile-alt"></i>
+        </div>
+        <div class="install-banner-content">
+            <div class="install-banner-title">Инсталирай NutriPlan</div>
+            <div class="install-banner-text">Добави приложението към началния екран</div>
+        </div>
+        <div class="install-banner-actions">
+            <button class="install-banner-btn" id="installBtn">
+                <i class="fas fa-download"></i> Инсталирай
+            </button>
+            <button class="install-banner-btn dismiss" id="dismissInstallBtn">
+                <i class="fas fa-times"></i> По-късно
+            </button>
+        </div>
+    </div>
+
     <script>
         // --- Theme Management ---
         function initializeTheme() {
@@ -804,6 +925,79 @@
             console.log('beforeinstallprompt fired');
             e.preventDefault();
             deferredPrompt = e;
+            
+            // Show the install banner
+            showInstallBanner();
+        });
+
+        // Show install banner
+        function showInstallBanner() {
+            const installBanner = document.getElementById('installBanner');
+            if (installBanner) {
+                installBanner.classList.add('show');
+            }
+        }
+
+        // Hide install banner
+        function hideInstallBanner() {
+            const installBanner = document.getElementById('installBanner');
+            if (installBanner) {
+                installBanner.classList.remove('show');
+            }
+        }
+
+        // Handle install button click
+        const installBtn = document.getElementById('installBtn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) {
+                    console.log('No deferred prompt available');
+                    return;
+                }
+
+                // Show the install prompt
+                deferredPrompt.prompt();
+                
+                // Wait for the user to respond to the prompt
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                
+                // Hide the banner
+                hideInstallBanner();
+                
+                // Clear the deferred prompt
+                deferredPrompt = null;
+            });
+        }
+
+        // Handle dismiss button click
+        const dismissInstallBtn = document.getElementById('dismissInstallBtn');
+        if (dismissInstallBtn) {
+            dismissInstallBtn.addEventListener('click', () => {
+                hideInstallBanner();
+                
+                // Store dismissal in localStorage (optional - to not show again for some time)
+                localStorage.setItem('installBannerDismissed', Date.now().toString());
+            });
+        }
+
+        // Check if banner was recently dismissed
+        window.addEventListener('DOMContentLoaded', () => {
+            const dismissedTime = localStorage.getItem('installBannerDismissed');
+            if (dismissedTime) {
+                const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
+                // Show again after 7 days
+                if (daysSinceDismissed < 7) {
+                    console.log('Install banner was recently dismissed');
+                }
+            }
+        });
+
+        // Listen for app installed event
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed');
+            hideInstallBanner();
+            deferredPrompt = null;
         });
 
         // Check if notification button should be shown
