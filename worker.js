@@ -1619,7 +1619,7 @@ async function handleGetConfig(request, env) {
  * 
  * @param {Request} request - The incoming request
  * @param {Object} env - Environment bindings including VAPID_PUBLIC_KEY
- * @returns {Response} JSON response with publicKey field
+ * @returns {Promise<Response>} JSON response with publicKey field
  * 
  * @example
  * // Request
@@ -1655,7 +1655,7 @@ async function handleGetVapidPublicKey(request, env) {
  * 
  * @param {Request} request - The incoming request with userId and subscription
  * @param {Object} env - Environment bindings including page_content KV namespace
- * @returns {Response} JSON response confirming subscription
+ * @returns {Promise<Response>} JSON response confirming subscription
  * 
  * @example
  * // Request
@@ -1711,7 +1711,7 @@ async function handlePushSubscribe(request, env) {
  * 
  * @param {Request} request - The incoming request with userId, title, body, and url
  * @param {Object} env - Environment bindings including page_content KV and VAPID keys
- * @returns {Response} JSON response confirming notification sent
+ * @returns {Promise<Response>} JSON response confirming notification sent
  * 
  * @example
  * // Request
