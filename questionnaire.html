@@ -289,14 +289,6 @@
             width: 100%;
             transition: var(--transition);
         }
-        
-        /* Footer positioned below input field for compact layout */
-        .question-wrapper.compact ~ .nav-footer {
-            position: absolute;
-            bottom: auto;
-            top: auto;
-            /* Will be positioned via JS to be 8px below the input field */
-        }
 
         .btn {
             border: none;
@@ -651,12 +643,15 @@
                 const footer = document.querySelector('.nav-footer');
                 
                 if (input && footer) {
+                    // Get input position relative to viewport
                     const inputRect = input.getBoundingClientRect();
-                    const inputBottom = inputRect.bottom;
+                    
+                    // Calculate position: input bottom + 8px
+                    const footerTop = inputRect.bottom + 8;
                     
                     // Position footer 8px below input
-                    footer.style.position = 'absolute';
-                    footer.style.top = (inputBottom + window.scrollY + 8) + 'px';
+                    footer.style.position = 'fixed';
+                    footer.style.top = footerTop + 'px';
                     footer.style.bottom = 'auto';
                 }
             }, 50);
