@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест на Local Storage Архитектура</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { color: #10b981; }
+        h2 { color: #333; border-bottom: 2px solid #10b981; padding-bottom: 10px; }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #059669; }
+        pre {
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .status { font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест на Local Storage Архитектура</h1>
+    
+    <div class="test-section">
+        <h2>1. Проверка на LocalStorage</h2>
+        <div id="localStorage-test"></div>
+        <button onclick="testLocalStorage()">Тествай LocalStorage</button>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Проверка на API Endpoints</h2>
+        <div id="api-test"></div>
+        <button onclick="testAPIEndpoints()">Тествай API</button>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Симулация на Plan Generation</h2>
+        <div id="plan-test"></div>
+        <button onclick="testPlanGeneration()">Генерирай Тестов План</button>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Симулация на Chat Request</h2>
+        <div id="chat-test"></div>
+        <button onclick="testChatRequest()">Тествай Chat</button>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Преглед на LocalStorage Данни</h2>
+        <div id="storage-view"></div>
+        <button onclick="viewStorageData()">Покажи Данни</button>
+        <button onclick="clearStorageData()">Изчисти Данни</button>
+    </div>
+
+    <script>
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+
+        function addResult(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            container.appendChild(div);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        // Test 1: LocalStorage functionality
+        function testLocalStorage() {
+            clearResults('localStorage-test');
+            
+            try {
+                // Test write
+                const testData = { test: true, timestamp: Date.now() };
+                localStorage.setItem('test_data', JSON.stringify(testData));
+                addResult('localStorage-test', '✓ Запис в localStorage: Успешен', 'success');
+                
+                // Test read
+                const retrieved = JSON.parse(localStorage.getItem('test_data'));
+                if (retrieved.test === true) {
+                    addResult('localStorage-test', '✓ Четене от localStorage: Успешно', 'success');
+                }
+                
+                // Test delete
+                localStorage.removeItem('test_data');
+                addResult('localStorage-test', '✓ Изтриване от localStorage: Успешно', 'success');
+                
+                // Check available storage
+                const storageKeys = Object.keys(localStorage);
+                addResult('localStorage-test', `📊 Брой записи в localStorage: ${storageKeys.length}`, 'info');
+                
+            } catch (error) {
+                addResult('localStorage-test', `✗ Грешка: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 2: Check API endpoints
+        async function testAPIEndpoints() {
+            clearResults('api-test');
+            
+            addResult('api-test', 'Проверка на API endpoints...', 'info');
+            
+            // Test if old endpoints are removed
+            try {
+                const response = await fetch(`${WORKER_URL}/api/get-plan?userId=test`);
+                if (response.status === 404) {
+                    addResult('api-test', '✓ /api/get-plan правилно премахнат (404)', 'success');
+                } else {
+                    addResult('api-test', `⚠️ /api/get-plan все още съществува (${response.status})`, 'error');
+                }
+            } catch (error) {
+                addResult('api-test', `✗ Грешка при проверка: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 3: Test plan generation (mock data)
+        async function testPlanGeneration() {
+            clearResults('plan-test');
+            
+            const mockUserData = {
+                name: "Test User",
+                age: 30,
+                weight: 75,
+                height: 175,
+                gender: "Мъж",
+                goal: "Отслабване",
+                sportActivity: "Средна (2–4 дни седмично)",
+                sleepHours: 7,
+                waterIntake: "2-3 литра",
+                stressLevel: "Среден"
+            };
+            
+            addResult('plan-test', 'Изпращане на заявка за генериране на план...', 'info');
+            
+            try {
+                const response = await fetch(`${WORKER_URL}/api/generate-plan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mockUserData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success && result.plan) {
+                        addResult('plan-test', '✓ План генериран успешно', 'success');
+                        addResult('plan-test', `User ID: ${result.userId}`, 'info');
+                        
+                        // Save to localStorage
+                        localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+                        localStorage.setItem('userId', result.userId);
+                        localStorage.setItem('userData', JSON.stringify(mockUserData));
+                        
+                        addResult('plan-test', '✓ План запазен в localStorage', 'success');
+                        
+                        // Show plan summary
+                        if (result.plan.summary) {
+                            addResult('plan-test', 
+                                `План: ${result.plan.summary.dailyCalories} калории/ден`, 
+                                'info'
+                            );
+                        }
+                    } else {
+                        addResult('plan-test', '✗ Отговорът не съдържа валиден план', 'error');
+                    }
+                } else {
+                    addResult('plan-test', `✗ HTTP грешка: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult('plan-test', `✗ Грешка: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 4: Test chat request with full context
+        async function testChatRequest() {
+            clearResults('chat-test');
+            
+            // Check if we have data in localStorage
+            const userData = localStorage.getItem('userData');
+            const dietPlan = localStorage.getItem('dietPlan');
+            
+            if (!userData || !dietPlan) {
+                addResult('chat-test', '⚠️ Моля, първо генерирайте план (Тест 3)', 'error');
+                return;
+            }
+            
+            const chatHistory = [];
+            const testMessage = "Какво мога да ям за закуска?";
+            
+            addResult('chat-test', 'Изпращане на chat заявка с пълен контекст...', 'info');
+            
+            try {
+                const response = await fetch(`${WORKER_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: testMessage,
+                        userData: JSON.parse(userData),
+                        userPlan: JSON.parse(dietPlan),
+                        conversationHistory: chatHistory,
+                        mode: 'consultation'
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        addResult('chat-test', '✓ Chat заявка успешна', 'success');
+                        addResult('chat-test', `Отговор: ${result.response.substring(0, 200)}...`, 'info');
+                        
+                        if (result.conversationHistory) {
+                            addResult('chat-test', 
+                                `✓ История актуализирана (${result.conversationHistory.length} съобщения)`, 
+                                'success'
+                            );
+                        }
+                    } else {
+                        addResult('chat-test', '✗ Отговорът не е успешен', 'error');
+                    }
+                } else {
+                    addResult('chat-test', `✗ HTTP грешка: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult('chat-test', `✗ Грешка: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 5: View storage data
+        function viewStorageData() {
+            const container = document.getElementById('storage-view');
+            container.innerHTML = '';
+            
+            const keys = ['userId', 'userData', 'dietPlan', 'chatHistory'];
+            
+            keys.forEach(key => {
+                const data = localStorage.getItem(key);
+                const div = document.createElement('div');
+                div.className = 'test-result info';
+                
+                if (data) {
+                    const preview = data.length > 200 ? data.substring(0, 200) + '...' : data;
+                    div.innerHTML = `<strong>${key}:</strong> (${data.length} символа)<br><pre>${preview}</pre>`;
+                } else {
+                    div.innerHTML = `<strong>${key}:</strong> <em>няма данни</em>`;
+                }
+                
+                container.appendChild(div);
+            });
+        }
+
+        function clearStorageData() {
+            if (confirm('Сигурни ли сте, че искате да изтриете всички данни от localStorage?')) {
+                localStorage.clear();
+                addResult('storage-view', '✓ Всички данни са изтрити', 'success');
+                setTimeout(() => viewStorageData(), 500);
+            }
+        }
+
+        // Auto-run on load
+        window.onload = function() {
+            testLocalStorage();
+            viewStorageData();
+        };
+    </script>
+</body>
+</html>

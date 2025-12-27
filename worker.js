@@ -103,10 +103,6 @@ export default {
         return await handleGeneratePlan(request, env);
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
         return await handleChat(request, env);
-      } else if (url.pathname === '/api/get-plan' && request.method === 'GET') {
-        return await handleGetPlan(request, env);
-      } else if (url.pathname === '/api/update-plan' && request.method === 'POST') {
-        return await handleUpdatePlan(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
         return await handleSavePrompt(request, env);
       } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
@@ -143,42 +139,16 @@ async function handleGeneratePlan(request, env) {
     const userId = data.email || generateUserId(data);
     console.log('handleGeneratePlan: Request received for userId:', userId);
     
-    // Check for force regeneration flag (e.g., from profile update)
-    const forceRegenerate = data.forceRegenerate === true;
-    
-    // Check if plan exists in cache (skip if forceRegenerate is true)
-    if (!forceRegenerate) {
-      const cachedPlan = await getCachedPlan(env, userId);
-      if (cachedPlan) {
-        console.log('handleGeneratePlan: Returning cached plan for user:', userId);
-        return jsonResponse({ 
-          success: true, 
-          plan: cachedPlan,
-          cached: true,
-          userId: userId 
-        });
-      }
-    } else {
-      console.log('handleGeneratePlan: Force regenerate requested - clearing all cached data for userId:', userId);
-      // Clear ALL cached data (plan, user data, conversation history) before regenerating
-      await clearUserCache(env, userId);
-    }
-
     console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
     
     // Use multi-step approach for better individualization
+    // No caching - client stores plan locally
     const structuredPlan = await generatePlanMultiStep(env, data);
     console.log('handleGeneratePlan: Plan structured for userId:', userId);
-    
-    // Cache the plan and user data
-    await cachePlan(env, userId, structuredPlan);
-    await cacheUserData(env, userId, data);
-    console.log('handleGeneratePlan: Plan cached for userId:', userId);
     
     return jsonResponse({ 
       success: true, 
       plan: structuredPlan,
-      cached: false,
       userId: userId 
     });
   } catch (error) {
@@ -198,34 +168,31 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 
 /**
  * Handle chat assistant requests
+ * No longer uses KV storage - all context is provided by client
  */
 async function handleChat(request, env) {
   try {
-    const { message, userId, conversationId, mode } = await request.json();
+    const { message, userId, conversationId, mode, userData, userPlan, conversationHistory } = await request.json();
     
-    if (!message || !userId) {
-      return jsonResponse({ error: 'Missing message or userId' }, 400);
+    if (!message) {
+      return jsonResponse({ error: 'Missing message' }, 400);
     }
 
-    // Get user context from cache
-    const userData = await getCachedUserData(env, userId);
-    const userPlan = await getCachedPlan(env, userId);
-    
+    // Validate that required context is provided by client
     if (!userData || !userPlan) {
       return jsonResponse({ 
-        error: 'User data not found. Please complete the questionnaire first.' 
-      }, 404);
+        error: 'Missing user data or plan. Please provide full context in request.' 
+      }, 400);
     }
 
-    // Get conversation history
-    const conversationKey = `chat_${userId}_${conversationId || 'default'}`;
-    const conversationHistory = await getConversationHistory(env, conversationKey);
+    // Use conversation history from client (defaults to empty array)
+    const chatHistory = conversationHistory || [];
     
     // Determine chat mode (default: consultation)
     const chatMode = mode || 'consultation';
     
     // Build chat prompt with context and mode
-    const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, conversationHistory, chatMode);
+    const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, chatHistory, chatMode);
     
     // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
     const aiResponse = await callAIModel(env, chatPrompt, 2000);
@@ -234,6 +201,8 @@ async function handleChat(request, env) {
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
     let finalResponse = aiResponse;
     let planWasUpdated = false;
+    let updatedPlan = null;
+    let updatedUserData = null;
     
     if (regenerateIndex !== -1) {
       // Always parse and remove REGENERATE_PLAN from the response, regardless of mode
@@ -339,17 +308,13 @@ async function handleChat(request, env) {
               dietDislike: Array.from(excludedFoods).join(', ')
             };
             
-            // Clear conversation history before regenerating plan to avoid cross-contamination
-            console.log('Clearing conversation history before plan regeneration');
-            await env.page_content.delete(conversationKey);
-            
             // Regenerate the plan using multi-step approach with new criteria
+            // Return updated data to client - no server storage
             const newPlan = await generatePlanMultiStep(env, modifiedUserData);
             
-            // Cache the updated plan and user data
-            await cachePlan(env, userId, newPlan);
-            await cacheUserData(env, userId, modifiedUserData);
             planWasUpdated = true;
+            updatedPlan = newPlan;
+            updatedUserData = modifiedUserData;
             
             console.log('Plan regenerated successfully with modifications:', validatedModifications);
           } else {
@@ -368,94 +333,81 @@ async function handleChat(request, env) {
       }
     }
     
-    // Update conversation history with the final (cleaned) response
-    await updateConversationHistory(env, conversationKey, message, finalResponse);
+    // Build updated conversation history for client to store
+    const updatedHistory = [...chatHistory];
+    updatedHistory.push(
+      { role: 'user', content: message },
+      { role: 'assistant', content: finalResponse }
+    );
     
-    return jsonResponse({ 
+    // Trim history to keep within token budget (approx 1500 tokens = 6000 chars)
+    const MAX_HISTORY_TOKENS = 1500;
+    let totalTokens = 0;
+    const trimmedHistory = [];
+    
+    // Process history in reverse to keep most recent messages
+    for (let i = updatedHistory.length - 1; i >= 0; i--) {
+      const msg = updatedHistory[i];
+      const messageTokens = estimateTokens(msg.content);
+      
+      if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
+        trimmedHistory.unshift(msg);
+        totalTokens += messageTokens;
+      } else {
+        // Stop adding older messages
+        break;
+      }
+    }
+    
+    console.log(`Conversation history trimmed to ${trimmedHistory.length} messages (~${totalTokens} tokens)`);
+    
+    const responseData = { 
       success: true, 
       response: finalResponse,
+      conversationHistory: trimmedHistory,
       planUpdated: planWasUpdated
-    });
+    };
+    
+    // Include updated plan and userData if plan was regenerated
+    if (planWasUpdated) {
+      responseData.updatedPlan = updatedPlan;
+      responseData.updatedUserData = updatedUserData;
+    }
+    
+    return jsonResponse(responseData);
   } catch (error) {
     console.error('Error in chat:', error);
     return jsonResponse({ error: 'Chat failed: ' + error.message }, 500);
   }
 }
 
-/**
- * Get cached plan for a user
- */
-async function handleGetPlan(request, env) {
-  const url = new URL(request.url);
-  const userId = url.searchParams.get('userId');
-  
-  if (!userId) {
-    return jsonResponse({ error: 'Missing userId' }, 400);
-  }
-
-  const cachedPlan = await getCachedPlan(env, userId);
-  
-  if (!cachedPlan) {
-    return jsonResponse({ error: 'Plan not found' }, 404);
-  }
-
-  return jsonResponse({ 
-    success: true, 
-    plan: cachedPlan 
-  });
-}
-
-/**
- * Update plan for a user (after AI assistant approval)
- */
-async function handleUpdatePlan(request, env) {
-  try {
-    const { userId, updatedPlan, changeReason } = await request.json();
-    
-    if (!userId || !updatedPlan) {
-      return jsonResponse({ error: 'Missing userId or updatedPlan' }, 400);
-    }
-
-    // Get existing plan
-    const existingPlan = await getCachedPlan(env, userId);
-    
-    if (!existingPlan) {
-      return jsonResponse({ error: 'Plan not found' }, 404);
-    }
-
-    // Merge the updated plan with existing plan
-    const mergedPlan = {
-      ...existingPlan,
-      ...updatedPlan,
-      lastModified: new Date().toISOString(),
-      modificationReason: changeReason || 'User requested change'
-    };
-
-    // Cache the updated plan
-    await cachePlan(env, userId, mergedPlan);
-    
-    return jsonResponse({ 
-      success: true, 
-      plan: mergedPlan,
-      message: 'Plan updated successfully'
-    });
-  } catch (error) {
-    console.error('Error updating plan:', error);
-    return jsonResponse({ error: 'Failed to update plan: ' + error.message }, 500);
-  }
-}
 
 /**
  * Multi-step plan generation for better individualization
- * Step 1: Analyze user profile and health status
- * Step 2: Determine dietary strategy and restrictions
- * Step 3: Generate detailed meal plan
+ * 
+ * This approach uses MULTIPLE AI requests for maximum precision and personalization:
+ * Step 1: Analyze user profile and health status (holistic health analysis)
+ * Step 2: Determine dietary strategy and restrictions (personalized strategy)
+ * Step 3: Generate detailed meal plan (specific meals based on analysis + strategy)
+ * 
+ * Benefits of multi-step approach:
+ * ✅ Better individualization - Each step builds on previous insights
+ * ✅ More precise analysis - Dedicated AI focus per step
+ * ✅ Higher quality output - Strategy informs meal generation
+ * ✅ Deeper understanding - Correlations between health parameters
+ * ✅ Can be extended - Additional steps can be added for more data/precision
+ * 
+ * Each step receives progressively more refined context:
+ * - Step 1: Raw user data → Health analysis
+ * - Step 2: User data + Analysis → Dietary strategy
+ * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 async function generatePlanMultiStep(env, data) {
-  console.log('Multi-step generation: Starting');
+  console.log('Multi-step generation: Starting (3 AI requests for precision)');
   
   try {
-    // Step 1: Analyze user profile
+    // Step 1: Analyze user profile (1st AI request)
+    // Focus: Deep health analysis, metabolic profile, correlations
     const analysisPrompt = generateAnalysisPrompt(data);
     const analysisResponse = await callAIModel(env, analysisPrompt);
     const analysis = parseAIResponse(analysisResponse);
@@ -463,9 +415,10 @@ async function generatePlanMultiStep(env, data) {
     if (!analysis || analysis.error) {
       throw new Error('Failed to parse analysis response');
     }
-    console.log('Multi-step generation: Analysis complete');
+    console.log('Multi-step generation: Analysis complete (1/3)');
     
-    // Step 2: Generate dietary strategy based on analysis
+    // Step 2: Generate dietary strategy based on analysis (2nd AI request)
+    // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = generateStrategyPrompt(data, analysis);
     const strategyResponse = await callAIModel(env, strategyPrompt);
     const strategy = parseAIResponse(strategyResponse);
@@ -473,9 +426,10 @@ async function generatePlanMultiStep(env, data) {
     if (!strategy || strategy.error) {
       throw new Error('Failed to parse strategy response');
     }
-    console.log('Multi-step generation: Strategy complete');
+    console.log('Multi-step generation: Strategy complete (2/3)');
     
-    // Step 3: Generate detailed meal plan
+    // Step 3: Generate detailed meal plan (3rd AI request)
+    // Focus: Specific meals, portions, timing based on strategy
     const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
     const mealPlanResponse = await callAIModel(env, mealPlanPrompt);
     const mealPlan = parseAIResponse(mealPlanResponse);
@@ -483,9 +437,10 @@ async function generatePlanMultiStep(env, data) {
     if (!mealPlan || mealPlan.error) {
       throw new Error('Failed to parse meal plan response');
     }
-    console.log('Multi-step generation: Meal plan complete');
+    console.log('Multi-step generation: Meal plan complete (3/3)');
     
     // Combine all parts into final plan (meal plan takes precedence)
+    // Returns comprehensive plan with analysis and strategy included
     return {
       ...mealPlan,
       analysis: analysis,
@@ -676,14 +631,31 @@ ${modificationsSection}
 5. Използвай РАЗНООБРАЗНИ храни - избягвай повторения на едни и същи ястия
 6. Всички ястия трябва да бъдат реалистични и лесни за приготвяне
 7. Използвай български и средиземноморски продукти
-8. Адаптирай времето на хранене към хронотипа: ${data.chronotype}
-9. Всяко ястие да е балансирано и подходящо за целта ${data.goal}
+8. Всяко ястие да е балансирано и подходящо за целта ${data.goal}
+
+ВАЖНО - ГЕНЕРАЛНИ ИМЕНА НА ХРАНИ:
+- Използвай ГЕНЕРАЛНИ категории вместо конкретни продукти
+- ДА: "плодове с кисело мляко", "риба с пресни зеленчуци", "пилешко със салата", "яйца с хляб"
+- НЕ: "боровинки с кисело мляко", "пастърва с броколи", "пилешки гърди с рукола и чери домати"
+- ДА: "овесена каша с плодове", НЕ: "овесена каша с банан и боровинки"
+- ДА: "салата с пилешко и зеленчуци", НЕ: "салата с пилешко, чери домати, краставици и маслини"
 
 ВАЖНО - ИЗБЯГВАЙ:
+- Прекалено конкретни имена на храни (позволи на клиента да избере конкретните плодове/зеленчуци)
 - Странни комбинации от храни (напр. чийзкейк със салата, пица с тофу)
 - Екзотични продукти, които са трудно достъпни в България
 - Повтаряне на едни и същи храни в различни дни
 - Комбинации, които не са традиционни за българската/средиземноморска кухня
+
+СПЕЦИАЛНО ПРАВИЛО ЗА ЗАКУСКА:
+${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `
+- Клиентът НЕ ЗАКУСВА! Уважи това предпочитание.
+- НЕ създавай пълноценна закуска.
+- Допустимо е САМО ако закуската е критична за целта или здравето:
+  * В този случай предложи САМО напитка: айран, смути или протеинов шейк
+  * Посочи в description защо напитката е препоръчана
+- Ако закуската НЕ Е критична, премахни я напълно от плана.
+` : ''}
 
 Върни JSON формат:
 {
@@ -701,8 +673,7 @@ ${modificationsSection}
       "meals": [
         {
           "type": "Закуска",
-          "time": "${strategy.mealTiming?.breakfast || '08:00'}",
-          "name": "име на реалистично и вкусно българско/средиземноморско ястие",
+          "name": "генерално име на храната (напр. плодове с кисело мляко, яйца с хляб)",
           "weight": "точно тегло в грамове",
           "description": "кратко описание на ястието и съставки",
           "benefits": "конкретни ползи за здравето",
@@ -826,7 +797,6 @@ async function generateNutritionPrompt(data, env) {
       "meals": [
         {
           "type": "Закуска",
-          "time": "08:00",
           "name": "Име на реалистично българско/средиземноморско ястие",
           "weight": "250g",
           "description": "Детайлно описание на ястието и съставки",
@@ -1227,7 +1197,6 @@ function generateMockResponse(prompt) {
           meals: [
             {
               type: "Закуска",
-              time: "08:00",
               name: "Овесена каша с горски плодове",
               weight: "250g",
               description: "Богата на фибри. Бавните въглехидрати осигуряват енергия за целия ден.",
@@ -1236,7 +1205,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Обяд",
-              time: "13:00",
               name: "Пилешка пържола на скара със салата",
               weight: "350g",
               description: "Високо съдържание на протеин с минимални мазнини.",
@@ -1245,7 +1213,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Вечеря",
-              time: "19:30",
               name: "Бяла риба със задушени зеленчуци",
               weight: "300g",
               description: "Лека вечеря, богата на Омега-3 мастни киселини.",
@@ -1258,7 +1225,6 @@ function generateMockResponse(prompt) {
           meals: [
             {
               type: "Закуска",
-              time: "08:00",
               name: "Гръцко кисело мляко с мюсли",
               weight: "200g",
               description: "Протеини и пробиотици за добро храносмилане.",
@@ -1267,7 +1233,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Обяд",
-              time: "13:00",
               name: "Телешко със зеленчуци на тиган",
               weight: "350g",
               description: "Балансирано ястие с протеини и витамини.",
@@ -1276,7 +1241,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Вечеря",
-              time: "19:30",
               name: "Пълнозърнести макарони с пуешко",
               weight: "300g",
               description: "Комплексни въглехидрати и постно месо.",
@@ -1289,7 +1253,6 @@ function generateMockResponse(prompt) {
           meals: [
             {
               type: "Закуска",
-              time: "08:00",
               name: "Яйца на очи с авокадо",
               weight: "200g",
               description: "Здравословни мазнини и протеини.",
@@ -1298,7 +1261,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Обяд",
-              time: "13:00",
               name: "Пилешка супа с киноа",
               weight: "400g",
               description: "Топла и питателна храна.",
@@ -1307,7 +1269,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Вечеря",
-              time: "19:30",
               name: "Сьомга на скара с брокули",
               weight: "320g",
               description: "Омега-3 и антиоксиданти.",
@@ -1320,7 +1281,6 @@ function generateMockResponse(prompt) {
           meals: [
             {
               type: "Закуска",
-              time: "08:00",
               name: "Протеинов смути с банан",
               weight: "300ml",
               description: "Бърза и лесна закуска.",
@@ -1329,7 +1289,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Обяд",
-              time: "13:00",
               name: "Пуешки кюфтета с ориз",
               weight: "350g",
               description: "Постно месо с комплексни въглехидрати.",
@@ -1338,7 +1297,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Вечеря",
-              time: "19:30",
               name: "Зеленчукова яхния",
               weight: "280g",
               description: "Лека и питателна вечеря.",
@@ -1351,7 +1309,6 @@ function generateMockResponse(prompt) {
           meals: [
             {
               type: "Закуска",
-              time: "08:00",
               name: "Палачинки от овесени ядки",
               weight: "230g",
               description: "Здравословна алтернатива на класическите.",
@@ -1360,7 +1317,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Обяд",
-              time: "13:00",
               name: "Говежди шишчета с печени зеленчуци",
               weight: "370g",
               description: "Протеини и витамини от зеленчуците.",
@@ -1369,7 +1325,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Вечеря",
-              time: "19:30",
               name: "Печена треска с аспержи",
               weight: "310g",
               description: "Лека бяла риба с деликатесни зеленчуци.",
@@ -1382,7 +1337,6 @@ function generateMockResponse(prompt) {
           meals: [
             {
               type: "Закуска",
-              time: "08:00",
               name: "Тост с крема сирене и домати",
               weight: "220g",
               description: "Класическа и вкусна закуска.",
@@ -1391,7 +1345,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Обяд",
-              time: "13:00",
               name: "Паста с песто и пилешко",
               weight: "360g",
               description: "Средиземноморски вкус с протеини.",
@@ -1400,7 +1353,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Вечеря",
-              time: "19:30",
               name: "Руло Стефани със салата",
               weight: "290g",
               description: "Традиционно българско ястие в здравословна версия.",
@@ -1413,7 +1365,6 @@ function generateMockResponse(prompt) {
           meals: [
             {
               type: "Закуска",
-              time: "09:00",
               name: "Боул с гранола и плодове",
               weight: "260g",
               description: "Цветна и вкусна закуска.",
@@ -1422,7 +1373,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Обяд",
-              time: "13:30",
               name: "Пиле по китайски с ориз",
               weight: "380g",
               description: "Екзотичен вкус с балансирани макроси.",
@@ -1431,7 +1381,6 @@ function generateMockResponse(prompt) {
             },
             {
               type: "Вечеря",
-              time: "19:30",
               name: "Гръцка мусака с кисело мляко",
               weight: "320g",
               description: "Традиционно ястие в облекчена версия.",
@@ -1482,112 +1431,12 @@ function parseAIResponse(response) {
   }
 }
 
-/**
- * Cache management functions using KV
- */
-async function getCachedPlan(env, userId) {
-  if (!env.page_content) return null;
-  const cached = await env.page_content.get(`plan_${userId}`);
-  return cached ? JSON.parse(cached) : null;
-}
-
-async function cachePlan(env, userId, plan) {
-  if (!env.page_content) return;
-  // Cache for 7 days
-  await env.page_content.put(`plan_${userId}`, JSON.stringify(plan), {
-    expirationTtl: 60 * 60 * 24 * 7
-  });
-}
-
-async function getCachedUserData(env, userId) {
-  if (!env.page_content) return null;
-  const cached = await env.page_content.get(`user_${userId}`);
-  return cached ? JSON.parse(cached) : null;
-}
-
-async function cacheUserData(env, userId, data) {
-  if (!env.page_content) return;
-  // Cache for 7 days
-  await env.page_content.put(`user_${userId}`, JSON.stringify(data), {
-    expirationTtl: 60 * 60 * 24 * 7
-  });
-}
-
-/**
- * Clear all cached data for a user
- * This includes: plan, user data, and conversation history
- */
-async function clearUserCache(env, userId) {
-  if (!env.page_content) return;
-  
-  console.log(`Clearing all cached data for userId: ${userId}`);
-  
-  try {
-    // Delete plan cache
-    await env.page_content.delete(`plan_${userId}`);
-    
-    // Delete user data cache
-    await env.page_content.delete(`user_${userId}`);
-    
-    // Delete conversation histories - we need to delete all possible conversation keys
-    // Standard chat conversations
-    await env.page_content.delete(`chat_${userId}_default`);
-    await env.page_content.delete(`chat_${userId}_consultation`);
-    await env.page_content.delete(`chat_${userId}_modification`);
-    
-    console.log(`Successfully cleared cache for userId: ${userId}`);
-  } catch (error) {
-    console.error(`Error clearing cache for userId ${userId}:`, error);
-  }
-}
-
-async function getConversationHistory(env, conversationKey) {
-  if (!env.page_content) return [];
-  const cached = await env.page_content.get(conversationKey);
-  return cached ? JSON.parse(cached) : [];
-}
-
 // Enhancement #3: Estimate tokens for a message
 // Note: This is a rough approximation (~4 chars per token for mixed content).
 // Actual GPT tokenization varies by language and content. This is sufficient
 // for conversation history management where approximate limits are acceptable.
 function estimateTokens(text) {
   return Math.ceil(text.length / 4);
-}
-
-async function updateConversationHistory(env, conversationKey, userMessage, aiResponse) {
-  if (!env.page_content) return;
-  const history = await getConversationHistory(env, conversationKey);
-  history.push(
-    { role: 'user', content: userMessage },
-    { role: 'assistant', content: aiResponse }
-  );
-  
-  // Enhancement #3: Keep conversation within token budget (approx 1500 tokens = 6000 chars)
-  const MAX_HISTORY_TOKENS = 1500;
-  let totalTokens = 0;
-  const trimmedHistory = [];
-  
-  // Process history in reverse to keep most recent messages
-  for (let i = history.length - 1; i >= 0; i--) {
-    const message = history[i];
-    const messageTokens = estimateTokens(message.content);
-    
-    if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
-      trimmedHistory.unshift(message);
-      totalTokens += messageTokens;
-    } else {
-      // Stop adding older messages
-      break;
-    }
-  }
-  
-  console.log(`Conversation history trimmed to ${trimmedHistory.length} messages (~${totalTokens} tokens)`);
-  
-  // Cache for 24 hours
-  await env.page_content.put(conversationKey, JSON.stringify(trimmedHistory), {
-    expirationTtl: 60 * 60 * 24
-  });
 }
 
 /**
