@@ -15,6 +15,7 @@
 │                            │                  │                 │
 │                            │ POST             │ POST            │
 │                            │ /generate-plan   │ /chat           │
+│                            │                  │ (with context)  │
 └────────────────────────────┼──────────────────┼────────────────┘
                              │                  │
                              ▼                  ▼
@@ -24,23 +25,22 @@
 ├────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐ │
-│  │              API ENDPOINTS                                │ │
+│  │              API ENDPOINTS (STATELESS)                    │ │
 │  ├──────────────────────────────────────────────────────────┤ │
 │  │  POST /api/generate-plan  - Generate nutrition plan      │ │
 │  │  POST /api/chat           - Chat with AI assistant       │ │
-│  │  GET  /api/get-plan       - Retrieve cached plan         │ │
+│  │  (NO user data storage - all data from client)           │ │
 │  └──────────────────────────────────────────────────────────┘ │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐ │
-│  │           CACHING LOGIC (KV Storage)                      │ │
+│  │           ADMIN CONFIG (KV Storage)                       │ │
 │  ├──────────────────────────────────────────────────────────┤ │
-│  │  • Check cache before AI call                            │ │
-│  │  • Store plans (7 days TTL)                              │ │
-│  │  • Store user data (7 days TTL)                          │ │
-│  │  • Store chat history (24 hours TTL)                     │ │
+│  │  • AI prompts (plan, chat, modification)                │ │
+│  │  • AI provider settings (OpenAI/Gemini)                 │ │
+│  │  • Model selection                                       │ │
 │  └──────────────────────────────────────────────────────────┘ │
 │                          │                                      │
-│                          ├───► KV Storage (page_content)        │
+│                          ├───► KV Storage (admin config only)   │
 │                          │                                      │
 │  ┌──────────────────────┴───────────────────────────────────┐ │
 │  │             AI INTEGRATION                                │ │
@@ -64,6 +64,17 @@
 │  └─────────────────────┘          └─────────────────────┘    │
 │                                                                 │
 └────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│                     CLIENT STORAGE (localStorage)               │
+├────────────────────────────────────────────────────────────────┤
+│  • dietPlan - Full 7-day nutrition plan                        │
+│  • userData - Questionnaire responses                          │
+│  • chatHistory - Conversation history                          │
+│  • userId - Unique identifier                                  │
+│                                                                 │
+│  ⚠️  ALL USER DATA STORED LOCALLY - NEVER ON SERVER           │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ## Data Flow Diagrams
@@ -83,19 +94,10 @@
      │ 2. Submit data via POST /api/generate-plan
      ▼
 ┌─────────────────┐
-│  Worker.js      │─────┐ 3. Check KV cache
-│  Backend        │◀────┘    (plan_{userId})
+│  Worker.js      │  3. NO caching - stateless processing
+│  Backend        │
 └────┬────────────┘
-     │ 4a. Cache MISS
-     ├──────────────────────┐
-     │                      │ 4b. Cache HIT
-     │                      │ (return cached)
-     ▼                      ▼
-┌─────────────────┐    ┌─────────────┐
-│ Generate Prompt │    │   Return    │
-│ with user data  │    │   Cached    │
-└────┬────────────┘    │   Plan      │
-     │                 └─────────────┘
+     │ 4. Generate prompt with user data
      ▼
 ┌─────────────────┐
 │   Call AI API   │
@@ -104,9 +106,9 @@
      │ 5. Receive structured JSON
      ▼
 ┌─────────────────┐
-│  Parse & Cache  │
-│  in KV Storage  │
-│  (7 days TTL)   │
+│  Parse & Return │
+│  NO server      │
+│  storage        │
 └────┬────────────┘
      │ 6. Return plan + userId
      ▼
@@ -144,21 +146,19 @@
 ┌─────────────────┐
 │ Send message    │
 │ POST /api/chat  │
-│ { userId,       │
-│   message,      │
-│   conversationId│
+│ { message,      │
+│   userData,     │
+│   userPlan,     │
+│   chatHistory   │
 │ }               │
 └────┬────────────┘
-     │
+     │ Full context from localStorage
      ▼
 ┌─────────────────┐
 │  Worker.js      │
 │  Chat Handler   │
+│  (Stateless)    │
 └────┬────────────┘
-     │ 1. Retrieve from KV:
-     ├──▶ user_{userId} (profile)
-     ├──▶ plan_{userId} (diet plan)
-     └──▶ chat_{userId}_{convId} (history)
      │
      ▼
 ┌─────────────────┐
@@ -168,6 +168,8 @@
 │ - Diet plan     │
 │ - Chat history  │
 │ - User message  │
+│ (all from       │
+│  client)        │
 └────┬────────────┘
      │
      ▼
@@ -179,16 +181,11 @@
      │
      ▼
 ┌─────────────────┐
-│ Update chat     │
-│ history in KV   │
-│ (last 20 msgs)  │
-│ (24h TTL)       │
-└────┬────────────┘
-     │
-     ▼
-┌─────────────────┐
-│  Return AI      │
-│  Response       │
+│ Return Response │
+│ + updated       │
+│ history         │
+│ + updated plan  │
+│ (if modified)   │
 └────┬────────────┘
      │
      ▼
@@ -196,6 +193,8 @@
 │  plan.html      │
 │ Display response│
 │ in chat window  │
+│ Update          │
+│ localStorage    │
 └─────────────────┘
 ```
 
@@ -203,17 +202,26 @@
 
 ```
 KV Namespace: page_content
-├─ plan_{userId}
-│  └─ Value: { summary, weekPlan, recommendations, ... }
-│  └─ TTL: 7 days
+
+ONLY FOR ADMIN CONFIGURATION - NO USER DATA:
+
+├─ admin_plan_prompt
+│  └─ Value: Custom prompt template for plan generation
 │
-├─ user_{userId}
-│  └─ Value: { name, age, weight, height, goal, ... }
-│  └─ TTL: 7 days
+├─ admin_consultation_prompt
+│  └─ Value: Custom prompt for consultation chat mode
 │
-└─ chat_{userId}_{conversationId}
-   └─ Value: [{ role, content }, ...]
-   └─ TTL: 24 hours
+├─ admin_modification_prompt
+│  └─ Value: Custom prompt for modification chat mode
+│
+├─ admin_ai_provider
+│  └─ Value: 'openai' | 'google' | 'mock'
+│
+└─ admin_ai_model_name
+   └─ Value: Model name (e.g., 'gpt-4o-mini', 'gemini-pro')
+
+⚠️  USER DATA IS NEVER STORED ON SERVER
+⚠️  All client data (plans, profiles, chat) is in browser localStorage
 ```
 
 ## Component Interactions
@@ -243,20 +251,21 @@ plan.html
 worker.js
     ├─ handleGeneratePlan()
     │   ├─ Validate input
-    │   ├─ Check cache (getCachedPlan)
     │   ├─ Generate prompt
     │   ├─ Call AI (callAIModel)
     │   ├─ Parse response
-    │   └─ Cache result (cachePlan, cacheUserData)
+    │   └─ Return plan (NO caching)
     │
     ├─ handleChat()
     │   ├─ Validate input
-    │   ├─ Get user context (getCachedUserData)
-    │   ├─ Get plan context (getCachedPlan)
-    │   ├─ Get conversation history
+    │   ├─ Receive full context from client
+    │   │   ├─ userData (from request)
+    │   │   ├─ userPlan (from request)
+    │   │   └─ conversationHistory (from request)
     │   ├─ Build context prompt
     │   ├─ Call AI (callAIModel)
-    │   └─ Update history (updateConversationHistory)
+    │   ├─ Process plan regeneration (if requested)
+    │   └─ Return response + updated data
     │
     └─ callAIModel()
         ├─ Check for OPENAI_API_KEY → callOpenAI()
@@ -266,27 +275,27 @@ worker.js
 
 ## Caching Strategy
 
-### Cache Decision Tree
+### NO USER DATA CACHING
+
 ```
-Request arrives
-    ↓
-Is it in cache? ──YES──▶ Return cached data (FAST)
-    │ NO
-    ▼
-Call AI API (SLOW, expensive)
-    ↓
-Parse response
-    ↓
-Store in cache with TTL
-    ↓
-Return to user
+Client Request → Worker (Stateless Processing) → AI API → Response → Client
+
+NO server-side caching of user data
+All data stored in browser localStorage
 ```
 
-### Cache Benefits
-- **Speed**: 10-100x faster than API calls
-- **Cost**: Reduces AI API usage by 90%+
-- **Reliability**: Works even if AI API is slow
-- **UX**: Near-instant responses for cached data
+### Admin Config Caching (In-Memory)
+```
+Admin settings cached in worker memory for 5 minutes to reduce KV reads
+```
+
+### Benefits of Local Storage Architecture
+- **Privacy**: User data never leaves their device
+- **GDPR Compliant**: No personal data stored on servers
+- **Simplicity**: No database management needed
+- **Cost**: Lower server costs (no storage fees)
+- **Speed**: Data access is instant (no network calls)
+- **Offline**: Can work offline once plan is generated
 
 ## Security Layers
 
@@ -308,11 +317,17 @@ Return to user
 │    - API keys not in code               │
 │    - Managed via Wrangler secrets       │
 │                                          │
-│ 5. No Sensitive Data                    │
-│    - No passwords stored                │
-│    - Medical data encrypted in transit  │
+│ 5. No Server-Side User Data Storage    │
+│    - Privacy by design                  │
+│    - GDPR compliant                     │
+│    - No data breach risk                │
 │                                          │
-│ 6. Rate Limiting (Cloudflare)           │
+│ 6. Local Storage Only                   │
+│    - User controls their data           │
+│    - Can clear at any time              │
+│    - No server tracking                 │
+│                                          │
+│ 7. Rate Limiting (Cloudflare)           │
 │    - Built-in DDoS protection           │
 │    - Request throttling                 │
 └─────────────────────────────────────────┘
@@ -341,19 +356,27 @@ Local Development
 
 ## Performance Characteristics
 
-| Operation | Without Cache | With Cache | Improvement |
-|-----------|--------------|------------|-------------|
-| Generate Plan | 3-15s | <100ms | 30-150x faster |
-| Chat Response | 1-5s | <50ms | 20-100x faster |
-| Load Plan Page | N/A | <10ms | Instant |
+| Operation | Performance | Notes |
+|-----------|------------|-------|
+| Generate Plan | 3-15s | AI processing time |
+| Chat Response | 1-5s | AI processing time |
+| Load Plan Page | <100ms | From localStorage |
+| Update Plan | 3-15s | Regeneration via AI |
+
+**Key Changes from Previous Architecture:**
+- No KV cache reads/writes for user data = simpler, more private
+- Slightly slower on repeat visits (no cached plans) but privacy-first
+- localStorage is instant vs. KV which had 50-100ms latency
 
 ## Scalability
 
 - **Cloudflare Workers**: Auto-scales globally
-- **KV Storage**: Replicated worldwide
+- **Stateless Design**: No shared state between requests
 - **Edge Computing**: Low latency everywhere
-- **Stateless**: No server management needed
+- **No Database**: No scaling concerns for user data
+- **localStorage**: Infinite client-side storage (per-user)
 - **Free Tier**: 100k requests/day
 - **Paid Tier**: Millions of requests/day
 
-This architecture ensures the application is fast, reliable, scalable, and cost-effective.
+**Privacy-First Architecture:**
+This application follows a privacy-first, client-side storage model where NO user data is retained on the server. This ensures maximum privacy and GDPR compliance while maintaining excellent performance through browser localStorage.
