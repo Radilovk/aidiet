@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192x192.png">
     <title>NutriPlan - Твоят Персонален Режим</title>
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -371,6 +377,53 @@
             transform: translateY(0);
         }
 
+        /* --- NOTIFICATION BUTTON --- */
+        .notification-section {
+            padding: 40px 5%;
+            text-align: center;
+            background: var(--soft-red);
+        }
+
+        .notification-btn {
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .notification-btn:active {
+            transform: translateY(0);
+        }
+
+        .notification-btn.hidden {
+            display: none;
+        }
+
+        .notification-status {
+            margin-top: 15px;
+            color: var(--text-gray);
+            font-size: 0.95rem;
+        }
+
+        .notification-status.granted {
+            color: var(--primary-red);
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -569,6 +622,21 @@
         </div>
     </section>
 
+    <!-- Notification Section (PWA) -->
+    <section class="notification-section" id="notificationSection" style="display: none;">
+        <h2 style="margin-bottom: 15px; color: var(--text-dark);">
+            <i class="fas fa-bell"></i> Получавай Напомняния
+        </h2>
+        <p style="margin-bottom: 20px; color: var(--text-gray);">
+            Включи известията, за да получаваш напомняния за храненията и мотивиращи съобщения.
+        </p>
+        <button class="notification-btn" id="enableNotificationsBtn" onclick="handleEnableNotifications()">
+            <i class="fas fa-bell"></i>
+            Включи Известия
+        </button>
+        <div class="notification-status" id="notificationStatus"></div>
+    </section>
+
     <!-- Features Section -->
     <section class="features reveal">
         <div class="section-title">
@@ -714,6 +782,130 @@
         }
         // Trigger once on load
         reveal();
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // --- Push Notifications Support ---
+        let deferredPrompt;
+        
+        // Capture the beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('beforeinstallprompt fired');
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        // Check if notification button should be shown
+        function checkNotificationPermission() {
+            if (!('Notification' in window)) {
+                console.log('This browser does not support notifications');
+                return;
+            }
+
+            const permission = Notification.permission;
+            console.log('Notification permission:', permission);
+            
+            const notificationSection = document.getElementById('notificationSection');
+            const enableBtn = document.getElementById('enableNotificationsBtn');
+            const statusDiv = document.getElementById('notificationStatus');
+            
+            if (!notificationSection || !enableBtn || !statusDiv) {
+                return;
+            }
+
+            // Show section only if permission is 'default' (not asked yet)
+            if (permission === 'default') {
+                notificationSection.style.display = 'block';
+                statusDiv.textContent = '';
+            } else if (permission === 'granted') {
+                notificationSection.style.display = 'block';
+                enableBtn.classList.add('hidden');
+                statusDiv.textContent = '✓ Известията са включени';
+                statusDiv.classList.add('granted');
+            } else if (permission === 'denied') {
+                // Don't show section if denied
+                notificationSection.style.display = 'none';
+            }
+        }
+
+        // Handle enable notifications button click
+        async function handleEnableNotifications() {
+            const result = await requestNotificationPermission();
+            
+            if (result) {
+                // Update UI
+                const enableBtn = document.getElementById('enableNotificationsBtn');
+                const statusDiv = document.getElementById('notificationStatus');
+                
+                if (enableBtn && statusDiv) {
+                    enableBtn.classList.add('hidden');
+                    statusDiv.textContent = '✓ Известията са включени успешно!';
+                    statusDiv.classList.add('granted');
+                }
+            } else {
+                const statusDiv = document.getElementById('notificationStatus');
+                if (statusDiv) {
+                    statusDiv.textContent = 'Известията са отказани. Можете да ги разрешите от настройките на браузъра.';
+                }
+            }
+        }
+
+        // Request notification permission
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('Този браузър не поддържа известия');
+                return false;
+            }
+
+            const permission = await Notification.requestPermission();
+            console.log('Notification permission result:', permission);
+
+            if (permission === 'granted') {
+                console.log('Notification permission granted');
+                // Subscribe to push notifications
+                await subscribeToPushNotifications();
+                return true;
+            } else {
+                console.log('Notification permission denied');
+                return false;
+            }
+        }
+
+        // Subscribe to push notifications
+        async function subscribeToPushNotifications() {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                
+                // Check if already subscribed
+                let subscription = await registration.pushManager.getSubscription();
+                
+                if (!subscription) {
+                    // Subscribe to push
+                    // Note: VAPID keys should be configured in the worker
+                    console.log('Subscribing to push notifications...');
+                    
+                    // For now, just log that subscription would happen
+                    // In production, this would send subscription to the server
+                    console.log('Push subscription would be sent to server');
+                }
+            } catch (error) {
+                console.error('Failed to subscribe to push notifications:', error);
+            }
+        }
+
+        // Check notification permission on load
+        window.addEventListener('DOMContentLoaded', checkNotificationPermission);
     </script>
 </body>
 </html>
