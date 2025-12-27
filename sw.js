@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching static resources');
-      return cache.addAll(STATIC_CACHE.map(url => new Request(url, { cache: 'no-cache' })))
+      return cache.addAll(STATIC_CACHE)
         .catch((err) => {
           console.warn('[SW] Some resources failed to cache:', err);
           // Continue even if some resources fail
@@ -64,7 +64,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Network first for HTML pages (to get latest content)
-  if (request.headers.get('accept').includes('text/html')) {
+  const acceptHeader = request.headers.get('accept');
+  if (acceptHeader && acceptHeader.includes('text/html')) {
     event.respondWith(
       fetch(request)
         .then((response) => {

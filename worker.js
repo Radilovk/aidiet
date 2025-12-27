@@ -1613,6 +1613,23 @@ async function handleGetConfig(request, env) {
 
 /**
  * Push Notifications: Get VAPID public key
+ * 
+ * Returns the VAPID public key needed for push notification subscription.
+ * The public key must be configured in the VAPID_PUBLIC_KEY environment variable.
+ * 
+ * @param {Request} request - The incoming request
+ * @param {Object} env - Environment bindings including VAPID_PUBLIC_KEY
+ * @returns {Response} JSON response with publicKey field
+ * 
+ * @example
+ * // Request
+ * GET /api/push/vapid-public-key
+ * 
+ * // Response
+ * {
+ *   "success": true,
+ *   "publicKey": "BG3xG3xG..."
+ * }
  */
 async function handleGetVapidPublicKey(request, env) {
   try {
@@ -1632,6 +1649,30 @@ async function handleGetVapidPublicKey(request, env) {
 
 /**
  * Push Notifications: Subscribe user to push notifications
+ * 
+ * Stores the push subscription in KV storage for the given user.
+ * The subscription can later be used to send push notifications.
+ * 
+ * @param {Request} request - The incoming request with userId and subscription
+ * @param {Object} env - Environment bindings including page_content KV namespace
+ * @returns {Response} JSON response confirming subscription
+ * 
+ * @example
+ * // Request
+ * POST /api/push/subscribe
+ * {
+ *   "userId": "user123",
+ *   "subscription": {
+ *     "endpoint": "https://...",
+ *     "keys": { "p256dh": "...", "auth": "..." }
+ *   }
+ * }
+ * 
+ * // Response
+ * {
+ *   "success": true,
+ *   "message": "Subscription saved successfully"
+ * }
  */
 async function handlePushSubscribe(request, env) {
   try {
@@ -1663,8 +1704,33 @@ async function handlePushSubscribe(request, env) {
 
 /**
  * Push Notifications: Send push notification to user
- * This is a simplified implementation. In production, you would use Web Push protocol
+ * 
+ * Retrieves the user's push subscription from KV and sends a push notification.
+ * This is a simplified implementation - production use requires Web Push protocol
  * with proper VAPID authentication and encryption.
+ * 
+ * @param {Request} request - The incoming request with userId, title, body, and url
+ * @param {Object} env - Environment bindings including page_content KV and VAPID keys
+ * @returns {Response} JSON response confirming notification sent
+ * 
+ * @example
+ * // Request
+ * POST /api/push/send
+ * {
+ *   "userId": "user123",
+ *   "title": "Време за обяд!",
+ *   "body": "Не забравяйте да се храните според плана си",
+ *   "url": "/plan.html"
+ * }
+ * 
+ * // Response
+ * {
+ *   "success": true,
+ *   "message": "Push notification sent"
+ * }
+ * 
+ * @note Requires VAPID keys to be configured for production use
+ * @todo Implement actual Web Push protocol with web-push library
  */
 async function handlePushSend(request, env) {
   try {
