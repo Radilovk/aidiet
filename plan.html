@@ -1354,6 +1354,31 @@
             
             return null;
         }
+        
+        // --- Helper: Generate HTML list item with icon ---
+        function generateListItem(content, iconClass, index) {
+            if (typeof content === 'string') {
+                const cleanContent = content.replace(/^!\s*/, '').trim();
+                if (cleanContent) {
+                    return `<li><i class="fas ${iconClass}" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanContent}</li>`;
+                }
+            } else if (typeof content === 'object' && content !== null) {
+                // Handle structured objects (for psychology tips or supplement objects)
+                let details = '';
+                if (content.title || content.name) {
+                    details = content.title || content.name;
+                } else {
+                    details = iconClass === 'fa-brain' ? `Съвет ${index + 1}` : `Добавка ${index + 1}`;
+                }
+                
+                if (content.description) details += ` - ${content.description}`;
+                if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
+                if (content.intake) details += ` - Прием: ${content.intake}`;
+                
+                return `<li><i class="fas ${iconClass}" style="color: var(--primary-accent); margin-right: 8px;"></i>${details}</li>`;
+            }
+            return '';
+        }
 
         // --- Render Recommendations ---
         function renderRecommendations() {
@@ -1401,17 +1426,7 @@
                     // Successfully normalized to array
                     psychologyHTML = '<ul class="info-list">';
                     normalized.forEach((tip, index) => {
-                        if (typeof tip === 'string') {
-                            const cleanTip = tip.replace(/^!\s*/, '').trim();
-                            if (cleanTip) {
-                                psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanTip}</li>`;
-                            }
-                        } else if (typeof tip === 'object' && tip !== null) {
-                            const title = tip.title || `Съвет ${index + 1}`;
-                            let details = title;
-                            if (tip.description) details += ` - ${tip.description}`;
-                            psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${details}</li>`;
-                        }
+                        psychologyHTML += generateListItem(tip, 'fa-brain', index);
                     });
                     psychologyHTML += '</ul>';
                 } else if (typeof dietPlan.psychology === 'string') {
@@ -1446,19 +1461,7 @@
                     // Successfully normalized to array
                     supplementsHTML = '<ul class="info-list">';
                     normalized.forEach((supplement, index) => {
-                        if (typeof supplement === 'string') {
-                            const cleanSupplement = supplement.replace(/^!\s*/, '').trim();
-                            if (cleanSupplement) {
-                                supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanSupplement}</li>`;
-                            }
-                        } else if (typeof supplement === 'object' && supplement !== null) {
-                            const name = supplement.name || `Добавка ${index + 1}`;
-                            let details = name;
-                            if (supplement.dosage) details += ` - Дозировка: ${supplement.dosage}`;
-                            if (supplement.intake) details += ` - Прием: ${supplement.intake}`;
-                            if (supplement.description) details += ` - ${supplement.description}`;
-                            supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${details}</li>`;
-                        }
+                        supplementsHTML += generateListItem(supplement, 'fa-pills', index);
                     });
                     supplementsHTML += '</ul>';
                 } else if (typeof dietPlan.supplements === 'string') {
