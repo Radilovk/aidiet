@@ -86,14 +86,19 @@
             flex: 1;
             position: relative;
             padding: 20px;
-            padding-bottom: 120px; /* Increased padding for footer to prevent content hiding */
+            padding-bottom: 100px; /* Reduced padding for footer to prevent content hiding */
             display: flex;
             align-items: flex-start; /* Changed from center to allow scrolling from top */
             justify-content: center;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-            scroll-padding-bottom: 120px; /* Ensure scroll area accounts for fixed footer */
+            scroll-padding-bottom: 100px; /* Ensure scroll area accounts for fixed footer */
+        }
+        
+        /* Compact layout for input-only questions - less padding for footer to be closer */
+        .question-wrapper.compact {
+            padding-bottom: 76px; /* 8px gap + ~68px footer height */
         }
 
         .question-card {
@@ -262,7 +267,7 @@
 
         /* --- FOOTER NAVIGATION --- */
         .nav-footer {
-            padding: 20px;
+            padding: 12px 20px;
             background: var(--card-bg);
             display: flex;
             justify-content: space-between;
@@ -274,11 +279,12 @@
             left: 0;
             right: 0;
             width: 100%;
+            transition: var(--transition);
         }
 
         .btn {
             border: none;
-            padding: 16px 32px;
+            padding: 12px 28px;
             border-radius: 30px;
             font-size: 1rem;
             font-weight: 600;
@@ -287,7 +293,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 48px;
+            min-height: 44px;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -584,6 +590,15 @@
 
             const card = document.createElement('div');
             card.className = 'question-card';
+            
+            // Determine if this is an input-only question (text, number, email, textarea)
+            const isInputOnly = ['text', 'number', 'email', 'textarea'].includes(step.type);
+            
+            if (isInputOnly) {
+                container.classList.add('compact');
+            } else {
+                container.classList.remove('compact');
+            }
 
             if (step.type === 'section') {
                 renderSectionTitle(card, step);
