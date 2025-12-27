@@ -1,0 +1,19 @@
+<svg width="192" height="192" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="192" height="192" fill="#10b981"/>
+  
+  <!-- Apple shape (simplified) -->
+  <g transform="translate(96,96)">
+    <!-- Apple body -->
+    <ellipse cx="0" cy="10" rx="50" ry="55" fill="#ffffff"/>
+    
+    <!-- Apple leaf -->
+    <ellipse cx="15" cy="-40" rx="12" ry="18" fill="#34d399" transform="rotate(-30 15 -40)"/>
+    
+    <!-- Apple stem -->
+    <rect x="-3" y="-45" width="6" height="15" fill="#059669" rx="3"/>
+    
+    <!-- "NP" text -->
+    <text x="0" y="20" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#10b981" text-anchor="middle">NP</text>
+  </g>
+</svg>

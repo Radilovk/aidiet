@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192x192.png">
     <title>Диетичен План</title>
     <!-- Font Awesome за икони -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- jsPDF library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
             --primary-red: #10b981;
@@ -108,30 +112,7 @@
             transform: translateX(-3px);
         }
 
-        .export-btn {
-            background: var(--primary-red);
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        }
 
-        .export-btn:hover {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.6);
-        }
-
-        .export-btn:active {
-            transform: scale(0.95);
-        }
 
         .theme-toggle-btn {
             background: var(--secondary-accent);
@@ -785,7 +766,7 @@
         }
 
         @media (max-width: 400px) {
-            .export-btn, .theme-toggle-btn, .user-avatar {
+            .theme-toggle-btn, .user-avatar {
                 width: 32px;
                 height: 32px;
                 font-size: 0.9rem;
@@ -901,9 +882,7 @@
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема">
                 <i class="fas fa-moon" id="themeIcon"></i>
             </button>
-            <button class="export-btn" onclick="exportToPDF()" title="Изтегли като PDF">
-                <i class="fas fa-file-pdf"></i>
-            </button>
+
             <div class="user-avatar" onclick="goToProfile()" style="cursor: pointer;" title="Моят профил"></div>
         </div>
     </header>
@@ -2354,218 +2333,20 @@
         `;
         document.head.appendChild(style);
 
-        // Export to PDF function
-        function exportToPDF() {
-            if (!dietPlan) {
-                alert('Моля, първо заредете план!');
-                return;
-            }
 
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                
-                // Set font to support Cyrillic (using built-in fonts)
-                doc.setFont('helvetica');
-                
-                let yPos = 20;
-                const pageHeight = doc.internal.pageSize.height;
-                const marginLeft = 20;
-                const marginRight = 20;
-                const pageWidth = doc.internal.pageSize.width - marginLeft - marginRight;
-                
-                // Helper function to check if new page is needed
-                const checkNewPage = (requiredSpace = 20) => {
-                    if (yPos + requiredSpace > pageHeight - 20) {
-                        doc.addPage();
-                        yPos = 20;
-                        return true;
-                    }
-                    return false;
-                };
-                
-                // Helper function to add wrapped text
-                const addWrappedText = (text, fontSize, isBold = false) => {
-                    doc.setFontSize(fontSize);
-                    if (isBold) {
-                        doc.setFont('helvetica', 'bold');
-                    } else {
-                        doc.setFont('helvetica', 'normal');
-                    }
-                    
-                    const lines = doc.splitTextToSize(text, pageWidth);
-                    lines.forEach(line => {
-                        checkNewPage();
-                        doc.text(line, marginLeft, yPos);
-                        yPos += fontSize * 0.4;
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
                     });
-                };
-                
-                // Title
-                doc.setFillColor(231, 76, 60); // Primary red color
-                doc.rect(0, 0, doc.internal.pageSize.width, 35, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(24);
-                doc.setFont('helvetica', 'bold');
-                doc.text('Moya Hranitelna Programa', marginLeft, 22);
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'normal');
-                doc.text('NutriPlan - Personaliziran plan', marginLeft, 30);
-                
-                yPos = 45;
-                doc.setTextColor(44, 62, 80); // Text dark color
-                
-                // Summary Section
-                if (dietPlan.summary) {
-                    doc.setFontSize(16);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(231, 76, 60);
-                    doc.text('Obsht pregled', marginLeft, yPos);
-                    yPos += 8;
-                    doc.setTextColor(44, 62, 80);
-                    
-                    doc.setFontSize(11);
-                    doc.setFont('helvetica', 'normal');
-                    if (dietPlan.summary.bmr) {
-                        doc.text(`BMR: ${dietPlan.summary.bmr} kalorii`, marginLeft, yPos);
-                        yPos += 6;
-                    }
-                    if (dietPlan.summary.dailyCalories) {
-                        doc.text(`Dnevni kalorii: ${dietPlan.summary.dailyCalories}`, marginLeft, yPos);
-                        yPos += 6;
-                    }
-                    if (dietPlan.summary.macros) {
-                        doc.text(`Proteini: ${dietPlan.summary.macros.protein}`, marginLeft, yPos);
-                        yPos += 5;
-                        doc.text(`Vaglehidrati: ${dietPlan.summary.macros.carbs}`, marginLeft, yPos);
-                        yPos += 5;
-                        doc.text(`Maznini: ${dietPlan.summary.macros.fats}`, marginLeft, yPos);
-                        yPos += 10;
-                    }
-                }
-                
-                // Weekly Plan
-                if (dietPlan.weekPlan) {
-                    for (let day = 1; day <= 7; day++) {
-                        const dayKey = `day${day}`;
-                        const dayPlan = dietPlan.weekPlan[dayKey];
-                        
-                        if (!dayPlan || !dayPlan.meals) continue;
-                        
-                        checkNewPage(40);
-                        
-                        // Day header
-                        doc.setFillColor(250, 219, 216); // Soft red
-                        doc.rect(marginLeft, yPos - 5, pageWidth, 10, 'F');
-                        doc.setFontSize(14);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setTextColor(231, 76, 60);
-                        doc.text(`Den ${day}`, marginLeft + 2, yPos + 2);
-                        yPos += 12;
-                        doc.setTextColor(44, 62, 80);
-                        
-                        // Meals
-                        dayPlan.meals.forEach((meal, idx) => {
-                            checkNewPage(25);
-                            
-                            doc.setFontSize(11);
-                            doc.setFont('helvetica', 'bold');
-                            doc.text(`${meal.type}`, marginLeft + 5, yPos);
-                            yPos += 5;
-                            
-                            doc.setFont('helvetica', 'normal');
-                            doc.text(meal.name || 'N/A', marginLeft + 5, yPos);
-                            yPos += 5;
-                            
-                            doc.setFontSize(9);
-                            doc.text(`Teglo: ${meal.weight || 'N/A'} | Kalorii: ${meal.calories || 'N/A'}`, marginLeft + 5, yPos);
-                            yPos += 5;
-                            
-                            if (meal.description) {
-                                const descLines = doc.splitTextToSize(meal.description, pageWidth - 10);
-                                descLines.forEach(line => {
-                                    checkNewPage();
-                                    doc.text(line, marginLeft + 5, yPos);
-                                    yPos += 4;
-                                });
-                            }
-                            
-                            yPos += 3;
-                        });
-                        
-                        yPos += 5;
-                    }
-                }
-                
-                // Recommendations
-                if (dietPlan.recommendations && dietPlan.recommendations.length > 0) {
-                    checkNewPage(30);
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(231, 76, 60);
-                    doc.text('Preporaki', marginLeft, yPos);
-                    yPos += 8;
-                    doc.setTextColor(44, 62, 80);
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    
-                    dietPlan.recommendations.forEach((rec, idx) => {
-                        checkNewPage();
-                        const recLines = doc.splitTextToSize(`${idx + 1}. ${rec}`, pageWidth - 5);
-                        recLines.forEach(line => {
-                            checkNewPage();
-                            doc.text(line, marginLeft + 2, yPos);
-                            yPos += 5;
-                        });
-                    });
-                    yPos += 5;
-                }
-                
-                // Forbidden foods
-                if (dietPlan.forbidden && dietPlan.forbidden.length > 0) {
-                    checkNewPage(30);
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(231, 76, 60);
-                    doc.text('Zabraneni hrani', marginLeft, yPos);
-                    yPos += 8;
-                    doc.setTextColor(44, 62, 80);
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    
-                    dietPlan.forbidden.forEach((food, idx) => {
-                        checkNewPage();
-                        const foodLines = doc.splitTextToSize(`${idx + 1}. ${food}`, pageWidth - 5);
-                        foodLines.forEach(line => {
-                            checkNewPage();
-                            doc.text(line, marginLeft + 2, yPos);
-                            yPos += 5;
-                        });
-                    });
-                }
-                
-                // Footer on last page
-                const totalPages = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= totalPages; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(8);
-                    doc.setTextColor(127, 140, 141);
-                    doc.text(`Stranitsa ${i} ot ${totalPages}`, doc.internal.pageSize.width / 2, pageHeight - 10, { align: 'center' });
-                    doc.text('Generirano ot NutriPlan - aidiet.radilov-k.workers.dev', doc.internal.pageSize.width / 2, pageHeight - 6, { align: 'center' });
-                }
-                
-                // Save the PDF
-                const userName = userData?.name || 'User';
-                const fileName = `NutriPlan_${userName}_${new Date().toISOString().split('T')[0]}.pdf`;
-                doc.save(fileName);
-                
-                console.log('PDF exported successfully');
-            } catch (error) {
-                console.error('Error exporting PDF:', error);
-                alert('Грешка при генериране на PDF. Моля, опитайте отново.');
-            }
+            });
         }
-
     </script>
 </body>
 </html>
