@@ -29,6 +29,7 @@
             --footer-button-min-height: 44px;
             --wrapper-padding-default: 100px;
             --wrapper-padding-compact: 80px;
+            --footer-position-delay: 50; /* ms - delay for DOM rendering before positioning */
         }
 
         /* Dark theme */
@@ -638,7 +639,10 @@
         
         // --- FOOTER POSITIONING HELPERS ---
         function positionFooterBelowInput() {
-            // Wait for DOM to render
+            // Wait for DOM to render - using CSS variable for delay
+            const delay = parseInt(getComputedStyle(document.documentElement)
+                .getPropertyValue('--footer-position-delay')) || 50;
+            
             setTimeout(() => {
                 const input = document.querySelector('.modern-input');
                 const footer = document.querySelector('.nav-footer');
@@ -647,15 +651,19 @@
                     // Get input position relative to viewport
                     const inputRect = input.getBoundingClientRect();
                     
-                    // Calculate position: input bottom + 8px
-                    const footerTop = inputRect.bottom + 8;
+                    // Get gap from CSS variable
+                    const gap = parseInt(getComputedStyle(document.documentElement)
+                        .getPropertyValue('--footer-input-gap')) || 8;
                     
-                    // Position footer 8px below input
+                    // Calculate position: input bottom + gap
+                    const footerTop = inputRect.bottom + gap;
+                    
+                    // Position footer below input
                     footer.style.position = 'fixed';
                     footer.style.top = footerTop + 'px';
                     footer.style.bottom = 'auto';
                 }
-            }, 50);
+            }, delay);
         }
         
         function resetFooterPosition() {

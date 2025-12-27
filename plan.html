@@ -1328,6 +1328,11 @@
             supplements: 'Консултирайте се с лекар преди приемане на нови добавки'
         };
         
+        const ICON_CLASSES = {
+            psychology: 'fa-brain',
+            supplements: 'fa-pills'
+        };
+        
         function normalizeToThreeItems(data, fieldName, defaultMessage) {
             // Handle string data - try to parse or return null
             if (typeof data === 'string') {
@@ -1356,7 +1361,9 @@
         }
         
         // --- Helper: Generate HTML list item with icon ---
-        function generateListItem(content, iconClass, index) {
+        function generateListItem(content, contentType, index) {
+            const iconClass = ICON_CLASSES[contentType] || 'fa-info-circle';
+            
             if (typeof content === 'string') {
                 const cleanContent = content.replace(/^!\s*/, '').trim();
                 if (cleanContent) {
@@ -1368,7 +1375,7 @@
                 if (content.title || content.name) {
                     details = content.title || content.name;
                 } else {
-                    details = iconClass === 'fa-brain' ? `Съвет ${index + 1}` : `Добавка ${index + 1}`;
+                    details = contentType === 'psychology' ? `Съвет ${index + 1}` : `Добавка ${index + 1}`;
                 }
                 
                 if (content.description) details += ` - ${content.description}`;
@@ -1426,12 +1433,12 @@
                     // Successfully normalized to array
                     psychologyHTML = '<ul class="info-list">';
                     normalized.forEach((tip, index) => {
-                        psychologyHTML += generateListItem(tip, 'fa-brain', index);
+                        psychologyHTML += generateListItem(tip, 'psychology', index);
                     });
                     psychologyHTML += '</ul>';
                 } else if (typeof dietPlan.psychology === 'string') {
                     // Fallback to string formatting
-                    psychologyHTML = formatContentWithBulletPoints(dietPlan.psychology, 'fa-brain');
+                    psychologyHTML = formatContentWithBulletPoints(dietPlan.psychology, ICON_CLASSES.psychology);
                 } else {
                     psychologyHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.psychology}</p>`;
                 }
@@ -1461,12 +1468,12 @@
                     // Successfully normalized to array
                     supplementsHTML = '<ul class="info-list">';
                     normalized.forEach((supplement, index) => {
-                        supplementsHTML += generateListItem(supplement, 'fa-pills', index);
+                        supplementsHTML += generateListItem(supplement, 'supplements', index);
                     });
                     supplementsHTML += '</ul>';
                 } else if (typeof dietPlan.supplements === 'string') {
                     // Fallback to string formatting
-                    supplementsHTML = formatContentWithBulletPoints(dietPlan.supplements, 'fa-pills');
+                    supplementsHTML = formatContentWithBulletPoints(dietPlan.supplements, ICON_CLASSES.supplements);
                 } else {
                     supplementsHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.supplements}</p>`;
                 }
