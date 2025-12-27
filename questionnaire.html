@@ -93,7 +93,7 @@
             flex: 1;
             position: relative;
             padding: 20px;
-            padding-bottom: var(--wrapper-padding-default); /* Reduced padding for footer to prevent content hiding */
+            padding-bottom: var(--wrapper-padding-default); /* Default padding for footer */
             display: flex;
             align-items: flex-start; /* Changed from center to allow scrolling from top */
             justify-content: center;
@@ -103,9 +103,10 @@
             scroll-padding-bottom: var(--wrapper-padding-default); /* Ensure scroll area accounts for fixed footer */
         }
         
-        /* Compact layout for input-only questions - less padding for footer to be closer */
+        /* Compact layout for input-only questions - footer positioned 8px below input */
         .question-wrapper.compact {
-            padding-bottom: calc(var(--footer-padding-v) * 2 + var(--footer-button-min-height) + var(--footer-input-gap)); /* footer height + gap */
+            /* When modern-input is present, position footer closer */
+            padding-bottom: 80px; /* Space for footer positioned below input */
         }
 
         .question-card {
@@ -287,6 +288,14 @@
             right: 0;
             width: 100%;
             transition: var(--transition);
+        }
+        
+        /* Footer positioned below input field for compact layout */
+        .question-wrapper.compact ~ .nav-footer {
+            position: absolute;
+            bottom: auto;
+            top: auto;
+            /* Will be positioned via JS to be 8px below the input field */
         }
 
         .btn {
@@ -619,11 +628,46 @@
 
             container.appendChild(card);
             
+            // Position footer for compact layout (modern-input screens)
+            if (isInputOnly) {
+                positionFooterBelowInput();
+            } else {
+                resetFooterPosition();
+            }
+            
             // Manage Buttons
             prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
             
             if(currentIndex === currentQueue.length - 1 && step.type !== 'section') {
                 nextBtn.innerHTML = 'Завърши <i class="fas fa-check"></i>';
+            }
+        }
+        
+        // --- FOOTER POSITIONING HELPERS ---
+        function positionFooterBelowInput() {
+            // Wait for DOM to render
+            setTimeout(() => {
+                const input = document.querySelector('.modern-input');
+                const footer = document.querySelector('.nav-footer');
+                
+                if (input && footer) {
+                    const inputRect = input.getBoundingClientRect();
+                    const inputBottom = inputRect.bottom;
+                    
+                    // Position footer 8px below input
+                    footer.style.position = 'absolute';
+                    footer.style.top = (inputBottom + window.scrollY + 8) + 'px';
+                    footer.style.bottom = 'auto';
+                }
+            }, 50);
+        }
+        
+        function resetFooterPosition() {
+            const footer = document.querySelector('.nav-footer');
+            if (footer) {
+                footer.style.position = 'fixed';
+                footer.style.top = 'auto';
+                footer.style.bottom = '0';
             }
         }
 

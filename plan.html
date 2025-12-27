@@ -1359,17 +1359,35 @@
                 
                 // Check if psychology is a string or array
                 if (typeof dietPlan.psychology === 'string') {
-                    // If it's a string, format it with bullet points
-                    psychologyHTML = formatContentWithBulletPoints(dietPlan.psychology, 'fa-brain');
-                } else if (Array.isArray(dietPlan.psychology) && dietPlan.psychology.length > 0) {
-                    // If it's an array, display each tip
+                    // If it's a string, try to parse it or format it with bullet points
+                    try {
+                        // Try to parse as JSON array
+                        const parsed = JSON.parse(dietPlan.psychology);
+                        if (Array.isArray(parsed)) {
+                            dietPlan.psychology = parsed;
+                        }
+                    } catch (e) {
+                        // Not JSON, format as bullet points
+                        psychologyHTML = formatContentWithBulletPoints(dietPlan.psychology, 'fa-brain');
+                    }
+                }
+                
+                if (Array.isArray(dietPlan.psychology)) {
+                    // Ensure we have exactly 3 items (take first 3 if more, pad with empty if less)
+                    let tips = dietPlan.psychology.slice(0, 3);
+                    while (tips.length < 3) {
+                        tips.push('Консултирайте се с диетолог за допълнителни съвети');
+                    }
+                    
                     psychologyHTML = '<ul class="info-list">';
-                    dietPlan.psychology.forEach((tip, index) => {
+                    tips.forEach((tip, index) => {
                         if (typeof tip === 'string') {
                             // Remove "!" prefix if present
-                            const cleanTip = tip.replace(/^!\s*/, '');
-                            psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanTip}</li>`;
-                        } else if (typeof tip === 'object') {
+                            const cleanTip = tip.replace(/^!\s*/, '').trim();
+                            if (cleanTip) {
+                                psychologyHTML += `<li><i class="fas fa-brain" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanTip}</li>`;
+                            }
+                        } else if (typeof tip === 'object' && tip !== null) {
                             // Structured tip object
                             const title = tip.title || `Съвет ${index + 1}`;
                             let details = title;
@@ -1378,11 +1396,13 @@
                         }
                     });
                     psychologyHTML += '</ul>';
-                } else {
-                    psychologyHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични психологически съвети.</p>';
                 }
                 
-                psychContent.innerHTML = psychologyHTML;
+                if (psychologyHTML) {
+                    psychContent.innerHTML = psychologyHTML;
+                } else {
+                    psychContent.innerHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични психологически съвети.</p>';
+                }
             } else {
                 psychContent.innerHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични психологически съвети.</p>';
             }
@@ -1398,17 +1418,35 @@
                 
                 // Check if supplements is a string or array
                 if (typeof dietPlan.supplements === 'string') {
-                    // If it's a string, format it with bullet points
-                    supplementsHTML = formatContentWithBulletPoints(dietPlan.supplements, 'fa-pills');
-                } else if (Array.isArray(dietPlan.supplements) && dietPlan.supplements.length > 0) {
-                    // If it's an array, display each supplement
+                    // If it's a string, try to parse it or format it with bullet points
+                    try {
+                        // Try to parse as JSON array
+                        const parsed = JSON.parse(dietPlan.supplements);
+                        if (Array.isArray(parsed)) {
+                            dietPlan.supplements = parsed;
+                        }
+                    } catch (e) {
+                        // Not JSON, format as bullet points
+                        supplementsHTML = formatContentWithBulletPoints(dietPlan.supplements, 'fa-pills');
+                    }
+                }
+                
+                if (Array.isArray(dietPlan.supplements)) {
+                    // Ensure we have exactly 3 items (take first 3 if more, pad with empty if less)
+                    let supplements = dietPlan.supplements.slice(0, 3);
+                    while (supplements.length < 3) {
+                        supplements.push('Консултирайте се с лекар преди приемане на нови добавки');
+                    }
+                    
                     supplementsHTML = '<ul class="info-list">';
-                    dietPlan.supplements.forEach((supplement, index) => {
+                    supplements.forEach((supplement, index) => {
                         if (typeof supplement === 'string') {
                             // Remove "!" prefix if present
-                            const cleanSupplement = supplement.replace(/^!\s*/, '');
-                            supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanSupplement}</li>`;
-                        } else if (typeof supplement === 'object') {
+                            const cleanSupplement = supplement.replace(/^!\s*/, '').trim();
+                            if (cleanSupplement) {
+                                supplementsHTML += `<li><i class="fas fa-pills" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanSupplement}</li>`;
+                            }
+                        } else if (typeof supplement === 'object' && supplement !== null) {
                             // Structured supplement object
                             const name = supplement.name || `Добавка ${index + 1}`;
                             let details = name;
@@ -1419,11 +1457,13 @@
                         }
                     });
                     supplementsHTML += '</ul>';
-                } else {
-                    supplementsHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични препоръки за хранителни добавки.</p>';
                 }
                 
-                supplementsContent.innerHTML = supplementsHTML;
+                if (supplementsHTML) {
+                    supplementsContent.innerHTML = supplementsHTML;
+                } else {
+                    supplementsContent.innerHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични препоръки за хранителни добавки.</p>';
+                }
             } else {
                 supplementsContent.innerHTML = '<p style="color: var(--text-light); font-style: italic;">Няма специфични препоръки за хранителни добавки.</p>';
             }
