@@ -1,7 +1,60 @@
 # PWA Installation Fix - December 2025 Update
 
-## Latest Problem (December 28, 2025)
-The PWA installation was still failing on GitHub Pages deployment at `https://radilovk.github.io/aidiet/` despite previous fixes. The debug output showed:
+## LATEST FIX (December 28, 2025 - Missing ID Field)
+
+### Problem
+The PWA installation was STILL failing on GitHub Pages deployment at `https://radilovk.github.io/aidiet/` despite all previous path fixes. The debug output showed:
+
+```
+PWA Debug: beforeinstallprompt has not fired yet
+PWA Debug: Checking installability criteria:
+- Service Worker: Supported ✓
+- HTTPS: Yes ✓
+- Manifest link: Found ✓
+- Already installed: No ✓
+- Service Worker registered: ServiceWorkerRegistration ✓
+BUT: beforeinstallprompt event NOT firing ✗
+```
+
+### Root Cause
+The manifest.json was missing the **`id` field**, which is now a CRITICAL requirement for Chrome PWA installability (added to PWA specification in 2022-2023).
+
+**Why the `id` field is critical:**
+- Chrome uses the `id` field to uniquely identify installed PWAs
+- Without it, Chrome cannot determine if an app is already installed
+- This prevents the `beforeinstallprompt` event from firing
+- The `id` should match the `start_url` or be a unique identifier within the scope
+
+### Solution
+Added the `id` field to manifest.json:
+
+```diff
+{
++ "id": "/aidiet/",
+  "name": "NutriPlan",
+  "short_name": "NutriPlan",
+  "description": "Твоят персонален хранителен режим",
+  "start_url": "/aidiet/",
+  "scope": "/aidiet/",
+```
+
+### Verification
+After adding the `id` field, the manifest now passes ALL PWA installability criteria:
+- ✅ `id` field: `/aidiet/`
+- ✅ `name` or `short_name`: Present
+- ✅ `start_url`: `/aidiet/`
+- ✅ `display`: `standalone`
+- ✅ Icons: 192x192 and 512x512 (both `any` and `maskable`)
+- ✅ `prefer_related_applications`: `false`
+- ✅ `scope`: `/aidiet/`
+
+### Expected Result
+After deployment to GitHub Pages, the `beforeinstallprompt` event should now fire correctly, and the PWA installation banner will appear on supported browsers (Chrome, Edge, Samsung Internet).
+
+---
+
+## Previous Problem (December 28, 2025 - Path Issues)
+The PWA installation was failing on GitHub Pages deployment at `https://radilovk.github.io/aidiet/` despite previous fixes. The debug output showed:
 
 ```
 PWA Debug: beforeinstallprompt has not fired yet
