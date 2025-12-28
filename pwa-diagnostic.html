@@ -624,10 +624,11 @@
         }
         
         async function testEngagement() {
-            // Check how long user has been on page
-            const pageLoadTime = performance.timing.navigationStart;
+            // Check how long user has been on page using modern Performance API
+            const navEntry = performance.getEntriesByType('navigation')[0];
+            const pageLoadTime = navEntry ? navEntry.startTime : Date.now();
             const currentTime = Date.now();
-            const timeOnPage = Math.floor((currentTime - pageLoadTime) / 1000);
+            const timeOnPage = Math.floor((currentTime - (performance.timeOrigin || pageLoadTime)) / 1000);
             
             const details = [];
             details.push(`Time on page: ${timeOnPage} seconds`);
