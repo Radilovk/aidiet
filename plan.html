@@ -2479,6 +2479,14 @@
             return false;
         }
         
+        // Detect device type
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
+        const isEdge = /Edg/i.test(navigator.userAgent);
+        const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+        
         // Capture the beforeinstallprompt event
         window.addEventListener('beforeinstallprompt', (e) => {
             if (PWA_DEBUG) console.log('beforeinstallprompt fired');
@@ -2501,6 +2509,48 @@
             } else {
                 if (PWA_DEBUG) console.error('Install banner element not found');
             }
+        }
+        
+        // Show platform-specific install guidance if beforeinstallprompt doesn't fire
+        function showPlatformInstallGuidance() {
+            // Don't show if already dismissed recently
+            if (wasBannerRecentlyDismissed()) return;
+            
+            // Don't show if already installed
+            if (window.matchMedia('(display-mode: standalone)').matches) return;
+            
+            const installBanner = document.getElementById('installBanner');
+            if (!installBanner) return;
+            
+            // Update banner content based on platform
+            const titleEl = installBanner.querySelector('.install-banner-title');
+            const textEl = installBanner.querySelector('.install-banner-text');
+            const installBtn = document.getElementById('installBtn');
+            
+            if (!isMobile && (isChrome || isEdge)) {
+                // Desktop Chrome/Edge - guide to address bar
+                if (titleEl) titleEl.textContent = 'Инсталирай NutriPlan';
+                if (textEl) textEl.textContent = 'Търси иконата за инсталация (⊕) в адресната лента или в менюто на браузъра';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Как да инсталирам?';
+                    installBtn.onclick = () => {
+                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isIOS && isSafari) {
+                // iOS Safari - guide to Share button
+                if (titleEl) titleEl.textContent = 'Добави към начален екран';
+                if (textEl) textEl.textContent = 'Натисни бутона Share (⬆️) и избери "Add to Home Screen"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Инструкции';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)');
+                    };
+                }
+                installBanner.classList.add('show');
+            }
+            // For Android Chrome/Edge, we wait for beforeinstallprompt
         }
 
         // Hide install banner
@@ -2552,32 +2602,72 @@
             hideInstallBanner();
             deferredPrompt = null;
         });
+        
+        // Show platform-specific install guidance after a delay if beforeinstallprompt doesn't fire
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                // If beforeinstallprompt hasn't fired, show platform-specific guidance
+                if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                    showPlatformInstallGuidance();
+                }
+            }, 5000); // Wait 5 seconds after page load
+        });
 
         // Debug: Check PWA installability after page load
         if (PWA_DEBUG) {
             window.addEventListener('load', () => {
                 setTimeout(() => {
+                    // Detect device type
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    const isAndroid = /Android/i.test(navigator.userAgent);
+                    const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
+                    const isEdge = /Edg/i.test(navigator.userAgent);
+                    
                     if (!deferredPrompt) {
                         console.log('PWA Debug: beforeinstallprompt has not fired yet');
                         console.log('PWA Debug: Checking installability criteria:');
                         console.log('- Service Worker:', 'serviceWorker' in navigator ? 'Supported' : 'Not supported');
                         console.log('- HTTPS:', location.protocol === 'https:' ? 'Yes' : 'No');
                         console.log('- Manifest link:', document.querySelector('link[rel="manifest"]') ? 'Found' : 'Missing');
+                        console.log('- Platform:', isMobile ? 'Mobile' : 'Desktop');
+                        console.log('- Browser:', isChrome ? 'Chrome' : (isEdge ? 'Edge' : 'Other'));
                         
                         // Check if already installed
                         if (window.matchMedia('(display-mode: standalone)').matches) {
                             console.log('- Already installed: Yes (running as standalone app)');
                         } else {
                             console.log('- Already installed: No');
-                            console.log('- Possible reasons:');
-                            console.log('  1. Manifest.json not valid or not accessible');
-                            console.log('  2. Icons not loading properly');
-                            console.log('  3. Service worker not registered successfully');
-                            console.log('  4. PWA criteria not fully met');
-                            console.log('  5. Browser does not support install prompts');
+                            
+                            // Different explanations for desktop vs mobile
+                            if (!isMobile && (isChrome || isEdge)) {
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #10b981; font-weight: bold; font-size: 14px');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                                console.log('%cINFO: On Desktop Chrome/Edge, the beforeinstallprompt event often does NOT fire.', 'color: #3b82f6; font-weight: bold');
+                                console.log('%cInstead, Chrome shows an INSTALL ICON in the address bar (omnibox).', 'color: #3b82f6; font-weight: bold');
+                                console.log('');
+                                console.log('%cTo install this app:', 'font-weight: bold');
+                                console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
+                                console.log('  2. Click the icon to install the app');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan..."');
+                                console.log('');
+                                console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                            } else if (isAndroid && (isChrome || isEdge)) {
+                                console.log('- Possible reasons why event has not fired:');
+                                console.log('  1. User engagement criteria not met (needs 30+ seconds + interaction)');
+                                console.log('  2. Manifest.json not valid or not accessible');
+                                console.log('  3. Icons not loading properly');
+                                console.log('  4. Service worker not registered successfully');
+                                console.log('  5. PWA criteria not fully met');
+                            } else {
+                                console.log('- Note: beforeinstallprompt is only supported on Chrome/Edge (mainly Android)');
+                                console.log('- For other browsers, users can install manually via browser menu');
+                            }
                         }
                     } else {
-                        console.log('PWA Debug: beforeinstallprompt fired successfully');
+                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #10b981; font-weight: bold');
+                        console.log('PWA is ready for installation with custom install prompt.');
                     }
                 }, 3000);
             });
