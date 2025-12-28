@@ -1,6 +1,66 @@
-# PWA Installation Fix - Summary
+# PWA Installation Fix - December 2025 Update
 
-## Problem
+## Latest Problem (December 28, 2025)
+The PWA installation was still failing on GitHub Pages deployment at `https://radilovk.github.io/aidiet/` despite previous fixes. The debug output showed:
+
+```
+PWA Debug: beforeinstallprompt has not fired yet
+PWA Debug: Checking installability criteria:
+- Service Worker: Supported
+- HTTPS: Yes
+- Manifest link: Found
+- Already installed: No
+- Possible reasons:
+  1. Manifest.json not valid or not accessible
+  2. Icons not loading properly
+  3. Service worker not registered successfully
+  4. PWA criteria not fully met
+  5. Browser does not support install prompts
+```
+
+## Root Cause of December 2025 Issue
+After previous fixes where manifest.json and sw.js used absolute paths with `/aidiet/` prefix, the HTML files were still using **relative paths** (`./manifest.json` and `./sw.js`). These relative paths were NOT resolving correctly in the GitHub Pages subdirectory deployment.
+
+### Why Relative Paths Failed:
+When deploying to `https://radilovk.github.io/aidiet/`:
+- **Relative path in HTML**: `<link rel="manifest" href="./manifest.json">`
+- **Browser attempted resolution**: Could fail depending on page URL variations
+- **Service worker scope**: Not explicitly set, causing potential scope mismatches
+- **Result**: Manifest and service worker not loading reliably ❌
+
+## Solution (December 28, 2025)
+Changed ALL paths in HTML files from relative to absolute, including explicit service worker scope.
+
+### Files Changed:
+- index.html
+- questionnaire.html  
+- plan.html
+- profile.html
+- admin.html
+
+### Changes Made in Each HTML File:
+
+#### 1. Manifest Link
+```diff
+- <link rel="manifest" href="./manifest.json">
++ <link rel="manifest" href="/aidiet/manifest.json">
+```
+
+#### 2. Apple Touch Icon
+```diff
+- <link rel="apple-touch-icon" href="./icon-192x192.png">
++ <link rel="apple-touch-icon" href="/aidiet/icon-192x192.png">
+```
+
+#### 3. Service Worker Registration with Explicit Scope
+```diff
+- navigator.serviceWorker.register('./sw.js')
++ navigator.serviceWorker.register('/aidiet/sw.js', { scope: '/aidiet/' })
+```
+
+## Previous Fix History
+
+### Original Problem
 The PWA installation was failing on GitHub Pages deployment at `https://radilovk.github.io/aidiet/` with the following debug output:
 
 ```
@@ -111,24 +171,48 @@ On **iOS Safari**:
 
 ## Technical Details
 
-### Why HTML Files Don't Need Changes
-The HTML files use **relative paths** (e.g., `./manifest.json`, `./sw.js`):
+### Current Path Strategy (After December 2025 Fix)
+ALL paths now use absolute paths with `/aidiet/` prefix:
+
+**HTML files** (index.html, questionnaire.html, etc.):
 ```html
-<link rel="manifest" href="./manifest.json">
+<link rel="manifest" href="/aidiet/manifest.json">
+<link rel="apple-touch-icon" href="/aidiet/icon-192x192.png">
 ```
 ```javascript
-navigator.serviceWorker.register('./sw.js')
+navigator.serviceWorker.register('/aidiet/sw.js', { scope: '/aidiet/' })
 ```
 
-Relative paths work correctly both:
-- **Locally**: Resolves to local file
-- **On GitHub Pages**: Resolves to `/aidiet/manifest.json` when accessed from `/aidiet/index.html`
+**manifest.json**:
+```json
+{
+  "start_url": "/aidiet/",
+  "scope": "/aidiet/",
+  "icons": [
+    { "src": "/aidiet/icon-192x192.png", ... },
+    { "src": "/aidiet/icon-512x512.png", ... }
+  ]
+}
+```
 
-### Why Manifest and SW Need Absolute Paths
-The manifest and service worker use **absolute paths** because:
-1. They need to reference resources consistently regardless of which page loads them
-2. The service worker scope and cache paths must be absolute
-3. Browser PWA criteria checks require absolute paths in manifest
+**sw.js**:
+```javascript
+const STATIC_CACHE = [
+  '/aidiet/index.html',
+  '/aidiet/questionnaire.html',
+  '/aidiet/icon-192x192.png',
+  '/aidiet/icon-512x512.png',
+  '/aidiet/manifest.json',
+  // ...
+];
+```
+
+### Why All Absolute Paths Are Necessary
+1. **Consistent resolution**: Absolute paths resolve the same way regardless of current page URL
+2. **Service worker scope**: Must match exactly with registration scope
+3. **PWA criteria**: Browsers validate manifest accessibility using absolute URLs
+4. **GitHub Pages subdirectory**: Relative paths can fail in `/aidiet/` subdirectory context
+5. **Reliability**: Eliminates path resolution ambiguity across different page states
 
 ## Expected Results
 
