@@ -1161,7 +1161,7 @@
         // Constants
         const INSTALL_BANNER_DISMISS_DAYS = 7; // Number of days before showing banner again
         const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
-        const PWA_DEBUG = false; // Set to true for debugging PWA installation issues
+        const PWA_DEBUG = true; // Enable debugging to see PWA installation status
         
         // Helper function to check if banner was recently dismissed
         function wasBannerRecentlyDismissed() {
@@ -1188,12 +1188,72 @@
                 showInstallBanner();
             }
         });
+        
+        // Check if app is installable on page load (for iOS and other browsers)
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkInstallability();
+            }, 2000); // Wait 2 seconds for beforeinstallprompt to potentially fire
+        });
+        
+        function checkInstallability() {
+            // Check if already installed
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                if (PWA_DEBUG) console.log('App is already installed');
+                return;
+            }
+            
+            // Check if banner was recently dismissed
+            if (wasBannerRecentlyDismissed()) {
+                if (PWA_DEBUG) console.log('Banner was recently dismissed');
+                return;
+            }
+            
+            // For iOS Safari or browsers that don't fire beforeinstallprompt
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isStandalone = window.navigator.standalone === true;
+            
+            if (isIOS && !isStandalone && !deferredPrompt) {
+                if (PWA_DEBUG) console.log('iOS device detected, showing iOS-specific banner');
+                showIOSInstallBanner();
+            } else if (!deferredPrompt) {
+                // beforeinstallprompt hasn't fired yet, but app might still be installable
+                if (PWA_DEBUG) console.log('beforeinstallprompt not fired, checking if we should show banner anyway');
+                // On some browsers, show a generic banner after a delay
+                if ('serviceWorker' in navigator && 'PushManager' in window) {
+                    if (PWA_DEBUG) console.log('Browser supports PWA features, showing banner');
+                    showInstallBanner();
+                }
+            }
+        }
 
         // Show install banner
         function showInstallBanner() {
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
                 installBanner.classList.add('show');
+                if (PWA_DEBUG) console.log('Install banner shown');
+            }
+        }
+        
+        // Show iOS-specific install banner with instructions
+        function showIOSInstallBanner() {
+            const installBanner = document.getElementById('installBanner');
+            if (installBanner) {
+                // Update banner text for iOS
+                const titleEl = installBanner.querySelector('.install-banner-title');
+                const textEl = installBanner.querySelector('.install-banner-text');
+                const installBtn = document.getElementById('installBtn');
+                
+                if (titleEl) titleEl.textContent = 'Инсталирай NutriPlan';
+                if (textEl) textEl.innerHTML = 'Натисни <i class="fas fa-share"></i> и избери "Добави към Home Screen"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Разбрах';
+                    installBtn.onclick = () => hideInstallBanner();
+                }
+                
+                installBanner.classList.add('show');
+                if (PWA_DEBUG) console.log('iOS install banner shown');
             }
         }
 
@@ -1202,6 +1262,7 @@
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
                 installBanner.classList.remove('show');
+                if (PWA_DEBUG) console.log('Install banner hidden');
             }
         }
 
