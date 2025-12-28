@@ -1161,7 +1161,7 @@
         // Constants
         const INSTALL_BANNER_DISMISS_DAYS = 7; // Number of days before showing banner again
         const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
-        const PWA_DEBUG = false; // Set to true for debugging PWA installation issues
+        const PWA_DEBUG = true; // Set to true for debugging PWA installation issues
         
         // Helper function to check if banner was recently dismissed
         function wasBannerRecentlyDismissed() {
@@ -1191,9 +1191,13 @@
 
         // Show install banner
         function showInstallBanner() {
+            if (PWA_DEBUG) console.log('Showing install banner');
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
                 installBanner.classList.add('show');
+                if (PWA_DEBUG) console.log('Install banner displayed successfully');
+            } else {
+                if (PWA_DEBUG) console.error('Install banner element not found');
             }
         }
 
@@ -1246,6 +1250,36 @@
             hideInstallBanner();
             deferredPrompt = null;
         });
+
+        // Debug: Check PWA installability after page load
+        if (PWA_DEBUG) {
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    if (!deferredPrompt) {
+                        console.log('PWA Debug: beforeinstallprompt has not fired yet');
+                        console.log('PWA Debug: Checking installability criteria:');
+                        console.log('- Service Worker:', 'serviceWorker' in navigator ? 'Supported' : 'Not supported');
+                        console.log('- HTTPS:', location.protocol === 'https:' ? 'Yes' : 'No');
+                        console.log('- Manifest link:', document.querySelector('link[rel="manifest"]') ? 'Found' : 'Missing');
+                        
+                        // Check if already installed
+                        if (window.matchMedia('(display-mode: standalone)').matches) {
+                            console.log('- Already installed: Yes (running as standalone app)');
+                        } else {
+                            console.log('- Already installed: No');
+                            console.log('- Possible reasons:');
+                            console.log('  1. Manifest.json not valid or not accessible');
+                            console.log('  2. Icons not loading properly');
+                            console.log('  3. Service worker not registered successfully');
+                            console.log('  4. PWA criteria not fully met');
+                            console.log('  5. Browser does not support install prompts');
+                        }
+                    } else {
+                        console.log('PWA Debug: beforeinstallprompt fired successfully');
+                    }
+                }, 3000);
+            });
+        }
 
         // --- PWA Service Worker Registration ---
         if ('serviceWorker' in navigator) {
