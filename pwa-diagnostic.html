@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10b981">
+    <link rel="manifest" href="/aidiet/manifest.json">
+    <title>PWA Diagnostic Tool - NutriPlan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .test-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #ddd;
+        }
+        
+        .test-section.pass {
+            border-left-color: #10b981;
+            background: #d1fae5;
+        }
+        
+        .test-section.fail {
+            border-left-color: #ef4444;
+            background: #fee2e2;
+        }
+        
+        .test-section.warning {
+            border-left-color: #f59e0b;
+            background: #fef3c7;
+        }
+        
+        .test-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-icon {
+            font-size: 1.5em;
+        }
+        
+        .test-details {
+            margin-top: 10px;
+            padding-left: 35px;
+        }
+        
+        .test-item {
+            margin: 5px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            font-size: 0.95em;
+        }
+        
+        .code {
+            background: #1e293b;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+        
+        .btn-run {
+            background: #10b981;
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            transition: 0.3s;
+            display: block;
+            margin: 30px auto;
+        }
+        
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .summary h2 {
+            margin-bottom: 15px;
+        }
+        
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .recommendation {
+            background: #3b82f6;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .recommendation-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 PWA Diagnostic Tool</h1>
+        <p class="subtitle">Comprehensive Progressive Web App Installability Check</p>
+        
+        <button class="btn-run" onclick="runDiagnostics()">Run Complete Diagnostic</button>
+        
+        <div id="results"></div>
+    </div>
+    
+    <script>
+        let diagnosticResults = {
+            passed: 0,
+            failed: 0,
+            warnings: 0,
+            tests: []
+        };
+        
+        async function runDiagnostics() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading">🔄 Running comprehensive diagnostics...</div>';
+            
+            diagnosticResults = {
+                passed: 0,
+                failed: 0,
+                warnings: 0,
+                tests: []
+            };
+            
+            // Wait a bit to ensure service worker has time to register
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Run all tests
+            await testHTTPS();
+            await testServiceWorker();
+            await testManifestLink();
+            await testManifestContent();
+            await testManifestIcons();
+            await testIconAccessibility();
+            await testInstallPromptEvent();
+            await testBrowserSupport();
+            await testEngagement();
+            await testAlreadyInstalled();
+            
+            // Display results
+            displayResults();
+        }
+        
+        function addTest(title, status, details, recommendation = '') {
+            diagnosticResults.tests.push({ title, status, details, recommendation });
+            if (status === 'pass') diagnosticResults.passed++;
+            else if (status === 'fail') diagnosticResults.failed++;
+            else diagnosticResults.warnings++;
+        }
+        
+        async function testHTTPS() {
+            const isHTTPS = location.protocol === 'https:';
+            const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            
+            if (isHTTPS || isLocalhost) {
+                addTest(
+                    'HTTPS/Secure Context',
+                    'pass',
+                    `✅ Page is served over ${location.protocol}<br>✅ Secure context: ${isSecureContext ? 'Yes' : 'No'}`
+                );
+            } else {
+                addTest(
+                    'HTTPS/Secure Context',
+                    'fail',
+                    `❌ Page is served over ${location.protocol}<br>❌ PWA requires HTTPS in production`,
+                    'Deploy your app to HTTPS. GitHub Pages automatically provides HTTPS.'
+                );
+            }
+        }
+        
+        async function testServiceWorker() {
+            if (!('serviceWorker' in navigator)) {
+                addTest(
+                    'Service Worker Support',
+                    'fail',
+                    '❌ Service Worker API not supported in this browser',
+                    'Use a modern browser that supports Service Workers (Chrome, Edge, Firefox, Safari 11.1+)'
+                );
+                return;
+            }
+            
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+                
+                if (registration) {
+                    const details = [];
+                    details.push(`✅ Service Worker registered`);
+                    details.push(`Scope: ${registration.scope}`);
+                    details.push(`Installing: ${registration.installing ? 'Yes' : 'No'}`);
+                    details.push(`Waiting: ${registration.waiting ? 'Yes' : 'No'}`);
+                    details.push(`Active: ${registration.active ? 'Yes (✓)' : 'No'}`);
+                    
+                    if (registration.active) {
+                        details.push(`State: ${registration.active.state}`);
+                        details.push(`Script URL: ${registration.active.scriptURL}`);
+                        
+                        // Check if scope matches expected
+                        const expectedScope = location.origin + '/aidiet/';
+                        if (registration.scope === expectedScope) {
+                            details.push(`✅ Scope matches expected: ${expectedScope}`);
+                        } else {
+                            details.push(`⚠️ Scope mismatch! Expected: ${expectedScope}, Got: ${registration.scope}`);
+                        }
+                    }
+                    
+                    addTest(
+                        'Service Worker Registration',
+                        registration.active ? 'pass' : 'warning',
+                        details.join('<br>'),
+                        !registration.active ? 'Wait for service worker to activate, or reload the page.' : ''
+                    );
+                } else {
+                    addTest(
+                        'Service Worker Registration',
+                        'fail',
+                        '❌ No service worker registered<br>Service worker may have failed to register',
+                        'Check browser console for service worker registration errors. Verify sw.js is accessible and has no syntax errors.'
+                    );
+                }
+            } catch (error) {
+                addTest(
+                    'Service Worker Registration',
+                    'fail',
+                    `❌ Error checking service worker: ${error.message}`,
+                    'Check browser console for detailed error information.'
+                );
+            }
+        }
+        
+        async function testManifestLink() {
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            
+            if (manifestLink) {
+                const href = manifestLink.getAttribute('href');
+                addTest(
+                    'Manifest Link in HTML',
+                    'pass',
+                    `✅ Manifest link found in HTML<br>href: ${href}`
+                );
+            } else {
+                addTest(
+                    'Manifest Link in HTML',
+                    'fail',
+                    '❌ No manifest link found in HTML',
+                    'Add <link rel="manifest" href="/aidiet/manifest.json"> to the <head> section'
+                );
+            }
+        }
+        
+        async function testManifestContent() {
+            try {
+                const manifestLink = document.querySelector('link[rel="manifest"]');
+                if (!manifestLink) {
+                    addTest('Manifest Content', 'fail', '❌ Cannot check manifest content - no link found');
+                    return;
+                }
+                
+                const manifestURL = new URL(manifestLink.href, location.href);
+                const response = await fetch(manifestURL.href);
+                
+                if (!response.ok) {
+                    addTest(
+                        'Manifest Content',
+                        'fail',
+                        `❌ Manifest fetch failed: ${response.status} ${response.statusText}<br>URL: ${manifestURL.href}`,
+                        'Ensure manifest.json is accessible at the correct path. Check for 404 errors in Network tab.'
+                    );
+                    return;
+                }
+                
+                const manifest = await response.json();
+                const details = [];
+                const issues = [];
+                
+                // Check required fields
+                if (manifest.name || manifest.short_name) {
+                    details.push(`✅ Name: ${manifest.name || manifest.short_name}`);
+                } else {
+                    issues.push('❌ Missing name or short_name');
+                }
+                
+                if (manifest.start_url) {
+                    details.push(`✅ start_url: ${manifest.start_url}`);
+                } else {
+                    issues.push('❌ Missing start_url');
+                }
+                
+                if (manifest.display) {
+                    const validDisplayModes = ['standalone', 'fullscreen', 'minimal-ui'];
+                    if (validDisplayModes.includes(manifest.display)) {
+                        details.push(`✅ display: ${manifest.display}`);
+                    } else {
+                        issues.push(`⚠️ display mode "${manifest.display}" may not trigger install prompt (use: standalone, fullscreen, or minimal-ui)`);
+                    }
+                } else {
+                    issues.push('❌ Missing display field');
+                }
+                
+                if (manifest.icons && Array.isArray(manifest.icons)) {
+                    details.push(`✅ Icons array found (${manifest.icons.length} icons)`);
+                    
+                    const has192 = manifest.icons.some(icon => 
+                        icon.sizes && icon.sizes.includes('192x192')
+                    );
+                    const has512 = manifest.icons.some(icon => 
+                        icon.sizes && icon.sizes.includes('512x512')
+                    );
+                    
+                    if (has192) {
+                        details.push('✅ 192x192 icon defined');
+                    } else {
+                        issues.push('❌ Missing 192x192 icon');
+                    }
+                    
+                    if (has512) {
+                        details.push('✅ 512x512 icon defined');
+                    } else {
+                        issues.push('❌ Missing 512x512 icon');
+                    }
+                } else {
+                    issues.push('❌ Missing or invalid icons array');
+                }
+                
+                // Check id field (important for newer Chrome)
+                if (manifest.id) {
+                    details.push(`✅ id: ${manifest.id}`);
+                } else {
+                    issues.push('⚠️ Missing "id" field (recommended for Chrome 96+, may prevent installation)');
+                }
+                
+                // Check scope
+                if (manifest.scope) {
+                    details.push(`✅ scope: ${manifest.scope}`);
+                } else {
+                    issues.push('⚠️ Missing scope (will default to start_url)');
+                }
+                
+                // Check prefer_related_applications
+                if (manifest.prefer_related_applications === true) {
+                    issues.push('⚠️ prefer_related_applications is true (will prefer native app over PWA install)');
+                } else {
+                    details.push(`✅ prefer_related_applications: ${manifest.prefer_related_applications || 'false'}`);
+                }
+                
+                const allDetails = [...details, ...issues].join('<br>');
+                
+                addTest(
+                    'Manifest Content Validation',
+                    issues.length === 0 ? 'pass' : (issues.some(i => i.startsWith('❌')) ? 'fail' : 'warning'),
+                    allDetails + '<br><br><div class="code">' + JSON.stringify(manifest, null, 2) + '</div>',
+                    issues.length > 0 ? 'Fix the issues listed above in your manifest.json file.' : ''
+                );
+                
+            } catch (error) {
+                addTest(
+                    'Manifest Content',
+                    'fail',
+                    `❌ Error parsing manifest: ${error.message}`,
+                    'Ensure manifest.json is valid JSON. Use a JSON validator to check for syntax errors.'
+                );
+            }
+        }
+        
+        async function testManifestIcons() {
+            try {
+                const manifestLink = document.querySelector('link[rel="manifest"]');
+                if (!manifestLink) return;
+                
+                const manifestURL = new URL(manifestLink.href, location.href);
+                const response = await fetch(manifestURL.href);
+                if (!response.ok) return;
+                
+                const manifest = await response.json();
+                
+                if (!manifest.icons || !Array.isArray(manifest.icons)) {
+                    return; // Already reported in previous test
+                }
+                
+                const details = [];
+                
+                for (const icon of manifest.icons) {
+                    const iconURL = new URL(icon.src, manifestURL.href);
+                    details.push(`<br><strong>Icon: ${icon.sizes} (${icon.purpose || 'any'})</strong>`);
+                    details.push(`URL: ${iconURL.href}`);
+                    
+                    // Check if purpose is valid
+                    if (icon.purpose) {
+                        const purposes = icon.purpose.split(' ');
+                        const validPurposes = ['any', 'maskable', 'monochrome'];
+                        const invalidPurposes = purposes.filter(p => !validPurposes.includes(p));
+                        if (invalidPurposes.length > 0) {
+                            details.push(`⚠️ Invalid purpose values: ${invalidPurposes.join(', ')}`);
+                        }
+                    }
+                }
+                
+                addTest(
+                    'Manifest Icons Definition',
+                    'pass',
+                    details.join('<br>')
+                );
+                
+            } catch (error) {
+                // Silently fail, already covered by previous tests
+            }
+        }
+        
+        async function testIconAccessibility() {
+            try {
+                const manifestLink = document.querySelector('link[rel="manifest"]');
+                if (!manifestLink) return;
+                
+                const manifestURL = new URL(manifestLink.href, location.href);
+                const response = await fetch(manifestURL.href);
+                if (!response.ok) return;
+                
+                const manifest = await response.json();
+                
+                if (!manifest.icons || !Array.isArray(manifest.icons)) return;
+                
+                const details = [];
+                let allAccessible = true;
+                
+                for (const icon of manifest.icons) {
+                    const iconURL = new URL(icon.src, manifestURL.href);
+                    
+                    try {
+                        const iconResponse = await fetch(iconURL.href, { method: 'HEAD' });
+                        
+                        if (iconResponse.ok) {
+                            details.push(`✅ ${icon.sizes}: Accessible (${iconResponse.status})`);
+                        } else {
+                            details.push(`❌ ${icon.sizes}: Not accessible (${iconResponse.status} ${iconResponse.statusText})`);
+                            allAccessible = false;
+                        }
+                    } catch (error) {
+                        details.push(`❌ ${icon.sizes}: Failed to fetch (${error.message})`);
+                        allAccessible = false;
+                    }
+                }
+                
+                addTest(
+                    'Icon File Accessibility',
+                    allAccessible ? 'pass' : 'fail',
+                    details.join('<br>'),
+                    !allAccessible ? 'Ensure all icon files exist at the specified paths and are accessible via HTTPS.' : ''
+                );
+                
+            } catch (error) {
+                // Silently fail
+            }
+        }
+        
+        async function testInstallPromptEvent() {
+            // This test checks if beforeinstallprompt has fired
+            // We need to wait a bit to see if it fires
+            
+            let promptFired = false;
+            let promptEvent = null;
+            
+            const handler = (e) => {
+                promptFired = true;
+                promptEvent = e;
+            };
+            
+            window.addEventListener('beforeinstallprompt', handler);
+            
+            // Wait up to 2 seconds to see if event fires
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            window.removeEventListener('beforeinstallprompt', handler);
+            
+            if (promptFired) {
+                addTest(
+                    'beforeinstallprompt Event',
+                    'pass',
+                    '✅ beforeinstallprompt event fired successfully!<br>✅ PWA is installable',
+                    ''
+                );
+            } else {
+                const reasons = [
+                    'App may already be installed (check if running in standalone mode)',
+                    'User engagement criteria not met (may need to interact with page for 30+ seconds)',
+                    'Manifest or service worker issues (check tests above)',
+                    'Browser does not support install prompts (try Chrome/Edge on Android)',
+                    'Chrome may delay the prompt based on internal heuristics'
+                ];
+                
+                addTest(
+                    'beforeinstallprompt Event',
+                    'warning',
+                    '⚠️ beforeinstallprompt event has not fired<br><br>Possible reasons:<br>' + 
+                    reasons.map((r, i) => `${i + 1}. ${r}`).join('<br>'),
+                    'If all other tests pass, the issue may be browser-specific heuristics or engagement requirements. Try interacting with the page for 30+ seconds.'
+                );
+            }
+        }
+        
+        async function testBrowserSupport() {
+            const userAgent = navigator.userAgent;
+            const details = [];
+            
+            details.push(`User Agent: ${userAgent}`);
+            details.push(`Platform: ${navigator.platform}`);
+            
+            // Detect browser
+            let browserSupport = 'unknown';
+            let installSupport = 'unknown';
+            
+            if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
+                browserSupport = 'Chrome';
+                installSupport = 'Full support (with beforeinstallprompt on Android)';
+            } else if (userAgent.includes('Edg')) {
+                browserSupport = 'Edge';
+                installSupport = 'Full support (with beforeinstallprompt on Android)';
+            } else if (userAgent.includes('Firefox')) {
+                browserSupport = 'Firefox';
+                installSupport = 'Partial (no beforeinstallprompt event, manual install via menu)';
+            } else if (userAgent.includes('Safari')) {
+                browserSupport = 'Safari';
+                installSupport = 'iOS: Manual install via Share menu. Desktop: Limited support';
+            } else if (userAgent.includes('SamsungBrowser')) {
+                browserSupport = 'Samsung Internet';
+                installSupport = 'Full support (with beforeinstallprompt)';
+            }
+            
+            details.push(`Browser: ${browserSupport}`);
+            details.push(`Install Prompt Support: ${installSupport}`);
+            
+            // Check if mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            details.push(`Mobile Device: ${isMobile ? 'Yes' : 'No'}`);
+            
+            const recommendMobile = !isMobile && (browserSupport === 'Chrome' || browserSupport === 'Edge');
+            
+            addTest(
+                'Browser Compatibility',
+                'pass',
+                details.join('<br>'),
+                recommendMobile ? 'For best install prompt experience, test on Android Chrome/Edge. Desktop Chrome shows install icon in address bar instead of beforeinstallprompt.' : ''
+            );
+        }
+        
+        async function testEngagement() {
+            // Check how long user has been on page
+            const pageLoadTime = performance.timing.navigationStart;
+            const currentTime = Date.now();
+            const timeOnPage = Math.floor((currentTime - pageLoadTime) / 1000);
+            
+            const details = [];
+            details.push(`Time on page: ${timeOnPage} seconds`);
+            
+            // Check if user has interacted
+            let hasInteracted = false;
+            
+            const interactionHandler = () => {
+                hasInteracted = true;
+            };
+            
+            // Check if user has already interacted
+            ['click', 'touchstart', 'keydown'].forEach(eventType => {
+                if (window.__userInteracted) {
+                    hasInteracted = true;
+                }
+            });
+            
+            details.push(`User interaction detected: ${hasInteracted ? 'Yes' : 'Not yet'}`);
+            
+            if (timeOnPage >= 30 && hasInteracted) {
+                details.push('✅ Engagement criteria likely met (30+ seconds + interaction)');
+            } else if (timeOnPage < 30) {
+                details.push('⚠️ Time on page < 30 seconds (Chrome may delay install prompt)');
+            } else if (!hasInteracted) {
+                details.push('⚠️ No user interaction detected yet (click/tap page)');
+            }
+            
+            addTest(
+                'User Engagement',
+                timeOnPage >= 30 && hasInteracted ? 'pass' : 'warning',
+                details.join('<br>'),
+                timeOnPage < 30 ? 'Stay on the page for at least 30 seconds and interact with it (click/tap) to meet engagement criteria.' : ''
+            );
+        }
+        
+        async function testAlreadyInstalled() {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const isInApp = window.navigator.standalone === true; // iOS
+            
+            if (isStandalone || isInApp) {
+                addTest(
+                    'Installation Status',
+                    'warning',
+                    '⚠️ App is currently running in standalone mode<br>This means the app is already installed!<br>beforeinstallprompt will NOT fire for already-installed apps.',
+                    'To test installation, uninstall the app first, then reload the page in the browser.'
+                );
+            } else {
+                addTest(
+                    'Installation Status',
+                    'pass',
+                    '✅ App is running in browser (not installed)<br>✅ Ready for installation if all criteria are met'
+                );
+            }
+        }
+        
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `
+                <div class="summary">
+                    <h2>Diagnostic Summary</h2>
+                    <div class="summary-stats">
+                        <div class="stat">
+                            <div class="stat-number">${diagnosticResults.passed}</div>
+                            <div class="stat-label">✅ Passed</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">${diagnosticResults.warnings}</div>
+                            <div class="stat-label">⚠️ Warnings</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">${diagnosticResults.failed}</div>
+                            <div class="stat-label">❌ Failed</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            diagnosticResults.tests.forEach(test => {
+                html += `
+                    <div class="test-section ${test.status}">
+                        <div class="test-title">
+                            <span class="status-icon">
+                                ${test.status === 'pass' ? '✅' : (test.status === 'fail' ? '❌' : '⚠️')}
+                            </span>
+                            ${test.title}
+                        </div>
+                        <div class="test-details">
+                            ${test.details}
+                            ${test.recommendation ? `
+                                <div class="recommendation">
+                                    <div class="recommendation-title">💡 Recommendation:</div>
+                                    ${test.recommendation}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // Track user interaction
+        ['click', 'touchstart', 'keydown'].forEach(eventType => {
+            window.addEventListener(eventType, () => {
+                window.__userInteracted = true;
+            }, { once: true });
+        });
+        
+        // Auto-run on page load after a delay
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                runDiagnostics();
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
