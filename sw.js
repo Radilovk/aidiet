@@ -1,7 +1,6 @@
 // Service Worker for NutriPlan PWA
 const CACHE_NAME = 'nutriplan-v1';
 const STATIC_CACHE = [
-  './',
   './index.html',
   './questionnaire.html',
   './plan.html',
@@ -133,6 +132,6 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   event.waitUntil(
-    clients.openWindow('./')
+    clients.openWindow('./index.html')
   );
 });
