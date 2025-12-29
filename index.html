@@ -1113,9 +1113,10 @@
             setTimeout(() => {
                 // If beforeinstallprompt hasn't fired, show platform-specific guidance
                 if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                    if (PWA_DEBUG) console.log('beforeinstallprompt has not fired after 3 seconds, showing platform guidance');
                     showPlatformInstallGuidance();
                 }
-            }, 5000); // Wait 5 seconds after page load
+            }, 3000); // Wait 3 seconds after page load
         });
 
         // Debug: Check PWA installability after page load
