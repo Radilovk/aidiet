@@ -974,19 +974,42 @@
         
         // Show platform-specific install guidance if beforeinstallprompt doesn't fire
         function showPlatformInstallGuidance() {
+            if (PWA_DEBUG) console.log('showPlatformInstallGuidance() called');
+            
             // Don't show if already dismissed recently
-            if (wasBannerRecentlyDismissed()) return;
+            if (wasBannerRecentlyDismissed()) {
+                if (PWA_DEBUG) console.log('Banner was recently dismissed, not showing');
+                return;
+            }
             
             // Don't show if already installed
-            if (window.matchMedia('(display-mode: standalone)').matches) return;
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                if (PWA_DEBUG) console.log('App already installed (standalone mode), not showing banner');
+                return;
+            }
             
             const installBanner = document.getElementById('installBanner');
-            if (!installBanner) return;
+            if (!installBanner) {
+                if (PWA_DEBUG) console.error('Install banner element not found!');
+                return;
+            }
             
             // Update banner content based on platform
             const titleEl = installBanner.querySelector('.install-banner-title');
             const textEl = installBanner.querySelector('.install-banner-text');
             const installBtn = document.getElementById('installBtn');
+            
+            if (PWA_DEBUG) {
+                console.log('Platform detection:', {
+                    isMobile,
+                    isAndroid,
+                    isIOS,
+                    isChrome,
+                    isEdge,
+                    isSafari,
+                    userAgent: navigator.userAgent
+                });
+            }
             
             if (!isMobile && (isChrome || isEdge)) {
                 // Desktop Chrome/Edge - guide to address bar
@@ -1010,8 +1033,29 @@
                     };
                 }
                 installBanner.classList.add('show');
+            } else if (isAndroid && (isChrome || isEdge)) {
+                // Android Chrome/Edge - fallback when beforeinstallprompt doesn't fire
+                if (titleEl) titleEl.textContent = 'Инсталирай NutriPlan';
+                if (textEl) textEl.textContent = 'Добави приложението към началния екран за по-бърз достъп';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Как да инсталирам?';
+                    installBtn.onclick = () => {
+                        alert('За да инсталирате приложението:\n\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Потвърдете инсталацията\n\nИли потърсете иконата за инсталация в адресната лента');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isMobile) {
+                // Other mobile browsers - generic guidance
+                if (titleEl) titleEl.textContent = 'Добави към начален екран';
+                if (textEl) textEl.textContent = 'Отвори менюто на браузъра и избери "Добави към начален екран"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Инструкции';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                    };
+                }
+                installBanner.classList.add('show');
             }
-            // For Android Chrome/Edge, we wait for beforeinstallprompt
         }
 
         // Hide install banner
@@ -1115,12 +1159,33 @@
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
                                 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
                             } else if (isAndroid && (isChrome || isEdge)) {
-                                console.log('- Possible reasons why event has not fired:');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #f59e0b');
+                                console.log('%c⚠ PWA Install Banner Fallback Activated', 'color: #f59e0b; font-weight: bold; font-size: 14px');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #f59e0b');
+                                console.log('%cINFO: beforeinstallprompt event has not fired on Android.', 'color: #f59e0b; font-weight: bold');
+                                console.log('%cShowing fallback install instructions banner.', 'color: #f59e0b; font-weight: bold');
+                                console.log('');
+                                console.log('Possible reasons why beforeinstallprompt did not fire:');
                                 console.log('  1. User engagement criteria not met (needs 30+ seconds + interaction)');
                                 console.log('  2. Manifest.json not valid or not accessible');
                                 console.log('  3. Icons not loading properly');
                                 console.log('  4. Service worker not registered successfully');
-                                console.log('  5. PWA criteria not fully met');
+                                console.log('  5. PWA already installed');
+                                console.log('  6. Browser version too old');
+                                console.log('');
+                                console.log('%cTo install manually:', 'font-weight: bold');
+                                console.log('  1. Open browser menu (⋮) in top right corner');
+                                console.log('  2. Look for "Install app" or "Add to Home screen"');
+                                console.log('  3. Confirm installation');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #f59e0b');
+                            } else if (isMobile) {
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6');
+                                console.log('%cℹ Mobile Browser Detected', 'color: #3b82f6; font-weight: bold; font-size: 14px');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6');
+                                console.log('Showing generic mobile install guidance.');
+                                console.log('- Note: beforeinstallprompt is only supported on Chrome/Edge');
+                                console.log('- For other browsers, users can install manually via browser menu');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6');
                             } else {
                                 console.log('- Note: beforeinstallprompt is only supported on Chrome/Edge (mainly Android)');
                                 console.log('- For other browsers, users can install manually via browser menu');
