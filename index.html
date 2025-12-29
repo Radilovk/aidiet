@@ -939,7 +939,7 @@
         // Installation instruction texts
         const INSTALL_INSTRUCTIONS = {
             DESKTOP: 'За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."',
-            ANDROID: 'За да инсталирате приложението:\n\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Потвърдете инсталацията\n\nИли потърсете иконата за инсталация в адресната лента',
+            ANDROID: 'За да инсталирате приложението:\n\n⚠️ Chrome изисква взаимодействие със страницата преди да позволи инсталация.\n\nМоля, направете следното:\n\n1. Използвайте приложението поне 30 секунди\n2. Кликнете на няколко бутона или прегледайте различни секции\n3. След това:\n   • Потърсете иконата за инсталация (⊕) в адресната лента\n   • ИЛИ отворете менюто на браузъра (⋮) и потърсете "Инсталирай приложение"\n\n💡 Съвет: Ако опцията не се появи веднага, опитайте да презаредите страницата след взаимодействие.',
             IOS: 'За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)',
             MOBILE_GENERIC: 'За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието'
         };
@@ -1053,10 +1053,10 @@
                 installBanner.classList.add('show');
             } else if (isAndroid && (isChrome || isEdge)) {
                 // Android Chrome/Edge - fallback when beforeinstallprompt doesn't fire
-                if (titleEl) titleEl.textContent = 'Инсталирай NutriPlan';
-                if (textEl) textEl.textContent = 'Добави приложението към началния екран за по-бърз достъп';
+                if (titleEl) titleEl.textContent = '📱 Инсталирай NutriPlan';
+                if (textEl) textEl.textContent = 'Използвай приложението 30 секунди, след което ще можеш да го инсталираш';
                 if (installBtn) {
-                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Как да инсталирам?';
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Виж инструкции';
                     installBtn.onclick = () => {
                         alert(INSTALL_INSTRUCTIONS.ANDROID);
                     };
@@ -1135,6 +1135,63 @@
                     showPlatformInstallGuidance();
                 }
             }, 3000); // Wait 3 seconds after page load
+            
+            // For Android Chrome/Edge: Re-check after user engagement
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
+            const isEdge = /Edg/i.test(navigator.userAgent);
+            
+            if (isAndroid && (isChrome || isEdge)) {
+                let engagementStartTime = Date.now();
+                let hasInteracted = false;
+                
+                // Track user interaction
+                const interactionEvents = ['click', 'touchstart', 'scroll', 'keydown'];
+                const markInteraction = () => {
+                    if (!hasInteracted) {
+                        hasInteracted = true;
+                        if (PWA_DEBUG) console.log('User interaction detected, starting engagement timer');
+                    }
+                };
+                
+                interactionEvents.forEach(event => {
+                    document.addEventListener(event, markInteraction, { once: true, passive: true });
+                });
+                
+                // Check again after 35 seconds if user has interacted
+                setTimeout(() => {
+                    if (hasInteracted && !deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                        const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
+                        if (PWA_DEBUG) {
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                            console.log('%c🔄 Re-checking PWA Installability', 'color: #3b82f6; font-weight: bold');
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                            console.log(`User has been engaged for ${elapsedTime} seconds`);
+                            console.log(`beforeinstallprompt still has not fired`);
+                            console.log('');
+                            console.log('Possible reasons:');
+                            console.log('  1. App is already installed (check chrome://apps)');
+                            console.log('  2. Manifest or Service Worker has errors');
+                            console.log('  3. Icons are not loading correctly');
+                            console.log('  4. Browser cache needs to be cleared');
+                            console.log('');
+                            console.log('To install manually:');
+                            console.log('  1. Check the address bar for an install icon (⊕)');
+                            console.log('  2. Open browser menu (⋮) and look for "Install app"');
+                            console.log('  3. If not available, try visiting chrome://flags and enable:');
+                            console.log('     - "Desktop PWAs" or "PWA installation prompt"');
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                        }
+                        
+                        // Update the banner with re-check information
+                        const installBanner = document.getElementById('installBanner');
+                        const textEl = installBanner?.querySelector('p');
+                        if (textEl && installBanner.classList.contains('show')) {
+                            textEl.textContent = '✓ Вече използваш приложението достатъчно дълго. Провери адресната лента или менюто на браузъра за опция за инсталация.';
+                        }
+                    }
+                }, 35000); // Check after 35 seconds (30s requirement + 5s buffer)
+            }
         });
 
         // Debug: Check PWA installability after page load
