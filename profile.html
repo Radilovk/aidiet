@@ -1231,8 +1231,18 @@
                     };
                 }
                 installBanner.classList.add('show');
+            } else if (isAndroid && (isChrome || isEdge)) {
+                // Android Chrome/Edge - fallback when beforeinstallprompt doesn't fire
+                if (titleEl) titleEl.textContent = '📱 Инсталирай NutriPlan';
+                if (textEl) textEl.textContent = 'Използвай приложението 30 секунди, след което ще можеш да го инсталираш';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Виж инструкции';
+                    installBtn.onclick = () => {
+                        alert('За да инсталирате приложението:\n\n⚠️ Chrome изисква взаимодействие със страницата преди да позволи инсталация.\n\nМоля, направете следното:\n\n1. Използвайте приложението поне 30 секунди\n2. Кликнете на няколко бутона или прегледайте различни секции\n3. След това:\n   • Потърсете иконата за инсталация (⊕) в адресната лента\n   • ИЛИ отворете менюто на браузъра (⋮) и потърсете "Инсталирай приложение"\n\n💡 Съвет: Ако опцията не се появи веднага, опитайте да презаредите страницата след взаимодействие.');
+                    };
+                }
+                installBanner.classList.add('show');
             }
-            // For Android Chrome/Edge, we wait for beforeinstallprompt
         }
 
         // Hide install banner
@@ -1293,6 +1303,59 @@
                     showPlatformInstallGuidance();
                 }
             }, 5000); // Wait 5 seconds after page load
+            
+            // For Android Chrome/Edge: Re-check after user engagement
+            if (isAndroid && (isChrome || isEdge)) {
+                let engagementStartTime = Date.now();
+                let hasInteracted = false;
+                
+                // Track user interaction
+                const interactionEvents = ['click', 'touchstart', 'scroll', 'keydown'];
+                const markInteraction = () => {
+                    if (!hasInteracted) {
+                        hasInteracted = true;
+                        if (PWA_DEBUG) console.log('User interaction detected, starting engagement timer');
+                    }
+                };
+                
+                interactionEvents.forEach(event => {
+                    document.addEventListener(event, markInteraction, { once: true, passive: true });
+                });
+                
+                // Check again after 35 seconds if user has interacted
+                setTimeout(() => {
+                    if (hasInteracted && !deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                        const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
+                        if (PWA_DEBUG) {
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                            console.log('%c🔄 Re-checking PWA Installability', 'color: #3b82f6; font-weight: bold');
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                            console.log(`User has been engaged for ${elapsedTime} seconds`);
+                            console.log(`beforeinstallprompt still has not fired`);
+                            console.log('');
+                            console.log('Possible reasons:');
+                            console.log('  1. App is already installed (check chrome://apps)');
+                            console.log('  2. Manifest or Service Worker has errors');
+                            console.log('  3. Icons are not loading correctly');
+                            console.log('  4. Browser cache needs to be cleared');
+                            console.log('');
+                            console.log('To install manually:');
+                            console.log('  1. Check the address bar for an install icon (⊕)');
+                            console.log('  2. Open browser menu (⋮) and look for "Install app"');
+                            console.log('  3. If not available, try visiting chrome://flags and enable:');
+                            console.log('     - "Desktop PWAs" or "PWA installation prompt"');
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                        }
+                        
+                        // Update the banner with re-check information
+                        const installBanner = document.getElementById('installBanner');
+                        const textEl = installBanner?.querySelector('.install-banner-text');
+                        if (textEl && installBanner.classList.contains('show')) {
+                            textEl.textContent = '✓ Вече използваш приложението достатъчно дълго. Провери адресната лента или менюто на браузъра за опция за инсталация.';
+                        }
+                    }
+                }, 35000); // Check after 35 seconds (30s requirement + 5s buffer)
+            }
         });
 
         // Debug: Check PWA installability after page load
