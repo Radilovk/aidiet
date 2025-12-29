@@ -1,5 +1,7 @@
 # PWA Installation Issue - Root Cause & Solution
 
+> **UPDATE 2025-12-29**: Mobile PWA installation issue has been fixed! See [PWA_MOBILE_FIX_2025.md](./PWA_MOBILE_FIX_2025.md) for details on the Android mobile browser fallback fix.
+
 ## 🎯 Summary
 
 **The PWA is actually WORKING and INSTALLABLE!** The confusion comes from Chrome's behavior change in 2025.
