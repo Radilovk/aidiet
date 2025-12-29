@@ -1350,10 +1350,6 @@
             }, 5000); // Wait 5 seconds after page load
             
             // For Android Chrome/Edge: Re-check after user engagement
-            const isAndroid = /Android/i.test(navigator.userAgent);
-            const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
-            const isEdge = /Edg/i.test(navigator.userAgent);
-            
             if (isAndroid && (isChrome || isEdge)) {
                 let engagementStartTime = Date.now();
                 let hasInteracted = false;
