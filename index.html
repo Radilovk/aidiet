@@ -926,6 +926,24 @@
         const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
         const PWA_DEBUG = true; // Set to true for debugging PWA installation issues
         
+        // Console styling constants
+        const CONSOLE_STYLES = {
+            SUCCESS: 'color: #10b981; font-weight: bold; font-size: 14px',
+            WARNING: 'color: #f59e0b; font-weight: bold; font-size: 14px',
+            INFO: 'color: #3b82f6; font-weight: bold',
+            SEPARATOR: 'color: #10b981',
+            SEPARATOR_WARNING: 'color: #f59e0b',
+            SEPARATOR_INFO: 'color: #3b82f6'
+        };
+        
+        // Installation instruction texts
+        const INSTALL_INSTRUCTIONS = {
+            DESKTOP: 'За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."',
+            ANDROID: 'За да инсталирате приложението:\n\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" або "Добави към начален екран"\n3. Потвърдете инсталацията\n\nИли потърсете иконата за инсталация в адресната лента',
+            IOS: 'За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)',
+            MOBILE_GENERIC: 'За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието'
+        };
+        
         // Helper function to check if banner was recently dismissed
         function wasBannerRecentlyDismissed() {
             const dismissedTime = localStorage.getItem('installBannerDismissed');
@@ -1018,7 +1036,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Как да инсталирам?';
                     installBtn.onclick = () => {
-                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."');
+                        alert(INSTALL_INSTRUCTIONS.DESKTOP);
                     };
                 }
                 installBanner.classList.add('show');
@@ -1029,7 +1047,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Инструкции';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)');
+                        alert(INSTALL_INSTRUCTIONS.IOS);
                     };
                 }
                 installBanner.classList.add('show');
@@ -1040,7 +1058,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Как да инсталирам?';
                     installBtn.onclick = () => {
-                        alert('За да инсталирате приложението:\n\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Потвърдете инсталацията\n\nИли потърсете иконата за инсталация в адресната лента');
+                        alert(INSTALL_INSTRUCTIONS.ANDROID);
                     };
                 }
                 installBanner.classList.add('show');
@@ -1051,7 +1069,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Инструкции';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                        alert(INSTALL_INSTRUCTIONS.MOBILE_GENERIC);
                     };
                 }
                 installBanner.classList.add('show');
@@ -1146,11 +1164,11 @@
                             
                             // Different explanations for desktop vs mobile
                             if (!isMobile && (isChrome || isEdge)) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
-                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #10b981; font-weight: bold; font-size: 14px');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
-                                console.log('%cINFO: On Desktop Chrome/Edge, the beforeinstallprompt event often does NOT fire.', 'color: #3b82f6; font-weight: bold');
-                                console.log('%cInstead, Chrome shows an INSTALL ICON in the address bar (omnibox).', 'color: #3b82f6; font-weight: bold');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
+                                console.log('%c✓ PWA IS INSTALLABLE!', CONSOLE_STYLES.SUCCESS);
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
+                                console.log('%cINFO: On Desktop Chrome/Edge, the beforeinstallprompt event often does NOT fire.', CONSOLE_STYLES.INFO);
+                                console.log('%cInstead, Chrome shows an INSTALL ICON in the address bar (omnibox).', CONSOLE_STYLES.INFO);
                                 console.log('');
                                 console.log('%cTo install this app:', 'font-weight: bold');
                                 console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
@@ -1158,13 +1176,13 @@
                                 console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
                             } else if (isAndroid && (isChrome || isEdge)) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #f59e0b');
-                                console.log('%c⚠ PWA Install Banner Fallback Activated', 'color: #f59e0b; font-weight: bold; font-size: 14px');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #f59e0b');
-                                console.log('%cINFO: beforeinstallprompt event has not fired on Android.', 'color: #f59e0b; font-weight: bold');
-                                console.log('%cShowing fallback install instructions banner.', 'color: #f59e0b; font-weight: bold');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_WARNING);
+                                console.log('%c⚠ PWA Install Banner Fallback Activated', CONSOLE_STYLES.WARNING);
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_WARNING);
+                                console.log('%cINFO: beforeinstallprompt event has not fired on Android.', CONSOLE_STYLES.INFO);
+                                console.log('%cShowing fallback install instructions banner.', CONSOLE_STYLES.INFO);
                                 console.log('');
                                 console.log('Possible reasons why beforeinstallprompt did not fire:');
                                 console.log('  1. User engagement criteria not met (needs 30+ seconds + interaction)');
@@ -1178,22 +1196,22 @@
                                 console.log('  1. Open browser menu (⋮) in top right corner');
                                 console.log('  2. Look for "Install app" or "Add to Home screen"');
                                 console.log('  3. Confirm installation');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #f59e0b');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_WARNING);
                             } else if (isMobile) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6');
-                                console.log('%cℹ Mobile Browser Detected', 'color: #3b82f6; font-weight: bold; font-size: 14px');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_INFO);
+                                console.log('%cℹ Mobile Browser Detected', CONSOLE_STYLES.INFO);
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_INFO);
                                 console.log('Showing generic mobile install guidance.');
                                 console.log('- Note: beforeinstallprompt is only supported on Chrome/Edge');
                                 console.log('- For other browsers, users can install manually via browser menu');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_INFO);
                             } else {
                                 console.log('- Note: beforeinstallprompt is only supported on Chrome/Edge (mainly Android)');
                                 console.log('- For other browsers, users can install manually via browser menu');
                             }
                         }
                     } else {
-                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #10b981; font-weight: bold');
+                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', CONSOLE_STYLES.SUCCESS);
                         console.log('PWA is ready for installation with custom install prompt.');
                     }
                 }, 3000);
