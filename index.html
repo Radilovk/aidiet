@@ -972,18 +972,12 @@
             e.preventDefault();
             deferredPrompt = e;
             
+            // Update banner text for Chrome/Edge with native prompt
+            updateInstallBannerForNativePrompt();
+            
             // Show the install banner only if not recently dismissed
             if (!wasBannerRecentlyDismissed()) {
                 showInstallBanner();
-                
-                // Auto-trigger installation prompt after 3 seconds for better automatic experience
-                // This ensures users don't miss the installation opportunity
-                setTimeout(() => {
-                    if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
-                        if (PWA_DEBUG) console.log('Auto-triggering install prompt after 3 seconds');
-                        triggerInstallPrompt();
-                    }
-                }, 3000);
             }
         });
 
@@ -992,17 +986,34 @@
             if (PWA_DEBUG) console.log('Showing install banner');
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
-                // Update banner text for automatic installation
-                const titleEl = installBanner.querySelector('.install-banner-title');
-                const textEl = installBanner.querySelector('.install-banner-text');
-                
-                if (titleEl) titleEl.textContent = '🎉 Готово за инсталация!';
-                if (textEl) textEl.textContent = 'Приложението ще се инсталира автоматично след 3 секунди';
-                
                 installBanner.classList.add('show');
                 if (PWA_DEBUG) console.log('Install banner displayed successfully');
             } else {
                 if (PWA_DEBUG) console.error('Install banner element not found');
+            }
+        }
+        
+        // Update banner text for native prompt availability
+        function updateInstallBannerForNativePrompt() {
+            const installBanner = document.getElementById('installBanner');
+            if (installBanner) {
+                const titleEl = installBanner.querySelector('.install-banner-title');
+                const textEl = installBanner.querySelector('.install-banner-text');
+                
+                if (titleEl) titleEl.textContent = '🎉 Готово за инсталация!';
+                if (textEl) textEl.textContent = 'Кликни "Инсталирай" за автоматична инсталация';
+            }
+        }
+        
+        // Update banner text for manual installation
+        function updateInstallBannerForManual() {
+            const installBanner = document.getElementById('installBanner');
+            if (installBanner) {
+                const titleEl = installBanner.querySelector('.install-banner-title');
+                const textEl = installBanner.querySelector('.install-banner-text');
+                
+                if (titleEl) titleEl.textContent = '📱 Инсталирай NutriPlan';
+                if (textEl) textEl.textContent = 'Кликни "Инсталирай" за инструкции';
             }
         }
         
@@ -1133,7 +1144,21 @@
         const installBtn = document.getElementById('installBtn');
         if (installBtn) {
             installBtn.addEventListener('click', async () => {
-                await triggerInstallPrompt();
+                // If we have the native prompt, use it
+                if (deferredPrompt) {
+                    await triggerInstallPrompt();
+                } else {
+                    // Show instructions for manual installation
+                    if (isAndroid) {
+                        alert(INSTALL_INSTRUCTIONS.ANDROID);
+                    } else if (isIOS) {
+                        alert(INSTALL_INSTRUCTIONS.IOS);
+                    } else if (isMobile) {
+                        alert(INSTALL_INSTRUCTIONS.MOBILE_GENERIC);
+                    } else {
+                        alert(INSTALL_INSTRUCTIONS.DESKTOP);
+                    }
+                }
             });
         }
 
@@ -1158,12 +1183,24 @@
         // Don't show fallback guidance - only show banner when beforeinstallprompt fires
         // This ensures automatic installation prompt instead of manual instructions
         window.addEventListener('load', () => {
+            // Always show install button on Android if not installed
+            if (isAndroid && !window.matchMedia('(display-mode: standalone)').matches) {
+                setTimeout(() => {
+                    if (!wasBannerRecentlyDismissed()) {
+                        // Update banner for manual installation (will be updated if beforeinstallprompt fires)
+                        updateInstallBannerForManual();
+                        showInstallBanner();
+                        if (PWA_DEBUG) console.log('Showing install banner on Android for all browsers');
+                    }
+                }, 2000); // Show after 2 seconds to allow beforeinstallprompt to fire first
+            }
+            
             setTimeout(() => {
                 // Only log for debugging - don't show manual instructions
                 if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
                     if (PWA_DEBUG) {
                         console.log('beforeinstallprompt has not fired after 2 seconds');
-                        console.log('Waiting for automatic prompt - no manual instructions shown');
+                        console.log('Install button available with manual instructions');
                     }
                 }
             }, 2000);
@@ -1196,10 +1233,9 @@
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
                             console.log(`User has been engaged for ${elapsedTime} seconds`);
                             console.log(`beforeinstallprompt still has not fired`);
-                            console.log('Waiting for automatic prompt - app may already be installed or PWA criteria not met');
+                            console.log('Install button available with manual instructions fallback');
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
                         }
-                        // Don't show manual instructions - wait for automatic prompt only
                     }
                 }, 32000); // Check after 32 seconds (30s requirement + 2s buffer)
             }
