@@ -1168,7 +1168,7 @@
                 }
             }, 2000);
             
-            // For Android Chrome/Edge: Show fallback if beforeinstallprompt doesn't fire
+            // For Android Chrome/Edge: Continue waiting for beforeinstallprompt
             if (isAndroid && (isChrome || isEdge)) {
                 let engagementStartTime = Date.now();
                 let hasInteracted = false;
@@ -1186,121 +1186,28 @@
                     document.addEventListener(event, markInteraction, { once: true, passive: true });
                 });
                 
-                // After 5 seconds, if beforeinstallprompt hasn't fired, show fallback banner
-                setTimeout(() => {
-                    if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
-                        if (PWA_DEBUG) {
-                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #f59e0b');
-                            console.log('%c⚠️  beforeinstallprompt has not fired after 5 seconds', 'color: #f59e0b; font-weight: bold');
-                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #f59e0b');
-                            console.log('Showing fallback install banner with manual instructions...');
-                        }
-                        // Show the platform-specific install guidance
-                        showPlatformInstallGuidance();
-                    }
-                }, 5000); // Show fallback after 5 seconds
-                
-                // Check again after 32 seconds if user has interacted for extended diagnostics
+                // Check again after 32 seconds if user has interacted
                 setTimeout(() => {
                     if (hasInteracted && !deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
                         const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
                         if (PWA_DEBUG) {
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
-                            console.log('%c🔄 Extended PWA Installability Check', 'color: #3b82f6; font-weight: bold');
+                            console.log('%c🔄 Re-checking PWA Installability', 'color: #3b82f6; font-weight: bold');
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
-                            console.log(`User has been engaged for ${elapsedTime} seconds with interaction`);
+                            console.log(`User has been engaged for ${elapsedTime} seconds`);
                             console.log(`beforeinstallprompt still has not fired`);
-                            console.log('This is unusual - Chrome should fire the event after 30s + interaction');
-                            console.log('Possible issues: App already installed, manifest errors, or browser criteria changed');
+                            console.log('Waiting for automatic prompt - app may already be installed or PWA criteria not met');
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
                         }
+                        // Don't show manual instructions - wait for automatic prompt only
                     }
                 }, 32000); // Check after 32 seconds (30s requirement + 2s buffer)
             }
-            
-            // For other mobile platforms: Show fallback immediately after initial delay
-            if (isMobile && !isAndroid) {
-                setTimeout(() => {
-                    if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
-                        showPlatformInstallGuidance();
-                    }
-                }, 3000);
-            }
         });
-
-        // Enhanced PWA Diagnostics - Validate manifest and icons
-        async function validatePWAResources() {
-            if (!PWA_DEBUG) return; // Only run in debug mode
-            
-            console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6; font-weight: bold');
-            console.log('%c🔍 PWA RESOURCE VALIDATION', 'color: #3b82f6; font-weight: bold; font-size: 14px');
-            console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6; font-weight: bold');
-            
-            // 1. Validate Manifest
-            const manifestLink = document.querySelector('link[rel="manifest"]');
-            if (manifestLink) {
-                const manifestUrl = manifestLink.href;
-                console.log('📄 Manifest URL:', manifestUrl);
-                
-                try {
-                    const response = await fetch(manifestUrl);
-                    console.log('   - HTTP Status:', response.status, response.statusText);
-                    console.log('   - Content-Type:', response.headers.get('content-type'));
-                    
-                    if (response.ok) {
-                        const manifest = await response.json();
-                        console.log('   - ✅ Manifest loaded successfully');
-                        console.log('   - Name:', manifest.name);
-                        console.log('   - Start URL:', manifest.start_url);
-                        console.log('   - Display:', manifest.display);
-                        console.log('   - Icons count:', manifest.icons ? manifest.icons.length : 0);
-                        
-                        // Validate icons
-                        if (manifest.icons && manifest.icons.length > 0) {
-                            console.log('');
-                            console.log('🖼️  Validating Icons:');
-                            for (const icon of manifest.icons) {
-                                console.log(`   - Icon: ${icon.src} (${icon.sizes}, ${icon.purpose || 'any'})`);
-                                
-                                try {
-                                    // Use HEAD request to check availability without downloading full content
-                                    const iconResponse = await fetch(icon.src, { method: 'HEAD' });
-                                    if (iconResponse.ok) {
-                                        const contentLength = iconResponse.headers.get('content-length');
-                                        const contentType = iconResponse.headers.get('content-type');
-                                        const sizeKB = contentLength ? (parseInt(contentLength) / 1024).toFixed(2) : 'unknown';
-                                        console.log(`     ✅ Accessible (${sizeKB} KB, ${contentType || 'unknown type'})`);
-                                    } else {
-                                        console.log(`     ❌ Failed: ${iconResponse.status} ${iconResponse.statusText}`);
-                                    }
-                                } catch (iconError) {
-                                    console.log(`     ❌ Error checking icon:`, iconError.message);
-                                }
-                            }
-                        } else {
-                            console.log('   - ⚠️  WARNING: No icons defined in manifest!');
-                        }
-                    } else {
-                        console.log('   - ❌ Failed to load manifest:', response.status, response.statusText);
-                    }
-                } catch (error) {
-                    console.log('   - ❌ Error fetching manifest:', error.message);
-                }
-            } else {
-                console.log('❌ Manifest link not found in HTML');
-            }
-            
-            console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6; font-weight: bold');
-        }
 
         // Debug: Check PWA installability after page load
         if (PWA_DEBUG) {
             window.addEventListener('load', () => {
-                // Run validation first
-                setTimeout(async () => {
-                    await validatePWAResources();
-                }, 1000);
-                
                 setTimeout(() => {
                     // Detect device type
                     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
