@@ -1311,14 +1311,18 @@
             deferredPrompt = null;
         });
         
-        // Show platform-specific install guidance after a delay if beforeinstallprompt doesn't fire
+        // Don't show fallback guidance - only show banner when beforeinstallprompt fires
+        // This ensures automatic installation prompt instead of manual instructions
         window.addEventListener('load', () => {
             setTimeout(() => {
-                // If beforeinstallprompt hasn't fired, show platform-specific guidance
+                // Only log for debugging - don't show manual instructions
                 if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
-                    showPlatformInstallGuidance();
+                    if (PWA_DEBUG) {
+                        console.log('beforeinstallprompt has not fired after 2 seconds');
+                        console.log('Waiting for automatic prompt - no manual instructions shown');
+                    }
                 }
-            }, 2000); // Wait 2 seconds after page load for faster UX
+            }, 2000);
             
             // For Android Chrome/Edge: Re-check after user engagement
             if (isAndroid && (isChrome || isEdge)) {
@@ -1338,7 +1342,7 @@
                     document.addEventListener(event, markInteraction, { once: true, passive: true });
                 });
                 
-                // Check again after 35 seconds if user has interacted
+                // Check again after 32 seconds if user has interacted
                 setTimeout(() => {
                     if (hasInteracted && !deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
                         const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
@@ -1348,27 +1352,10 @@
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
                             console.log(`User has been engaged for ${elapsedTime} seconds`);
                             console.log(`beforeinstallprompt still has not fired`);
-                            console.log('');
-                            console.log('Possible reasons:');
-                            console.log('  1. App is already installed (check chrome://apps)');
-                            console.log('  2. Manifest or Service Worker has errors');
-                            console.log('  3. Icons are not loading correctly');
-                            console.log('  4. Browser cache needs to be cleared');
-                            console.log('');
-                            console.log('To install manually:');
-                            console.log('  1. Check the address bar for an install icon (⊕)');
-                            console.log('  2. Open browser menu (⋮) and look for "Install app"');
-                            console.log('  3. If not available, try visiting chrome://flags and enable:');
-                            console.log('     - "Desktop PWAs" or "PWA installation prompt"');
+                            console.log('Waiting for automatic prompt - app may already be installed or PWA criteria not met');
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
                         }
-                        
-                        // Update the banner with re-check information
-                        const installBanner = document.getElementById('installBanner');
-                        const textEl = installBanner?.querySelector('.install-banner-text');
-                        if (textEl && installBanner.classList.contains('show')) {
-                            textEl.textContent = '✅ Готово! Сега можеш да инсталираш. Отвори менюто (⋮) → "Инсталирай приложение"';
-                        }
+                        // Don't show manual instructions - wait for automatic prompt only
                     }
                 }, 32000); // Check after 32 seconds (30s requirement + 2s buffer)
             }
