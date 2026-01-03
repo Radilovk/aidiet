@@ -1304,18 +1304,43 @@
                     return;
                 }
 
-                // Show the install prompt
-                deferredPrompt.prompt();
-                
-                // Wait for the user to respond to the prompt
-                const { outcome } = await deferredPrompt.userChoice;
-                if (PWA_DEBUG) console.log(`User response to the install prompt: ${outcome}`);
-                
-                // Hide the banner
-                hideInstallBanner();
-                
-                // Clear the deferred prompt
-                deferredPrompt = null;
+                try {
+                    // Show loading state on button
+                    const originalBtnContent = installBtn.innerHTML;
+                    installBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Инсталиране...';
+                    installBtn.disabled = true;
+                    
+                    if (PWA_DEBUG) console.log('Triggering install prompt automatically...');
+                    
+                    // Automatically show the native install prompt
+                    deferredPrompt.prompt();
+                    
+                    // Wait for the user to respond to the native prompt
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (PWA_DEBUG) console.log(`User response to the install prompt: ${outcome}`);
+                    
+                    if (outcome === 'accepted') {
+                        if (PWA_DEBUG) console.log('✅ User accepted - app will install automatically!');
+                        // Show success message briefly before banner disappears
+                        installBtn.innerHTML = '<i class="fas fa-check"></i> Инсталира се...';
+                        setTimeout(() => {
+                            hideInstallBanner();
+                        }, 1500);
+                    } else {
+                        if (PWA_DEBUG) console.log('❌ User dismissed the install prompt');
+                        // Restore button state
+                        installBtn.innerHTML = originalBtnContent;
+                        installBtn.disabled = false;
+                    }
+                    
+                    // Clear the deferred prompt
+                    deferredPrompt = null;
+                } catch (error) {
+                    console.error('Error during installation:', error);
+                    // Restore button on error
+                    installBtn.innerHTML = '<i class="fas fa-download"></i> Инсталирай';
+                    installBtn.disabled = false;
+                }
             });
         }
 
