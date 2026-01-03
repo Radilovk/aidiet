@@ -1186,6 +1186,7 @@
 
         // --- PWA Install Banner Functionality ---
         let deferredPrompt;
+        let installButtonListenerAdded = false; // Prevent duplicate listeners
         
         // Constants
         const INSTALL_BANNER_DISMISS_DAYS = 7; // Number of days before showing banner again
@@ -1247,11 +1248,9 @@
                 showIOSInstallBanner();
             } else if (!deferredPrompt) {
                 // beforeinstallprompt hasn't fired yet, but app might still be installable
-                if (PWA_DEBUG) console.log('beforeinstallprompt not fired, checking if we should show banner anyway');
-                // On some browsers, show a generic banner after a delay
-                if ('serviceWorker' in navigator && 'PushManager' in window) {
-                    if (PWA_DEBUG) console.log('Browser supports PWA features, showing banner');
-                    showInstallBanner();
+                beforeinstallprompt not fired yet';
+                // Don't show banner without deferredPrompt on Android - it won't work
+                // The banner will show when beforeinstallprompt fires
                 }
             }
         }
@@ -1278,7 +1277,11 @@
                 if (textEl) textEl.innerHTML = 'Натисни <i class="fas fa-share"></i> и избери "Добави към Home Screen"';
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Разбрах';
-                    installBtn.onclick = () => hideInstallBanner();
+                    // Remove any existing event listeners by cloning the button
+                    const newBtn = installBtn.cloneNode(true);
+                    installBtn.parentNode.replaceChild(newBtn, installBtn);
+                    // Add only click handler for iOS
+                    newBtn.addEventListener('click', () => hideInstallBanner());
                 }
                 
                 installBanner.classList.add('show');
@@ -1296,8 +1299,12 @@
         }
 
         // Handle install button click
-        const installBtn = document.getElementById('installBtn');
-        if (installBtn) {
+        function setupInstallButton() {
+            const installBtn = document.getElementById('installBtn');
+            if (!installBtn || installButtonListenerAdded) {
+                return; // Already setup or button not found
+            }
+            
             installBtn.addEventListener('click', async () => {
                 if (!deferredPrompt) {
                     if (PWA_DEBUG) console.log('No deferred prompt available');
@@ -1344,7 +1351,13 @@
                     installBtn.disabled = false;
                 }
             });
+            
+            installButtonListenerAdded = true;
+            if (PWA_DEBUG) console.log('Install button listener setup complete');
         }
+        
+        // Setup install button listener immediately (for Android browsers)
+        setupInstallButton();
 
         // Handle dismiss button click
         const dismissInstallBtn = document.getElementById('dismissInstallBtn');
