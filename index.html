@@ -939,7 +939,7 @@
         // Installation instruction texts
         const INSTALL_INSTRUCTIONS = {
             DESKTOP: 'За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."',
-            ANDROID: 'За да инсталирате приложението:\n\n⚠️ Chrome изисква взаимодействие със страницата преди да позволи инсталация.\n\nМоля, направете следното:\n\n1. Използвайте приложението поне 30 секунди\n2. Кликнете на няколко бутона или прегледайте различни секции\n3. След това:\n   • Потърсете иконата за инсталация (⊕) в адресната лента\n   • ИЛИ отворете менюто на браузъра (⋮) и потърсете "Инсталирай приложение"\n\n💡 Съвет: Ако опцията не се появи веднага, опитайте да презаредите страницата след взаимодействие.',
+            ANDROID: '📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Натиснете "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърсете иконата (⊕) в адресната лента\n• Кликнете и изберете "Инсталирай"\n\n💡 ВАЖНО: Ако не виждате опцията веднага:\n• Презаредете страницата (F5)\n• Изчакайте 2-3 секунди\n• Кликнете на някой бутон на страницата',
             IOS: 'За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)',
             MOBILE_GENERIC: 'За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието'
         };
@@ -975,6 +975,15 @@
             // Show the install banner only if not recently dismissed
             if (!wasBannerRecentlyDismissed()) {
                 showInstallBanner();
+                
+                // Auto-trigger installation prompt after 3 seconds for better automatic experience
+                // This ensures users don't miss the installation opportunity
+                setTimeout(() => {
+                    if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                        if (PWA_DEBUG) console.log('Auto-triggering install prompt after 3 seconds');
+                        triggerInstallPrompt();
+                    }
+                }, 3000);
             }
         });
 
@@ -983,6 +992,13 @@
             if (PWA_DEBUG) console.log('Showing install banner');
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
+                // Update banner text for automatic installation
+                const titleEl = installBanner.querySelector('.install-banner-title');
+                const textEl = installBanner.querySelector('.install-banner-text');
+                
+                if (titleEl) titleEl.textContent = '🎉 Готово за инсталация!';
+                if (textEl) textEl.textContent = 'Приложението ще се инсталира автоматично след 3 секунди';
+                
                 installBanner.classList.add('show');
                 if (PWA_DEBUG) console.log('Install banner displayed successfully');
             } else {
@@ -1053,10 +1069,10 @@
                 installBanner.classList.add('show');
             } else if (isAndroid && (isChrome || isEdge)) {
                 // Android Chrome/Edge - fallback when beforeinstallprompt doesn't fire
-                if (titleEl) titleEl.textContent = '📱 Инсталирай NutriPlan';
-                if (textEl) textEl.textContent = 'Използвай приложението 30 секунди, след което ще можеш да го инсталираш';
+                if (titleEl) titleEl.textContent = '📱 Инсталирай NutriPlan веднага!';
+                if (textEl) textEl.textContent = 'Натисни менюто на браузъра (⋮) → "Инсталирай приложение"';
                 if (installBtn) {
-                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Виж инструкции';
+                    installBtn.innerHTML = '<i class="fas fa-question-circle"></i> Как точно?';
                     installBtn.onclick = () => {
                         alert(INSTALL_INSTRUCTIONS.ANDROID);
                     };
@@ -1083,17 +1099,17 @@
                 installBanner.classList.remove('show');
             }
         }
-
-        // Handle install button click
-        const installBtn = document.getElementById('installBtn');
-        if (installBtn) {
-            installBtn.addEventListener('click', async () => {
-                if (!deferredPrompt) {
-                    if (PWA_DEBUG) console.log('No deferred prompt available');
-                    return;
-                }
-
+        
+        // Trigger install prompt (reusable function)
+        async function triggerInstallPrompt() {
+            if (!deferredPrompt) {
+                if (PWA_DEBUG) console.log('No deferred prompt available');
+                return false;
+            }
+            
+            try {
                 // Show the install prompt
+                if (PWA_DEBUG) console.log('Triggering install prompt');
                 deferredPrompt.prompt();
                 
                 // Wait for the user to respond to the prompt
@@ -1105,6 +1121,19 @@
                 
                 // Clear the deferred prompt
                 deferredPrompt = null;
+                
+                return outcome === 'accepted';
+            } catch (error) {
+                if (PWA_DEBUG) console.error('Error triggering install prompt:', error);
+                return false;
+            }
+        }
+
+        // Handle install button click
+        const installBtn = document.getElementById('installBtn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                await triggerInstallPrompt();
             });
         }
 
@@ -1126,17 +1155,20 @@
             deferredPrompt = null;
         });
         
-        // Show platform-specific install guidance after a delay if beforeinstallprompt doesn't fire
+        // Don't show fallback guidance - only show banner when beforeinstallprompt fires
+        // This ensures automatic installation prompt instead of manual instructions
         window.addEventListener('load', () => {
             setTimeout(() => {
-                // If beforeinstallprompt hasn't fired, show platform-specific guidance
+                // Only log for debugging - don't show manual instructions
                 if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
-                    if (PWA_DEBUG) console.log('beforeinstallprompt has not fired after 5 seconds, showing platform guidance');
-                    showPlatformInstallGuidance();
+                    if (PWA_DEBUG) {
+                        console.log('beforeinstallprompt has not fired after 2 seconds');
+                        console.log('Waiting for automatic prompt - no manual instructions shown');
+                    }
                 }
-            }, 5000); // Wait 5 seconds after page load
+            }, 2000);
             
-            // For Android Chrome/Edge: Re-check after user engagement
+            // For Android Chrome/Edge: Continue waiting for beforeinstallprompt
             if (isAndroid && (isChrome || isEdge)) {
                 let engagementStartTime = Date.now();
                 let hasInteracted = false;
@@ -1154,7 +1186,7 @@
                     document.addEventListener(event, markInteraction, { once: true, passive: true });
                 });
                 
-                // Check again after 35 seconds if user has interacted
+                // Check again after 32 seconds if user has interacted
                 setTimeout(() => {
                     if (hasInteracted && !deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
                         const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
@@ -1164,29 +1196,12 @@
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
                             console.log(`User has been engaged for ${elapsedTime} seconds`);
                             console.log(`beforeinstallprompt still has not fired`);
-                            console.log('');
-                            console.log('Possible reasons:');
-                            console.log('  1. App is already installed (check chrome://apps)');
-                            console.log('  2. Manifest or Service Worker has errors');
-                            console.log('  3. Icons are not loading correctly');
-                            console.log('  4. Browser cache needs to be cleared');
-                            console.log('');
-                            console.log('To install manually:');
-                            console.log('  1. Check the address bar for an install icon (⊕)');
-                            console.log('  2. Open browser menu (⋮) and look for "Install app"');
-                            console.log('  3. If not available, try visiting chrome://flags and enable:');
-                            console.log('     - "Desktop PWAs" or "PWA installation prompt"');
+                            console.log('Waiting for automatic prompt - app may already be installed or PWA criteria not met');
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
                         }
-                        
-                        // Update the banner with re-check information
-                        const installBanner = document.getElementById('installBanner');
-                        const textEl = installBanner?.querySelector('.install-banner-text');
-                        if (textEl && installBanner.classList.contains('show')) {
-                            textEl.textContent = '✓ Вече използваш приложението достатъчно дълго. Провери адресната лента или менюто на браузъра за опция за инсталация.';
-                        }
+                        // Don't show manual instructions - wait for automatic prompt only
                     }
-                }, 35000); // Check after 35 seconds (30s requirement + 5s buffer)
+                }, 32000); // Check after 32 seconds (30s requirement + 2s buffer)
             }
         });
 
