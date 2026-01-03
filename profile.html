@@ -1178,6 +1178,15 @@
             // Show the install banner only if not recently dismissed
             if (!wasBannerRecentlyDismissed()) {
                 showInstallBanner();
+                
+                // Auto-trigger installation prompt after 3 seconds for better automatic experience
+                // This ensures users don't miss the installation opportunity
+                setTimeout(() => {
+                    if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                        if (PWA_DEBUG) console.log('Auto-triggering install prompt after 3 seconds');
+                        triggerInstallPrompt();
+                    }
+                }, 3000);
             }
         });
 
@@ -1186,6 +1195,13 @@
             if (PWA_DEBUG) console.log('Showing install banner');
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
+                // Update banner text for automatic installation
+                const titleEl = installBanner.querySelector('.install-banner-title');
+                const textEl = installBanner.querySelector('.install-banner-text');
+                
+                if (titleEl) titleEl.textContent = '🎉 Готово за инсталация!';
+                if (textEl) textEl.textContent = 'Приложението ще се инсталира автоматично след 3 секунди';
+                
                 installBanner.classList.add('show');
                 if (PWA_DEBUG) console.log('Install banner displayed successfully');
             } else {
@@ -1252,17 +1268,17 @@
                 installBanner.classList.remove('show');
             }
         }
-
-        // Handle install button click
-        const installBtn = document.getElementById('installBtn');
-        if (installBtn) {
-            installBtn.addEventListener('click', async () => {
-                if (!deferredPrompt) {
-                    if (PWA_DEBUG) console.log('No deferred prompt available');
-                    return;
-                }
-
+        
+        // Trigger install prompt (reusable function)
+        async function triggerInstallPrompt() {
+            if (!deferredPrompt) {
+                if (PWA_DEBUG) console.log('No deferred prompt available');
+                return false;
+            }
+            
+            try {
                 // Show the install prompt
+                if (PWA_DEBUG) console.log('Triggering install prompt');
                 deferredPrompt.prompt();
                 
                 // Wait for the user to respond to the prompt
@@ -1274,6 +1290,21 @@
                 
                 // Clear the deferred prompt
                 deferredPrompt = null;
+                
+                return outcome === 'accepted';
+            } catch (error) {
+                if (PWA_DEBUG) console.error('Error triggering install prompt:', error);
+                return false;
+            }
+        }
+
+        // Handle install button click
+        const installBtn = document.getElementById('installBtn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                await triggerInstallPrompt();
+            });
+        }
             });
         }
 
