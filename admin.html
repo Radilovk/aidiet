@@ -1219,7 +1219,7 @@
                 showIOSInstallBanner();
             } else if (!deferredPrompt) {
                 // beforeinstallprompt hasn't fired yet, but app might still be installable
-                beforeinstallprompt not fired yet';
+                if (PWA_DEBUG) console.log('beforeinstallprompt not fired yet');
                 // Don't show banner without deferredPrompt on Android - it won't work
                 // The banner will show when beforeinstallprompt fires
                 }
