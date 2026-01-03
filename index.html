@@ -1230,6 +1230,8 @@
 
         // Enhanced PWA Diagnostics - Validate manifest and icons
         async function validatePWAResources() {
+            if (!PWA_DEBUG) return; // Only run in debug mode
+            
             console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6; font-weight: bold');
             console.log('%c🔍 PWA RESOURCE VALIDATION', 'color: #3b82f6; font-weight: bold; font-size: 14px');
             console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3b82f6; font-weight: bold');
@@ -1255,20 +1257,24 @@
                         
                         // Validate icons
                         if (manifest.icons && manifest.icons.length > 0) {
-                            console.log('\n🖼️  Validating Icons:');
+                            console.log('');
+                            console.log('🖼️  Validating Icons:');
                             for (const icon of manifest.icons) {
                                 console.log(`   - Icon: ${icon.src} (${icon.sizes}, ${icon.purpose || 'any'})`);
                                 
                                 try {
-                                    const iconResponse = await fetch(icon.src);
+                                    // Use HEAD request to check availability without downloading full content
+                                    const iconResponse = await fetch(icon.src, { method: 'HEAD' });
                                     if (iconResponse.ok) {
-                                        const blob = await iconResponse.blob();
-                                        console.log(`     ✅ Loaded successfully (${(blob.size / 1024).toFixed(2)} KB, ${blob.type})`);
+                                        const contentLength = iconResponse.headers.get('content-length');
+                                        const contentType = iconResponse.headers.get('content-type');
+                                        const sizeKB = contentLength ? (parseInt(contentLength) / 1024).toFixed(2) : 'unknown';
+                                        console.log(`     ✅ Accessible (${sizeKB} KB, ${contentType || 'unknown type'})`);
                                     } else {
                                         console.log(`     ❌ Failed: ${iconResponse.status} ${iconResponse.statusText}`);
                                     }
                                 } catch (iconError) {
-                                    console.log(`     ❌ Error loading icon:`, iconError.message);
+                                    console.log(`     ❌ Error checking icon:`, iconError.message);
                                 }
                             }
                         } else {
