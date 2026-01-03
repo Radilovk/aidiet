@@ -1038,9 +1038,11 @@
                     return;
                 }
 
+                // Store original button content before any changes
+                const originalBtnContent = installBtn.innerHTML;
+                
                 try {
                     // Show loading state on button
-                    const originalBtnContent = installBtn.innerHTML;
                     installBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Инсталиране...';
                     installBtn.disabled = true;
                     
@@ -1056,7 +1058,7 @@
                     if (outcome === 'accepted') {
                         if (PWA_DEBUG) console.log('✅ User accepted - app will install automatically!');
                         // Show success message briefly before banner disappears
-                        installBtn.innerHTML = '<i class="fas fa-check"></i> Инсталира се...';
+                        installBtn.innerHTML = '<i class="fas fa-check"></i> Інсталира се...';
                         setTimeout(() => {
                             hideInstallBanner();
                         }, 1500);
@@ -1071,8 +1073,8 @@
                     deferredPrompt = null;
                 } catch (error) {
                     console.error('Error during installation:', error);
-                    // Restore button on error
-                    installBtn.innerHTML = '<i class="fas fa-download"></i> Инсталирай';
+                    // Restore button using stored original content
+                    installBtn.innerHTML = originalBtnContent;
                     installBtn.disabled = false;
                 }
             });

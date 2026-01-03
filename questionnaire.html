@@ -1304,9 +1304,11 @@
                     return;
                 }
 
+                // Store original button content before any changes
+                const originalBtnContent = installBtn.innerHTML;
+                
                 try {
                     // Show loading state on button
-                    const originalBtnContent = installBtn.innerHTML;
                     installBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Инсталиране...';
                     installBtn.disabled = true;
                     
@@ -1337,8 +1339,8 @@
                     deferredPrompt = null;
                 } catch (error) {
                     console.error('Error during installation:', error);
-                    // Restore button on error
-                    installBtn.innerHTML = '<i class="fas fa-download"></i> Инсталирай';
+                    // Restore button using stored original content
+                    installBtn.innerHTML = originalBtnContent;
                     installBtn.disabled = false;
                 }
             });
