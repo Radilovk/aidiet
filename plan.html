@@ -786,15 +786,16 @@
             transform: translateX(-50%);
             background: var(--card-bg);
             color: var(--text-dark);
-            padding: 15px 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(0, 0, 0, 0.08);
             display: none;
             align-items: center;
-            gap: 15px;
+            gap: 16px;
             z-index: 1001;
             max-width: 90%;
-            animation: slideUpBanner 0.3s ease;
+            animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .install-banner.show {
@@ -813,70 +814,145 @@
         }
 
         .install-banner-icon {
-            font-size: 2rem;
+            font-size: 2.5rem;
             color: var(--primary-red);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(220, 38, 38, 0.05));
+            border-radius: 12px;
         }
 
         .install-banner-content {
             flex: 1;
+            min-width: 0;
         }
 
         .install-banner-title {
-            font-weight: 600;
-            margin-bottom: 3px;
-            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            font-size: 1rem;
+            line-height: 1.3;
+            color: var(--text-dark);
         }
 
         .install-banner-text {
-            font-size: 0.85rem;
+            font-size: 0.875rem;
             color: var(--text-light);
+            line-height: 1.4;
+        }
+
+        .install-banner-browser {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            color: var(--primary-red);
+            font-weight: 600;
+            margin-top: 4px;
+            padding: 4px 8px;
+            background: rgba(220, 38, 38, 0.08);
+            border-radius: 6px;
         }
 
         .install-banner-actions {
             display: flex;
             gap: 10px;
+            flex-shrink: 0;
         }
 
         .install-banner-btn {
             background: var(--primary-red);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .install-banner-btn:hover {
             background: var(--primary-accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+        }
+
+        .install-banner-btn:active {
+            transform: translateY(0);
         }
 
         .install-banner-btn.dismiss {
             background: transparent;
             color: var(--text-light);
+            padding: 12px 16px;
         }
 
         .install-banner-btn.dismiss:hover {
             background: var(--soft-red);
             color: var(--text-dark);
+            transform: none;
+            box-shadow: none;
         }
 
         @media (max-width: 768px) {
             .install-banner {
                 flex-direction: column;
+                padding: 20px 16px;
+                bottom: 12px;
+                max-width: calc(100% - 24px);
+                gap: 16px;
+            }
+
+            .install-banner-icon {
+                width: 56px;
+                height: 56px;
+                font-size: 2.75rem;
+            }
+
+            .install-banner-content {
                 text-align: center;
-                padding: 15px;
-                bottom: 10px;
+                width: 100%;
+            }
+
+            .install-banner-title {
+                font-size: 1.05rem;
+                margin-bottom: 8px;
+            }
+
+            .install-banner-text {
+                font-size: 0.875rem;
+                line-height: 1.5;
+            }
+
+            .install-banner-browser {
+                display: inline-flex;
+                margin-top: 8px;
             }
 
             .install-banner-actions {
                 width: 100%;
+                flex-direction: column;
+                gap: 10px;
             }
 
             .install-banner-btn {
-                flex: 1;
+                width: 100%;
+                justify-content: center;
+                padding: 14px 24px;
+                font-size: 0.95rem;
+            }
+
+            .install-banner-btn.dismiss {
+                padding: 12px 24px;
             }
         }
 
@@ -979,19 +1055,25 @@
 
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
-        <div class="install-banner-icon">
+        <div class="install-banner-icon" id="installBannerIcon">
             <i class="fas fa-mobile-alt"></i>
         </div>
         <div class="install-banner-content">
-            <div class="install-banner-title">Инсталирай NutriPlan</div>
-            <div class="install-banner-text">Добави приложението към началния екран</div>
+            <div class="install-banner-title" id="installBannerTitle">Инсталирай NutriPlan</div>
+            <div class="install-banner-text" id="installBannerText">Добави приложението към началния екран</div>
+            <div class="install-banner-browser" id="installBannerBrowser" style="display: none;">
+                <i class="fas fa-info-circle"></i>
+                <span id="installBannerBrowserText"></span>
+            </div>
         </div>
         <div class="install-banner-actions">
             <button class="install-banner-btn" id="installBtn">
-                <i class="fas fa-download"></i> Инсталирай
+                <i class="fas fa-download"></i>
+                <span>Инсталирай</span>
             </button>
             <button class="install-banner-btn dismiss" id="dismissInstallBtn">
-                <i class="fas fa-times"></i> По-късно
+                <i class="fas fa-times"></i>
+                <span>По-късно</span>
             </button>
         </div>
     </div>
@@ -2486,6 +2568,55 @@
         const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
         const isEdge = /Edg/i.test(navigator.userAgent);
         const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+        const isFirefox = /Firefox/i.test(navigator.userAgent);
+        const isOpera = /OPR|Opera/i.test(navigator.userAgent);
+        const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
+        
+        // Get browser name and icon for display
+        function getBrowserInfo() {
+            if (isChrome && isAndroid) return { name: 'Chrome', icon: 'fab fa-chrome' };
+            if (isChrome && !isAndroid) return { name: 'Chrome', icon: 'fab fa-chrome' };
+            if (isEdge) return { name: 'Edge', icon: 'fab fa-edge' };
+            if (isSafari && isIOS) return { name: 'Safari', icon: 'fab fa-safari' };
+            if (isSafari) return { name: 'Safari', icon: 'fab fa-safari' };
+            if (isFirefox) return { name: 'Firefox', icon: 'fab fa-firefox' };
+            if (isOpera) return { name: 'Opera', icon: 'fab fa-opera' };
+            if (isSamsung) return { name: 'Samsung Internet', icon: 'fas fa-mobile-alt' };
+            return { name: 'Browser', icon: 'fas fa-globe' };
+        }
+        
+        // Update banner icon based on platform
+        function updateBannerIcon() {
+            const iconEl = document.getElementById('installBannerIcon');
+            if (!iconEl) return;
+            
+            let iconClass = 'fas fa-mobile-alt';
+            
+            if (isAndroid) {
+                iconClass = 'fab fa-android';
+            } else if (isIOS) {
+                iconClass = 'fab fa-apple';
+            } else if (!isMobile) {
+                iconClass = 'fas fa-desktop';
+            }
+            
+            iconEl.innerHTML = `<i class="${iconClass}"></i>`;
+        }
+        
+        // Update browser badge
+        function updateBrowserBadge(showBrowser = true) {
+            const browserBadge = document.getElementById('installBannerBrowser');
+            const browserText = document.getElementById('installBannerBrowserText');
+            
+            if (browserBadge && browserText && showBrowser) {
+                const browserInfo = getBrowserInfo();
+                browserText.textContent = browserInfo.name;
+                browserBadge.querySelector('i').className = browserInfo.icon;
+                browserBadge.style.display = 'inline-flex';
+            } else if (browserBadge) {
+                browserBadge.style.display = 'none';
+            }
+        }
         
         // Capture the beforeinstallprompt event
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -2539,44 +2670,119 @@
             if (!installBanner) return;
             
             // Update banner content based on platform
-            const titleEl = installBanner.querySelector('.install-banner-title');
-            const textEl = installBanner.querySelector('.install-banner-text');
+            const titleEl = document.getElementById('installBannerTitle');
+            const textEl = document.getElementById('installBannerText');
             const installBtn = document.getElementById('installBtn');
+            
+            // Update icon and browser badge
+            updateBannerIcon();
+            updateBrowserBadge(true);
             
             if (!isMobile && (isChrome || isEdge)) {
                 // Desktop Chrome/Edge - guide to address bar
-                if (titleEl) titleEl.textContent = 'Инсталирай NutriPlan';
-                if (textEl) textEl.textContent = 'Търси иконата за инсталация (⊕) в адресната лента или в менюто на браузъра';
+                const browserName = isChrome ? 'Chrome' : 'Edge';
+                if (titleEl) titleEl.textContent = `💻 Инсталирай в ${browserName}`;
+                if (textEl) textEl.textContent = 'Потърси иконата за инсталация (⊕) в адресната лента';
                 if (installBtn) {
-                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Как да инсталирам?';
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."');
+                        alert('За да инсталирате приложението:
+
+1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл
+2. Кликнете върху нея и изберете "Инсталирай"
+3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."');
                     };
                 }
                 installBanner.classList.add('show');
             } else if (isIOS && isSafari) {
                 // iOS Safari - guide to Share button
-                if (titleEl) titleEl.textContent = 'Добави към начален екран';
+                if (titleEl) titleEl.textContent = '📱 Добави към iPhone/iPad';
                 if (textEl) textEl.textContent = 'Натисни бутона Share (⬆️) и избери "Add to Home Screen"';
                 if (installBtn) {
-                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i> Инструкции';
+                    installBtn.innerHTML = '<i class="fas fa-share"></i><span>Виж как</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)');
+                        alert('За да добавите приложението към началния екран:
+
+1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана
+2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)
+3. Потвърдете, като натиснете "Add" (Добави)');
                     };
                 }
                 installBanner.classList.add('show');
             } else if (isAndroid && (isChrome || isEdge)) {
                 // Android Chrome/Edge - fallback when beforeinstallprompt doesn't fire
-                if (titleEl) titleEl.textContent = '📱 Инсталирай NutriPlan веднага!';
-                if (textEl) textEl.textContent = 'Натисни менюто на браузъра (⋮) → "Инсталирай приложение"';
+                const browserName = isChrome ? 'Chrome' : 'Edge';
+                if (titleEl) titleEl.textContent = `📱 Инсталирай в ${browserName}`;
+                if (textEl) textEl.textContent = 'Натисни менюто (⋮) и избери "Инсталирай приложение"';
                 if (installBtn) {
-                    installBtn.innerHTML = '<i class="fas fa-question-circle"></i> Как точно?';
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Натиснете "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърсете иконата (⊕) в адресната лента\n• Кликнете и изберете "Инсталирай"\n\n💡 ВАЖНО: Ако не виждате опцията веднага:\n• Презаредете страницата (F5)\n• Изчакайте 2-3 секунди\n• Кликнете на някой бутон на страницата');
+                        alert('📱 Как да инсталирам на Android?
+
+✅ БЪРЗ НАЧИН:
+1. Отворете менюто на браузъра (⋮) в горния десен ъгъл
+2. Изберете "Инсталирай приложение" или "Добави към начален екран"
+3. Натиснете "Инсталирай" в диалога
+
+✅ АЛТЕРНАТИВА:
+• Потърсете иконата (⊕) в адресната лента
+• Кликнете и изберете "Инсталирай"
+
+💡 ВАЖНО: Ако не виждате опцията веднага:
+• Презаредете страницата (F5)
+• Изчакайте 2-3 секунди
+• Кликнете на някой бутон на страницата');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isSamsung && isAndroid) {
+                // Samsung Internet on Android
+                if (titleEl) titleEl.textContent = '📱 Инсталирай в Samsung Internet';
+                if (textEl) textEl.textContent = 'Натисни менюто и избери "Добави към начален екран"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:
+
+1. Отворете менюто на браузъра (обикновено в горната част)
+2. Потърсете опцията "Добави към начален екран" или подобна
+3. Потвърдете действието');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isFirefox && isAndroid) {
+                // Firefox on Android
+                if (titleEl) titleEl.textContent = '📱 Инсталирай в Firefox';
+                if (textEl) textEl.textContent = 'Натисни менюто (⋮) и избери "Инсталирай"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:
+
+1. Отворете менюто на браузъра (обикновено в горната част)
+2. Потърсете опцията "Добави към начален екран" или подобна
+3. Потвърдете действието');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isMobile) {
+                // Other mobile browsers - generic guidance
+                if (titleEl) titleEl.textContent = '📱 Добави към начален екран';
+                if (textEl) textEl.textContent = 'Отвори менюто на браузъра и избери "Добави към начален екран"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:
+
+1. Отворете менюто на браузъра (обикновено в горната част)
+2. Потърсете опцията "Добави към начален екран" или подобна
+3. Потвърдете действието');
                     };
                 }
                 installBanner.classList.add('show');
             }
+        }
+
         }
 
         // Hide install banner
