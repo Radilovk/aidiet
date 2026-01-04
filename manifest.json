@@ -1,10 +1,10 @@
 {
-  "id": "/aidiet/",
+  "id": "/",
   "name": "NutriPlan",
   "short_name": "NutriPlan",
   "description": "Твоят персонален хранителен режим",
-  "start_url": "/aidiet/",
-  "scope": "/aidiet/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#10b981",
   "theme_color": "#10b981",
@@ -12,25 +12,25 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/aidiet/icon-192x192.png",
+      "src": "./icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/aidiet/icon-192x192.png",
+      "src": "./icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/aidiet/icon-512x512.png",
+      "src": "./icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/aidiet/icon-512x512.png",
+      "src": "./icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

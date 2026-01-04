@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#10b981">
-    <link rel="manifest" href="/aidiet/manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <title>PWA Diagnostic Tool - NutriPlan</title>
     <style>
         * {
@@ -277,7 +277,7 @@
                         details.push(`Script URL: ${registration.active.scriptURL}`);
                         
                         // Check if scope matches expected
-                        const expectedScope = location.origin + '/aidiet/';
+                        const expectedScope = location.origin + '/';
                         if (registration.scope === expectedScope) {
                             details.push(`✅ Scope matches expected: ${expectedScope}`);
                         } else {
@@ -324,7 +324,7 @@
                     'Manifest Link in HTML',
                     'fail',
                     '❌ No manifest link found in HTML',
-                    'Add <link rel="manifest" href="/aidiet/manifest.json"> to the <head> section'
+                    'Add <link rel="manifest" href="./manifest.json"> to the <head> section'
                 );
             }
         }
