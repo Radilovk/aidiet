@@ -1,14 +1,14 @@
 // Service Worker for NutriPlan PWA
 const CACHE_NAME = 'nutriplan-v1';
 const STATIC_CACHE = [
-  '/aidiet/index.html',
-  '/aidiet/questionnaire.html',
-  '/aidiet/plan.html',
-  '/aidiet/profile.html',
-  '/aidiet/admin.html',
-  '/aidiet/icon-192x192.png',
-  '/aidiet/icon-512x512.png',
-  '/aidiet/manifest.json',
+  './index.html',
+  './questionnaire.html',
+  './plan.html',
+  './profile.html',
+  './admin.html',
+  './icon-192x192.png',
+  './icon-512x512.png',
+  './manifest.json',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
@@ -114,8 +114,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: event.data ? event.data.text() : 'Ново напомняне от NutriPlan',
-    icon: '/aidiet/icon-192x192.png',
-    badge: '/aidiet/icon-192x192.png',
+    icon: './icon-192x192.png',
+    badge: './icon-192x192.png',
     vibrate: [200, 100, 200],
     tag: 'nutriplan-notification',
     requireInteraction: false
@@ -132,6 +132,6 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   event.waitUntil(
-    clients.openWindow('/aidiet/index.html')
+    clients.openWindow('./index.html')
   );
 });
