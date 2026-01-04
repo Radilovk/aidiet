@@ -1479,8 +1479,6 @@
             }
         }
 
-        }
-
         // Hide install banner
         function hideInstallBanner() {
             const installBanner = document.getElementById('installBanner');
@@ -1523,8 +1521,6 @@
         if (installBtn) {
             installBtn.addEventListener('click', async () => {
                 await triggerInstallPrompt();
-            });
-        }
             });
         }
 
