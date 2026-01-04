@@ -1090,7 +1090,10 @@
             if (browserBadge && browserText && showBrowser) {
                 const browserInfo = getBrowserInfo();
                 browserText.textContent = browserInfo.name;
-                browserBadge.querySelector('i').className = browserInfo.icon;
+                const iconEl = browserBadge.querySelector('i');
+                if (iconEl) {
+                    iconEl.className = browserInfo.icon;
+                }
                 browserBadge.style.display = 'inline-flex';
             } else if (browserBadge) {
                 browserBadge.style.display = 'none';
