@@ -688,9 +688,150 @@
         }
         .footer-logo { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; display: inline-block;}
         .socials { margin-bottom: 20px; }
-        .socials a { color: white; font-size: 1.2rem; margin: 0 10px; transition: 0.3s; }
-        .socials a:hover { color: var(--primary-red); }
+        .socials a { 
+            color: white; 
+            font-size: 1.2rem; 
+            margin: 0 10px; 
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .socials a:hover { 
+            color: var(--primary-red);
+            transform: translateY(-3px) scale(1.1);
+        }
         .copyright { color: #7f8c8d; font-size: 0.9rem; }
+
+        /* --- TOAST NOTIFICATIONS --- */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: white;
+            color: var(--text-dark);
+            padding: 16px 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            max-width: 400px;
+            pointer-events: all;
+            transform: translateX(400px);
+            animation: toastSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .toast.hiding {
+            animation: toastSlideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes toastSlideIn {
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes toastSlideOut {
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast.success .toast-icon {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast.error .toast-icon {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+        }
+
+        .toast.info {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .toast.info .toast-icon {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            color: white;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .toast-message {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+        }
+
+        .toast-close:hover {
+            background: rgba(0,0,0,0.05);
+            color: var(--text-dark);
+        }
+
+        @media (max-width: 768px) {
+            .toast-container {
+                right: 10px;
+                left: 10px;
+                top: 70px;
+            }
+
+            .toast {
+                min-width: auto;
+                width: 100%;
+            }
+        }
 
         /* --- RESPONSIVE --- */
         /* Mobile-first design - optimize for mobile browsers only */
@@ -2052,6 +2193,63 @@
 
         // Check notification permission on load
         window.addEventListener('DOMContentLoaded', checkNotificationPermission);
+
+        // --- Toast Notification System ---
+        function showToast(message, type = 'info', title = '', duration = 4000) {
+            // Create toast container if it doesn't exist
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            // Determine icon based on type
+            let icon = '';
+            let defaultTitle = '';
+            switch(type) {
+                case 'success':
+                    icon = '<i class="fas fa-check"></i>';
+                    defaultTitle = 'Успех';
+                    break;
+                case 'error':
+                    icon = '<i class="fas fa-times"></i>';
+                    defaultTitle = 'Грешка';
+                    break;
+                case 'info':
+                    icon = '<i class="fas fa-info"></i>';
+                    defaultTitle = 'Информация';
+                    break;
+            }
+
+            toast.innerHTML = `
+                <div class="toast-icon">${icon}</div>
+                <div class="toast-content">
+                    ${title ? `<div class="toast-title">${title}</div>` : `<div class="toast-title">${defaultTitle}</div>`}
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto remove after duration
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Example: You can call showToast() from anywhere in your code
+        // showToast('План успешно запазен!', 'success');
+        // showToast('Възникна грешка', 'error');
+        // showToast('Запомнете да пиете вода', 'info');
     </script>
 </body>
 </html>
