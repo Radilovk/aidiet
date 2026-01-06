@@ -180,25 +180,29 @@
 
         .day-chip {
             background: var(--card-bg);
-            border: 2px solid transparent;
-            padding: 12px 22px;
-            border-radius: 30px;
+            border: 2px solid #e5e7eb;
+            padding: 12px 24px;
+            border-radius: 50px;
             margin: 0;
             white-space: nowrap;
             font-size: 0.95rem;
             font-weight: 600;
             color: var(--text-dark);
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-width: 80px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 85px;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             position: relative;
             overflow: hidden;
+        }
+
+        [data-theme="dark"] .day-chip {
+            border-color: #374151;
         }
 
         .day-chip::before {
@@ -208,23 +212,25 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--primary-red);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--secondary-accent) 100%);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s ease;
             z-index: -1;
         }
 
         .day-chip:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
+            border-color: var(--primary-red);
         }
 
         .day-chip.active {
-            background: var(--primary-red);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--secondary-accent) 100%);
             color: white;
             border-color: transparent;
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
-            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+            transform: translateY(-4px) scale(1.08);
+            font-weight: 700;
         }
 
         .day-chip.active::before {
@@ -243,30 +249,49 @@
         /* --- MEAL CARDS --- */
         .meal-card {
             background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 24px;
+            border-radius: 24px;
+            padding: 28px;
             margin-bottom: 20px;
             box-shadow: var(--shadow);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(16, 185, 129, 0.08);
+            animation: slideInUp 0.6s ease-out both;
         }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .meal-card:nth-child(1) { animation-delay: 0.1s; }
+        .meal-card:nth-child(2) { animation-delay: 0.2s; }
+        .meal-card:nth-child(3) { animation-delay: 0.3s; }
+        .meal-card:nth-child(4) { animation-delay: 0.4s; }
+        .meal-card:nth-child(5) { animation-delay: 0.5s; }
 
         .meal-card::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            width: 4px;
+            width: 5px;
             height: 100%;
-            background: var(--primary-red);
-            transition: width 0.4s ease, opacity 0.3s ease;
-            border-radius: var(--radius) 0 0 var(--radius);
+            background: linear-gradient(180deg, var(--primary-red) 0%, var(--secondary-accent) 100%);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 24px 0 0 24px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
 
         .meal-card::after {
@@ -276,28 +301,28 @@
             right: 0;
             width: 100%;
             height: 100%;
-            background: var(--primary-red);
+            background: linear-gradient(135deg, var(--primary-red), var(--secondary-accent));
             opacity: 0;
             transition: opacity 0.4s ease;
             z-index: -1;
         }
 
         .meal-card:hover {
-            transform: translateY(-4px) translateX(4px);
-            box-shadow: var(--shadow-hover);
-            border-color: rgba(16, 185, 129, 0.2);
+            transform: translateY(-8px) translateX(6px) scale(1.02);
+            box-shadow: 0 20px 50px rgba(16, 185, 129, 0.25);
+            border-color: rgba(16, 185, 129, 0.3);
         }
 
         .meal-card:hover::before {
-            width: 6px;
+            width: 8px;
         }
 
         .meal-card:hover::after {
-            opacity: 0.03;
+            opacity: 0.05;
         }
 
         .meal-card:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
 
         .meal-info {
@@ -309,45 +334,86 @@
         .meal-type {
             font-size: 0.75rem;
             text-transform: uppercase;
-            color: var(--primary-red);
-            font-weight: 700;
-            letter-spacing: 0.8px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--secondary-accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+            letter-spacing: 1.2px;
             margin-bottom: 6px;
         }
 
         .meal-name {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             color: var(--text-dark);
+            line-height: 1.4;
         }
 
         .meal-weight {
-            font-size: 0.85rem;
-            color: var(--primary-red);
-            background: var(--soft-red);
-            padding: 4px 12px;
-            border-radius: 20px;
+            font-size: 0.9rem;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--secondary-accent) 100%);
+            padding: 6px 16px;
+            border-radius: 50px;
             display: inline-block;
-            font-weight: 600;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .meal-weight:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
         }
 
         .info-btn {
-            width: 44px;
-            height: 44px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             border: none;
-            background: var(--secondary-accent);
+            background: linear-gradient(135deg, var(--secondary-accent) 0%, var(--tertiary-accent) 100%);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             margin-left: 15px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 18px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 20px;
             -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s, height 0.4s;
+        }
+
+        .info-btn:hover::before {
+            width: 100%;
+            height: 100%;
+        }
+
+        .info-btn:hover {
+            transform: scale(1.15) rotate(15deg);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
+        }
+
+        .info-btn:active {
+            transform: scale(0.95);
+        }
             box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
             position: relative;
             z-index: 1;
@@ -571,41 +637,64 @@
             position: fixed;
             bottom: 24px;
             right: 24px;
-            width: 68px;
-            height: 68px;
-            background: var(--primary-red);
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--secondary-accent) 100%);
             border-radius: 50%;
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 28px;
+            font-size: 30px;
             border: none;
             cursor: pointer;
             z-index: 900;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
-            animation: pulse 2s infinite;
+            animation: fabPulse 3s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5);
+        @keyframes fabPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5);
             }
-            50% {
-                box-shadow: 0 8px 32px rgba(16, 185, 129, 0.8);
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 12px 40px rgba(16, 185, 129, 0.7);
             }
+        }
+
+        .fab-chat::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .fab-chat:hover::before {
+            width: 200%;
+            height: 200%;
         }
 
         .fab-chat:hover {
-            transform: scale(1.1) rotate(10deg);
-            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.7);
+            transform: scale(1.15) rotate(15deg);
+            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.8);
+            animation: none;
         }
 
         .fab-chat:active { 
             transform: scale(0.95);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.6);
         }
 
         /* --- MODAL (POPUP) --- */
