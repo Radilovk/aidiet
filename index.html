@@ -2195,6 +2195,12 @@
         window.addEventListener('DOMContentLoaded', checkNotificationPermission);
 
         // --- Toast Notification System ---
+        const TOAST_MESSAGES = {
+            success: 'Успех',
+            error: 'Грешка',
+            info: 'Информация'
+        };
+
         function showToast(message, type = 'info', title = '', duration = 4000) {
             // Create toast container if it doesn't exist
             let container = document.querySelector('.toast-container');
@@ -2210,19 +2216,16 @@
 
             // Determine icon based on type
             let icon = '';
-            let defaultTitle = '';
+            let defaultTitle = TOAST_MESSAGES[type] || TOAST_MESSAGES.info;
             switch(type) {
                 case 'success':
                     icon = '<i class="fas fa-check"></i>';
-                    defaultTitle = 'Успех';
                     break;
                 case 'error':
                     icon = '<i class="fas fa-times"></i>';
-                    defaultTitle = 'Грешка';
                     break;
                 case 'info':
                     icon = '<i class="fas fa-info"></i>';
-                    defaultTitle = 'Информация';
                     break;
             }
 

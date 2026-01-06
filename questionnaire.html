@@ -197,17 +197,12 @@
             padding: 30px;
             border-radius: 50%;
             box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
-            animation: iconBounce 1s ease-out, iconRotate 20s linear infinite;
+            animation: iconBounce 1s ease-out;
         }
 
         @keyframes iconBounce {
             0%, 100% { transform: scale(1) translateY(0); }
             50% { transform: scale(1.1) translateY(-10px); }
-        }
-
-        @keyframes iconRotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
 
         .section-title-text {
