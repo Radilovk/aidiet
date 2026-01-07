@@ -956,6 +956,287 @@
             }
         }
 
+        /* ===== Option 1: Strategy Badge Styles ===== */
+        .strategy-badge {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow);
+            color: white;
+        }
+
+        .badge-icon {
+            font-size: 28px;
+        }
+
+        .badge-title {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-modifier {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        /* ===== Option 2: Accordion Strategy Styles ===== */
+        .strategy-info {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .strategy-modifier-card {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            text-align: center;
+        }
+
+        .modifier-label {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .modifier-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .strategy-reasoning {
+            background: var(--soft-red);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .reasoning-label {
+            font-weight: 700;
+            color: var(--primary-red);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reasoning-label i {
+            font-size: 1.2rem;
+        }
+
+        #modifierReasoning {
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* ===== Option 3: Modal Strategy Styles ===== */
+        .strategy-info-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary-red);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .strategy-info-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        .strategy-info-btn:active {
+            transform: translateY(0);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: var(--radius);
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content h2 {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
+            color: white;
+            padding: 24px;
+            margin: 0;
+            border-radius: var(--radius) var(--radius) 0 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-content .close {
+            color: white;
+            position: absolute;
+            right: 24px;
+            top: 24px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .modal-content .close:hover {
+            transform: rotate(90deg);
+        }
+
+        .strategy-modal-body {
+            padding: 24px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-modifier-badge {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-modifier-badge .badge-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .modal-modifier-badge .badge-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .modal-section {
+            background: var(--soft-red);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .modal-section h3 {
+            color: var(--primary-red);
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+        }
+
+        .modal-section p {
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .modal-section ul {
+            color: var(--text-dark);
+            line-height: 1.8;
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .modal-foods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .foods-to-include,
+        .foods-to-avoid {
+            background: var(--soft-red);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .foods-to-include h4 {
+            color: var(--primary-red);
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .foods-to-avoid h4 {
+            color: #ef4444;
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .foods-to-include ul,
+        .foods-to-avoid ul {
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin: 0;
+            padding-left: 20px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .modal-foods {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
+
+            .strategy-badge {
+                padding: 12px 16px;
+            }
+
+            .badge-icon {
+                font-size: 24px;
+            }
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -1083,6 +1364,9 @@
         <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
         <h1>Моят Хранителен План</h1>
         <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="strategy-info-btn" onclick="openStrategyModal()" id="strategyBtn" style="display: none;">
+                <i class="fas fa-info-circle"></i>
+            </button>
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема">
                 <i class="fas fa-moon" id="themeIcon"></i>
             </button>
@@ -1105,6 +1389,15 @@
 
     <!-- Main Content -->
     <div class="container">
+        
+        <!-- Strategy Badge (Option 1) -->
+        <div class="strategy-badge" id="strategyBadge" style="display: none;">
+            <div class="badge-icon">🎯</div>
+            <div class="badge-content">
+                <div class="badge-title">Вашата Стратегия</div>
+                <div class="badge-modifier" id="modifierName">Средиземноморско</div>
+            </div>
+        </div>
         
         <!-- MEAL PLAN SECTION -->
         <div id="mealContainer">
@@ -1218,6 +1511,32 @@
                 </div>
             </div>
 
+            <!-- 5. AI Диетична Стратегия (Option 2) -->
+            <div class="acc-item" id="strategyAccordion" style="display: none;">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-brain"></i> AI Диетична Стратегия</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner">
+                        <div class="strategy-info">
+                            <div class="strategy-modifier-card">
+                                <div class="modifier-label">Избран Профил:</div>
+                                <div class="modifier-value" id="modifierValue">Средиземноморско</div>
+                            </div>
+                            <div class="strategy-reasoning">
+                                <div class="reasoning-label">
+                                    <i class="fas fa-lightbulb"></i> Защо този профил?
+                                </div>
+                                <p id="modifierReasoning">
+                                    Балансиран подход за отслабване с качествени мазнини...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -1235,6 +1554,46 @@
                 <p id="mDesc">Описание...</p>
                 <div class="modal-benefit">
                     <strong><i class="fas fa-heartbeat"></i> Ползи:</strong> <span id="mBenefit">Текст ползи...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STRATEGY MODAL (Option 3) -->
+    <div id="strategyModal" class="modal" style="display: none;">
+        <div class="modal-content strategy-modal">
+            <span class="close" onclick="closeStrategyModal()">&times;</span>
+            <h2><i class="fas fa-brain"></i> AI Диетична Стратегия</h2>
+            
+            <div class="strategy-modal-body">
+                <!-- Modifier Badge -->
+                <div class="modal-modifier-badge">
+                    <div class="badge-label">Избран Диетичен Профил</div>
+                    <div class="badge-value" id="modalModifier">Средиземноморско</div>
+                </div>
+                
+                <!-- Reasoning -->
+                <div class="modal-section">
+                    <h3>💡 Защо този профил е избран за Вас?</h3>
+                    <p id="modalReasoning">...</p>
+                </div>
+                
+                <!-- Additional Info -->
+                <div class="modal-section">
+                    <h3>📋 Какво означава това?</h3>
+                    <ul id="modalPrinciples"></ul>
+                </div>
+                
+                <!-- Foods -->
+                <div class="modal-foods">
+                    <div class="foods-to-include">
+                        <h4>✅ Препоръчани Храни</h4>
+                        <ul id="modalFoodsInclude"></ul>
+                    </div>
+                    <div class="foods-to-avoid">
+                        <h4>🚫 Храни за Избягване</h4>
+                        <ul id="modalFoodsAvoid"></ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1409,6 +1768,62 @@
                 // Render initial data
                 renderDay(1);
                 renderRecommendations();
+                
+                // Option 1: Strategy Badge - Show dietary modifier badge
+                if (dietPlan.strategy && dietPlan.strategy.dietaryModifier) {
+                    const badge = document.getElementById('strategyBadge');
+                    const modifierName = document.getElementById('modifierName');
+                    
+                    modifierName.textContent = dietPlan.strategy.dietaryModifier;
+                    badge.style.display = 'flex';
+                }
+                
+                // Option 3: Strategy Modal - Populate modal data and show button
+                if (dietPlan.strategy) {
+                    // Show the strategy info button
+                    document.getElementById('strategyBtn').style.display = 'block';
+                    
+                    // Populate modal data
+                    if (dietPlan.strategy.dietaryModifier) {
+                        document.getElementById('modalModifier').textContent = 
+                            dietPlan.strategy.dietaryModifier;
+                    }
+                    
+                    if (dietPlan.strategy.modifierReasoning) {
+                        document.getElementById('modalReasoning').textContent = 
+                            dietPlan.strategy.modifierReasoning;
+                    }
+                    
+                    if (dietPlan.strategy.keyPrinciples) {
+                        const principlesList = document.getElementById('modalPrinciples');
+                        principlesList.innerHTML = ''; // Clear first
+                        dietPlan.strategy.keyPrinciples.forEach(p => {
+                            const li = document.createElement('li');
+                            li.textContent = p; // Safe - no HTML injection
+                            principlesList.appendChild(li);
+                        });
+                    }
+                    
+                    if (dietPlan.strategy.foodsToInclude) {
+                        const includeList = document.getElementById('modalFoodsInclude');
+                        includeList.innerHTML = ''; // Clear first
+                        dietPlan.strategy.foodsToInclude.forEach(f => {
+                            const li = document.createElement('li');
+                            li.textContent = f; // Safe - no HTML injection
+                            includeList.appendChild(li);
+                        });
+                    }
+                    
+                    if (dietPlan.strategy.foodsToAvoid) {
+                        const avoidList = document.getElementById('modalFoodsAvoid');
+                        avoidList.innerHTML = ''; // Clear first
+                        dietPlan.strategy.foodsToAvoid.forEach(f => {
+                            const li = document.createElement('li');
+                            li.textContent = f; // Safe - no HTML injection
+                            avoidList.appendChild(li);
+                        });
+                    }
+                }
                 
             } catch (error) {
                 console.error('Error loading diet data:', error);
@@ -1596,6 +2011,23 @@
 
             // Update supplements section
             renderSupplements();
+            
+            // Option 2: Strategy Accordion - Show AI dietary strategy accordion
+            if (dietPlan.strategy) {
+                const strategyAccordion = document.getElementById('strategyAccordion');
+                const modifierValue = document.getElementById('modifierValue');
+                const modifierReasoning = document.getElementById('modifierReasoning');
+                
+                if (dietPlan.strategy.dietaryModifier) {
+                    modifierValue.textContent = dietPlan.strategy.dietaryModifier;
+                }
+                
+                if (dietPlan.strategy.modifierReasoning) {
+                    modifierReasoning.textContent = dietPlan.strategy.modifierReasoning;
+                }
+                
+                strategyAccordion.style.display = 'block';
+            }
         }
 
         // --- Render Psychology ---
@@ -1732,6 +2164,23 @@
         // Close modal if clicking outside
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
+        });
+
+        // --- Strategy Modal Functions (Option 3) ---
+        function openStrategyModal() {
+            document.getElementById('strategyModal').style.display = 'block';
+        }
+
+        function closeStrategyModal() {
+            document.getElementById('strategyModal').style.display = 'none';
+        }
+
+        // Close strategy modal if clicking outside
+        window.addEventListener('click', (e) => {
+            const strategyModal = document.getElementById('strategyModal');
+            if (e.target === strategyModal) {
+                closeStrategyModal();
+            }
         });
 
         // --- Chat Logic ---
