@@ -1792,7 +1792,7 @@
                             dietPlan.strategy.modifierReasoning;
                     }
                     
-                    if (dietPlan.strategy.keyPrinciples) {
+                    if (dietPlan.strategy.keyPrinciples && Array.isArray(dietPlan.strategy.keyPrinciples)) {
                         const principlesList = document.getElementById('modalPrinciples');
                         principlesList.innerHTML = ''; // Clear first
                         dietPlan.strategy.keyPrinciples.forEach(p => {
@@ -1802,7 +1802,7 @@
                         });
                     }
                     
-                    if (dietPlan.strategy.foodsToInclude) {
+                    if (dietPlan.strategy.foodsToInclude && Array.isArray(dietPlan.strategy.foodsToInclude)) {
                         const includeList = document.getElementById('modalFoodsInclude');
                         includeList.innerHTML = ''; // Clear first
                         dietPlan.strategy.foodsToInclude.forEach(f => {
@@ -1812,7 +1812,7 @@
                         });
                     }
                     
-                    if (dietPlan.strategy.foodsToAvoid) {
+                    if (dietPlan.strategy.foodsToAvoid && Array.isArray(dietPlan.strategy.foodsToAvoid)) {
                         const avoidList = document.getElementById('modalFoodsAvoid');
                         avoidList.innerHTML = ''; // Clear first
                         dietPlan.strategy.foodsToAvoid.forEach(f => {
