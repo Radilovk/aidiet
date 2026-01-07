@@ -295,18 +295,33 @@ if (dietPlan.strategy) {
     }
     
     if (dietPlan.strategy.keyPrinciples) {
-        document.getElementById('modalPrinciples').innerHTML = 
-            dietPlan.strategy.keyPrinciples.map(p => `<li>${p}</li>`).join('');
+        const principlesList = document.getElementById('modalPrinciples');
+        principlesList.innerHTML = ''; // Clear first
+        dietPlan.strategy.keyPrinciples.forEach(p => {
+            const li = document.createElement('li');
+            li.textContent = p; // Safe - no HTML injection
+            principlesList.appendChild(li);
+        });
     }
     
     if (dietPlan.strategy.foodsToInclude) {
-        document.getElementById('modalFoodsInclude').innerHTML = 
-            dietPlan.strategy.foodsToInclude.map(f => `<li>${f}</li>`).join('');
+        const includeList = document.getElementById('modalFoodsInclude');
+        includeList.innerHTML = ''; // Clear first
+        dietPlan.strategy.foodsToInclude.forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = f; // Safe - no HTML injection
+            includeList.appendChild(li);
+        });
     }
     
     if (dietPlan.strategy.foodsToAvoid) {
-        document.getElementById('modalFoodsAvoid').innerHTML = 
-            dietPlan.strategy.foodsToAvoid.map(f => `<li>${f}</li>`).join('');
+        const avoidList = document.getElementById('modalFoodsAvoid');
+        avoidList.innerHTML = ''; // Clear first
+        dietPlan.strategy.foodsToAvoid.forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = f; // Safe - no HTML injection
+            avoidList.appendChild(li);
+        });
     }
 }
 </script>
@@ -329,9 +344,11 @@ if (dietPlan.strategy) {
 
 ### Кратки стъпки (Опция 1):
 
-1. Добави HTML за badge след `<div class="container">` (линия ~1107)
+1. Добави HTML за badge след `<div class="container">` (приблизително линия ~1107, провери точната локация)
 2. Добави CSS стилове в `<style>` секцията
-3. Добави JavaScript в `loadDietData()` функцията (линия ~1374)
+3. Добави JavaScript в `loadDietData()` функцията (приблизително линия ~1374, търси функцията по име)
+
+**Важно:** Линиите са приблизителни и могат да се променят. Търсете по имена на функции и класове вместо точни линии.
 
 **Време:** ~10 минути  
 **Тестване:** Генерирай нов план и виж badge-a
