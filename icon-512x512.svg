@@ -2,18 +2,18 @@
   <!-- Background -->
   <rect width="512" height="512" fill="#10b981"/>
   
-  <!-- Apple shape (simplified) -->
-  <g transform="translate(256,256)">
+  <!-- Apple shape (simplified) with better padding -->
+  <g transform="translate(256,280)">
     <!-- Apple body -->
-    <ellipse cx="0" cy="25" rx="140" ry="150" fill="#ffffff"/>
+    <ellipse cx="0" cy="0" rx="115" ry="125" fill="#ffffff"/>
     
     <!-- Apple leaf -->
-    <ellipse cx="40" cy="-105" rx="35" ry="50" fill="#34d399" transform="rotate(-30 40 -105)"/>
+    <ellipse cx="32" cy="-95" rx="28" ry="40" fill="#34d399" transform="rotate(-30 32 -95)"/>
     
     <!-- Apple stem -->
-    <rect x="-10" y="-120" width="20" height="40" fill="#059669" rx="10"/>
+    <rect x="-8" y="-105" width="16" height="32" fill="#059669" rx="8"/>
     
     <!-- "NP" text -->
-    <text x="0" y="50" font-family="Arial, sans-serif" font-size="90" font-weight="bold" fill="#10b981" text-anchor="middle">NP</text>
+    <text x="0" y="25" font-family="Arial, sans-serif" font-size="75" font-weight="bold" fill="#10b981" text-anchor="middle">NP</text>
   </g>
 </svg>

@@ -22,6 +22,7 @@
             --soft-red: #d1fae5;
             --accent-yellow: #fbbf24;
             --accent-blue: #3b82f6;
+            --secondary-accent: #3b82f6;
             --accent-light-red: #f87171;
             --bg-color: #fefce8;
             --text-dark: #1e3a20;
@@ -38,6 +39,7 @@
             --soft-red: #064e3b;
             --accent-yellow: #fcd34d;
             --accent-blue: #60a5fa;
+            --secondary-accent: #60a5fa;
             --accent-light-red: #fca5a5;
             --bg-color: #0f1419;
             --text-dark: #e5f3e8;
@@ -101,6 +103,31 @@
         .nav-btn:hover {
             background-color: var(--primary-dark);
             transform: translateY(-2px);
+        }
+
+        .theme-toggle-btn {
+            background: var(--secondary-accent);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.1) rotate(-10deg);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.6);
+        }
+
+        .theme-toggle-btn:active {
+            transform: scale(0.95);
         }
 
         /* --- HERO SECTION --- */
@@ -750,6 +777,9 @@
     <nav>
         <a href="#" class="logo"><i class="fas fa-apple-alt"></i> NutriPlan</a>
         <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
             <a href="plan.html" class="nav-btn" id="myPlanBtn" style="display: none; background-color: #27ae60;">
                 <i class="fas fa-user-check"></i> Моят План
             </a>
