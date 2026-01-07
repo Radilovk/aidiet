@@ -34,3 +34,6 @@ Thumbs.db
 !deploy.sh
 *.py
 !setup.py
+
+# Test files
+test-*.js
