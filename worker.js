@@ -794,9 +794,26 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
 function generateMealPlanPrompt(data, analysis, strategy) {
-  // Use analysis values or calculate from user data
-  let bmr = analysis.bmr || calculateBMR(data);
-  let recommendedCalories = analysis.recommendedCalories;
+  // Parse BMR from analysis (may be a string) or calculate from user data
+  let bmr;
+  if (analysis.bmr) {
+    // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ИНДИВИДУАЛНО изчислен)")
+    const bmrMatch = String(analysis.bmr).match(/\d+/);
+    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+  }
+  
+  // If no valid BMR from analysis, calculate it
+  if (!bmr) {
+    bmr = calculateBMR(data);
+  }
+  
+  // Parse recommended calories from analysis or calculate from TDEE
+  let recommendedCalories;
+  if (analysis.recommendedCalories) {
+    // Try to extract numeric value from analysis.recommendedCalories
+    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+  }
   
   // If no recommended calories from analysis, calculate TDEE
   if (!recommendedCalories) {
@@ -1556,15 +1573,16 @@ async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = nul
  */
 function generateMockResponse(prompt) {
   if (prompt.includes('7-дневен хранителен план')) {
-    // Note: These are mock values for testing only. Real implementation must calculate individualized values.
+    // Note: Mock mode should not be used in production. 
+    // For testing purposes only - uses clearly marked placeholder values.
     return JSON.stringify({
       summary: {
-        bmr: "1650 (MOCK - индивидуално изчислен)",
-        dailyCalories: "1800 (MOCK - персонализиран)",
+        bmr: "XXXX (MOCK VALUE - in production this would be individualized)",
+        dailyCalories: "XXXX (MOCK VALUE - in production this would be personalized)",
         macros: {
-          protein: "120g",
-          carbs: "180g",
-          fats: "60g"
+          protein: "XXXg (MOCK)",
+          carbs: "XXXg (MOCK)",
+          fats: "XXXg (MOCK)"
         }
       },
       weekPlan: {
