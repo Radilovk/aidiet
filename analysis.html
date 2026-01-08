@@ -942,9 +942,9 @@
             document.getElementById('healthScoreBar').setAttribute('data-width', healthScore + '%');
             
             // Display success chance (handle negative values)
-            const displaySuccessChance = successChance < 0 ? successChance : successChance;
+            // For negative values, we still display the negative number but set bar width to 0
             const successBarWidth = successChance < 0 ? 0 : successChance;
-            document.getElementById('successChanceValue').textContent = displaySuccessChance + '%';
+            document.getElementById('successChanceValue').textContent = successChance + '%';
             document.getElementById('successChanceDesc').textContent = successCategory + ' шанс - ' + successDesc;
             document.getElementById('successChanceBar').className = `score-bar-fill ${successBarClass}`;
             document.getElementById('successChanceBar').setAttribute('data-width', successBarWidth + '%');

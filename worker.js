@@ -131,8 +131,11 @@ function detectGoalContradiction(data) {
   let hasContradiction = false;
   let warningData = {};
   
+  // Normalize goal for comparison (case-insensitive)
+  const normalizedGoal = (data.goal || '').toLowerCase();
+  
   // Check for severe underweight with weight loss goal
-  if (bmi < 18.5 && (data.goal === 'Отслабване' || data.goal === 'отслабване')) {
+  if (bmi < 18.5 && normalizedGoal.includes('отслабване')) {
     hasContradiction = true;
     warningData = {
       type: 'underweight_loss',
@@ -150,8 +153,8 @@ function detectGoalContradiction(data) {
     };
   }
   
-  // Check for obesity with weight gain goal
-  if (bmi >= 30 && (data.goal === 'Покачване на мускулна маса' || data.goal === 'покачване на тегло')) {
+  // Check for obesity with weight/muscle gain goal
+  if (bmi >= 30 && (normalizedGoal.includes('покачване') || normalizedGoal.includes('мускулна маса'))) {
     hasContradiction = true;
     warningData = {
       type: 'overweight_gain',
@@ -644,6 +647,7 @@ ${data.medicalConditions_other ? `- Други медицински състоя
 8. Идентифицирай между 3 и 6 КЛЮЧОВИ ПРОБЛЕМА които пречат на здравето или постигането на целта
 9. ИЗЧИСЛИ шанса за успех като число от -100 до 100:
    - Отрицателни стойности (-100 до -1): когато МНОЖЕСТВО фактори активно саботират целта (напр. поднормено тегло + цел отслабване)
+   - Нулева стойност (0): неутрално състояние - равностойни подкрепящи и противопоказващи фактори
    - Ниски стойности (1-30): много противопоказващи фактори, малко подкрепящи
    - Средни стойности (31-70): балансирани или смесени фактори
    - Високи стойности (71-100): много подкрепящи фактори, малко противопоказващи
