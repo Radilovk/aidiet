@@ -7,7 +7,9 @@ const STATIC_CACHE = [
   './profile.html',
   './admin.html',
   './icon-192x192.png',
+  './icon-192x192.svg',
   './icon-512x512.png',
+  './icon-512x512.svg',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
@@ -68,6 +70,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
+          // Handle 404 responses - redirect to index.html
+          if (response.status === 404) {
+            return caches.match('./index.html').then(cachedIndex => {
+              if (cachedIndex) {
+                return cachedIndex;
+              }
+              return fetch('./index.html');
+            });
+          }
+          
           // Clone response and update cache
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -77,7 +89,17 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           // If network fails, try cache
-          return caches.match(request);
+          return caches.match(request).then(cachedResponse => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Fallback to index.html for navigation requests
+            if (url.pathname === '/' || url.pathname === '') {
+              return caches.match('./index.html');
+            }
+            // Return a basic 404 response
+            return new Response('Not found', { status: 404 });
+          });
         })
     );
     return;
@@ -114,8 +136,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: event.data ? event.data.text() : 'Ново напомняне от NutriPlan',
-    icon: './icon-192x192.png',
-    badge: './icon-192x192.png',
+    icon: './icon-192x192.svg',
+    badge: './icon-192x192.svg',
     vibrate: [200, 100, 200],
     tag: 'nutriplan-notification',
     requireInteraction: false
