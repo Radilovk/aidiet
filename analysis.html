@@ -836,7 +836,9 @@
             const avgSeverity = totalSeverity / problems.length;
             
             // Calculate health score (inverse of severity - lower severity = higher health)
-            const healthScore = Math.round(100 - avgSeverity);
+            // Ensure avgSeverity is capped at 100 and healthScore is between 0-100
+            const cappedSeverity = Math.min(avgSeverity, 100);
+            const healthScore = Math.max(0, Math.min(100, Math.round(100 - cappedSeverity)));
             
             // Calculate success chance based on severity distribution and count
             // Factors: fewer problems = higher chance, lower severity = higher chance
