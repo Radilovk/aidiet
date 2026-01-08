@@ -544,6 +544,10 @@ async function handleChat(request, env) {
  * - Step 2: User data + Analysis → Dietary strategy
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
+
+// Token limit for meal plan generation - ensures all 7 days with 3-4 meals each are generated
+const MEAL_PLAN_TOKEN_LIMIT = 4000;
+
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3 AI requests for precision)');
   
@@ -574,7 +578,7 @@ async function generatePlanMultiStep(env, data) {
     // Focus: Specific meals, portions, timing based on strategy
     // Increased token limit to ensure all 7 days with 3-4 meals each are generated
     const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
-    const mealPlanResponse = await callAIModel(env, mealPlanPrompt, 4000); // Increased from default to 4000 tokens
+    const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
     const mealPlan = parseAIResponse(mealPlanResponse);
     
     if (!mealPlan || mealPlan.error) {

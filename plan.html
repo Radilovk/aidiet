@@ -1851,6 +1851,40 @@
         const mDesc = document.getElementById('mDesc');
         const mBenefit = document.getElementById('mBenefit');
 
+        // Helper function to parse macronutrient values
+        function parseMacronutrients(macros) {
+            return {
+                protein: parseFloat(macros.protein) || 0,
+                carbs: parseFloat(macros.carbs) || 0,
+                fats: parseFloat(macros.fats) || 0,
+                fiber: parseFloat(macros.fiber) || 0
+            };
+        }
+
+        // Helper function to create a stacked bar segment
+        function createMacroSegment(type, label, value, percent) {
+            const segment = document.createElement('div');
+            segment.className = `macro-segment ${type}`;
+            segment.style.width = percent + '%';
+            if (percent > 10) {
+                segment.textContent = Math.round(percent) + '%';
+            }
+            segment.title = `${label}: ${value}г (${Math.round(percent)}%)`;
+            return segment;
+        }
+
+        // Helper function to create a legend item
+        function createLegendItem(type, label, value) {
+            const item = document.createElement('div');
+            item.className = 'macro-legend-item';
+            item.innerHTML = `
+                <span class="macro-dot ${type}"></span>
+                <span class="macro-label">${label}:</span>
+                <span class="macro-value">${value}г</span>
+            `;
+            return item;
+        }
+
         function openModal(title, description, benefit, macros) {
             mTitle.textContent = title;
             mDesc.textContent = description;
@@ -1862,11 +1896,8 @@
             const macroLegend = document.getElementById('macroLegend');
             
             if (macros && (macros.protein || macros.carbs || macros.fats || macros.fiber)) {
-                // Parse numeric values
-                const protein = parseFloat(macros.protein) || 0;
-                const carbs = parseFloat(macros.carbs) || 0;
-                const fats = parseFloat(macros.fats) || 0;
-                const fiber = parseFloat(macros.fiber) || 0;
+                // Parse numeric values using helper function
+                const { protein, carbs, fats, fiber } = parseMacronutrients(macros);
                 
                 // Calculate total and percentages
                 const total = protein + carbs + fats + fiber;
@@ -1877,98 +1908,36 @@
                     const fatsPercent = (fats / total) * 100;
                     const fiberPercent = (fiber / total) * 100;
                     
-                    // Build stacked bar
+                    // Build stacked bar using helper function
                     macroBar.innerHTML = '';
                     
                     if (protein > 0) {
-                        const segment = document.createElement('div');
-                        segment.className = 'macro-segment protein';
-                        segment.style.width = proteinPercent + '%';
-                        if (proteinPercent > 10) {
-                            segment.textContent = Math.round(proteinPercent) + '%';
-                        }
-                        segment.title = `Протеин: ${protein}г (${Math.round(proteinPercent)}%)`;
-                        macroBar.appendChild(segment);
+                        macroBar.appendChild(createMacroSegment('protein', 'Протеин', protein, proteinPercent));
                     }
-                    
                     if (fats > 0) {
-                        const segment = document.createElement('div');
-                        segment.className = 'macro-segment fats';
-                        segment.style.width = fatsPercent + '%';
-                        if (fatsPercent > 10) {
-                            segment.textContent = Math.round(fatsPercent) + '%';
-                        }
-                        segment.title = `Мазнини: ${fats}г (${Math.round(fatsPercent)}%)`;
-                        macroBar.appendChild(segment);
+                        macroBar.appendChild(createMacroSegment('fats', 'Мазнини', fats, fatsPercent));
                     }
-                    
                     if (carbs > 0) {
-                        const segment = document.createElement('div');
-                        segment.className = 'macro-segment carbs';
-                        segment.style.width = carbsPercent + '%';
-                        if (carbsPercent > 10) {
-                            segment.textContent = Math.round(carbsPercent) + '%';
-                        }
-                        segment.title = `Въглехидрати: ${carbs}г (${Math.round(carbsPercent)}%)`;
-                        macroBar.appendChild(segment);
+                        macroBar.appendChild(createMacroSegment('carbs', 'Въглехидрати', carbs, carbsPercent));
                     }
-                    
                     if (fiber > 0) {
-                        const segment = document.createElement('div');
-                        segment.className = 'macro-segment fiber';
-                        segment.style.width = fiberPercent + '%';
-                        if (fiberPercent > 10) {
-                            segment.textContent = Math.round(fiberPercent) + '%';
-                        }
-                        segment.title = `Фибри: ${fiber}г (${Math.round(fiberPercent)}%)`;
-                        macroBar.appendChild(segment);
+                        macroBar.appendChild(createMacroSegment('fiber', 'Фибри', fiber, fiberPercent));
                     }
                     
-                    // Build legend
+                    // Build legend using helper function
                     macroLegend.innerHTML = '';
                     
                     if (protein > 0) {
-                        const item = document.createElement('div');
-                        item.className = 'macro-legend-item';
-                        item.innerHTML = `
-                            <span class="macro-dot protein"></span>
-                            <span class="macro-label">Протеин:</span>
-                            <span class="macro-value">${protein}г</span>
-                        `;
-                        macroLegend.appendChild(item);
+                        macroLegend.appendChild(createLegendItem('protein', 'Протеин', protein));
                     }
-                    
                     if (fats > 0) {
-                        const item = document.createElement('div');
-                        item.className = 'macro-legend-item';
-                        item.innerHTML = `
-                            <span class="macro-dot fats"></span>
-                            <span class="macro-label">Мазнини:</span>
-                            <span class="macro-value">${fats}г</span>
-                        `;
-                        macroLegend.appendChild(item);
+                        macroLegend.appendChild(createLegendItem('fats', 'Мазнини', fats));
                     }
-                    
                     if (carbs > 0) {
-                        const item = document.createElement('div');
-                        item.className = 'macro-legend-item';
-                        item.innerHTML = `
-                            <span class="macro-dot carbs"></span>
-                            <span class="macro-label">Въглехидрати:</span>
-                            <span class="macro-value">${carbs}г</span>
-                        `;
-                        macroLegend.appendChild(item);
+                        macroLegend.appendChild(createLegendItem('carbs', 'Въглехидрати', carbs));
                     }
-                    
                     if (fiber > 0) {
-                        const item = document.createElement('div');
-                        item.className = 'macro-legend-item';
-                        item.innerHTML = `
-                            <span class="macro-dot fiber"></span>
-                            <span class="macro-label">Фибри:</span>
-                            <span class="macro-value">${fiber}г</span>
-                        `;
-                        macroLegend.appendChild(item);
+                        macroLegend.appendChild(createLegendItem('fiber', 'Фибри', fiber));
                     }
                     
                     macroBreakdown.style.display = 'block';
