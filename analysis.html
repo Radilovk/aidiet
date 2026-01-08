@@ -320,6 +320,156 @@
             margin-top: 2px;
         }
 
+        .overall-score-section {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow);
+            margin-top: 40px;
+            animation: fadeIn 1s ease;
+        }
+
+        .overall-score-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .overall-score-header h2 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            font-weight: 800;
+        }
+
+        .overall-score-header p {
+            color: var(--text-gray);
+            font-size: 1rem;
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .score-card {
+            background: var(--soft-red);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .score-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .score-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            position: relative;
+        }
+
+        .score-icon.health {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .score-icon.success {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 1rem;
+            color: var(--text-gray);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .score-description {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            line-height: 1.5;
+        }
+
+        .score-bar-container {
+            margin-top: 16px;
+        }
+
+        .score-bar-track {
+            height: 10px;
+            background: var(--input-bg);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .score-bar-fill.excellent {
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+
+        .score-bar-fill.good {
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+        }
+
+        .score-bar-fill.moderate {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        }
+
+        .score-bar-fill.poor {
+            background: linear-gradient(90deg, #f97316, #ea580c);
+        }
+
+        .score-bar-fill.critical {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+
+        .overall-insight {
+            background: var(--input-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+            border-left: 4px solid var(--primary-red);
+        }
+
+        .overall-insight h3 {
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .overall-insight p {
+            color: var(--text-gray);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
         .cta-section {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -459,6 +609,25 @@
             .severity-badge {
                 align-self: flex-start;
             }
+
+            .score-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .score-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+
+            .score-value {
+                font-size: 2rem;
+            }
+
+            .overall-score-header h2 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
@@ -486,6 +655,52 @@
 
         <div class="problems-container" id="problemsContainer">
             <!-- Problems will be inserted here by JavaScript -->
+        </div>
+
+        <!-- Overall Health Score Section -->
+        <div class="overall-score-section" id="overallScoreSection" style="display: none;">
+            <div class="overall-score-header">
+                <h2>Обща Оценка на Здравето</h2>
+                <p>Базирана на всички идентифицирани показатели</p>
+            </div>
+
+            <div class="score-grid">
+                <div class="score-card">
+                    <div class="score-icon health">
+                        <i class="fas fa-heart-pulse"></i>
+                    </div>
+                    <div class="score-value" id="healthScoreValue">--</div>
+                    <div class="score-label">Здравословен Статус</div>
+                    <div class="score-description" id="healthScoreDesc">Изчисляване...</div>
+                    <div class="score-bar-container">
+                        <div class="score-bar-track">
+                            <div class="score-bar-fill" id="healthScoreBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="score-card">
+                    <div class="score-icon success">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="score-value" id="successChanceValue">--</div>
+                    <div class="score-label">Шанс за Успех</div>
+                    <div class="score-description" id="successChanceDesc">Изчисляване...</div>
+                    <div class="score-bar-container">
+                        <div class="score-bar-track">
+                            <div class="score-bar-fill" id="successChanceBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overall-insight">
+                <h3>
+                    <i class="fas fa-lightbulb"></i>
+                    Ключови Прозрения
+                </h3>
+                <p id="overallInsightText">Анализиране на вашите здравословни показатели...</p>
+            </div>
         </div>
 
         <div class="cta-section">
@@ -596,6 +811,129 @@
                 const card = createProblemCard(problem, index);
                 container.appendChild(card);
             });
+
+            // Calculate and display overall scores
+            calculateOverallScores(problems);
+        }
+
+        function calculateOverallScores(problems) {
+            if (!problems || problems.length === 0) return;
+
+            // Calculate average severity value
+            let totalSeverity = 0;
+            let criticalCount = 0;
+            let riskyCount = 0;
+            let borderlineCount = 0;
+            
+            problems.forEach(problem => {
+                totalSeverity += (problem.severityValue || 50);
+                const severity = (problem.severity || 'Normal').toLowerCase();
+                if (severity === 'critical') criticalCount++;
+                else if (severity === 'risky') riskyCount++;
+                else if (severity === 'borderline') borderlineCount++;
+            });
+
+            const avgSeverity = totalSeverity / problems.length;
+            
+            // Calculate health score (inverse of severity - lower severity = higher health)
+            const healthScore = Math.round(100 - avgSeverity);
+            
+            // Calculate success chance based on severity distribution and count
+            // Factors: fewer problems = higher chance, lower severity = higher chance
+            let successChance = 100;
+            
+            // Reduce by problem count (more problems = lower chance)
+            successChance -= problems.length * 5;
+            
+            // Reduce by severity (weighted by type)
+            successChance -= criticalCount * 20;
+            successChance -= riskyCount * 12;
+            successChance -= borderlineCount * 6;
+            
+            // Ensure bounds
+            successChance = Math.max(15, Math.min(95, successChance));
+            
+            // Determine health status category
+            let healthCategory, healthDesc, healthBarClass;
+            if (healthScore >= 80) {
+                healthCategory = 'Отличен';
+                healthDesc = 'Вашето общо здраве е в много добро състояние';
+                healthBarClass = 'excellent';
+            } else if (healthScore >= 65) {
+                healthCategory = 'Добър';
+                healthDesc = 'Здравословното ви състояние е добро с малки области за подобрение';
+                healthBarClass = 'good';
+            } else if (healthScore >= 50) {
+                healthCategory = 'Умерен';
+                healthDesc = 'Има няколко важни области, които се нуждаят от внимание';
+                healthBarClass = 'moderate';
+            } else if (healthScore >= 35) {
+                healthCategory = 'Слаб';
+                healthDesc = 'Здравословното ви състояние изисква значително подобрение';
+                healthBarClass = 'poor';
+            } else {
+                healthCategory = 'Критичен';
+                healthDesc = 'Налице са сериозни здравословни рискове, които трябва да се адресират';
+                healthBarClass = 'critical';
+            }
+            
+            // Determine success chance category
+            let successCategory, successDesc, successBarClass;
+            if (successChance >= 75) {
+                successCategory = 'Висок';
+                successDesc = 'С правилния план имате отличен шанс за успех';
+                successBarClass = 'excellent';
+            } else if (successChance >= 60) {
+                successCategory = 'Добър';
+                successDesc = 'При последователност можете да постигнете целите си';
+                successBarClass = 'good';
+            } else if (successChance >= 45) {
+                successCategory = 'Умерен';
+                successDesc = 'Ще са необходими усилия и отдаденост за постигане на целта';
+                successBarClass = 'moderate';
+            } else if (successChance >= 30) {
+                successCategory = 'Нисък';
+                successDesc = 'Предизвикателно, но постижимо с подкрепа и упоритост';
+                successBarClass = 'poor';
+            } else {
+                successCategory = 'Много нисък';
+                successDesc = 'Значителни пречки, но не невъзможно с правилния подход';
+                successBarClass = 'critical';
+            }
+            
+            // Generate overall insight based on problems
+            let insightText = `Въз основа на анализа на ${problems.length} ключови показател${problems.length === 1 ? '' : 'а'}, `;
+            
+            if (criticalCount > 0) {
+                insightText += `идентифицирахме ${criticalCount} критичн${criticalCount === 1 ? 'а област' : 'и области'}, които изискват незабавно внимание. `;
+            }
+            if (riskyCount > 0) {
+                insightText += `Има ${riskyCount} рисков${riskyCount === 1 ? 'а област' : 'и области'}, които могат да попречат на вашите цели. `;
+            }
+            
+            insightText += `Нашият персонализиран план е създаден да адресира тези конкретни предизвикателства и да ви помогне да подобрите здравето си стъпка по стъпка.`;
+            
+            // Update UI
+            document.getElementById('healthScoreValue').textContent = healthScore + '%';
+            document.getElementById('healthScoreDesc').textContent = healthCategory + ' - ' + healthDesc;
+            document.getElementById('healthScoreBar').className = `score-bar-fill ${healthBarClass}`;
+            document.getElementById('healthScoreBar').setAttribute('data-width', healthScore + '%');
+            
+            document.getElementById('successChanceValue').textContent = successChance + '%';
+            document.getElementById('successChanceDesc').textContent = successCategory + ' шанс - ' + successDesc;
+            document.getElementById('successChanceBar').className = `score-bar-fill ${successBarClass}`;
+            document.getElementById('successChanceBar').setAttribute('data-width', successChance + '%');
+            
+            document.getElementById('overallInsightText').textContent = insightText;
+            
+            // Show the overall score section
+            document.getElementById('overallScoreSection').style.display = 'block';
+            
+            // Animate score bars after a short delay
+            setTimeout(() => {
+                document.getElementById('healthScoreBar').style.width = healthScore + '%';
+                document.getElementById('successChanceBar').style.width = successChance + '%';
+            }, 300);
         }
 
         function createProblemCard(problem, index) {
