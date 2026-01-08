@@ -70,8 +70,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Handle 404 responses - redirect to index.html
-          if (response.status === 404) {
+          // Handle 404 responses for navigation requests - redirect to index.html
+          if (response.status === 404 && request.mode === 'navigate') {
             return caches.match('./index.html').then(cachedIndex => {
               if (cachedIndex) {
                 return cachedIndex;
@@ -94,7 +94,7 @@ self.addEventListener('fetch', (event) => {
               return cachedResponse;
             }
             // Fallback to index.html for navigation requests
-            if (url.pathname === '/' || url.pathname === '') {
+            if (url.pathname === '/') {
               return caches.match('./index.html');
             }
             // Return a basic 404 response
