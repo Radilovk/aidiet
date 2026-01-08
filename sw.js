@@ -94,7 +94,7 @@ self.addEventListener('fetch', (event) => {
               return cachedResponse;
             }
             // Fallback to index.html for navigation requests
-            if (url.pathname === '/') {
+            if (request.mode === 'navigate' || url.pathname === '/') {
               return caches.match('./index.html');
             }
             // Return a basic 404 response
