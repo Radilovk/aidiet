@@ -131,17 +131,18 @@ function detectGoalContradiction(data) {
   let hasContradiction = false;
   let warningData = {};
   
-  // Normalize goal for comparison (case-insensitive)
-  const normalizedGoal = (data.goal || '').toLowerCase();
+  // Normalize goal for comparison (case-insensitive, trimmed)
+  const normalizedGoal = (data.goal || '').toLowerCase().trim();
   
   // Check for severe underweight with weight loss goal
-  if (bmi < 18.5 && normalizedGoal.includes('отслабване')) {
+  // Exact match for "Отслабване" (case-insensitive)
+  if (bmi < 18.5 && normalizedGoal === 'отслабване') {
     hasContradiction = true;
     warningData = {
       type: 'underweight_loss',
       bmi: bmi.toFixed(1),
       currentCategory: bmi < 16 ? 'Значително поднормено тегло' : 'Поднормено тегло',
-      goalCategory: 'Отслабване',
+      goalCategory: data.goal, // Use original goal text from user
       risks: [
         'Недохранване и дефицит на важни хранителни вещества',
         'Отслабване на имунната система',
@@ -153,14 +154,15 @@ function detectGoalContradiction(data) {
     };
   }
   
-  // Check for obesity with weight/muscle gain goal
-  if (bmi >= 30 && (normalizedGoal.includes('покачване') || normalizedGoal.includes('мускулна маса'))) {
+  // Check for obesity with muscle gain goal
+  // Exact match for "Покачване на мускулна маса" (case-insensitive)
+  if (bmi >= 30 && normalizedGoal === 'покачване на мускулна маса') {
     hasContradiction = true;
     warningData = {
       type: 'overweight_gain',
       bmi: bmi.toFixed(1),
       currentCategory: bmi >= 35 ? 'Значително наднормено тегло (клас II затлъстяване)' : 'Наднормено тегло (затлъстяване)',
-      goalCategory: data.goal,
+      goalCategory: data.goal, // Use original goal text from user
       risks: [
         'Повишен риск от сърдечносъдови заболявания',
         'Диабет тип 2',

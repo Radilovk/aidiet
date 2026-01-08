@@ -819,6 +819,17 @@
         function calculateOverallScores(problems, analysis) {
             if (!problems || problems.length === 0) return;
 
+            // Health score constants
+            // MIN_HEALTH_SCORE: Minimum health score value. 0 represents death, so we use 15 as the minimum
+            // for even critical health cases to indicate that the person is alive but in poor health.
+            const MIN_HEALTH_SCORE = 15;
+            const MAX_HEALTH_SCORE = 100;
+            
+            // Success chance constants for fallback calculation
+            // These match the AI model's range to ensure consistency
+            const MIN_SUCCESS_CHANCE = -100; // Negative values indicate contradictory goals
+            const MAX_SUCCESS_CHANCE = 100;
+
             // Calculate average severity value
             let totalSeverity = 0;
             let criticalCount = 0;
@@ -836,18 +847,18 @@
             const avgSeverity = totalSeverity / problems.length;
             
             // Calculate health score (inverse of severity - lower severity = higher health)
-            // Health score should NEVER be 0 - minimum of 15 for critical cases
-            // Formula: healthScore = 100 - avgSeverity, but clamped between 15-100
-            const cappedSeverity = Math.min(avgSeverity, 100);
-            const rawHealthScore = 100 - cappedSeverity;
-            const healthScore = Math.max(15, Math.min(100, Math.round(rawHealthScore)));
+            // Health score should NEVER be 0 (0 represents death)
+            // Formula: healthScore = 100 - avgSeverity, but clamped between MIN_HEALTH_SCORE and MAX_HEALTH_SCORE
+            const cappedSeverity = Math.min(avgSeverity, MAX_HEALTH_SCORE);
+            const rawHealthScore = MAX_HEALTH_SCORE - cappedSeverity;
+            const healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(rawHealthScore)));
             
             // Calculate success chance - use AI-calculated value if available, otherwise use fallback calculation
             let successChance;
             
             if (analysis && typeof analysis.successChance === 'number') {
                 // Use AI-calculated success chance (from -100 to 100)
-                successChance = Math.max(-100, Math.min(100, analysis.successChance));
+                successChance = Math.max(MIN_SUCCESS_CHANCE, Math.min(MAX_SUCCESS_CHANCE, analysis.successChance));
                 console.log('Using AI-calculated success chance:', successChance);
             } else {
                 // Fallback: Calculate based on severity distribution and count
@@ -862,8 +873,8 @@
                 successChance -= riskyCount * 12;
                 successChance -= borderlineCount * 6;
                 
-                // Ensure bounds - can go negative if many factors oppose the goal
-                successChance = Math.max(-20, Math.min(95, successChance));
+                // Ensure bounds - align with AI model's range for consistency
+                successChance = Math.max(MIN_SUCCESS_CHANCE, Math.min(MAX_SUCCESS_CHANCE, successChance));
                 console.log('Using fallback success chance calculation:', successChance);
             }
             
