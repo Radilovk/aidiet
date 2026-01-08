@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#ef4444">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    <title>Предупреждение - Медицински Риск</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-red: #ef4444;
+            --primary-red-hover: #dc2626;
+            --soft-red: #fee2e2;
+            --accent-yellow: #fbbf24;
+            --text-dark: #1e3a20;
+            --text-gray: #6b7280;
+            --bg-color: #fefce8;
+            --card-bg: #ffffff;
+            --shadow: 0 10px 30px rgba(239,68,68,0.2);
+            --radius: 16px;
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --primary-red: #f87171;
+            --primary-red-hover: #ef4444;
+            --soft-red: #450a0a;
+            --accent-yellow: #fcd34d;
+            --text-dark: #e5f3e8;
+            --text-gray: #9ca3af;
+            --bg-color: #0f1419;
+            --card-bg: #1a2028;
+            --shadow: 0 10px 30px rgba(248,113,113,0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--text-gray);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary-red);
+            transform: scale(1.05);
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .warning-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 40px;
+            box-shadow: var(--shadow);
+            border-top: 8px solid var(--primary-red);
+        }
+
+        .warning-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 30px;
+            background: var(--soft-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--primary-red);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .warning-title {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--primary-red);
+            margin-bottom: 20px;
+            font-weight: 800;
+        }
+
+        .warning-subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--text-gray);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .info-section {
+            background: var(--soft-red);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(239,68,68,0.2);
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .info-value {
+            color: var(--primary-red);
+            font-weight: 700;
+        }
+
+        .risks-section {
+            margin-bottom: 24px;
+        }
+
+        .risks-title {
+            font-size: 1.3rem;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .risks-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .risk-item {
+            background: var(--soft-red);
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: slideUp 0.5s ease;
+        }
+
+        .risk-icon {
+            color: var(--primary-red);
+            font-size: 1.2rem;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .risk-text {
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .recommendation-section {
+            background: linear-gradient(135deg, var(--soft-red) 0%, var(--card-bg) 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border-left: 4px solid var(--primary-red);
+        }
+
+        .recommendation-title {
+            font-size: 1.3rem;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .recommendation-text {
+            color: var(--text-dark);
+            line-height: 1.8;
+            font-size: 1.05rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 200px;
+            padding: 16px 32px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-red-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-secondary {
+            background-color: var(--text-gray);
+            color: white;
+            box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .warning-card {
+                padding: 24px;
+            }
+
+            .warning-icon {
+                width: 80px;
+                height: 80px;
+                font-size: 2.5rem;
+            }
+
+            .warning-title {
+                font-size: 1.6rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <div class="container">
+        <div class="warning-card">
+            <div class="warning-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+
+            <h1 class="warning-title">Медицинско Предупреждение</h1>
+            <p class="warning-subtitle">Вашата цел е в противоречие с текущото ви здравословно състояние</p>
+
+            <div class="info-section" id="infoSection">
+                <!-- Will be filled by JavaScript -->
+            </div>
+
+            <div class="risks-section">
+                <h2 class="risks-title">
+                    <i class="fas fa-shield-virus"></i>
+                    Здравословни Рискове
+                </h2>
+                <ul class="risks-list" id="risksList">
+                    <!-- Will be filled by JavaScript -->
+                </ul>
+            </div>
+
+            <div class="recommendation-section">
+                <h2 class="recommendation-title">
+                    <i class="fas fa-user-md"></i>
+                    Нашата Препоръка
+                </h2>
+                <p class="recommendation-text" id="recommendationText">
+                    <!-- Will be filled by JavaScript -->
+                </p>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="goBackToQuestionnaire()">
+                    <i class="fas fa-edit"></i>
+                    Промени целта си
+                </button>
+                <button class="btn btn-secondary" onclick="goToHome()">
+                    <i class="fas fa-home"></i>
+                    Начална страница
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme Management
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        initializeTheme();
+
+        // Load warning data from localStorage
+        function loadWarningData() {
+            try {
+                const warningDataStr = localStorage.getItem('warningData');
+                
+                if (!warningDataStr) {
+                    console.error('No warning data found');
+                    window.location.href = 'questionnaire.html';
+                    return;
+                }
+
+                const warningData = JSON.parse(warningDataStr);
+                displayWarningData(warningData);
+            } catch (error) {
+                console.error('Error loading warning data:', error);
+                window.location.href = 'questionnaire.html';
+            }
+        }
+
+        function displayWarningData(data) {
+            // Fill info section
+            const infoSection = document.getElementById('infoSection');
+            infoSection.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">Текущо състояние:</span>
+                    <span class="info-value">${data.currentCategory}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">BMI (Индекс на телесна маса):</span>
+                    <span class="info-value">${data.bmi}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Избрана цел:</span>
+                    <span class="info-value">${data.goalCategory}</span>
+                </div>
+            `;
+
+            // Fill risks list
+            const risksList = document.getElementById('risksList');
+            risksList.innerHTML = data.risks.map((risk, index) => `
+                <li class="risk-item" style="animation-delay: ${index * 0.1}s">
+                    <i class="fas fa-exclamation-circle risk-icon"></i>
+                    <span class="risk-text">${risk}</span>
+                </li>
+            `).join('');
+
+            // Fill recommendation
+            document.getElementById('recommendationText').textContent = data.recommendation;
+        }
+
+        function goBackToQuestionnaire() {
+            window.location.href = 'questionnaire.html';
+        }
+
+        function goToHome() {
+            window.location.href = 'index.html';
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', loadWarningData);
+    </script>
+</body>
+</html>

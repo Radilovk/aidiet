@@ -1217,6 +1217,21 @@
                 console.log('Result received:', result);
                 
                 if (result.success) {
+                    // Check if there's a goal contradiction
+                    if (result.hasContradiction && result.warningData) {
+                        // Store warning data and redirect to warning page
+                        localStorage.setItem('warningData', JSON.stringify(result.warningData));
+                        localStorage.setItem('userId', result.userId);
+                        localStorage.setItem('userData', JSON.stringify(answers));
+                        
+                        // Clear the saved questionnaire answers
+                        localStorage.removeItem('questionnaireAnswers');
+                        
+                        // Redirect to warning page
+                        window.location.href = 'warning.html';
+                        return;
+                    }
+                    
                     // Store plan and userId in localStorage for use in plan.html
                     localStorage.setItem('dietPlan', JSON.stringify(result.plan));
                     localStorage.setItem('userId', result.userId);

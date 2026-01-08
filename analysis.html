@@ -791,7 +791,7 @@
                 const problems = plan.analysis.keyProblems;
                 
                 // Display problems
-                displayProblems(problems);
+                displayProblems(problems, plan.analysis);
                 
                 // Hide loading, show content
                 document.getElementById('loadingScreen').style.display = 'none';
@@ -803,7 +803,7 @@
             }
         }
 
-        function displayProblems(problems) {
+        function displayProblems(problems, analysis) {
             const container = document.getElementById('problemsContainer');
             container.innerHTML = '';
 
@@ -813,10 +813,10 @@
             });
 
             // Calculate and display overall scores
-            calculateOverallScores(problems);
+            calculateOverallScores(problems, analysis);
         }
 
-        function calculateOverallScores(problems) {
+        function calculateOverallScores(problems, analysis) {
             if (!problems || problems.length === 0) return;
 
             // Calculate average severity value
@@ -836,24 +836,36 @@
             const avgSeverity = totalSeverity / problems.length;
             
             // Calculate health score (inverse of severity - lower severity = higher health)
-            // Ensure avgSeverity is capped at 100 and healthScore is between 0-100
+            // Health score should NEVER be 0 - minimum of 15 for critical cases
+            // Formula: healthScore = 100 - avgSeverity, but clamped between 15-100
             const cappedSeverity = Math.min(avgSeverity, 100);
-            const healthScore = Math.max(0, Math.min(100, Math.round(100 - cappedSeverity)));
+            const rawHealthScore = 100 - cappedSeverity;
+            const healthScore = Math.max(15, Math.min(100, Math.round(rawHealthScore)));
             
-            // Calculate success chance based on severity distribution and count
-            // Factors: fewer problems = higher chance, lower severity = higher chance
-            let successChance = 100;
+            // Calculate success chance - use AI-calculated value if available, otherwise use fallback calculation
+            let successChance;
             
-            // Reduce by problem count (more problems = lower chance)
-            successChance -= problems.length * 5;
-            
-            // Reduce by severity (weighted by type)
-            successChance -= criticalCount * 20;
-            successChance -= riskyCount * 12;
-            successChance -= borderlineCount * 6;
-            
-            // Ensure bounds
-            successChance = Math.max(15, Math.min(95, successChance));
+            if (analysis && typeof analysis.successChance === 'number') {
+                // Use AI-calculated success chance (from -100 to 100)
+                successChance = Math.max(-100, Math.min(100, analysis.successChance));
+                console.log('Using AI-calculated success chance:', successChance);
+            } else {
+                // Fallback: Calculate based on severity distribution and count
+                // Factors: fewer problems = higher chance, lower severity = higher chance
+                successChance = 100;
+                
+                // Reduce by problem count (more problems = lower chance)
+                successChance -= problems.length * 5;
+                
+                // Reduce by severity (weighted by type)
+                successChance -= criticalCount * 20;
+                successChance -= riskyCount * 12;
+                successChance -= borderlineCount * 6;
+                
+                // Ensure bounds - can go negative if many factors oppose the goal
+                successChance = Math.max(-20, Math.min(95, successChance));
+                console.log('Using fallback success chance calculation:', successChance);
+            }
             
             // Determine health status category
             let healthCategory, healthDesc, healthBarClass;
@@ -881,7 +893,11 @@
             
             // Determine success chance category
             let successCategory, successDesc, successBarClass;
-            if (successChance >= 75) {
+            if (successChance < 0) {
+                successCategory = 'Противопоказан';
+                successDesc = 'Множество фактори активно саботират вашата цел - препоръчва се преоценка';
+                successBarClass = 'critical';
+            } else if (successChance >= 75) {
                 successCategory = 'Висок';
                 successDesc = 'С правилния план имате отличен шанс за успех';
                 successBarClass = 'excellent';
@@ -913,7 +929,11 @@
                 insightText += `Има ${riskyCount} рисков${riskyCount === 1 ? 'а област' : 'и области'}, които могат да попречат на вашите цели. `;
             }
             
-            insightText += `Нашият персонализиран план е създаден да адресира тези конкретни предизвикателства и да ви помогне да подобрите здравето си стъпка по стъпка.`;
+            if (successChance < 0) {
+                insightText += `Текущите ви здравословни показатели силно се противопоставят на избраната цел. Препоръчваме да преосмислите целта си или да потърсите медицински съвет.`;
+            } else {
+                insightText += `Нашият персонализиран план е създаден да адресира тези конкретни предизвикателства и да ви помогне да подобрите здравето си стъпка по стъпка.`;
+            }
             
             // Update UI
             document.getElementById('healthScoreValue').textContent = healthScore + '%';
@@ -921,10 +941,13 @@
             document.getElementById('healthScoreBar').className = `score-bar-fill ${healthBarClass}`;
             document.getElementById('healthScoreBar').setAttribute('data-width', healthScore + '%');
             
-            document.getElementById('successChanceValue').textContent = successChance + '%';
+            // Display success chance (handle negative values)
+            const displaySuccessChance = successChance < 0 ? successChance : successChance;
+            const successBarWidth = successChance < 0 ? 0 : successChance;
+            document.getElementById('successChanceValue').textContent = displaySuccessChance + '%';
             document.getElementById('successChanceDesc').textContent = successCategory + ' шанс - ' + successDesc;
             document.getElementById('successChanceBar').className = `score-bar-fill ${successBarClass}`;
-            document.getElementById('successChanceBar').setAttribute('data-width', successChance + '%');
+            document.getElementById('successChanceBar').setAttribute('data-width', successBarWidth + '%');
             
             document.getElementById('overallInsightText').textContent = insightText;
             
@@ -934,7 +957,7 @@
             // Animate score bars after a short delay
             setTimeout(() => {
                 document.getElementById('healthScoreBar').style.width = healthScore + '%';
-                document.getElementById('successChanceBar').style.width = successChance + '%';
+                document.getElementById('successChanceBar').style.width = successBarWidth + '%';
             }, 300);
         }
 

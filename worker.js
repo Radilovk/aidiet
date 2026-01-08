@@ -95,6 +95,83 @@ function calculateTDEE(bmr, activityLevel) {
   return Math.round(bmr * multiplier);
 }
 
+/**
+ * Calculate BMI (Body Mass Index)
+ * BMI = weight(kg) / (height(m))^2
+ */
+function calculateBMI(data) {
+  if (!data.weight || !data.height) {
+    return null;
+  }
+  
+  const weight = parseFloat(data.weight);
+  const heightInMeters = parseFloat(data.height) / 100; // Convert cm to meters
+  
+  return weight / (heightInMeters * heightInMeters);
+}
+
+/**
+ * Detect goal contradictions (e.g., underweight person wanting to lose weight)
+ * Returns an object with { hasContradiction: boolean, warningData: object }
+ */
+function detectGoalContradiction(data) {
+  const bmi = calculateBMI(data);
+  
+  if (!bmi || !data.goal) {
+    return { hasContradiction: false };
+  }
+  
+  // BMI categories:
+  // < 16: Severely underweight
+  // 16-18.5: Underweight
+  // 18.5-25: Normal weight
+  // 25-30: Overweight
+  // > 30: Obese
+  
+  let hasContradiction = false;
+  let warningData = {};
+  
+  // Check for severe underweight with weight loss goal
+  if (bmi < 18.5 && (data.goal === 'Отслабване' || data.goal === 'отслабване')) {
+    hasContradiction = true;
+    warningData = {
+      type: 'underweight_loss',
+      bmi: bmi.toFixed(1),
+      currentCategory: bmi < 16 ? 'Значително поднормено тегло' : 'Поднормено тегло',
+      goalCategory: 'Отслабване',
+      risks: [
+        'Недохранване и дефицит на важни хранителни вещества',
+        'Отслабване на имунната система',
+        'Загуба на мускулна маса и костна плътност',
+        'Хормонален дисбаланс',
+        'Повишен риск от здравословни усложнения'
+      ],
+      recommendation: 'При вашето текущо тегло целта за отслабване е медицински неподходяща и опасна. Препоръчваме да консултирате лекар и да работите за постигане на здравословно тегло чрез балансирано хранене.'
+    };
+  }
+  
+  // Check for obesity with weight gain goal
+  if (bmi >= 30 && (data.goal === 'Покачване на мускулна маса' || data.goal === 'покачване на тегло')) {
+    hasContradiction = true;
+    warningData = {
+      type: 'overweight_gain',
+      bmi: bmi.toFixed(1),
+      currentCategory: bmi >= 35 ? 'Значително наднормено тегло (клас II затлъстяване)' : 'Наднормено тегло (затлъстяване)',
+      goalCategory: data.goal,
+      risks: [
+        'Повишен риск от сърдечносъдови заболявания',
+        'Диабет тип 2',
+        'Хипертония и метаболитни нарушения',
+        'Ставни проблеми и намалена подвижност',
+        'Повишен риск от множество здравословни усложнения'
+      ],
+      recommendation: 'При вашето текущо тегло целта за качване на тегло е медицински неподходяща. Ако искате да увеличите мускулна маса, трябва първо да постигнете здравословно тегло чрез контролирано отслабване под медицински надзор.'
+    };
+  }
+  
+  return { hasContradiction, warningData };
+}
+
 // CORS headers for client-side requests
 // NOTE: For production, replace '*' with specific allowed domains
 // Example: 'https://yourdomain.com, https://www.yourdomain.com'
@@ -178,6 +255,19 @@ async function handleGeneratePlan(request, env) {
     // Generate unique user ID (could be email or session-based)
     const userId = data.email || generateUserId(data);
     console.log('handleGeneratePlan: Request received for userId:', userId);
+    
+    // Check for goal contradictions before generating plan
+    const { hasContradiction, warningData } = detectGoalContradiction(data);
+    
+    if (hasContradiction) {
+      console.log('handleGeneratePlan: Goal contradiction detected, returning warning');
+      return jsonResponse({ 
+        success: true,
+        hasContradiction: true,
+        warningData: warningData,
+        userId: userId 
+      });
+    }
     
     console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
     
@@ -546,12 +636,18 @@ ${data.medicalConditions_other ? `- Други медицински състоя
 ИЗИСКВАНИЯ ЗА АНАЛИЗ:
 1. Анализирай КОРЕЛАЦИИТЕ между сън, стрес и хранителни желания
 2. Определи как медицинските състояния влияят на хранителните нужди
-3. Разбери ПСИХОЛОГИЧЕСКИЯ профил - връзката между емоции и хранене
+3. Разбери ПСИХОЛОГИЧЕСКИЯ профил - връзката mellan емоции и хранене
 4. Идентифицирай МЕТАБОЛИТНИ особености базирани на всички параметри
 5. Прецени как хронотипът влияе на храносмилането и енергията
 6. Определи СПЕЦИФИЧНИТЕ нужди от макронутриенти въз основа на целите, активност и медицински състояния
 7. Създай ИНДИВИДУАЛИЗИРАН подход, който отчита ВСИЧКИ фактори заедно
 8. Идентифицирай между 3 и 6 КЛЮЧОВИ ПРОБЛЕМА които пречат на здравето или постигането на целта
+9. ИЗЧИСЛИ шанса за успех като число от -100 до 100:
+   - Отрицателни стойности (-100 до -1): когато МНОЖЕСТВО фактори активно саботират целта (напр. поднормено тегло + цел отслабване)
+   - Ниски стойности (1-30): много противопоказващи фактори, малко подкрепящи
+   - Средни стойности (31-70): балансирани или смесени фактори
+   - Високи стойности (71-100): много подкрепящи фактори, малко противопоказващи
+   - Вземи предвид: здравословно състояние, BMI, медицински условия, хранителни навици, сън, стрес, активност
 
 Върни JSON с ДЕТАЙЛЕН анализ:
 {
@@ -567,6 +663,8 @@ ${data.medicalConditions_other ? `- Други медицински състоя
   "healthRisks": ["специфичен риск 1 с обяснение", "специфичен риск 2 с обяснение"],
   "nutritionalNeeds": ["специфична нужда 1 базирана на профила", "специфична нужда 2 базирана на профила"],
   "psychologicalProfile": "ДЕТАЙЛЕН анализ на психологическите фактори, емоционалното хранене и корелации със стрес, сън и поведение",
+  "successChance": "число от -100 до 100 базирано на анализ на ВСИЧКИ фактори",
+  "successChanceReasoning": "детайлно обяснение защо този шанс за успех, кои фактори подкрепят и кои саботират целта",
   "keyProblems": [
     {
       "title": "кратък заглавие на проблема (2-4 думи)",
