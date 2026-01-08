@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#10b981">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    <title>Здравословен Анализ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-red: #10b981;
+            --primary-red-hover: #059669;
+            --soft-red: #d1fae5;
+            --accent-yellow: #fbbf24;
+            --accent-blue: #3b82f6;
+            --accent-light-red: #f87171;
+            --text-dark: #1e3a20;
+            --text-gray: #6b7280;
+            --bg-color: #fefce8;
+            --card-bg: #ffffff;
+            --input-bg: #f3f4f6;
+            --shadow: 0 10px 30px rgba(16,185,129,0.12);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            /* Severity colors */
+            --severity-normal: #10b981;
+            --severity-borderline: #fbbf24;
+            --severity-risky: #f97316;
+            --severity-critical: #ef4444;
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --primary-red: #34d399;
+            --primary-red-hover: #10b981;
+            --soft-red: #064e3b;
+            --accent-yellow: #fcd34d;
+            --accent-blue: #60a5fa;
+            --accent-light-red: #fca5a5;
+            --text-dark: #e5f3e8;
+            --text-gray: #9ca3af;
+            --bg-color: #0f1419;
+            --card-bg: #1a2028;
+            --input-bg: #252b35;
+            --shadow: 0 10px 30px rgba(52,211,153,0.25);
+            
+            --severity-normal: #34d399;
+            --severity-borderline: #fcd34d;
+            --severity-risky: #fb923c;
+            --severity-critical: #f87171;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding-bottom: 100px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--text-gray);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary-red);
+            transform: scale(1.05);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-top: 20px;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .header-icon {
+            font-size: 4rem;
+            color: var(--primary-red);
+            margin-bottom: 20px;
+            display: inline-block;
+            background: var(--soft-red);
+            padding: 30px;
+            border-radius: 50%;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: var(--text-dark);
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-gray);
+            line-height: 1.6;
+        }
+
+        .problems-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-bottom: 40px;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .problem-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border-left: 6px solid var(--primary-red);
+            animation: slideUp 0.5s ease;
+        }
+
+        .problem-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 40px rgba(16,185,129,0.2);
+        }
+
+        .problem-card.severity-normal {
+            border-left-color: var(--severity-normal);
+        }
+
+        .problem-card.severity-borderline {
+            border-left-color: var(--severity-borderline);
+        }
+
+        .problem-card.severity-risky {
+            border-left-color: var(--severity-risky);
+        }
+
+        .problem-card.severity-critical {
+            border-left-color: var(--severity-critical);
+        }
+
+        .problem-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .problem-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .problem-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .problem-icon.category-sleep { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .problem-icon.category-nutrition { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .problem-icon.category-hydration { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .problem-icon.category-stress { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .problem-icon.category-activity { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        .problem-icon.category-medical { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+        .problem-title h3 {
+            font-size: 1.3rem;
+            color: var(--text-dark);
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .severity-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .severity-badge.normal {
+            background: var(--severity-normal);
+            color: white;
+        }
+
+        .severity-badge.borderline {
+            background: var(--severity-borderline);
+            color: #1e3a20;
+        }
+
+        .severity-badge.risky {
+            background: var(--severity-risky);
+            color: white;
+        }
+
+        .severity-badge.critical {
+            background: var(--severity-critical);
+            color: white;
+        }
+
+        .problem-description {
+            color: var(--text-gray);
+            line-height: 1.7;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        .severity-meter {
+            margin-top: 16px;
+        }
+
+        .meter-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .meter-track {
+            height: 12px;
+            background: var(--input-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .meter-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .meter-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .meter-fill.normal { background: linear-gradient(90deg, var(--severity-normal), #059669); }
+        .meter-fill.borderline { background: linear-gradient(90deg, var(--severity-borderline), #f59e0b); }
+        .meter-fill.risky { background: linear-gradient(90deg, var(--severity-risky), #ea580c); }
+        .meter-fill.critical { background: linear-gradient(90deg, var(--severity-critical), #dc2626); }
+
+        .problem-impact {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: var(--soft-red);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .problem-impact i {
+            color: var(--primary-red);
+            margin-top: 2px;
+        }
+
+        .cta-section {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 32px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            margin-top: 40px;
+            animation: fadeIn 1s ease;
+        }
+
+        .cta-section h2 {
+            font-size: 1.5rem;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            font-size: 1rem;
+            color: var(--text-gray);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-red-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--input-bg);
+            border-top-color: var(--primary-red);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: var(--text-gray);
+        }
+
+        .error-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            color: var(--severity-critical);
+            margin-bottom: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .header-icon {
+                font-size: 3rem;
+                padding: 20px;
+            }
+
+            .problem-card {
+                padding: 20px;
+            }
+
+            .problem-title h3 {
+                font-size: 1.1rem;
+            }
+
+            .problem-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .severity-badge {
+                align-self: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Зареждане на анализа...</p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container" id="mainContent" style="display: none;">
+        <div class="header">
+            <div class="header-icon">
+                <i class="fas fa-heartbeat"></i>
+            </div>
+            <h1>Вашият Здравословен Анализ</h1>
+            <p>Идентифицирахме ключови области за подобрение, които могат да повлияят на вашето здраве и целите ви</p>
+        </div>
+
+        <div class="problems-container" id="problemsContainer">
+            <!-- Problems will be inserted here by JavaScript -->
+        </div>
+
+        <div class="cta-section">
+            <h2>Готови ли сте за промяна?</h2>
+            <p>Създадохме персонализиран хранителен план, който ще ви помогне да преодолеете тези предизвикателства и да постигнете целите си.</p>
+            <button class="btn-primary" onclick="goToPlan()">
+                Виж Хранителния План
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Error Screen -->
+    <div class="error-screen" id="errorScreen" style="display: none;">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <h2 style="color: var(--text-dark); margin-bottom: 16px;">Грешка</h2>
+        <p style="color: var(--text-gray); margin-bottom: 24px;">Не може да се зареди анализът. Моля, опитайте отново.</p>
+        <button class="btn-primary" onclick="window.location.href='questionnaire.html'">
+            Назад към въпросника
+        </button>
+    </div>
+
+    <script>
+        // Theme Management
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        initializeTheme();
+
+        // Category Icons Mapping
+        const categoryIcons = {
+            'Sleep': 'fa-bed',
+            'Nutrition': 'fa-utensils',
+            'Hydration': 'fa-tint',
+            'Stress': 'fa-brain',
+            'Activity': 'fa-running',
+            'Medical': 'fa-heartbeat'
+        };
+
+        // Severity Labels in Bulgarian
+        const severityLabels = {
+            'Normal': 'Нормално',
+            'Borderline': 'Гранично',
+            'Risky': 'Рисково',
+            'Critical': 'Критично'
+        };
+
+        // Load and display analysis
+        function loadAnalysis() {
+            try {
+                // Get plan data from localStorage
+                const planData = localStorage.getItem('dietPlan');
+                
+                if (!planData) {
+                    showError();
+                    return;
+                }
+
+                const plan = JSON.parse(planData);
+                
+                // Check if analysis and keyProblems exist
+                if (!plan.analysis || !plan.analysis.keyProblems || !Array.isArray(plan.analysis.keyProblems)) {
+                    console.error('No keyProblems found in analysis');
+                    showError();
+                    return;
+                }
+
+                const problems = plan.analysis.keyProblems;
+                
+                // Display problems
+                displayProblems(problems);
+                
+                // Hide loading, show content
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading analysis:', error);
+                showError();
+            }
+        }
+
+        function displayProblems(problems) {
+            const container = document.getElementById('problemsContainer');
+            container.innerHTML = '';
+
+            problems.forEach((problem, index) => {
+                const card = createProblemCard(problem, index);
+                container.appendChild(card);
+            });
+        }
+
+        function createProblemCard(problem, index) {
+            const card = document.createElement('div');
+            const severity = (problem.severity || 'Normal').toLowerCase();
+            const severityClass = `severity-${severity}`;
+            
+            card.className = `problem-card ${severityClass}`;
+            card.style.animationDelay = `${index * 0.1}s`;
+
+            const categoryClass = `category-${(problem.category || 'medical').toLowerCase()}`;
+            const categoryIcon = categoryIcons[problem.category] || 'fa-heartbeat';
+            const severityLabel = severityLabels[problem.severity] || problem.severity;
+            const severityValue = problem.severityValue || 50;
+
+            card.innerHTML = `
+                <div class="problem-header">
+                    <div class="problem-title">
+                        <div class="problem-icon ${categoryClass}">
+                            <i class="fas ${categoryIcon}"></i>
+                        </div>
+                        <h3>${problem.title || 'Проблем'}</h3>
+                    </div>
+                    <div class="severity-badge ${severity}">
+                        ${severityLabel}
+                    </div>
+                </div>
+                <p class="problem-description">${problem.description || 'Няма описание'}</p>
+                ${problem.impact ? `
+                <div class="problem-impact">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>${problem.impact}</span>
+                </div>
+                ` : ''}
+                <div class="severity-meter">
+                    <div class="meter-label">
+                        <span>Ниво на риск</span>
+                        <span>${severityValue}%</span>
+                    </div>
+                    <div class="meter-track">
+                        <div class="meter-fill ${severity}" style="width: 0%" data-width="${severityValue}%"></div>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function animateMeters() {
+            // Animate severity meters after cards are rendered
+            setTimeout(() => {
+                const meters = document.querySelectorAll('.meter-fill');
+                meters.forEach(meter => {
+                    const width = meter.getAttribute('data-width');
+                    meter.style.width = width;
+                });
+            }, 100);
+        }
+
+        function showError() {
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('errorScreen').style.display = 'block';
+        }
+
+        function goToPlan() {
+            window.location.href = 'plan.html';
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            loadAnalysis();
+            // Animate meters after a short delay
+            setTimeout(animateMeters, 500);
+        });
+    </script>
+</body>
+</html>
