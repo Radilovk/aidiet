@@ -105,30 +105,7 @@
             transform: translateY(-2px);
         }
 
-        .theme-toggle-btn {
-            background: var(--secondary-accent);
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-        }
 
-        .theme-toggle-btn:hover {
-            transform: scale(1.1) rotate(-10deg);
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.6);
-        }
-
-        .theme-toggle-btn:active {
-            transform: scale(0.95);
-        }
 
         /* --- HERO SECTION --- */
         .hero {
@@ -777,9 +754,6 @@
     <nav>
         <a href="#" class="logo"><i class="fas fa-apple-alt"></i> NutriPlan</a>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема">
-                <i class="fas fa-moon" id="themeIcon"></i>
-            </button>
             <a href="plan.html" class="nav-btn" id="myPlanBtn" style="display: none; background-color: #27ae60;">
                 <i class="fas fa-user-check"></i> Моят План
             </a>
