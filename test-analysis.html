@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Analysis Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #059669;
+        }
+        .info {
+            background: #f0f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Analysis Page</h1>
+    
+    <div class="info">
+        <h3>Test Instructions:</h3>
+        <ol>
+            <li>Click "Load Test Data" to populate localStorage with sample analysis data</li>
+            <li>Click "Open Analysis Page" to view the results</li>
+            <li>Click "Clear Data" to reset localStorage</li>
+        </ol>
+    </div>
+
+    <button onclick="loadTestData()">Load Test Data</button>
+    <button onclick="openAnalysisPage()">Open Analysis Page</button>
+    <button onclick="clearData()" style="background: #ef4444;">Clear Data</button>
+    
+    <div id="status"></div>
+
+    <script>
+        function loadTestData() {
+            const testPlan = {
+                analysis: {
+                    bmr: "1650 kcal - базирано на възраст, пол и телесно тегло",
+                    tdee: "2200 kcal - умерена активност",
+                    recommendedCalories: "1800 kcal - дефицит за отслабване",
+                    macroRatios: {
+                        protein: "30% - високо за запазване на мускулна маса",
+                        carbs: "40% - умерено за енергия",
+                        fats: "30% - здравословни мазнини"
+                    },
+                    metabolicProfile: "Умерено забавен метаболизъм поради недостатъчен сън и стрес",
+                    healthRisks: ["Висок риск от инсулинова резистентност", "Риск от хронична умора"],
+                    nutritionalNeeds: ["Повече протеини", "Повече магнезий"],
+                    psychologicalProfile: "Емоционално хранене при стрес",
+                    keyProblems: [
+                        {
+                            title: "Недостатъчен сън",
+                            description: "Спите под 6 часа на нощ, което води до повишени нива на кортизол и грелин. Това засилва глада и желанието за сладко, затруднява отслабването и увеличава риска от метаболитни нарушения.",
+                            severity: "Critical",
+                            severityValue: 85,
+                            category: "Sleep",
+                            impact: "Недостатъчният сън е основна бариера пред вашата цел за отслабване и може да доведе до хормонален дисбаланс."
+                        },
+                        {
+                            title: "Високо ниво на стрес",
+                            description: "Хроничният стрес повишава кортизола, който насърчава натрупването на коремна мазнина. Стресът също води до емоционално хранене и избор на нездравословни храни за утеха.",
+                            severity: "Risky",
+                            severityValue: 75,
+                            category: "Stress",
+                            impact: "Стресът саботира вашите усилия за отслабване чрез хормонални промени и психологически тригери."
+                        },
+                        {
+                            title: "Недостатъчна хидратация",
+                            description: "Пиете под 1.5 литра вода дневно. Дехидратацията забавя метаболизма, нарушава детоксикацията и често се бърка с глад, водейки до прекомерно хранене.",
+                            severity: "Risky",
+                            severityValue: 70,
+                            category: "Hydration",
+                            impact: "Ниският прием на вода е лесно решим проблем, който сериозно влияе на метаболизма и енергията ви."
+                        },
+                        {
+                            title: "Емоционално хранене",
+                            description: "Използвате храната за справяне със стрес, скука и негативни емоции. Това води до прекомерен калориен прием и избор на висококалорични комфортни храни вместо хранене при физически глад.",
+                            severity: "Borderline",
+                            severityValue: 60,
+                            category: "Nutrition",
+                            impact: "Емоционалното хранене създава цикъл на вина и компенсаторно поведение, който затруднява дългосрочното придържане към здравословен режим."
+                        },
+                        {
+                            title: "Ниска физическа активност",
+                            description: "Спортувате 0-1 пъти седмично, което води до ниски енергийни разходи и загуба на мускулна маса. Активността е ключова за метаболизъм, хормонален баланс и психично здраве.",
+                            severity: "Borderline",
+                            severityValue: 55,
+                            category: "Activity",
+                            impact: "Без редовна активност е много по-трудно да постигнете целите си за отслабване и да поддържате резултатите."
+                        }
+                    ]
+                },
+                strategy: {
+                    dietaryModifier: "Балансирано",
+                    dietType: "средиземноморска",
+                    mealTiming: {
+                        breakfast: "07:30-08:30",
+                        lunch: "12:30-13:30",
+                        dinner: "18:30-19:30"
+                    }
+                },
+                weekPlan: {
+                    day1: {
+                        meals: [
+                            {
+                                type: "Закуска",
+                                time: "08:00",
+                                name: "Омлет с спанак",
+                                weight: "200g"
+                            }
+                        ]
+                    }
+                }
+            };
+
+            // Save to localStorage
+            localStorage.setItem('dietPlan', JSON.stringify(testPlan));
+            localStorage.setItem('userId', 'test_user_123');
+            localStorage.setItem('userData', JSON.stringify({
+                name: 'Тестов Потребител',
+                age: 35,
+                goal: 'Отслабване'
+            }));
+
+            document.getElementById('status').innerHTML = 
+                '<div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-top: 20px;">✓ Test data loaded successfully! Now click "Open Analysis Page"</div>';
+        }
+
+        function openAnalysisPage() {
+            window.location.href = 'analysis.html';
+        }
+
+        function clearData() {
+            localStorage.removeItem('dietPlan');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userData');
+            
+            document.getElementById('status').innerHTML = 
+                '<div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-top: 20px;">✗ All data cleared from localStorage</div>';
+        }
+
+        // Check current state
+        window.onload = function() {
+            const hasData = localStorage.getItem('dietPlan');
+            if (hasData) {
+                document.getElementById('status').innerHTML = 
+                    '<div style="background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 8px; margin-top: 20px;">ℹ Data already exists in localStorage. You can open the analysis page or clear and reload.</div>';
+            }
+        };
+    </script>
+</body>
+</html>
