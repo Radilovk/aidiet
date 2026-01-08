@@ -3,9 +3,7 @@
  * Backend endpoint: https://aidiet.radilov-k.workers.dev/
  */
 
-// Constants for nutrition calculations
-const DEFAULT_BMR = 1650;
-const DEFAULT_DAILY_CALORIES = 1800;
+// No default values - all calculations must be individualized based on user data
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -58,15 +56,22 @@ const PLAN_MODIFICATION_DESCRIPTIONS = {
  * Calculate BMR using Mifflin-St Jeor Equation
  * Men: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) + 5
  * Women: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) - 161
+ * 
+ * IMPORTANT: Never returns default values - all calculations are individualized
+ * If required data is missing, throws an error to ensure proper data collection
  */
 function calculateBMR(data) {
   if (!data.weight || !data.height || !data.age || !data.gender) {
-    return DEFAULT_BMR;
+    throw new Error('Cannot calculate BMR: Missing required data (weight, height, age, or gender). All calculations must be individualized.');
   }
   
   const weight = parseFloat(data.weight);
   const height = parseFloat(data.height);
   const age = parseFloat(data.age);
+  
+  if (isNaN(weight) || isNaN(height) || isNaN(age) || weight <= 0 || height <= 0 || age <= 0) {
+    throw new Error('Cannot calculate BMR: Invalid numerical values for weight, height, or age.');
+  }
   
   let bmr = 10 * weight + 6.25 * height - 5 * age;
   
@@ -74,6 +79,8 @@ function calculateBMR(data) {
     bmr += 5;
   } else if (data.gender === 'Жена') {
     bmr -= 161;
+  } else {
+    throw new Error('Cannot calculate BMR: Gender must be specified as "Мъж" or "Жена".');
   }
   
   return Math.round(bmr);
@@ -638,6 +645,12 @@ ${data.medicalConditions_other ? `- Други медицински състоя
 - Рязко покачване на тегло: ${data.weightChange === 'Да' ? data.weightChangeDetails : 'Не'}
 - Диети в миналото: ${data.dietHistory === 'Да' ? `Тип: ${data.dietType}, Резултат: ${data.dietResult}` : 'Не'}
 
+КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ:
+- ВСИЧКО трябва да бъде ИЗЧИСЛЕНО индивидуално за ${data.name}
+- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
+- BMR, TDEE, калории, макронутриенти - ВСИЧКИ трябва да са ПРЕЦИЗНО изчислени според УНИКАЛНИЯ профил
+- Вземи предвид АБСОЛЮТНО ВСИЧКИ параметри при изчисленията
+
 ИЗИСКВАНИЯ ЗА АНАЛИЗ:
 1. Анализирай КОРЕЛАЦИИТЕ между сън, стрес и хранителни желания
 2. Определи как медицинските състояния влияят на хранителните нужди
@@ -655,22 +668,22 @@ ${data.medicalConditions_other ? `- Други медицински състоя
    - Високи стойности (71-100): много подкрепящи фактори, малко противопоказващи
    - Вземи предвид: здравословно състояние, BMI, медицински условия, хранителни навици, сън, стрес, активност
 
-Върни JSON с ДЕТАЙЛЕН анализ:
+Върни JSON с ДЕТАЙЛЕН анализ (НИКАКВИ универсални/default стойности):
 {
-  "bmr": "изчислена базова метаболитна скорост с обяснение",
-  "tdee": "общ дневен разход на енергия с детайли",
-  "recommendedCalories": "препоръчителен калориен прием БАЗИРАН НА ЦЯЛОСТНИЯ АНАЛИЗ",
+  "bmr": "ПРЕЦИЗНО изчислена базова метаболитна скорост за ${data.name} с детайлно обяснение на изчислението",
+  "tdee": "ИНДИВИДУАЛНО изчислен общ дневен разход на енергия базиран на активността и профила с детайли",
+  "recommendedCalories": "ПЕРСОНАЛИЗИРАН калориен прием БАЗИРАН НА ЦЯЛОСТНИЯ АНАЛИЗ и целта ${data.goal} - НЕ универсална стойност",
   "macroRatios": {
-    "protein": "препоръчителен процент протеини С ОБОСНОВКА",
-    "carbs": "препоръчителен процент въглехидрати С ОБОСНОВКА",
-    "fats": "препоръчителен процент мазнини С ОБОСНОВКА"
+    "protein": "ИНДИВИДУАЛНО препоръчителен процент протеини С ДЕТАЙЛНА ОБОСНОВКА според целта, активността и състоянието",
+    "carbs": "ИНДИВИДУАЛНО препоръчителен процент въглехидрати С ДЕТАЙЛНА ОБОСНОВКА според целта и метаболизма",
+    "fats": "ИНДИВИДУАЛНО препоръчителен процент мазнини С ДЕТАЙЛНА ОБОСНОВКА според нуждите и здравето"
   },
-  "metabolicProfile": "ЗАДЪЛБОЧЕНО описание на метаболитния профил и корелации",
-  "healthRisks": ["специфичен риск 1 с обяснение", "специфичен риск 2 с обяснение"],
-  "nutritionalNeeds": ["специфична нужда 1 базирана на профила", "специфична нужда 2 базирана на профила"],
-  "psychologicalProfile": "ДЕТАЙЛЕН анализ на психологическите фактори, емоционалното хранене и корелации със стрес, сън и поведение",
-  "successChance": "число от -100 до 100 базирано на анализ на ВСИЧКИ фактори",
-  "successChanceReasoning": "детайлно обяснение защо този шанс за успех, кои фактори подкрепят и кои саботират целта",
+  "metabolicProfile": "ЗАДЪЛБОЧЕНО описание на УНИКАЛНИЯ метаболитен профил на ${data.name} и корелации",
+  "healthRisks": ["специфичен за ${data.name} риск 1 с обяснение", "специфичен за ${data.name} риск 2 с обяснение"],
+  "nutritionalNeeds": ["специфична за ${data.name} нужда 1 базирана на профила", "специфична за ${data.name} нужда 2 базирана на профила"],
+  "psychologicalProfile": "ДЕТАЙЛЕН анализ на психологическите фактори НА ${data.name}, емоционалното хранене и корелации със стрес, сън и поведение",
+  "successChance": "число от -100 до 100 базирано на анализ на ВСИЧКИ фактори на ${data.name}",
+  "successChanceReasoning": "детайлно обяснение защо този шанс за успех КОНКРЕТНО за ${data.name}, кои фактори подкрепят и кои саботират целта",
   "keyProblems": [
     {
       "title": "кратък заглавие на проблема (2-4 думи)",
@@ -712,6 +725,13 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 8. ВРЪЗКАТА между физическа активност и калорийни нужди
 9. ВЗАИМОВРЪЗКАТА между медицински състояния и хранителни потребности
 
+КРИТИЧНО ВАЖНО - ИНДИВИДУАЛИЗАЦИЯ НА ВСИЧКИ ПРЕПОРЪКИ:
+1. Хранителните добавки трябва да са СТРОГО ИНДИВИДУАЛНО подбрани за ${data.name}
+2. ЗАБРАНЕНО е използването на универсални/общи препоръки за добавки
+3. Всяка добавка трябва да е обоснована с КОНКРЕТНИ нужди от анализа
+4. Дозировките трябва да са персонализирани според възраст, тегло, пол и здравословно състояние
+5. Вземи предвид медицински състояния, лекарства и възможни взаимодействия
+
 КРИТИЧНО ВАЖНО - ОПРЕДЕЛЯНЕ НА МОДИФИКАТОР:
 След анализ на всички параметри, определи подходящ МОДИФИКАТОР (диетичен профил), който ще управлява логиката на генериране на ястия:
 - Може да бъде термин: "Кето", "Палео", "Веган", "Вегетарианско", "Средиземноморско", "Нисковъглехидратно", "Балансирано", "Щадящ стомах", "Без глутен" и др.
@@ -721,24 +741,42 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 
 Анализирай ЗАДЪЛБОЧЕНО как всеки параметър влияе и взаимодейства с другите.
 
-Върни JSON със стратегия:
+Върни JSON със стратегия (БЕЗ универсални препоръки):
 {
   "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
-  "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран за клиента",
-  "dietType": "тип диета (напр. средиземноморска, балансирана, ниско-въглехидратна)",
+  "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
+  "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
   "mealTiming": {
-    "breakfast": "оптимално време за закуска",
-    "lunch": "оптимално време за обяд",
-    "dinner": "оптимално време за вечеря",
-    "snacks": "брой и време на междинни хранения"
+    "breakfast": "оптимално време за закуска според хронотипа ${data.chronotype} на ${data.name}",
+    "lunch": "оптимално време за обяд според дневния ритъм на ${data.name}",
+    "dinner": "оптимално време за вечеря според хронотипа и активността на ${data.name}",
+    "snacks": "брой и време на междинни хранения персонализирани за ${data.name}"
   },
-  "keyPrinciples": ["принцип 1", "принцип 2", "принцип 3"],
-  "foodsToInclude": ["храна 1", "храна 2", "храна 3"],
-  "foodsToAvoid": ["храна 1", "храна 2", "храна 3"],
-  "supplementRecommendations": ["! добавка 1", "! добавка 2", "! добавка 3"],
-  "hydrationStrategy": "препоръки за прием на течности",
-  "psychologicalSupport": ["! психологически съвет 1", "! психологически съвет 2", "! психологически съвет 3"]
-}`;
+  "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
+  "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
+  "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
+  "supplementRecommendations": [
+    "! ИНДИВИДУАЛНА добавка 1 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент",
+    "! ИНДИВИДУАЛНА добавка 2 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент",
+    "! ИНДИВИДУАЛНА добавка 3 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент"
+  ],
+  "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name} според активност и климат",
+  "psychologicalSupport": [
+    "! психологически съвет 1 базиран на емоционалното хранене на ${data.name}",
+    "! психологически съвет 2 базиран на стреса и поведението на ${data.name}",
+    "! психологически съвет 3 за мотивация специфичен за профила на ${data.name}"
+  ]
+}
+
+ВАЖНО ЗА ХРАНИТЕЛНИ ДОБАВКИ:
+- Всяка добавка трябва да има ЯСНА обосновка базирана на:
+  * Дефицити от анализа (напр. нисък витамин D заради малко излагане на слънце)
+  * Медицински състояния (напр. магнезий за стрес, омега-3 за възпаление)
+  * Цели (напр. протеин за мускулна маса, желязо за енергия)
+  * Възраст и пол (напр. калций за жени над 40, цинк за мъже)
+- Дозировката трябва да е ПЕРСОНАЛИЗИРАНА според тегло, възраст и нужди
+- Времето на прием трябва да е оптимално за усвояване
+- Избягвай универсални "мултивитамини" без конкретна обосновка`;
 }
 
 /**
@@ -756,9 +794,26 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
 function generateMealPlanPrompt(data, analysis, strategy) {
-  // Use analysis values or calculate from user data
-  let bmr = analysis.bmr || calculateBMR(data);
-  let recommendedCalories = analysis.recommendedCalories;
+  // Parse BMR from analysis (may be a string) or calculate from user data
+  let bmr;
+  if (analysis.bmr) {
+    // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ИНДИВИДУАЛНО изчислен)")
+    const bmrMatch = String(analysis.bmr).match(/\d+/);
+    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+  }
+  
+  // If no valid BMR from analysis, calculate it
+  if (!bmr) {
+    bmr = calculateBMR(data);
+  }
+  
+  // Parse recommended calories from analysis or calculate from TDEE
+  let recommendedCalories;
+  if (analysis.recommendedCalories) {
+    // Try to extract numeric value from analysis.recommendedCalories
+    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+  }
   
   // If no recommended calories from analysis, calculate TDEE
   if (!recommendedCalories) {
@@ -795,6 +850,13 @@ ${modLines.join('\n')}
   
   return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
+=== КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ ===
+- Този план е САМО и ЕДИНСТВЕНО за ${data.name}
+- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
+- ВСИЧКИ калории, макронутриенти и препоръки са ИНДИВИДУАЛНО изчислени
+- Хранителните добавки са ПЕРСОНАЛНО подбрани според анализа и нуждите
+- Психологическите съвети са базирани на КОНКРЕТНИЯ емоционален профил на ${data.name}
+
 === МОДИФИКАТОР (Потребителски профил) ===
 ОПРЕДЕЛЕН МОДИФИКАТОР ЗА КЛИЕНТА: "${dietaryModifier}"
 ${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning}` : ''}
@@ -802,7 +864,7 @@ ${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning
 === КЛИЕНТ И ЦЕЛИ ===
 - Име: ${data.name}
 - Цел: ${data.goal}
-- Калории: ${recommendedCalories} kcal/ден
+- Калории: ${recommendedCalories} kcal/ден (ИНДИВИДУАЛНО изчислени според BMR=${bmr}, активност и цел)
 
 === ПЪЛНА СТРАТЕГИЯ ===
 ${JSON.stringify(strategy, null, 2)}
@@ -915,15 +977,15 @@ ${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `
 - Ако закуската НЕ Е критична, премахни я напълно от плана.
 ` : ''}
 
-Върни JSON формат:
+Върни JSON формат (с ИНДИВИДУАЛНИ стойности за ${data.name}):
 {
   "summary": {
-    "bmr": "${bmr}",
-    "dailyCalories": "${recommendedCalories}",
+    "bmr": "${bmr} (ИНДИВИДУАЛНО изчислен за ${data.name})",
+    "dailyCalories": "${recommendedCalories} (ПЕРСОНАЛИЗИРАН според цел ${data.goal})",
     "macros": {
-      "protein": "грамове протеин",
-      "carbs": "грамове въглехидрати",
-      "fats": "грамове мазнини"
+      "protein": "грамове протеин ПЕРСОНАЛИЗИРАНИ за ${data.name}",
+      "carbs": "грамове въглехидрати ПЕРСОНАЛИЗИРАНИ за ${data.name}",
+      "fats": "грамове мазнини ПЕРСОНАЛИЗИРАНИ за ${data.name}"
     }
   },
   "weekPlan": {
@@ -934,17 +996,17 @@ ${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `
           "name": "генерално име на храната (напр. плодове с кисело мляко, яйца с хляб)",
           "weight": "точно тегло в грамове",
           "description": "кратко описание на ястието и съставки",
-          "benefits": "конкретни ползи за здравето",
+          "benefits": "конкретни ползи за здравето на ${data.name}",
           "calories": "точни калории"
         }
       ]
     }
   },
-  "recommendations": ["конкретна храна 1", "конкретна храна 2", "конкретна храна 3", "конкретна храна 4", "конкретна храна 5"],
-  "forbidden": ["конкретна забранена храна 1", "конкретна забранена храна 2", "конкретна забранена храна 3", "конкретна забранена храна 4"],
-  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["психологически съвет 1", "психологически съвет 2", "психологически съвет 3"]'},
-  "waterIntake": "${strategy.hydrationStrategy || 'препоръки за вода'}",
-  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
+  "recommendations": ["конкретна храна 1 подходяща за ${data.name}", "конкретна храна 2 подходяща за ${data.name}", "конкретна храна 3 подходяща за ${data.name}", "конкретна храна 4 подходяща за ${data.name}", "конкретна храна 5 подходяща за ${data.name}"],
+  "forbidden": ["конкретна забранена храна 1 за ${data.name}", "конкретна забранена храна 2 за ${data.name}", "конкретна забранена храна 3 за ${data.name}", "конкретна забранена храна 4 за ${data.name}"],
+  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["психологически съвет 1 за ' + data.name + '", "психологически съвет 2 за ' + data.name + '", "психологически съвет 3 за ' + data.name + '"]'},
+  "waterIntake": "${strategy.hydrationStrategy || 'препоръки за вода ПЕРСОНАЛИЗИРАНИ за ' + data.name}",
+  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["ИНДИВИДУАЛНА добавка 1 за ' + data.name + ' с дозировка и обосновка", "ИНДИВИДУАЛНА добавка 2 за ' + data.name + ' с дозировка и обосновка", "ИНДИВИДУАЛНА добавка 3 за ' + data.name + ' с дозировка и обосновка"]'}
 }
 
 КРИТИЧНО ВАЖНО ЗА "recommendations" И "forbidden":
@@ -1041,6 +1103,13 @@ async function generateNutritionPrompt(data, env) {
 - Състояния: {medicalConditions}
 - Лекарства: {medications}
 
+КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ:
+- Този план е САМО и ЕДИНСТВЕНО за {name}
+- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
+- ВСИЧКИ калории, BMR, макронутриенти са ИНДИВИДУАЛНО изчислени
+- Хранителните добавки са ПЕРСОНАЛНО подбрани според анализа
+- Психологическите съвети са базирани на КОНКРЕТНИЯ емоционален профил
+
 ВАЖНИ НАСОКИ ЗА СЪЗДАВАНЕ НА ПЛАНА:
 1. Използвай САМО храни, които клиентът обича или няма непоносимост към
 2. СТРОГО избягвай храните от списъка с непоносимости и алергии
@@ -1057,7 +1126,14 @@ async function generateNutritionPrompt(data, env) {
 КРИТИЧНО ИЗИСКВАНЕ ЗА ИНДИВИДУАЛИЗАЦИЯ:
 - Този план е САМО за {name} и трябва да отразява УНИКАЛНИЯ профил
 - Вземи предвид ХОЛИСТИЧНО всички параметри и тяхната взаимовръзка
-- Психологическите съвети и хранителните добавки трябва да са СПЕЦИФИЧНИ за този клиент
+- Психологическите съвети трябва да са СПЕЦИФИЧНИ за емоционалния профил на {name}
+- Хранителните добавки трябва да са ИНДИВИДУАЛНО подбрани според:
+  * Дефицити от анализа (напр. нисък витамин D заради малко излагане на слънце)
+  * Медицински състояния (напр. магнезий за стрес, омега-3 за възпаление)
+  * Цели (напр. протеин за мускулна маса, желязо за енергия)
+  * Възраст и пол (напр. калций за жени над 40, цинк за мъже)
+- Дозировките трябва да са ПЕРСОНАЛИЗИРАНИ според тегло, възраст и нужди
+- ЗАБРАНЕНИ са универсални "мултивитамини" без конкретна обосновка
 
 СТРОГО ЗАБРАНЕНО:
 - Странни комбинации от храни (напр. чийзкейк със салата)
@@ -1066,16 +1142,16 @@ async function generateNutritionPrompt(data, env) {
 - Комбинации, нетипични за българската/средиземноморска кухня
 - Храни от списъка с непоносимости
 
-Моля, върни отговора в следния JSON формат:
+Моля, върни отговора в следния JSON формат (с ИНДИВИДУАЛНИ стойности):
 
 {
   "summary": {
-    "bmr": "базова метаболитна скорост в калории",
-    "dailyCalories": "препоръчителен дневен прием калории",
+    "bmr": "ИНДИВИДУАЛНО изчислена базова метаболитна скорост за {name}",
+    "dailyCalories": "ПЕРСОНАЛИЗИРАН дневен прием калории според цел {goal}",
     "macros": {
-      "protein": "протеин в грамове",
-      "carbs": "въглехидрати в грамове", 
-      "fats": "мазнини в грамове"
+      "protein": "протеин в грамове ПЕРСОНАЛИЗИРАН за {name}",
+      "carbs": "въглехидрати в грамове ПЕРСОНАЛИЗИРАНИ за {name}", 
+      "fats": "мазнини в грамове ПЕРСОНАЛИЗИРАНИ за {name}"
     }
   },
   "weekPlan": {
@@ -1086,17 +1162,17 @@ async function generateNutritionPrompt(data, env) {
           "name": "Име на реалистично българско/средиземноморско ястие",
           "weight": "250g",
           "description": "Детайлно описание на ястието и съставки",
-          "benefits": "Конкретни ползи за здравето на клиента",
+          "benefits": "Конкретни ползи за здравето на {name}",
           "calories": 350
         }
       ]
     }
   },
-  "recommendations": ["конкретна храна 1", "конкретна храна 2", "конкретна храна 3", "конкретна храна 4", "конкретна храна 5"],
-  "forbidden": ["конкретна забранена храна 1", "конкретна забранена храна 2", "конкретна забранена храна 3", "конкретна забранена храна 4"],
-  "psychology": ["психологически съвет 1 базиран на емоционалното хранене", "психологически съвет 2 базиран на поведението", "психологически съвет 3 за мотивация"],
-  "waterIntake": "Детайлен препоръчителен прием на вода",
-  "supplements": ["добавка 1 с дозировка и прием", "добавка 2 с дозировка и прием", "добавка 3 с дозировка и прием"]
+  "recommendations": ["конкретна храна 1 подходяща за {name}", "конкретна храна 2 подходяща за {name}", "конкретна храна 3 подходяща за {name}", "конкретна храна 4 подходяща за {name}", "конкретна храна 5 подходяща за {name}"],
+  "forbidden": ["конкретна забранена храна 1 за {name}", "конкретна забранена храна 2 за {name}", "конкретна забранена храна 3 за {name}", "конкретна забранена храна 4 за {name}"],
+  "psychology": ["психологически съвет 1 базиран на емоционалното хранене на {name}", "психологически съвет 2 базиран на поведението на {name}", "психологически съвет 3 за мотивация специфичен за {name}"],
+  "waterIntake": "Детайлен препоръчителен прием на вода персонализиран за {name}",
+  "supplements": ["ИНДИВИДУАЛНА добавка 1 за {name} с дозировка и обосновка", "ИНДИВИДУАЛНА добавка 2 за {name} с дозировка и обосновка", "ИНДИВИДУАЛНА добавка 3 за {name} с дозировка и обосновка"]
 }
 
 КРИТИЧНО ВАЖНО ЗА "recommendations" И "forbidden":
@@ -1493,17 +1569,20 @@ async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = nul
 
 /**
  * Generate mock response for development
+ * Note: Mock mode should only be used for testing. In production, always use real AI models.
  */
 function generateMockResponse(prompt) {
   if (prompt.includes('7-дневен хранителен план')) {
+    // Note: Mock mode should not be used in production. 
+    // For testing purposes only - uses clearly marked placeholder values.
     return JSON.stringify({
       summary: {
-        bmr: String(DEFAULT_BMR),
-        dailyCalories: String(DEFAULT_DAILY_CALORIES),
+        bmr: "XXXX (MOCK VALUE - in production this would be individualized)",
+        dailyCalories: "XXXX (MOCK VALUE - in production this would be personalized)",
         macros: {
-          protein: "120g",
-          carbs: "180g",
-          fats: "60g"
+          protein: "XXXg (MOCK)",
+          carbs: "XXXg (MOCK)",
+          fats: "XXXg (MOCK)"
         }
       },
       weekPlan: {
