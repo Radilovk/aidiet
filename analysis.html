@@ -903,6 +903,8 @@
             }
             
             // Determine success chance category
+            // NOTE: Negative values indicate contradictory or highly problematic goals
+            // (e.g., underweight person trying to lose weight, or many opposing health factors)
             let successCategory, successDesc, successBarClass;
             if (successChance < 0) {
                 successCategory = 'Противопоказан';
