@@ -703,6 +703,115 @@
             margin-right: 8px;
         }
         
+        /* Macronutrient stacked bar visualization */
+        .macro-breakdown {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(16, 185, 129, 0.15);
+        }
+        
+        .macro-breakdown-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .macro-bar-container {
+            width: 100%;
+            height: 32px;
+            background: var(--bg-color);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+        }
+        
+        .macro-segment {
+            height: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        .macro-segment:hover {
+            filter: brightness(1.1);
+            transform: scaleY(1.05);
+        }
+        
+        .macro-segment.protein {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        
+        .macro-segment.fats {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        }
+        
+        .macro-segment.carbs {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .macro-segment.fiber {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .macro-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            padding: 8px 0;
+        }
+        
+        .macro-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-dark);
+        }
+        
+        .macro-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .macro-dot.protein {
+            background: #3b82f6;
+        }
+        
+        .macro-dot.fats {
+            background: #fbbf24;
+        }
+        
+        .macro-dot.carbs {
+            background: #ef4444;
+        }
+        
+        .macro-dot.fiber {
+            background: #10b981;
+        }
+        
+        .macro-label {
+            font-weight: 500;
+        }
+        
+        .macro-value {
+            font-weight: 600;
+            color: var(--primary-red);
+        }
+        
         /* Enhancement #5: Highlight animation for changed meals */
         @keyframes highlightPulse {
             0% {
@@ -1236,6 +1345,16 @@
                 <div class="modal-benefit">
                     <strong><i class="fas fa-heartbeat"></i> Ползи:</strong> <span id="mBenefit">Текст ползи...</span>
                 </div>
+                <!-- Macronutrient Breakdown -->
+                <div class="macro-breakdown" id="macroBreakdown" style="display: none;">
+                    <div class="macro-breakdown-title">Хранителни Макроелементи</div>
+                    <div class="macro-bar-container" id="macroBar">
+                        <!-- Segments will be added dynamically -->
+                    </div>
+                    <div class="macro-legend" id="macroLegend">
+                        <!-- Legend items will be added dynamically -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1457,19 +1576,33 @@
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 
-            dayData.meals.forEach(meal => {
+            dayData.meals.forEach((meal, index) => {
                 const mealCard = document.createElement('div');
                 mealCard.className = 'meal-card';
-                mealCard.innerHTML = `
-                    <div class="meal-info">
-                        <div class="meal-type">${meal.type}</div>
-                        <div class="meal-name">${meal.name}</div>
-                        <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${meal.weight}${meal.calories ? ` • ${meal.calories} kcal` : ''}</div>
-                    </div>
-                    <button class="info-btn" onclick='openModal("${escapeHtml(meal.name)}", "${escapeHtml(meal.description || '')}", "${escapeHtml(meal.benefits || '')}")'>
-                        <i class="fas fa-info"></i>
-                    </button>
+                
+                // Create button element separately to handle click with meal data
+                const infoBtn = document.createElement('button');
+                infoBtn.className = 'info-btn';
+                infoBtn.innerHTML = '<i class="fas fa-info"></i>';
+                infoBtn.onclick = function() {
+                    openModal(
+                        meal.name, 
+                        meal.description || '', 
+                        meal.benefits || '',
+                        meal.macros || null
+                    );
+                };
+                
+                const mealInfo = document.createElement('div');
+                mealInfo.className = 'meal-info';
+                mealInfo.innerHTML = `
+                    <div class="meal-type">${meal.type}</div>
+                    <div class="meal-name">${meal.name}</div>
+                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${meal.weight}${meal.calories ? ` • ${meal.calories} kcal` : ''}</div>
                 `;
+                
+                mealCard.appendChild(mealInfo);
+                mealCard.appendChild(infoBtn);
                 mealContainer.appendChild(mealCard);
             });
         }
@@ -1718,10 +1851,134 @@
         const mDesc = document.getElementById('mDesc');
         const mBenefit = document.getElementById('mBenefit');
 
-        function openModal(title, description, benefit) {
+        function openModal(title, description, benefit, macros) {
             mTitle.textContent = title;
             mDesc.textContent = description;
             mBenefit.textContent = benefit;
+            
+            // Handle macronutrient visualization
+            const macroBreakdown = document.getElementById('macroBreakdown');
+            const macroBar = document.getElementById('macroBar');
+            const macroLegend = document.getElementById('macroLegend');
+            
+            if (macros && (macros.protein || macros.carbs || macros.fats || macros.fiber)) {
+                // Parse numeric values
+                const protein = parseFloat(macros.protein) || 0;
+                const carbs = parseFloat(macros.carbs) || 0;
+                const fats = parseFloat(macros.fats) || 0;
+                const fiber = parseFloat(macros.fiber) || 0;
+                
+                // Calculate total and percentages
+                const total = protein + carbs + fats + fiber;
+                
+                if (total > 0) {
+                    const proteinPercent = (protein / total) * 100;
+                    const carbsPercent = (carbs / total) * 100;
+                    const fatsPercent = (fats / total) * 100;
+                    const fiberPercent = (fiber / total) * 100;
+                    
+                    // Build stacked bar
+                    macroBar.innerHTML = '';
+                    
+                    if (protein > 0) {
+                        const segment = document.createElement('div');
+                        segment.className = 'macro-segment protein';
+                        segment.style.width = proteinPercent + '%';
+                        if (proteinPercent > 10) {
+                            segment.textContent = Math.round(proteinPercent) + '%';
+                        }
+                        segment.title = `Протеин: ${protein}г (${Math.round(proteinPercent)}%)`;
+                        macroBar.appendChild(segment);
+                    }
+                    
+                    if (fats > 0) {
+                        const segment = document.createElement('div');
+                        segment.className = 'macro-segment fats';
+                        segment.style.width = fatsPercent + '%';
+                        if (fatsPercent > 10) {
+                            segment.textContent = Math.round(fatsPercent) + '%';
+                        }
+                        segment.title = `Мазнини: ${fats}г (${Math.round(fatsPercent)}%)`;
+                        macroBar.appendChild(segment);
+                    }
+                    
+                    if (carbs > 0) {
+                        const segment = document.createElement('div');
+                        segment.className = 'macro-segment carbs';
+                        segment.style.width = carbsPercent + '%';
+                        if (carbsPercent > 10) {
+                            segment.textContent = Math.round(carbsPercent) + '%';
+                        }
+                        segment.title = `Въглехидрати: ${carbs}г (${Math.round(carbsPercent)}%)`;
+                        macroBar.appendChild(segment);
+                    }
+                    
+                    if (fiber > 0) {
+                        const segment = document.createElement('div');
+                        segment.className = 'macro-segment fiber';
+                        segment.style.width = fiberPercent + '%';
+                        if (fiberPercent > 10) {
+                            segment.textContent = Math.round(fiberPercent) + '%';
+                        }
+                        segment.title = `Фибри: ${fiber}г (${Math.round(fiberPercent)}%)`;
+                        macroBar.appendChild(segment);
+                    }
+                    
+                    // Build legend
+                    macroLegend.innerHTML = '';
+                    
+                    if (protein > 0) {
+                        const item = document.createElement('div');
+                        item.className = 'macro-legend-item';
+                        item.innerHTML = `
+                            <span class="macro-dot protein"></span>
+                            <span class="macro-label">Протеин:</span>
+                            <span class="macro-value">${protein}г</span>
+                        `;
+                        macroLegend.appendChild(item);
+                    }
+                    
+                    if (fats > 0) {
+                        const item = document.createElement('div');
+                        item.className = 'macro-legend-item';
+                        item.innerHTML = `
+                            <span class="macro-dot fats"></span>
+                            <span class="macro-label">Мазнини:</span>
+                            <span class="macro-value">${fats}г</span>
+                        `;
+                        macroLegend.appendChild(item);
+                    }
+                    
+                    if (carbs > 0) {
+                        const item = document.createElement('div');
+                        item.className = 'macro-legend-item';
+                        item.innerHTML = `
+                            <span class="macro-dot carbs"></span>
+                            <span class="macro-label">Въглехидрати:</span>
+                            <span class="macro-value">${carbs}г</span>
+                        `;
+                        macroLegend.appendChild(item);
+                    }
+                    
+                    if (fiber > 0) {
+                        const item = document.createElement('div');
+                        item.className = 'macro-legend-item';
+                        item.innerHTML = `
+                            <span class="macro-dot fiber"></span>
+                            <span class="macro-label">Фибри:</span>
+                            <span class="macro-value">${fiber}г</span>
+                        `;
+                        macroLegend.appendChild(item);
+                    }
+                    
+                    macroBreakdown.style.display = 'block';
+                } else {
+                    macroBreakdown.style.display = 'none';
+                }
+            } else {
+                macroBreakdown.style.display = 'none';
+            }
+            
             modal.classList.add('active');
         }
 
