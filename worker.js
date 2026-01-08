@@ -7,19 +7,51 @@
 const DEFAULT_BMR = 1650;
 const DEFAULT_DAILY_CALORIES = 1800;
 
-// Error messages
+// Error messages (Bulgarian)
+const ERROR_MESSAGES = {
+  PARSE_FAILURE: 'Имаше проблем с обработката на отговора. Моля опитайте отново.',
+  MISSING_FIELDS: 'Липсват задължителни полета',
+  KV_NOT_CONFIGURED: 'KV хранилището не е конфигурирано',
+  INVALID_PROVIDER: 'Невалиден AI доставчик',
+  MISSING_CONTEXT: 'Липсват потребителски данни или план',
+  MISSING_MESSAGE: 'Липсва съобщение',
+  MISSING_TYPE_PROMPT: 'Липсва тип или промпт',
+  MISSING_PROVIDER_MODEL: 'Липсва доставчик или модел',
+  MISSING_SUBSCRIPTION: 'Липсва потребителски ID или subscription',
+  NOT_FOUND: 'Не е намерено',
+  PLAN_GENERATION_FAILED: 'Неуспешно генериране на план',
+  CHAT_FAILED: 'Грешка в чата',
+  PROMPT_SAVE_FAILED: 'Неуспешно запазване на промпт',
+  PROMPT_GET_FAILED: 'Неуспешно получаване на промпт',
+  MODEL_SAVE_FAILED: 'Неуспешно запазване на модел',
+  CONFIG_GET_FAILED: 'Неуспешно получаване на конфигурация',
+  PUSH_SUBSCRIBE_FAILED: 'Неуспешно абониране за известия',
+  PUSH_SEND_FAILED: 'Неуспешно изпращане на известие',
+  VAPID_KEY_FAILED: 'Неуспешно получаване на VAPID ключ'
+};
+
 // Bulgarian error message shown when REGENERATE_PLAN parsing fails and no clean response text remains
-const ERROR_MESSAGE_PARSE_FAILURE = 'Имаше проблем с обработката на отговора. Моля опитайте отново.';
+const ERROR_MESSAGE_PARSE_FAILURE = ERROR_MESSAGES.PARSE_FAILURE;
 
 // Plan modification descriptions for AI prompts
+const PLAN_MODIFICATIONS = {
+  NO_INTERMEDIATE_MEALS: 'no_intermediate_meals',
+  THREE_MEALS_PER_DAY: '3_meals_per_day',
+  FOUR_MEALS_PER_DAY: '4_meals_per_day',
+  VEGETARIAN: 'vegetarian',
+  NO_DAIRY: 'no_dairy',
+  LOW_CARB: 'low_carb',
+  INCREASE_PROTEIN: 'increase_protein'
+};
+
 const PLAN_MODIFICATION_DESCRIPTIONS = {
-  'no_intermediate_meals': '- БЕЗ междинни хранения/закуски - само основни хранения (закуска, обяд, вечеря)',
-  '3_meals_per_day': '- Точно 3 хранения на ден (закуска, обяд, вечеря)',
-  '4_meals_per_day': '- 4 хранения на ден (закуска, обяд, следобедна закуска, вечеря)',
-  'vegetarian': '- ВЕГЕТАРИАНСКО хранене - без месо и риба',
-  'no_dairy': '- БЕЗ млечни продукти',
-  'low_carb': '- Нисковъглехидратна диета',
-  'increase_protein': '- Повишен прием на протеини'
+  [PLAN_MODIFICATIONS.NO_INTERMEDIATE_MEALS]: '- БЕЗ междинни хранения/закуски - само основни хранения (закуска, обяд, вечеря)',
+  [PLAN_MODIFICATIONS.THREE_MEALS_PER_DAY]: '- Точно 3 хранения на ден (закуска, обяд, вечеря)',
+  [PLAN_MODIFICATIONS.FOUR_MEALS_PER_DAY]: '- 4 хранения на ден (закуска, обяд, следобедна закуска, вечеря)',
+  [PLAN_MODIFICATIONS.VEGETARIAN]: '- ВЕГЕТАРИАНСКО хранене - без месо и риба',
+  [PLAN_MODIFICATIONS.NO_DAIRY]: '- БЕЗ млечни продукти',
+  [PLAN_MODIFICATIONS.LOW_CARB]: '- Нисковъглехидратна диета',
+  [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: '- Повишен прием на протеини'
 };
 
 /**
@@ -64,8 +96,10 @@ function calculateTDEE(bmr, activityLevel) {
 }
 
 // CORS headers for client-side requests
+// NOTE: For production, replace '*' with specific allowed domains
+// Example: 'https://yourdomain.com, https://www.yourdomain.com'
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': '*', // TODO: Restrict to specific domains in production
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
@@ -138,7 +172,7 @@ async function handleGeneratePlan(request, env) {
     // Validate required fields
     if (!data.name || !data.age || !data.weight || !data.height) {
       console.error('handleGeneratePlan: Missing required fields');
-      return jsonResponse({ error: 'Missing required fields' }, 400);
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
 
     // Generate unique user ID (could be email or session-based)
@@ -159,7 +193,7 @@ async function handleGeneratePlan(request, env) {
     });
   } catch (error) {
     console.error('Error generating plan:', error);
-    return jsonResponse({ error: 'Failed to generate plan: ' + error.message }, 500);
+    return jsonResponse({ error: `${ERROR_MESSAGES.PLAN_GENERATION_FAILED}: ${error.message}` }, 500);
   }
 }
 
@@ -181,13 +215,13 @@ async function handleChat(request, env) {
     const { message, userId, conversationId, mode, userData, userPlan, conversationHistory } = await request.json();
     
     if (!message) {
-      return jsonResponse({ error: 'Missing message' }, 400);
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_MESSAGE }, 400);
     }
 
     // Validate that required context is provided by client
     if (!userData || !userPlan) {
       return jsonResponse({ 
-        error: 'Missing user data or plan. Please provide full context in request.' 
+        error: ERROR_MESSAGES.MISSING_CONTEXT
       }, 400);
     }
 
@@ -383,7 +417,7 @@ async function handleChat(request, env) {
     return jsonResponse(responseData);
   } catch (error) {
     console.error('Error in chat:', error);
-    return jsonResponse({ error: 'Chat failed: ' + error.message }, 500);
+    return jsonResponse({ error: `${ERROR_MESSAGES.CHAT_FAILED}: ${error.message}` }, 500);
   }
 }
 
@@ -1200,13 +1234,13 @@ async function getChatPrompts(env) {
    [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]"
 
 7. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
-   - "no_intermediate_meals" - без междинни хранения
-   - "3_meals_per_day" - 3 хранения дневно
-   - "4_meals_per_day" - 4 хранения дневно
-   - "vegetarian" - вегетариански план
-   - "no_dairy" - без млечни продукти
-   - "low_carb" - нисковъглехидратна диета
-   - "increase_protein" - повече протеини
+   - "${PLAN_MODIFICATIONS.NO_INTERMEDIATE_MEALS}" - без междинни хранения
+   - "${PLAN_MODIFICATIONS.THREE_MEALS_PER_DAY}" - 3 хранения дневно
+   - "${PLAN_MODIFICATIONS.FOUR_MEALS_PER_DAY}" - 4 хранения дневно
+   - "${PLAN_MODIFICATIONS.VEGETARIAN}" - вегетариански план
+   - "${PLAN_MODIFICATIONS.NO_DAIRY}" - без млечни продукти
+   - "${PLAN_MODIFICATIONS.LOW_CARB}" - нисковъглехидратна диета
+   - "${PLAN_MODIFICATIONS.INCREASE_PROTEIN}" - повече протеини
    - "exclude_food:име_на_храна" - премахване на конкретна храна
 
 ПОМНИ: 
