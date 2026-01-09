@@ -1215,6 +1215,21 @@
     <!-- Main Content -->
     <div class="container">
         
+        <!-- REQUIREMENT 3: Plan Justification Banner -->
+        <div id="planJustificationBanner" style="display: none; background: linear-gradient(135deg, var(--primary-red), var(--primary-accent)); color: white; padding: 20px; border-radius: var(--radius); margin-bottom: 20px; box-shadow: var(--shadow); animation: fadeIn 0.6s ease;">
+            <div style="display: flex; align-items: flex-start; gap: 15px;">
+                <div style="flex-shrink: 0; font-size: 2.5rem; opacity: 0.9;">
+                    <i class="fas fa-award"></i>
+                </div>
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 1.2rem; font-weight: 700;">Защо този план е създаден специално за вас</h3>
+                    <p id="planJustificationText" style="margin: 0; font-size: 1rem; line-height: 1.6; opacity: 0.95;">
+                        Зареждане...
+                    </p>
+                </div>
+            </div>
+        </div>
+        
         <!-- MEAL PLAN SECTION -->
         <div id="mealContainer">
             <!-- Примерно съдържание (ще се замести от JSON logic) -->
@@ -1529,9 +1544,51 @@
                 renderDay(1);
                 renderRecommendations();
                 
+                // REQUIREMENT 3: Display plan justification
+                displayPlanJustification();
+                
             } catch (error) {
                 console.error('Error loading diet data:', error);
                 showError('Грешка при зареждане на данните. Моля, генерирайте нов план.', true);
+            }
+        }
+
+        // REQUIREMENT 3: Display plan justification before meals
+        function displayPlanJustification() {
+            try {
+                if (!dietPlan || !dietPlan.strategy) {
+                    return;
+                }
+                
+                const banner = document.getElementById('planJustificationBanner');
+                const textElement = document.getElementById('planJustificationText');
+                
+                if (!banner || !textElement) {
+                    return;
+                }
+                
+                // Get justification from strategy (max 200 chars as required)
+                let justification = dietPlan.strategy.planJustification || '';
+                
+                // Fallback if not provided
+                if (!justification || justification.length < 20) {
+                    // Try to construct from other data
+                    const modifier = dietPlan.strategy.dietaryModifier || 'Балансиран';
+                    // Safety check for userData existence
+                    const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
+                    justification = `Този ${modifier.toLowerCase()} план е създаден специално за вашата цел: ${goal.toLowerCase()}`;
+                }
+                
+                // Ensure max 200 chars
+                if (justification.length > 200) {
+                    justification = justification.substring(0, 197) + '...';
+                }
+                
+                textElement.textContent = justification;
+                banner.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error displaying plan justification:', error);
             }
         }
 

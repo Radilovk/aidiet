@@ -288,6 +288,17 @@ async function handleGeneratePlan(request, env) {
     const structuredPlan = await generatePlanMultiStep(env, data);
     console.log('handleGeneratePlan: Plan structured for userId:', userId);
     
+    // REQUIREMENT 4: Validate plan before displaying
+    const validation = validatePlan(structuredPlan, data);
+    if (!validation.isValid) {
+      console.error('handleGeneratePlan: Plan validation failed:', validation.errors);
+      return jsonResponse({ 
+        error: `Планът не премина качествен тест: ${validation.errors.join('; ')}`,
+        validationErrors: validation.errors
+      }, 400);
+    }
+    console.log('handleGeneratePlan: Plan validated successfully');
+    
     return jsonResponse({ 
       success: true, 
       plan: structuredPlan,
@@ -548,6 +559,126 @@ async function handleChat(request, env) {
 // Token limit for meal plan generation - ensures all 7 days with 3-4 meals each are generated
 const MEAL_PLAN_TOKEN_LIMIT = 4000;
 
+/**
+ * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
+ * Returns { isValid: boolean, errors: string[] }
+ */
+function validatePlan(plan, userData) {
+  const errors = [];
+  
+  // 1. Check for basic plan structure
+  if (!plan || typeof plan !== 'object') {
+    errors.push('План липсва или е в невалиден формат');
+    return { isValid: false, errors };
+  }
+  
+  // 2. Check for required analysis
+  if (!plan.analysis || !plan.analysis.keyProblems) {
+    errors.push('Липсва задълбочен анализ');
+  }
+  
+  // 3. Check for strategy
+  if (!plan.strategy || !plan.strategy.dietaryModifier) {
+    errors.push('Липсва диетична стратегия');
+  }
+  
+  // 4. Check for week plan
+  if (!plan.weekPlan) {
+    errors.push('Липсва седмичен план');
+  } else {
+    // Verify all 7 days exist
+    const daysCount = Object.keys(plan.weekPlan).filter(key => key.startsWith('day')).length;
+    if (daysCount < 7) {
+      errors.push(`Липсват дни от седмицата (генерирани само ${daysCount} от 7)`);
+    }
+    
+    // Verify each day has meals
+    for (let i = 1; i <= 7; i++) {
+      const dayKey = `day${i}`;
+      const day = plan.weekPlan[dayKey];
+      if (!day || !day.meals || !Array.isArray(day.meals) || day.meals.length === 0) {
+        errors.push(`Ден ${i} няма хранения`);
+      }
+    }
+  }
+  
+  // 5. Check for required recommendations
+  if (!plan.recommendations || !Array.isArray(plan.recommendations) || plan.recommendations.length < 3) {
+    errors.push('Липсват препоръчителни храни');
+  }
+  
+  // 6. Check for forbidden foods
+  if (!plan.forbidden || !Array.isArray(plan.forbidden) || plan.forbidden.length < 3) {
+    errors.push('Липсват забранени храни');
+  }
+  
+  // 7. Check for goal-plan alignment
+  if (userData.goal === 'Отслабване' && plan.summary && plan.summary.dailyCalories) {
+    // Extract numeric calories
+    const caloriesMatch = String(plan.summary.dailyCalories).match(/\d+/);
+    if (caloriesMatch) {
+      const calories = parseInt(caloriesMatch[0]);
+      // For weight loss, calories should be reasonable (not too high)
+      if (calories > 3000) {
+        errors.push('Калориите са твърде високи за цел отслабване');
+      }
+    }
+  }
+  
+  // 8. Check for medical conditions alignment
+  if (userData.medicalConditions && Array.isArray(userData.medicalConditions)) {
+    // Check for diabetes + high carb plan
+    if (userData.medicalConditions.includes('Диабет')) {
+      const modifier = plan.strategy?.dietaryModifier || '';
+      if (modifier.toLowerCase().includes('високовъглехидратно')) {
+        errors.push('Планът съдържа високовъглехидратна диета, неподходяща при диабет');
+      }
+    }
+    
+    // Check for IBS/IBD + raw fiber heavy plan
+    if (userData.medicalConditions.includes('IBS') || userData.medicalConditions.includes('IBD')) {
+      const modifier = plan.strategy?.dietaryModifier || '';
+      if (!modifier.toLowerCase().includes('щадящ')) {
+        // Warning, but not fatal error
+        console.log('Warning: IBS/IBD detected but plan may not be gentle enough');
+      }
+    }
+  }
+  
+  // 9. Check for dietary preferences alignment
+  if (userData.dietPreference && Array.isArray(userData.dietPreference)) {
+    if (userData.dietPreference.includes('Вегетарианска') || userData.dietPreference.includes('Веган')) {
+      // Check if plan contains meat (would be in forbidden)
+      if (plan.recommendations && Array.isArray(plan.recommendations)) {
+        const containsMeat = plan.recommendations.some(item => 
+          /месо|пиле|риба|говеждо|свинско/i.test(item)
+        );
+        if (containsMeat && userData.dietPreference.includes('Веган')) {
+          errors.push('Планът съдържа животински продукти, неподходящи за веган диета');
+        }
+      }
+    }
+  }
+  
+  // 10. Check for plan justification (REQUIREMENT 3)
+  if (!plan.strategy || !plan.strategy.planJustification || plan.strategy.planJustification.length < 20) {
+    errors.push('Липсва обосновка защо планът е индивидуален');
+  }
+  
+  // 11. Check that analysis doesn't contain "Normal" severity problems (REQUIREMENT 2)
+  if (plan.analysis && plan.analysis.keyProblems && Array.isArray(plan.analysis.keyProblems)) {
+    const normalProblems = plan.analysis.keyProblems.filter(p => p.severity === 'Normal');
+    if (normalProblems.length > 0) {
+      errors.push(`Анализът съдържа ${normalProblems.length} "Normal" проблеми, които не трябва да се показват`);
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3 AI requests for precision)');
   
@@ -563,6 +694,18 @@ async function generatePlanMultiStep(env, data) {
       
       if (!analysis || analysis.error) {
         throw new Error(`Анализът не можа да бъде създаден: ${analysis.error || 'Невалиден формат на отговор'}`);
+      }
+      
+      // REQUIREMENT 2: Filter out "Normal" severity problems from analysis
+      if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
+        const originalCount = analysis.keyProblems.length;
+        analysis.keyProblems = analysis.keyProblems.filter(problem => 
+          problem.severity !== 'Normal'
+        );
+        const filteredCount = analysis.keyProblems.length;
+        if (filteredCount < originalCount) {
+          console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
+        }
       }
     } catch (error) {
       console.error('Analysis step failed:', error);
@@ -695,6 +838,9 @@ ${data.medicalConditions_other ? `- Други медицински състоя
 6. Определи СПЕЦИФИЧНИТЕ нужди от макронутриенти въз основа на целите, активност и медицински състояния
 7. Създай ИНДИВИДУАЛИЗИРАН подход, който отчита ВСИЧКИ фактори заедно
 8. Идентифицирай между 3 и 6 КЛЮЧОВИ ПРОБЛЕМА които пречат на здравето или постигането на целта
+   КРИТИЧНО: НИКОГА не включвай проблеми с "Normal" severity - само Borderline, Risky или Critical
+   ФОКУСИРАЙ СЕ САМО на проблемните области, които изискват внимание
+   Не описвай нормални показатели като "добър сън" или "средна активност"
 9. ИЗЧИСЛИ шанса за успех като число от -100 до 100:
    - Отрицателни стойности (-100 до -1): когато МНОЖЕСТВО фактори активно саботират целта (напр. поднормено тегло + цел отслабване)
    - Нулева стойност (0): неутрално състояние - равностойни подкрепящи и противопоказващи фактори
@@ -780,6 +926,7 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 {
   "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
   "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
+  "planJustification": "КРАТКО (максимум 200 символа) конкретно обяснение защо този план е индивидуален и съобразен с контекста и целите на ${data.name}. Без общи приказки - само конкретика и ползи!",
   "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
   "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "mealTiming": {
