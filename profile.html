@@ -829,6 +829,23 @@
             </div>
         </div>
 
+        <!-- REQUIREMENT 1: Health Analysis Section -->
+        <div class="form-section" id="analysisSection" style="display: none;">
+            <div class="section-title">
+                <i class="fas fa-heartbeat"></i>
+                Здравословен Анализ
+            </div>
+            <div id="analysisContent" style="padding: 15px;">
+                <p style="color: var(--text-light); font-style: italic;">Няма наличен анализ</p>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn btn-primary" onclick="viewFullAnalysis()" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-chart-line"></i>
+                    Виж пълен анализ
+                </button>
+            </div>
+        </div>
+
         <!-- Additional Info -->
         <div class="form-section">
             <div class="section-title">
@@ -1222,10 +1239,123 @@
             document.getElementById('alertContainer').innerHTML = '';
         }
 
+        // --- REQUIREMENT 1: Analysis Functions ---
+        function loadAnalysis() {
+            try {
+                const planData = localStorage.getItem('dietPlan');
+                if (!planData) {
+                    return; // No plan available
+                }
+                
+                const plan = JSON.parse(planData);
+                if (!plan.analysis || !plan.analysis.keyProblems) {
+                    return; // No analysis available
+                }
+                
+                const analysis = plan.analysis;
+                const analysisSection = document.getElementById('analysisSection');
+                const analysisContent = document.getElementById('analysisContent');
+                
+                // Show analysis section
+                analysisSection.style.display = 'block';
+                
+                // Build analysis summary (showing only problematic areas - REQUIREMENT 2)
+                let html = '';
+                
+                // Only show if we have problems
+                if (analysis.keyProblems && Array.isArray(analysis.keyProblems) && analysis.keyProblems.length > 0) {
+                    html += '<div style="margin-bottom: 20px;">';
+                    html += '<h4 style="color: var(--primary-red); margin-bottom: 10px;">Ключови области за внимание:</h4>';
+                    html += '<ul style="list-style: none; padding: 0;">';
+                    
+                    analysis.keyProblems.forEach((problem, index) => {
+                        // Skip "Normal" severity (REQUIREMENT 2)
+                        if (problem.severity === 'Normal') {
+                            return;
+                        }
+                        
+                        let severityColor = '#10b981'; // default green
+                        let severityIcon = 'fa-check-circle';
+                        
+                        if (problem.severity === 'Critical') {
+                            severityColor = '#ef4444';
+                            severityIcon = 'fa-exclamation-circle';
+                        } else if (problem.severity === 'Risky') {
+                            severityColor = '#f97316';
+                            severityIcon = 'fa-exclamation-triangle';
+                        } else if (problem.severity === 'Borderline') {
+                            severityColor = '#fbbf24';
+                            severityIcon = 'fa-info-circle';
+                        }
+                        
+                        html += `
+                            <li style="margin-bottom: 15px; padding: 12px; background: var(--soft-red); border-radius: 8px; border-left: 4px solid ${severityColor};">
+                                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                    <i class="fas ${severityIcon}" style="color: ${severityColor}; margin-top: 2px; font-size: 1.1rem;"></i>
+                                    <div style="flex: 1;">
+                                        <strong style="color: var(--text-dark);">${problem.title || 'Проблем'}</strong>
+                                        <p style="margin: 5px 0 0 0; color: var(--text-light); font-size: 0.9rem;">${problem.description || ''}</p>
+                                    </div>
+                                </div>
+                            </li>
+                        `;
+                    });
+                    
+                    html += '</ul>';
+                    html += '</div>';
+                } else {
+                    html += '<p style="color: var(--text-light); font-style: italic;">Не са открити проблемни области</p>';
+                }
+                
+                // Success chance (if available)
+                if (typeof analysis.successChance === 'number') {
+                    const successChance = analysis.successChance;
+                    let chanceColor = '#10b981';
+                    let chanceLabel = 'Висок';
+                    
+                    if (successChance < 0) {
+                        chanceColor = '#ef4444';
+                        chanceLabel = 'Противопоказан';
+                    } else if (successChance < 30) {
+                        chanceColor = '#ef4444';
+                        chanceLabel = 'Много нисък';
+                    } else if (successChance < 45) {
+                        chanceColor = '#f97316';
+                        chanceLabel = 'Нисък';
+                    } else if (successChance < 70) {
+                        chanceColor = '#fbbf24';
+                        chanceLabel = 'Умерен';
+                    } else if (successChance < 85) {
+                        chanceColor = '#10b981';
+                        chanceLabel = 'Добър';
+                    }
+                    
+                    html += `
+                        <div style="padding: 15px; background: var(--soft-red); border-radius: 8px; border-left: 4px solid ${chanceColor};">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: var(--text-dark);">Шанс за успех:</span>
+                                <span style="font-size: 1.2rem; font-weight: 700; color: ${chanceColor};">${successChance}% - ${chanceLabel}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                analysisContent.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading analysis:', error);
+            }
+        }
+        
+        function viewFullAnalysis() {
+            window.location.href = 'analysis.html';
+        }
+
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
             loadUserData();
+            loadAnalysis(); // REQUIREMENT 1: Load analysis
         });
 
         // --- PWA Install Banner Functionality ---
