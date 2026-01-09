@@ -555,35 +555,59 @@ async function generatePlanMultiStep(env, data) {
     // Step 1: Analyze user profile (1st AI request)
     // Focus: Deep health analysis, metabolic profile, correlations
     const analysisPrompt = generateAnalysisPrompt(data);
-    const analysisResponse = await callAIModel(env, analysisPrompt);
-    const analysis = parseAIResponse(analysisResponse);
+    let analysisResponse, analysis;
     
-    if (!analysis || analysis.error) {
-      throw new Error('Failed to parse analysis response');
+    try {
+      analysisResponse = await callAIModel(env, analysisPrompt);
+      analysis = parseAIResponse(analysisResponse);
+      
+      if (!analysis || analysis.error) {
+        throw new Error(`Анализът не можа да бъде създаден: ${analysis.error || 'Невалиден формат на отговор'}`);
+      }
+    } catch (error) {
+      console.error('Analysis step failed:', error);
+      throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
     }
+    
     console.log('Multi-step generation: Analysis complete (1/3)');
     
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = generateStrategyPrompt(data, analysis);
-    const strategyResponse = await callAIModel(env, strategyPrompt);
-    const strategy = parseAIResponse(strategyResponse);
+    let strategyResponse, strategy;
     
-    if (!strategy || strategy.error) {
-      throw new Error('Failed to parse strategy response');
+    try {
+      strategyResponse = await callAIModel(env, strategyPrompt);
+      strategy = parseAIResponse(strategyResponse);
+      
+      if (!strategy || strategy.error) {
+        throw new Error(`Стратегията не можа да бъде създадена: ${strategy.error || 'Невалиден формат на отговор'}`);
+      }
+    } catch (error) {
+      console.error('Strategy step failed:', error);
+      throw new Error(`Стъпка 2 (Стратегия): ${error.message}`);
     }
+    
     console.log('Multi-step generation: Strategy complete (2/3)');
     
     // Step 3: Generate detailed meal plan (3rd AI request)
     // Focus: Specific meals, portions, timing based on strategy
     // Increased token limit to ensure all 7 days with 3-4 meals each are generated
     const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
-    const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
-    const mealPlan = parseAIResponse(mealPlanResponse);
+    let mealPlanResponse, mealPlan;
     
-    if (!mealPlan || mealPlan.error) {
-      throw new Error('Failed to parse meal plan response');
+    try {
+      mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
+      mealPlan = parseAIResponse(mealPlanResponse);
+      
+      if (!mealPlan || mealPlan.error) {
+        throw new Error(`Хранителният план не можа да бъде създаден: ${mealPlan.error || 'Невалиден формат на отговор'}`);
+      }
+    } catch (error) {
+      console.error('Meal plan step failed:', error);
+      throw new Error(`Стъпка 3 (Хранителен план): ${error.message}`);
     }
+    
     console.log('Multi-step generation: Meal plan complete (3/3)');
     
     // Combine all parts into final plan (meal plan takes precedence)
@@ -595,11 +619,8 @@ async function generatePlanMultiStep(env, data) {
     };
   } catch (error) {
     console.error('Multi-step generation failed:', error);
-    // Fall back to single-step generation if multi-step fails
-    console.log('Falling back to single-step generation');
-    const prompt = await generateNutritionPrompt(data, env);
-    const response = await callAIModel(env, prompt);
-    return parseAIResponse(response);
+    // Return error with details instead of falling back silently
+    throw new Error(`Генерирането на план се провали: ${error.message}`);
   }
 }
 
@@ -770,9 +791,9 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
   "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
   "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
   "supplementRecommendations": [
-    "! ИНДИВИДУАЛНА добавка 1 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент",
-    "! ИНДИВИДУАЛНА добавка 2 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент",
-    "! ИНДИВИДУАЛНА добавка 3 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент"
+    "! ИНДИВИДУАЛНА добавка 1 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: възраст ${data.age} год., пол ${data.gender}, цел ${data.goal}, медицински състояния ${data.medicalConditions || 'няма'})",
+    "! ИНДИВИДУАЛНА добавка 2 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: активност ${data.sportActivity}, сън ${data.sleepHours}ч, стрес ${data.stressLevel})",
+    "! ИНДИВИДУАЛНА добавка 3 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: хранителни навици ${data.eatingHabits}, предпочитания ${data.dietPreference})"
   ],
   "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name} според активност и климат",
   "psychologicalSupport": [
@@ -797,7 +818,10 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
   * Възраст и пол (напр. калций за жени над 40, цинк за мъже)
 - Дозировката трябва да е ПЕРСОНАЛИЗИРАНА според тегло, възраст и нужди
 - Времето на прием трябва да е оптимално за усвояване
-- Избягвай универсални "мултивитамини" без конкретна обосновка`;
+- СТРОГО ЗАБРАНЕНО: Използването на едни и същи добавки за различни клиенти
+- СТРОГО ЗАБРАНЕНО: Универсални "мултивитамини" без конкретна обосновка
+- Всяка добавка ТРЯБВА да е различна и специфична за конкретния клиент ${data.name}
+- Вземи предвид уникалната комбинация от: ${data.age} год. ${data.gender}, ${data.goal}, ${data.medicalConditions || 'няма мед. състояния'}, ${data.sportActivity}, стрес: ${data.stressLevel}`;
 }
 
 /**
@@ -1229,7 +1253,7 @@ async function generateNutritionPrompt(data, env) {
   "forbidden": ["конкретна забранена храна 1 за {name}", "конкретна забранена храна 2 за {name}", "конкретна забранена храна 3 за {name}", "конкретна забранена храна 4 за {name}"],
   "psychology": ["психологически съвет 1 базиран на емоционалното хранене на {name}", "психологически съвет 2 базиран на поведението на {name}", "психологически съвет 3 за мотивация специфичен за {name}"],
   "waterIntake": "Детайлен препоръчителен прием на вода персонализиран за {name}",
-  "supplements": ["ИНДИВИДУАЛНА добавка 1 за {name} с дозировка и обосновка", "ИНДИВИДУАЛНА добавка 2 за {name} с дозировка и обосновка", "ИНДИВИДУАЛНА добавка 3 за {name} с дозировка и обосновка"]
+  "supplements": ["ИНДИВИДУАЛНА добавка 1 за {name} с дозировка и обосновка (БАЗИРАНА на: ${data.age} год. ${data.gender}, ${data.goal}, ${data.medicalConditions || 'няма'})", "ИНДИВИДУАЛНА добавка 2 за {name} с дозировка и обосновка (БАЗИРАНА на: ${data.sportActivity}, сън ${data.sleepHours}ч)", "ИНДИВИДУАЛНА добавка 3 за {name} с дозировка и обосновка (БАЗИРАНА на: ${data.eatingHabits}, ${data.dietPreference})"]
 }
 
 КРИТИЧНО ВАЖНО ЗА "recommendations" И "forbidden":
@@ -1273,9 +1297,9 @@ async function generateNutritionPrompt(data, env) {
   "Водете дневник на емоциите при хранене за по-добро самоосъзнаване"
 ],
 "supplements": [
-  "Витамин D3 - 2000 IU дневно, сутрин с храна за добро усвояване",
-  "Омега-3 мастни киселини - 1000mg дневно за сърдечно здраве",
-  "Магнезий - 200mg вечер преди лягане за по-добър сън"
+  "Витамин D3 - 2000 IU дневно, сутрин с храна за добро усвояване (СПЕЦИФИЧНО за {name}: ${data.age} год., ${data.gender}, слънчева експозиция)",
+  "Омега-3 мастни киселини - 1000mg дневно за сърдечно здраве (СПЕЦИФИЧНО за {name}: цел ${data.goal}, активност ${data.sportActivity})",
+  "Магнезий - 200mg вечер преди лягане за по-добър сън (СПЕЦИФИЧНО за {name}: сън ${data.sleepHours}ч, стрес ${data.stressLevel})"
 ]
 
 Създай пълни 7 дни (day1 до day7) с по 3-4 хранения на ден. Всяко хранене трябва да е УНИКАЛНО, балансирано и строго съобразено с индивидуалните нужди, предпочитания и здравословно състояние на клиента.`;
@@ -1570,11 +1594,32 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = nu
 
     const data = await response.json();
     
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from OpenAI API');
+    // Check for errors in response
+    if (data.error) {
+      throw new Error(`OpenAI API грешка: ${data.error.message || JSON.stringify(data.error)}`);
     }
     
-    return data.choices[0].message.content;
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('OpenAI API върна невалиден формат на отговор');
+    }
+    
+    const choice = data.choices[0];
+    
+    // Check finish_reason for content filtering or other issues
+    if (choice.finish_reason && choice.finish_reason !== 'stop') {
+      const reason = choice.finish_reason;
+      let errorMessage = `OpenAI API завърши с причина: ${reason}`;
+      
+      if (reason === 'content_filter') {
+        errorMessage = 'OpenAI AI отказа да генерира отговор поради филтър за съдържание. Моля, опитайте с различни данни.';
+      } else if (reason === 'length') {
+        errorMessage = 'OpenAI AI достигна лимита на дължина. Опитайте да опростите въпроса.';
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    return choice.message.content;
   } catch (error) {
     console.error('OpenAI API call failed:', error);
     throw new Error(`OpenAI API failed: ${error.message}`);
@@ -1612,12 +1657,35 @@ async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = nul
 
     const data = await response.json();
     
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || 
-        !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      throw new Error('Invalid response format from Gemini API');
+    // Check for safety/content filtering or other finish reasons
+    if (data.candidates && data.candidates[0]) {
+      const candidate = data.candidates[0];
+      
+      // Check if response was blocked or filtered
+      if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+        const reason = candidate.finishReason;
+        let errorMessage = `Gemini API отказ: ${reason}`;
+        
+        if (reason === 'SAFETY') {
+          errorMessage = 'Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитайте с различни данни или контактирайте поддръжката.';
+        } else if (reason === 'RECITATION') {
+          errorMessage = 'Gemini AI отказа да генерира отговор поради потенциално копиране на съдържание.';
+        } else if (reason === 'MAX_TOKENS') {
+          errorMessage = 'Gemini AI достигна лимита на токени. Опитайте да опростите въпроса.';
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Check if content exists
+      if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
+        throw new Error('Gemini API върна празен отговор. Моля, опитайте отново.');
+      }
+      
+      return candidate.content.parts[0].text;
     }
     
-    return data.candidates[0].content.parts[0].text;
+    throw new Error('Невалиден формат на отговор от Gemini API');
   } catch (error) {
     console.error('Gemini API call failed:', error);
     throw new Error(`Gemini API failed: ${error.message}`);

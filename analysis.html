@@ -719,7 +719,13 @@
             <i class="fas fa-exclamation-circle"></i>
         </div>
         <h2 style="color: var(--text-dark); margin-bottom: 16px;">Грешка</h2>
-        <p style="color: var(--text-gray); margin-bottom: 24px;">Не може да се зареди анализът. Моля, опитайте отново.</p>
+        <p id="errorMessage" style="color: var(--text-gray); margin-bottom: 24px;">Не може да се зареди анализът. Моля, опитайте отново.</p>
+        <div id="errorDetails" style="display: none; background: var(--input-bg); padding: 16px; border-radius: 12px; margin-bottom: 24px; text-align: left;">
+            <h3 style="color: var(--text-dark); font-size: 0.9rem; margin-bottom: 8px;">
+                <i class="fas fa-info-circle"></i> Детайли за грешката:
+            </h3>
+            <p id="errorDetailsText" style="color: var(--text-gray); font-size: 0.85rem; line-height: 1.5;"></p>
+        </div>
         <button class="btn-primary" onclick="window.location.href='questionnaire.html'">
             Назад към въпросника
         </button>
@@ -775,16 +781,30 @@
                 const planData = localStorage.getItem('dietPlan');
                 
                 if (!planData) {
-                    showError();
+                    showError('Няма налични данни за план. Моля, започнете отначало.');
                     return;
                 }
 
                 const plan = JSON.parse(planData);
                 
+                // Check if there's an error in the plan (from API)
+                if (plan.error) {
+                    console.error('Plan contains error:', plan.error);
+                    showError(plan.error);
+                    return;
+                }
+                
                 // Check if analysis and keyProblems exist
                 if (!plan.analysis || !plan.analysis.keyProblems || !Array.isArray(plan.analysis.keyProblems)) {
                     console.error('No keyProblems found in analysis');
-                    showError();
+                    
+                    // Check if there's an error message in the analysis
+                    let errorMsg = 'Анализът не съдържа информация за здравословни проблеми.';
+                    if (plan.analysis && plan.analysis.error) {
+                        errorMsg = plan.analysis.error;
+                    }
+                    
+                    showError(errorMsg);
                     return;
                 }
 
@@ -799,7 +819,7 @@
 
             } catch (error) {
                 console.error('Error loading analysis:', error);
-                showError();
+                showError('Грешка при зареждането на анализа: ' + error.message);
             }
         }
 
@@ -1031,10 +1051,26 @@
             }, 100);
         }
 
-        function showError() {
+        function showError(errorMessage = null) {
             document.getElementById('loadingScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'none';
-            document.getElementById('errorScreen').style.display = 'block';
+            
+            const errorScreen = document.getElementById('errorScreen');
+            errorScreen.style.display = 'block';
+            
+            // If we have a detailed error message, show it
+            if (errorMessage && errorMessage !== 'Generic error') {
+                const errorMessageEl = document.getElementById('errorMessage');
+                const errorDetailsEl = document.getElementById('errorDetails');
+                const errorDetailsText = document.getElementById('errorDetailsText');
+                
+                // Set main error message
+                errorMessageEl.textContent = 'Анализът не можа да бъде създаден.';
+                
+                // Show error details
+                errorDetailsEl.style.display = 'block';
+                errorDetailsText.textContent = errorMessage;
+            }
         }
 
         function goToPlan() {

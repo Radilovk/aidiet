@@ -1138,6 +1138,11 @@
 
                 const result = await response.json();
 
+                // Check for errors in the response
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
                 if (result.success && result.plan) {
                     // Save new plan
                     localStorage.setItem('dietPlan', JSON.stringify(result.plan));
@@ -1151,7 +1156,7 @@
                         window.location.href = 'plan.html';
                     }, 2000);
                 } else {
-                    throw new Error('Invalid response from server');
+                    throw new Error('Невалиден отговор от сървъра');
                 }
 
             } catch (error) {
@@ -1163,7 +1168,9 @@
                 if (error.name === 'AbortError') {
                     showAlert('⚠️ Заявката отне твърде много време. Моля, опитайте отново.', 'warning');
                 } else {
-                    showAlert('⚠️ Грешка при регенериране на плана. Моля, опитайте отново.', 'warning');
+                    // Show the detailed error message
+                    const errorMsg = error.message || 'Неизвестна грешка';
+                    showAlert(`⚠️ Грешка при регенериране на плана: ${errorMsg}`, 'warning');
                 }
             }
         }
