@@ -827,13 +827,32 @@
             const container = document.getElementById('problemsContainer');
             container.innerHTML = '';
 
-            problems.forEach((problem, index) => {
+            // REQUIREMENT 2: Filter out "Normal" severity problems
+            const filteredProblems = problems.filter(problem => 
+                problem.severity !== 'Normal'
+            );
+            
+            // Show message if no problematic areas found
+            if (filteredProblems.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow);">
+                        <div style="font-size: 3rem; color: var(--primary-red); margin-bottom: 20px;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h2 style="color: var(--text-dark); margin-bottom: 15px;">Отлично!</h2>
+                        <p style="color: var(--text-gray); font-size: 1.1rem;">Не са открити проблемни области, които изискват специално внимание.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filteredProblems.forEach((problem, index) => {
                 const card = createProblemCard(problem, index);
                 container.appendChild(card);
             });
 
-            // Calculate and display overall scores
-            calculateOverallScores(problems, analysis);
+            // Calculate and display overall scores using filtered problems
+            calculateOverallScores(filteredProblems, analysis);
         }
 
         function calculateOverallScores(problems, analysis) {
