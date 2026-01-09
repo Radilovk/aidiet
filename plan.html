@@ -1574,7 +1574,8 @@
                 if (!justification || justification.length < 20) {
                     // Try to construct from other data
                     const modifier = dietPlan.strategy.dietaryModifier || 'Балансиран';
-                    const goal = userData.goal || 'здравословен живот';
+                    // Safety check for userData existence
+                    const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
                     justification = `Този ${modifier.toLowerCase()} план е създаден специално за вашата цел: ${goal.toLowerCase()}`;
                 }
                 

@@ -293,7 +293,7 @@ async function handleGeneratePlan(request, env) {
     if (!validation.isValid) {
       console.error('handleGeneratePlan: Plan validation failed:', validation.errors);
       return jsonResponse({ 
-        error: `Планът не премина качествения тест: ${validation.errors.join('; ')}`,
+        error: `Планът не премина качествен тест: ${validation.errors.join('; ')}`,
         validationErrors: validation.errors
       }, 400);
     }
