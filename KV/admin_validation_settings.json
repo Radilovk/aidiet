@@ -1,0 +1,10 @@
+{
+  "minMealsPerDay": 3,
+  "maxMealsPerDay": 5,
+  "minCaloriesPerMeal": 150,
+  "maxCaloriesPerMeal": 800,
+  "validateMacros": true,
+  "validateCaloriesWithGoal": true,
+  "validateMedicalConditions": true,
+  "description": "Настройки за валидация на генерираните хранителни планове"
+}

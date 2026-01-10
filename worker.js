@@ -118,6 +118,43 @@ function calculateBMI(data) {
 }
 
 /**
+ * Helper: Extract BMR from analysis or calculate it
+ */
+function extractOrCalculateBMR(analysis, data) {
+  let bmr;
+  if (analysis && analysis.bmr) {
+    const bmrMatch = String(analysis.bmr).match(/\d+/);
+    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+  }
+  if (!bmr) {
+    bmr = calculateBMR(data);
+  }
+  return bmr;
+}
+
+/**
+ * Helper: Extract recommended calories from analysis or calculate based on goal
+ */
+function extractOrCalculateRecommendedCalories(analysis, data, bmr) {
+  let recommendedCalories;
+  if (analysis && analysis.recommendedCalories) {
+    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+  }
+  if (!recommendedCalories) {
+    const tdee = calculateTDEE(bmr, data.sportActivity);
+    if (data.goal === 'Отслабване') {
+      recommendedCalories = Math.round(tdee * 0.85);
+    } else if (data.goal === 'Покачване на мускулна маса') {
+      recommendedCalories = Math.round(tdee * 1.1);
+    } else {
+      recommendedCalories = tdee;
+    }
+  }
+  return recommendedCalories;
+}
+
+/**
  * Detect goal contradictions (e.g., underweight person wanting to lose weight)
  * Returns an object with { hasContradiction: boolean, warningData: object }
  */
@@ -234,6 +271,8 @@ export default {
         return await handleSaveModel(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
         return await handleGetConfig(request, env);
+      } else if (url.pathname === '/api/admin/save-validation-settings' && request.method === 'POST') {
+        return await handleSaveValidationSettings(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
@@ -685,13 +724,85 @@ function validatePlan(plan, userData) {
   };
 }
 
+/**
+ * Generate prompt from template by replacing variables
+ * Supports ${data.field}, ${analysis.field}, ${strategy.field}, ${recommendedCalories}
+ */
+function generatePromptFromTemplate(template, data, analysis = null, strategy = null, recommendedCalories = null) {
+  let prompt = template;
+  
+  // Replace data fields
+  prompt = prompt.replace(/\$\{data\.(\w+)\}/g, (match, field) => {
+    const value = data[field];
+    if (value === undefined || value === null) return 'Не е посочено';
+    if (Array.isArray(value)) return JSON.stringify(value);
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  });
+  
+  // Replace analysis fields
+  if (analysis) {
+    prompt = prompt.replace(/\$\{JSON\.stringify\(analysis, null, 2\)\}/g, JSON.stringify(analysis, null, 2));
+    prompt = prompt.replace(/\$\{analysis\.(\w+)\}/g, (match, field) => {
+      const value = analysis[field];
+      if (value === undefined || value === null) return 'Не е налично';
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value);
+    });
+  }
+  
+  // Replace strategy fields
+  if (strategy) {
+    prompt = prompt.replace(/\$\{JSON\.stringify\(strategy, null, 2\)\}/g, JSON.stringify(strategy, null, 2));
+    prompt = prompt.replace(/\$\{strategy\.(\w+)\}/g, (match, field) => {
+      const value = strategy[field];
+      if (value === undefined || value === null) return 'Не е налично';
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value);
+    });
+    
+    // Handle nested strategy fields
+    prompt = prompt.replace(/\$\{strategy\.mealTiming\?\.pattern\s*\|\|\s*'([^']+)'\}/g, (match, defaultValue) => {
+      return strategy.mealTiming?.pattern || defaultValue;
+    });
+  }
+  
+  // Replace recommendedCalories
+  if (recommendedCalories !== null) {
+    prompt = prompt.replace(/\$\{recommendedCalories\}/g, String(recommendedCalories));
+  }
+  
+  return prompt;
+}
+
+/**
+ * Generate meal plan prompt from template
+ * Special handling for meal plan with BMR, calories, and strategy info
+ */
+function generateMealPlanPromptFromTemplate(template, data, analysis, strategy) {
+  // Use helper functions to get BMR and recommended calories
+  const bmr = extractOrCalculateBMR(analysis, data);
+  const recommendedCalories = extractOrCalculateRecommendedCalories(analysis, data, bmr);
+  
+  return generatePromptFromTemplate(template, data, analysis, strategy, recommendedCalories);
+}
+
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
   try {
+    // Load custom prompts from KV if available
+    const [analysisPromptTemplate, strategyPromptTemplate, mealPlanPromptTemplate] = await Promise.all([
+      env.page_content ? env.page_content.get('admin_analysis_prompt') : null,
+      env.page_content ? env.page_content.get('admin_strategy_prompt') : null,
+      env.page_content ? env.page_content.get('admin_meal_plan_prompt') : null
+    ]);
+    
     // Step 1: Analyze user profile (1st AI request)
     // Focus: Deep health analysis, metabolic profile, correlations
-    const analysisPrompt = generateAnalysisPrompt(data);
+    const analysisPrompt = analysisPromptTemplate 
+      ? generatePromptFromTemplate(analysisPromptTemplate, data)
+      : generateAnalysisPrompt(data);
     let analysisResponse, analysis;
     
     try {
@@ -722,7 +833,9 @@ async function generatePlanMultiStep(env, data) {
     
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
-    const strategyPrompt = generateStrategyPrompt(data, analysis);
+    const strategyPrompt = strategyPromptTemplate
+      ? generatePromptFromTemplate(strategyPromptTemplate, data, analysis)
+      : generateStrategyPrompt(data, analysis);
     let strategyResponse, strategy;
     
     try {
@@ -746,7 +859,7 @@ async function generatePlanMultiStep(env, data) {
     if (ENABLE_PROGRESSIVE_GENERATION) {
       console.log('Multi-step generation: Using progressive meal plan generation');
       try {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy);
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, mealPlanPromptTemplate);
       } catch (error) {
         console.error('Progressive meal plan generation failed:', error);
         throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
@@ -754,7 +867,9 @@ async function generatePlanMultiStep(env, data) {
     } else {
       // Fallback to single-request generation
       console.log('Multi-step generation: Using single-request meal plan generation');
-      const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
+      const mealPlanPrompt = mealPlanPromptTemplate
+        ? generateMealPlanPromptFromTemplate(mealPlanPromptTemplate, data, analysis, strategy)
+        : generateMealPlanPrompt(data, analysis, strategy);
       let mealPlanResponse;
       
       try {
@@ -995,7 +1110,7 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
  */
-async function generateMealPlanProgressive(env, data, analysis, strategy) {
+async function generateMealPlanProgressive(env, data, analysis, strategy, mealPlanPromptTemplate = null) {
   console.log('Progressive generation: Starting meal plan generation in chunks');
   
   const totalDays = 7;
@@ -1003,31 +1118,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   const weekPlan = {};
   const previousDays = []; // Track previous days for variety
   
-  // Parse BMR and calories (same as original function)
-  let bmr;
-  if (analysis.bmr) {
-    const bmrMatch = String(analysis.bmr).match(/\d+/);
-    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
-  }
-  if (!bmr) {
-    bmr = calculateBMR(data);
-  }
-  
-  let recommendedCalories;
-  if (analysis.recommendedCalories) {
-    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
-  }
-  if (!recommendedCalories) {
-    const tdee = calculateTDEE(bmr, data.sportActivity);
-    if (data.goal === 'Отслабване') {
-      recommendedCalories = Math.round(tdee * 0.85);
-    } else if (data.goal === 'Покачване на мускулна маса') {
-      recommendedCalories = Math.round(tdee * 1.1);
-    } else {
-      recommendedCalories = tdee;
-    }
-  }
+  // Use helper functions to get BMR and calories
+  const bmr = extractOrCalculateBMR(analysis, data);
+  const recommendedCalories = extractOrCalculateRecommendedCalories(analysis, data, bmr);
   
   // Generate meal plan in chunks
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
@@ -2252,6 +2345,12 @@ async function handleSavePrompt(request, env) {
       key = 'admin_modification_prompt';
     } else if (type === 'chat') {
       key = 'admin_chat_prompt'; // Keep for backward compatibility
+    } else if (type === 'analysis') {
+      key = 'admin_analysis_prompt';
+    } else if (type === 'strategy') {
+      key = 'admin_strategy_prompt';
+    } else if (type === 'mealplan') {
+      key = 'admin_meal_plan_prompt';
     } else {
       key = 'admin_plan_prompt';
     }
@@ -2262,6 +2361,12 @@ async function handleSavePrompt(request, env) {
     if (type === 'consultation' || type === 'modification') {
       chatPromptsCache = null;
       chatPromptsCacheTime = 0;
+    }
+    
+    // Invalidate admin config cache if multi-step prompts were updated
+    if (type === 'analysis' || type === 'strategy' || type === 'mealplan') {
+      adminConfigCache = null;
+      adminConfigCacheTime = 0;
     }
     
     return jsonResponse({ success: true, message: 'Prompt saved successfully' });
@@ -2339,14 +2444,38 @@ async function handleGetConfig(request, env) {
     }
 
     // Use Promise.all to fetch all config values in parallel (reduces sequential KV reads)
-    const [provider, modelName, planPrompt, chatPrompt, consultationPrompt, modificationPrompt] = await Promise.all([
+    const [
+      provider, 
+      modelName, 
+      planPrompt, 
+      chatPrompt, 
+      consultationPrompt, 
+      modificationPrompt,
+      analysisPrompt,
+      strategyPrompt,
+      mealPlanPrompt,
+      validationSettingsStr
+    ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
       env.page_content.get('admin_plan_prompt'),
       env.page_content.get('admin_chat_prompt'),
       env.page_content.get('admin_consultation_prompt'),
-      env.page_content.get('admin_modification_prompt')
+      env.page_content.get('admin_modification_prompt'),
+      env.page_content.get('admin_analysis_prompt'),
+      env.page_content.get('admin_strategy_prompt'),
+      env.page_content.get('admin_meal_plan_prompt'),
+      env.page_content.get('admin_validation_settings')
     ]);
+    
+    let validationSettings = null;
+    if (validationSettingsStr) {
+      try {
+        validationSettings = JSON.parse(validationSettingsStr);
+      } catch (error) {
+        console.error('Error parsing validation settings:', error);
+      }
+    }
     
     return jsonResponse({ 
       success: true, 
@@ -2355,11 +2484,52 @@ async function handleGetConfig(request, env) {
       planPrompt,
       chatPrompt,
       consultationPrompt,
-      modificationPrompt
+      modificationPrompt,
+      analysisPrompt,
+      strategyPrompt,
+      mealPlanPrompt,
+      validationSettings
     });
   } catch (error) {
     console.error('Error getting config:', error);
     return jsonResponse({ error: 'Failed to get config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Save validation settings to KV
+ */
+async function handleSaveValidationSettings(request, env) {
+  try {
+    const { settings } = await request.json();
+    
+    if (!settings) {
+      return jsonResponse({ error: 'Missing settings' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    // Validate settings
+    if (settings.minMealsPerDay && settings.maxMealsPerDay && settings.minMealsPerDay >= settings.maxMealsPerDay) {
+      return jsonResponse({ error: 'Invalid meal settings: min must be less than max' }, 400);
+    }
+    
+    if (settings.minCaloriesPerMeal && settings.maxCaloriesPerMeal && settings.minCaloriesPerMeal >= settings.maxCaloriesPerMeal) {
+      return jsonResponse({ error: 'Invalid calorie settings: min must be less than max' }, 400);
+    }
+    
+    await env.page_content.put('admin_validation_settings', JSON.stringify(settings));
+    
+    // Invalidate cache so next request gets fresh config
+    adminConfigCache = null;
+    adminConfigCacheTime = 0;
+    
+    return jsonResponse({ success: true, message: 'Validation settings saved successfully' });
+  } catch (error) {
+    console.error('Error saving validation settings:', error);
+    return jsonResponse({ error: 'Failed to save validation settings: ' + error.message }, 500);
   }
 }
 
