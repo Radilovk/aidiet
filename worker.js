@@ -1120,7 +1120,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
       summary: {
         bmr: `${bmr}`,
         dailyCalories: `${recommendedCalories}`,
-        macros: { protein: "Изчислени", carbs: "Изчислени", fats: "Изчислени" }
+        macros: { protein: "Изчислени индивидуално", carbs: "Изчислени индивидуално", fats: "Изчислени индивидуално" }
       },
       weekPlan: weekPlan,
       recommendations: strategy.foodsToInclude || [],
@@ -1243,7 +1243,6 @@ JSON ФОРМАТ:
 
 /**
  * Step 3: Generate prompt for detailed meal plan (LEGACY - used when progressive generation is disabled)
- */
  * 
  * ARCHPROMPT INTEGRATION:
  * This function integrates the sophisticated dietary logic system from archprompt.txt
