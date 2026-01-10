@@ -560,6 +560,11 @@ async function handleChat(request, env) {
 // Note: This is the OUTPUT token limit. Input prompt formatting is optimized to reduce token count while preserving all analysis criteria and requirements.
 const MEAL_PLAN_TOKEN_LIMIT = 5000;
 
+// Progressive generation: split meal plan into smaller chunks to avoid token limits
+// Each chunk generates 2-3 days, building on previous days for variety and consistency
+const ENABLE_PROGRESSIVE_GENERATION = true;
+const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
+
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
  * Returns { isValid: boolean, errors: string[] }
@@ -681,7 +686,7 @@ function validatePlan(plan, userData) {
 }
 
 async function generatePlanMultiStep(env, data) {
-  console.log('Multi-step generation: Starting (3 AI requests for precision)');
+  console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
   try {
     // Step 1: Analyze user profile (1st AI request)
@@ -734,22 +739,35 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Strategy complete (2/3)');
     
-    // Step 3: Generate detailed meal plan (3rd AI request)
-    // Focus: Specific meals, portions, timing based on strategy
-    // Increased token limit to ensure all 7 days with 3-4 meals each are generated
-    const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
-    let mealPlanResponse, mealPlan;
+    // Step 3: Generate detailed meal plan
+    // Use progressive generation if enabled (multiple smaller requests)
+    let mealPlan;
     
-    try {
-      mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
-      mealPlan = parseAIResponse(mealPlanResponse);
-      
-      if (!mealPlan || mealPlan.error) {
-        throw new Error(`Хранителният план не можа да бъде създаден: ${mealPlan.error || 'Невалиден формат на отговор'}`);
+    if (ENABLE_PROGRESSIVE_GENERATION) {
+      console.log('Multi-step generation: Using progressive meal plan generation');
+      try {
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy);
+      } catch (error) {
+        console.error('Progressive meal plan generation failed:', error);
+        throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
       }
-    } catch (error) {
-      console.error('Meal plan step failed:', error);
-      throw new Error(`Стъпка 3 (Хранителен план): ${error.message}`);
+    } else {
+      // Fallback to single-request generation
+      console.log('Multi-step generation: Using single-request meal plan generation');
+      const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
+      let mealPlanResponse;
+      
+      try {
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
+        mealPlan = parseAIResponse(mealPlanResponse);
+        
+        if (!mealPlan || mealPlan.error) {
+          throw new Error(`Хранителният план не можа да бъде създаден: ${mealPlan.error || 'Невалиден формат на отговор'}`);
+        }
+      } catch (error) {
+        console.error('Meal plan step failed:', error);
+        throw new Error(`Стъпка 3 (Хранителен план): ${error.message}`);
+      }
     }
     
     console.log('Multi-step generation: Meal plan complete (3/3)');
@@ -973,7 +991,259 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 }
 
 /**
- * Step 3: Generate prompt for detailed meal plan
+ * Progressive meal plan generation - generates meal plan in smaller chunks
+ * Each chunk builds on previous days for variety and consistency
+ * This approach reduces token usage per request and provides better error handling
+ */
+async function generateMealPlanProgressive(env, data, analysis, strategy) {
+  console.log('Progressive generation: Starting meal plan generation in chunks');
+  
+  const totalDays = 7;
+  const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
+  const weekPlan = {};
+  const previousDays = []; // Track previous days for variety
+  
+  // Parse BMR and calories (same as original function)
+  let bmr;
+  if (analysis.bmr) {
+    const bmrMatch = String(analysis.bmr).match(/\d+/);
+    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+  }
+  if (!bmr) {
+    bmr = calculateBMR(data);
+  }
+  
+  let recommendedCalories;
+  if (analysis.recommendedCalories) {
+    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+  }
+  if (!recommendedCalories) {
+    const tdee = calculateTDEE(bmr, data.sportActivity);
+    if (data.goal === 'Отслабване') {
+      recommendedCalories = Math.round(tdee * 0.85);
+    } else if (data.goal === 'Покачване на мускулна маса') {
+      recommendedCalories = Math.round(tdee * 1.1);
+    } else {
+      recommendedCalories = tdee;
+    }
+  }
+  
+  // Generate meal plan in chunks
+  for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
+    const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
+    const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
+    const daysInChunk = endDay - startDay + 1;
+    
+    console.log(`Progressive generation: Generating days ${startDay}-${endDay} (chunk ${chunkIndex + 1}/${chunks})`);
+    
+    try {
+      const chunkPrompt = generateMealPlanChunkPrompt(
+        data, analysis, strategy, bmr, recommendedCalories,
+        startDay, endDay, previousDays
+      );
+      
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT);
+      const chunkData = parseAIResponse(chunkResponse);
+      
+      if (!chunkData || chunkData.error) {
+        throw new Error(`Chunk ${chunkIndex + 1} failed: ${chunkData.error || 'Invalid response'}`);
+      }
+      
+      // Merge chunk data into weekPlan
+      for (let day = startDay; day <= endDay; day++) {
+        const dayKey = `day${day}`;
+        if (chunkData[dayKey]) {
+          weekPlan[dayKey] = chunkData[dayKey];
+          previousDays.push({
+            day: day,
+            meals: chunkData[dayKey].meals || []
+          });
+        } else {
+          throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response`);
+        }
+      }
+      
+      console.log(`Progressive generation: Chunk ${chunkIndex + 1}/${chunks} complete`);
+    } catch (error) {
+      console.error(`Progressive generation: Chunk ${chunkIndex + 1} failed:`, error);
+      throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
+    }
+  }
+  
+  // Generate summary, recommendations, etc. in final request
+  console.log('Progressive generation: Generating summary and recommendations');
+  try {
+    const summaryPrompt = generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan);
+    const summaryResponse = await callAIModel(env, summaryPrompt, 2000);
+    const summaryData = parseAIResponse(summaryResponse);
+    
+    if (!summaryData || summaryData.error) {
+      // Use defaults if summary generation fails
+      console.warn('Summary generation failed, using defaults');
+      return {
+        summary: {
+          bmr: `${bmr}`,
+          dailyCalories: `${recommendedCalories}`,
+          macros: {
+            protein: "Изчислени индивидуално",
+            carbs: "Изчислени индивидуално",
+            fats: "Изчислени индивидуално"
+          }
+        },
+        weekPlan: weekPlan,
+        recommendations: strategy.foodsToInclude || [],
+        forbidden: strategy.foodsToAvoid || [],
+        psychology: strategy.psychologicalSupport || [],
+        waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
+        supplements: strategy.supplementRecommendations || []
+      };
+    }
+    
+    return {
+      summary: summaryData.summary || {
+        bmr: `${bmr}`,
+        dailyCalories: `${recommendedCalories}`,
+        macros: summaryData.macros || {}
+      },
+      weekPlan: weekPlan,
+      recommendations: summaryData.recommendations || strategy.foodsToInclude || [],
+      forbidden: summaryData.forbidden || strategy.foodsToAvoid || [],
+      psychology: summaryData.psychology || strategy.psychologicalSupport || [],
+      waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
+      supplements: summaryData.supplements || strategy.supplementRecommendations || []
+    };
+  } catch (error) {
+    console.error('Summary generation failed:', error);
+    // Return plan with defaults
+    return {
+      summary: {
+        bmr: `${bmr}`,
+        dailyCalories: `${recommendedCalories}`,
+        macros: { protein: "Изчислени", carbs: "Изчислени", fats: "Изчислени" }
+      },
+      weekPlan: weekPlan,
+      recommendations: strategy.foodsToInclude || [],
+      forbidden: strategy.foodsToAvoid || [],
+      psychology: strategy.psychologicalSupport || [],
+      waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
+      supplements: strategy.supplementRecommendations || []
+    };
+  }
+}
+
+/**
+ * Generate prompt for a chunk of days (progressive generation)
+ */
+function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays) {
+  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
+  const daysInChunk = endDay - startDay + 1;
+  
+  // Build modifications section
+  let modificationsSection = '';
+  if (data.planModifications && data.planModifications.length > 0) {
+    const modLines = data.planModifications
+      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
+      .filter(desc => desc !== undefined);
+    if (modLines.length > 0) {
+      modificationsSection = `\nМОДИФИКАЦИИ: ${modLines.join('; ')}`;
+    }
+  }
+  
+  // Build previous days context for variety
+  let previousDaysContext = '';
+  if (previousDays.length > 0) {
+    const prevMeals = previousDays.map(d => {
+      const mealNames = d.meals.map(m => m.name).join(', ');
+      return `Ден ${d.day}: ${mealNames}`;
+    }).join('; ');
+    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\nИЗБЯГВАЙ повтаряне на тези ястия в следващите дни!`;
+  }
+  
+  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+
+=== ЗАДАЧА ===
+Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
+
+=== КЛИЕНТ ===
+Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
+BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
+
+=== СТРАТЕГИЯ (КРАТКО) ===
+Диета: ${strategy.dietType || 'Балансирана'}
+Схема: ${strategy.weeklyMealPattern || 'Традиционна'}
+Избягвай: ${data.dietDislike || 'няма'}
+Включвай: ${data.dietLove || 'няма'}${previousDaysContext}
+
+=== АРХИТЕКТУРА ===
+Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
+Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
+Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
+
+=== ИЗИСКВАНИЯ ===
+- РАЗНООБРАЗИЕ: Всеки ден различен от предишните
+- Реалистични български/средиземноморски ястия
+- Точни калории/макроси (1г протеин=4kcal, 1г carbs=4kcal, 1г fats=9kcal)
+- Среден калориен прием: ${recommendedCalories} kcal/ден
+- 2-4 хранения според стратегията
+
+JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
+{
+  "day${startDay}": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+    ]
+  }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
+}
+
+Генерирай дни ${startDay}-${endDay} с балансирани, разнообразни, индивидуални ястия.`;
+}
+
+/**
+ * Generate prompt for summary and recommendations (final step of progressive generation)
+ */
+function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan) {
+  // Calculate total calories across the week for validation
+  let totalCalories = 0;
+  let dayCount = 0;
+  Object.keys(weekPlan).forEach(dayKey => {
+    if (weekPlan[dayKey] && weekPlan[dayKey].meals) {
+      const dayCalories = weekPlan[dayKey].meals.reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
+      totalCalories += dayCalories;
+      dayCount++;
+    }
+  });
+  const avgCalories = dayCount > 0 ? Math.round(totalCalories / dayCount) : recommendedCalories;
+  
+  return `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+
+КЛИЕНТ: ${data.name}, Цел: ${data.goal}
+BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
+Реален среден прием: ${avgCalories} kcal/ден
+
+СТРАТЕГИЯ:
+${JSON.stringify(strategy, null, 2)}
+
+JSON ФОРМАТ:
+{
+  "summary": {
+    "bmr": "${bmr}",
+    "dailyCalories": "${avgCalories}",
+    "macros": {"protein": "Xg индивидуално", "carbs": "Xg индивидуално", "fats": "Xg индивидуално"}
+  },
+  "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
+  "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
+  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
+  "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
+  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
+}
+
+ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+}
+
+/**
+ * Step 3: Generate prompt for detailed meal plan (LEGACY - used when progressive generation is disabled)
+ */
  * 
  * ARCHPROMPT INTEGRATION:
  * This function integrates the sophisticated dietary logic system from archprompt.txt
