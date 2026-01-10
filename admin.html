@@ -618,11 +618,136 @@
                 </button>
             </div>
 
-            <!-- AI Prompt Editor -->
+            <!-- Multi-Step Analysis Configuration -->
             <div class="card">
-                <h2><i class="fas fa-pen-fancy"></i> AI Промпт за Генериране на План</h2>
+                <h2><i class="fas fa-cogs"></i> Настройки за Multi-Step Генериране</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Системата използва 3-стъпков процес за максимална прецизност:
+                    <br>Стъпка 1: Анализ на профила | Стъпка 2: Диетична стратегия | Стъпка 3: Хранителен план
+                </div>
+            </div>
+
+            <!-- Step 1: Analysis Prompt -->
+            <div class="card">
+                <h2><i class="fas fa-search"></i> Стъпка 1: Промпт за Анализ на Профила</h2>
                 <div class="warning-box">
-                    <strong>Внимание:</strong> Променете промпта само ако знаете какво правите. Грешен промпт може да доведе до некоректни планове.
+                    <strong>Внимание:</strong> Този промпт управлява задълбоченият анализ на здравословния профил, BMR, TDEE, метаболизъм и психологически фактори.
+                </div>
+                <div class="form-group">
+                    <label for="analysisPrompt">Промпт за Анализ:</label>
+                    <textarea id="analysisPrompt" placeholder="Въведете промпт за анализ на профила..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Променливи:</strong> ${data.name}, ${data.age}, ${data.weight}, ${data.height}, ${data.goal}, ${data.sleepHours}, ${data.stressLevel} и др.
+                </div>
+                <button class="btn" onclick="saveAnalysisPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Анализ
+                </button>
+                <button class="btn" onclick="resetAnalysisPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
+            <!-- Step 2: Strategy Prompt -->
+            <div class="card">
+                <h2><i class="fas fa-chess"></i> Стъпка 2: Промпт за Диетична Стратегия</h2>
+                <div class="warning-box">
+                    <strong>Внимание:</strong> Този промпт създава персонализирана диетична стратегия базирана на анализа от Стъпка 1.
+                </div>
+                <div class="form-group">
+                    <label for="strategyPrompt">Промпт за Стратегия:</label>
+                    <textarea id="strategyPrompt" placeholder="Въведете промпт за диетична стратегия..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Важно:</strong> Този промпт получава и анализа от Стъпка 1 като контекст.
+                </div>
+                <button class="btn" onclick="saveStrategyPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Стратегия
+                </button>
+                <button class="btn" onclick="resetStrategyPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
+            <!-- Step 3: Meal Plan Prompt -->
+            <div class="card">
+                <h2><i class="fas fa-utensils"></i> Стъпка 3: Промпт за Хранителен План</h2>
+                <div class="warning-box">
+                    <strong>Внимание:</strong> Този промпт генерира конкретния 7-дневен хранителен план с ястия базирани на анализа и стратегията.
+                </div>
+                <div class="form-group">
+                    <label for="mealPlanPrompt">Промпт за Хранителен План:</label>
+                    <textarea id="mealPlanPrompt" placeholder="Въведете промпт за хранителен план..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Важно:</strong> Този промпт получава анализа и стратегията като контекст за по-добра индивидуализация.
+                </div>
+                <button class="btn" onclick="saveMealPlanPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Хранителен План
+                </button>
+                <button class="btn" onclick="resetMealPlanPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
+            <!-- Validation Settings -->
+            <div class="card">
+                <h2><i class="fas fa-check-circle"></i> Настройки за Валидация на Плана</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Конфигурирайте правилата за проверка на генерираните планове преди да бъдат показани на потребителите.
+                </div>
+                
+                <div class="form-group">
+                    <label for="minMealsPerDay">Минимален брой хранения на ден:</label>
+                    <input type="number" id="minMealsPerDay" min="1" max="6" value="3">
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxMealsPerDay">Максимален брой хранения на ден:</label>
+                    <input type="number" id="maxMealsPerDay" min="2" max="8" value="5">
+                </div>
+                
+                <div class="form-group">
+                    <label for="minCaloriesPerMeal">Минимални калории на хранене:</label>
+                    <input type="number" id="minCaloriesPerMeal" min="50" max="500" value="150">
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxCaloriesPerMeal">Максимални калории на хранене:</label>
+                    <input type="number" id="maxCaloriesPerMeal" min="300" max="2000" value="800">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="validateMacros" checked>
+                        Валидирай макронутриенти (протеини, въглехидрати, мазнини)
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="validateCaloriesWithGoal" checked>
+                        Проверявай съответствието на калориите с целта
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="validateMedicalConditions" checked>
+                        Проверявай съответствието с медицинските състояния
+                    </label>
+                </div>
+                
+                <button class="btn" onclick="saveValidationSettings()">
+                    <i class="fas fa-save"></i> Запази Настройките за Валидация
+                </button>
+            </div>
+
+            <!-- Old AI Prompt Editor (Legacy - for backward compatibility) -->
+            <div class="card">
+                <h2><i class="fas fa-pen-fancy"></i> AI Промпт за Генериране на План (Legacy)</h2>
+                <div class="warning-box">
+                    <strong>Внимание:</strong> Това е старият промпт. Използвайте Multi-Step промптите по-горе за по-добра контрола.
                 </div>
                 <div class="form-group">
                     <label for="aiPrompt">Промпт Шаблон:</label>
@@ -801,6 +926,64 @@
 
 ПОМНИ: Кратко, ясно, прост език, максимум 1 въпрос!`;
 
+        // Default prompts for multi-step generation
+        const DEFAULT_ANALYSIS_PROMPT = `Ти си ИЗКЛЮЧИТЕЛЕН СПЕЦИАЛИСТ с дълбоки познания в МЕДИЦИНА, ПСИХОЛОГИЯ и ДИЕТЕТИКА, базирани на най-новите научни проучвания и клинична практика.
+
+Направи ЗАДЪЛБОЧЕН ХОЛИСТИЧЕН АНАЛИЗ на този клиент:
+
+ОСНОВНИ ДАННИ:
+- Име: \${data.name}
+- Пол: \${data.gender}
+- Възраст: \${data.age} години
+- Ръст: \${data.height} см
+- Тегло: \${data.weight} кг
+- Цел: \${data.goal}
+
+ЗДРАВОСЛОВЕН ПРОФИЛ:
+- Сън: \${data.sleepHours} часа
+- Хронотип: \${data.chronotype}
+- Активност през деня: \${data.dailyActivityLevel}
+- Стрес: \${data.stressLevel}
+- Спортна активност: \${data.sportActivity}
+
+КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ:
+- ВСИЧКО трябва да бъде ИЗЧИСЛЕНО индивидуално
+- BMR, TDEE, калории, макронутриенти - ВСИЧКИ прецизно изчислени
+- Вземи предвид АБСОЛЮТНО ВСИЧКИ параметри
+
+Върни JSON с ДЕТАЙЛЕН анализ (НИКАКВИ универсални стойности).`;
+
+        const DEFAULT_STRATEGY_PROMPT = `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
+
+КЛИЕНТ: \${data.name}, \${data.age} год., Цел: \${data.goal}
+
+АНАЛИЗ:
+\${JSON.stringify(analysis, null, 2)}
+
+ПРЕДПОЧИТАНИЯ:
+- Диетични предпочитания: \${JSON.stringify(data.dietPreference || [])}
+- Не обича/непоносимост: \${data.dietDislike || 'Няма'}
+- Любими храни: \${data.dietLove || 'Няма'}
+
+КРИТИЧНО ВАЖНО - ИНДИВИДУАЛИЗАЦИЯ:
+Създай ХОЛИСТИЧНА стратегия която отчита медицински състояния, цели, предпочитания и всички анализирани фактори.
+
+Върни JSON със стратегия (БЕЗ универсални препоръки).`;
+
+        const DEFAULT_MEAL_PLAN_PROMPT = `Базирайки се на анализа и стратегията, създай конкретен 7-дневен хранителен план:
+
+КЛИЕНТ: \${data.name}
+ПРЕПОРЪЧИТЕЛНИ КАЛОРИИ: \${recommendedCalories}
+ДИЕТИЧЕН МОДИФИКАТОР: \${strategy.dietaryModifier}
+
+Създай РАЗНООБРАЗЕН и ВКУСЕН план с:
+- 3-5 хранения на ден
+- Точно изчислени калории за всяко хранене
+- Български кухня и достъпни продукти
+- Разнообразие между дните
+
+Върни JSON с weekPlan (day1-day7), всеки ден с meals масив.`;
+
         // Check if logged in
         function checkAuth() {
             const isLoggedIn = sessionStorage.getItem('adminLoggedIn');
@@ -869,6 +1052,23 @@
                                 document.getElementById('modificationPrompt').value = config.modificationPrompt;
                                 localStorage.setItem('adminModificationPrompt', config.modificationPrompt);
                             }
+                            // Load multi-step prompts
+                            if (config.analysisPrompt) {
+                                document.getElementById('analysisPrompt').value = config.analysisPrompt;
+                                localStorage.setItem('adminAnalysisPrompt', config.analysisPrompt);
+                            }
+                            if (config.strategyPrompt) {
+                                document.getElementById('strategyPrompt').value = config.strategyPrompt;
+                                localStorage.setItem('adminStrategyPrompt', config.strategyPrompt);
+                            }
+                            if (config.mealPlanPrompt) {
+                                document.getElementById('mealPlanPrompt').value = config.mealPlanPrompt;
+                                localStorage.setItem('adminMealPlanPrompt', config.mealPlanPrompt);
+                            }
+                            // Load validation settings
+                            if (config.validationSettings) {
+                                loadValidationSettingsFromConfig(config.validationSettings);
+                            }
                             return; // Successfully loaded from server
                         }
                     }
@@ -892,6 +1092,19 @@
 
                 const savedModificationPrompt = localStorage.getItem('adminModificationPrompt') || DEFAULT_MODIFICATION_PROMPT;
                 document.getElementById('modificationPrompt').value = savedModificationPrompt;
+
+                // Load multi-step prompts
+                const savedAnalysisPrompt = localStorage.getItem('adminAnalysisPrompt') || DEFAULT_ANALYSIS_PROMPT;
+                document.getElementById('analysisPrompt').value = savedAnalysisPrompt;
+
+                const savedStrategyPrompt = localStorage.getItem('adminStrategyPrompt') || DEFAULT_STRATEGY_PROMPT;
+                document.getElementById('strategyPrompt').value = savedStrategyPrompt;
+
+                const savedMealPlanPrompt = localStorage.getItem('adminMealPlanPrompt') || DEFAULT_MEAL_PLAN_PROMPT;
+                document.getElementById('mealPlanPrompt').value = savedMealPlanPrompt;
+
+                // Load validation settings
+                loadValidationSettingsFromLocalStorage();
 
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -1025,6 +1238,189 @@
             } catch (error) {
                 console.error('Error saving modification prompt:', error);
                 showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Analysis Prompt (Step 1)
+        async function saveAnalysisPrompt() {
+            const prompt = document.getElementById('analysisPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за анализ не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminAnalysisPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'analysis', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за анализ запазен успешно!');
+            } catch (error) {
+                console.error('Error saving analysis prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Strategy Prompt (Step 2)
+        async function saveStrategyPrompt() {
+            const prompt = document.getElementById('strategyPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за стратегия не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminStrategyPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'strategy', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за стратегия запазен успешно!');
+            } catch (error) {
+                console.error('Error saving strategy prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Meal Plan Prompt (Step 3)
+        async function saveMealPlanPrompt() {
+            const prompt = document.getElementById('mealPlanPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за хранителен план не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminMealPlanPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'mealplan', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за хранителен план запазен успешно!');
+            } catch (error) {
+                console.error('Error saving meal plan prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Reset Analysis Prompt
+        function resetAnalysisPrompt() {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта за анализ по подразбиране?')) {
+                document.getElementById('analysisPrompt').value = DEFAULT_ANALYSIS_PROMPT;
+                showSuccess('Промпт за анализ възстановен по подразбиране.');
+            }
+        }
+
+        // Reset Strategy Prompt
+        function resetStrategyPrompt() {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта за стратегия по подразбиране?')) {
+                document.getElementById('strategyPrompt').value = DEFAULT_STRATEGY_PROMPT;
+                showSuccess('Промпт за стратегия възстановен по подразбиране.');
+            }
+        }
+
+        // Reset Meal Plan Prompt
+        function resetMealPlanPrompt() {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта за хранителен план по подразбиране?')) {
+                document.getElementById('mealPlanPrompt').value = DEFAULT_MEAL_PLAN_PROMPT;
+                showSuccess('Промпт за хранителен план възстановен по подразбиране.');
+            }
+        }
+
+        // Save Validation Settings
+        async function saveValidationSettings() {
+            const settings = {
+                minMealsPerDay: parseInt(document.getElementById('minMealsPerDay').value),
+                maxMealsPerDay: parseInt(document.getElementById('maxMealsPerDay').value),
+                minCaloriesPerMeal: parseInt(document.getElementById('minCaloriesPerMeal').value),
+                maxCaloriesPerMeal: parseInt(document.getElementById('maxCaloriesPerMeal').value),
+                validateMacros: document.getElementById('validateMacros').checked,
+                validateCaloriesWithGoal: document.getElementById('validateCaloriesWithGoal').checked,
+                validateMedicalConditions: document.getElementById('validateMedicalConditions').checked
+            };
+            
+            // Validate settings
+            if (settings.minMealsPerDay >= settings.maxMealsPerDay) {
+                showError('Минималният брой хранения трябва да е по-малък от максималния!');
+                return;
+            }
+            if (settings.minCaloriesPerMeal >= settings.maxCaloriesPerMeal) {
+                showError('Минималните калории трябва да са по-малко от максималните!');
+                return;
+            }
+            
+            localStorage.setItem('adminValidationSettings', JSON.stringify(settings));
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-validation-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ settings })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Настройките за валидация запазени успешно!');
+            } catch (error) {
+                console.error('Error saving validation settings:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Load Validation Settings from Config
+        function loadValidationSettingsFromConfig(settings) {
+            if (settings.minMealsPerDay) document.getElementById('minMealsPerDay').value = settings.minMealsPerDay;
+            if (settings.maxMealsPerDay) document.getElementById('maxMealsPerDay').value = settings.maxMealsPerDay;
+            if (settings.minCaloriesPerMeal) document.getElementById('minCaloriesPerMeal').value = settings.minCaloriesPerMeal;
+            if (settings.maxCaloriesPerMeal) document.getElementById('maxCaloriesPerMeal').value = settings.maxCaloriesPerMeal;
+            if (settings.validateMacros !== undefined) document.getElementById('validateMacros').checked = settings.validateMacros;
+            if (settings.validateCaloriesWithGoal !== undefined) document.getElementById('validateCaloriesWithGoal').checked = settings.validateCaloriesWithGoal;
+            if (settings.validateMedicalConditions !== undefined) document.getElementById('validateMedicalConditions').checked = settings.validateMedicalConditions;
+            
+            localStorage.setItem('adminValidationSettings', JSON.stringify(settings));
+        }
+
+        // Load Validation Settings from LocalStorage
+        function loadValidationSettingsFromLocalStorage() {
+            const savedSettings = localStorage.getItem('adminValidationSettings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    loadValidationSettingsFromConfig(settings);
+                } catch (error) {
+                    console.error('Error loading validation settings:', error);
+                }
             }
         }
 
