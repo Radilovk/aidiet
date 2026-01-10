@@ -557,7 +557,7 @@ async function handleChat(request, env) {
  */
 
 // Token limit for meal plan generation - increased to ensure all 7 days with 3-4 meals each are generated
-// Note: This is the OUTPUT token limit. Input prompt is optimized for efficiency while preserving all criteria.
+// Note: This is the OUTPUT token limit. Input prompt formatting is optimized to reduce token count while preserving all analysis criteria and requirements.
 const MEAL_PLAN_TOKEN_LIMIT = 5000;
 
 /**
