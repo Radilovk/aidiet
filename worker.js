@@ -809,8 +809,12 @@ JSON ФОРМАТ:
  * Step 2: Generate prompt for dietary strategy
  */
 function generateStrategyPrompt(data, analysis) {
-  // Create compact analysis summary
-  const analysisSummary = `BMR: ${analysis.bmr || 'N/A'}, TDEE: ${analysis.tdee || 'N/A'}, Калории: ${analysis.recommendedCalories || 'N/A'}, Макроси: ${JSON.stringify(analysis.macroRatios || {})}, Шанс успех: ${analysis.successChance || 'N/A'}, Ключови проблеми: ${(analysis.keyProblems || []).map(p => p.title).join(', ')}`;
+  // Create compact analysis summary with safe property access
+  const keyProblemsStr = (analysis.keyProblems || [])
+    .filter(p => p && p.title)  // Safely filter problems with title
+    .map(p => p.title)
+    .join(', ') || 'няма';
+  const analysisSummary = `BMR: ${analysis.bmr || 'N/A'}, TDEE: ${analysis.tdee || 'N/A'}, Калории: ${analysis.recommendedCalories || 'N/A'}, Макроси: ${JSON.stringify(analysis.macroRatios || {})}, Шанс успех: ${analysis.successChance || 'N/A'}, Ключови проблеми: ${keyProblemsStr}`;
   
   return `Определи оптималната диетична стратегия за ${data.name}.
 
@@ -911,13 +915,20 @@ function generateMealPlanPrompt(data, analysis, strategy) {
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   
   // Create compact summary of analysis instead of full JSON
-  const analysisSummary = `BMR: ${bmr}, Калории: ${recommendedCalories}, Макроси: ${JSON.stringify(analysis.macroRatios || {})}, Ключови проблеми: ${(analysis.keyProblems || []).map(p => p.title).join(', ')}`;
+  const analysisSummary = `BMR: ${bmr}, Калории: ${recommendedCalories}, Макроси: ${JSON.stringify(analysis.macroRatios || {})}, Ключови проблеми: ${(analysis.keyProblems || []).filter(p => p && p.title).map(p => p.title).join(', ')}`;
   
   // Create compact summary of strategy
   const strategySummary = `${strategy.dietType || 'Балансирана диета'}, ${strategy.weeklyMealPattern || 'стандартна схема'}, Ключови принципи: ${(strategy.keyPrinciples || []).slice(0, 3).join('; ')}`;
   
-  // Food restrictions
-  const foodsToAvoid = [...(strategy.foodsToAvoid || []), ...(data.dietDislike ? data.dietDislike.split(',').map(f => f.trim()) : [])].join(', ') || 'няма';
+  // Food restrictions - safely handle dietDislike as string or array
+  const dietDislikeList = data.dietDislike 
+    ? (typeof data.dietDislike === 'string' 
+        ? data.dietDislike.split(',').map(f => f.trim()) 
+        : Array.isArray(data.dietDislike) 
+          ? data.dietDislike 
+          : [])
+    : [];
+  const foodsToAvoid = [...(strategy.foodsToAvoid || []), ...dietDislikeList].join(', ') || 'няма';
   const foodsToInclude = (strategy.foodsToInclude || []).join(', ') || data.dietLove || 'няма';
   
   return `Създай ИНДИВИДУАЛЕН 7-дневен хранителен план за ${data.name}.
@@ -1384,7 +1395,10 @@ async function getChatPrompts(env) {
  * Call AI model (placeholder for Gemini or OpenAI)
  */
 async function callAIModel(env, prompt, maxTokens = null) {
-  // Estimate input token count (rough approximation: ~4 chars per token)
+  // Estimate input token count
+  // Note: This is a rough approximation (~4 chars per token for mixed Cyrillic/Latin text)
+  // Actual tokenization varies by model. This estimate is conservative and sufficient
+  // for identifying extremely large prompts that may cause issues.
   const estimatedInputTokens = Math.ceil(prompt.length / 4);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
