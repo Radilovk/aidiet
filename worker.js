@@ -118,6 +118,43 @@ function calculateBMI(data) {
 }
 
 /**
+ * Helper: Extract BMR from analysis or calculate it
+ */
+function extractOrCalculateBMR(analysis, data) {
+  let bmr;
+  if (analysis && analysis.bmr) {
+    const bmrMatch = String(analysis.bmr).match(/\d+/);
+    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+  }
+  if (!bmr) {
+    bmr = calculateBMR(data);
+  }
+  return bmr;
+}
+
+/**
+ * Helper: Extract recommended calories from analysis or calculate based on goal
+ */
+function extractOrCalculateRecommendedCalories(analysis, data, bmr) {
+  let recommendedCalories;
+  if (analysis && analysis.recommendedCalories) {
+    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+  }
+  if (!recommendedCalories) {
+    const tdee = calculateTDEE(bmr, data.sportActivity);
+    if (data.goal === 'Отслабване') {
+      recommendedCalories = Math.round(tdee * 0.85);
+    } else if (data.goal === 'Покачване на мускулна маса') {
+      recommendedCalories = Math.round(tdee * 1.1);
+    } else {
+      recommendedCalories = tdee;
+    }
+  }
+  return recommendedCalories;
+}
+
+/**
  * Detect goal contradictions (e.g., underweight person wanting to lose weight)
  * Returns an object with { hasContradiction: boolean, warningData: object }
  */
@@ -743,31 +780,9 @@ function generatePromptFromTemplate(template, data, analysis = null, strategy = 
  * Special handling for meal plan with BMR, calories, and strategy info
  */
 function generateMealPlanPromptFromTemplate(template, data, analysis, strategy) {
-  // Calculate BMR and recommended calories
-  let bmr;
-  if (analysis.bmr) {
-    const bmrMatch = String(analysis.bmr).match(/\d+/);
-    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
-  }
-  if (!bmr) {
-    bmr = calculateBMR(data);
-  }
-  
-  let recommendedCalories;
-  if (analysis.recommendedCalories) {
-    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
-  }
-  if (!recommendedCalories) {
-    const tdee = calculateTDEE(bmr, data.sportActivity);
-    if (data.goal === 'Отслабване') {
-      recommendedCalories = Math.round(tdee * 0.85);
-    } else if (data.goal === 'Покачване на мускулна маса') {
-      recommendedCalories = Math.round(tdee * 1.1);
-    } else {
-      recommendedCalories = tdee;
-    }
-  }
+  // Use helper functions to get BMR and recommended calories
+  const bmr = extractOrCalculateBMR(analysis, data);
+  const recommendedCalories = extractOrCalculateRecommendedCalories(analysis, data, bmr);
   
   return generatePromptFromTemplate(template, data, analysis, strategy, recommendedCalories);
 }
@@ -1103,31 +1118,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, mealPl
   const weekPlan = {};
   const previousDays = []; // Track previous days for variety
   
-  // Parse BMR and calories (same as original function)
-  let bmr;
-  if (analysis.bmr) {
-    const bmrMatch = String(analysis.bmr).match(/\d+/);
-    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
-  }
-  if (!bmr) {
-    bmr = calculateBMR(data);
-  }
-  
-  let recommendedCalories;
-  if (analysis.recommendedCalories) {
-    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
-  }
-  if (!recommendedCalories) {
-    const tdee = calculateTDEE(bmr, data.sportActivity);
-    if (data.goal === 'Отслабване') {
-      recommendedCalories = Math.round(tdee * 0.85);
-    } else if (data.goal === 'Покачване на мускулна маса') {
-      recommendedCalories = Math.round(tdee * 1.1);
-    } else {
-      recommendedCalories = tdee;
-    }
-  }
+  // Use helper functions to get BMR and calories
+  const bmr = extractOrCalculateBMR(analysis, data);
+  const recommendedCalories = extractOrCalculateRecommendedCalories(analysis, data, bmr);
   
   // Generate meal plan in chunks
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
