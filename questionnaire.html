@@ -381,6 +381,133 @@
         /* Helper for hiding */
         .hidden { display: none !important; }
 
+        /* Quick Complete Button */
+        .quick-complete-banner {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-hover));
+            color: white;
+            padding: 16px 24px;
+            border-radius: 50px;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 999;
+            animation: slideDownBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .quick-complete-banner.show {
+            display: flex;
+        }
+        
+        .quick-complete-banner:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+        }
+        
+        .quick-complete-banner:active {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        @keyframes slideDownBounce {
+            0% {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            60% {
+                transform: translateX(-50%) translateY(10px);
+                opacity: 1;
+            }
+            80% {
+                transform: translateX(-50%) translateY(-5px);
+            }
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .quick-complete-icon {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .quick-complete-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .quick-complete-title {
+            font-weight: 700;
+            font-size: 1rem;
+            line-height: 1.2;
+        }
+        
+        .quick-complete-subtitle {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+        
+        .quick-complete-close {
+            margin-left: 8px;
+            padding: 4px 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+        
+        .quick-complete-close:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .quick-complete-banner {
+                top: 70px;
+                left: 10px;
+                right: 10px;
+                transform: translateX(0);
+                max-width: calc(100% - 20px);
+            }
+            
+            .quick-complete-banner:hover {
+                transform: translateX(0) translateY(-2px);
+            }
+            
+            .quick-complete-banner:active {
+                transform: translateX(0) translateY(0);
+            }
+            
+            @keyframes slideDownBounce {
+                0% {
+                    transform: translateX(0) translateY(-100px);
+                    opacity: 0;
+                }
+                60% {
+                    transform: translateX(0) translateY(10px);
+                    opacity: 1;
+                }
+                80% {
+                    transform: translateX(0) translateY(-5px);
+                }
+                100% {
+                    transform: translateX(0) translateY(0);
+                }
+            }
+        }
+
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
@@ -673,6 +800,20 @@
         </div>
     </div>
 
+    <!-- Quick Complete Banner -->
+    <div class="quick-complete-banner" id="quickCompleteBanner" onclick="jumpToLastStep()">
+        <div class="quick-complete-icon">
+            <i class="fas fa-bolt"></i>
+        </div>
+        <div class="quick-complete-text">
+            <div class="quick-complete-title">Към последната стъпка</div>
+            <div class="quick-complete-subtitle">Вече сте попълнили въпросника</div>
+        </div>
+        <div class="quick-complete-close" onclick="hideQuickCompleteBanner(event)">
+            <i class="fas fa-times"></i>
+        </div>
+    </div>
+
     <!-- Theme Toggle -->
     <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема">
         <i class="fas fa-moon" id="themeIcon"></i>
@@ -797,12 +938,91 @@
 
         // --- INITIALIZATION ---
         function init() {
+            // Show quick complete banner if user has saved answers and is on first question
+            checkAndShowQuickCompleteBanner();
             renderStep();
+        }
+
+        // --- QUICK COMPLETE FUNCTIONALITY ---
+        function checkAndShowQuickCompleteBanner() {
+            // Only show on first question/step
+            if (currentIndex === 0) {
+                const savedAnswers = localStorage.getItem('questionnaireAnswers');
+                if (savedAnswers) {
+                    try {
+                        const parsedAnswers = JSON.parse(savedAnswers);
+                        // Check if there are meaningful answers (more than just a couple fields)
+                        const answerCount = Object.keys(parsedAnswers).length;
+                        if (answerCount > 3) {
+                            const banner = document.getElementById('quickCompleteBanner');
+                            if (banner) {
+                                banner.classList.add('show');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error checking saved answers:', e);
+                    }
+                }
+            }
+        }
+
+        function hideQuickCompleteBanner(event) {
+            if (event) {
+                event.stopPropagation(); // Prevent triggering the jump function
+            }
+            const banner = document.getElementById('quickCompleteBanner');
+            if (banner) {
+                banner.classList.remove('show');
+            }
+        }
+
+        function jumpToLastStep() {
+            hideQuickCompleteBanner();
+            
+            // Find the last non-section question
+            let lastQuestionIndex = currentQueue.length - 1;
+            while (lastQuestionIndex >= 0 && currentQueue[lastQuestionIndex].type === 'section') {
+                lastQuestionIndex--;
+            }
+            
+            if (lastQuestionIndex >= 0) {
+                // Process all branching logic to build the full queue
+                // by simulating going through each question
+                for (let i = 0; i < lastQuestionIndex; i++) {
+                    const q = currentQueue[i];
+                    if (q.children && answers[q.id]) {
+                        const answerVal = answers[q.id];
+                        if (q.children[answerVal]) {
+                            const childrenToAdd = q.children[answerVal];
+                            // Check if children are not already in queue
+                            const nextQ = currentQueue[i + 1];
+                            if (!nextQ || nextQ.id !== childrenToAdd[0].id) {
+                                currentQueue.splice(i + 1, 0, ...childrenToAdd);
+                            }
+                        }
+                    }
+                }
+                
+                // Jump to the last question
+                currentIndex = currentQueue.length - 1;
+                
+                // If the last item is a section, go to the one before it
+                if (currentQueue[currentIndex].type === 'section' && currentIndex > 0) {
+                    currentIndex--;
+                }
+                
+                renderStep();
+            }
         }
 
         // --- CORE RENDER FUNCTION ---
         function renderStep() {
             const step = currentQueue[currentIndex];
+            
+            // Hide quick complete banner when navigating away from first question
+            if (currentIndex !== 0) {
+                hideQuickCompleteBanner();
+            }
             
             // Update Progress
             const percent = ((currentIndex + 1) / currentQueue.length) * 100;
