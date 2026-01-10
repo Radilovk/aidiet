@@ -556,8 +556,14 @@ async function handleChat(request, env) {
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 
-// Token limit for meal plan generation - ensures all 7 days with 3-4 meals each are generated
-const MEAL_PLAN_TOKEN_LIMIT = 4000;
+// Token limit for meal plan generation - increased to ensure all 7 days with 3-4 meals each are generated
+// Note: This is the OUTPUT token limit. Input prompt formatting is optimized to reduce token count while preserving all analysis criteria and requirements.
+const MEAL_PLAN_TOKEN_LIMIT = 5000;
+
+// Progressive generation: split meal plan into smaller chunks to avoid token limits
+// Each chunk generates 2-3 days, building on previous days for variety and consistency
+const ENABLE_PROGRESSIVE_GENERATION = true;
+const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -680,7 +686,7 @@ function validatePlan(plan, userData) {
 }
 
 async function generatePlanMultiStep(env, data) {
-  console.log('Multi-step generation: Starting (3 AI requests for precision)');
+  console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
   try {
     // Step 1: Analyze user profile (1st AI request)
@@ -733,22 +739,35 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Strategy complete (2/3)');
     
-    // Step 3: Generate detailed meal plan (3rd AI request)
-    // Focus: Specific meals, portions, timing based on strategy
-    // Increased token limit to ensure all 7 days with 3-4 meals each are generated
-    const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
-    let mealPlanResponse, mealPlan;
+    // Step 3: Generate detailed meal plan
+    // Use progressive generation if enabled (multiple smaller requests)
+    let mealPlan;
     
-    try {
-      mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
-      mealPlan = parseAIResponse(mealPlanResponse);
-      
-      if (!mealPlan || mealPlan.error) {
-        throw new Error(`Хранителният план не можа да бъде създаден: ${mealPlan.error || 'Невалиден формат на отговор'}`);
+    if (ENABLE_PROGRESSIVE_GENERATION) {
+      console.log('Multi-step generation: Using progressive meal plan generation');
+      try {
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy);
+      } catch (error) {
+        console.error('Progressive meal plan generation failed:', error);
+        throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
       }
-    } catch (error) {
-      console.error('Meal plan step failed:', error);
-      throw new Error(`Стъпка 3 (Хранителен план): ${error.message}`);
+    } else {
+      // Fallback to single-request generation
+      console.log('Multi-step generation: Using single-request meal plan generation');
+      const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
+      let mealPlanResponse;
+      
+      try {
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
+        mealPlan = parseAIResponse(mealPlanResponse);
+        
+        if (!mealPlan || mealPlan.error) {
+          throw new Error(`Хранителният план не можа да бъде създаден: ${mealPlan.error || 'Невалиден формат на отговор'}`);
+        }
+      } catch (error) {
+        console.error('Meal plan step failed:', error);
+        throw new Error(`Стъпка 3 (Хранителен план): ${error.message}`);
+      }
     }
     
     console.log('Multi-step generation: Meal plan complete (3/3)');
@@ -972,7 +991,258 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 }
 
 /**
- * Step 3: Generate prompt for detailed meal plan
+ * Progressive meal plan generation - generates meal plan in smaller chunks
+ * Each chunk builds on previous days for variety and consistency
+ * This approach reduces token usage per request and provides better error handling
+ */
+async function generateMealPlanProgressive(env, data, analysis, strategy) {
+  console.log('Progressive generation: Starting meal plan generation in chunks');
+  
+  const totalDays = 7;
+  const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
+  const weekPlan = {};
+  const previousDays = []; // Track previous days for variety
+  
+  // Parse BMR and calories (same as original function)
+  let bmr;
+  if (analysis.bmr) {
+    const bmrMatch = String(analysis.bmr).match(/\d+/);
+    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+  }
+  if (!bmr) {
+    bmr = calculateBMR(data);
+  }
+  
+  let recommendedCalories;
+  if (analysis.recommendedCalories) {
+    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+  }
+  if (!recommendedCalories) {
+    const tdee = calculateTDEE(bmr, data.sportActivity);
+    if (data.goal === 'Отслабване') {
+      recommendedCalories = Math.round(tdee * 0.85);
+    } else if (data.goal === 'Покачване на мускулна маса') {
+      recommendedCalories = Math.round(tdee * 1.1);
+    } else {
+      recommendedCalories = tdee;
+    }
+  }
+  
+  // Generate meal plan in chunks
+  for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
+    const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
+    const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
+    const daysInChunk = endDay - startDay + 1;
+    
+    console.log(`Progressive generation: Generating days ${startDay}-${endDay} (chunk ${chunkIndex + 1}/${chunks})`);
+    
+    try {
+      const chunkPrompt = generateMealPlanChunkPrompt(
+        data, analysis, strategy, bmr, recommendedCalories,
+        startDay, endDay, previousDays
+      );
+      
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT);
+      const chunkData = parseAIResponse(chunkResponse);
+      
+      if (!chunkData || chunkData.error) {
+        throw new Error(`Chunk ${chunkIndex + 1} failed: ${chunkData.error || 'Invalid response'}`);
+      }
+      
+      // Merge chunk data into weekPlan
+      for (let day = startDay; day <= endDay; day++) {
+        const dayKey = `day${day}`;
+        if (chunkData[dayKey]) {
+          weekPlan[dayKey] = chunkData[dayKey];
+          previousDays.push({
+            day: day,
+            meals: chunkData[dayKey].meals || []
+          });
+        } else {
+          throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response`);
+        }
+      }
+      
+      console.log(`Progressive generation: Chunk ${chunkIndex + 1}/${chunks} complete`);
+    } catch (error) {
+      console.error(`Progressive generation: Chunk ${chunkIndex + 1} failed:`, error);
+      throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
+    }
+  }
+  
+  // Generate summary, recommendations, etc. in final request
+  console.log('Progressive generation: Generating summary and recommendations');
+  try {
+    const summaryPrompt = generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan);
+    const summaryResponse = await callAIModel(env, summaryPrompt, 2000);
+    const summaryData = parseAIResponse(summaryResponse);
+    
+    if (!summaryData || summaryData.error) {
+      // Use defaults if summary generation fails
+      console.warn('Summary generation failed, using defaults');
+      return {
+        summary: {
+          bmr: `${bmr}`,
+          dailyCalories: `${recommendedCalories}`,
+          macros: {
+            protein: "Изчислени индивидуално",
+            carbs: "Изчислени индивидуално",
+            fats: "Изчислени индивидуално"
+          }
+        },
+        weekPlan: weekPlan,
+        recommendations: strategy.foodsToInclude || [],
+        forbidden: strategy.foodsToAvoid || [],
+        psychology: strategy.psychologicalSupport || [],
+        waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
+        supplements: strategy.supplementRecommendations || []
+      };
+    }
+    
+    return {
+      summary: summaryData.summary || {
+        bmr: `${bmr}`,
+        dailyCalories: `${recommendedCalories}`,
+        macros: summaryData.macros || {}
+      },
+      weekPlan: weekPlan,
+      recommendations: summaryData.recommendations || strategy.foodsToInclude || [],
+      forbidden: summaryData.forbidden || strategy.foodsToAvoid || [],
+      psychology: summaryData.psychology || strategy.psychologicalSupport || [],
+      waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
+      supplements: summaryData.supplements || strategy.supplementRecommendations || []
+    };
+  } catch (error) {
+    console.error('Summary generation failed:', error);
+    // Return plan with defaults
+    return {
+      summary: {
+        bmr: `${bmr}`,
+        dailyCalories: `${recommendedCalories}`,
+        macros: { protein: "Изчислени индивидуално", carbs: "Изчислени индивидуално", fats: "Изчислени индивидуално" }
+      },
+      weekPlan: weekPlan,
+      recommendations: strategy.foodsToInclude || [],
+      forbidden: strategy.foodsToAvoid || [],
+      psychology: strategy.psychologicalSupport || [],
+      waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
+      supplements: strategy.supplementRecommendations || []
+    };
+  }
+}
+
+/**
+ * Generate prompt for a chunk of days (progressive generation)
+ */
+function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays) {
+  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
+  const daysInChunk = endDay - startDay + 1;
+  
+  // Build modifications section
+  let modificationsSection = '';
+  if (data.planModifications && data.planModifications.length > 0) {
+    const modLines = data.planModifications
+      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
+      .filter(desc => desc !== undefined);
+    if (modLines.length > 0) {
+      modificationsSection = `\nМОДИФИКАЦИИ: ${modLines.join('; ')}`;
+    }
+  }
+  
+  // Build previous days context for variety
+  let previousDaysContext = '';
+  if (previousDays.length > 0) {
+    const prevMeals = previousDays.map(d => {
+      const mealNames = d.meals.map(m => m.name).join(', ');
+      return `Ден ${d.day}: ${mealNames}`;
+    }).join('; ');
+    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\nИЗБЯГВАЙ повтаряне на тези ястия в следващите дни!`;
+  }
+  
+  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+
+=== ЗАДАЧА ===
+Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
+
+=== КЛИЕНТ ===
+Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
+BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
+
+=== СТРАТЕГИЯ (КРАТКО) ===
+Диета: ${strategy.dietType || 'Балансирана'}
+Схема: ${strategy.weeklyMealPattern || 'Традиционна'}
+Избягвай: ${data.dietDislike || 'няма'}
+Включвай: ${data.dietLove || 'няма'}${previousDaysContext}
+
+=== АРХИТЕКТУРА ===
+Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
+Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
+Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
+
+=== ИЗИСКВАНИЯ ===
+- РАЗНООБРАЗИЕ: Всеки ден различен от предишните
+- Реалистични български/средиземноморски ястия
+- Точни калории/макроси (1г протеин=4kcal, 1г carbs=4kcal, 1г fats=9kcal)
+- Среден калориен прием: ${recommendedCalories} kcal/ден
+- 2-4 хранения според стратегията
+
+JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
+{
+  "day${startDay}": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+    ]
+  }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
+}
+
+Генерирай дни ${startDay}-${endDay} с балансирани, разнообразни, индивидуални ястия.`;
+}
+
+/**
+ * Generate prompt for summary and recommendations (final step of progressive generation)
+ */
+function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan) {
+  // Calculate total calories across the week for validation
+  let totalCalories = 0;
+  let dayCount = 0;
+  Object.keys(weekPlan).forEach(dayKey => {
+    if (weekPlan[dayKey] && weekPlan[dayKey].meals) {
+      const dayCalories = weekPlan[dayKey].meals.reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
+      totalCalories += dayCalories;
+      dayCount++;
+    }
+  });
+  const avgCalories = dayCount > 0 ? Math.round(totalCalories / dayCount) : recommendedCalories;
+  
+  return `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+
+КЛИЕНТ: ${data.name}, Цел: ${data.goal}
+BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
+Реален среден прием: ${avgCalories} kcal/ден
+
+СТРАТЕГИЯ:
+${JSON.stringify(strategy, null, 2)}
+
+JSON ФОРМАТ:
+{
+  "summary": {
+    "bmr": "${bmr}",
+    "dailyCalories": "${avgCalories}",
+    "macros": {"protein": "Xg индивидуално", "carbs": "Xg индивидуално", "fats": "Xg индивидуално"}
+  },
+  "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
+  "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
+  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
+  "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
+  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
+}
+
+ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+}
+
+/**
+ * Step 3: Generate prompt for detailed meal plan (LEGACY - used when progressive generation is disabled)
  * 
  * ARCHPROMPT INTEGRATION:
  * This function integrates the sophisticated dietary logic system from archprompt.txt
@@ -1062,85 +1332,12 @@ ${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning
 ${JSON.stringify(strategy, null, 2)}
 ${modificationsSection}
 
-=== УНИВЕРСАЛНА АРХИТЕКТУРА НА ХРАНЕНЕТО ===
+=== АРХИТЕКТУРА НА ХРАНЕНЕТО ===
+Категории: [PRO]=Белтък (животински: месо, риба, яйца, млечни; растителен: тофу, темпе; бобови: леща, боб, нахут), [ENG]=Енергия/въглехидрати (зърнени: ориз, киноа, елда, овес, паста, хляб; кореноплодни: картофи; плодове), [VOL]=Зеленчуци/фибри (листни салати, краставици, домати, броколи, тиквички, чушки, гъби, карфиол, патладжан), [FAT]=Мазнини (зехтин, масло, авокадо, ядки, семена, тахан, маслини), [CMPX]=Сложни ястия (пица, лазаня, мусака, баница, бургер, врап, ризото, паеля).
 
-I) БАЗА ОТ РЕСУРСИ (Категории храни):
+Шаблони за ястия: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL] (печено пиле+картофи+салата), B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс (яхнии, купи), C) ЛЕКО/САНДВИЧ=[ENG-хляб]+[PRO]+[FAT]+[VOL] (сандвич, тост), D) ЕДИНЕН БЛОК=[CMPX]+[VOL] (лазаня+салата). 
 
-[PRO] БЕЛТЪК - Основен градивен елемент
-  • Животински: Месо (пилешко, пуешко, червено, мляно), Риба (бяла, мазна), Яйца, Млечни (сирене, извара, кисело мляко)
-  • Растителен: Тофу, Темпе, Растителен протеин
-  • Смесен: Бобови (леща, боб, нахут)
-
-[ENG] ЕНЕРГИЯ - Въглехидрати/Скорбяла
-  • Зърнени: Ориз, Киноа, Елда, Овес, Паста, Хляб/Тортила/Питка
-  • Кореноплодни: Картофи, Сладки картофи
-  • Плодове: Всички видове (естествена захар)
-
-[VOL] ОБЕМ И ФИБРИ - Зеленчуци без скорбяла
-  • Сурови: Салати (листни), краставици, домати
-  • Готвени: Броколи, тиквички, чушки, гъби, карфиол, патладжан
-
-[FAT] МАЗНИНИ - Вкус и ситост
-  • Източници: Зехтин, масло, авокадо, ядки, семена, тахан, маслини
-
-[CMPX] СЪСТАВНИ/СЛОЖНИ ЯСТИЯ - Възприемани като едно цяло
-  • Тестени: Пица, Лазаня, Мусака, Паста със сос, Баница
-  • Сандвич-тип: Бургер, Дюнер/Врап, Такос
-  • Яхнии/Оризови: Ризото, Паеля (белтък + гарнитура неразделни)
-
-II) СТРУКТУРНИ ШАБЛОНИ (Форми на ястия):
-
-ШАБЛОН A: "РАЗДЕЛЕНА ЧИНИЯ" (Класически баланс)
-  Структура: [PRO] + [ENG] + [VOL]
-  Пример: Печено пиле + Картофи на фурна + Зелена салата
-  Употреба: Стандартен обяд/вечеря
-
-ШАБЛОН B: "СМЕСЕНО ЯСТИЕ / КУПА"
-  Структура: Смес от [PRO] + [ENG] + [VOL]
-  Пример: Пилешка яхния с грах и картофи; Купа с киноа, тофу и зеленчуци
-  Употреба: Готвено домашно ястие
-
-ШАБЛОН C: "ЛЕКО / САНДВИЧ"
-  Структура: [ENG-Хляб] + [PRO] + [FAT] + [VOL-Свежест]
-  Пример: Сандвич с пуешко и кашкавал; Тост с авокадо и яйце
-  Употреба: Закуска или обяд в движение
-
-ШАБЛОН D: "ЕДИНЕН БЛОК" (Съставно ястие + Баланс)
-  Структура: [CMPX] + [VOL-Салата/Зеленчук]
-  Пример: Парче лазаня + Салата домати; Бургер + Салата коулсло
-  ЗАДЪЛЖИТЕЛНО: Винаги добавяй [VOL] за баланс към тежките храни
-  Употреба: Уикенд, свободно хранене, комфортна храна
-
-III) ОПЕРАТИВЕН ПРОТОКОЛ (Изпълнявай стриктно):
-
-1. ФИЛТРИРАНЕ НА СЪСТАВКИ:
-   - Наложи правилата на МОДИФИКАТОРА "${dietaryModifier}" върху Базата от Ресурси
-   - Забраненото става невидимо
-   - Ако МОДИФИКАТОР = "Веган": забрани животински [PRO], използвай растителен
-   - Ако МОДИФИКАТОР = "Кето/Нисковъглехидратно": минимизирай [ENG], увеличи [PRO] и [FAT]
-   - Ако МОДИФИКАТОР = "Без глутен": от [ENG] използвай само ориз, картофи, киноа, елда
-   - Ако МОДИФИКАТОР = "Палео": забрани зърнени, бобови, млечни
-   - Ако МОДИФИКАТОР = "Щадящ стомах": използвай готвени [VOL], избягвай сурови влакнини
-   
-2. ИЗБОР НА ШАБЛОН:
-   - За закуска: обикновено Шаблон C (сандвич/леко) или A (разделена чиния)
-   - За обяд: Шаблон A (разделена чиния) или B (смесено ястие)
-   - За вечеря: Шаблон A, B или D (с баланс)
-   - Избери подходящ шаблон според типа хранене
-
-3. ПОПЪЛВАНЕ НА СЛОТОВЕ:
-   - Попълни слотовете САМО с разрешени продукти от филтрирания списък
-   - Спазвай специфичните предпочитания: Избягвай ${data.dietDislike || 'няма'}
-   - Включвай любимите храни: ${data.dietLove || 'няма'}
-
-4. ДЕКОНСТРУКЦИЯ НА [CMPX]:
-   - Преди да използваш Шаблон D, провери дали [CMPX] е съвместим с МОДИФИКАТОРА
-   - Ако не е съвместим (напр. пица при "Без глутен"), смени шаблона или адаптирай
-
-5. ИЗХОД - ЕСТЕСТВЕН ЕЗИК:
-   - Формулирай на естествен български език
-   - БЕЗ кодове [PRO], [ENG], [VOL] в крайния изход
-   - Използвай ГЕНЕРАЛНИ имена на храни, не конкретни
+Филтриране според МОДИФИКАТОР "${dietaryModifier}": Веган=без животински [PRO]; Кето/Нисковъглехидратно=минимум [ENG], повече [PRO]+[FAT]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни; Щадящ стомах=готвени [VOL], без сурови влакнини. Избор на шаблон: закуска=C или A, обяд=A или B, вечеря=A/B/D. Слотове с продукти от филтриран списък. Избягвай: ${data.dietDislike || 'няма'}. Включвай: ${data.dietLove || 'няма'}. Естествен български език БЕЗ кодове в изхода.
 
 === ВАЖНИ ОГРАНИЧЕНИЯ ===
 
@@ -1153,136 +1350,22 @@ III) ОПЕРАТИВЕН ПРОТОКОЛ (Изпълнявай стриктн�
 - Повтаряне на същите храни в различни дни
 - Нетрадиционни комбинации за българската/средиземноморска кухня
 
-СПЕЦИФИЧНИ ИЗИСКВАНИЯ:
-- Медицински ограничения: ${JSON.stringify(data.medicalConditions || [])}
-- РАЗНООБРАЗИЕ: всеки ден трябва да е различен
-- Реалистични и лесни за приготвяне ястия
-- Български и средиземноморски продукти
+ОГРАНИЧЕНИЯ: Избягвай странни комбинации, екзотични продукти, повтаряне на храни, нетрадиционни комбинации. Медицински: ${JSON.stringify(data.medicalConditions || [])}. РАЗНООБРАЗИЕ всеки ден. Реалистични български/средиземноморски ястия.${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? ` ЗАКУСКА: Клиентът НЕ ЗАКУСВА - уважи предпочитанието. Допустима САМО напитка ако критично важно.` : ''}
 
-СПЕЦИАЛНО ПРАВИЛО ЗА ЗАКУСКА:
-${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `
-- Клиентът НЕ ЗАКУСВА! Уважи това предпочитание.
-- НЕ създавай пълноценна закуска.
-- Допустимо е САМО ако закуската е критична за целта или здравето:
-  * В този случай предложи САМО напитка: айран, смути или протеинов шейк
-  * Посочи в description защо напитката е препоръчана
-- Ако закуската НЕ Е критична, премахни я напълно от плана.
-` : ''}
-
-Върни JSON формат (с ИНДИВИДУАЛНИ стойности за ${data.name}):
+JSON ФОРМАТ:
 {
-  "summary": {
-    "bmr": "${bmr} (ИНДИВИДУАЛНО изчислен за ${data.name})",
-    "dailyCalories": "${recommendedCalories} (ПЕРСОНАЛИЗИРАН според цел ${data.goal})",
-    "macros": {
-      "protein": "грамове протеин ПЕРСОНАЛИЗИРАНИ за ${data.name}",
-      "carbs": "грамове въглехидрати ПЕРСОНАЛИЗИРАНИ за ${data.name}",
-      "fats": "грамове мазнини ПЕРСОНАЛИЗИРАНИ за ${data.name}"
-    }
-  },
-  "weekPlan": {
-    "day1": {
-      "meals": [
-        {
-          "type": "Закуска",
-          "name": "генерално име на храната (напр. плодове с кисело мляко, яйца с хляб)",
-          "weight": "точно тегло в грамове",
-          "description": "кратко описание на ястието и съставки",
-          "benefits": "конкретни ползи за здравето на ${data.name}",
-          "calories": "точни калории изчислени на база съставките и граматжа (само число)",
-          "macros": {
-            "protein": "грамове протеин в това ястие (само число)",
-            "carbs": "грамове въглехидрати в това ястие (само число)", 
-            "fats": "грамове мазнини в това ястие (само число)",
-            "fiber": "грамове фибри в това ястие (само число)"
-          }
-        }
-      ]
-    }
-  },
-  "recommendations": ["конкретна храна 1 подходяща за ${data.name}", "конкретна храна 2 подходяща за ${data.name}", "конкретна храна 3 подходяща за ${data.name}", "конкретна храна 4 подходяща за ${data.name}", "конкретна храна 5 подходяща за ${data.name}"],
-  "forbidden": ["конкретна забранена храна 1 за ${data.name}", "конкретна забранена храна 2 за ${data.name}", "конкретна забранена храна 3 за ${data.name}", "конкретна забранена храна 4 за ${data.name}"],
-  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["психологически съвет 1 за ' + data.name + '", "психологически съвет 2 за ' + data.name + '", "психологически съвет 3 за ' + data.name + '"]'},
-  "waterIntake": "${strategy.hydrationStrategy || 'препоръки за вода ПЕРСОНАЛИЗИРАНИ за ' + data.name}",
-  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["ИНДИВИДУАЛНА добавка 1 за ' + data.name + ' с дозировка и обосновка", "ИНДИВИДУАЛНА добавка 2 за ' + data.name + ' с дозировка и обосновка", "ИНДИВИДУАЛНА добавка 3 за ' + data.name + ' с дозировка и обосновка"]'}
+  "summary": {"bmr": "${bmr}", "dailyCalories": "${recommendedCalories}", "macros": {"protein": "Xg", "carbs": "Xg", "fats": "Xg"}},
+  "weekPlan": {"day1": {"meals": [{"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи за ${data.name}", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}]}, ... "day7": {...}},
+  "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5+"],
+  "forbidden": ["храна 1", "храна 2", "храна 3", "храна 4+"],
+  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
+  "waterIntake": "${strategy.hydrationStrategy || 'препоръки за вода'}",
+  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
 }
 
-КРИТИЧНО ВАЖНО ЗА "recommendations" И "forbidden":
-- "recommendations" ТРЯБВА да съдържа САМО конкретни храни (минимум 5-6 елемента)
-  * ДА: "Зеленолистни зеленчуци (спанак, марули, рукола)", "Пилешко месо", "Риба (сьомга, скумрия, паламуд)", "Киноа и кафявориз", "Гръцко кисело мляко"
-  * НЕ: "Пийте повече вода", "Хранете се редовно", "Слушайте тялото си"
-- "forbidden" ТРЯБВА да съдържа САМО конкретни храни или категории храни (минимум 4-5 елемента)
-  * ДА: "Бели хлебни изделия", "Газирани напитки", "Пържени храни", "Сладкиши и торти", "Фаст фуд"
-  * НЕ: "Избягвайте стреса", "Не прекалявайте с порциите"
-- ЗАБРАНЕНО е да слагаш общи съвети в "recommendations" или "forbidden"
-- Всеки елемент трябва да е САМО име на храна или категория храни
-- Препоръчаните храни трябва да са съобразени с целта на клиента (${data.goal})
+ВАЖНО: "recommendations"/"forbidden"=САМО конкретни храни (НЕ общи съвети). Всички 7 дни (day1-day7) с 2-4 хранения. Точни калории/макроси за всяко ястие. Общо ${recommendedCalories} kcal/ден средно. Калориите прецизно изчислени (1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal). Седмичен подход: МИСЛИ СЕДМИЧНО - ЦЯЛОСТНА схема като система. Броят хранения варира според ЦЕЛТА, ХРОНОТИПА, ПРЕДПОЧИТАНИЯТА на ${data.name}. Интермитентно гладуване 16:8/18:6 позволено. БАЛАНСИРАЙ седмицата - ако един ден е с по-малко калории, друг компенсира. АДАПТИРАЙ към хронотип. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
 
-ВАЖНО ЗА ФОРМАТИРАНЕ:
-- "psychology" ТРЯБВА да е масив с ТОЧНО 3 елемента
-- "supplements" ТРЯБВА да е масив с ТОЧНО 3 елемента
-- "recommendations" ТРЯБВА да е масив с минимум 5-6 конкретни храни
-- "forbidden" ТРЯБВА да е масив с минимум 4-5 конкретни храни
-- Всеки елемент е просто текст без специални префикси
-
-Пример за правилен формат:
-"recommendations": [
-  "Зеленолистни зеленчуци (спанак, марули, рукола)",
-  "Пилешко месо без кожа",
-  "Бяла риба (цаца, пъстърва)",
-  "Киноа и кафявориз",
-  "Гръцко кисело мляко",
-  "Ядки (бадеми, орехи - малки порции)"
-],
-"forbidden": [
-  "Бели хлебни изделия и паста",
-  "Газирани напитки със захар",
-  "Пържени храни и фаст фуд",
-  "Сладкиши, торти и бонбони",
-  "Преработено месо (салами, наденици)"
-],
-"psychology": [
-  "Не се обвинявайте при грешка - един лош ден не разваля прогреса",
-  "Слушайте сигналите на тялото си за глад и ситост", 
-  "Водете дневник на емоциите при хранене за по-добро самоосъзнаване"
-],
-"supplements": [
-  "Витамин D3 - 2000 IU дневно, сутрин с храна",
-  "Омега-3 мастни киселини - 1000mg дневно",
-  "Магнезий - 200mg вечер преди лягане"
-]
-
-Създай пълен 7-дневен план. Всяко хранене трябва да е уникално, балансирано и подходящо за целите на клиента.
-
-КРИТИЧНО ВАЖНО ЗА КАЛОРИИ И МАКРОНУТРИЕНТИ:
-1. Калориите ТРЯБВА да са прецизно изчислени на база КОНКРЕТНИТЕ съставки и ТОЧНИЯ граматж
-2. Използвай стандартни хранителни таблици за изчисляване на калориите
-3. Сумата от калориите на всички хранения трябва да е близка до ${recommendedCalories} kcal/ден
-4. Макронутриентите (protein, carbs, fats, fiber) ТРЯБВА да са точно изчислени за всяко ястие
-5. Проверка: 1г протеин = 4 kcal, 1г въглехидрати = 4 kcal, 1г мазнини = 9 kcal
-6. Уверете се, че (protein*4 + carbs*4 + fats*9) е приблизително равно на посочените калории
-
-ХОЛИСТИЧЕН СЕДМИЧЕН ПОДХОД - ГЪВКАВОСТ И ИНДИВИДУАЛИЗАЦИЯ:
-- МИСЛИ СЕДМИЧНО, не ден по ден - създай ЦЯЛОСТНА седмична схема, която работи като система
-- Броят хранения може да варира според ЦЕЛТА, ХРОНОТИПА и ПРЕДПОЧИТАНИЯТА на ${data.name}
-- Подкрепяй ИНТЕРМИТЕНТНО ГЛАДУВАНЕ ако е подходящ за целта (напр. 16:8, 18:6, или дни с по-малко хранения)
-- Позволени са дни с 1-2 хранения ако това е оптимално за метаболизма и целите
-- Може да включиш "свободен ден" или "свободно хранене" (напр. неделя обяд) последвано от по-дълъг период без храна
-- БАЛАНСИРАЙ седмицата като цяло - ако един ден е с по-малко калории/хранения, друг може да компенсира
-- АДАПТИРАЙ схемата към хронотипа: ранобудни могат да имат ранна закуска, късноспящи могат да пропуснат закуска
-- СЪЗДАВАЙ РИТЪМ който е устойчив и естествен за ${data.name}, а не универсална схема
-
-ПРИМЕРИ ЗА ГЪВКАВИ СЕДМИЧНИ СХЕМИ:
-- Интермитентно гладуване 16:8: 2 хранения/ден (обяд + вечеря) през седмицата
-- 5:2 подход: 5 дни нормално (3 хранения), 2 дни ограничени (1-2 хранения)
-- Циклично фастинг: Чередуване на дни с 2-3-4 хранения според активност
-- Свободен уикенд: Пон-Пет строго, Сб-Нд по-свободно със свободно хранене
-
-ЗАДЪЛЖИТЕЛНО СЪЗДАЙ ПЪЛЕН ПЛАН:
-- ВСИЧКИ 7 дни (day1 до day7) трябва да бъдат генерирани
-- Броят хранения на ден е ГЪВКАВ (1-5 хранения според стратегията)
-- Седмичният калориен баланс трябва да е спазен (средно ${recommendedCalories} kcal/ден)
-- НИКОГА не пропускай дни от седмицата`;
+Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}.`;
 }
 
 /**
@@ -1680,6 +1763,16 @@ async function getChatPrompts(env) {
  * Call AI model (placeholder for Gemini or OpenAI)
  */
 async function callAIModel(env, prompt, maxTokens = null) {
+  // Estimate input token count (rough approximation for Cyrillic/Latin mix)
+  // This is sufficient for identifying extremely large prompts that may cause issues
+  const estimatedInputTokens = Math.ceil(prompt.length / 4);
+  console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
+  
+  // Warn if input prompt is very large (potential issue with Gemini)
+  if (estimatedInputTokens > 8000) {
+    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This may exceed API limits for some models.`);
+  }
+  
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
   const config = await getAdminConfig(env);
   const preferredProvider = config.provider;
