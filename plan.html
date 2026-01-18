@@ -1324,6 +1324,7 @@
             height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
             animation: shimmer 2s infinite;
+            will-change: transform;
         }
 
         @keyframes shimmer {
@@ -1994,24 +1995,24 @@
                     const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
                     
                     // Build more detailed justification
-                    let enhancedJustification = `Този ${modifier.toLowerCase()} план е създаден СПЕЦИАЛНО за вас, базиран на вашата уникална комбинация от: `;
+                    let enhancedJustification = `Този ${modifier ? modifier.toLowerCase() : 'балансиран'} план е създаден СПЕЦИАЛНО за вас, базиран на вашата уникална комбинация от: `;
                     
                     const factors = [];
-                    if (userData.age) factors.push(`възраст ${userData.age} години`);
-                    if (userData.gender) factors.push(userData.gender.toLowerCase());
-                    if (userData.goal) factors.push(`цел "${goal.toLowerCase()}"`);
-                    if (userData.weight && userData.height) {
+                    if (userData && userData.age) factors.push(`възраст ${userData.age} години`);
+                    if (userData && userData.gender) factors.push(userData.gender.toLowerCase());
+                    if (goal && goal !== 'здравословен живот') factors.push(`цел "${goal.toLowerCase()}"`);
+                    if (userData && userData.weight && userData.height && userData.weight > 0 && userData.height > 0) {
                         const bmi = (userData.weight / Math.pow(userData.height / 100, 2)).toFixed(1);
                         factors.push(`BMI ${bmi}`);
                     }
-                    if (userData.sportActivity) factors.push(userData.sportActivity.toLowerCase());
+                    if (userData && userData.sportActivity) factors.push(userData.sportActivity.toLowerCase());
                     
                     enhancedJustification += factors.join(', ') + '. ';
                     
                     // Add specific strategy reasoning
                     if (dietPlan.analysis && dietPlan.analysis.keyProblems && dietPlan.analysis.keyProblems.length > 0) {
                         const topProblem = dietPlan.analysis.keyProblems[0];
-                        if (topProblem.problem) {
+                        if (topProblem && topProblem.problem) {
                             enhancedJustification += `Планът адресира специфично: ${topProblem.problem.toLowerCase()}. `;
                         }
                     }
@@ -2049,35 +2050,35 @@
                 
                 const summary = dietPlan.summary;
                 
-                // Extract calorie value
+                // Extract calorie value with support for decimals
                 let dailyCalories = 2000; // default
                 if (summary.dailyCalories) {
-                    const match = String(summary.dailyCalories).match(/(\d+)/);
+                    const match = String(summary.dailyCalories).match(/(\d+(?:\.\d+)?)/);
                     if (match) {
-                        dailyCalories = parseInt(match[1]);
+                        dailyCalories = Math.round(parseFloat(match[1]));
                     }
                 }
                 
-                // Extract macro values
+                // Extract macro values with support for decimals
                 let protein = 0, carbs = 0, fats = 0;
                 
                 if (summary.macros) {
                     // Try to parse protein
                     if (summary.macros.protein) {
-                        const pMatch = String(summary.macros.protein).match(/(\d+)/);
-                        if (pMatch) protein = parseInt(pMatch[1]);
+                        const pMatch = String(summary.macros.protein).match(/(\d+(?:\.\d+)?)/);
+                        if (pMatch) protein = Math.round(parseFloat(pMatch[1]));
                     }
                     
                     // Try to parse carbs
                     if (summary.macros.carbs) {
-                        const cMatch = String(summary.macros.carbs).match(/(\d+)/);
-                        if (cMatch) carbs = parseInt(cMatch[1]);
+                        const cMatch = String(summary.macros.carbs).match(/(\d+(?:\.\d+)?)/);
+                        if (cMatch) carbs = Math.round(parseFloat(cMatch[1]));
                     }
                     
                     // Try to parse fats
                     if (summary.macros.fats) {
-                        const fMatch = String(summary.macros.fats).match(/(\d+)/);
-                        if (fMatch) fats = parseInt(fMatch[1]);
+                        const fMatch = String(summary.macros.fats).match(/(\d+(?:\.\d+)?)/);
+                        if (fMatch) fats = Math.round(parseFloat(fMatch[1]));
                     }
                 }
                 
@@ -2092,10 +2093,10 @@
                 // Calculate total calories from macros
                 const totalMacroCalories = (protein * 4) + (carbs * 4) + (fats * 9);
                 
-                // Calculate percentages
-                const proteinPercent = Math.round((protein * 4 / totalMacroCalories) * 100);
-                const carbsPercent = Math.round((carbs * 4 / totalMacroCalories) * 100);
-                const fatsPercent = Math.round((fats * 9 / totalMacroCalories) * 100);
+                // Calculate percentages with division by zero protection
+                const proteinPercent = totalMacroCalories > 0 ? Math.round((protein * 4 / totalMacroCalories) * 100) : 0;
+                const carbsPercent = totalMacroCalories > 0 ? Math.round((carbs * 4 / totalMacroCalories) * 100) : 0;
+                const fatsPercent = totalMacroCalories > 0 ? Math.round((fats * 9 / totalMacroCalories) * 100) : 0;
                 
                 // Update display
                 document.getElementById('targetCalories').textContent = dailyCalories;
