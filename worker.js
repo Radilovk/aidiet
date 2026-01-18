@@ -566,7 +566,8 @@ const ENABLE_PROGRESSIVE_GENERATION = true;
 const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
 
 // Validation constants
-const MIN_MEALS_PER_DAY = 2; // Minimum number of meals required per day
+const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1-5 range, 1 for intermittent fasting strategies)
+const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 
@@ -610,9 +611,9 @@ function validatePlan(plan, userData) {
       if (!day || !day.meals || !Array.isArray(day.meals) || day.meals.length === 0) {
         errors.push(`Ден ${i} няма хранения`);
       } else {
-        // Check that each day has sufficient meals (at least 2-3)
-        if (day.meals.length < MIN_MEALS_PER_DAY) {
-          errors.push(`Ден ${i} има само ${day.meals.length} хранене - недостатъчно`);
+        // Check that each day has meals within acceptable range (1-5)
+        if (day.meals.length < MIN_MEALS_PER_DAY || day.meals.length > MAX_MEALS_PER_DAY) {
+          errors.push(`Ден ${i} има ${day.meals.length} хранения - трябва да е между ${MIN_MEALS_PER_DAY} и ${MAX_MEALS_PER_DAY}`);
         }
         
         // Validate that meals have macros
@@ -1211,11 +1212,14 @@ BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
 2. ПРЕЦИЗНИ КАЛОРИИ: Изчислени като protein×4 + carbs×4 + fats×9 за ВСЯКО ястие
 3. ЦЕЛЕВА ДНЕВНА СУМА: Всеки ден ТОЧНО ${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal толеранс)
-4. ДОСТАТЪЧНО ХРАНЕНИЯ: 3-4 хранения на ден за достигане на калорийната цел
+4. БРОЙ ХРАНЕНИЯ: 1-5 хранения на ден според стратегията и целта
+   - 1 хранене само ако е част от добре обмислена многодневна стратегия (напр. интермитентно гладуване)
+   - 3-4 хранения типично за балансирани планове
+   - Калорийната цел ТРЯБВА да е достигната независимо от броя хранения
 5. РАЗНООБРАЗИЕ: Всеки ден различен от предишните
 6. Реалистични български/средиземноморски ястия
 
-ВАЖНО: АКО хранения са недостатъчни (<3) или калориите не достигат целта, добави още хранения!
+ВАЖНО: Калориите ТРЯБВА да достигнат целта! Ако е нужно, добави още хранения.
 
 JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
 {
