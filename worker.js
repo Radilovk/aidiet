@@ -556,9 +556,9 @@ async function handleChat(request, env) {
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 
-// Token limit for meal plan generation - increased to ensure all 7 days with 3-4 meals each are generated
-// Note: This is the OUTPUT token limit. Input prompt formatting is optimized to reduce token count while preserving all analysis criteria and requirements.
-const MEAL_PLAN_TOKEN_LIMIT = 5000;
+// Token limit for meal plan generation - increased to ensure all 7 days with 3-4 meals each are generated with detailed macros
+// Note: This is the OUTPUT token limit. Increased from 5000 to 8000 to allow for complete macro calculations per meal
+const MEAL_PLAN_TOKEN_LIMIT = 8000;
 
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
 // Each chunk generates 2-3 days, building on previous days for variety and consistency
@@ -604,6 +604,28 @@ function validatePlan(plan, userData) {
       const day = plan.weekPlan[dayKey];
       if (!day || !day.meals || !Array.isArray(day.meals) || day.meals.length === 0) {
         errors.push(`Ден ${i} няма хранения`);
+      } else {
+        // Check that each day has sufficient meals (at least 2-3)
+        if (day.meals.length < 2) {
+          errors.push(`Ден ${i} има само ${day.meals.length} хранене - недостатъчно`);
+        }
+        
+        // Validate that meals have macros
+        let mealsWithoutMacros = 0;
+        day.meals.forEach((meal, idx) => {
+          if (!meal.macros || !meal.macros.protein || !meal.macros.carbs || !meal.macros.fats) {
+            mealsWithoutMacros++;
+          }
+        });
+        if (mealsWithoutMacros > 0) {
+          errors.push(`Ден ${i} има ${mealsWithoutMacros} хранения без макронутриенти`);
+        }
+        
+        // Validate daily calorie totals
+        const dayCalories = day.meals.reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
+        if (dayCalories < 800) {
+          errors.push(`Ден ${i} има само ${dayCalories} калории - твърде малко`);
+        }
       }
     }
   }
@@ -1180,46 +1202,65 @@ BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
 Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
 
-=== ИЗИСКВАНИЯ ===
-- РАЗНООБРАЗИЕ: Всеки ден различен от предишните
-- Реалистични български/средиземноморски ястия
-- Точни калории/макроси (1г протеин=4kcal, 1г carbs=4kcal, 1г fats=9kcal)
-- Среден калориен прием: ${recommendedCalories} kcal/ден
-- 2-4 хранения според стратегията
+=== КРИТИЧНИ ИЗИСКВАНИЯ ===
+1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
+2. ПРЕЦИЗНИ КАЛОРИИ: Изчислени като protein×4 + carbs×4 + fats×9 за ВСЯКО ястие
+3. ЦЕЛЕВА ДНЕВНА СУМА: Всеки ден ТОЧНО ${recommendedCalories} kcal (±50 kcal толеранс)
+4. ДОСТАТЪЧНО ХРАНЕНИЯ: 3-4 хранения на ден за достигане на калорийната цел
+5. РАЗНООБРАЗИЕ: Всеки ден различен от предишните
+6. Реалистични български/средиземноморски ястия
+
+ВАЖНО: АКО хранения са недостатъчни (<3) или калориите не достигат целта, добави още хранения!
 
 JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
 {
   "day${startDay}": {
     "meals": [
-      {"type": "Закуска/Обяд/Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
-    ]
+      {"type": "Закуска/Обяд/Вечеря/Закуска", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+    ],
+    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
 }
 
-Генерирай дни ${startDay}-${endDay} с балансирани, разнообразни, индивидуални ястия.`;
+Генерирай дни ${startDay}-${endDay} с балансирани ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за проверка!`;
 }
 
 /**
  * Generate prompt for summary and recommendations (final step of progressive generation)
  */
 function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan) {
-  // Calculate total calories across the week for validation
+  // Calculate total calories and macros across the week for validation
   let totalCalories = 0;
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFats = 0;
   let dayCount = 0;
+  
   Object.keys(weekPlan).forEach(dayKey => {
     if (weekPlan[dayKey] && weekPlan[dayKey].meals) {
-      const dayCalories = weekPlan[dayKey].meals.reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
-      totalCalories += dayCalories;
+      weekPlan[dayKey].meals.forEach(meal => {
+        totalCalories += (parseInt(meal.calories) || 0);
+        if (meal.macros) {
+          totalProtein += (parseInt(meal.macros.protein) || 0);
+          totalCarbs += (parseInt(meal.macros.carbs) || 0);
+          totalFats += (parseInt(meal.macros.fats) || 0);
+        }
+      });
       dayCount++;
     }
   });
+  
   const avgCalories = dayCount > 0 ? Math.round(totalCalories / dayCount) : recommendedCalories;
+  const avgProtein = dayCount > 0 ? Math.round(totalProtein / dayCount) : 0;
+  const avgCarbs = dayCount > 0 ? Math.round(totalCarbs / dayCount) : 0;
+  const avgFats = dayCount > 0 ? Math.round(totalFats / dayCount) : 0;
   
   return `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}
 BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
 Реален среден прием: ${avgCalories} kcal/ден
+Реални средни макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
 
 СТРАТЕГИЯ:
 ${JSON.stringify(strategy, null, 2)}
@@ -1229,7 +1270,7 @@ JSON ФОРМАТ:
   "summary": {
     "bmr": "${bmr}",
     "dailyCalories": "${avgCalories}",
-    "macros": {"protein": "Xg индивидуално", "carbs": "Xg индивидуално", "fats": "Xg индивидуално"}
+    "macros": {"protein": "${avgProtein}g базирано на плана", "carbs": "${avgCarbs}g базирано на плана", "fats": "${avgFats}g базирано на плана"}
   },
   "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
