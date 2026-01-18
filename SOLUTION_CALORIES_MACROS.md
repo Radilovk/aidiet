@@ -16,7 +16,7 @@ The AI Diet system was generating meal plans with:
 const MEAL_PLAN_TOKEN_LIMIT = 5000;
 ```
 **Problem**: Not enough tokens for:
-- 2 days × 3-4 meals = 6-8 meals
+- 2 days × 1-5 meals = 2-10 meals (flexible)
 - Each meal needs ~150-200 tokens with detailed macros
 - Full descriptions + nutritional data + variety
 
@@ -30,11 +30,11 @@ const MEAL_PLAN_TOKEN_LIMIT = 5000;
 **Problem**: 
 - Not emphatic enough about MANDATORY macros
 - "Average" calorie intake allows deviation
-- "2-4 meals" is too vague
+- "2-4 meals" too restrictive for intermittent fasting strategies
 
 ### 3. Missing Validation
 **BEFORE**: Only checked if day has meals array, not:
-- Number of meals per day
+- Number of meals per day (should be flexible 1-5)
 - Whether meals have macros
 - If daily calories are sufficient
 
@@ -50,12 +50,12 @@ const MEAL_PLAN_TOKEN_LIMIT = 8000;
 
 **Token Budget Breakdown**:
 - Prompt context: ~600 tokens
-- Day 1 (3-4 meals): 600-800 tokens
-- Day 2 (3-4 meals): 600-800 tokens  
+- Day 1 (1-5 meals): 200-1000 tokens
+- Day 2 (1-5 meals): 200-1000 tokens  
 - Daily totals: ~100 tokens
 - JSON formatting: ~200 tokens
-- Buffer for details: ~4000-4500 tokens
-- **Total**: ~6500-7500 tokens (fits in 8000)
+- Buffer for details: ~4000-5500 tokens
+- **Total**: ~3500-7500 tokens (fits in 8000)
 
 ### 2. Enhanced Chunk Prompt
 **File**: `worker.js:1163-1227`
@@ -124,12 +124,17 @@ weekPlan[dayKey].meals.forEach(meal => {
 ### 4. Added Comprehensive Validation
 **File**: `worker.js:607-632`
 
-#### A) Minimum Meals Check
+#### A) Meal Count Range Check (1-5)
 ```javascript
-if (day.meals.length < MIN_MEALS_PER_DAY) {
-  errors.push(`Day ${i} has only ${day.meals.length} meal - insufficient`);
+if (day.meals.length < MIN_MEALS_PER_DAY || day.meals.length > MAX_MEALS_PER_DAY) {
+  errors.push(`Day ${i} has ${day.meals.length} meals - must be between 1 and 5`);
 }
 ```
+
+**Flexibility:**
+- `MIN_MEALS_PER_DAY = 1` - Allows intermittent fasting strategies
+- `MAX_MEALS_PER_DAY = 5` - Upper bound for reasonable meal frequency
+- 1 meal per day valid only for well-considered multi-day strategies
 
 #### B) Missing Macros Detection
 ```javascript
@@ -153,11 +158,12 @@ if (dayCalories < MIN_DAILY_CALORIES) {
 ```
 
 ### 5. Extracted Constants
-**File**: `worker.js:568-571`
+**File**: `worker.js:568-572`
 
 ```javascript
 // Validation constants
-const MIN_MEALS_PER_DAY = 2; // Minimum number of meals required per day
+const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1-5 range, 1 for intermittent fasting)
+const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories  
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 ```
@@ -167,6 +173,7 @@ const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie tar
 - Consistent across validation and prompts
 - Self-documenting code
 - Better maintainability
+- Supports flexible meal strategies (1-5 meals)
 
 ## Before vs After Comparison
 
@@ -235,11 +242,12 @@ const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie tar
 ## Key Improvements
 
 ✅ **Complete Macro Data**: Every meal has protein, carbs, fats, fiber  
-✅ **Sufficient Meals**: 3-4 meals per day to meet calorie goals  
+✅ **Flexible Meal Count**: 1-5 meals per day based on dietary strategy  
 ✅ **Accurate Calories**: Daily totals match target (±50 kcal)  
 ✅ **Better Validation**: Catches insufficient meals/macros/calories  
 ✅ **Real Calculations**: Summary shows actual averages from meals  
 ✅ **Maintainable Code**: Named constants instead of magic numbers  
+✅ **Supports Intermittent Fasting**: 1 meal per day for specialized strategies
 
 ## Performance Impact
 
@@ -253,8 +261,8 @@ const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie tar
 - **Increase**: +60% tokens = better quality output
 
 ### User Experience
-- **BEFORE**: Plans with missing data, insufficient calories
-- **AFTER**: Complete, precise, individualized plans ✨
+- **BEFORE**: Plans with missing data, insufficient calories, rigid meal counts
+- **AFTER**: Complete, precise, individualized plans with flexible meal strategies ✨
 
 ## Backwards Compatibility
 
@@ -281,7 +289,7 @@ POST /api/generate-plan
 
 ### 2. Verify Output
 Check that each day has:
-- ✅ 3-4 meals
+- ✅ 1-5 meals (flexible based on strategy)
 - ✅ Each meal has `macros: {protein, carbs, fats, fiber}`
 - ✅ Daily calories near target (±50 kcal)
 - ✅ Summary has calculated macro values
@@ -324,8 +332,9 @@ This fix addresses the core issue of insufficient daily meals and missing macro 
 
 1. **Increasing token budget** (+60%) for detailed responses
 2. **Strengthening prompt requirements** with mandatory macros
-3. **Adding comprehensive validation** for meals, macros, and calories
+3. **Adding flexible validation** for 1-5 meals per day based on strategy
 4. **Improving summary calculation** with real macro averages
 5. **Extracting magic numbers** as maintainable constants
+6. **Supporting intermittent fasting** and specialized dietary strategies
 
-**Result**: Users now receive complete 7-day plans with 3-4 meals per day, each containing precise calorie and macro data that matches their individual nutritional targets. 🎯
+**Result**: Users now receive complete 7-day plans with 1-5 meals per day (flexible based on dietary strategy), each containing precise calorie and macro data that matches their individual nutritional targets. Supports intermittent fasting, traditional meal patterns, and everything in between. 🎯
