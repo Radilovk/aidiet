@@ -565,6 +565,11 @@ const MEAL_PLAN_TOKEN_LIMIT = 8000;
 const ENABLE_PROGRESSIVE_GENERATION = true;
 const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
 
+// Validation constants
+const MIN_MEALS_PER_DAY = 2; // Minimum number of meals required per day
+const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
+const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
+
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
  * Returns { isValid: boolean, errors: string[] }
@@ -606,13 +611,13 @@ function validatePlan(plan, userData) {
         errors.push(`Ден ${i} няма хранения`);
       } else {
         // Check that each day has sufficient meals (at least 2-3)
-        if (day.meals.length < 2) {
+        if (day.meals.length < MIN_MEALS_PER_DAY) {
           errors.push(`Ден ${i} има само ${day.meals.length} хранене - недостатъчно`);
         }
         
         // Validate that meals have macros
         let mealsWithoutMacros = 0;
-        day.meals.forEach((meal, idx) => {
+        day.meals.forEach((meal) => {
           if (!meal.macros || !meal.macros.protein || !meal.macros.carbs || !meal.macros.fats) {
             mealsWithoutMacros++;
           }
@@ -623,7 +628,7 @@ function validatePlan(plan, userData) {
         
         // Validate daily calorie totals
         const dayCalories = day.meals.reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
-        if (dayCalories < 800) {
+        if (dayCalories < MIN_DAILY_CALORIES) {
           errors.push(`Ден ${i} има само ${dayCalories} калории - твърде малко`);
         }
       }
@@ -1205,7 +1210,7 @@ BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 === КРИТИЧНИ ИЗИСКВАНИЯ ===
 1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
 2. ПРЕЦИЗНИ КАЛОРИИ: Изчислени като protein×4 + carbs×4 + fats×9 за ВСЯКО ястие
-3. ЦЕЛЕВА ДНЕВНА СУМА: Всеки ден ТОЧНО ${recommendedCalories} kcal (±50 kcal толеранс)
+3. ЦЕЛЕВА ДНЕВНА СУМА: Всеки ден ТОЧНО ${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal толеранс)
 4. ДОСТАТЪЧНО ХРАНЕНИЯ: 3-4 хранения на ден за достигане на калорийната цел
 5. РАЗНООБРАЗИЕ: Всеки ден различен от предишните
 6. Реалистични български/средиземноморски ястия
