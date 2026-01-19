@@ -714,19 +714,20 @@
             font-size: 0.85rem;
             font-weight: 600;
             color: var(--text-dark);
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            text-align: center;
         }
         
         .macro-bar-container {
             width: 100%;
-            height: 32px;
+            height: 36px;
             background: var(--bg-color);
-            border-radius: 16px;
+            border-radius: 18px;
             overflow: hidden;
             display: flex;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 16px;
         }
         
@@ -741,6 +742,7 @@
             font-weight: 600;
             color: white;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            min-width: 45px;
         }
         
         .macro-segment:hover {
@@ -767,7 +769,7 @@
         .macro-legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 14px;
             justify-content: center;
             padding: 8px 0;
         }
@@ -781,8 +783,8 @@
         }
         
         .macro-dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             flex-shrink: 0;
         }
@@ -1069,7 +1071,7 @@
         .macros-viz-container {
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(52, 211, 153, 0.03));
             border-radius: var(--radius);
-            padding: 24px;
+            padding: 24px 20px;
             margin-bottom: 24px;
             box-shadow: var(--shadow);
             border: 2px solid rgba(16, 185, 129, 0.15);
@@ -1103,28 +1105,33 @@
             font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-dark);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+            line-height: 1.3;
         }
 
         .macros-viz-title i {
             color: var(--primary-red);
             font-size: 1.5rem;
+            flex-shrink: 0;
         }
 
         .macros-viz-subtitle {
             font-size: 0.95rem;
             color: var(--text-light);
             font-weight: 500;
+            line-height: 1.5;
+            max-width: 90%;
+            margin: 0 auto;
         }
 
         .calories-display {
             text-align: center;
-            margin-bottom: 32px;
-            padding: 20px;
+            margin-bottom: 28px;
+            padding: 20px 16px;
             background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
             border-radius: 16px;
             color: white;
@@ -1141,7 +1148,7 @@
             font-size: 0.9rem;
             font-weight: 600;
             opacity: 0.9;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -1150,7 +1157,7 @@
             font-size: 3rem;
             font-weight: 800;
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
@@ -1170,7 +1177,7 @@
         .macro-card {
             background: var(--card-bg);
             border-radius: 14px;
-            padding: 18px;
+            padding: 18px 12px;
             text-align: center;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
             border: 2px solid transparent;
@@ -1279,7 +1286,7 @@
 
         .macro-bar-container {
             margin-top: 24px;
-            padding: 20px;
+            padding: 18px 16px;
             background: var(--card-bg);
             border-radius: 14px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
@@ -1289,14 +1296,15 @@
             font-size: 0.9rem;
             font-weight: 600;
             color: var(--text-dark);
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             text-align: center;
+            letter-spacing: 0.3px;
         }
 
         .macro-bar {
-            height: 32px;
+            height: 36px;
             background: var(--bg-color);
-            border-radius: 16px;
+            border-radius: 18px;
             overflow: hidden;
             display: flex;
             box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1313,6 +1321,7 @@
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+            min-width: 45px;
         }
 
         .macro-bar-segment::before {
@@ -1382,61 +1391,110 @@
 
         @media (max-width: 768px) {
             .macros-viz-container {
-                padding: 20px 16px;
+                padding: 18px 14px 20px;
+                margin-bottom: 20px;
             }
 
             .macros-viz-title {
-                font-size: 1.2rem;
+                font-size: 1.15rem;
+            }
+            
+            .macros-viz-subtitle {
+                font-size: 0.85rem;
+                line-height: 1.4;
+                padding: 0 8px;
+            }
+
+            .calories-display {
+                padding: 16px;
+                margin-bottom: 24px;
             }
 
             .calories-value {
-                font-size: 2.5rem;
+                font-size: 2.2rem;
+            }
+            
+            .calories-label {
+                font-size: 0.8rem;
+            }
+            
+            .calories-unit {
+                font-size: 0.9rem;
             }
 
             .macros-grid {
                 grid-template-columns: repeat(3, 1fr);
-                gap: 8px;
+                gap: 10px;
+                margin-bottom: 20px;
             }
             
             .macro-card {
-                padding: 12px 8px;
+                padding: 14px 6px;
+                border-radius: 12px;
             }
             
             .macro-icon {
-                font-size: 1.5rem;
-                margin-bottom: 6px;
+                font-size: 1.6rem;
+                margin-bottom: 8px;
             }
             
             .macro-label {
-                font-size: 0.7rem;
-                margin-bottom: 4px;
+                font-size: 0.68rem;
+                margin-bottom: 6px;
+                letter-spacing: 0.3px;
             }
 
             .macro-value {
-                font-size: 1.8rem;
+                font-size: 1.6rem;
+                margin-bottom: 3px;
             }
-
-            .macro-bar {
-                height: 28px;
+            
+            .macro-unit {
+                font-size: 0.68rem;
             }
-
-            .macro-legend {
-                gap: 12px;
+            
+            .macro-percentage {
+                font-size: 0.8rem;
+                padding: 3px 8px;
+                margin-top: 6px;
             }
 
             .macro-bar-container {
-                padding: 16px;
-                margin-top: 16px;
+                padding: 14px 12px;
+                margin-top: 20px;
+                border-radius: 12px;
             }
 
             .macro-bar-label {
-                font-size: 0.85rem;
-                margin-bottom: 10px;
+                font-size: 0.8rem;
+                margin-bottom: 12px;
+                letter-spacing: 0.3px;
             }
 
-            .macro-segment {
-                font-size: 0.7rem;
-                min-width: 40px;
+            .macro-bar {
+                height: 36px;
+                border-radius: 18px;
+            }
+
+            .macro-bar-segment {
+                font-size: 0.72rem;
+                min-width: 45px;
+            }
+
+            .macro-legend {
+                gap: 14px;
+                margin-top: 14px;
+                justify-content: space-around;
+            }
+            
+            .macro-legend-item {
+                font-size: 0.78rem;
+                gap: 6px;
+            }
+            
+            .macro-legend-color {
+                width: 14px;
+                height: 14px;
             }
         }
 
