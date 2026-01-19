@@ -2269,20 +2269,32 @@ function parseAIResponse(response) {
         return JSON.parse(cleaned);
       } catch (e) {
         console.error('All JSON parsing attempts failed:', e.message);
+        
+        // Extract position from error message if available
+        const posMatch = e.message.match(/position (\d+)/);
+        if (posMatch) {
+          const errorPos = parseInt(posMatch[1]);
+          const contextStart = Math.max(0, errorPos - 100);
+          const contextEnd = Math.min(jsonMatch[0].length, errorPos + 100);
+          console.error('Context around error position:', jsonMatch[0].substring(contextStart, contextEnd));
+        }
+        
         console.error('Response excerpt (first 500 chars):', response.substring(0, 500));
         console.error('Response excerpt (last 500 chars):', response.substring(Math.max(0, response.length - 500)));
-        return { error: `Failed to parse response: ${e.message}`, raw: response };
+        
+        // Return a user-friendly error without exposing the raw response
+        return { error: `All JSON parsing attempts failed: ${e.message}` };
       }
     }
     
     // If no JSON found, return the response as-is wrapped in a structure
     console.error('No JSON structure found in AI response');
     console.error('Response excerpt (first 1000 chars):', response.substring(0, 1000));
-    return { error: 'Could not parse AI response - no JSON found', raw: response };
+    return { error: 'Could not parse AI response - no JSON found' };
   } catch (error) {
     console.error('Error parsing AI response:', error);
     console.error('Response length:', response?.length || 0);
-    return { error: `Failed to parse response: ${error.message}`, raw: response };
+    return { error: `Failed to parse response: ${error.message}` };
   }
 }
 
@@ -2361,17 +2373,35 @@ function extractBalancedJSON(text) {
 /**
  * Sanitize JSON string to fix common AI formatting issues
  * - Remove trailing commas before } or ]
- * Note: We avoid removing comments automatically as they could be inside string values
+ * - Fix missing commas between array/object elements
+ * - Remove duplicate commas
  */
 function sanitizeJSON(jsonStr) {
-  // Check if sanitization is needed before doing regex operations
-  if (!jsonStr.includes(',')) {
-    return jsonStr; // No commas, no need to sanitize
-  }
+  let result = jsonStr;
   
-  // Remove trailing commas before } or ]
-  // This regex is safe as it only targets commas followed by whitespace and closing brackets
-  return jsonStr.replace(/,(\s*[}\]])/g, '$1');
+  // 1. Remove trailing commas before } or ]
+  result = result.replace(/,(\s*[}\]])/g, '$1');
+  
+  // 2. Remove duplicate commas (,,)
+  result = result.replace(/,\s*,+/g, ',');
+  
+  // 3. Fix missing comma between consecutive objects in arrays
+  // Pattern: }\s*{ -> },{
+  result = result.replace(/}(\s*){/g, '},$1{');
+  
+  // 4. Fix missing comma between consecutive arrays
+  // Pattern: ]\s*[ -> ],[
+  result = result.replace(/](\s*)\[/g, '],$1[');
+  
+  // 5. Fix missing comma between object and array
+  // Pattern: }\s*[ -> },[
+  result = result.replace(/}(\s*)\[/g, '},$1[');
+  
+  // 6. Fix missing comma between array and object
+  // Pattern: ]\s*{ -> ],{
+  result = result.replace(/](\s*){/g, '],$1{');
+  
+  return result;
 }
 
 // Enhancement #3: Estimate tokens for a message
