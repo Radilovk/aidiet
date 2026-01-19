@@ -2298,16 +2298,13 @@ function extractBalancedJSON(text) {
   // Determine which comes first (or if only one exists)
   let startIndex = -1;
   let startChar = null;
-  let endChar = null;
   
   if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
     startIndex = firstBrace;
     startChar = '{';
-    endChar = '}';
   } else if (firstBracket !== -1) {
     startIndex = firstBracket;
     startChar = '[';
-    endChar = ']';
   } else {
     return null; // No JSON structure found
   }
@@ -2367,13 +2364,14 @@ function extractBalancedJSON(text) {
  * Note: We avoid removing comments automatically as they could be inside string values
  */
 function sanitizeJSON(jsonStr) {
-  let sanitized = jsonStr;
+  // Check if sanitization is needed before doing regex operations
+  if (!jsonStr.includes(',')) {
+    return jsonStr; // No commas, no need to sanitize
+  }
   
   // Remove trailing commas before } or ]
   // This regex is safe as it only targets commas followed by whitespace and closing brackets
-  sanitized = sanitized.replace(/,(\s*[}\]])/g, '$1');
-  
-  return sanitized;
+  return jsonStr.replace(/,(\s*[}\]])/g, '$1');
 }
 
 // Enhancement #3: Estimate tokens for a message
