@@ -1394,8 +1394,22 @@
             }
 
             .macros-grid {
-                grid-template-columns: 1fr;
-                gap: 12px;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+            
+            .macro-card {
+                padding: 12px 8px;
+            }
+            
+            .macro-icon {
+                font-size: 1.5rem;
+                margin-bottom: 6px;
+            }
+            
+            .macro-label {
+                font-size: 0.7rem;
+                margin-bottom: 4px;
             }
 
             .macro-value {
@@ -1408,6 +1422,21 @@
 
             .macro-legend {
                 gap: 12px;
+            }
+
+            .macro-bar-container {
+                padding: 16px;
+                margin-top: 16px;
+            }
+
+            .macro-bar-label {
+                font-size: 0.85rem;
+                margin-bottom: 10px;
+            }
+
+            .macro-segment {
+                font-size: 0.7rem;
+                min-width: 40px;
             }
         }
 
