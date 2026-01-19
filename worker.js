@@ -2240,7 +2240,7 @@ function generateMockResponse(prompt) {
 function parseAIResponse(response) {
   try {
     // Step 1: Try to extract JSON from markdown code blocks first
-    const markdownJsonMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
     if (markdownJsonMatch) {
       try {
         const cleaned = sanitizeJSON(markdownJsonMatch[1]);
@@ -2262,7 +2262,7 @@ function parseAIResponse(response) {
     }
     
     // Step 3: Fallback to greedy match but with sanitization
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(/[\[{][\s\S]*[}\]]/);
     if (jsonMatch) {
       try {
         const cleaned = sanitizeJSON(jsonMatch[0]);
@@ -2287,18 +2287,37 @@ function parseAIResponse(response) {
 }
 
 /**
- * Extract JSON object from response using balanced brace matching
- * This prevents greedy regex from capturing non-JSON text after the object
+ * Extract JSON object or array from response using balanced brace/bracket matching
+ * This prevents greedy regex from capturing non-JSON text after the object/array
  */
 function extractBalancedJSON(text) {
-  const firstBrace = text.indexOf('{');
-  if (firstBrace === -1) return null;
+  // Look for either { or [ as the start of JSON
+  let firstBrace = text.indexOf('{');
+  let firstBracket = text.indexOf('[');
+  
+  // Determine which comes first (or if only one exists)
+  let startIndex = -1;
+  let startChar = null;
+  let endChar = null;
+  
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIndex = firstBrace;
+    startChar = '{';
+    endChar = '}';
+  } else if (firstBracket !== -1) {
+    startIndex = firstBracket;
+    startChar = '[';
+    endChar = ']';
+  } else {
+    return null; // No JSON structure found
+  }
   
   let braceCount = 0;
+  let bracketCount = 0;
   let inString = false;
   let escapeNext = false;
   
-  for (let i = firstBrace; i < text.length; i++) {
+  for (let i = startIndex; i < text.length; i++) {
     const char = text[i];
     
     // Handle escape sequences
@@ -2312,22 +2331,29 @@ function extractBalancedJSON(text) {
       continue;
     }
     
-    // Track string boundaries to ignore braces in strings
+    // Track string boundaries to ignore braces/brackets in strings
     if (char === '"') {
       inString = !inString;
       continue;
     }
     
-    // Only count braces outside of strings
+    // Only count braces/brackets outside of strings
     if (!inString) {
       if (char === '{') {
         braceCount++;
       } else if (char === '}') {
         braceCount--;
-        // When we close all braces, we have a complete JSON object
-        if (braceCount === 0) {
-          return text.substring(firstBrace, i + 1);
-        }
+      } else if (char === '[') {
+        bracketCount++;
+      } else if (char === ']') {
+        bracketCount--;
+      }
+      
+      // When we close all braces/brackets, we have a complete JSON structure
+      if (startChar === '{' && braceCount === 0) {
+        return text.substring(startIndex, i + 1);
+      } else if (startChar === '[' && bracketCount === 0) {
+        return text.substring(startIndex, i + 1);
       }
     }
   }
@@ -2338,24 +2364,14 @@ function extractBalancedJSON(text) {
 /**
  * Sanitize JSON string to fix common AI formatting issues
  * - Remove trailing commas before } or ]
- * - Remove JavaScript-style comments
- * - Fix single quotes to double quotes (carefully)
+ * Note: We avoid removing comments automatically as they could be inside string values
  */
 function sanitizeJSON(jsonStr) {
   let sanitized = jsonStr;
   
-  // Remove single-line comments (// ...)
-  sanitized = sanitized.replace(/\/\/[^\n]*/g, '');
-  
-  // Remove multi-line comments (/* ... */)
-  sanitized = sanitized.replace(/\/\*[\s\S]*?\*\//g, '');
-  
   // Remove trailing commas before } or ]
+  // This regex is safe as it only targets commas followed by whitespace and closing brackets
   sanitized = sanitized.replace(/,(\s*[}\]])/g, '$1');
-  
-  // Note: We don't try to fix single quotes to double quotes automatically
-  // as this is error-prone with nested strings. The AI should be generating
-  // valid JSON with double quotes.
   
   return sanitized;
 }
