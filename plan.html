@@ -1695,29 +1695,6 @@
                     <div class="macro-percentage" id="fatsPercentage">25%</div>
                 </div>
             </div>
-
-            <div class="macro-bar-container">
-                <div class="macro-bar-label">Разпределение на макронутриентите</div>
-                <div class="macro-bar" id="macroBar">
-                    <div class="macro-bar-segment protein" id="proteinBar" style="width: 25%;">25%</div>
-                    <div class="macro-bar-segment carbs" id="carbsBar" style="width: 50%;">50%</div>
-                    <div class="macro-bar-segment fats" id="fatsBar" style="width: 25%;">25%</div>
-                </div>
-                <div class="macro-legend">
-                    <div class="macro-legend-item">
-                        <div class="macro-legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
-                        <span>Протеини</span>
-                    </div>
-                    <div class="macro-legend-item">
-                        <div class="macro-legend-color" style="background: linear-gradient(135deg, #3b82f6, #2563eb);"></div>
-                        <span>Въглехидрати</span>
-                    </div>
-                    <div class="macro-legend-item">
-                        <div class="macro-legend-color" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
-                        <span>Мазнини</span>
-                    </div>
-                </div>
-            </div>
         </div>
         
         <!-- REQUIREMENT 3: Plan Justification Banner -->
@@ -2200,16 +2177,6 @@
                 document.getElementById('proteinPercentage').textContent = `${proteinPercent}%`;
                 document.getElementById('carbsPercentage').textContent = `${carbsPercent}%`;
                 document.getElementById('fatsPercentage').textContent = `${fatsPercent}%`;
-                
-                // Update bar chart
-                document.getElementById('proteinBar').style.width = `${proteinPercent}%`;
-                document.getElementById('proteinBar').textContent = `${proteinPercent}%`;
-                
-                document.getElementById('carbsBar').style.width = `${carbsPercent}%`;
-                document.getElementById('carbsBar').textContent = `${carbsPercent}%`;
-                
-                document.getElementById('fatsBar').style.width = `${fatsPercent}%`;
-                document.getElementById('fatsBar').textContent = `${fatsPercent}%`;
                 
                 // Show container
                 container.style.display = 'block';
