@@ -727,7 +727,10 @@ async function generatePlanMultiStep(env, data) {
       analysis = parseAIResponse(analysisResponse);
       
       if (!analysis || analysis.error) {
-        throw new Error(`Анализът не можа да бъде създаден: ${analysis.error || 'Невалиден формат на отговор'}`);
+        const errorMsg = analysis.error || 'Невалиден формат на отговор';
+        console.error('Analysis parsing failed:', errorMsg);
+        console.error('AI Response preview (first 1000 chars):', analysisResponse?.substring(0, 1000));
+        throw new Error(`Анализът не можа да бъде създаден: ${errorMsg}`);
       }
       
       // REQUIREMENT 2: Filter out "Normal" severity problems from analysis
@@ -758,7 +761,10 @@ async function generatePlanMultiStep(env, data) {
       strategy = parseAIResponse(strategyResponse);
       
       if (!strategy || strategy.error) {
-        throw new Error(`Стратегията не можа да бъде създадена: ${strategy.error || 'Невалиден формат на отговор'}`);
+        const errorMsg = strategy.error || 'Невалиден формат на отговор';
+        console.error('Strategy parsing failed:', errorMsg);
+        console.error('AI Response preview (first 1000 chars):', strategyResponse?.substring(0, 1000));
+        throw new Error(`Стратегията не можа да бъде създадена: ${errorMsg}`);
       }
     } catch (error) {
       console.error('Strategy step failed:', error);
@@ -790,7 +796,10 @@ async function generatePlanMultiStep(env, data) {
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
-          throw new Error(`Хранителният план не можа да бъде създаден: ${mealPlan.error || 'Невалиден формат на отговор'}`);
+          const errorMsg = mealPlan.error || 'Невалиден формат на отговор';
+          console.error('Meal plan parsing failed:', errorMsg);
+          console.error('AI Response preview (first 1000 chars):', mealPlanResponse?.substring(0, 1000));
+          throw new Error(`Хранителният план не можа да бъде създаден: ${errorMsg}`);
         }
       } catch (error) {
         console.error('Meal plan step failed:', error);
@@ -1075,7 +1084,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
       const chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
-        throw new Error(`Chunk ${chunkIndex + 1} failed: ${chunkData.error || 'Invalid response'}`);
+        const errorMsg = chunkData.error || 'Invalid response';
+        console.error(`Chunk ${chunkIndex + 1} parsing failed:`, errorMsg);
+        console.error('AI Response preview (first 1000 chars):', chunkResponse?.substring(0, 1000));
+        throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
       }
       
       // Merge chunk data into weekPlan
@@ -2223,20 +2235,143 @@ function generateMockResponse(prompt) {
 
 /**
  * Parse AI response to structured format
+ * Handles markdown code blocks, greedy regex issues, and common JSON formatting errors
  */
 function parseAIResponse(response) {
   try {
-    // Try to extract JSON from response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    // Step 1: Try to extract JSON from markdown code blocks first
+    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
+    if (markdownJsonMatch) {
+      try {
+        const cleaned = sanitizeJSON(markdownJsonMatch[1]);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
+      }
     }
+    
+    // Step 2: Try to find JSON using balanced brace matching (non-greedy)
+    const jsonObject = extractBalancedJSON(response);
+    if (jsonObject) {
+      try {
+        const cleaned = sanitizeJSON(jsonObject);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.warn('Failed to parse extracted JSON object, trying fallback:', e.message);
+      }
+    }
+    
+    // Step 3: Fallback to greedy match but with sanitization
+    const jsonMatch = response.match(/[\[{][\s\S]*[}\]]/);
+    if (jsonMatch) {
+      try {
+        const cleaned = sanitizeJSON(jsonMatch[0]);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.error('All JSON parsing attempts failed:', e.message);
+        console.error('Response excerpt (first 500 chars):', response.substring(0, 500));
+        console.error('Response excerpt (last 500 chars):', response.substring(Math.max(0, response.length - 500)));
+        return { error: `Failed to parse response: ${e.message}`, raw: response };
+      }
+    }
+    
     // If no JSON found, return the response as-is wrapped in a structure
-    return { error: 'Could not parse AI response', raw: response };
+    console.error('No JSON structure found in AI response');
+    console.error('Response excerpt (first 1000 chars):', response.substring(0, 1000));
+    return { error: 'Could not parse AI response - no JSON found', raw: response };
   } catch (error) {
     console.error('Error parsing AI response:', error);
-    return { error: 'Failed to parse response', raw: response };
+    console.error('Response length:', response?.length || 0);
+    return { error: `Failed to parse response: ${error.message}`, raw: response };
   }
+}
+
+/**
+ * Extract JSON object or array from response using balanced brace/bracket matching
+ * This prevents greedy regex from capturing non-JSON text after the object/array
+ */
+function extractBalancedJSON(text) {
+  // Look for either { or [ as the start of JSON
+  let firstBrace = text.indexOf('{');
+  let firstBracket = text.indexOf('[');
+  
+  // Determine which comes first (or if only one exists)
+  let startIndex = -1;
+  let startChar = null;
+  
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIndex = firstBrace;
+    startChar = '{';
+  } else if (firstBracket !== -1) {
+    startIndex = firstBracket;
+    startChar = '[';
+  } else {
+    return null; // No JSON structure found
+  }
+  
+  let braceCount = 0;
+  let bracketCount = 0;
+  let inString = false;
+  let escapeNext = false;
+  
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+    
+    // Handle escape sequences
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escapeNext = true;
+      continue;
+    }
+    
+    // Track string boundaries to ignore braces/brackets in strings
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    
+    // Only count braces/brackets outside of strings
+    if (!inString) {
+      if (char === '{') {
+        braceCount++;
+      } else if (char === '}') {
+        braceCount--;
+      } else if (char === '[') {
+        bracketCount++;
+      } else if (char === ']') {
+        bracketCount--;
+      }
+      
+      // When we close all braces/brackets, we have a complete JSON structure
+      if (startChar === '{' && braceCount === 0) {
+        return text.substring(startIndex, i + 1);
+      } else if (startChar === '[' && bracketCount === 0) {
+        return text.substring(startIndex, i + 1);
+      }
+    }
+  }
+  
+  return null; // No balanced JSON found
+}
+
+/**
+ * Sanitize JSON string to fix common AI formatting issues
+ * - Remove trailing commas before } or ]
+ * Note: We avoid removing comments automatically as they could be inside string values
+ */
+function sanitizeJSON(jsonStr) {
+  // Check if sanitization is needed before doing regex operations
+  if (!jsonStr.includes(',')) {
+    return jsonStr; // No commas, no need to sanitize
+  }
+  
+  // Remove trailing commas before } or ]
+  // This regex is safe as it only targets commas followed by whitespace and closing brackets
+  return jsonStr.replace(/,(\s*[}\]])/g, '$1');
 }
 
 // Enhancement #3: Estimate tokens for a message
