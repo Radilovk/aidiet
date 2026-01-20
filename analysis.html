@@ -1007,10 +1007,14 @@
             if (!problems || problems.length === 0) return;
 
             // Health score constants
+            // MIN_HEALTH_SCORE: Minimum health score value. 0 represents death, so we use 15 as the minimum
+            // for even critical health cases to indicate that the person is alive but in poor health.
             const MIN_HEALTH_SCORE = 15;
             const MAX_HEALTH_SCORE = 100;
             
             // Success chance constants for fallback calculation
+            // These match the AI model's range to ensure consistency
+            // MIN_SUCCESS_CHANCE: Negative values indicate contradictory goals
             const MIN_SUCCESS_CHANCE = -100;
             const MAX_SUCCESS_CHANCE = 100;
 
@@ -1031,6 +1035,9 @@
             const avgSeverity = totalSeverity / problems.length;
             
             // ===== CURRENT SCORES (strategically slightly lower) =====
+            // Note: As per product requirements, current scores are strategically adjusted
+            // to show a more conservative baseline, making the improvement more impactful
+            // for marketing/motivational purposes while maintaining realistic ranges.
             
             // Calculate base health score
             const cappedSeverity = Math.min(avgSeverity, MAX_HEALTH_SCORE);
@@ -1063,6 +1070,8 @@
                 : successChance; // Keep negative values as-is
             
             // ===== FUTURE SCORES (after 3 months with plan, optimistic) =====
+            // Note: Future projections assume strict adherence to the personalized plan
+            // and represent achievable improvements with dedication and consistency.
             
             // Assume significant improvement with plan adherence
             // Health improvement: 15-25% increase
