@@ -1392,12 +1392,27 @@
 
         // Simulate AI processing progress with visual feedback
         let progressInterval = null; // Store interval reference for cleanup
+        let tipsInterval = null; // Store tips rotation interval reference
+        
+        // Helpful tips to display during loading (constant to avoid recreation)
+        const LOADING_TIPS = [
+            '💡 Вашият план се базира на над 30 фактора от въпросника',
+            '🎯 AI анализира вашия метаболизъм и хранителни навици',
+            '🔬 Създаваме персонализирани препоръки само за вас',
+            '⏱️ Качественият анализ отнема време - но си струва!',
+            '🌟 Скоро ще получите детайлен 7-дневен план',
+            '💪 Подготвяме стратегия за постигане на вашите цели'
+        ];
         
         function simulateProgress() {
-            // Clear any existing interval
+            // Clear any existing intervals
             if (progressInterval) {
                 clearInterval(progressInterval);
                 progressInterval = null;
+            }
+            if (tipsInterval) {
+                clearInterval(tipsInterval);
+                tipsInterval = null;
             }
             
             const progressBar = document.getElementById('aiProgressBar');
@@ -1410,6 +1425,7 @@
             const stage2Text = document.getElementById('stage2Text');
             const stage3 = document.getElementById('stage3');
             const stage3Text = document.getElementById('stage3Text');
+            const tipsElement = document.getElementById('loadingTips');
             
             // Validate all required elements exist
             if (!progressBar || !percentageText || !title || !subtitle) {
@@ -1418,77 +1434,173 @@
             }
             
             let progress = 0;
+            let currentTipIndex = 0;
+            const startTime = Date.now();
+            
+            // Rotate tips every 8 seconds
+            function rotateTips() {
+                if (tipsElement) {
+                    currentTipIndex = (currentTipIndex + 1) % LOADING_TIPS.length;
+                    tipsElement.style.opacity = '0';
+                    setTimeout(() => {
+                        tipsElement.textContent = LOADING_TIPS[currentTipIndex];
+                        tipsElement.style.opacity = '1';
+                    }, 300);
+                }
+            }
+            
+            // Start tip rotation
+            if (tipsElement) {
+                tipsElement.textContent = LOADING_TIPS[0];
+                tipsInterval = setInterval(rotateTips, 8000);
+            }
+            
+            // Define stages with more realistic timing
+            // Total expected time: ~120 seconds (2 minutes)
+            // Note: We have 3 visual stage indicators but 4 progress stages
+            // Stages 2 and 3 share the same visual indicator (stage3)
             const stages = [
-                { percent: 30, title: 'Анализиране на данните...', subtitle: 'Обработваме вашата информация', duration: 2000 },
-                { percent: 65, title: 'Генериране на плана...', subtitle: 'Създаваме персонализирани препоръки', duration: 3000 },
-                { percent: 90, title: 'Финализиране...', subtitle: 'Подготвяме вашия хранителен план', duration: 2000 }
+                { 
+                    percent: 25, 
+                    title: 'Анализиране на данните...', 
+                    subtitle: 'Обработваме вашия здравен профил',
+                    minTime: 0,
+                    maxTime: 20000, // 0-20 seconds
+                    indicatorIndex: 0 // stage1
+                },
+                { 
+                    percent: 50, 
+                    title: 'Генериране на препоръки...', 
+                    subtitle: 'AI създава персонализирани стратегии',
+                    minTime: 20000,
+                    maxTime: 50000, // 20-50 seconds
+                    indicatorIndex: 1 // stage2
+                },
+                { 
+                    percent: 75, 
+                    title: 'Изграждане на плана...', 
+                    subtitle: 'Съставяме вашето 7-дневно меню',
+                    minTime: 50000,
+                    maxTime: 80000, // 50-80 seconds
+                    indicatorIndex: 2 // stage3
+                },
+                { 
+                    percent: 92, 
+                    title: 'Финализиране...', 
+                    subtitle: 'Последни детайли и проверки',
+                    minTime: 80000,
+                    maxTime: 120000, // 80-120 seconds
+                    indicatorIndex: 2 // stage3 (shares with previous stage)
+                }
             ];
             
-            let currentStage = 0;
+            let currentStage = -1; // Start at -1 so first stage (0) triggers activation
+            const MAX_PROGRESS_INCREMENT = 2; // Maximum progress change per update for smoothness
             
-            // Helper function to activate a stage indicator
-            function activateStage(stageElement, textElement) {
-                if (stageElement && textElement) {
-                    stageElement.style.background = 'var(--primary-red)';
-                    stageElement.style.boxShadow = '0 2px 8px var(--soft-red)';
-                    textElement.style.color = 'var(--primary-red)';
-                    textElement.style.fontWeight = '600';
+            // Stage UI elements mapping
+            const stageElements = [
+                { element: stage1, text: stage1Text },
+                { element: stage2, text: stage2Text },
+                { element: stage3, text: stage3Text }
+            ];
+            
+            // Helper function to activate a stage indicator if valid
+            function activateStageIfValid(stageIndex) {
+                if (stageIndex >= 0 && stageIndex < stageElements.length) {
+                    const stage = stageElements[stageIndex];
+                    if (stage.element && stage.text) {
+                        stage.element.style.background = 'var(--primary-red)';
+                        stage.element.style.boxShadow = '0 2px 8px var(--soft-red)';
+                        stage.text.style.color = 'var(--primary-red)';
+                        stage.text.style.fontWeight = '600';
+                    }
                 }
+            }
+            
+            // Exponential easing function for smooth progress
+            // Progress slows down naturally as it approaches target
+            function easeOutExpo(t) {
+                return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
             }
             
             function updateProgress() {
-                if (currentStage < stages.length) {
-                    const stage = stages[currentStage];
-                    progress = stage.percent;
+                const currentProgressBar = document.getElementById('aiProgressBar');
+                const currentPercentageText = document.getElementById('progressPercentage');
+                const currentTitle = document.getElementById('loadingTitle');
+                const currentSubtitle = document.getElementById('loadingSubtitle');
+                
+                // Safety check
+                if (!currentProgressBar || !currentPercentageText) {
+                    if (progressInterval) clearInterval(progressInterval);
+                    if (tipsInterval) clearInterval(tipsInterval);
+                    return;
+                }
+                
+                const elapsed = Date.now() - startTime;
+                
+                // Find which stage we're in
+                let stageIndex = -1;
+                let newProgress = progress;
+                
+                for (let i = 0; i < stages.length; i++) {
+                    const stage = stages[i];
                     
-                    // Update progress bar
-                    progressBar.style.width = progress + '%';
-                    percentageText.textContent = progress + '%';
-                    
-                    // Update text
-                    title.textContent = stage.title;
-                    subtitle.textContent = stage.subtitle;
-                    
-                    // Update stage indicators
-                    if (currentStage === 0) {
-                        activateStage(stage1, stage1Text);
-                    } else if (currentStage === 1) {
-                        activateStage(stage2, stage2Text);
-                    } else if (currentStage === 2) {
-                        activateStage(stage3, stage3Text);
-                    }
-                    
-                    currentStage++;
-                    
-                    if (currentStage < stages.length) {
-                        setTimeout(updateProgress, stage.duration);
-                    } else {
-                        // Final stage - slowly progress to 95% while waiting for actual response
-                        progressInterval = setInterval(() => {
-                            // Re-query DOM elements to ensure they still exist
-                            const currentProgressBar = document.getElementById('aiProgressBar');
-                            const currentPercentageText = document.getElementById('progressPercentage');
+                    if (elapsed >= stage.minTime && elapsed < stage.maxTime) {
+                        // We're in this stage
+                        stageIndex = i;
+                        
+                        // Check if we entered a new stage
+                        if (i !== currentStage) {
+                            currentStage = i;
                             
-                            if (!currentProgressBar || !currentPercentageText) {
-                                clearInterval(progressInterval);
-                                progressInterval = null;
-                                return;
-                            }
+                            // Update title and subtitle
+                            if (currentTitle) currentTitle.textContent = stage.title;
+                            if (currentSubtitle) currentSubtitle.textContent = stage.subtitle;
                             
-                            if (progress < 95) {
-                                progress += 0.5;
-                                currentProgressBar.style.width = progress + '%';
-                                currentPercentageText.textContent = Math.floor(progress) + '%';
-                            } else {
-                                clearInterval(progressInterval);
-                                progressInterval = null;
-                            }
-                        }, 200);
+                            // Activate stage indicator
+                            activateStageIfValid(stage.indicatorIndex);
+                        }
+                        
+                        // Calculate progress within current stage using easing
+                        const stageProgress = (elapsed - stage.minTime) / (stage.maxTime - stage.minTime);
+                        const easedProgress = easeOutExpo(Math.min(stageProgress, 1));
+                        
+                        // Interpolate between previous and current stage
+                        const prevPercent = i > 0 ? stages[i - 1].percent : 0;
+                        newProgress = prevPercent + (stage.percent - prevPercent) * easedProgress;
+                        
+                        break;
+                    } else if (elapsed >= stage.maxTime) {
+                        // We've completed this stage, ensure we're at least at its target
+                        newProgress = Math.max(newProgress, stage.percent);
+                        
+                        // Activate stage indicator if we haven't already
+                        if (i !== currentStage) {
+                            activateStageIfValid(stage.indicatorIndex);
+                            currentStage = i;
+                        }
                     }
                 }
+                
+                // Smooth out the progress - never jump more than MAX_PROGRESS_INCREMENT at a time
+                const progressDiff = newProgress - progress;
+                if (Math.abs(progressDiff) > MAX_PROGRESS_INCREMENT) {
+                    // Limit the jump
+                    progress += progressDiff > 0 ? MAX_PROGRESS_INCREMENT : -MAX_PROGRESS_INCREMENT;
+                } else {
+                    progress = newProgress;
+                }
+                
+                // Update UI
+                currentProgressBar.style.width = Math.floor(progress) + '%';
+                currentPercentageText.textContent = Math.floor(progress) + '%';
             }
             
-            // Start the progress simulation
+            // Start smooth progress animation with 100ms intervals
+            // This creates 10 updates per second for smooth animation
+            progressInterval = setInterval(updateProgress, 100);
+            
+            // Initial update
             setTimeout(updateProgress, 500);
         }
 
@@ -1498,42 +1610,66 @@
             // Show loading state with progress bar
             container.innerHTML = `
                 <div style="text-align:center; animation: fadeIn 0.5s; max-width: 500px; margin: 0 auto;">
-                    <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 30px;">
+                    <!-- Animated Icon with Pulse -->
+                    <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 30px; animation: pulse 2s ease-in-out infinite;">
                         <i class="fas fa-brain"></i>
                     </div>
-                    <h2 class="q-text" id="loadingTitle">Анализиране на данните...</h2>
-                    <p style="color:var(--text-gray); margin-bottom:30px; font-size: 0.95rem;" id="loadingSubtitle">
-                        Обработваме вашата информация
+                    
+                    <h2 class="q-text" id="loadingTitle" style="transition: all 0.3s ease;">Анализиране на данните...</h2>
+                    <p style="color:var(--text-gray); margin-bottom:30px; font-size: 0.95rem; transition: all 0.3s ease;" id="loadingSubtitle">
+                        Обработваме вашия здравен профил
                     </p>
                     
-                    <!-- Progress Bar Container -->
+                    <!-- Progress Bar Container with Glow -->
                     <div style="position: relative; margin-bottom: 15px;">
-                        <div style="width: 100%; height: 12px; background: #e0e0e0; border-radius: 20px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
-                            <div id="aiProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary-red), var(--primary-red-hover)); border-radius: 20px; transition: width 0.5s ease, background 0.3s ease; box-shadow: 0 2px 8px var(--soft-red);"></div>
+                        <div style="width: 100%; height: 14px; background: #e0e0e0; border-radius: 20px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+                            <div id="aiProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary-red), var(--primary-red-hover)); border-radius: 20px; transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary-red); position: relative; overflow: hidden;">
+                                <!-- Animated shine effect -->
+                                <div style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shine 2s infinite;"></div>
+                            </div>
                         </div>
-                        <div id="progressPercentage" style="position: absolute; top: -2px; right: 0; color: var(--text-dark); font-size: 0.75rem; font-weight: 600;">0%</div>
+                        <div id="progressPercentage" style="position: absolute; top: -4px; right: 0; color: var(--text-dark); font-size: 0.8rem; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">0%</div>
                     </div>
                     
                     <!-- Progress Stage Indicator -->
-                    <div style="display: flex; justify-content: space-between; margin-top: 25px; padding: 0 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-top: 30px; padding: 0 10px; margin-bottom: 30px;">
                         <div style="flex: 1; text-align: center;">
-                            <div id="stage1" style="width: 10px; height: 10px; background: var(--primary-red); border-radius: 50%; margin: 0 auto 8px; box-shadow: 0 2px 8px var(--soft-red);"></div>
-                            <div id="stage1Text" style="font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">Анализ</div>
+                            <div id="stage1" style="width: 12px; height: 12px; background: var(--primary-red); border-radius: 50%; margin: 0 auto 8px; box-shadow: 0 2px 8px var(--soft-red); transition: all 0.3s ease;"></div>
+                            <div id="stage1Text" style="font-size: 0.75rem; color: var(--primary-red); font-weight: 600; transition: all 0.3s ease;">Анализ</div>
                         </div>
                         <div style="flex: 1; text-align: center;">
-                            <div id="stage2" style="width: 10px; height: 10px; background: #e0e0e0; border-radius: 50%; margin: 0 auto 8px; transition: all 0.3s ease;"></div>
-                            <div id="stage2Text" style="font-size: 0.75rem; color: var(--text-gray); font-weight: 500;">Генериране</div>
+                            <div id="stage2" style="width: 12px; height: 12px; background: #e0e0e0; border-radius: 50%; margin: 0 auto 8px; transition: all 0.3s ease;"></div>
+                            <div id="stage2Text" style="font-size: 0.75rem; color: var(--text-gray); font-weight: 500; transition: all 0.3s ease;">Генериране</div>
                         </div>
                         <div style="flex: 1; text-align: center;">
-                            <div id="stage3" style="width: 10px; height: 10px; background: #e0e0e0; border-radius: 50%; margin: 0 auto 8px; transition: all 0.3s ease;"></div>
-                            <div id="stage3Text" style="font-size: 0.75rem; color: var(--text-gray); font-weight: 500;">Финализиране</div>
+                            <div id="stage3" style="width: 12px; height: 12px; background: #e0e0e0; border-radius: 50%; margin: 0 auto 8px; transition: all 0.3s ease;"></div>
+                            <div id="stage3Text" style="font-size: 0.75rem; color: var(--text-gray); font-weight: 500; transition: all 0.3s ease;">Финализиране</div>
                         </div>
                     </div>
                     
-                    <p style="color:var(--text-gray); margin-top:30px; font-size: 0.85rem; font-style: italic;">
-                        <i class="fas fa-info-circle"></i> Създаваме персонализиран план специално за вас
+                    <!-- Rotating Helpful Tips -->
+                    <div style="background: var(--soft-red); padding: 16px 20px; border-radius: 12px; margin-top: 30px; min-height: 60px; display: flex; align-items: center; justify-content: center;">
+                        <p id="loadingTips" style="color: var(--text-dark); font-size: 0.9rem; font-weight: 500; margin: 0; transition: opacity 0.3s ease; text-align: center; line-height: 1.5;">
+                            💡 Вашият план се базира на над 30 фактора от въпросника
+                        </p>
+                    </div>
+                    
+                    <p style="color:var(--text-gray); margin-top:20px; font-size: 0.8rem; opacity: 0.8;">
+                        <i class="fas fa-clock"></i> Обикновено това отнема 1-2 минути
                     </p>
                 </div>
+                
+                <style>
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.05); opacity: 0.9; }
+                    }
+                    
+                    @keyframes shine {
+                        0% { left: -100%; }
+                        50%, 100% { left: 100%; }
+                    }
+                </style>
             `;
             document.querySelector('.nav-footer').style.display = 'none';
             document.querySelector('.progress-container').style.display = 'none';
@@ -1575,6 +1711,10 @@
                 if (progressInterval) {
                     clearInterval(progressInterval);
                     progressInterval = null;
+                }
+                if (tipsInterval) {
+                    clearInterval(tipsInterval);
+                    tipsInterval = null;
                 }
                 
                 // Complete the progress bar
@@ -1630,6 +1770,10 @@
                 if (progressInterval) {
                     clearInterval(progressInterval);
                     progressInterval = null;
+                }
+                if (tipsInterval) {
+                    clearInterval(tipsInterval);
+                    tipsInterval = null;
                 }
                 
                 let errorMessage = error.message;
