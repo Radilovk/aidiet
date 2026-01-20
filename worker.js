@@ -190,7 +190,9 @@ function detectGoalContradiction(data) {
         normalizedGoal.includes('отслабване')) {
       const tdee = calculateTDEE(calculateBMR(data), data.sportActivity);
       const targetCalories = Math.round(tdee * 0.85); // 15% deficit
-      if (targetCalories < tdee * 0.75) { // More than 25% deficit is dangerous
+      const maxSafeDeficit = tdee * 0.75; // 25% is max safe deficit
+      
+      if (targetCalories < maxSafeDeficit) { // If deficit is more than 25%
         hasContradiction = true;
         warningData = {
           type: 'thyroid_aggressive_deficit',
@@ -207,10 +209,10 @@ function detectGoalContradiction(data) {
       }
     }
     
-    // Check for PCOS + high carb goals
+    // Check for PCOS + high carb approach - validation handled in analysis
     if (data.medicalConditions.includes('PCOS') || data.medicalConditions.includes('СПКЯ')) {
       // PCOS patients typically need lower carb approach - this will be flagged in analysis
-      console.log('PCOS detected - analysis will recommend lower carb approach');
+      // No contradiction here, but AI should be aware via analysis prompt
     }
     
     // Check for anemia + vegetarian/vegan diet without iron awareness
@@ -1047,9 +1049,9 @@ TDEE: ${tdee} kcal (BMR × активност)
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
 {
-  "bmr": "${bmr} (изчислен от backend)",
-  "tdee": "${tdee} (изчислен от backend)",
-  "recommendedCalories": "${recommendedCalories} (изчислен според цел ${data.goal})",
+  "bmr": "${bmr} kcal (изчислен от backend)",
+  "tdee": "${tdee} kcal (изчислен от backend)",
+  "recommendedCalories": "${recommendedCalories} kcal (изчислен според цел ${data.goal})",
   "macroRatios": {
     "protein": "X% - обосновка защо този процент е оптимален за ${data.name}",
     "carbs": "Y% - обосновка базирана на активност, медицински състояния",
