@@ -1489,6 +1489,14 @@
             ];
             
             let currentStage = 0;
+            const MAX_PROGRESS_INCREMENT = 2; // Maximum progress change per update for smoothness
+            
+            // Stage UI elements mapping
+            const stageElements = [
+                { element: stage1, text: stage1Text },
+                { element: stage2, text: stage2Text },
+                { element: stage3, text: stage3Text }
+            ];
             
             // Helper function to activate a stage indicator
             function activateStage(stageElement, textElement) {
@@ -1521,28 +1529,29 @@
                 
                 const elapsed = Date.now() - startTime;
                 
-                // Determine current stage based on elapsed time
-                let targetPercent = 0;
-                let stageChanged = false;
+                // Find which stage we're in
+                let stageIndex = -1;
+                let newProgress = progress;
                 
                 for (let i = 0; i < stages.length; i++) {
                     const stage = stages[i];
+                    
                     if (elapsed >= stage.minTime && elapsed < stage.maxTime) {
-                        targetPercent = stage.percent;
+                        // We're in this stage
+                        stageIndex = i;
                         
                         // Check if we entered a new stage
                         if (i !== currentStage) {
                             currentStage = i;
-                            stageChanged = true;
                             
                             // Update title and subtitle
                             if (currentTitle) currentTitle.textContent = stage.title;
                             if (currentSubtitle) currentSubtitle.textContent = stage.subtitle;
                             
                             // Activate stage indicator
-                            if (i === 0) activateStage(stage1, stage1Text);
-                            else if (i === 1) activateStage(stage2, stage2Text);
-                            else if (i === 2) activateStage(stage3, stage3Text);
+                            if (i < stageElements.length) {
+                                activateStage(stageElements[i].element, stageElements[i].text);
+                            }
                         }
                         
                         // Calculate progress within current stage using easing
@@ -1551,21 +1560,30 @@
                         
                         // Interpolate between previous and current stage
                         const prevPercent = i > 0 ? stages[i - 1].percent : 0;
-                        progress = prevPercent + (stage.percent - prevPercent) * easedProgress;
+                        newProgress = prevPercent + (stage.percent - prevPercent) * easedProgress;
                         
                         break;
                     } else if (elapsed >= stage.maxTime) {
-                        // We've passed this stage
-                        targetPercent = stage.percent;
-                        progress = Math.max(progress, targetPercent);
+                        // We've completed this stage, ensure we're at least at its target
+                        newProgress = Math.max(newProgress, stage.percent);
+                        
+                        // Activate stage indicator if we haven't already
+                        if (i !== currentStage && i < stageElements.length) {
+                            if (i < stageElements.length) {
+                                activateStage(stageElements[i].element, stageElements[i].text);
+                            }
+                            currentStage = i;
+                        }
                     }
                 }
                 
-                // Ensure smooth progress with small increments
-                // Never jump more than 1% at a time for smoothness
-                if (targetPercent > progress) {
-                    const maxIncrement = 1;
-                    progress = Math.min(progress + maxIncrement, targetPercent);
+                // Smooth out the progress - never jump more than MAX_PROGRESS_INCREMENT at a time
+                const progressDiff = newProgress - progress;
+                if (Math.abs(progressDiff) > MAX_PROGRESS_INCREMENT) {
+                    // Limit the jump
+                    progress += progressDiff > 0 ? MAX_PROGRESS_INCREMENT : -MAX_PROGRESS_INCREMENT;
+                } else {
+                    progress = newProgress;
                 }
                 
                 // Update UI
