@@ -88,13 +88,15 @@ function calculateBMR(data) {
 
 /**
  * Calculate TDEE (Total Daily Energy Expenditure) based on activity level
+ * Multipliers based on medical research (Mifflin-St Jeor + activity factors)
  */
 function calculateTDEE(bmr, activityLevel) {
   const activityMultipliers = {
-    'Никаква (0 дни седмично)': 1.2,
-    'Ниска (1–2 дни седмично)': 1.375,
-    'Средна (2–4 дни седмично)': 1.55,
-    'Висока (5–7 дни седмично)': 1.725,
+    'Никаква (0 дни седмично)': 1.2,      // Sedentary
+    'Ниска (1–2 дни седмично)': 1.375,    // Light activity
+    'Средна (2–4 дни седмично)': 1.55,    // Moderate activity
+    'Висока (5–7 дни седмично)': 1.725,   // Very active
+    'Много висока (атлети)': 1.9,          // Extra active / Athletes
     'default': 1.4
   };
   
@@ -142,8 +144,8 @@ function detectGoalContradiction(data) {
   const normalizedGoal = (data.goal || '').toLowerCase().trim();
   
   // Check for severe underweight with weight loss goal
-  // Exact match for "Отслабване" (case-insensitive)
-  if (bmi < 18.5 && normalizedGoal === 'отслабване') {
+  // Use includes() for more flexible matching
+  if (bmi < 18.5 && normalizedGoal.includes('отслабване')) {
     hasContradiction = true;
     warningData = {
       type: 'underweight_loss',
@@ -162,8 +164,8 @@ function detectGoalContradiction(data) {
   }
   
   // Check for obesity with muscle gain goal
-  // Exact match for "Покачване на мускулна маса" (case-insensitive)
-  if (bmi >= 30 && normalizedGoal === 'покачване на мускулна маса') {
+  // Use includes() for more flexible matching
+  if (bmi >= 30 && normalizedGoal.includes('мускулна маса')) {
     hasContradiction = true;
     warningData = {
       type: 'overweight_gain',
@@ -178,6 +180,75 @@ function detectGoalContradiction(data) {
         'Повишен риск от множество здравословни усложнения'
       ],
       recommendation: 'При вашето текущо тегло целта за покачване на тегло е медицински неподходяща. Ако искате да увеличите мускулна маса, трябва първо да постигнете здравословно тегло чрез контролирано отслабване под медицински надзор.'
+    };
+  }
+  
+  // Check for dangerous combinations with medical conditions
+  if (!hasContradiction && data.medicalConditions && Array.isArray(data.medicalConditions)) {
+    // Check for thyroid conditions + aggressive caloric deficit
+    if (data.medicalConditions.some(c => c.includes('Щитовидна жлеза') || c.includes('Хипотиреоидизъм')) && 
+        normalizedGoal.includes('отслабване')) {
+      const tdee = calculateTDEE(calculateBMR(data), data.sportActivity);
+      const targetCalories = Math.round(tdee * 0.85); // 15% deficit
+      if (targetCalories < tdee * 0.75) { // More than 25% deficit is dangerous
+        hasContradiction = true;
+        warningData = {
+          type: 'thyroid_aggressive_deficit',
+          bmi: bmi.toFixed(1),
+          currentCategory: 'Щитовидна дисфункция',
+          goalCategory: data.goal,
+          risks: [
+            'Влошаване на метаболизма и хормоналния баланс',
+            'Повишена умора и изтощение',
+            'Допълнително забавяне на щитовидната функция'
+          ],
+          recommendation: 'При щитовидни проблеми е необходим много внимателен подход към отслабването. Препоръчваме медицинска консултация преди стартиране на диета с калориен дефицит.'
+        };
+      }
+    }
+    
+    // Check for PCOS + high carb goals
+    if (data.medicalConditions.includes('PCOS') || data.medicalConditions.includes('СПКЯ')) {
+      // PCOS patients typically need lower carb approach - this will be flagged in analysis
+      console.log('PCOS detected - analysis will recommend lower carb approach');
+    }
+    
+    // Check for anemia + vegetarian/vegan diet without iron awareness
+    if (data.medicalConditions.includes('Анемия') && 
+        data.dietPreference && 
+        (data.dietPreference.includes('Вегетарианска') || data.dietPreference.includes('Веган'))) {
+      hasContradiction = true;
+      warningData = {
+        type: 'anemia_plant_based',
+        bmi: bmi.toFixed(1),
+        currentCategory: 'Анемия',
+        goalCategory: data.goal,
+        risks: [
+          'Влошаване на анемията поради ниско усвояване на растително желязо',
+          'Хронична умора и отслабване',
+          'Имунна дисфункция'
+        ],
+        recommendation: 'При анемия и вегетарианска/веган диета е критично важно да се осигури достатъчно желязо чрез добавки и оптимизирано хранене. Задължителна е медицинска консултация и наблюдение на нивата на желязо.'
+      };
+    }
+  }
+  
+  // Check for sleep deprivation + muscle gain goal (dangerous combination)
+  if (!hasContradiction && data.sleepHours && parseFloat(data.sleepHours) < 6 && 
+      normalizedGoal.includes('мускулна маса')) {
+    hasContradiction = true;
+    warningData = {
+      type: 'sleep_deficit_muscle_gain',
+      bmi: bmi.toFixed(1),
+      currentCategory: `Недостатъчен сън (${data.sleepHours}ч)`,
+      goalCategory: data.goal,
+      risks: [
+        'Невъзможност за мускулно възстановяване и растеж',
+        'Повишен кортизол води до разграждане на мускулна тъкан',
+        'Намален тестостерон и растежен хормон',
+        'Риск от претренираност и травми'
+      ],
+      recommendation: `При ${data.sleepHours} часа сън на нощ мускулният растеж е силно затруднен. Първо трябва да оптимизирате съня (минимум 7-8 часа), след това да започнете програма за мускулна маса. Недостатъчният сън е критичен фактор за провал.`
     };
   }
   
@@ -677,6 +748,45 @@ function validatePlan(plan, userData) {
         console.log('Warning: IBS/IBD detected but plan may not be gentle enough');
       }
     }
+    
+    // Check for PCOS + high carb plan
+    if (userData.medicalConditions.includes('PCOS') || userData.medicalConditions.includes('СПКЯ')) {
+      const modifier = plan.strategy?.dietaryModifier || '';
+      if (modifier.toLowerCase().includes('високовъглехидратно') || modifier.toLowerCase().includes('балансирано')) {
+        console.log('Warning: PCOS detected - should prefer lower carb approach');
+      }
+    }
+    
+    // Check for anemia + vegetarian diet without iron supplementation
+    if (userData.medicalConditions.includes('Анемия') && 
+        userData.dietPreference && 
+        (userData.dietPreference.includes('Вегетарианска') || userData.dietPreference.includes('Веган'))) {
+      const supplements = plan.supplements || [];
+      const hasIronSupplement = supplements.some(s => /желязо|iron/i.test(s));
+      if (!hasIronSupplement) {
+        errors.push('При анемия и вегетарианска/веган диета е задължителна добавка с желязо');
+      }
+    }
+  }
+  
+  // 8a. Check for medication-supplement interactions
+  if (userData.medications === 'Да' && userData.medicationsDetails && plan.supplements) {
+    const medications = userData.medicationsDetails.toLowerCase();
+    const supplements = plan.supplements.join(' ').toLowerCase();
+    
+    // Check for dangerous interactions
+    if (medications.includes('варфарин') && supplements.includes('витамин к')) {
+      errors.push('ОПАСНО: Витамин K взаимодейства с варфарин (антикоагулант) - може да намали ефективността');
+    }
+    
+    if ((medications.includes('антибиотик') || medications.includes('антибиотици')) && 
+        (supplements.includes('калций') || supplements.includes('магнезий'))) {
+      console.log('Warning: Калций/Магнезий може да намали усвояването на антибиотици - трябва да се вземат на различно време');
+    }
+    
+    if (medications.includes('антацид') && supplements.includes('желязо')) {
+      console.log('Warning: Антацидите блокират усвояването на желязо - трябва да се вземат на различно време');
+    }
   }
   
   // 9. Check for dietary preferences alignment
@@ -886,24 +996,79 @@ ${data.medicalConditions_other ? `- Други медицински състоя
 - Вземи предвид АБСОЛЮТНО ВСИЧКИ параметри при изчисленията
 
 ИЗИСКВАНИЯ ЗА АНАЛИЗ:
-1. Анализирай КОРЕЛАЦИИТЕ между сън, стрес и хранителни желания
-2. Определи как медицинските състояния влияят на хранителните нужди
-3. Разбери ПСИХОЛОГИЧЕСКИЯ профил - връзката между емоции и хранене
-4. Идентифицирай МЕТАБОЛИТНИ особености базирани на всички параметри
-5. Прецени как хронотипът влияе на храносмилането и енергията
-6. Определи СПЕЦИФИЧНИТЕ нужди от макронутриенти въз основа на целите, активност и медицински състояния
-7. Създай ИНДИВИДУАЛИЗИРАН подход, който отчита ВСИЧКИ фактори заедно
-8. Идентифицирай между 3 и 6 КЛЮЧОВИ ПРОБЛЕМА които пречат на здравето или постигането на целта
-   КРИТИЧНО: НИКОГА не включвай проблеми с "Normal" severity - само Borderline, Risky или Critical
-   ФОКУСИРАЙ СЕ САМО на проблемните области, които изискват внимание
-   Не описвай нормални показатели като "добър сън" или "средна активност"
-9. ИЗЧИСЛИ шанса за успех като число от -100 до 100:
-   - Отрицателни стойности (-100 до -1): когато МНОЖЕСТВО фактори активно саботират целта (напр. поднормено тегло + цел отслабване)
-   - Нулева стойност (0): неутрално състояние - равностойни подкрепящи и противопоказващи фактори
-   - Ниски стойности (1-30): много противопоказващи фактори, малко подкрепящи
-   - Средни стойности (31-70): балансирани или смесени фактори
-   - Високи стойности (71-100): много подкрепящи фактори, малко противопоказващи
-   - Вземи предвид: здравословно състояние, BMI, медицински условия, хранителни навици, сън, стрес, активност
+1. КОРЕЛАЦИЯ СЪН - СТРЕС - ХРАНЕНЕ:
+   - Анализирай как ${data.sleepHours}ч сън (прекъсвания: ${data.sleepInterrupt}) влияе на:
+     * Нива на кортизол (стрес хормон) и глад
+     * Грелин (хормон на глада) и лептин (хормон на ситостта)
+     * Желания за висококалорична храна: ${JSON.stringify(data.foodCravings || [])}
+   - Свържи нивото на стрес (${data.stressLevel}) със:
+     * Емоционалното хранене и тригерите: ${JSON.stringify(data.foodTriggers || [])}
+     * Компенсаторните методи: ${JSON.stringify(data.compensationMethods || [])}
+     * Прекомерното хранене (${data.overeatingFrequency})
+   - КРИТИЧНО: Ако съня е под 6 часа И има високи нива на стрес, това води до 30-40% повишена вероятност за преяждане
+
+2. МЕДИЦИНСКИ СЪСТОЯНИЯ И ХРАНИТЕЛНИ НУЖДИ:
+   - Анализирай как ${JSON.stringify(data.medicalConditions || [])} влияе на:
+     * Усвояването на макронутриенти и микроелементи
+     * Необходимостта от специфични хранителни добавки
+     * Ограничения в храненето и взаимодействия с лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'няма'}
+   - КРИТИЧНО: Диабет изисква ниско-гликемичен подход; PCOS/СПКЯ - ниско-въглехидратен; Анемия + растителна диета - задължителна добавка желязо
+
+3. ПСИХОЛОГИЧЕСКИ ПРОФИЛ:
+   - Анализирай връзката между емоции и хранене базирано на:
+     * Тригери за хранене: ${JSON.stringify(data.foodTriggers || [])}
+     * Методи за компенсация: ${JSON.stringify(data.compensationMethods || [])}
+     * Социално сравнение: ${data.socialComparison}
+   - Създай психологически профил включващ самодисциплина, емоционална регулация и устойчивост
+
+4. МЕТАБОЛИТЕН ПРОФИЛ:
+   - Идентифицирай метаболитни особености базирани на:
+     * BMI и телесна композиция
+     * Хронотип (${data.chronotype}) и циркаден ритъм
+     * Ниво на активност (${data.sportActivity}) и дневна подвижност (${data.dailyActivityLevel})
+     * История на диети: ${data.dietHistory === 'Да' ? `${data.dietType} с резултат ${data.dietResult}` : 'няма'}
+   - КРИТИЧНО: Неуспешни диети в миналото намаляват метаболизма с 5-15%
+
+5. ХРОНОТИП И ХРАНОСМИЛАНЕ:
+   - Анализирай как ${data.chronotype} влияе на:
+     * Оптимално време за хранене (сутрин/вечер)
+     * Усвояване на калории в различни часове
+     * Енергийни нива през деня
+
+6. МАКРОНУТРИЕНТНИ НУЖДИ:
+   - Определи СПЕЦИФИЧНИ нужди въз основа на:
+     * Цел: ${data.goal}
+     * Активност: ${data.sportActivity}
+     * Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+     * Възраст и пол: ${data.age} год., ${data.gender}
+
+7. ХОЛИСТИЧЕН ИНДИВИДУАЛЕН ПОДХОД:
+   - Интегрирай ВСИЧКИ фактори в единен холистичен профил
+   - КОРЕЛИРАЙ алкохол (${data.drinksAlcohol || 'не е посочено'}) и сладки напитки (${data.drinksSweet || 'не е посочено'}) с калорийния баланс
+   - Анализирай как прием на вода (${data.waterIntake}) влияе на глада и метаболизма
+   - КРИТИЧНО: Недостатъчна хидратация може да се възприема като глад
+
+8. КЛЮЧОВИ ПРОБЛЕМИ (3-6 проблема):
+   - Идентифицирай САМО проблемните области
+   - КРИТИЧНО: НИКОГА не включвай проблеми с "Normal" severity - само Borderline, Risky или Critical
+   - Фокусирай се на фактори които АКТИВНО пречат на здравето или целта
+   - НЕ описвай нормални показатели
+
+9. ШАНС ЗА УСПЕХ (-100 до 100):
+   - Изчисли базирано на ВСИЧКИ фактори:
+     * BMI и здравословно състояние
+     * Медицински условия и лекарства
+     * Качество на съня и стрес
+     * Предишни опити за диети и техния резултат
+     * Хранителни навици и емоционално хранене
+     * Физическа активност
+     * Психологическа устойчивост (компенсаторни методи, социално сравнение)
+   - Отрицателни (-100 до -1): Множество активни саботиращи фактори
+   - Нулева (0): Балансирани за/против фактори  
+   - Ниски (1-30): Много противопоказващи фактори
+   - Средни (31-70): Смесени фактори
+   - Високи (71-100): Много подкрепящи фактори
+   - КРИТИЧНО: История на неуспешни диети намалява шанса с 15-25 точки
 
 Върни JSON с ДЕТАЙЛЕН анализ (НИКАКВИ универсални/default стойности):
 {
@@ -968,6 +1133,26 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 3. Всяка добавка трябва да е обоснована с КОНКРЕТНИ нужди от анализа
 4. Дозировките трябва да са персонализирани според възраст, тегло, пол и здравословно състояние
 5. Вземи предвид медицински състояния, лекарства и възможни взаимодействия
+6. КРИТИЧНО - ПРОВЕРКА ЗА ВЗАИМОДЕЙСТВИЯ:
+   - Ако клиентът приема лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}, провери:
+     * Витамин К + антикоагуланти (варфарин) = противопоказано
+     * Калций/Магнезий + антибиотици = намалено усвояване
+     * Желязо + антациди = блокирано усвояване
+     * Витамин D + кортикостероиди = необходима по-висока доза
+   - Ако има медицински състояния: ${JSON.stringify(data.medicalConditions || [])}, съобрази:
+     * Диабет: Хром, Витамин D, Омега-3 (контрол на кръвна захар)
+     * Хипертония: Магнезий, Калий, CoQ10 (понижаване на налягане)
+     * Щитовидна жлеза: Селен, Йод (само ако е дефицит!), Цинк
+     * Анемия: Желязо (хемово за по-добро усвояване), Витамин C (подпомага усвояването), B12
+     * PCOS/СПКЯ: Инозитол, Витамин D, Омега-3, Хром
+     * IBS/IBD: Пробиотици (специфични щамове), Витамин D, Омега-3
+7. ИНДИВИДУАЛНА ДОЗИРОВКА базирана на:
+   - Тегло: ${data.weight} кг (по-високо тегло = по-висока доза за липоразтворими витамини)
+   - Възраст: ${data.age} год. (по-възрастни = по-високи нужди от Витамин D, B12, Калций)
+   - Пол: ${data.gender} (жени = повече желязо при менструация; мъже = повече цинк)
+   - Сън: ${data.sleepHours}ч (под 7ч = Магнезий за сън, Мелатонин)
+   - Стрес: ${data.stressLevel} (висок стрес = Магнезий, Витамини B-комплекс, Ашваганда)
+   - Активност: ${data.sportActivity} (висока = Протеин, BCAA, Креатин, Витамин D)
 
 КРИТИЧНО ВАЖНО - ОПРЕДЕЛЯНЕ НА МОДИФИКАТОР:
 След анализ на всички параметри, определи подходящ МОДИФИКАТОР (диетичен профил), който ще управлява логиката на генериране на ястия:
@@ -1208,12 +1393,34 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
 === КЛИЕНТ ===
 Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
 BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
+Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
 
 === СТРАТЕГИЯ (КРАТКО) ===
 Диета: ${strategy.dietType || 'Балансирана'}
 Схема: ${strategy.weeklyMealPattern || 'Традиционна'}
 Избягвай: ${data.dietDislike || 'няма'}
 Включвай: ${data.dietLove || 'няма'}${previousDaysContext}
+
+=== КОРЕЛАЦИОННА АДАПТАЦИЯ ===
+СТРЕС И ХРАНЕНЕ:
+- Стрес: ${data.stressLevel}
+- При висок стрес, включи храни богати на:
+  * Магнезий (тъмно зелени листни зеленчуци, ядки, семена, пълнозърнести храни)
+  * Витамин C (цитруси, чушки, зеле)
+  * Омега-3 (мазна риба, ленено семе, орехи)
+  * Комплекс B витамини (яйца, месо, бобови)
+- Избягвай стимуланти (кафе, енергийни напитки) при висок стрес
+
+ХРОНОТИП И КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ:
+- Хронотип: ${data.chronotype}
+- "Ранобуден" / "Сова на сутринта" → По-обилна закуска (30-35% калории), умерена вечеря (25%)
+- "Вечерен тип" / "Нощна сова" → Лека закуска (20%), по-обилна вечеря (35% калории)
+- "Смесен тип" → Балансирано разпределение (25-30-25-20%)
+
+СЪН И ХРАНЕНЕ:
+- Сън: ${data.sleepHours}ч
+- При малко сън (< 6ч): Включи храни с триптофан (пуешко, банани, кисело мляко) за подобряване на съня
+- Избягвай тежки храни вечер ако съня е прекъсван
 
 === АРХИТЕКТУРА ===
 Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
