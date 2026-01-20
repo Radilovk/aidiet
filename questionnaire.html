@@ -1411,6 +1411,12 @@
             const stage3 = document.getElementById('stage3');
             const stage3Text = document.getElementById('stage3Text');
             
+            // Validate all required elements exist
+            if (!progressBar || !percentageText || !title || !subtitle) {
+                console.error('Loading animation elements not found');
+                return;
+            }
+            
             let progress = 0;
             const stages = [
                 { percent: 30, title: 'Анализиране на данните...', subtitle: 'Обработваме вашата информация', duration: 2000 },
@@ -1419,6 +1425,16 @@
             ];
             
             let currentStage = 0;
+            
+            // Helper function to activate a stage indicator
+            function activateStage(stageElement, textElement) {
+                if (stageElement && textElement) {
+                    stageElement.style.background = 'var(--primary-red)';
+                    stageElement.style.boxShadow = '0 2px 8px var(--soft-red)';
+                    textElement.style.color = 'var(--primary-red)';
+                    textElement.style.fontWeight = '600';
+                }
+            }
             
             function updateProgress() {
                 if (currentStage < stages.length) {
@@ -1434,23 +1450,12 @@
                     subtitle.textContent = stage.subtitle;
                     
                     // Update stage indicators
-                    if (currentStage === 0 && stage1 && stage1Text) {
-                        stage1.style.background = 'var(--primary-red)';
-                        stage1.style.boxShadow = '0 2px 8px var(--soft-red)';
-                        stage1Text.style.color = 'var(--primary-red)';
-                        stage1Text.style.fontWeight = '600';
-                    }
-                    if (currentStage === 1 && stage2 && stage2Text) {
-                        stage2.style.background = 'var(--primary-red)';
-                        stage2.style.boxShadow = '0 2px 8px var(--soft-red)';
-                        stage2Text.style.color = 'var(--primary-red)';
-                        stage2Text.style.fontWeight = '600';
-                    }
-                    if (currentStage === 2 && stage3 && stage3Text) {
-                        stage3.style.background = 'var(--primary-red)';
-                        stage3.style.boxShadow = '0 2px 8px var(--soft-red)';
-                        stage3Text.style.color = 'var(--primary-red)';
-                        stage3Text.style.fontWeight = '600';
+                    if (currentStage === 0) {
+                        activateStage(stage1, stage1Text);
+                    } else if (currentStage === 1) {
+                        activateStage(stage2, stage2Text);
+                    } else if (currentStage === 2) {
+                        activateStage(stage3, stage3Text);
                     }
                     
                     currentStage++;
@@ -1460,6 +1465,13 @@
                     } else {
                         // Final stage - slowly progress to 95% while waiting for actual response
                         progressInterval = setInterval(() => {
+                            // Check elements still exist
+                            if (!progressBar || !percentageText) {
+                                clearInterval(progressInterval);
+                                progressInterval = null;
+                                return;
+                            }
+                            
                             if (progress < 95) {
                                 progress += 0.5;
                                 progressBar.style.width = progress + '%';
