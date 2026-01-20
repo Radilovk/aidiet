@@ -38,3 +38,4 @@ Thumbs.db
 # Test files
 test-*.js
 test-*.html
+test-loading-animation.html
