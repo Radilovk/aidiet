@@ -603,6 +603,10 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
+            /* Touch-friendly improvements */
+            min-height: 48px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-primary:hover {
@@ -725,20 +729,128 @@
                 font-size: 1.5rem;
             }
 
+            .score-card-title {
+                font-size: 1rem;
+            }
+
+            .score-card-subtitle {
+                font-size: 0.8rem;
+            }
+
             .comparison-container {
-                padding: 20px 8px;
+                padding: 20px 6px;
             }
 
             .comparison-side {
-                padding: 0 12px;
+                padding: 0 10px;
+            }
+
+            .comparison-label {
+                font-size: 0.7rem;
+                letter-spacing: 0.3px;
+                margin-bottom: 10px;
             }
 
             .vertical-bar-chart {
-                height: 100px;
+                height: 90px;
             }
 
             .bar-column {
-                width: 35px;
+                width: 32px;
+            }
+
+            .score-delta {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Extra optimizations for very small screens (< 360px) */
+        @media (max-width: 360px) {
+            .container {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .header p {
+                font-size: 0.95rem;
+            }
+
+            .problem-card {
+                padding: 16px;
+            }
+
+            .problem-description {
+                font-size: 0.9rem;
+            }
+
+            .comparison-container {
+                padding: 16px 4px;
+            }
+
+            .comparison-side {
+                padding: 0 8px;
+            }
+
+            .score-value {
+                font-size: 2rem;
+            }
+
+            .comparison-label {
+                font-size: 0.65rem;
+            }
+
+            .vertical-bar-chart {
+                height: 80px;
+            }
+
+            .bar-column {
+                width: 28px;
+            }
+
+            .btn-primary {
+                padding: 14px 32px;
+                font-size: 1rem;
+            }
+
+            .cta-section h2 {
+                font-size: 1.3rem;
+            }
+
+            .cta-section p {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Reduce animations on low-end devices for better performance */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Optimize for touch devices */
+        @media (hover: none) and (pointer: coarse) {
+            .problem-card:hover,
+            .score-card:hover {
+                transform: none;
+            }
+            
+            .theme-toggle:hover,
+            .btn-primary:hover {
+                transform: none;
+            }
+            
+            /* Ensure adequate touch targets */
+            .theme-toggle {
+                min-width: 48px;
+                min-height: 48px;
             }
         }
     </style>
