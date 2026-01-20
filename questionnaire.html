@@ -1394,6 +1394,16 @@
         let progressInterval = null; // Store interval reference for cleanup
         let tipsInterval = null; // Store tips rotation interval reference
         
+        // Helpful tips to display during loading (constant to avoid recreation)
+        const LOADING_TIPS = [
+            '💡 Вашият план се базира на над 30 фактора от въпросника',
+            '🎯 AI анализира вашия метаболизъм и хранителни навици',
+            '🔬 Създаваме персонализирани препоръки само за вас',
+            '⏱️ Качественият анализ отнема време - но си струва!',
+            '🌟 Скоро ще получите детайлен 7-дневен план',
+            '💪 Подготвяме стратегия за постигане на вашите цели'
+        ];
+        
         function simulateProgress() {
             // Clear any existing intervals
             if (progressInterval) {
@@ -1427,23 +1437,13 @@
             let currentTipIndex = 0;
             const startTime = Date.now();
             
-            // Helpful tips to display during loading
-            const tips = [
-                '💡 Вашият план се базира на над 30 фактора от въпросника',
-                '🎯 AI анализира вашия метаболизъм и хранителни навици',
-                '🔬 Създаваме персонализирани препоръки само за вас',
-                '⏱️ Качественият анализ отнема време - но си струва!',
-                '🌟 Скоро ще получите детайлен 7-дневен план',
-                '💪 Подготвяме стратегия за постигане на вашите цели'
-            ];
-            
             // Rotate tips every 8 seconds
             function rotateTips() {
                 if (tipsElement) {
-                    currentTipIndex = (currentTipIndex + 1) % tips.length;
+                    currentTipIndex = (currentTipIndex + 1) % LOADING_TIPS.length;
                     tipsElement.style.opacity = '0';
                     setTimeout(() => {
-                        tipsElement.textContent = tips[currentTipIndex];
+                        tipsElement.textContent = LOADING_TIPS[currentTipIndex];
                         tipsElement.style.opacity = '1';
                     }, 300);
                 }
@@ -1451,7 +1451,7 @@
             
             // Start tip rotation
             if (tipsElement) {
-                tipsElement.textContent = tips[0];
+                tipsElement.textContent = LOADING_TIPS[0];
                 tipsInterval = setInterval(rotateTips, 8000);
             }
             
@@ -1498,13 +1498,16 @@
                 { element: stage3, text: stage3Text }
             ];
             
-            // Helper function to activate a stage indicator
-            function activateStage(stageElement, textElement) {
-                if (stageElement && textElement) {
-                    stageElement.style.background = 'var(--primary-red)';
-                    stageElement.style.boxShadow = '0 2px 8px var(--soft-red)';
-                    textElement.style.color = 'var(--primary-red)';
-                    textElement.style.fontWeight = '600';
+            // Helper function to activate a stage indicator if valid
+            function activateStageIfValid(stageIndex) {
+                if (stageIndex >= 0 && stageIndex < stageElements.length) {
+                    const stage = stageElements[stageIndex];
+                    if (stage.element && stage.text) {
+                        stage.element.style.background = 'var(--primary-red)';
+                        stage.element.style.boxShadow = '0 2px 8px var(--soft-red)';
+                        stage.text.style.color = 'var(--primary-red)';
+                        stage.text.style.fontWeight = '600';
+                    }
                 }
             }
             
@@ -1549,9 +1552,7 @@
                             if (currentSubtitle) currentSubtitle.textContent = stage.subtitle;
                             
                             // Activate stage indicator
-                            if (i < stageElements.length) {
-                                activateStage(stageElements[i].element, stageElements[i].text);
-                            }
+                            activateStageIfValid(i);
                         }
                         
                         // Calculate progress within current stage using easing
@@ -1568,10 +1569,8 @@
                         newProgress = Math.max(newProgress, stage.percent);
                         
                         // Activate stage indicator if we haven't already
-                        if (i !== currentStage && i < stageElements.length) {
-                            if (i < stageElements.length) {
-                                activateStage(stageElements[i].element, stageElements[i].text);
-                            }
+                        if (i !== currentStage) {
+                            activateStageIfValid(i);
                             currentStage = i;
                         }
                     }
