@@ -1390,21 +1390,156 @@
             }
         }
 
+        // Simulate AI processing progress with visual feedback
+        let progressInterval = null; // Store interval reference for cleanup
+        
+        function simulateProgress() {
+            // Clear any existing interval
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+            
+            const progressBar = document.getElementById('aiProgressBar');
+            const percentageText = document.getElementById('progressPercentage');
+            const title = document.getElementById('loadingTitle');
+            const subtitle = document.getElementById('loadingSubtitle');
+            const stage1 = document.getElementById('stage1');
+            const stage1Text = document.getElementById('stage1Text');
+            const stage2 = document.getElementById('stage2');
+            const stage2Text = document.getElementById('stage2Text');
+            const stage3 = document.getElementById('stage3');
+            const stage3Text = document.getElementById('stage3Text');
+            
+            // Validate all required elements exist
+            if (!progressBar || !percentageText || !title || !subtitle) {
+                console.error('Loading animation elements not found');
+                return;
+            }
+            
+            let progress = 0;
+            const stages = [
+                { percent: 30, title: 'Анализиране на данните...', subtitle: 'Обработваме вашата информация', duration: 2000 },
+                { percent: 65, title: 'Генериране на плана...', subtitle: 'Създаваме персонализирани препоръки', duration: 3000 },
+                { percent: 90, title: 'Финализиране...', subtitle: 'Подготвяме вашия хранителен план', duration: 2000 }
+            ];
+            
+            let currentStage = 0;
+            
+            // Helper function to activate a stage indicator
+            function activateStage(stageElement, textElement) {
+                if (stageElement && textElement) {
+                    stageElement.style.background = 'var(--primary-red)';
+                    stageElement.style.boxShadow = '0 2px 8px var(--soft-red)';
+                    textElement.style.color = 'var(--primary-red)';
+                    textElement.style.fontWeight = '600';
+                }
+            }
+            
+            function updateProgress() {
+                if (currentStage < stages.length) {
+                    const stage = stages[currentStage];
+                    progress = stage.percent;
+                    
+                    // Update progress bar
+                    progressBar.style.width = progress + '%';
+                    percentageText.textContent = progress + '%';
+                    
+                    // Update text
+                    title.textContent = stage.title;
+                    subtitle.textContent = stage.subtitle;
+                    
+                    // Update stage indicators
+                    if (currentStage === 0) {
+                        activateStage(stage1, stage1Text);
+                    } else if (currentStage === 1) {
+                        activateStage(stage2, stage2Text);
+                    } else if (currentStage === 2) {
+                        activateStage(stage3, stage3Text);
+                    }
+                    
+                    currentStage++;
+                    
+                    if (currentStage < stages.length) {
+                        setTimeout(updateProgress, stage.duration);
+                    } else {
+                        // Final stage - slowly progress to 95% while waiting for actual response
+                        progressInterval = setInterval(() => {
+                            // Re-query DOM elements to ensure they still exist
+                            const currentProgressBar = document.getElementById('aiProgressBar');
+                            const currentPercentageText = document.getElementById('progressPercentage');
+                            
+                            if (!currentProgressBar || !currentPercentageText) {
+                                clearInterval(progressInterval);
+                                progressInterval = null;
+                                return;
+                            }
+                            
+                            if (progress < 95) {
+                                progress += 0.5;
+                                currentProgressBar.style.width = progress + '%';
+                                currentPercentageText.textContent = Math.floor(progress) + '%';
+                            } else {
+                                clearInterval(progressInterval);
+                                progressInterval = null;
+                            }
+                        }, 200);
+                    }
+                }
+            }
+            
+            // Start the progress simulation
+            setTimeout(updateProgress, 500);
+        }
+
         async function finishQuiz() {
             console.log("Final JSON:", JSON.stringify(answers, null, 2));
             
-            // Show loading state
+            // Show loading state with progress bar
             container.innerHTML = `
-                <div style="text-align:center; animation: fadeIn 0.5s;">
-                    <div class="section-icon" style="background:#e8f8f5; color:#27ae60;">
-                        <i class="fas fa-spinner fa-spin"></i>
+                <div style="text-align:center; animation: fadeIn 0.5s; max-width: 500px; margin: 0 auto;">
+                    <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 30px;">
+                        <i class="fas fa-brain"></i>
                     </div>
-                    <h2 class="q-text">Генериране на вашия план...</h2>
-                    <p style="color:#7f8c8d; margin-bottom:20px;">Моля, изчакайте. Това може да отнеме няколко секунди.</p>
+                    <h2 class="q-text" id="loadingTitle">Анализиране на данните...</h2>
+                    <p style="color:var(--text-gray); margin-bottom:30px; font-size: 0.95rem;" id="loadingSubtitle">
+                        Обработваме вашата информация
+                    </p>
+                    
+                    <!-- Progress Bar Container -->
+                    <div style="position: relative; margin-bottom: 15px;">
+                        <div style="width: 100%; height: 12px; background: #e0e0e0; border-radius: 20px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+                            <div id="aiProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary-red), var(--primary-red-hover)); border-radius: 20px; transition: width 0.5s ease, background 0.3s ease; box-shadow: 0 2px 8px var(--soft-red);"></div>
+                        </div>
+                        <div id="progressPercentage" style="position: absolute; top: -2px; right: 0; color: var(--text-dark); font-size: 0.75rem; font-weight: 600;">0%</div>
+                    </div>
+                    
+                    <!-- Progress Stage Indicator -->
+                    <div style="display: flex; justify-content: space-between; margin-top: 25px; padding: 0 10px;">
+                        <div style="flex: 1; text-align: center;">
+                            <div id="stage1" style="width: 10px; height: 10px; background: var(--primary-red); border-radius: 50%; margin: 0 auto 8px; box-shadow: 0 2px 8px var(--soft-red);"></div>
+                            <div id="stage1Text" style="font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">Анализ</div>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <div id="stage2" style="width: 10px; height: 10px; background: #e0e0e0; border-radius: 50%; margin: 0 auto 8px; transition: all 0.3s ease;"></div>
+                            <div id="stage2Text" style="font-size: 0.75rem; color: var(--text-gray); font-weight: 500;">Генериране</div>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <div id="stage3" style="width: 10px; height: 10px; background: #e0e0e0; border-radius: 50%; margin: 0 auto 8px; transition: all 0.3s ease;"></div>
+                            <div id="stage3Text" style="font-size: 0.75rem; color: var(--text-gray); font-weight: 500;">Финализиране</div>
+                        </div>
+                    </div>
+                    
+                    <p style="color:var(--text-gray); margin-top:30px; font-size: 0.85rem; font-style: italic;">
+                        <i class="fas fa-info-circle"></i> Създаваме персонализиран план специално за вас
+                    </p>
                 </div>
             `;
             document.querySelector('.nav-footer').style.display = 'none';
             document.querySelector('.progress-container').style.display = 'none';
+
+            // Start progress animation
+            simulateProgress();
 
             try {
                 // Increase HTTP request timeout to 120 seconds to allow for AI model processing time
@@ -1435,6 +1570,20 @@
 
                 const result = await response.json();
                 console.log('Result received:', result);
+                
+                // Clear any running intervals
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                
+                // Complete the progress bar
+                const progressBar = document.getElementById('aiProgressBar');
+                const percentageText = document.getElementById('progressPercentage');
+                if (progressBar && percentageText) {
+                    progressBar.style.width = '100%';
+                    percentageText.textContent = '100%';
+                }
                 
                 if (result.success) {
                     // Check if there's a goal contradiction
@@ -1476,6 +1625,12 @@
                 }
             } catch (error) {
                 console.error('Error submitting data:', error);
+                
+                // Clear any running intervals on error
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
                 
                 let errorMessage = error.message;
                 if (error.name === 'AbortError') {
