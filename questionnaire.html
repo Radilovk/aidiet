@@ -1457,38 +1457,44 @@
             
             // Define stages with more realistic timing
             // Total expected time: ~120 seconds (2 minutes)
+            // Note: We have 3 visual stage indicators but 4 progress stages
+            // Stages 2 and 3 share the same visual indicator (stage3)
             const stages = [
                 { 
                     percent: 25, 
                     title: 'Анализиране на данните...', 
                     subtitle: 'Обработваме вашия здравен профил',
                     minTime: 0,
-                    maxTime: 20000 // 0-20 seconds
+                    maxTime: 20000, // 0-20 seconds
+                    indicatorIndex: 0 // stage1
                 },
                 { 
                     percent: 50, 
                     title: 'Генериране на препоръки...', 
                     subtitle: 'AI създава персонализирани стратегии',
                     minTime: 20000,
-                    maxTime: 50000 // 20-50 seconds
+                    maxTime: 50000, // 20-50 seconds
+                    indicatorIndex: 1 // stage2
                 },
                 { 
                     percent: 75, 
                     title: 'Изграждане на плана...', 
                     subtitle: 'Съставяме вашето 7-дневно меню',
                     minTime: 50000,
-                    maxTime: 80000 // 50-80 seconds
+                    maxTime: 80000, // 50-80 seconds
+                    indicatorIndex: 2 // stage3
                 },
                 { 
                     percent: 92, 
                     title: 'Финализиране...', 
                     subtitle: 'Последни детайли и проверки',
                     minTime: 80000,
-                    maxTime: 120000 // 80-120 seconds
+                    maxTime: 120000, // 80-120 seconds
+                    indicatorIndex: 2 // stage3 (shares with previous stage)
                 }
             ];
             
-            let currentStage = 0;
+            let currentStage = -1; // Start at -1 so first stage (0) triggers activation
             const MAX_PROGRESS_INCREMENT = 2; // Maximum progress change per update for smoothness
             
             // Stage UI elements mapping
@@ -1552,7 +1558,7 @@
                             if (currentSubtitle) currentSubtitle.textContent = stage.subtitle;
                             
                             // Activate stage indicator
-                            activateStageIfValid(i);
+                            activateStageIfValid(stage.indicatorIndex);
                         }
                         
                         // Calculate progress within current stage using easing
@@ -1570,7 +1576,7 @@
                         
                         // Activate stage indicator if we haven't already
                         if (i !== currentStage) {
-                            activateStageIfValid(i);
+                            activateStageIfValid(stage.indicatorIndex);
                             currentStage = i;
                         }
                     }
