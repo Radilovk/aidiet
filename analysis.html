@@ -354,29 +354,32 @@
         }
 
         .score-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border-radius: 16px;
+            background: var(--card-bg);
+            border-radius: 20px;
             padding: 0;
             overflow: hidden;
             transition: var(--transition);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border: 2px solid transparent;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+            border: 1px solid rgba(16,185,129,0.1);
         }
 
         [data-theme="dark"] .score-card {
-            background: linear-gradient(135deg, #1a2028 0%, #252b35 100%);
+            background: var(--card-bg);
+            border: 1px solid rgba(52,211,153,0.15);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
         }
 
         .score-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-            border-color: var(--primary-red);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(16,185,129,0.12), 0 4px 8px rgba(0,0,0,0.08);
+            border-color: rgba(16,185,129,0.3);
         }
 
         .score-card-header {
             text-align: center;
-            padding: 20px 20px 12px;
-            background: linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(16,185,129,0.02) 100%);
+            padding: 24px 20px 16px;
+            background: linear-gradient(to bottom, rgba(16,185,129,0.04) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(16,185,129,0.08);
         }
 
         .score-icon-wrapper {
@@ -444,30 +447,34 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 0;
-            padding: 24px 12px;
+            padding: 28px 16px 24px;
         }
 
         .comparison-side {
-            padding: 0 16px;
+            padding: 0 12px;
             text-align: center;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .comparison-side.current {
-            border-right: 2px solid var(--input-bg);
+            border-right: 1px solid rgba(107,114,128,0.15);
         }
 
         .comparison-side.future {
-            background: linear-gradient(135deg, rgba(16,185,129,0.03) 0%, rgba(16,185,129,0.08) 100%);
+            background: linear-gradient(135deg, rgba(16,185,129,0.02) 0%, rgba(16,185,129,0.05) 100%);
+            border-radius: 0 0 20px 0;
         }
 
         .comparison-label {
-            font-size: 0.75rem;
-            font-weight: 700;
+            font-size: 0.7rem;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-            opacity: 0.7;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            opacity: 0.6;
         }
 
         .comparison-side.current .comparison-label {
@@ -480,17 +487,18 @@
 
         .score-value-container {
             margin-bottom: 16px;
-            min-height: 4rem;
+            min-height: 5rem;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
+            justify-content: flex-end;
+            align-items: center;
         }
 
         .score-value {
             font-size: 2.8rem;
             font-weight: 800;
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: 0;
             background: linear-gradient(135deg, var(--text-dark) 0%, var(--text-gray) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -498,7 +506,7 @@
         }
 
         .comparison-side.current .score-value {
-            font-size: 2.2rem;
+            font-size: 2.8rem;
         }
 
         .comparison-side.future .score-value {
@@ -515,12 +523,15 @@
         }
 
         .score-delta {
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 700;
             color: var(--primary-red);
-            display: inline-flex;
+            display: flex;
             align-items: center;
+            justify-content: center;
             gap: 4px;
+            margin-top: 8px;
+            text-align: center;
         }
 
         .vertical-bar-chart {
@@ -743,7 +754,12 @@
             }
 
             .comparison-side.current .score-value {
-                font-size: 1.8rem;
+                font-size: 2.2rem;
+            }
+
+            .score-delta {
+                font-size: 0.75rem;
+                margin-top: 6px;
             }
 
             .overall-score-header h2 {
@@ -820,11 +836,17 @@
             }
 
             .comparison-side.current .score-value {
-                font-size: 1.6rem;
+                font-size: 2rem;
+            }
+
+            .score-delta {
+                font-size: 0.7rem;
+                margin-top: 6px;
             }
 
             .comparison-label {
                 font-size: 0.65rem;
+                margin-bottom: 12px;
             }
 
             .vertical-bar-chart {
