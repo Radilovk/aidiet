@@ -935,172 +935,146 @@ async function generatePlanMultiStep(env, data) {
 
 /**
  * Step 1: Generate prompt for user profile analysis
+ * Simplified - focuses on AI's strengths: correlations, psychology, individualization
+ * Backend handles: BMR, TDEE, safety checks
  */
 function generateAnalysisPrompt(data) {
-  return `Ти си ИЗКЛЮЧИТЕЛЕН СПЕЦИАЛИСТ с дълбоки познания в МЕДИЦИНА, ПСИХОЛОГИЯ и ДИЕТЕТИКА, базирани на най-новите научни проучвания и клинична практика. Действаш като опитен диетолог, ендокринолог и психолог със специализация в хранителното поведение.
+  // Calculate concrete numbers in backend
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, data.sportActivity);
+  
+  // Determine recommended calories based on goal
+  let recommendedCalories;
+  if (data.goal && data.goal.toLowerCase().includes('отслабване')) {
+    recommendedCalories = Math.round(tdee * 0.85); // 15% deficit
+  } else if (data.goal && data.goal.toLowerCase().includes('мускулна маса')) {
+    recommendedCalories = Math.round(tdee * 1.1); // 10% surplus
+  } else {
+    recommendedCalories = tdee; // Maintenance
+  }
+  
+  return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента.
 
-Твоята експертиза включва:
-- Последни проучвания в областта на метаболизма и хранителните науки
-- Психологически механизми на хранителното поведение и емоционалното хранене
-- Ендокринни взаимовръзки между хормони, стрес, сън и хранене
-- Холистичен подход към здравето, обхващащ физически и психологически аспекти
-- Индивидуализирани стратегии базирани на научни доказателства
+═══ КЛИЕНТСКИ ПРОФИЛ ═══
+${JSON.stringify({
+  name: data.name,
+  age: data.age,
+  gender: data.gender,
+  height: data.height,
+  weight: data.weight,
+  goal: data.goal,
+  lossKg: data.lossKg,
+  
+  // Sleep & circadian rhythm
+  sleepHours: data.sleepHours,
+  sleepInterrupt: data.sleepInterrupt,
+  chronotype: data.chronotype,
+  
+  // Activity & stress
+  sportActivity: data.sportActivity,
+  dailyActivityLevel: data.dailyActivityLevel,
+  stressLevel: data.stressLevel,
+  
+  // Nutrition & hydration
+  waterIntake: data.waterIntake,
+  drinksSweet: data.drinksSweet,
+  drinksAlcohol: data.drinksAlcohol,
+  
+  // Eating behavior
+  overeatingFrequency: data.overeatingFrequency,
+  eatingHabits: data.eatingHabits,
+  foodCravings: data.foodCravings,
+  foodTriggers: data.foodTriggers,
+  compensationMethods: data.compensationMethods,
+  socialComparison: data.socialComparison,
+  
+  // Medical & history
+  medicalConditions: data.medicalConditions,
+  medications: data.medications,
+  medicationsDetails: data.medicationsDetails,
+  weightChange: data.weightChange,
+  weightChangeDetails: data.weightChangeDetails,
+  dietHistory: data.dietHistory,
+  dietType: data.dietType,
+  dietResult: data.dietResult,
+  
+  // Preferences
+  dietPreference: data.dietPreference,
+  dietDislike: data.dietDislike,
+  dietLove: data.dietLove
+}, null, 2)}
 
-Направи ЗАДЪЛБОЧЕН ХОЛИСТИЧЕН АНАЛИЗ на този клиент:
+═══ ИЗЧИСЛЕНИ СТОЙНОСТИ (Backend) ═══
+BMR: ${bmr} kcal (Mifflin-St Jeor формула)
+TDEE: ${tdee} kcal (BMR × активност)
+Препоръчани калории: ${recommendedCalories} kcal (според цел "${data.goal}")
 
-ОСНОВНИ ДАННИ:
-- Име: ${data.name}
-- Пол: ${data.gender}
-- Възраст: ${data.age} години
-- Ръст: ${data.height} см
-- Тегло: ${data.weight} кг
-- Цел: ${data.goal}
-${data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : ''}
+═══ ТВОЯТА ЗАДАЧА ═══
+Фокусирай се на това, което САМО ТИ можеш да направиш - КОРЕЛАЦИОНЕН АНАЛИЗ:
 
-ЗДРАВОСЛОВЕН ПРОФИЛ:
-- Сън: ${data.sleepHours} часа (прекъсвания: ${data.sleepInterrupt})
-- Хронотип: ${data.chronotype}
-- Активност през деня: ${data.dailyActivityLevel}
-- Стрес: ${data.stressLevel}
-- Спортна активност: ${data.sportActivity}
-- Прием на вода: ${data.waterIntake}
-- Сладки напитки: ${data.drinksSweet || 'Не е посочено'}
-- Алкохол: ${data.drinksAlcohol || 'Не е посочено'}
+1. **СЪН ↔ СТРЕС ↔ ХРАНЕНЕ**: Как ${data.sleepHours}ч сън (прекъсван: ${data.sleepInterrupt}) + стрес (${data.stressLevel}) влияят на:
+   - Хормони (кортизол, грелин, лептин)
+   - Хранителни желания: ${JSON.stringify(data.foodCravings || [])}
+   - Прекомерно хранене: ${data.overeatingFrequency}
 
-ХРАНИТЕЛНИ НАВИЦИ И ПОВЕДЕНИЕ:
-- Прекомерно хранене: ${data.overeatingFrequency}
-- Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
-- Желания за храна: ${JSON.stringify(data.foodCravings || [])}
-${data.foodCravings_other ? `  (Друго: ${data.foodCravings_other})` : ''}
-- Тригери за хранене: ${JSON.stringify(data.foodTriggers || [])}
-${data.foodTriggers_other ? `  (Друго: ${data.foodTriggers_other})` : ''}
-- Методи за компенсация: ${JSON.stringify(data.compensationMethods || [])}
-${data.compensationMethods_other ? `  (Друго: ${data.compensationMethods_other})` : ''}
-- Социално сравнение: ${data.socialComparison}
+2. **ПСИХОЛОГИЧЕСКИ ПРОФИЛ**: Анализирай връзката емоции ↔ хранене:
+   - Тригери: ${JSON.stringify(data.foodTriggers || [])}
+   - Компенсации: ${JSON.stringify(data.compensationMethods || [])}
+   - Социално сравнение: ${data.socialComparison}
+   - Оценка на самодисциплина и мотивация
 
-МЕДИЦИНСКИ СЪСТОЯНИЯ:
-- Състояния: ${JSON.stringify(data.medicalConditions || [])}
-${data['medicalConditions_Алергии'] ? `- Детайли за алергии: ${data['medicalConditions_Алергии']}` : ''}
-${data['medicalConditions_Автоимунно'] ? `- Детайли за автоимунно заболяване: ${data['medicalConditions_Автоимунно']}` : ''}
-${data.medicalConditions_other ? `- Други медицински състояния: ${data.medicalConditions_other}` : ''}
-- Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
+3. **МЕТАБОЛИТНИ ОСОБЕНОСТИ**: Идентифицирай уникален метаболитен профил базиран на:
+   - Хронотип (${data.chronotype}) → кога е оптимално храненето
+   - Активност (${data.sportActivity}, ${data.dailyActivityLevel})
+   - История: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'няма предишни диети'}
+   - ВАЖНО: Неуспешни диети в миналото обикновено означават намален метаболизъм
 
-ХРАНИТЕЛНА ИСТОРИЯ:
-- Рязко покачване на тегло: ${data.weightChange === 'Да' ? data.weightChangeDetails : 'Не'}
-- Диети в миналото: ${data.dietHistory === 'Да' ? `Тип: ${data.dietType}, Резултат: ${data.dietResult}` : 'Не'}
+4. **МЕДИЦИНСКИ ФАКТОРИ**: Как медицински състояния влияят на хранене:
+   - Състояния: ${JSON.stringify(data.medicalConditions || [])}
+   - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}
+   - Какви специфични нужди от макро/микроелементи?
 
-КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ:
-- ВСИЧКО трябва да бъде ИЗЧИСЛЕНО индивидуално за ${data.name}
-- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
-- BMR, TDEE, калории, макронутриенти - ВСИЧКИ трябва да са ПРЕЦИЗНО изчислени според УНИКАЛНИЯ профил
-- Вземи предвид АБСОЛЮТНО ВСИЧКИ параметри при изчисленията
+5. **ШАНС ЗА УСПЕХ**: Изчисли успех score (-100 до +100) базиран на ВСИЧКИ фактори:
+   - BMI и здравословно състояние
+   - Качество на съня и стрес
+   - История на диети (неуспешни намаляват шанса с 15-25 точки)
+   - Психологическа устойчивост
+   - Медицински условия и активност
 
-ИЗИСКВАНИЯ ЗА АНАЛИЗ:
-1. КОРЕЛАЦИЯ СЪН - СТРЕС - ХРАНЕНЕ:
-   - Анализирай как ${data.sleepHours}ч сън (прекъсвания: ${data.sleepInterrupt}) влияе на:
-     * Нива на кортизол (стрес хормон) и глад
-     * Грелин (хормон на глада) и лептин (хормон на ситостта)
-     * Желания за висококалорична храна: ${JSON.stringify(data.foodCravings || [])}
-   - Свържи нивото на стрес (${data.stressLevel}) със:
-     * Емоционалното хранене и тригерите: ${JSON.stringify(data.foodTriggers || [])}
-     * Компенсаторните методи: ${JSON.stringify(data.compensationMethods || [])}
-     * Прекомерното хранене (${data.overeatingFrequency})
-   - КРИТИЧНО: Ако съня е под 6 часа И има високи нива на стрес, това води до 30-40% повишена вероятност за преяждане
+6. **КЛЮЧОВИ ПРОБЛЕМИ**: Идентифицирай 3-6 проблемни области (САМО Borderline/Risky/Critical severity):
+   - Фокус на фактори които АКТИВНО пречат на целта
+   - НЕ включвай "Normal" проблеми
 
-2. МЕДИЦИНСКИ СЪСТОЯНИЯ И ХРАНИТЕЛНИ НУЖДИ:
-   - Анализирай как ${JSON.stringify(data.medicalConditions || [])} влияе на:
-     * Усвояването на макронутриенти и микроелементи
-     * Необходимостта от специфични хранителни добавки
-     * Ограничения в храненето и взаимодействия с лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'няма'}
-   - КРИТИЧНО: Диабет изисква ниско-гликемичен подход; PCOS/СПКЯ - ниско-въглехидратен; Анемия + растителна диета - задължителна добавка желязо
-
-3. ПСИХОЛОГИЧЕСКИ ПРОФИЛ:
-   - Анализирай връзката между емоции и хранене базирано на:
-     * Тригери за хранене: ${JSON.stringify(data.foodTriggers || [])}
-     * Методи за компенсация: ${JSON.stringify(data.compensationMethods || [])}
-     * Социално сравнение: ${data.socialComparison}
-   - Създай психологически профил включващ самодисциплина, емоционална регулация и устойчивост
-
-4. МЕТАБОЛИТЕН ПРОФИЛ:
-   - Идентифицирай метаболитни особености базирани на:
-     * BMI и телесна композиция
-     * Хронотип (${data.chronotype}) и циркаден ритъм
-     * Ниво на активност (${data.sportActivity}) и дневна подвижност (${data.dailyActivityLevel})
-     * История на диети: ${data.dietHistory === 'Да' ? `${data.dietType} с резултат ${data.dietResult}` : 'няма'}
-   - КРИТИЧНО: Неуспешни диети в миналото намаляват метаболизма с 5-15%
-
-5. ХРОНОТИП И ХРАНОСМИЛАНЕ:
-   - Анализирай как ${data.chronotype} влияе на:
-     * Оптимално време за хранене (сутрин/вечер)
-     * Усвояване на калории в различни часове
-     * Енергийни нива през деня
-
-6. МАКРОНУТРИЕНТНИ НУЖДИ:
-   - Определи СПЕЦИФИЧНИ нужди въз основа на:
-     * Цел: ${data.goal}
-     * Активност: ${data.sportActivity}
-     * Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
-     * Възраст и пол: ${data.age} год., ${data.gender}
-
-7. ХОЛИСТИЧЕН ИНДИВИДУАЛЕН ПОДХОД:
-   - Интегрирай ВСИЧКИ фактори в единен холистичен профил
-   - КОРЕЛИРАЙ алкохол (${data.drinksAlcohol || 'не е посочено'}) и сладки напитки (${data.drinksSweet || 'не е посочено'}) с калорийния баланс
-   - Анализирай как прием на вода (${data.waterIntake}) влияе на глада и метаболизма
-   - КРИТИЧНО: Недостатъчна хидратация може да се възприема като глад
-
-8. КЛЮЧОВИ ПРОБЛЕМИ (3-6 проблема):
-   - Идентифицирай САМО проблемните области
-   - КРИТИЧНО: НИКОГА не включвай проблеми с "Normal" severity - само Borderline, Risky или Critical
-   - Фокусирай се на фактори които АКТИВНО пречат на здравето или целта
-   - НЕ описвай нормални показатели
-
-9. ШАНС ЗА УСПЕХ (-100 до 100):
-   - Изчисли базирано на ВСИЧКИ фактори:
-     * BMI и здравословно състояние
-     * Медицински условия и лекарства
-     * Качество на съня и стрес
-     * Предишни опити за диети и техния резултат
-     * Хранителни навици и емоционално хранене
-     * Физическа активност
-     * Психологическа устойчивост (компенсаторни методи, социално сравнение)
-   - Отрицателни (-100 до -1): Множество активни саботиращи фактори
-   - Нулева (0): Балансирани за/против фактори  
-   - Ниски (1-30): Много противопоказващи фактори
-   - Средни (31-70): Смесени фактори
-   - Високи (71-100): Много подкрепящи фактори
-   - КРИТИЧНО: История на неуспешни диети намалява шанса с 15-25 точки
-
-Върни JSON с ДЕТАЙЛЕН анализ (НИКАКВИ универсални/default стойности):
+═══ ФОРМАТ НА ОТГОВОР ═══
 {
-  "bmr": "ПРЕЦИЗНО изчислена базова метаболитна скорост за ${data.name} с детайлно обяснение на изчислението",
-  "tdee": "ИНДИВИДУАЛНО изчислен общ дневен разход на енергия базиран на активността и профила с детайли",
-  "recommendedCalories": "ПЕРСОНАЛИЗИРАН калориен прием БАЗИРАН НА ЦЯЛОСТНИЯ АНАЛИЗ и целта ${data.goal} - НЕ универсална стойност",
+  "bmr": "${bmr} (изчислен от backend)",
+  "tdee": "${tdee} (изчислен от backend)",
+  "recommendedCalories": "${recommendedCalories} (изчислен според цел ${data.goal})",
   "macroRatios": {
-    "protein": "ИНДИВИДУАЛНО препоръчителен процент протеини С ДЕТАЙЛНА ОБОСНОВКА според целта, активността и състоянието",
-    "carbs": "ИНДИВИДУАЛНО препоръчителен процент въглехидрати С ДЕТАЙЛНА ОБОСНОВКА според целта и метаболизма",
-    "fats": "ИНДИВИДУАЛНО препоръчителен процент мазнини С ДЕТАЙЛНА ОБОСНОВКА според нуждите и здравето"
+    "protein": "X% - обосновка защо този процент е оптимален за ${data.name}",
+    "carbs": "Y% - обосновка базирана на активност, медицински състояния",
+    "fats": "Z% - обосновка според нужди"
   },
-  "metabolicProfile": "ЗАДЪЛБОЧЕНО описание на УНИКАЛНИЯ метаболитен профил на ${data.name} и корелации",
-  "healthRisks": ["специфичен за ${data.name} риск 1 с обяснение", "специфичен за ${data.name} риск 2 с обяснение"],
-  "nutritionalNeeds": ["специфична за ${data.name} нужда 1 базирана на профила", "специфична за ${data.name} нужда 2 базирана на профила"],
-  "psychologicalProfile": "ДЕТАЙЛЕН анализ на психологическите фактори НА ${data.name}, емоционалното хранене и корелации със стрес, сън и поведение",
-  "successChance": "число от -100 до 100 базирано на анализ на ВСИЧКИ фактори на ${data.name}",
-  "successChanceReasoning": "детайлно обяснение защо този шанс за успех КОНКРЕТНО за ${data.name}, кои фактори подкрепят и кои саботират целта",
+  "metabolicProfile": "УНИКАЛЕН метаболитен профил - опиши как хронотип, активност, история влияят на метаболизма",
+  "healthRisks": ["риск 1 специфичен за профила", "риск 2", "риск 3"],
+  "nutritionalNeeds": ["нужда 1 базирана на анализа", "нужда 2", "нужда 3"],
+  "psychologicalProfile": "ДЕТАЙЛЕН анализ: емоционално хранене, тригери, копинг механизми, мотивация",
+  "successChance": число (-100 до 100),
+  "successChanceReasoning": "защо този шанс - кои фактори помагат и кои пречат",
   "keyProblems": [
     {
-      "title": "кратък заглавие на проблема (2-4 думи)",
-      "description": "кратко описание до 3 изречения защо е проблем и до какво води",
-      "severity": "Normal, Borderline, Risky или Critical",
-      "severityValue": "число от 0-100 за визуализация",
-      "category": "Sleep, Nutrition, Hydration, Stress, Activity, или Medical",
-      "impact": "кратко описание на въздействието върху здравето или целта"
+      "title": "кратко име (2-4 думи)",
+      "description": "защо е проблем и до какво води",
+      "severity": "Borderline / Risky / Critical",
+      "severityValue": число 0-100,
+      "category": "Sleep / Nutrition / Hydration / Stress / Activity / Medical",
+      "impact": "въздействие върху здравето или целта"
     }
   ]
-}`;
 }
 
-/**
- * Step 2: Generate prompt for dietary strategy
+Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
+}
  */
 function generateStrategyPrompt(data, analysis) {
   return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
