@@ -1465,8 +1465,11 @@
                     } else {
                         // Final stage - slowly progress to 95% while waiting for actual response
                         progressInterval = setInterval(() => {
-                            // Check elements still exist
-                            if (!progressBar || !percentageText) {
+                            // Re-query DOM elements to ensure they still exist
+                            const currentProgressBar = document.getElementById('aiProgressBar');
+                            const currentPercentageText = document.getElementById('progressPercentage');
+                            
+                            if (!currentProgressBar || !currentPercentageText) {
                                 clearInterval(progressInterval);
                                 progressInterval = null;
                                 return;
@@ -1474,8 +1477,8 @@
                             
                             if (progress < 95) {
                                 progress += 0.5;
-                                progressBar.style.width = progress + '%';
-                                percentageText.textContent = Math.floor(progress) + '%';
+                                currentProgressBar.style.width = progress + '%';
+                                currentPercentageText.textContent = Math.floor(progress) + '%';
                             } else {
                                 clearInterval(progressInterval);
                                 progressInterval = null;
@@ -1622,6 +1625,12 @@
                 }
             } catch (error) {
                 console.error('Error submitting data:', error);
+                
+                // Clear any running intervals on error
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
                 
                 let errorMessage = error.message;
                 if (error.name === 'AbortError') {
