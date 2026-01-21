@@ -2091,62 +2091,64 @@ async function callAIModel(env, prompt, maxTokens = null) {
 }
 
 /**
- * Call OpenAI API
+ * Call OpenAI API with automatic retry logic for transient errors
  */
 async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = null) {
   try {
-    const requestBody = {
-      model: modelName,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7
-    };
-    
-    // Add max_tokens only if specified
-    if (maxTokens) {
-      requestBody.max_tokens = maxTokens;
-    }
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    // Check for errors in response
-    if (data.error) {
-      throw new Error(`OpenAI API грешка: ${data.error.message || JSON.stringify(data.error)}`);
-    }
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('OpenAI API върна невалиден формат на отговор');
-    }
-    
-    const choice = data.choices[0];
-    
-    // Check finish_reason for content filtering or other issues
-    if (choice.finish_reason && choice.finish_reason !== 'stop') {
-      const reason = choice.finish_reason;
-      let errorMessage = `OpenAI API завърши с причина: ${reason}`;
+    return await retryWithBackoff(async () => {
+      const requestBody = {
+        model: modelName,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7
+      };
       
-      if (reason === 'content_filter') {
-        errorMessage = 'OpenAI AI отказа да генерира отговор поради филтър за съдържание. Моля, опитайте с различни данни.';
-      } else if (reason === 'length') {
-        errorMessage = 'OpenAI AI достигна лимита на дължина. Опитайте да опростите въпроса.';
+      // Add max_tokens only if specified
+      if (maxTokens) {
+        requestBody.max_tokens = maxTokens;
       }
       
-      throw new Error(errorMessage);
-    }
-    
-    return choice.message.content;
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Check for errors in response
+      if (data.error) {
+        throw new Error(`OpenAI API грешка: ${data.error.message || JSON.stringify(data.error)}`);
+      }
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error('OpenAI API върна невалиден формат на отговор');
+      }
+      
+      const choice = data.choices[0];
+      
+      // Check finish_reason for content filtering or other issues
+      if (choice.finish_reason && choice.finish_reason !== 'stop') {
+        const reason = choice.finish_reason;
+        let errorMessage = `OpenAI API завърши с причина: ${reason}`;
+        
+        if (reason === 'content_filter') {
+          errorMessage = 'OpenAI AI отказа да генерира отговор поради филтър за съдържание. Моля, опитайте с различни данни.';
+        } else if (reason === 'length') {
+          errorMessage = 'OpenAI AI достигна лимита на дължина. Опитайте да опростите въпроса.';
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      return choice.message.content;
+    });
   } catch (error) {
     console.error('OpenAI API call failed:', error);
     throw new Error(`OpenAI API failed: ${error.message}`);
@@ -2154,65 +2156,107 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = nu
 }
 
 /**
- * Call Gemini API
+ * Helper function to retry API calls with exponential backoff
+ * Handles transient errors like 502, 503, 504, 429
+ */
+async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
+  let lastError;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      
+      // Check if error is retryable (transient network errors)
+      const isRetryable = 
+        error.message.includes('502') ||  // Bad Gateway
+        error.message.includes('503') ||  // Service Unavailable
+        error.message.includes('504') ||  // Gateway Timeout
+        error.message.includes('429') ||  // Too Many Requests
+        error.message.includes('ECONNRESET') ||
+        error.message.includes('ETIMEDOUT') ||
+        error.message.includes('network');
+      
+      // If not retryable or last attempt, throw error
+      if (!isRetryable || attempt === maxRetries - 1) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${error.message}`);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
+ * Call Gemini API with automatic retry logic for transient errors
  */
 async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = null) {
   try {
-    const requestBody = {
-      contents: [{ parts: [{ text: prompt }] }]
-    };
-    
-    // Add maxOutputTokens if specified
-    if (maxTokens) {
-      requestBody.generationConfig = {
-        maxOutputTokens: maxTokens
+    return await retryWithBackoff(async () => {
+      const requestBody = {
+        contents: [{ parts: [{ text: prompt }] }]
       };
-    }
-    
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    // Check for safety/content filtering or other finish reasons
-    if (data.candidates && data.candidates[0]) {
-      const candidate = data.candidates[0];
       
-      // Check if response was blocked or filtered
-      if (candidate.finishReason && candidate.finishReason !== 'STOP') {
-        const reason = candidate.finishReason;
-        let errorMessage = `Gemini API отказ: ${reason}`;
+      // Add maxOutputTokens if specified
+      if (maxTokens) {
+        requestBody.generationConfig = {
+          maxOutputTokens: maxTokens
+        };
+      }
+      
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Check for safety/content filtering or other finish reasons
+      if (data.candidates && data.candidates[0]) {
+        const candidate = data.candidates[0];
         
-        if (reason === 'SAFETY') {
-          errorMessage = 'Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитайте с различни данни или контактирайте поддръжката.';
-        } else if (reason === 'RECITATION') {
-          errorMessage = 'Gemini AI отказа да генерира отговор поради потенциално копиране на съдържание.';
-        } else if (reason === 'MAX_TOKENS') {
-          errorMessage = 'Gemini AI достигна лимита на токени. Опитайте да опростите въпроса.';
+        // Check if response was blocked or filtered
+        if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+          const reason = candidate.finishReason;
+          let errorMessage = `Gemini API отказ: ${reason}`;
+          
+          if (reason === 'SAFETY') {
+            errorMessage = 'Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитайте с различни данни или контактирайте поддръжката.';
+          } else if (reason === 'RECITATION') {
+            errorMessage = 'Gemini AI отказа да генерира отговор поради потенциално копиране на съдържание.';
+          } else if (reason === 'MAX_TOKENS') {
+            errorMessage = 'Gemini AI достигна лимита на токени. Опитайте да опростите въпроса.';
+          }
+          
+          throw new Error(errorMessage);
         }
         
-        throw new Error(errorMessage);
+        // Check if content exists
+        if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
+          throw new Error('Gemini API върна празен отговор. Моля, опитайте отново.');
+        }
+        
+        return candidate.content.parts[0].text;
       }
       
-      // Check if content exists
-      if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
-        throw new Error('Gemini API върна празен отговор. Моля, опитайте отново.');
-      }
-      
-      return candidate.content.parts[0].text;
-    }
-    
-    throw new Error('Невалиден формат на отговор от Gemini API');
+      throw new Error('Невалиден формат на отговор от Gemini API');
+    });
   } catch (error) {
     console.error('Gemini API call failed:', error);
     throw new Error(`Gemini API failed: ${error.message}`);
