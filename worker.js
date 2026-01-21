@@ -2191,8 +2191,10 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
       
       // Calculate delay with exponential backoff
       const delay = initialDelay * Math.pow(2, attempt);
-      // Log retry without exposing sensitive data
-      const safeErrorMessage = errorMessage.replace(/key=[^&\s]+/gi, 'key=***');
+      // Log retry without exposing sensitive data (API keys, tokens, auth credentials)
+      const safeErrorMessage = errorMessage.replace(/(?:key|token|auth|bearer)[=:]\s*[^\s&]+/gi, (match) => {
+        return match.split(/[=:]/)[0] + '=***';
+      });
       console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${safeErrorMessage}`);
       
       // Wait before retrying
@@ -2200,6 +2202,7 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
     }
   }
   
+  // This line is technically unreachable due to the logic above, but kept for type safety
   throw lastError;
 }
 
