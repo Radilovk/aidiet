@@ -2158,6 +2158,11 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = nu
 /**
  * Helper function to retry API calls with exponential backoff
  * Handles transient errors like 502, 503, 504, 429
+ * @param {Function} fn - Async function to retry
+ * @param {number} maxRetries - Maximum number of retry attempts (default: 3)
+ * @param {number} initialDelay - Initial delay in milliseconds before first retry (default: 1000ms)
+ * @returns {Promise<any>} Result from the function call
+ * @throws {Error} The last error if all retries fail or if error is not retryable
  */
 async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
   let lastError;
@@ -2169,14 +2174,15 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
       lastError = error;
       
       // Check if error is retryable (transient network errors)
+      const errorMessage = error.message || '';
       const isRetryable = 
-        error.message.includes('502') ||  // Bad Gateway
-        error.message.includes('503') ||  // Service Unavailable
-        error.message.includes('504') ||  // Gateway Timeout
-        error.message.includes('429') ||  // Too Many Requests
-        error.message.includes('ECONNRESET') ||
-        error.message.includes('ETIMEDOUT') ||
-        error.message.includes('network');
+        errorMessage.includes('502') ||  // Bad Gateway
+        errorMessage.includes('503') ||  // Service Unavailable
+        errorMessage.includes('504') ||  // Gateway Timeout
+        errorMessage.includes('429') ||  // Too Many Requests
+        errorMessage.includes('ECONNRESET') ||
+        errorMessage.includes('ETIMEDOUT') ||
+        errorMessage.includes('network');
       
       // If not retryable or last attempt, throw error
       if (!isRetryable || attempt === maxRetries - 1) {
@@ -2185,7 +2191,9 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
       
       // Calculate delay with exponential backoff
       const delay = initialDelay * Math.pow(2, attempt);
-      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${error.message}`);
+      // Log retry without exposing sensitive data
+      const safeErrorMessage = errorMessage.replace(/key=[^&\s]+/gi, 'key=***');
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${safeErrorMessage}`);
       
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, delay));
