@@ -643,6 +643,8 @@ const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1-5 range, 1 fo
 const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
+const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3 }; // Chronological meal order
+const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря']; // Valid meal types
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -717,18 +719,16 @@ function validatePlan(plan, userData) {
         }
         
         // Check for invalid meal types
-        const allowedTypes = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря'];
         day.meals.forEach((meal, idx) => {
-          if (!allowedTypes.includes(meal.type)) {
-            errors.push(`Ден ${i}, хранене ${idx + 1}: Невалиден тип "${meal.type}" - разрешени са само: ${allowedTypes.join(', ')}`);
+          if (!ALLOWED_MEAL_TYPES.includes(meal.type)) {
+            errors.push(`Ден ${i}, хранене ${idx + 1}: Невалиден тип "${meal.type}" - разрешени са само: ${ALLOWED_MEAL_TYPES.join(', ')}`);
           }
         });
         
         // Check chronological order
         let lastValidIndex = -1;
-        const orderMap = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3 };
         day.meals.forEach((meal, idx) => {
-          const currentIndex = orderMap[meal.type];
+          const currentIndex = MEAL_ORDER_MAP[meal.type];
           if (currentIndex !== undefined) {
             if (currentIndex < lastValidIndex) {
               errors.push(`Ден ${i}: Неправилен хронологичен ред - "${meal.type}" след по-късно хранене`);
