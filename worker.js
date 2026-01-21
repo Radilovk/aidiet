@@ -705,6 +705,43 @@ function validatePlan(plan, userData) {
         if (dayCalories < MIN_DAILY_CALORIES) {
           errors.push(`Ден ${i} има само ${dayCalories} калории - твърде малко`);
         }
+        
+        // Validate meal ordering (CRITICAL: prevent meals after dinner)
+        const mealTypes = day.meals.map(meal => meal.type);
+        const dinnerIndex = mealTypes.findIndex(type => type === 'Вечеря');
+        
+        if (dinnerIndex !== -1 && dinnerIndex !== mealTypes.length - 1) {
+          // Dinner exists but is not the last meal - CRITICAL ERROR
+          const mealsAfterDinner = mealTypes.slice(dinnerIndex + 1);
+          errors.push(`КРИТИЧНА ГРЕШКА Ден ${i}: Има хранения след вечеря (${mealsAfterDinner.join(', ')}) - вечерята ТРЯБВА да е последно хранене!`);
+        }
+        
+        // Check for invalid meal types
+        const allowedTypes = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря'];
+        day.meals.forEach((meal, idx) => {
+          if (!allowedTypes.includes(meal.type)) {
+            errors.push(`Ден ${i}, хранене ${idx + 1}: Невалиден тип "${meal.type}" - разрешени са само: ${allowedTypes.join(', ')}`);
+          }
+        });
+        
+        // Check chronological order
+        let lastValidIndex = -1;
+        const orderMap = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3 };
+        day.meals.forEach((meal, idx) => {
+          const currentIndex = orderMap[meal.type];
+          if (currentIndex !== undefined) {
+            if (currentIndex < lastValidIndex) {
+              errors.push(`Ден ${i}: Неправилен хронологичен ред - "${meal.type}" след по-късно хранене`);
+            }
+            lastValidIndex = currentIndex;
+          }
+        });
+        
+        // Check for multiple afternoon snacks
+        const afternoonSnackCount = mealTypes.filter(type => type === 'Следобедна закуска').length;
+        if (afternoonSnackCount > 1) {
+          errors.push(`Ден ${i}: Повече от 1 следобедна закуска (${afternoonSnackCount}) - разрешена е максимум 1`);
+        }
       }
     }
   }
