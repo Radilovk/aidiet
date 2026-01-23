@@ -358,24 +358,71 @@ async function handleGeneratePlan(request, env) {
     
     // Use multi-step approach for better individualization
     // No caching - client stores plan locally
-    const structuredPlan = await generatePlanMultiStep(env, data);
+    let structuredPlan = await generatePlanMultiStep(env, data);
     console.log('handleGeneratePlan: Plan structured for userId:', userId);
     
     // REQUIREMENT 4: Validate plan before displaying
-    const validation = validatePlan(structuredPlan, data);
+    // NEW: Implement correction loop - instead of failing, request AI to fix issues
+    let validation = validatePlan(structuredPlan, data);
+    let correctionAttempts = 0;
+    
+    while (!validation.isValid && correctionAttempts < MAX_CORRECTION_ATTEMPTS) {
+      correctionAttempts++;
+      console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${MAX_CORRECTION_ATTEMPTS}):`, validation.errors);
+      
+      // Generate correction prompt with specific errors
+      const correctionPrompt = generateCorrectionPrompt(structuredPlan, validation.errors, data);
+      
+      try {
+        console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
+        const correctionResponse = await callAIModel(env, correctionPrompt, 8000); // Higher token limit for correction
+        const correctedPlan = parseAIResponse(correctionResponse);
+        
+        if (!correctedPlan || correctedPlan.error) {
+          const errorMsg = correctedPlan?.error || 'Невалиден формат на отговор';
+          console.error(`handleGeneratePlan: Correction parsing failed (attempt ${correctionAttempts}):`, errorMsg);
+          // Continue with next attempt or exit loop
+          if (correctionAttempts >= MAX_CORRECTION_ATTEMPTS) {
+            break;
+          }
+          continue;
+        }
+        
+        // Use corrected plan
+        structuredPlan = correctedPlan;
+        console.log(`handleGeneratePlan: AI correction applied (attempt ${correctionAttempts})`);
+        
+        // Re-validate the corrected plan
+        validation = validatePlan(structuredPlan, data);
+        
+        if (validation.isValid) {
+          console.log(`handleGeneratePlan: Plan validated successfully after ${correctionAttempts} correction(s)`);
+        }
+      } catch (error) {
+        console.error(`handleGeneratePlan: Correction attempt ${correctionAttempts} failed:`, error);
+        // Continue with next attempt or exit loop
+        if (correctionAttempts >= MAX_CORRECTION_ATTEMPTS) {
+          break;
+        }
+      }
+    }
+    
+    // Final validation check - if still invalid after max attempts, return error
     if (!validation.isValid) {
-      console.error('handleGeneratePlan: Plan validation failed:', validation.errors);
+      console.error(`handleGeneratePlan: Plan validation failed after ${correctionAttempts} correction attempts:`, validation.errors);
       return jsonResponse({ 
-        error: `Планът не премина качествен тест: ${validation.errors.join('; ')}`,
+        error: `Планът не премина качествен тест след ${correctionAttempts} опити за корекция: ${validation.errors.join('; ')}`,
         validationErrors: validation.errors
       }, 400);
     }
+    
     console.log('handleGeneratePlan: Plan validated successfully');
     
     return jsonResponse({ 
       success: true, 
       plan: structuredPlan,
-      userId: userId 
+      userId: userId,
+      correctionAttempts: correctionAttempts // Inform client how many corrections were needed
     });
   } catch (error) {
     console.error('Error generating plan:', error);
@@ -639,12 +686,21 @@ const ENABLE_PROGRESSIVE_GENERATION = true;
 const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
 
 // Validation constants
-const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1-5 range, 1 for intermittent fasting strategies)
-const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day
+const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1-6 range, 1 for intermittent fasting strategies)
+const MAX_MEALS_PER_DAY = 6; // Maximum number of meals per day (including optional late-night snack)
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
-const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3 }; // Chronological meal order
-const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря']; // Valid meal types
+const MAX_CORRECTION_ATTEMPTS = 2; // Maximum number of AI correction attempts before failing
+const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
+const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобedна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
+
+// Low glycemic index foods allowed in late-night snacks (GI < 55)
+const LOW_GI_FOODS = [
+  'кисело мляко', 'кефир', 'ядки', 'бадеми', 'орехи', 'кашу', 'лешници',
+  'ябълка', 'круша', 'ягоди', 'боровинки', 'малини', 'черници',
+  'авокадо', 'краставица', 'домат', 'зелени листни зеленчуци',
+  'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки'
+];
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -708,14 +764,38 @@ function validatePlan(plan, userData) {
           errors.push(`Ден ${i} има само ${dayCalories} калории - твърде малко`);
         }
         
-        // Validate meal ordering (CRITICAL: prevent meals after dinner)
+        // Validate meal ordering (UPDATED: allow 1 late-night snack after dinner in justified situations)
         const mealTypes = day.meals.map(meal => meal.type);
         const dinnerIndex = mealTypes.findIndex(type => type === 'Вечеря');
         
         if (dinnerIndex !== -1 && dinnerIndex !== mealTypes.length - 1) {
-          // Dinner exists but is not the last meal - CRITICAL ERROR
-          const mealsAfterDinner = mealTypes.slice(dinnerIndex + 1);
-          errors.push(`КРИТИЧНА ГРЕШКА Ден ${i}: Има хранения след вечеря (${mealsAfterDinner.join(', ')}) - вечерята ТРЯБВА да е последно хранене!`);
+          // Dinner exists but is not the last meal - check if it's a valid late-night snack
+          const mealsAfterDinner = day.meals.slice(dinnerIndex + 1);
+          const mealsAfterDinnerTypes = mealsAfterDinner.map(m => m.type);
+          
+          // Only allow 1 "Късна закуска" after dinner
+          if (mealsAfterDinner.length > 1 || 
+              (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] !== 'Късна закуска')) {
+            errors.push(`КРИТИЧНА ГРЕШКА Ден ${i}: Има недопустими хранения след вечеря (${mealsAfterDinnerTypes.join(', ')}) - след вечеря е позволена само 1 "Късна закуска"!`);
+          } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Късна закуска') {
+            // Validate that late-night snack contains low GI foods
+            const lateSnack = mealsAfterDinner[0];
+            const snackDescription = (lateSnack.description || '').toLowerCase();
+            const snackName = (lateSnack.name || '').toLowerCase();
+            const snackText = snackDescription + ' ' + snackName;
+            
+            const hasLowGIFood = LOW_GI_FOODS.some(food => snackText.includes(food.toLowerCase()));
+            
+            if (!hasLowGIFood) {
+              errors.push(`Ден ${i}: Късната закуска трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.)`);
+            }
+            
+            // Validate that late-night snack is not too high in calories (max 150-200 kcal)
+            const snackCalories = parseInt(lateSnack.calories) || 0;
+            if (snackCalories > 200) {
+              errors.push(`Ден ${i}: Късната закуска има ${snackCalories} калории - препоръчват се максимум 200 калории`);
+            }
+          }
         }
         
         // Check for invalid meal types
@@ -741,6 +821,12 @@ function validatePlan(plan, userData) {
         const afternoonSnackCount = mealTypes.filter(type => type === 'Следобедна закуска').length;
         if (afternoonSnackCount > 1) {
           errors.push(`Ден ${i}: Повече от 1 следобедна закуска (${afternoonSnackCount}) - разрешена е максимум 1`);
+        }
+        
+        // Check for multiple late-night snacks
+        const lateNightSnackCount = mealTypes.filter(type => type === 'Късна закуска').length;
+        if (lateNightSnackCount > 1) {
+          errors.push(`Ден ${i}: Повече от 1 късна закуска (${lateNightSnackCount}) - разрешена е максимум 1`);
         }
       }
     }
@@ -860,6 +946,86 @@ function validatePlan(plan, userData) {
     isValid: errors.length === 0,
     errors
   };
+}
+
+/**
+ * Generate correction prompt for AI when plan validation fails
+ * This allows the AI to fix specific issues instead of regenerating from scratch
+ */
+function generateCorrectionPrompt(plan, validationErrors, userData) {
+  return `Ти си експертен диетолог и трябва да КОРИГИРАШ хранителен план, който има следните проблеми:
+
+═══ ГРЕШКИ ЗА КОРИГИРАНЕ ═══
+${validationErrors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
+
+═══ ТЕКУЩ ПЛАН (С ГРЕШКИ) ═══
+${JSON.stringify(plan, null, 2)}
+
+═══ КЛИЕНТСКИ ДАННИ ═══
+${JSON.stringify({
+  name: userData.name,
+  age: userData.age,
+  gender: userData.gender,
+  goal: userData.goal,
+  medicalConditions: userData.medicalConditions,
+  dietPreference: userData.dietPreference,
+  dietDislike: userData.dietDislike,
+  dietLove: userData.dietLove
+}, null, 2)}
+
+═══ ПРАВИЛА ЗА КОРИГИРАНЕ ═══
+
+ВАЖНО - ТИПОВЕ ХРАНЕНИЯ И РЕД:
+1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
+   - "Закуска" (сутрин)
+   - "Обяд" (обед)
+   - "Следобедна закуска" (опционално, след обяд)
+   - "Вечеря" (вечер)
+   - "Късна закуска" (опционално, САМО след вечеря, с нисък гликемичен индекс)
+
+2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения ред!
+   - НЕ може да има закуска след обяд
+   - НЕ може да има обяд след вечеря
+   - "Късна закуска" е ЕДИНСТВЕНОТО допустимо хранене след вечеря
+
+3. КЪСНА ЗАКУСКА - специални изисквания:
+   - Позволена САМО след "Вечеря"
+   - МАКСИМУМ 1 на ден
+   - САМО храни с НИСЪК ГЛИКЕМИЧЕН ИНДЕКС (ГИ < 55):
+     * Кисело мляко, кефир
+     * Ядки (бадеми, орехи, лешници, кашу)
+     * Ягоди, боровинки, малини, черници
+     * Авокадо, краставици
+     * Семена (чиа, ленено, тиквени)
+   - МАКСИМУМ 150-200 калории
+   - Оправдана САМО в специфични случаи:
+     * Дълъг период между вечеря и сън (> 4 часа)
+     * Проблеми със съня заради глад
+     * Диабет тип 2 (за стабилизиране на кръвната захар през нощта)
+     * Интензивни тренировки вечер
+
+4. МЕДИЦИНСКИ ИЗИСКВАНИЯ:
+   - При диабет: НЕ високовъглехидратни храни
+   - При анемия + вегетарианство: добавка с желязо ЗАДЪЛЖИТЕЛНА
+   - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
+   - Спазвай медицинските състояния: ${JSON.stringify(userData.medicalConditions || [])}
+
+5. КАЛОРИИ И МАКРОСИ:
+   - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats, fiber)
+   - Дневните калории трябва да са минимум ${MIN_DAILY_CALORIES} kcal
+   - Прецизни изчисления: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
+
+6. СТРУКТУРА:
+   - Всички 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО
+   - Всеки ден трябва да има 1-6 хранения
+   - Избягвай: ${userData.dietDislike || 'няма'}
+   - Включвай: ${userData.dietLove || 'няма'}
+
+═══ ТВОЯТА ЗАДАЧА ═══
+Коригирай САМО проблемните части от плана. Запази всичко останало непроменено.
+Върни ПЪЛНИЯ КОРИГИРАН план в същия JSON формат като оригиналния.
+
+ВАЖНО: Върни САМО JSON без допълнителни обяснения!`;
 }
 
 async function generatePlanMultiStep(env, data) {
@@ -1673,17 +1839,60 @@ JSON ФОРМАТ:
 
 === МЕДИЦИНСКИ И ДИЕТЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
 КРИТИЧНО ВАЖНО: Следвай СТРОГО медицинските и диететични принципи за ред на храненията:
-1. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
-   - Закуска (сутрин) - ВИНАГИ първо ако има закуска
-   - Обяд (обед) - след закуската или първо хранене ако няма закуска
-   - Следобедна закуска (опционално, между обяд и вечеря)
-   - Вечеря (вечер) - ВИНАГИ последно хранене
-2. ЗАБРАНЕНО: Хранения след вечеря (НЕ може да има закуска след вечеря!)
-3. ЗАБРАНЕНО: Хранения в неестествен ред (напр. вечеря преди обяд)
-4. ПОЗВОЛЕНИ ТИПОВЕ: "Закуска", "Обяд", "Следобедна закуска", "Вечеря"
-5. Калориите са ориентир - по-важно е да спазиш правилния брой и ред на хранения!
 
-ВАЖНО: "recommendations"/"forbidden"=САМО конкретни храни (НЕ общи съвети). Всички 7 дни (day1-day7) с 1-5 хранения според стратегията В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (±200 kcal е ОК). Калориите прецизно изчислени (1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal). Седмичен подход: МИСЛИ СЕДМИЧНО - ЦЯЛОСТНА схема като система. Броят хранения варира според ЦЕЛТА, ХРОНОТИПА, ПРЕДПОЧИТАНИЯТА на ${data.name}. Интермитентно гладуване 16:8/18:6 позволено. БАЛАНСИРАЙ седмицата - ако един ден е с по-малко калории, друг компенсира. АДАПТИРАЙ към хронотип. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
+1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
+   - "Закуска" (сутрин) - ВИНАГИ първо ако има закуска
+   - "Обяд" (обед) - след закуската или първо хранене ако няма закуска
+   - "Следобедна закуска" (опционално, между обяд и вечеря)
+   - "Вечеря" (вечер) - обикновено последно хранене
+   - "Късна закуска" (опционално, САМО след вечеря, специални случаи)
+
+2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
+   - НЕ може да има закуска след обяд
+   - НЕ може да има обяд след вечеря
+   - НЕ може да има вечеря преди обяд
+
+3. КЪСНА ЗАКУСКА - строги изисквания:
+   КОГАТО Е ДОПУСТИМА:
+   - Дълъг период между вечеря и сън (> 4 часа)
+   - Проблеми със съня заради глад
+   - Диабет тип 2 (стабилизиране на кръвната захар)
+   - Интензивни тренировки вечер
+   - Работа на смени (нощни смени)
+   
+   ЗАДЪЛЖИТЕЛНИ УСЛОВИЯ:
+   - САМО след "Вечеря" (никога преди)
+   - МАКСИМУМ 1 на ден
+   - САМО храни с НИСЪК ГЛИКЕМИЧЕН ИНДЕКС (ГИ < 55):
+     * Кисело мляко (150ml), кефир
+     * Ядки: 30-40g бадеми/орехи/лешници/кашу
+     * Ягоди/боровинки/малини (50-100g)
+     * Авокадо (половин)
+     * Семена: чиа/ленено/тиквени (1-2 с.л.)
+   - МАКСИМУМ 150-200 калории
+   - НЕ използвай ако не е оправдано от профила на клиента!
+
+4. МАКРОНУТРИЕНТИ:
+   - Всяко хранене ЗАДЪЛЖИТЕЛНО има: "type", "name", "weight", "description", "benefits", "calories"
+   - Всяко хранене ЗАДЪЛЖИТЕЛНО има "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}
+   - Прецизни калории: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
+   - Дневни калории минимум ${MIN_DAILY_CALORIES} kcal
+
+5. МЕДИЦИНСКИ ОГРАНИЧЕНИЯ:
+   - При диабет: НЕ високовъглехидратни храни
+   - При анемия + вегетарианство: желязо ЗАДЪЛЖИТЕЛНО в supplements
+   - При IBS/IBD: щадящи храни, готвени зеленчуци
+   - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
+   - Спазвай: ${JSON.stringify(data.medicalConditions || [])}
+
+6. СТРУКТУРА И РАЗНООБРАЗИЕ:
+   - ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО
+   - 1-6 хранения на ден според стратегията
+   - Избягвай повторения на храни в различни дни
+   - Избягвай: ${data.dietDislike || 'няма'}
+   - Включвай: ${data.dietLove || 'няма'}
+
+ВАЖНО: "recommendations"/"forbidden"=САМО конкретни храни (НЕ общи съвети). Всички 7 дни (day1-day7) с 1-6 хранения според стратегията В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (±200 kcal е ОК). Калориите прецизно изчислени (1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal). Седмичен подход: МИСЛИ СЕДМИЧНО - ЦЯЛОСТНА схема като система. Броят хранения варира според ЦЕЛТА, ХРОНОТИПА, ПРЕДПОЧИТАНИЯТА на ${data.name}. Интермитентно гладуване 16:8/18:6 позволено. БАЛАНСИРАЙ седмицата - ако един ден е с по-малко калории, друг компенсира. АДАПТИРАЙ към хронотип. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
 
 Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}.`;
 }
