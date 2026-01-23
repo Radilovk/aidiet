@@ -366,9 +366,12 @@ async function handleGeneratePlan(request, env) {
     let validation = validatePlan(structuredPlan, data);
     let correctionAttempts = 0;
     
-    while (!validation.isValid && correctionAttempts < MAX_CORRECTION_ATTEMPTS) {
+    // Safety check: ensure MAX_CORRECTION_ATTEMPTS is valid
+    const maxAttempts = Math.max(0, MAX_CORRECTION_ATTEMPTS);
+    
+    while (!validation.isValid && correctionAttempts < maxAttempts) {
       correctionAttempts++;
-      console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${MAX_CORRECTION_ATTEMPTS}):`, validation.errors);
+      console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${maxAttempts}):`, validation.errors);
       
       // Generate correction prompt with specific errors
       const correctionPrompt = generateCorrectionPrompt(structuredPlan, validation.errors, data);
@@ -382,7 +385,7 @@ async function handleGeneratePlan(request, env) {
           const errorMsg = correctedPlan?.error || 'Невалиден формат на отговор';
           console.error(`handleGeneratePlan: Correction parsing failed (attempt ${correctionAttempts}):`, errorMsg);
           // Continue with next attempt or exit loop
-          if (correctionAttempts >= MAX_CORRECTION_ATTEMPTS) {
+          if (correctionAttempts >= maxAttempts) {
             break;
           }
           continue;
@@ -401,7 +404,7 @@ async function handleGeneratePlan(request, env) {
       } catch (error) {
         console.error(`handleGeneratePlan: Correction attempt ${correctionAttempts} failed:`, error);
         // Continue with next attempt or exit loop
-        if (correctionAttempts >= MAX_CORRECTION_ATTEMPTS) {
+        if (correctionAttempts >= maxAttempts) {
           break;
         }
       }
@@ -681,11 +684,11 @@ async function handleChat(request, env) {
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
 
 // Validation constants
-const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1-6 range, 1 for intermittent fasting strategies)
-const MAX_MEALS_PER_DAY = 6; // Maximum number of meals per day (including optional late-night snack)
+const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
+const MAX_MEALS_PER_DAY = 6; // Maximum number of meals per day (1-5 regular meals + 1 optional late-night snack)
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
-const MAX_CORRECTION_ATTEMPTS = 2; // Maximum number of AI correction attempts before failing
+const MAX_CORRECTION_ATTEMPTS = 2; // Maximum number of AI correction attempts before failing (must be >= 0)
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
@@ -953,6 +956,11 @@ function validatePlan(plan, userData) {
 /**
  * Generate correction prompt for AI when plan validation fails
  * This allows the AI to fix specific issues instead of regenerating from scratch
+ * 
+ * @param {Object} plan - The generated plan that failed validation
+ * @param {string[]} validationErrors - Array of specific validation error messages
+ * @param {Object} userData - User profile data for context
+ * @returns {string} Prompt instructing AI to correct specific errors in the plan
  */
 function generateCorrectionPrompt(plan, validationErrors, userData) {
   return `Ти си експертен диетолог и трябва да КОРИГИРАШ хранителен план, който има следните проблеми:
