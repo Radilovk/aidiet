@@ -692,7 +692,7 @@ const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_CORRECTION_ATTEMPTS = 2; // Maximum number of AI correction attempts before failing
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
-const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобedна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
+const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 
 // Low glycemic index foods allowed in late-night snacks (GI < 55)
 const LOW_GI_FOODS = [
