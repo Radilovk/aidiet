@@ -375,7 +375,7 @@ async function handleGeneratePlan(request, env) {
       
       try {
         console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
-        const correctionResponse = await callAIModel(env, correctionPrompt, 8000); // Higher token limit for correction
+        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT);
         const correctedPlan = parseAIResponse(correctionResponse);
         
         if (!correctedPlan || correctedPlan.error) {
@@ -680,17 +680,14 @@ async function handleChat(request, env) {
 // Note: This is the OUTPUT token limit. Increased from 5000 to 8000 to allow for complete macro calculations per meal
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
 
-// Progressive generation: split meal plan into smaller chunks to avoid token limits
-// Each chunk generates 2-3 days, building on previous days for variety and consistency
-const ENABLE_PROGRESSIVE_GENERATION = true;
-const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
-
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1-6 range, 1 for intermittent fasting strategies)
 const MAX_MEALS_PER_DAY = 6; // Maximum number of meals per day (including optional late-night snack)
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_CORRECTION_ATTEMPTS = 2; // Maximum number of AI correction attempts before failing
+const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests
+const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 
@@ -701,6 +698,11 @@ const LOW_GI_FOODS = [
   'авокадо', 'краставица', 'домат', 'зелени листни зеленчуци',
   'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки'
 ];
+
+// Progressive generation: split meal plan into smaller chunks to avoid token limits
+// Each chunk generates 2-3 days, building on previous days for variety and consistency
+const ENABLE_PROGRESSIVE_GENERATION = true;
+const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -784,16 +786,16 @@ function validatePlan(plan, userData) {
             const snackName = (lateSnack.name || '').toLowerCase();
             const snackText = snackDescription + ' ' + snackName;
             
-            const hasLowGIFood = LOW_GI_FOODS.some(food => snackText.includes(food.toLowerCase()));
+            const hasLowGIFood = LOW_GI_FOODS.some(food => snackText.includes(food));
             
             if (!hasLowGIFood) {
               errors.push(`Ден ${i}: Късната закуска трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.)`);
             }
             
-            // Validate that late-night snack is not too high in calories (max 150-200 kcal)
+            // Validate that late-night snack is not too high in calories
             const snackCalories = parseInt(lateSnack.calories) || 0;
-            if (snackCalories > 200) {
-              errors.push(`Ден ${i}: Късната закуска има ${snackCalories} калории - препоръчват се максимум 200 калории`);
+            if (snackCalories > MAX_LATE_SNACK_CALORIES) {
+              errors.push(`Ден ${i}: Късната закуска има ${snackCalories} калории - препоръчват се максимум ${MAX_LATE_SNACK_CALORIES} калории`);
             }
           }
         }
