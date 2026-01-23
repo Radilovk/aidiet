@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Педиатричен въпросник (структурирана анамнеза) – попълване и изнасяне TXT/JSON</title>
+  <style>
+    :root { --bg:#0b0c10; --card:#11131a; --text:#e8eaf0; --muted:#a9afbf; --line:#23283a; --accent:#7aa2ff; --warn:#ffcc66; --bad:#ff6b6b; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:18px 16px; border-bottom:1px solid var(--line); background:linear-gradient(180deg, #0f1220, #0b0c10); position:sticky; top:0; z-index:5;}
+    header h1 { margin:0 0 6px; font-size:18px; }
+    header p { margin:0; color:var(--muted); font-size:13px; line-height:1.35; }
+    main { max-width: 980px; margin: 0 auto; padding: 14px; }
+    .bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:12px 0 16px; }
+    .btn { border:1px solid var(--line); background:#0f1220; color:var(--text); padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600; }
+    .btn:hover { border-color:#2f3754; }
+    .btn.primary { background:var(--accent); border-color:transparent; color:#0b0c10; }
+    .btn.warn { background:transparent; border-color: #3b2e18; color: var(--warn); }
+    .btn.danger { background:transparent; border-color:#3a1f25; color:var(--bad); }
+    .pill { padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:12px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; }
+    .card h2 { margin:0 0 10px; font-size:15px; }
+    .hint { color:var(--muted); font-size:12px; margin: 8px 0 0; }
+    label { display:block; font-weight:600; font-size:13px; margin: 0 0 6px; }
+    input[type="text"], input[type="number"], input[type="date"], textarea, select {
+      width:100%; padding:10px; border-radius:10px; border:1px solid var(--line); background:#0b0c10; color:var(--text);
+      outline:none;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .row3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; }
+    .span-12 { grid-column: span 12; }
+    .span-6 { grid-column: span 6; }
+    .span-4 { grid-column: span 4; }
+    .span-8 { grid-column: span 8; }
+    .span-3 { grid-column: span 3; }
+    .span-9 { grid-column: span 9; }
+    .checks { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; }
+    .checks label { font-weight:500; margin:0; display:flex; gap:8px; align-items:flex-start; }
+    .checks input { margin-top: 2px; }
+    .divider { height:1px; background:var(--line); margin:12px 0; }
+    .status { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .alert { border:1px solid #3a1f25; background:#120a0c; color:var(--bad); padding:10px 12px; border-radius:12px; display:none; }
+    .ok { border:1px solid #1f3a2a; background:#0a120d; color:#8fe3b1; padding:10px 12px; border-radius:12px; display:none; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .small { font-size:12px; color:var(--muted); }
+    footer { max-width:980px; margin: 10px auto 24px; padding:0 14px; color:var(--muted); font-size:12px; }
+    @media (max-width: 820px) {
+      .row, .row3 { grid-template-columns: 1fr; }
+      .checks { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Педиатричен въпросник (структурирана анамнеза)</h1>
+  <p>
+    Попълни полетата. Данните се пазят локално в браузъра. Можеш да изнесеш резултата като <span class="mono">.json</span> или <span class="mono">.txt</span>.
+  </p>
+</header>
+
+<main>
+  <div class="bar">
+    <button class="btn primary" type="button" id="btnJson">Изнасяне в JSON</button>
+    <button class="btn" type="button" id="btnTxt">Изнасяне в TXT</button>
+    <button class="btn warn" type="button" id="btnCopy">Копирай като JSON</button>
+    <button class="btn danger" type="button" id="btnClear">Изчисти всичко</button>
+    <span class="pill" id="savePill">Запис: —</span>
+    <span class="pill" id="fillPill">Попълване: —</span>
+  </div>
+
+  <div class="status">
+    <div class="alert" id="redFlagAlert">
+      Отметнати са „червени флагове“. Препоръчва се незабавна лекарска оценка.
+    </div>
+    <div class="ok" id="savedOk">
+      Записано локално.
+    </div>
+  </div>
+
+  <form id="qForm" autocomplete="on">
+    <!-- 1) Данни за детето -->
+    <section class="card" data-section="danni">
+      <h2>1) Данни за детето</h2>
+      <div class="row3">
+        <div>
+          <label for="child_initials">Име/инициали</label>
+          <input id="child_initials" name="child_initials" type="text" placeholder="напр. К.Р." />
+        </div>
+        <div>
+          <label for="child_age">Възраст (години/месеци)</label>
+          <input id="child_age" name="child_age" type="text" placeholder="напр. 2 г. 6 м." />
+        </div>
+        <div>
+          <label for="child_sex">Пол</label>
+          <select id="child_sex" name="child_sex">
+            <option value="">—</option>
+            <option value="мъжки">мъжки</option>
+            <option value="женски">женски</option>
+            <option value="друго/неуточнено">друго/неуточнено</option>
+          </select>
+        </div>
+      </div>
+      <div class="row3" style="margin-top:12px;">
+        <div>
+          <label for="child_weight">Тегло (кг)</label>
+          <input id="child_weight" name="child_weight" type="number" step="0.1" placeholder="напр. 14.2" />
+        </div>
+        <div>
+          <label for="child_height">Ръст (см)</label>
+          <input id="child_height" name="child_height" type="number" step="0.1" placeholder="напр. 94" />
+        </div>
+        <div>
+          <label for="respondent">Кой попълва</label>
+          <select id="respondent" name="respondent">
+            <option value="">—</option>
+            <option value="майка">майка</option>
+            <option value="баща">баща</option>
+            <option value="настойник">настойник</option>
+            <option value="друго">друго</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="phone">Телефон за връзка</label>
+          <input id="phone" name="phone" type="text" placeholder="по желание" />
+        </div>
+        <div>
+          <label for="date_filled">Дата на попълване</label>
+          <input id="date_filled" name="date_filled" type="date" />
+        </div>
+      </div>
+      <p class="hint">Бележка: полетата са описателни. Ако не е ясно — остави празно.</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 2) Основна причина -->
+    <section class="card" data-section="osnovno">
+      <h2>2) Основна причина за консултация</h2>
+      <div class="row">
+        <div>
+          <label for="chief_complaint">Основно оплакване (1–2 изречения)</label>
+          <textarea id="chief_complaint" name="chief_complaint" placeholder="Какво е най-важното?"></textarea>
+        </div>
+        <div>
+          <label for="onset">От кога започна</label>
+          <input id="onset" name="onset" type="text" placeholder="напр. преди 3 дни / от 2 седмици" />
+          <div style="margin-top:12px;">
+            <label for="course">Как се разви</label>
+            <select id="course" name="course">
+              <option value="">—</option>
+              <option value="влошава">влошава</option>
+              <option value="подобрява">подобрява</option>
+              <option value="на пристъпи">на пристъпи</option>
+              <option value="колебливо">колебливо</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="done_so_far">Какво вече е правено</label>
+          <textarea id="done_so_far" name="done_so_far" placeholder="Лекарства, мерки, прегледи, изследвания..."></textarea>
+        </div>
+        <div>
+          <label for="expectation">Какво очаквате като резултат</label>
+          <textarea id="expectation" name="expectation" placeholder="Какво трябва да се промени/постигне?"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 3) Текущи симптоми -->
+    <section class="card" data-section="symptomi">
+      <h2>3) Текущи симптоми – подробно</h2>
+      <div class="row">
+        <div>
+          <label for="symptom_where">Локализация (къде)</label>
+          <input id="symptom_where" name="symptom_where" type="text" placeholder="напр. гърло, нос, корем..." />
+        </div>
+        <div>
+          <label for="symptom_type">Характер</label>
+          <input id="symptom_type" name="symptom_type" type="text" placeholder="напр. болка, сърбеж, кашлица, обрив..." />
+        </div>
+      </div>
+      <div class="row3" style="margin-top:12px;">
+        <div>
+          <label for="symptom_intensity">Интензитет (0–10)</label>
+          <input id="symptom_intensity" name="symptom_intensity" type="number" min="0" max="10" step="1" placeholder="0–10" />
+        </div>
+        <div>
+          <label for="symptom_frequency">Честота/продължителност</label>
+          <input id="symptom_frequency" name="symptom_frequency" type="text" placeholder="напр. постоянно / 5 пъти на ден" />
+        </div>
+        <div>
+          <label for="symptom_related">Съпътстващи симптоми</label>
+          <input id="symptom_related" name="symptom_related" type="text" placeholder="напр. отпадналост, хрема..." />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2 style="font-size:14px; margin-top:0;">Температура</h2>
+      <div class="row3">
+        <div>
+          <label for="temp_has">Има ли температура</label>
+          <select id="temp_has" name="temp_has">
+            <option value="">—</option>
+            <option value="да">да</option>
+            <option value="не">не</option>
+          </select>
+        </div>
+        <div>
+          <label for="temp_value">Колко (°C)</label>
+          <input id="temp_value" name="temp_value" type="number" step="0.1" placeholder="напр. 38.5" />
+        </div>
+        <div>
+          <label for="temp_days">Колко дни</label>
+          <input id="temp_days" name="temp_days" type="text" placeholder="напр. 2 дни" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="temp_response">Как реагира на антипиретик</label>
+          <input id="temp_response" name="temp_response" type="text" placeholder="напр. спада за 4 ч / не влияе" />
+        </div>
+        <div>
+          <label for="temp_notes">Бележки</label>
+          <input id="temp_notes" name="temp_notes" type="text" placeholder="напр. втрисане, изпотяване..." />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 4) Модалности -->
+    <section class="card" data-section="modalnosti">
+      <h2>4) „Модалности“ – какво влияе</h2>
+      <div class="row">
+        <div>
+          <label>Какво влошава</label>
+          <div class="checks">
+            <label><input type="checkbox" name="worse" value="студ" />студ</label>
+            <label><input type="checkbox" name="worse" value="топло" />топло</label>
+            <label><input type="checkbox" name="worse" value="вятър" />вятър</label>
+            <label><input type="checkbox" name="worse" value="влажно време" />влажно време</label>
+            <label><input type="checkbox" name="worse" value="движение" />движение</label>
+            <label><input type="checkbox" name="worse" value="покой" />покой</label>
+            <label><input type="checkbox" name="worse" value="вечер/нощ" />вечер/нощ</label>
+            <label><input type="checkbox" name="worse" value="сутрин" />сутрин</label>
+            <label><input type="checkbox" name="worse" value="след хранене" />след хранене</label>
+            <label><input type="checkbox" name="worse" value="плач" />плач</label>
+          </div>
+          <div style="margin-top:10px;">
+            <label for="worse_other">Друго (влошава)</label>
+            <input id="worse_other" name="worse_other" type="text" placeholder="свободен текст" />
+          </div>
+        </div>
+        <div>
+          <label>Какво подобрява</label>
+          <div class="checks">
+            <label><input type="checkbox" name="better" value="топло" />топло</label>
+            <label><input type="checkbox" name="better" value="студено" />студено</label>
+            <label><input type="checkbox" name="better" value="притискане" />притискане</label>
+            <label><input type="checkbox" name="better" value="раздвижване" />раздвижване</label>
+            <label><input type="checkbox" name="better" value="покой" />покой</label>
+            <label><input type="checkbox" name="better" value="баня" />баня</label>
+            <label><input type="checkbox" name="better" value="въздух навън" />въздух навън</label>
+            <label><input type="checkbox" name="better" value="пиене" />пиене</label>
+            <label><input type="checkbox" name="better" value="след сън" />след сън</label>
+            <label><input type="checkbox" name="better" value="определена храна" />определена храна</label>
+          </div>
+          <div style="margin-top:10px;">
+            <label for="better_other">Друго (подобрява)</label>
+            <input id="better_other" name="better_other" type="text" placeholder="свободен текст" />
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="time_peak">Часова зависимост (има ли „час пик“)</label>
+          <input id="time_peak" name="time_peak" type="text" placeholder="напр. 02:00–04:00 / следобед" />
+        </div>
+        <div>
+          <label for="positions">Поза/позиция влияе ли (легнало/седнало и т.н.)</label>
+          <input id="positions" name="positions" type="text" placeholder="свободен текст" />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 5) Общо състояние -->
+    <section class="card" data-section="obshto">
+      <h2>5) Общо състояние</h2>
+      <div class="row3">
+        <div>
+          <label for="thermal">Топлолюбиво/студолюбиво</label>
+          <select id="thermal" name="thermal">
+            <option value="">—</option>
+            <option value="по-скоро топлолюбиво">по-скоро топлолюбиво</option>
+            <option value="по-скоро студолюбиво">по-скоро студолюбиво</option>
+            <option value="без ясно предпочитание">без ясно предпочитание</option>
+          </select>
+        </div>
+        <div>
+          <label for="thirst">Жажда</label>
+          <select id="thirst" name="thirst">
+            <option value="">—</option>
+            <option value="малка">малка</option>
+            <option value="голяма">голяма</option>
+            <option value="променлива">променлива</option>
+          </select>
+        </div>
+        <div>
+          <label for="drink_pref">Предпочитана вода</label>
+          <select id="drink_pref" name="drink_pref">
+            <option value="">—</option>
+            <option value="студена">студена</option>
+            <option value="топла">топла</option>
+            <option value="няма значение">няма значение</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="sweating">Потене (колко/къде/кога)</label>
+          <input id="sweating" name="sweating" type="text" placeholder="напр. нощно, по глава..." />
+        </div>
+        <div>
+          <label for="appetite">Апетит</label>
+          <select id="appetite" name="appetite">
+            <option value="">—</option>
+            <option value="добър">добър</option>
+            <option value="намален">намален</option>
+            <option value="силен">силен</option>
+            <option value="променлив">променлив</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="cravings">Желания към храни</label>
+          <input id="cravings" name="cravings" type="text" placeholder="напр. сладко, солено, млечни..." />
+        </div>
+        <div>
+          <label for="aversions">Отвращения към храни</label>
+          <input id="aversions" name="aversions" type="text" placeholder="напр. месо, яйца..." />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 6) Сън -->
+    <section class="card" data-section="san">
+      <h2>6) Сън</h2>
+      <div class="row3">
+        <div>
+          <label for="sleep_start">Час на заспиване</label>
+          <input id="sleep_start" name="sleep_start" type="text" placeholder="напр. 21:30" />
+        </div>
+        <div>
+          <label for="sleep_end">Час на събуждане</label>
+          <input id="sleep_end" name="sleep_end" type="text" placeholder="напр. 07:00" />
+        </div>
+        <div>
+          <label for="night_waking">Събуждане нощем (колко/защо)</label>
+          <input id="night_waking" name="night_waking" type="text" placeholder="напр. 2 пъти – жажда" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="sleep_position">Поза за сън</label>
+          <input id="sleep_position" name="sleep_position" type="text" placeholder="корем/гръб/страни, върти ли се" />
+        </div>
+        <div>
+          <label for="sleep_issues">Нощни страхове / скърцане / напикаване</label>
+          <input id="sleep_issues" name="sleep_issues" type="text" placeholder="ако има" />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 7) Храносмилане -->
+    <section class="card" data-section="hremosmilane">
+      <h2>7) Храносмилане</h2>
+      <div class="row">
+        <div>
+          <label for="stool">Изхождания (честота/вид/цвят/слуз/кръв)</label>
+          <textarea id="stool" name="stool" placeholder="описание"></textarea>
+        </div>
+        <div>
+          <label for="abdomen">Корем (болка/газове/подуване/колики)</label>
+          <textarea id="abdomen" name="abdomen" placeholder="къде, кога, от какво"></textarea>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="vomit_reflux">Повръщане/рефлукс</label>
+          <input id="vomit_reflux" name="vomit_reflux" type="text" placeholder="ако има" />
+        </div>
+        <div>
+          <label for="diet_notes">Хранителни бележки</label>
+          <input id="diet_notes" name="diet_notes" type="text" placeholder="напр. след мляко се влошава" />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 8) Уриниране -->
+    <section class="card" data-section="urina">
+      <h2>8) Уриниране</h2>
+      <div class="row">
+        <div>
+          <label for="urination">Честота/болка/промяна в цвят/миризма</label>
+          <input id="urination" name="urination" type="text" placeholder="описание" />
+        </div>
+        <div>
+          <label for="enuresis">Нощно напикаване</label>
+          <input id="enuresis" name="enuresis" type="text" placeholder="ако има" />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 9) Дихателни и УНГ -->
+    <section class="card" data-section="dihatelni">
+      <h2>9) Дихателни и УНГ</h2>
+      <div class="row">
+        <div>
+          <label for="runny_nose">Хрема (водниста/гъста, цвят, дразни ли)</label>
+          <input id="runny_nose" name="runny_nose" type="text" placeholder="описание" />
+        </div>
+        <div>
+          <label for="cough">Кашлица (суха/влажна, нощна и т.н.)</label>
+          <input id="cough" name="cough" type="text" placeholder="описание" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="breathing">Хрипове/задух</label>
+          <input id="breathing" name="breathing" type="text" placeholder="ако има" />
+        </div>
+        <div>
+          <label for="throat_ear">Гърло/уши (болка, ангини, отити)</label>
+          <input id="throat_ear" name="throat_ear" type="text" placeholder="описание" />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 10) Кожа -->
+    <section class="card" data-section="koja">
+      <h2>10) Кожа</h2>
+      <div class="row">
+        <div>
+          <label for="skin">Обрив/екзема/уртикария (къде, как изглежда, сърбеж)</label>
+          <textarea id="skin" name="skin" placeholder="описание"></textarea>
+        </div>
+        <div>
+          <label for="skin_triggers">Какво влияе (влошава/подобрява)</label>
+          <textarea id="skin_triggers" name="skin_triggers" placeholder="описание"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 11) Поведение -->
+    <section class="card" data-section="povedenie">
+      <h2>11) Поведение (описателно)</h2>
+      <div class="row">
+        <div>
+          <label for="temperament">Темперамент</label>
+          <input id="temperament" name="temperament" type="text" placeholder="спокойно/активно/раздразнимо..." />
+        </div>
+        <div>
+          <label for="pain_reaction">Реакция при болка/температура</label>
+          <input id="pain_reaction" name="pain_reaction" type="text" placeholder="търси контакт/затваря се..." />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="fears">Страхове</label>
+          <input id="fears" name="fears" type="text" placeholder="тъмно, самота, лекари..." />
+        </div>
+        <div>
+          <label for="soothe">Как се успокоява най-лесно</label>
+          <input id="soothe" name="soothe" type="text" placeholder="прегръдка, разходка..." />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="separation">Понася ли разделяне</label>
+          <input id="separation" name="separation" type="text" placeholder="описание" />
+        </div>
+        <div>
+          <label for="behavior_notes">Други бележки</label>
+          <input id="behavior_notes" name="behavior_notes" type="text" placeholder="ритуали, тикове..." />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 12) Бременност/раждане -->
+    <section class="card" data-section="ranno">
+      <h2>12) Бременност, раждане, ранно развитие</h2>
+      <div class="row">
+        <div>
+          <label for="pregnancy">Бременност (усложнения, лекарства, инфекции)</label>
+          <textarea id="pregnancy" name="pregnancy"></textarea>
+        </div>
+        <div>
+          <label for="birth">Раждане (нормално/секцио, термин, тегло при раждане)</label>
+          <textarea id="birth" name="birth"></textarea>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="feeding">Кърмене/мляко; захранване</label>
+          <input id="feeding" name="feeding" type="text" placeholder="описание" />
+        </div>
+        <div>
+          <label for="development">Развитие (прохождане, говор и т.н.)</label>
+          <input id="development" name="development" type="text" placeholder="по възраст" />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 13) Минали заболявания -->
+    <section class="card" data-section="minato">
+      <h2>13) Минали заболявания и лечение</h2>
+      <div class="row">
+        <div>
+          <label for="past_illnesses">Чести инфекции/боледуване</label>
+          <textarea id="past_illnesses" name="past_illnesses" placeholder="колко често, какви"></textarea>
+        </div>
+        <div>
+          <label for="hospital_ops">Хоспитализации/операции</label>
+          <textarea id="hospital_ops" name="hospital_ops" placeholder="ако има"></textarea>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="allergies">Алергии (лекарства/храни/други)</label>
+          <input id="allergies" name="allergies" type="text" placeholder="описание" />
+        </div>
+        <div>
+          <label for="chronic">Хронични диагнози</label>
+          <input id="chronic" name="chronic" type="text" placeholder="описание" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="current_meds">Текущи лекарства/добавки (дози)</label>
+          <textarea id="current_meds" name="current_meds"></textarea>
+        </div>
+        <div>
+          <label for="drug_reactions">Реакции към антибиотици/антипиретици</label>
+          <textarea id="drug_reactions" name="drug_reactions"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 14) Ваксинации -->
+    <section class="card" data-section="vaksini">
+      <h2>14) Ваксинации</h2>
+      <div class="row">
+        <div>
+          <label for="vax_status">По календар</label>
+          <select id="vax_status" name="vax_status">
+            <option value="">—</option>
+            <option value="да">да</option>
+            <option value="частично">частично</option>
+            <option value="не">не</option>
+          </select>
+          <p class="hint">Само описателно поле; не преценява рискове.</p>
+        </div>
+        <div>
+          <label for="vax_reactions">Нежелани реакции (какви, кога)</label>
+          <textarea id="vax_reactions" name="vax_reactions" placeholder="ако има"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 15) Семейна анамнеза -->
+    <section class="card" data-section="semeistvo">
+      <h2>15) Семейна анамнеза</h2>
+      <div class="row">
+        <div>
+          <label for="family_allergy">Астма/алергии/атопия</label>
+          <input id="family_allergy" name="family_allergy" type="text" />
+        </div>
+        <div>
+          <label for="family_autoimmune">Автоимунни заболявания</label>
+          <input id="family_autoimmune" name="family_autoimmune" type="text" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label for="family_neuro">Епилепсия/мигрена</label>
+          <input id="family_neuro" name="family_neuro" type="text" />
+        </div>
+        <div>
+          <label for="family_metabolic">Сърдечно-съдови/метаболитни</label>
+          <input id="family_metabolic" name="family_metabolic" type="text" />
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label for="family_other">Други</label>
+        <input id="family_other" name="family_other" type="text" />
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 16) Среда -->
+    <section class="card" data-section="sreda">
+      <h2>16) Среда и навици</h2>
+      <div class="row3">
+        <div>
+          <label for="kindergarten">Детска градина/училище</label>
+          <input id="kindergarten" name="kindergarten" type="text" placeholder="да/не + бележки" />
+        </div>
+        <div>
+          <label for="contacts">Контакт с болни / пътувания</label>
+          <input id="contacts" name="contacts" type="text" />
+        </div>
+        <div>
+          <label for="pets">Домашни любимци</label>
+          <input id="pets" name="pets" type="text" />
+        </div>
+      </div>
+      <div class="row3" style="margin-top:12px;">
+        <div>
+          <label for="smoke">Тютюнев дим у дома</label>
+          <select id="smoke" name="smoke">
+            <option value="">—</option>
+            <option value="да">да</option>
+            <option value="не">не</option>
+          </select>
+        </div>
+        <div>
+          <label for="mold">Влага/плесен</label>
+          <select id="mold" name="mold">
+            <option value="">—</option>
+            <option value="да">да</option>
+            <option value="не">не</option>
+            <option value="не е ясно">не е ясно</option>
+          </select>
+        </div>
+        <div>
+          <label for="activity">Движение/спорт</label>
+          <input id="activity" name="activity" type="text" placeholder="кратко описание" />
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label for="daily_diet">Режим на хранене</label>
+        <input id="daily_diet" name="daily_diet" type="text" placeholder="напр. 3 хранения + 2 междинни" />
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 17) Редки, но характерни -->
+    <section class="card" data-section="harakterni">
+      <h2>17) Редки, но характерни детайли</h2>
+      <div class="row">
+        <div>
+          <label for="odd_prefs">Необичайни предпочитания (храни/миризми/текстури)</label>
+          <textarea id="odd_prefs" name="odd_prefs"></textarea>
+        </div>
+        <div>
+          <label for="odd_reactions">Необичайни реакции (вятър, баня, шум и т.н.)</label>
+          <textarea id="odd_reactions" name="odd_reactions"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label for="odd_notes">Други особености</label>
+        <textarea id="odd_notes" name="odd_notes" placeholder="свободен текст"></textarea>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 18) Червени флагове -->
+    <section class="card" data-section="cherveni_flagove">
+      <h2>18) Червени флагове (отметни ако е налично)</h2>
+      <div class="checks">
+        <label><input type="checkbox" name="red_flags" value="затруднено дишане/посиняване" />затруднено дишане/посиняване</label>
+        <label><input type="checkbox" name="red_flags" value="силна отпадналост, трудно събуждане" />силна отпадналост, трудно събуждане</label>
+        <label><input type="checkbox" name="red_flags" value="обезводняване (суха уста, без сълзи, малко урина)" />обезводняване (суха уста, без сълзи, малко урина)</label>
+        <label><input type="checkbox" name="red_flags" value="гърч" />гърч</label>
+        <label><input type="checkbox" name="red_flags" value="силно главоболие + вратна ригидност" />силно главоболие + вратна ригидност</label>
+        <label><input type="checkbox" name="red_flags" value="кръв в изпражнения/повръщане на кръв" />кръв в изпражнения/повръщане на кръв</label>
+        <label><input type="checkbox" name="red_flags" value="температура при бебе под 3 месеца" />температура при бебе под 3 месеца</label>
+      </div>
+      <div style="margin-top:12px;">
+        <label for="red_notes">Бележки за „червени флагове“</label>
+        <textarea id="red_notes" name="red_notes" placeholder="ако има допълнение"></textarea>
+      </div>
+      <p class="hint">Тази секция е за триаж (бърза ориентация), не за диагноза.</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="card" data-section="meta">
+      <h2>Технически бележки</h2>
+      <p class="small">
+        🔒 Достоверност: форматът е надежден като събиране на анамнеза.  
+        ⚠️ Хипотетично: „хомеопатичната“ интерпретация на отговорите не е доказателствена.  
+        Приложимост: използвай за описателно събиране на данни и проследяване във времето.
+      </p>
+    </section>
+  </form>
+</main>
+
+<footer>
+  <div>Съхранение: локално в браузъра (localStorage). За пренос използвай изнасяне в <span class="mono">.json</span> или <span class="mono">.txt</span>.</div>
+</footer>
+
+<script>
+  (function () {
+    const STORAGE_KEY = "pediatrichen_vaprosnik_v1";
+    const form = document.getElementById("qForm");
+    const savePill = document.getElementById("savePill");
+    const fillPill = document.getElementById("fillPill");
+    const savedOk = document.getElementById("savedOk");
+    const redFlagAlert = document.getElementById("redFlagAlert");
+
+    const btnJson = document.getElementById("btnJson");
+    const btnTxt = document.getElementById("btnTxt");
+    const btnClear = document.getElementById("btnClear");
+    const btnCopy = document.getElementById("btnCopy");
+
+    function nowStamp() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+    }
+
+    function setSavedFlash() {
+      savedOk.style.display = "block";
+      setTimeout(() => (savedOk.style.display = "none"), 900);
+    }
+
+    function computeFillPercent(data) {
+      // Броим само текст/числа/селект, без техническите мета-елементи.
+      const flat = [];
+      function walk(obj) {
+        for (const k in obj) {
+          const v = obj[k];
+          if (v && typeof v === "object" && !Array.isArray(v)) walk(v);
+          else flat.push(v);
+        }
+      }
+      walk(data);
+
+      const total = flat.length;
+      const filled = flat.filter(v => {
+        if (Array.isArray(v)) return v.length > 0;
+        return (v !== null && v !== undefined && String(v).trim() !== "");
+      }).length;
+
+      const pct = total ? Math.round((filled / total) * 100) : 0;
+      return { pct, total, filled };
+    }
+
+    function updateRedFlagUI(data) {
+      const flags = data?.cherveni_flagove?.red_flags || [];
+      redFlagAlert.style.display = (Array.isArray(flags) && flags.length > 0) ? "block" : "none";
+    }
+
+    function collectData() {
+      const out = {};
+      const sections = form.querySelectorAll("section[data-section]");
+      sections.forEach(sec => {
+        const key = sec.getAttribute("data-section");
+        out[key] = {};
+      });
+
+      const elements = Array.from(form.elements).filter(el => el.name && !el.disabled);
+
+      // помощна структура за чекбоксове с еднакво име
+      const checkboxBuckets = {};
+
+      for (const el of elements) {
+        const sectionEl = el.closest("section[data-section]");
+        const sectionKey = sectionEl ? sectionEl.getAttribute("data-section") : "negrupirano";
+
+        if (!out[sectionKey]) out[sectionKey] = {};
+
+        if (el.type === "checkbox") {
+          if (!checkboxBuckets[sectionKey]) checkboxBuckets[sectionKey] = {};
+          if (!checkboxBuckets[sectionKey][el.name]) checkboxBuckets[sectionKey][el.name] = [];
+          if (el.checked) checkboxBuckets[sectionKey][el.name].push(el.value);
+        } else if (el.type === "radio") {
+          if (el.checked) out[sectionKey][el.name] = el.value;
+        } else {
+          out[sectionKey][el.name] = el.value;
+        }
+      }
+
+      // прехвърляне на чекбоксовете
+      for (const sectionKey in checkboxBuckets) {
+        for (const name in checkboxBuckets[sectionKey]) {
+          out[sectionKey][name] = checkboxBuckets[sectionKey][name];
+        }
+      }
+
+      // мета
+      out.meta = out.meta || {};
+      out.meta.generated_at_local = new Date().toISOString();
+      out.meta.schema = "pediatrichen_vaprosnik_v1";
+
+      return out;
+    }
+
+    function restoreData(data) {
+      if (!data || typeof data !== "object") return;
+
+      // Първо: чекбоксове
+      const allCheckboxes = form.querySelectorAll('input[type="checkbox"][name]');
+      allCheckboxes.forEach(cb => cb.checked = false);
+
+      // После: попълване
+      for (const sectionKey in data) {
+        const section = data[sectionKey];
+        if (!section || typeof section !== "object") continue;
+
+        for (const name in section) {
+          const value = section[name];
+
+          // прескачаме мета
+          if (sectionKey === "meta" && (name === "generated_at_local" || name === "schema")) continue;
+
+          const nodes = form.querySelectorAll(`[name="${CSS.escape(name)}"]`);
+          if (!nodes || nodes.length === 0) continue;
+
+          nodes.forEach(node => {
+            if (node.type === "checkbox") {
+              if (Array.isArray(value)) node.checked = value.includes(node.value);
+            } else if (node.type === "radio") {
+              node.checked = (node.value === value);
+            } else {
+              node.value = value ?? "";
+            }
+          });
+        }
+      }
+    }
+
+    function saveLocal() {
+      const data = collectData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      savePill.textContent = `Запис: ${new Date().toLocaleString("bg-BG")}`;
+      setSavedFlash();
+
+      const { pct, filled, total } = computeFillPercent(data);
+      fillPill.textContent = `Попълване: ${pct}% (${filled}/${total})`;
+
+      updateRedFlagUI(data);
+    }
+
+    function loadLocal() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        savePill.textContent = "Запис: няма";
+        fillPill.textContent = "Попълване: —";
+        return;
+      }
+      try {
+        const data = JSON.parse(raw);
+        restoreData(data);
+        savePill.textContent = `Запис: ${new Date().toLocaleString("bg-BG")}`;
+        const { pct, filled, total } = computeFillPercent(collectData());
+        fillPill.textContent = `Попълване: ${pct}% (${filled}/${total})`;
+        updateRedFlagUI(collectData());
+      } catch (e) {
+        savePill.textContent = "Запис: повреден";
+      }
+    }
+
+    function downloadFile(content, filename, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    function toTxt(data) {
+      // Четим износ: секции + ключове
+      const sectionTitles = {
+        danni: "1) Данни за детето",
+        osnovno: "2) Основна причина",
+        symptomi: "3) Текущи симптоми",
+        modalnosti: "4) Модалности",
+        obshto: "5) Общо състояние",
+        san: "6) Сън",
+        hremosmilane: "7) Храносмилане",
+        urina: "8) Уриниране",
+        dihatelni: "9) Дихателни и УНГ",
+        koja: "10) Кожа",
+        povedenie: "11) Поведение",
+        ranno: "12) Бременност/раждане/развитие",
+        minato: "13) Минали заболявания",
+        vaksini: "14) Ваксинации",
+        semeistvo: "15) Семейна анамнеза",
+        sreda: "16) Среда и навици",
+        harakterni: "17) Характерни детайли",
+        cherveni_flagove: "18) Червени флагове",
+        meta: "Мета"
+      };
+
+      const lines = [];
+      lines.push("ПЕДИАТРИЧЕН ВЪПРОСНИК (структурирана анамнеза)");
+      lines.push(`Дата/час (локално): ${new Date().toLocaleString("bg-BG")}`);
+      lines.push("");
+
+      const keysOrder = Object.keys(sectionTitles);
+      for (const secKey of keysOrder) {
+        if (!data[secKey]) continue;
+        lines.push("=".repeat(72));
+        lines.push(sectionTitles[secKey]);
+        lines.push("-".repeat(72));
+
+        const sec = data[secKey];
+        const names = Object.keys(sec).sort((a,b) => a.localeCompare(b, "bg"));
+        for (const name of names) {
+          if (secKey === "meta" && (name === "generated_at_local" || name === "schema")) continue;
+
+          const v = sec[name];
+          if (Array.isArray(v)) {
+            lines.push(`${name}: ${v.length ? v.join(", ") : ""}`);
+          } else {
+            lines.push(`${name}: ${String(v ?? "")}`.trimEnd());
+          }
+        }
+        lines.push("");
+      }
+
+      lines.push("=".repeat(72));
+      lines.push("Край.");
+      return lines.join("\n");
+    }
+
+    function copyJsonToClipboard(text) {
+      return navigator.clipboard?.writeText(text);
+    }
+
+    // Автозапис
+    form.addEventListener("input", () => saveLocal());
+    form.addEventListener("change", () => saveLocal());
+
+    btnJson.addEventListener("click", () => {
+      const data = collectData();
+      const json = JSON.stringify(data, null, 2);
+      downloadFile(json, `pediatria_vaprosnik_${nowStamp()}.json`, "application/json;charset=utf-8");
+    });
+
+    btnTxt.addEventListener("click", () => {
+      const data = collectData();
+      const txt = toTxt(data);
+      downloadFile(txt, `pediatria_vaprosnik_${nowStamp()}.txt`, "text/plain;charset=utf-8");
+    });
+
+    btnCopy.addEventListener("click", async () => {
+      const data = collectData();
+      const json = JSON.stringify(data, null, 2);
+      try {
+        await copyJsonToClipboard(json);
+        savePill.textContent = "Копирано като JSON.";
+        setTimeout(() => savePill.textContent = `Запис: ${new Date().toLocaleString("bg-BG")}`, 900);
+      } catch {
+        // ако няма достъп до клипборда – показваме инструктивно
+        alert("Браузърът не позволи копиране. Ползвай изнасяне в JSON.");
+      }
+    });
+
+    btnClear.addEventListener("click", () => {
+      if (!confirm("Сигурен ли си, че искаш да изчистиш всичко?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      form.reset();
+      savePill.textContent = "Запис: няма";
+      fillPill.textContent = "Попълване: —";
+      redFlagAlert.style.display = "none";
+    });
+
+    // Първоначално зареждане
+    // Автоматично задаваме датата на попълване, ако е празна.
+    (function init() {
+      const dateField = document.getElementById("date_filled");
+      if (dateField && !dateField.value) {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        dateField.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      }
+      loadLocal();
+      // един запис веднага, за да има структура
+      saveLocal();
+    })();
+  })();
+</script>
+</body>
+</html>
