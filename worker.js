@@ -778,16 +778,18 @@ function validatePlan(plan, userData) {
           const mealsAfterDinner = day.meals.slice(dinnerIndex + 1);
           const mealsAfterDinnerTypes = mealsAfterDinner.map(m => m.type);
           
-          // Check if strategy provides justification for meals after dinner
-          const hasStrategyJustification = plan.strategy && plan.strategy.planJustification;
+          // Check if strategy provides specific justification for meals after dinner
+          const hasAfterDinnerJustification = plan.strategy && 
+                                               plan.strategy.afterDinnerMealJustification && 
+                                               plan.strategy.afterDinnerMealJustification !== 'Не са необходими';
           
           // Allow meals after dinner if there's clear justification in strategy
           // Otherwise, require it to be a late-night snack with appropriate properties
-          if (!hasStrategyJustification) {
+          if (!hasAfterDinnerJustification) {
             // No justification - apply strict rules for late-night snack only
             if (mealsAfterDinner.length > 1 || 
                 (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] !== 'Късна закуска')) {
-              errors.push(`Ден ${i}: Има хранения след вечеря (${mealsAfterDinnerTypes.join(', ')}) без обосновка в стратегията. Моля, добави обосновка или премахни храненията след вечеря.`);
+              errors.push(`Ден ${i}: Има хранения след вечеря (${mealsAfterDinnerTypes.join(', ')}) без обосновка в strategy.afterDinnerMealJustification. Моля, добави обосновка или премахни храненията след вечеря.`);
             } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Късна закуска') {
               // Validate that late-night snack contains low GI foods
               const lateSnack = mealsAfterDinner[0];
@@ -798,7 +800,7 @@ function validatePlan(plan, userData) {
               const hasLowGIFood = LOW_GI_FOODS.some(food => snackText.includes(food));
               
               if (!hasLowGIFood) {
-                errors.push(`Ден ${i}: Късната закуска трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.) или да има ясна обосновка в стратегията`);
+                errors.push(`Ден ${i}: Късната закуска трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.) или да има ясна обосновка в strategy.afterDinnerMealJustification`);
               }
               
               // Validate that late-night snack is not too high in calories (warning only if no justification)
@@ -808,7 +810,7 @@ function validatePlan(plan, userData) {
               }
             }
           }
-          // If there IS strategy justification, we allow meals after dinner without strict validation
+          // If there IS afterDinnerMealJustification, we allow meals after dinner without strict validation
         }
         
         // Check for invalid meal types
@@ -942,9 +944,14 @@ function validatePlan(plan, userData) {
     }
   }
   
-  // 10. Check for plan justification (REQUIREMENT 3)
-  if (!plan.strategy || !plan.strategy.planJustification || plan.strategy.planJustification.length < 20) {
-    errors.push('Липсва обосновка защо планът е индивидуален');
+  // 10. Check for plan justification (REQUIREMENT 3) - updated to require 100+ characters
+  if (!plan.strategy || !plan.strategy.planJustification || plan.strategy.planJustification.length < 100) {
+    errors.push('Липсва детайлна обосновка защо планът е индивидуален (минимум 100 символа)');
+  }
+  
+  // 10a. Check for meal count justification (NEW REQUIREMENT)
+  if (!plan.strategy || !plan.strategy.mealCountJustification || plan.strategy.mealCountJustification.length < 20) {
+    errors.push('Липсва обосновка за избора на брой хранения (strategy.mealCountJustification)');
   }
   
   // 11. Check that analysis doesn't contain "Normal" severity problems (REQUIREMENT 2)
