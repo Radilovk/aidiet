@@ -328,11 +328,12 @@ export default {
  * These fields are only for the validator and should not be visible to the end user
  */
 function removeInternalJustifications(plan) {
-  if (!plan || !plan.strategy) {
+  if (!plan) {
     return plan;
   }
   
   // Create a deep copy to avoid modifying the original
+  // Using JSON methods is acceptable here as the plan is already JSON-serializable
   const cleanPlan = JSON.parse(JSON.stringify(plan));
   
   // Remove internal justification fields that are only for validation
