@@ -685,10 +685,10 @@ const MEAL_PLAN_TOKEN_LIMIT = 8000;
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
-const MAX_MEALS_PER_DAY = 6; // Maximum number of meals per day (1-5 regular meals + 1 optional late-night snack)
+const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's clear reasoning and strategy)
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
-const MAX_CORRECTION_ATTEMPTS = 2; // Maximum number of AI correction attempts before failing (must be >= 0)
+const MAX_CORRECTION_ATTEMPTS = 3; // Maximum number of AI correction attempts before failing (must be >= 0)
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
@@ -769,38 +769,46 @@ function validatePlan(plan, userData) {
           errors.push(`Ден ${i} има само ${dayCalories} калории - твърде малко`);
         }
         
-        // Validate meal ordering (UPDATED: allow 1 late-night snack after dinner in justified situations)
+        // Validate meal ordering (UPDATED: allow meals after dinner when justified by strategy)
         const mealTypes = day.meals.map(meal => meal.type);
         const dinnerIndex = mealTypes.findIndex(type => type === 'Вечеря');
         
         if (dinnerIndex !== -1 && dinnerIndex !== mealTypes.length - 1) {
-          // Dinner exists but is not the last meal - check if it's a valid late-night snack
+          // Dinner exists but is not the last meal - check if there's justification
           const mealsAfterDinner = day.meals.slice(dinnerIndex + 1);
           const mealsAfterDinnerTypes = mealsAfterDinner.map(m => m.type);
           
-          // Only allow 1 "Късна закуска" after dinner
-          if (mealsAfterDinner.length > 1 || 
-              (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] !== 'Късна закуска')) {
-            errors.push(`КРИТИЧНА ГРЕШКА Ден ${i}: Има недопустими хранения след вечеря (${mealsAfterDinnerTypes.join(', ')}) - след вечеря е позволена само 1 "Късна закуска"!`);
-          } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Късна закуска') {
-            // Validate that late-night snack contains low GI foods
-            const lateSnack = mealsAfterDinner[0];
-            const snackDescription = (lateSnack.description || '').toLowerCase();
-            const snackName = (lateSnack.name || '').toLowerCase();
-            const snackText = snackDescription + ' ' + snackName;
-            
-            const hasLowGIFood = LOW_GI_FOODS.some(food => snackText.includes(food));
-            
-            if (!hasLowGIFood) {
-              errors.push(`Ден ${i}: Късната закуска трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.)`);
-            }
-            
-            // Validate that late-night snack is not too high in calories
-            const snackCalories = parseInt(lateSnack.calories) || 0;
-            if (snackCalories > MAX_LATE_SNACK_CALORIES) {
-              errors.push(`Ден ${i}: Късната закуска има ${snackCalories} калории - препоръчват се максимум ${MAX_LATE_SNACK_CALORIES} калории`);
+          // Check if strategy provides justification for meals after dinner
+          const hasStrategyJustification = plan.strategy && plan.strategy.planJustification;
+          
+          // Allow meals after dinner if there's clear justification in strategy
+          // Otherwise, require it to be a late-night snack with appropriate properties
+          if (!hasStrategyJustification) {
+            // No justification - apply strict rules for late-night snack only
+            if (mealsAfterDinner.length > 1 || 
+                (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] !== 'Късна закуска')) {
+              errors.push(`Ден ${i}: Има хранения след вечеря (${mealsAfterDinnerTypes.join(', ')}) без обосновка в стратегията. Моля, добави обосновка или премахни храненията след вечеря.`);
+            } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Късна закуска') {
+              // Validate that late-night snack contains low GI foods
+              const lateSnack = mealsAfterDinner[0];
+              const snackDescription = (lateSnack.description || '').toLowerCase();
+              const snackName = (lateSnack.name || '').toLowerCase();
+              const snackText = snackDescription + ' ' + snackName;
+              
+              const hasLowGIFood = LOW_GI_FOODS.some(food => snackText.includes(food));
+              
+              if (!hasLowGIFood) {
+                errors.push(`Ден ${i}: Късната закуска трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.) или да има ясна обосновка в стратегията`);
+              }
+              
+              // Validate that late-night snack is not too high in calories (warning only if no justification)
+              const snackCalories = parseInt(lateSnack.calories) || 0;
+              if (snackCalories > MAX_LATE_SNACK_CALORIES) {
+                console.log(`Warning Ден ${i}: Късната закуска има ${snackCalories} калории - препоръчват се максимум ${MAX_LATE_SNACK_CALORIES} калории при липса на обосновка`);
+              }
             }
           }
+          // If there IS strategy justification, we allow meals after dinner without strict validation
         }
         
         // Check for invalid meal types
@@ -985,54 +993,60 @@ ${JSON.stringify({
 
 ═══ ПРАВИЛА ЗА КОРИГИРАНЕ ═══
 
-ВАЖНО - ТИПОВЕ ХРАНЕНИЯ И РЕД:
+ВАЖНО - СТРАТЕГИЯ И ОБОСНОВКА:
+1. ВСЯКА корекция ТРЯБВА да бъде обоснована
+2. Ако добавяш/променяш хранения, обясни ЗАЩО в strategy.planJustification
+3. Ако добавяш хранения след вечеря, обясни причината в strategy.afterDinnerMealJustification
+4. Ако променяш броя хранения, обясни в strategy.mealCountJustification
+5. При многодневно планиране, обясни подхода в strategy.longTermStrategy
+
+ТИПОВЕ ХРАНЕНИЯ И РЕД:
 1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
    - "Закуска" (сутрин)
    - "Обяд" (обед)
    - "Следобедна закуска" (опционално, след обяд)
    - "Вечеря" (вечер)
-   - "Късна закуска" (опционално, САМО след вечеря, с нисък гликемичен индекс)
+   - "Късна закуска" (опционално, след вечеря - С ОБОСНОВКА!)
 
-2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения ред!
-   - НЕ може да има закуска след обяд
-   - НЕ може да има обяд след вечеря
-   - "Късна закуска" е ЕДИНСТВЕНОТО допустимо хранене след вечеря
+2. БРОЙ ХРАНЕНИЯ: 1-5 на ден
+   - ЗАДЪЛЖИТЕЛНО обоснови избора в strategy.mealCountJustification
 
-3. КЪСНА ЗАКУСКА - специални изисквания:
-   - Позволена САМО след "Вечеря"
-   - МАКСИМУМ 1 на ден
-   - САМО храни с НИСЪК ГЛИКЕМИЧЕН ИНДЕКС (ГИ < 55):
-     * Кисело мляко, кефир
-     * Ядки (бадеми, орехи, лешници, кашу)
-     * Ягоди, боровинки, малини, черници
-     * Авокадо, краставици
-     * Семена (чиа, ленено, тиквени)
-   - МАКСИМУМ ${MAX_LATE_SNACK_CALORIES} калории
-   - Оправдана САМО в специфични случаи:
-     * Дълъг период между вечеря и сън (> 4 часа)
-     * Проблеми със съня заради глад
-     * Диабет тип 2 (за стабилизиране на кръвната захар през нощта)
-     * Интензивни тренировки вечер
+3. ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ - разрешени С ОБОСНОВКА:
+   - Физиологична причина (диабет, дълъг период до сън, проблеми със съня)
+   - Психологическа причина (управление на стрес)
+   - Стратегическа причина (спортни тренировки вечер, работа на смени)
+   - ДОБАВИ обосновката в strategy.afterDinnerMealJustification!
+   - Предпочитай ниско-гликемични храни (кисело мляко, ядки, ягоди, семена)
 
-4. МЕДИЦИНСКИ ИЗИСКВАНИЯ:
+4. МНОГОДНЕВЕН ХОРИЗОНТ:
+   - Може да планираш 2-3 дни като цяло при обоснована стратегия
+   - Циклично разпределение на калории/макроси е позволено
+   - ОБЯСНИ в strategy.longTermStrategy
+
+5. МЕДИЦИНСКИ ИЗИСКВАНИЯ:
    - При диабет: НЕ високовъглехидратни храни
    - При анемия + вегетарианство: добавка с желязо ЗАДЪЛЖИТЕЛНА
    - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
-   - Спазвай медицинските състояния: ${JSON.stringify(userData.medicalConditions || [])}
+   - Спазвай: ${JSON.stringify(userData.medicalConditions || [])}
 
-5. КАЛОРИИ И МАКРОСИ:
+6. КАЛОРИИ И МАКРОСИ:
    - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats, fiber)
-   - Дневните калории трябва да са минимум ${MIN_DAILY_CALORIES} kcal
+   - Дневни калории минимум ${MIN_DAILY_CALORIES} kcal (може да варират между дни)
    - Прецизни изчисления: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
 
-6. СТРУКТУРА:
+7. СТРУКТУРА:
    - Всички 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО
-   - Всеки ден трябва да има 1-6 хранения
+   - 1-5 хранения на ден (ОБОСНОВАНИ в strategy)
    - Избягвай: ${userData.dietDislike || 'няма'}
    - Включвай: ${userData.dietLove || 'няма'}
 
 ═══ ТВОЯТА ЗАДАЧА ═══
-Коригирай САМО проблемните части от плана. Запази всичко останало непроменено.
+Коригирай проблемните части и ДОБАВИ ОБОСНОВКИ в strategy полетата:
+- strategy.planJustification - обща обосновка на плана
+- strategy.mealCountJustification - защо този брой хранения
+- strategy.afterDinnerMealJustification - защо хранения след вечеря (ако има)
+- strategy.longTermStrategy - многодневна стратегия (ако има)
+
 Върни ПЪЛНИЯ КОРИГИРАН план в същия JSON формат като оригиналния.
 
 ВАЖНО: Върни САМО JSON без допълнителни обяснения!`;
@@ -1352,11 +1366,25 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 
 Анализирай ЗАДЪЛБОЧЕНО как всеки параметър влияе и взаимодейства с другите.
 
+КРИТИЧНО ВАЖНО - ДЪЛГОСРОЧНА СТРАТЕГИЯ:
+1. Създай ЯСНА дългосрочна стратегия за постигане на целите на ${data.name}
+2. Стратегията трябва да обхваща не само дневен, но и СЕДМИЧЕН/МНОГОДНЕВЕН хоризонт
+3. При обоснована физиологична, психологическа или стратегическа идея:
+   - Планирането може да обхваща 2-3 дни като цяло
+   - Хоризонтът на макроси и калории НЕ Е ЗАДЪЛЖИТЕЛНО 24 часа
+   - Може да има циклично разпределение на калории/макроси (напр. ниско-високи дни)
+4. Обоснови ЗАЩО избираш определен брой хранения (1-5) за всеки ден
+5. Обоснови ЗАЩО и КОГА са необходими хранения след вечеря (ако има такива)
+6. Всяка стратегическа нестандартна препоръка ТРЯБВА да има ясна цел и обосновка
+
 Върни JSON със стратегия (БЕЗ универсални препоръки):
 {
   "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
   "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
-  "planJustification": "КРАТКО (максимум 200 символа) конкретно обяснение защо този план е индивидуален и съобразен с контекста и целите на ${data.name}. Без общи приказки - само конкретика и ползи!",
+  "planJustification": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: Детайлна обосновка на цялостната стратегия, включително брой хранения, време на хранене, циклично разпределение (ако има), хранения след вечеря (ако има), и ЗАЩО тази стратегия е оптимална за ${data.name}. Минимум 100 символа.",
+  "longTermStrategy": "ДЪЛГОСРОЧНА СТРАТЕГИЯ: Опиши как планът работи в рамките на 2-3 дни/седмица, не само на дневна база. Включи информация за циклично разпределение на калории/макроси, варииране на хранения, и как това подпомага целите.",
+  "mealCountJustification": "ОБОСНОВКА ЗА БРОЙ ХРАНЕНИЯ: Защо е избран точно този брой хранения (1-5) за всеки ден. Каква е стратегическата, физиологична или психологическа причина.",
+  "afterDinnerMealJustification": "ОБОСНОВКА ЗА ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ: Ако има хранения след вечеря, обясни ЗАЩО са необходими, каква е целта, и как подпомагат общата стратегия. Ако няма - напиши 'Не са необходими'.",
   "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
   "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "mealTiming": {
@@ -1870,63 +1898,65 @@ JSON ФОРМАТ:
 }
 
 === МЕДИЦИНСКИ И ДИЕТЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
-КРИТИЧНО ВАЖНО: Следвай СТРОГО медицинските и диететични принципи за ред на храненията:
+КРИТИЧНО ВАЖНО: Следвай медицинските и диететични принципи, но ПРИОРИТИЗИРАЙ СТРАТЕГИЯТА:
 
 1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
    - "Закуска" (сутрин) - ВИНАГИ първо ако има закуска
    - "Обяд" (обед) - след закуската или първо хранене ако няма закуска
    - "Следобедна закуска" (опционално, между обяд и вечеря)
    - "Вечеря" (вечер) - обикновено последно хранене
-   - "Късна закуска" (опционално, САМО след вечеря, специални случаи)
+   - "Късна закуска" (опционално, след вечеря)
 
-2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
-   - НЕ може да има закуска след обяд
-   - НЕ може да има обяд след вечеря
-   - НЕ може да има вечеря преди обяд
+2. БРОЙ ХРАНЕНИЯ: 1-5 хранения на ден
+   - ЗАДЪЛЖИТЕЛНО обоснови избора на брой хранения в стратегията
+   - 1 хранене (OMAD): само при ясна стратегия за интермитентно гладуване
+   - 2 хранения: при стратегия за интермитентно гладуване (16:8, 18:6)
+   - 3 хранения: Закуска, Обяд, Вечеря (стандартен вариант)
+   - 4 хранения: добави Следобедна закуска когато е обосновано
+   - 5 хранения: добави Късна закуска САМО когато е обосновано от стратегията
 
-3. КЪСНА ЗАКУСКА - строги изисквания:
-   КОГАТО Е ДОПУСТИМА:
-   - Дълъг период между вечеря и сън (> 4 часа)
-   - Проблеми със съня заради глад
-   - Диабет тип 2 (стабилизиране на кръвната захар)
-   - Интензивни тренировки вечер
-   - Работа на смени (нощни смени)
+3. ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ - разрешени при обосновка:
+   ОБОСНОВКА Е НЕОБХОДИМА за всяко хранене след вечеря:
+   - Физиологична причина (диабет, дълъг период до сън >4ч, проблеми със съня от глад)
+   - Психологическа причина (управление на стрес, емоционално хранене)
+   - Стратегическа причина (спортни тренировки вечер, работа на смени)
    
-   ЗАДЪЛЖИТЕЛНИ УСЛОВИЯ:
-   - САМО след "Вечеря" (никога преди)
-   - МАКСИМУМ 1 на ден
-   - САМО храни с НИСЪК ГЛИКЕМИЧЕН ИНДЕКС (ГИ < 55):
-     * Кисело мляко (150ml), кефир
-     * Ядки: 30-40g бадеми/орехи/лешници/кашу
-     * Ягоди/боровинки/малини (50-100g)
-     * Авокадо (половин)
-     * Семена: чиа/ленено/тиквени (1-2 с.л.)
-   - МАКСИМУМ ${MAX_LATE_SNACK_CALORIES} калории
-   - НЕ използвай ако не е оправдано от профила на клиента!
+   ДОБАВИ ОБОСНОВКАТА В strategy.afterDinnerMealJustification!
+   
+   Ако добавяш хранене след вечеря:
+   - Предпочитай "Късна закуска" с ниско-гликемични храни
+   - Калории: препоръчват се до ${MAX_LATE_SNACK_CALORIES} kcal (може повече ако е обосновано)
+   - ЗАДЪЛЖИТЕЛНО обясни ЗАЩО е необходимо в planJustification
 
-4. МАКРОНУТРИЕНТИ:
+4. МНОГОДНЕВЕН ХОРИЗОНТ:
+   - При обоснована физиологична/психологическа/стратегическа идея можеш да планираш 2-3 дни като цяло
+   - Хоризонтът на макроси и калории НЕ е задължително 24 часа
+   - Може да използваш циклично разпределение (напр. ниски-високи калорийни дни)
+   - ОБЯСНИ подхода в strategy.longTermStrategy
+
+5. МАКРОНУТРИЕНТИ:
    - Всяко хранене ЗАДЪЛЖИТЕЛНО има: "type", "name", "weight", "description", "benefits", "calories"
    - Всяко хранене ЗАДЪЛЖИТЕЛНО има "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}
    - Прецизни калории: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
-   - Дневни калории минимум ${MIN_DAILY_CALORIES} kcal
+   - Дневни калории минимум ${MIN_DAILY_CALORIES} kcal (може да варират между дни при циклично планиране)
 
-5. МЕДИЦИНСКИ ОГРАНИЧЕНИЯ:
+6. МЕДИЦИНСКИ ОГРАНИЧЕНИЯ:
    - При диабет: НЕ високовъглехидратни храни
    - При анемия + вегетарианство: желязо ЗАДЪЛЖИТЕЛНО в supplements
    - При IBS/IBD: щадящи храни, готвени зеленчуци
    - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
    - Спазвай: ${JSON.stringify(data.medicalConditions || [])}
 
-6. СТРУКТУРА И РАЗНООБРАЗИЕ:
+7. СТРУКТУРА И РАЗНООБРАЗИЕ:
    - ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО
-   - 1-6 хранения на ден според стратегията
+   - 1-5 хранения на ден според стратегията (ОБОСНОВАНИ в strategy.mealCountJustification)
    - Избягвай повторения на храни в различни дни
    - Избягвай: ${data.dietDislike || 'няма'}
    - Включвай: ${data.dietLove || 'няма'}
 
-ВАЖНО: "recommendations"/"forbidden"=САМО конкретни храни (НЕ общи съвети). Всички 7 дни (day1-day7) с 1-6 хранения според стратегията В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (±200 kcal е ОК). Калориите прецизно изчислени (1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal). Седмичен подход: МИСЛИ СЕДМИЧНО - ЦЯЛОСТНА схема като система. Броят хранения варира според ЦЕЛТА, ХРОНОТИПА, ПРЕДПОЧИТАНИЯТА на ${data.name}. Интермитентно гладуване 16:8/18:6 позволено. БАЛАНСИРАЙ седмицата - ако един ден е с по-малко калории, друг компенсира. АДАПТИРАЙ към хронотип. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
+ВАЖНО: Използвай strategy.planJustification, strategy.longTermStrategy, strategy.mealCountJustification и strategy.afterDinnerMealJustification за обосновка на всички нестандартни решения. "recommendations"/"forbidden"=САМО конкретни храни. Всички 7 дни (day1-day7) с 1-5 хранения В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (може да варира при многодневно планиране). Седмичен подход: МИСЛИ СЕДМИЧНО/МНОГОДНЕВНО - ЦЯЛОСТНА схема като система. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
 
-Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}.`;
+Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}, следвайки стратегията.`;
 }
 
 /**
