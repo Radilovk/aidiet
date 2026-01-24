@@ -324,6 +324,28 @@ export default {
 };
 
 /**
+ * Remove internal justification fields from plan before returning to client
+ * These fields are only for the validator and should not be visible to the end user
+ */
+function removeInternalJustifications(plan) {
+  if (!plan || !plan.strategy) {
+    return plan;
+  }
+  
+  // Create a deep copy to avoid modifying the original
+  const cleanPlan = JSON.parse(JSON.stringify(plan));
+  
+  // Remove internal justification fields that are only for validation
+  if (cleanPlan.strategy) {
+    delete cleanPlan.strategy.longTermStrategy;
+    delete cleanPlan.strategy.mealCountJustification;
+    delete cleanPlan.strategy.afterDinnerMealJustification;
+  }
+  
+  return cleanPlan;
+}
+
+/**
  * Generate nutrition plan from questionnaire data using multi-step approach
  */
 async function handleGeneratePlan(request, env) {
@@ -421,9 +443,12 @@ async function handleGeneratePlan(request, env) {
     
     console.log('handleGeneratePlan: Plan validated successfully');
     
+    // Remove internal justification fields before returning to client
+    const cleanPlan = removeInternalJustifications(structuredPlan);
+    
     return jsonResponse({ 
       success: true, 
-      plan: structuredPlan,
+      plan: cleanPlan,
       userId: userId,
       correctionAttempts: correctionAttempts // Inform client how many corrections were needed
     });
