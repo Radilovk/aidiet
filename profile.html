@@ -1129,66 +1129,108 @@
                 showAlert('Генерирам нов план на базата на актуализираните данни...', 'info');
 
                 // Call API to regenerate plan
+                // Increase timeout to 120 seconds to match questionnaire.html
+                // AI model processing can take 60-90 seconds during peak times
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+                const startTime = Date.now();
+                const timeoutId = setTimeout(() => {
+                    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                    console.error(`Request timeout after ${elapsedTime} seconds (limit: 120 seconds)`);
+                    controller.abort();
+                }, 120000); // 120 second timeout
 
-                // Add forceRegenerate flag to bypass cache and generate new plan
-                const requestData = {
-                    ...updatedData,
-                    forceRegenerate: true
-                };
+                try {
+                    // Add forceRegenerate flag to bypass cache and generate new plan
+                    const requestData = {
+                        ...updatedData,
+                        forceRegenerate: true
+                    };
 
-                const response = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestData),
-                    signal: controller.signal
-                });
+                    console.log('Regenerating plan with updated data...');
+                    console.log('Request payload size:', JSON.stringify(requestData).length, 'bytes');
 
-                clearTimeout(timeoutId);
+                    const response = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestData),
+                        signal: controller.signal
+                    });
 
-                if (!response.ok) {
-                    throw new Error(`Server returned ${response.status}`);
-                }
+                    const requestDuration = ((Date.now() - startTime) / 1000).toFixed(1);
+                    console.log(`Response received after ${requestDuration} seconds with status:`, response.status);
 
-                const result = await response.json();
-
-                // Check for errors in the response
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-
-                if (result.success && result.plan) {
-                    // Save new plan
-                    localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-                    if (result.userId) {
-                        localStorage.setItem('userId', result.userId);
+                    if (!response.ok) {
+                        console.error('Server error:', response.status, response.statusText);
+                        // Try to get error details from response
+                        let errorDetails = `Server returned ${response.status}`;
+                        try {
+                            const errorData = await response.json();
+                            if (errorData.error) {
+                                errorDetails = errorData.error;
+                            }
+                        } catch (e) {
+                            console.error('Could not parse error response:', e);
+                        }
+                        throw new Error(errorDetails);
                     }
 
-                    showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
-                    
-                    setTimeout(() => {
-                        window.location.href = 'plan.html';
-                    }, 2000);
-                } else {
-                    throw new Error('Невалиден отговор от сървъра');
+                    const result = await response.json();
+                    console.log('Plan regeneration result:', { 
+                        success: result.success, 
+                        hasPlan: !!result.plan,
+                        hasError: !!result.error,
+                        duration: requestDuration
+                    });
+
+                    // Check for errors in the response
+                    if (result.error) {
+                        throw new Error(result.error);
+                    }
+
+                    if (result.success && result.plan) {
+                        // Save new plan
+                        localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+                        if (result.userId) {
+                            localStorage.setItem('userId', result.userId);
+                        }
+
+                        showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
+                        
+                        setTimeout(() => {
+                            window.location.href = 'plan.html';
+                        }, 2000);
+                    } else {
+                        throw new Error('Невалиден отговор от сървъра');
+                    }
+                } finally {
+                    clearTimeout(timeoutId);
                 }
 
             } catch (error) {
                 console.error('Error regenerating plan:', error);
+                console.error('Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack?.substring(0, 200)
+                });
+                
                 const btn = document.getElementById('saveAndRegenerateBtn');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i> Запази и регенерирай план';
                 
+                let errorMessage = error.message || 'Неизвестна грешка';
                 if (error.name === 'AbortError') {
-                    showAlert('⚠️ Заявката отне твърде много време. Моля, опитайте отново.', 'warning');
-                } else {
-                    // Show the detailed error message
-                    const errorMsg = error.message || 'Неизвестна грешка';
-                    showAlert(`⚠️ Грешка при регенериране на плана: ${errorMsg}`, 'warning');
+                    errorMessage = 'Заявката отне твърде дълго време. Моля, проверете интернет връзката и опитайте отново.';
+                } else if (error.message && error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Неуспешна връзка със сървъра. Моля, проверете интернет връзката и опитайте отново.';
+                } else if (error.message && error.message.includes('NetworkError')) {
+                    errorMessage = 'Грешка в мрежата. Моля, проверете интернет връзката и опитайте отново.';
                 }
+                
+                console.log('Displaying error to user:', errorMessage);
+                showAlert(`⚠️ ${errorMessage}`, 'warning');
             }
         }
 

@@ -256,26 +256,42 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/api/generate-plan`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(testData)
-                });
+                // Add timeout to prevent hanging during long AI generation
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    console.error('Test request timeout after 120 seconds');
+                    controller.abort();
+                }, 120000); // 120 second timeout
 
-                const result = await response.json();
-                output.textContent += `Status: ${response.status}\n\n`;
-                output.textContent += JSON.stringify(result, null, 2);
+                try {
+                    const response = await fetch(`${API_BASE}/api/generate-plan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(testData),
+                        signal: controller.signal
+                    });
 
-                if (result.success) {
-                    showStatus('success', 'Plan generated successfully!');
-                    // Store in localStorage for testing plan.html
-                    localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-                    localStorage.setItem('userId', result.userId);
-                    localStorage.setItem('userData', JSON.stringify(testData));
+                    const result = await response.json();
+                    output.textContent += `Status: ${response.status}\n\n`;
+                    output.textContent += JSON.stringify(result, null, 2);
+
+                    if (result.success) {
+                        showStatus('success', 'Plan generated successfully!');
+                        // Store in localStorage for testing plan.html
+                        localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+                        localStorage.setItem('userId', result.userId);
+                        localStorage.setItem('userData', JSON.stringify(testData));
+                    }
+                } finally {
+                    clearTimeout(timeoutId);
                 }
             } catch (error) {
-                output.textContent += `\nError: ${error.message}`;
-                showStatus('error', 'Failed to generate plan: ' + error.message);
+                let errorMessage = error.message;
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Request timeout after 120 seconds. The multi-step AI generation is taking too long.';
+                }
+                output.textContent += `\nError: ${errorMessage}`;
+                showStatus('error', 'Failed to generate plan: ' + errorMessage);
             }
         }
 
