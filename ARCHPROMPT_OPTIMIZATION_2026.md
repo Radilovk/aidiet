@@ -41,8 +41,8 @@ const ARCHPROMPT_COMPRESSED = `ADLE - Advanced Dietary Logic Engine
 ```
 
 **Compression Results:**
-- Original: ~2,400 tokens
-- Compressed: ~255 tokens
+- Original verbose prompt: ~2,400 tokens
+- Compressed constant: ~270 tokens
 - **Reduction: 89%**
 
 ### 2. Optimized generateMealPlanChunkPrompt() Function
@@ -55,20 +55,20 @@ Rewrote the chunk prompt generation to:
 
 **Results per chunk:**
 - Old chunk prompt: ~2,400 tokens
-- New chunk prompt: ~405 tokens
-- **Reduction: 83%**
+- New chunk prompt: ~420 tokens
+- **Reduction: 82%**
 
 ### 3. Total Impact
 
 **Progressive Generation (4 chunks):**
 - OLD: 4 × 2,400 = 9,600 tokens
-- NEW: 4 × 405 = 1,620 tokens
-- **Savings: 7,980 tokens (83% reduction!)**
+- NEW: 4 × 420 = 1,680 tokens
+- **Savings: 7,920 tokens (82% reduction!)**
 
 **Total Request:**
 - OLD total: ~26,100 tokens input
-- NEW total: ~18,120 tokens input
-- **Savings: ~8,000 tokens (31% overall reduction)**
+- NEW total: ~18,180 tokens input
+- **Savings: ~7,920 tokens (30% overall reduction)**
 
 ## Benefits
 
@@ -80,7 +80,7 @@ Rewrote the chunk prompt generation to:
 
 ### 2. Cost Savings
 
-- **31% reduction in input tokens** = 31% lower API costs
+- **30% reduction in input tokens** = 30% lower API costs
 - Fewer failed requests = less wasted API calls
 - Fewer correction attempts needed
 

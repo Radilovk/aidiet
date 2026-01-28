@@ -793,7 +793,8 @@ const ADLE_V8_SPECIAL_RULES = {
 
 // COMPRESSED ARCHPROMPT INSTRUCTIONS
 // Condensed version of archprompt.txt logic to reduce token usage
-// Original: ~2400 tokens, Compressed: ~800 tokens (67% reduction)
+// Original verbose version: ~2400 tokens
+// This compressed version: ~270 tokens (89% reduction)
 const ARCHPROMPT_COMPRESSED = `ADLE - Advanced Dietary Logic Engine
 АРХИТЕКТУРА: [PRO]=Белтък (животински/растителен/бобови), [ENG]=Енергия (зърнени/картофи/плодове), [VOL]=Зеленчуци, [FAT]=Мазнини, [CMPX]=Сложни ястия
 ШАБЛОНИ: A=ПРО+ЕНГ+ВОЛ, B=Микс, C=Сандвич(само закуски), D=CMPX+ВОЛ
@@ -1890,7 +1891,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
 
 /**
  * Generate prompt for a chunk of days (progressive generation)
- * OPTIMIZED VERSION - Reduced from ~2400 to ~1000 tokens (58% reduction)
+ * OPTIMIZED VERSION - Reduced from ~2400 to ~420 tokens (82% reduction)
  */
 function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays) {
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
@@ -1926,15 +1927,15 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
 СТРАТЕГИЯ: Тип=${strategy.dietType||'Балансирана'}, Схема=${strategy.weeklyMealPattern||'Традиц'}
 Избягвай=${data.dietDislike||'няма'}, Включвай=${data.dietLove||'няма'}${previousDaysContext}${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка` : ''}
 
-АДАПТАЦИЯ:
-- Стрес${data.stressLevel==='Висок'?' (висок)':''}: Mg/VitC/Omega3/VitB; избягвай кафе
-- Хронотип${data.chronotype}: ${data.chronotype==='Ранобуден'||data.chronotype.includes('сутрин')?'Обилна закуска(30-35%), умерена вечеря(25%)':data.chronotype.includes('Вечер')||data.chronotype.includes('Нощ')?'Лека закуска(20%), обилна вечеря(35%)':'Балансирано(25-30-25-20%)'}
-- Сън${data.sleepHours<6?'<6ч: храни с триптофан за подобр. сън':''}
+АДАПТАЦИЯ:${data.stressLevel==='Висок'?`
+- Стрес (висок): Mg/VitC/Omega3/VitB; избягвай кафе`:''}
+- Хронотип(${data.chronotype}): ${data.chronotype==='Ранобуден'||data.chronotype.includes('сутрин')?'Обилна закуска(30-35%), умерена вечеря(25%)':data.chronotype.includes('Вечер')||data.chronotype.includes('Нощ')?'Лека закуска(20%), обилна вечеря(35%)':'Балансирано(25-30-25-20%)'}${data.sleepHours<6?`
+- Сън (<6ч): храни с триптофан за подобр. сън`:''}
 
 ИЗИСКВАНИЯ:
 1. МАКРОСИ: Всяко ястие с macros{protein,carbs,fats,fiber}g
 2. КАЛОРИИ: protein×4+carbs×4+fats×9 за всяко ястие
-3. ЦЕЛ: ~${recommendedCalories}kcal/ден (±50 приемливо)
+3. ЦЕЛ: ~${recommendedCalories}kcal/ден (±${DAILY_CALORIE_TOLERANCE} приемливо)
 4. ХРАНЕНИЯ: 1-5/ден според стратегия (НЕ заради калории!)
 5. РЕД: Закуска→Обяд→Следобедна→Вечеря→Късна(само ако обосновано)
 6. КЪСНА ЗАКУСКА: САМО ако профилът изисква (>4ч до сън/диабет/тренировки). Макс ${MAX_LATE_SNACK_CALORIES}kcal, ниско-ГИ храни
