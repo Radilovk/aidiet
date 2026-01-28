@@ -433,12 +433,40 @@ async function handleGeneratePlan(request, env) {
       }
     }
     
-    // Final validation check - if still invalid after max attempts, return error
+    // Final validation check - if still invalid after max attempts, try fallback strategy
     if (!validation.isValid) {
       console.error(`handleGeneratePlan: Plan validation failed after ${correctionAttempts} correction attempts:`, validation.errors);
+      
+      // Fallback strategy: Try to generate a simplified plan as last resort
+      if (correctionAttempts >= maxAttempts) {
+        console.log('handleGeneratePlan: Attempting simplified fallback plan generation');
+        try {
+          // Generate simplified plan with reduced requirements
+          const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
+          const fallbackValidation = validatePlan(simplifiedPlan, data);
+          
+          if (fallbackValidation.isValid) {
+            console.log('handleGeneratePlan: Simplified fallback plan validated successfully');
+            const cleanPlan = removeInternalJustifications(simplifiedPlan);
+            return jsonResponse({ 
+              success: true, 
+              plan: cleanPlan,
+              userId: userId,
+              correctionAttempts: correctionAttempts,
+              fallbackUsed: true,
+              note: "Използван опростен план поради технически проблеми с основния алгоритъм"
+            });
+          }
+        } catch (fallbackError) {
+          console.error('handleGeneratePlan: Simplified fallback also failed:', fallbackError);
+        }
+      }
+      
+      // If all strategies failed, return detailed error
       return jsonResponse({ 
         error: `Планът не премина качествен тест след ${correctionAttempts} опити за корекция: ${validation.errors.join('; ')}`,
-        validationErrors: validation.errors
+        validationErrors: validation.errors,
+        suggestion: "Моля, опитайте отново или свържете се с поддръжката"
       }, 400);
     }
     
@@ -1654,6 +1682,45 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 }
 
 /**
+ * Calculate average macros from a week plan
+ * Used as fallback when AI summary generation fails
+ */
+function calculateAverageMacrosFromPlan(weekPlan) {
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFats = 0;
+  let dayCount = 0;
+  
+  try {
+    Object.keys(weekPlan).forEach(dayKey => {
+      const day = weekPlan[dayKey];
+      if (day && day.meals && Array.isArray(day.meals)) {
+        dayCount++;
+        day.meals.forEach(meal => {
+          if (meal.macros) {
+            totalProtein += parseInt(meal.macros.protein) || 0;
+            totalCarbs += parseInt(meal.macros.carbs) || 0;
+            totalFats += parseInt(meal.macros.fats) || 0;
+          }
+        });
+      }
+    });
+    
+    if (dayCount > 0) {
+      return {
+        protein: Math.round(totalProtein / dayCount),
+        carbs: Math.round(totalCarbs / dayCount),
+        fats: Math.round(totalFats / dayCount)
+      };
+    }
+  } catch (error) {
+    console.error('Error calculating macros from plan:', error);
+  }
+  
+  return { protein: null, carbs: null, fats: null };
+}
+
+/**
  * Progressive meal plan generation - generates meal plan in smaller chunks
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
@@ -1745,16 +1812,18 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
-      // Use defaults if summary generation fails
-      console.warn('Summary generation failed, using defaults');
+      // Calculate actual macros from generated weekPlan instead of using generic text
+      console.warn('Summary generation failed, calculating from weekPlan');
+      const calculatedMacros = calculateAverageMacrosFromPlan(weekPlan);
+      
       return {
         summary: {
           bmr: `${bmr}`,
           dailyCalories: `${recommendedCalories}`,
           macros: {
-            protein: "Изчислени индивидуално",
-            carbs: "Изчислени индивидуално",
-            fats: "Изчислени индивидуално"
+            protein: calculatedMacros.protein ? `${calculatedMacros.protein}g (средно дневно)` : "Не е изчислено",
+            carbs: calculatedMacros.carbs ? `${calculatedMacros.carbs}g (средно дневно)` : "Не е изчислено",
+            fats: calculatedMacros.fats ? `${calculatedMacros.fats}g (средно дневно)` : "Не е изчислено"
           }
         },
         weekPlan: weekPlan,
@@ -1781,12 +1850,18 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     };
   } catch (error) {
     console.error('Summary generation failed:', error);
-    // Return plan with defaults
+    // Calculate actual macros from generated weekPlan instead of using generic text
+    const calculatedMacros = calculateAverageMacrosFromPlan(weekPlan);
+    
     return {
       summary: {
         bmr: `${bmr}`,
         dailyCalories: `${recommendedCalories}`,
-        macros: { protein: "Изчислени индивидуално", carbs: "Изчислени индивидуално", fats: "Изчислени индивидуално" }
+        macros: { 
+          protein: calculatedMacros.protein ? `${calculatedMacros.protein}g (средно дневно)` : "Не е изчислено",
+          carbs: calculatedMacros.carbs ? `${calculatedMacros.carbs}g (средно дневно)` : "Не е изчислено",
+          fats: calculatedMacros.fats ? `${calculatedMacros.fats}g (средно дневно)` : "Не е изчислено"
+        }
       },
       weekPlan: weekPlan,
       recommendations: strategy.foodsToInclude || [],
@@ -2245,6 +2320,77 @@ JSON ФОРМАТ:
 ВАЖНО: Използвай strategy.planJustification, strategy.longTermStrategy, strategy.mealCountJustification и strategy.afterDinnerMealJustification за обосновка на всички нестандартни решения. "recommendations"/"forbidden"=САМО конкретни храни. Всички 7 дни (day1-day7) с 1-5 хранения В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (може да варира при многодневно планиране). Седмичен подход: МИСЛИ СЕДМИЧНО/МНОГОДНЕВНО - ЦЯЛОСТНА схема като система. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
 
 Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}, следвайки стратегията.`;
+}
+
+/**
+ * Generate simplified fallback plan when main generation fails
+ * Uses conservative approach with basic meals and minimal complexity
+ * Last resort to provide user with something useful rather than complete failure
+ */
+async function generateSimplifiedFallbackPlan(env, data) {
+  console.log('Generating simplified fallback plan');
+  
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, data.sportActivity);
+  let recommendedCalories = tdee;
+  
+  // Adjust for goal
+  if (data.goal && data.goal.toLowerCase().includes('отслабване')) {
+    recommendedCalories = Math.round(tdee * 0.85);
+  } else if (data.goal && data.goal.toLowerCase().includes('мускулна маса')) {
+    recommendedCalories = Math.round(tdee * 1.1);
+  }
+  
+  // Simplified prompt with basic requirements
+  const simplifiedPrompt = `Създай ОПРОСТЕН 7-дневен хранителен план за ${data.name}.
+
+ОСНОВНИ ДАННИ:
+- BMR: ${bmr} kcal, TDEE: ${tdee} kcal
+- Целеви калории: ${recommendedCalories} kcal/ден
+- Цел: ${data.goal}
+- Възраст: ${data.age}, Пол: ${data.gender}
+
+ИЗИСКВАНИЯ (ОПРОСТЕНИ):
+- 3 хранения на ден: Закуска, Обяд, Вечеря
+- Всяко ястие с calories и macros (protein, carbs, fats, fiber)
+- Балансирани български ястия
+- Избягвай: ${data.dietDislike || 'няма'}
+- Включвай: ${data.dietLove || 'няма'}
+
+JSON ФОРМАТ:
+{
+  "summary": {"bmr": "${bmr}", "dailyCalories": "${recommendedCalories}", "macros": {"protein": "Xg", "carbs": "Xg", "fats": "Xg"}},
+  "weekPlan": {"day1": {"meals": [...]}, ... "day7": {...}},
+  "recommendations": ["храна 1", "храна 2", "храна 3"],
+  "forbidden": ["храна 1", "храна 2", "храна 3"],
+  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
+  "waterIntake": "2-2.5л дневно",
+  "supplements": ["добавка 1", "добавка 2", "добавка 3"]
+}
+
+ВАЖНО: Върни САМО JSON, без допълнителни обяснения!`;
+
+  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT);
+  const plan = parseAIResponse(response);
+  
+  if (!plan || plan.error) {
+    throw new Error('Simplified fallback plan generation failed');
+  }
+  
+  // Add basic strategy and analysis for compatibility
+  plan.strategy = {
+    planJustification: `Опростен план създаден автоматично за ${data.name} с цел ${data.goal}. Този план използва основни принципи на здравословното хранене.`,
+    dietaryModifier: "Балансирано",
+    dietType: "Балансирана"
+  };
+  
+  plan.analysis = {
+    bmr: bmr,
+    recommendedCalories: recommendedCalories,
+    keyProblems: []
+  };
+  
+  return plan;
 }
 
 /**
