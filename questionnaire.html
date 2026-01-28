@@ -1591,6 +1591,9 @@
                     progress = newProgress;
                 }
                 
+                // Cap progress at 95% to prevent showing over 100% on long-running requests
+                progress = Math.min(progress, 95);
+                
                 // Update UI
                 currentProgressBar.style.width = Math.floor(progress) + '%';
                 currentPercentageText.textContent = Math.floor(progress) + '%';
