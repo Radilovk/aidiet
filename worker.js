@@ -433,12 +433,40 @@ async function handleGeneratePlan(request, env) {
       }
     }
     
-    // Final validation check - if still invalid after max attempts, return error
+    // Final validation check - if still invalid after max attempts, try fallback strategy
     if (!validation.isValid) {
       console.error(`handleGeneratePlan: Plan validation failed after ${correctionAttempts} correction attempts:`, validation.errors);
+      
+      // Fallback strategy: Try to generate a simplified plan as last resort
+      if (correctionAttempts >= maxAttempts) {
+        console.log('handleGeneratePlan: Attempting simplified fallback plan generation');
+        try {
+          // Generate simplified plan with reduced requirements
+          const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
+          const fallbackValidation = validatePlan(simplifiedPlan, data);
+          
+          if (fallbackValidation.isValid) {
+            console.log('handleGeneratePlan: Simplified fallback plan validated successfully');
+            const cleanPlan = removeInternalJustifications(simplifiedPlan);
+            return jsonResponse({ 
+              success: true, 
+              plan: cleanPlan,
+              userId: userId,
+              correctionAttempts: correctionAttempts,
+              fallbackUsed: true,
+              note: "Използван опростен план поради технически проблеми с основния алгоритъм"
+            });
+          }
+        } catch (fallbackError) {
+          console.error('handleGeneratePlan: Simplified fallback also failed:', fallbackError);
+        }
+      }
+      
+      // If all strategies failed, return detailed error
       return jsonResponse({ 
         error: `Планът не премина качествен тест след ${correctionAttempts} опити за корекция: ${validation.errors.join('; ')}`,
-        validationErrors: validation.errors
+        validationErrors: validation.errors,
+        suggestion: "Моля, опитайте отново или свържете се с поддръжката"
       }, 400);
     }
     
@@ -728,6 +756,41 @@ const LOW_GI_FOODS = [
   'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки'
 ];
 
+// ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
+// Based on meallogic.txt - slot-based constructor with strict validation
+const ADLE_V8_HARD_BANS = [
+  'лук', 'onion', 'пуешко месо', 'turkey meat',
+  'изкуствени подсладители', 'artificial sweeteners',
+  'мед', 'захар', 'конфитюр', 'сиропи', 'honey', 'sugar', 'jam', 'syrups',
+  'кетчуп', 'майонеза', 'BBQ сос', 'ketchup', 'mayonnaise', 'BBQ sauce'
+];
+
+const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
+
+const ADLE_V8_HARD_RULES = {
+  R1: 'Protein main = exactly 1. Secondary protein only if (breakfast AND eggs), 0-1.',
+  R2: 'Vegetables = 1-2. Choose exactly ONE form: Salad OR Fresh side (not both). Potatoes ≠ vegetables.',
+  R3: 'Energy = 0-1 (never 2).',
+  R4: 'Dairy max = 1 per meal (yogurt OR cottage cheese OR cheese), including as sauce/dressing.',
+  R5: 'Fat = 0-1. If nuts/seeds present → no olive oil/butter.',
+  R6: 'Cheese rule: If cheese present → no olive oil/butter. Olives allowed with cheese.',
+  R7: 'Bacon rule: If bacon present → Fat=0.',
+  R8: 'Legumes-as-main (beans/lentils/chickpeas/peas stew): Energy=0 (no rice/potatoes/pasta/bulgur/oats). Bread may be optional: +1 slice wholegrain.',
+  R9: 'Bread optional rule (outside Template C): Allowed only if Energy=0. Exception: with legumes-as-main (R8), bread may still be optional (1 slice). If any Energy item present → Bread=0.',
+  R10: 'Peas as meat-side add-on: Peas are NOT energy, but they BLOCK the Energy slot → Energy=0. Bread may be optional (+1 slice) if carbs needed.',
+  R11: 'Template C (sandwich): Only snack; legumes forbidden; no banned sauces/sweeteners.',
+  R12: 'Outside-whitelist additions: Default=use whitelists only. Outside-whitelist ONLY if objectively required (MODE/medical/availability), mainstream/universal, available in Bulgaria. Add line: Reason: ...'
+};
+
+const ADLE_V8_SPECIAL_RULES = {
+  PEAS_FISH_BAN: 'Peas + fish combination is strictly forbidden.',
+  VEGETABLE_FORM_RULE: 'Choose exactly ONE vegetable form per meal: Salad (with dressing) OR Fresh side (sliced, no dressing). Never both.',
+  DAIRY_INCLUDES_SAUCE: 'Dairy count includes yogurt/cheese used in sauces, dressings, or cooking.',
+  OLIVES_NOT_FAT: 'Olives are salad add-on (NOT Fat slot). If olives present → do NOT add olive oil/butter.',
+  CORN_NOT_ENERGY: 'Corn is NOT an energy source. Small corn only in salads as add-on.',
+  TEMPLATE_C_RESTRICTION: 'Template C (sandwich) allowed ONLY for snacks, NOT for main meals.'
+};
+
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
 // Each chunk generates 2-3 days, building on previous days for variety and consistency
 const ENABLE_PROGRESSIVE_GENERATION = true;
@@ -780,9 +843,37 @@ function validatePlan(plan, userData) {
         
         // Validate that meals have macros
         let mealsWithoutMacros = 0;
-        day.meals.forEach((meal) => {
+        day.meals.forEach((meal, mealIndex) => {
           if (!meal.macros || !meal.macros.protein || !meal.macros.carbs || !meal.macros.fats) {
             mealsWithoutMacros++;
+          } else {
+            // Validate macro accuracy: protein×4 + carbs×4 + fats×9 should ≈ calories
+            const calculatedCalories = 
+              (parseInt(meal.macros.protein) || 0) * 4 + 
+              (parseInt(meal.macros.carbs) || 0) * 4 + 
+              (parseInt(meal.macros.fats) || 0) * 9;
+            const declaredCalories = parseInt(meal.calories) || 0;
+            const difference = Math.abs(calculatedCalories - declaredCalories);
+            
+            // Allow 10% tolerance or minimum 50 kcal difference
+            const tolerance = Math.max(50, declaredCalories * 0.1);
+            if (difference > tolerance && declaredCalories > 0) {
+              warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Макросите не съвпадат с калориите. Изчислени: ${calculatedCalories} kcal, Декларирани: ${declaredCalories} kcal (разлика: ${difference} kcal)`);
+            }
+            
+            // Validate portion sizes (weight field)
+            if (meal.weight) {
+              // Extract weight in grams, handling decimals and multiple servings
+              const weightMatch = meal.weight.match(/(\d+(?:\.\d+)?)\s*g/);
+              if (weightMatch) {
+                const weightGrams = parseFloat(weightMatch[1]);
+                if (weightGrams < 50) {
+                  warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Много малка порция (${weightGrams}g) - проверете дали е реалистична`);
+                } else if (weightGrams > 800) {
+                  warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Много голяма порция (${weightGrams}g) - проверете дали е реалистична`);
+                }
+              }
+            }
           }
         });
         if (mealsWithoutMacros > 0) {
@@ -970,7 +1061,37 @@ function validatePlan(plan, userData) {
     }
   }
   
-  // 10. Check for plan justification (REQUIREMENT 3) - updated to require 100+ characters
+  // 10. Check for food repetition across days (avoid monotony)
+  if (plan.weekPlan) {
+    const mealNames = new Set();
+    const repeatedMeals = new Set();
+    let totalMeals = 0;
+    
+    Object.keys(plan.weekPlan).forEach(dayKey => {
+      const day = plan.weekPlan[dayKey];
+      if (day && day.meals && Array.isArray(day.meals)) {
+        totalMeals += day.meals.length;
+        day.meals.forEach(meal => {
+          if (meal.name) {
+            // Normalize meal name (lowercase, remove extra spaces)
+            const normalizedName = meal.name.toLowerCase().trim().replace(/\s+/g, ' ');
+            if (mealNames.has(normalizedName)) {
+              repeatedMeals.add(normalizedName);
+            }
+            mealNames.add(normalizedName);
+          }
+        });
+      }
+    });
+    
+    // More intelligent threshold: if >20% of meals are repeats, warn
+    const repetitionRatio = repeatedMeals.size / totalMeals;
+    if (repetitionRatio > 0.2 || repeatedMeals.size > 5) {
+      warnings.push(`Планът съдържа повтарящи се ястия (${repeatedMeals.size} различни ястия се повтарят, ${Math.round(repetitionRatio * 100)}% от менюто). Примери: ${Array.from(repeatedMeals).slice(0, 3).join(', ')}`);
+    }
+  }
+  
+  // 11. Check for plan justification (REQUIREMENT 3) - updated to require 100+ characters
   if (!plan.strategy || !plan.strategy.planJustification || plan.strategy.planJustification.length < 100) {
     errors.push('Липсва детайлна обосновка защо планът е индивидуален (минимум 100 символа)');
   }
@@ -988,10 +1109,70 @@ function validatePlan(plan, userData) {
     }
   }
   
+  // 12. Check for ADLE v8 hard bans in meal descriptions
+  if (plan.weekPlan) {
+    Object.keys(plan.weekPlan).forEach(dayKey => {
+      const day = plan.weekPlan[dayKey];
+      if (day && day.meals && Array.isArray(day.meals)) {
+        day.meals.forEach((meal, mealIndex) => {
+          const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
+          
+          // Check for hard bans (onion, turkey meat, artificial sweeteners, honey/sugar, ketchup/mayo)
+          if (/\b(лук|onion)\b/.test(mealText)) {
+            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ЛУК (hard ban от ADLE v8)`);
+          }
+          // Check for turkey meat but not turkey ham
+          if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
+            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ПУЕШКО МЕСО (hard ban от ADLE v8)`);
+          }
+          // Check for honey/sugar/syrup in specific contexts (as ingredients, not in compound words)
+          if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(mealText) && !/медицин|междин|сиропен/.test(mealText)) {
+            warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Може да съдържа МЕД/ЗАХАР/СИРОП (hard ban от ADLE v8) - проверете`);
+          }
+          if (/\b(кетчуп|майонеза|ketchup|mayonnaise)\b/.test(mealText)) {
+            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа КЕТЧУП/МАЙОНЕЗА (hard ban от ADLE v8)`);
+          }
+          
+          // Check for peas + fish forbidden combination
+          if (/\b(грах|peas)\b/.test(mealText) && /\b(риба|fish)\b/.test(mealText)) {
+            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: ГРАХ + РИБА забранена комбинация (ADLE v8 R0)`);
+          }
+        });
+      }
+    });
+  }
+  
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
+    warnings
   };
+}
+
+/**
+ * Helper: Validate ADLE v8 specific rules for a single meal
+ * This provides hints about rule violations but doesn't fail validation
+ * (AI instructions are primary enforcement mechanism)
+ */
+function checkADLEv8Rules(meal) {
+  const warnings = [];
+  const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
+  
+  // R2: Check for both salad AND fresh side (should be ONE form)
+  const hasSalad = /\b(салата|салатка|salad)\b/.test(mealText);
+  const hasFresh = /\b(пресн|fresh|нарязан)\b/.test(mealText) && /\b(домати|краставици|чушки)\b/.test(mealText);
+  if (hasSalad && hasFresh) {
+    warnings.push('Възможно нарушение на R2: Салата И Пресни зеленчуци (трябва ЕДНА форма)');
+  }
+  
+  // R8: Legumes as main should not have energy sources
+  const hasLegumes = /\b(боб|леща|нахут|грах|beans|lentils|chickpeas)\b/.test(mealText);
+  const hasEnergy = /\b(ориз|картофи|паста|овес|булгур|rice|potatoes|pasta|oats|bulgur)\b/.test(mealText);
+  if (hasLegumes && hasEnergy) {
+    warnings.push('Възможно нарушение на R8: Бобови + Енергия (бобовите като основно трябва Energy=0)');
+  }
+  
+  return warnings;
 }
 
 /**
@@ -1088,14 +1269,30 @@ ${JSON.stringify({
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
+  // Token tracking for multi-step generation
+  let cumulativeTokens = {
+    input: 0,
+    output: 0,
+    total: 0
+  };
+  
   try {
     // Step 1: Analyze user profile (1st AI request)
     // Focus: Deep health analysis, metabolic profile, correlations
     const analysisPrompt = generateAnalysisPrompt(data);
+    const analysisInputTokens = estimateTokenCount(analysisPrompt);
+    cumulativeTokens.input += analysisInputTokens;
+    
     let analysisResponse, analysis;
     
     try {
       analysisResponse = await callAIModel(env, analysisPrompt);
+      const analysisOutputTokens = estimateTokenCount(analysisResponse);
+      cumulativeTokens.output += analysisOutputTokens;
+      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      
+      console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
+      
       analysis = parseAIResponse(analysisResponse);
       
       if (!analysis || analysis.error) {
@@ -1126,10 +1323,19 @@ async function generatePlanMultiStep(env, data) {
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = generateStrategyPrompt(data, analysis);
+    const strategyInputTokens = estimateTokenCount(strategyPrompt);
+    cumulativeTokens.input += strategyInputTokens;
+    
     let strategyResponse, strategy;
     
     try {
       strategyResponse = await callAIModel(env, strategyPrompt);
+      const strategyOutputTokens = estimateTokenCount(strategyResponse);
+      cumulativeTokens.output += strategyOutputTokens;
+      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      
+      console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
+      
       strategy = parseAIResponse(strategyResponse);
       
       if (!strategy || strategy.error) {
@@ -1181,12 +1387,27 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Meal plan complete (3/3)');
     
+    // Final token usage summary
+    console.log(`=== CUMULATIVE TOKEN USAGE ===`);
+    console.log(`Total Input Tokens: ${cumulativeTokens.input}`);
+    console.log(`Total Output Tokens: ${cumulativeTokens.output}`);
+    console.log(`Total Tokens: ${cumulativeTokens.total}`);
+    
+    // Warn if approaching limits (most models have 30k-100k context windows)
+    if (cumulativeTokens.total > 25000) {
+      console.warn(`⚠️ High token usage (${cumulativeTokens.total} tokens) - approaching model limits`);
+    }
+    
     // Combine all parts into final plan (meal plan takes precedence)
     // Returns comprehensive plan with analysis and strategy included
     return {
       ...mealPlan,
       analysis: analysis,
-      strategy: strategy
+      strategy: strategy,
+      _meta: {
+        tokenUsage: cumulativeTokens,
+        generatedAt: new Date().toISOString()
+      }
     };
   } catch (error) {
     console.error('Multi-step generation failed:', error);
@@ -1463,6 +1684,45 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 }
 
 /**
+ * Calculate average macros from a week plan
+ * Used as fallback when AI summary generation fails
+ */
+function calculateAverageMacrosFromPlan(weekPlan) {
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFats = 0;
+  let dayCount = 0;
+  
+  try {
+    Object.keys(weekPlan).forEach(dayKey => {
+      const day = weekPlan[dayKey];
+      if (day && day.meals && Array.isArray(day.meals)) {
+        dayCount++;
+        day.meals.forEach(meal => {
+          if (meal.macros) {
+            totalProtein += parseInt(meal.macros.protein) || 0;
+            totalCarbs += parseInt(meal.macros.carbs) || 0;
+            totalFats += parseInt(meal.macros.fats) || 0;
+          }
+        });
+      }
+    });
+    
+    if (dayCount > 0) {
+      return {
+        protein: Math.round(totalProtein / dayCount),
+        carbs: Math.round(totalCarbs / dayCount),
+        fats: Math.round(totalFats / dayCount)
+      };
+    }
+  } catch (error) {
+    console.error('Error calculating macros from plan:', error);
+  }
+  
+  return { protein: null, carbs: null, fats: null };
+}
+
+/**
  * Progressive meal plan generation - generates meal plan in smaller chunks
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
@@ -1554,16 +1814,18 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
-      // Use defaults if summary generation fails
-      console.warn('Summary generation failed, using defaults');
+      // Calculate actual macros from generated weekPlan instead of using generic text
+      console.warn('Summary generation failed, calculating from weekPlan');
+      const calculatedMacros = calculateAverageMacrosFromPlan(weekPlan);
+      
       return {
         summary: {
           bmr: `${bmr}`,
           dailyCalories: `${recommendedCalories}`,
           macros: {
-            protein: "Изчислени индивидуално",
-            carbs: "Изчислени индивидуално",
-            fats: "Изчислени индивидуално"
+            protein: calculatedMacros.protein ? `${calculatedMacros.protein}g (средно дневно)` : "Не е изчислено",
+            carbs: calculatedMacros.carbs ? `${calculatedMacros.carbs}g (средно дневно)` : "Не е изчислено",
+            fats: calculatedMacros.fats ? `${calculatedMacros.fats}g (средно дневно)` : "Не е изчислено"
           }
         },
         weekPlan: weekPlan,
@@ -1590,12 +1852,18 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     };
   } catch (error) {
     console.error('Summary generation failed:', error);
-    // Return plan with defaults
+    // Calculate actual macros from generated weekPlan instead of using generic text
+    const calculatedMacros = calculateAverageMacrosFromPlan(weekPlan);
+    
     return {
       summary: {
         bmr: `${bmr}`,
         dailyCalories: `${recommendedCalories}`,
-        macros: { protein: "Изчислени индивидуално", carbs: "Изчислени индивидуално", fats: "Изчислени индивидуално" }
+        macros: { 
+          protein: calculatedMacros.protein ? `${calculatedMacros.protein}g (средно дневно)` : "Не е изчислено",
+          carbs: calculatedMacros.carbs ? `${calculatedMacros.carbs}g (средно дневно)` : "Не е изчислено",
+          fats: calculatedMacros.fats ? `${calculatedMacros.fats}g (средно дневно)` : "Не е изчислено"
+        }
       },
       weekPlan: weekPlan,
       recommendations: strategy.foodsToInclude || [],
@@ -1676,6 +1944,38 @@ BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
 Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
 Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
+
+=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
+ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
+
+0) HARD BANS (0% ВИНАГИ):
+- лук (всякаква форма), пуешко месо, изкуствени подсладители
+- мед, захар, конфитюр, сиропи
+- кетчуп, майонеза, BBQ/сладки сосове
+- грах + риба (забранена комбинация)
+
+0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
+
+HARD RULES (R1-R12):
+R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
+R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
+R3: Енергия = 0-1 (никога 2).
+R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
+R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
+R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
+R7: Правило за бекон: Ако бекон → Мазнини=0.
+R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
+R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
+R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
+R11: Template C (сандвич): Само за закуски; бобови забранени; без забранени сосове/подсладители.
+R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
+
+СПЕЦИАЛНИ ПРАВИЛА:
+- Грах + риба = СТРОГО ЗАБРАНЕНО
+- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
+- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
+- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
+- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
 
 === КРИТИЧНИ ИЗИСКВАНИЯ ===
 1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
@@ -1906,6 +2206,38 @@ ${modificationsSection}
 
 Филтриране според МОДИФИКАТОР "${dietaryModifier}": Веган=без животински [PRO]; Кето/Нисковъглехидратно=минимум [ENG], повече [PRO]+[FAT]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни; Щадящ стомах=готвени [VOL], без сурови влакнини. Избор на шаблон: закуска=C или A, обяд=A или B, вечеря=A/B/D. Слотове с продукти от филтриран списък. Избягвай: ${data.dietDislike || 'няма'}. Включвай: ${data.dietLove || 'няма'}. Естествен български език БЕЗ кодове в изхода.
 
+=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
+ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
+
+0) HARD BANS (0% ВИНАГИ):
+- лук (всякаква форма), пуешко месо, изкуствени подсладители
+- мед, захар, конфитюр, сиропи
+- кетчуп, майонеза, BBQ/сладки сосове
+- грах + риба (забранена комбинация)
+
+0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
+
+HARD RULES (R1-R12):
+R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
+R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
+R3: Енергия = 0-1 (никога 2).
+R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
+R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
+R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
+R7: Правило за бекон: Ако бекон → Мазнини=0.
+R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
+R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
+R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
+R11: Template C (сандвич): Само за закуски; бобови забранени; без забранени сосове/подсладители.
+R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
+
+СПЕЦИАЛНИ ПРАВИЛА:
+- Грах + риба = СТРОГО ЗАБРАНЕНО
+- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
+- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
+- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
+- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
+
 === ВАЖНИ ОГРАНИЧЕНИЯ ===
 
 СТРОГО ИЗБЯГВАЙ:
@@ -1990,6 +2322,80 @@ JSON ФОРМАТ:
 ВАЖНО: Използвай strategy.planJustification, strategy.longTermStrategy, strategy.mealCountJustification и strategy.afterDinnerMealJustification за обосновка на всички нестандартни решения. "recommendations"/"forbidden"=САМО конкретни храни. Всички 7 дни (day1-day7) с 1-5 хранения В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (може да варира при многодневно планиране). Седмичен подход: МИСЛИ СЕДМИЧНО/МНОГОДНЕВНО - ЦЯЛОСТНА схема като система. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
 
 Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}, следвайки стратегията.`;
+}
+
+/**
+ * Generate simplified fallback plan when main generation fails
+ * Uses conservative approach with basic meals and minimal complexity
+ * Last resort to provide user with something useful rather than complete failure
+ */
+async function generateSimplifiedFallbackPlan(env, data) {
+  console.log('Generating simplified fallback plan');
+  
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, data.sportActivity);
+  let recommendedCalories = tdee;
+  
+  // Adjust for goal
+  if (data.goal && data.goal.toLowerCase().includes('отслабване')) {
+    recommendedCalories = Math.round(tdee * 0.85);
+  } else if (data.goal && data.goal.toLowerCase().includes('мускулна маса')) {
+    recommendedCalories = Math.round(tdee * 1.1);
+  }
+  
+  // Simplified prompt with basic requirements
+  const simplifiedPrompt = `Създай ОПРОСТЕН 7-дневен хранителен план за ${data.name}.
+
+ОСНОВНИ ДАННИ:
+- BMR: ${bmr} kcal, TDEE: ${tdee} kcal
+- Целеви калории: ${recommendedCalories} kcal/ден
+- Цел: ${data.goal}
+- Възраст: ${data.age}, Пол: ${data.gender}
+- Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+- Алергии/Непоносимости: ${data.dietDislike || 'няма'}
+
+ИЗИСКВАНИЯ (ОПРОСТЕНИ):
+- 3 хранения на ден: Закуска, Обяд, Вечеря
+- Всяко ястие с calories и macros (protein, carbs, fats, fiber)
+- Балансирани български ястия
+- СПАЗВАЙ медицинските ограничения
+- Избягвай: ${data.dietDislike || 'няма'}
+- Включвай: ${data.dietLove || 'няма'}
+
+JSON ФОРМАТ:
+{
+  "summary": {"bmr": "${bmr}", "dailyCalories": "${recommendedCalories}", "macros": {"protein": "Xg", "carbs": "Xg", "fats": "Xg"}},
+  "weekPlan": {"day1": {"meals": [...]}, ... "day7": {...}},
+  "recommendations": ["храна 1", "храна 2", "храна 3"],
+  "forbidden": ["храна 1", "храна 2", "храна 3"],
+  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
+  "waterIntake": "2-2.5л дневно",
+  "supplements": ["добавка 1", "добавка 2", "добавка 3"]
+}
+
+ВАЖНО: Върни САМО JSON, без допълнителни обяснения!`;
+
+  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT);
+  const plan = parseAIResponse(response);
+  
+  if (!plan || plan.error) {
+    throw new Error('Simplified fallback plan generation failed');
+  }
+  
+  // Add basic strategy and analysis for compatibility
+  plan.strategy = {
+    planJustification: `Опростен план създаден автоматично за ${data.name} с цел ${data.goal}. Този план използва основни принципи на здравословното хранене.`,
+    dietaryModifier: "Балансирано",
+    dietType: "Балансирана"
+  };
+  
+  plan.analysis = {
+    bmr: bmr,
+    recommendedCalories: recommendedCalories,
+    keyProblems: []
+  };
+  
+  return plan;
 }
 
 /**
@@ -2395,12 +2801,31 @@ async function getChatPrompts(env) {
 }
 
 /**
+ * Improved token estimation for mixed Cyrillic/Latin text
+ * Cyrillic characters typically use 2-3 bytes in UTF-8, so tokens/char ratio is higher
+ */
+function estimateTokenCount(text) {
+  if (!text) return 0;
+  
+  // Count Cyrillic vs Latin characters
+  const cyrillicChars = (text.match(/[\u0400-\u04FF]/g) || []).length;
+  const totalChars = text.length;
+  const cyrillicRatio = cyrillicChars / totalChars;
+  
+  // Cyrillic-heavy text: ~3 chars per token
+  // Latin-heavy text: ~4 chars per token
+  // Mixed text: interpolate between them
+  const charsPerToken = 4 - (cyrillicRatio * 1); // 3-4 range
+  
+  return Math.ceil(totalChars / charsPerToken);
+}
+
+/**
  * Call AI model (placeholder for Gemini or OpenAI)
  */
 async function callAIModel(env, prompt, maxTokens = null) {
-  // Estimate input token count (rough approximation for Cyrillic/Latin mix)
-  // This is sufficient for identifying extremely large prompts that may cause issues
-  const estimatedInputTokens = Math.ceil(prompt.length / 4);
+  // Improved token estimation for Cyrillic text
+  const estimatedInputTokens = estimateTokenCount(prompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
   // Warn if input prompt is very large (potential issue with Gemini)
