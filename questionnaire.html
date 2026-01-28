@@ -1812,13 +1812,16 @@
                 
                 let errorMessage = error.message;
                 let errorType = 'Неизвестна грешка';
+                let isBackendNotDeployed = false;
                 
                 if (error.name === 'AbortError') {
                     errorType = 'Timeout';
                     errorMessage = 'Заявката отне твърде дълго време. Моля, проверете интернет връзката и опитайте отново.';
                 } else if (error.message.includes('Failed to fetch')) {
                     errorType = 'Network Error';
-                    errorMessage = 'Неуспешна връзка със сървъра. Моля, проверете интернет връзката и опитайте отново.';
+                    // Failed to fetch usually means DNS resolution failed (backend not deployed) or CORS issue
+                    isBackendNotDeployed = true;
+                    errorMessage = 'Неуспешна връзка със сървъра. Възможно е backend-ът да не е публикуван.';
                 } else if (error.message.includes('Server error')) {
                     errorType = 'Server Error';
                     // Keep the detailed server error message
@@ -1829,6 +1832,21 @@
                 
                 console.log('Displaying error:', { errorType, errorMessage });
                 
+                // Show more detailed error message with deployment instructions for backend issues
+                const deploymentHelp = isBackendNotDeployed ? `
+                    <div style="margin-top:20px; padding:15px; background:#fef3c7; border-radius:8px; text-align:left; max-width:500px; margin-left:auto; margin-right:auto;">
+                        <h3 style="margin:0 0 10px 0; color:#92400e; font-size:1rem;">
+                            <i class="fas fa-info-circle"></i> Възможна причина
+                        </h3>
+                        <p style="margin:0 0 10px 0; color:#78350f; font-size:0.9rem;">
+                            Backend сървърът може да не е публикуван. Необходимо е да се публикува Cloudflare Worker-а.
+                        </p>
+                        <p style="margin:0; color:#78350f; font-size:0.85rem;">
+                            <strong>За разработчици:</strong> Вижте <code>BACKEND_NOT_DEPLOYED.md</code> за инструкции за публикуване.
+                        </p>
+                    </div>
+                ` : '';
+                
                 container.innerHTML = `
                     <div style="text-align:center; animation: fadeIn 0.5s;">
                         <div class="section-icon" style="background:#d1fae5; color:#10b981;">
@@ -1836,7 +1854,8 @@
                         </div>
                         <h2 class="q-text">Грешка</h2>
                         <p style="color:#7f8c8d; margin-bottom:20px;">${errorMessage}</p>
-                        <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
+                        ${deploymentHelp}
+                        <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto; margin-top:20px;">Опитай отново</button>
                     </div>
                 `;
             }
