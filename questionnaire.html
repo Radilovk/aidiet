@@ -1456,7 +1456,7 @@
             }
             
             // Define stages with more realistic timing
-            // Total expected time: ~120 seconds (2 minutes)
+            // Total expected time: ~360 seconds (6 minutes)
             // Note: We have 3 visual stage indicators but 4 progress stages
             // Stages 2 and 3 share the same visual indicator (stage3)
             const stages = [
@@ -1465,31 +1465,31 @@
                     title: 'Анализиране на данните...', 
                     subtitle: 'Обработваме вашия здравен профил',
                     minTime: 0,
-                    maxTime: 20000, // 0-20 seconds
+                    maxTime: 60000, // 0-60 seconds (1 minute)
                     indicatorIndex: 0 // stage1
                 },
                 { 
                     percent: 50, 
                     title: 'Генериране на препоръки...', 
                     subtitle: 'AI създава персонализирани стратегии',
-                    minTime: 20000,
-                    maxTime: 50000, // 20-50 seconds
+                    minTime: 60000,
+                    maxTime: 150000, // 60-150 seconds (1-2.5 minutes)
                     indicatorIndex: 1 // stage2
                 },
                 { 
                     percent: 75, 
                     title: 'Изграждане на плана...', 
                     subtitle: 'Съставяме вашето 7-дневно меню',
-                    minTime: 50000,
-                    maxTime: 80000, // 50-80 seconds
+                    minTime: 150000,
+                    maxTime: 240000, // 150-240 seconds (2.5-4 minutes)
                     indicatorIndex: 2 // stage3
                 },
                 { 
                     percent: 92, 
                     title: 'Финализиране...', 
                     subtitle: 'Последни детайли и проверки',
-                    minTime: 80000,
-                    maxTime: 120000, // 80-120 seconds
+                    minTime: 240000,
+                    maxTime: 360000, // 240-360 seconds (4-6 minutes)
                     indicatorIndex: 2 // stage3 (shares with previous stage)
                 }
             ];
