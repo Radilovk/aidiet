@@ -263,25 +263,27 @@
                     controller.abort();
                 }, 120000); // 120 second timeout
 
-                const response = await fetch(`${API_BASE}/api/generate-plan`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(testData),
-                    signal: controller.signal
-                });
+                try {
+                    const response = await fetch(`${API_BASE}/api/generate-plan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(testData),
+                        signal: controller.signal
+                    });
 
-                clearTimeout(timeoutId);
+                    const result = await response.json();
+                    output.textContent += `Status: ${response.status}\n\n`;
+                    output.textContent += JSON.stringify(result, null, 2);
 
-                const result = await response.json();
-                output.textContent += `Status: ${response.status}\n\n`;
-                output.textContent += JSON.stringify(result, null, 2);
-
-                if (result.success) {
-                    showStatus('success', 'Plan generated successfully!');
-                    // Store in localStorage for testing plan.html
-                    localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-                    localStorage.setItem('userId', result.userId);
-                    localStorage.setItem('userData', JSON.stringify(testData));
+                    if (result.success) {
+                        showStatus('success', 'Plan generated successfully!');
+                        // Store in localStorage for testing plan.html
+                        localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+                        localStorage.setItem('userId', result.userId);
+                        localStorage.setItem('userData', JSON.stringify(testData));
+                    }
+                } finally {
+                    clearTimeout(timeoutId);
                 }
             } catch (error) {
                 let errorMessage = error.message;
