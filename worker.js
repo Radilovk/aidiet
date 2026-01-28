@@ -728,6 +728,41 @@ const LOW_GI_FOODS = [
   'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки'
 ];
 
+// ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
+// Based on meallogic.txt - slot-based constructor with strict validation
+const ADLE_V8_HARD_BANS = [
+  'лук', 'onion', 'пуешко месо', 'turkey meat',
+  'изкуствени подсладители', 'artificial sweeteners',
+  'мед', 'захар', 'конфитюр', 'сиропи', 'honey', 'sugar', 'jam', 'syrups',
+  'кетчуп', 'майонеза', 'BBQ сос', 'ketchup', 'mayonnaise', 'BBQ sauce'
+];
+
+const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
+
+const ADLE_V8_HARD_RULES = {
+  R1: 'Protein main = exactly 1. Secondary protein only if (breakfast AND eggs), 0-1.',
+  R2: 'Vegetables = 1-2. Choose exactly ONE form: Salad OR Fresh side (not both). Potatoes ≠ vegetables.',
+  R3: 'Energy = 0-1 (never 2).',
+  R4: 'Dairy max = 1 per meal (yogurt OR cottage cheese OR cheese), including as sauce/dressing.',
+  R5: 'Fat = 0-1. If nuts/seeds present → no olive oil/butter.',
+  R6: 'Cheese rule: If cheese present → no olive oil/butter. Olives allowed with cheese.',
+  R7: 'Bacon rule: If bacon present → Fat=0.',
+  R8: 'Legumes-as-main (beans/lentils/chickpeas/peas stew): Energy=0 (no rice/potatoes/pasta/bulgur/oats). Bread may be optional: +1 slice wholegrain.',
+  R9: 'Bread optional rule (outside Template C): Allowed only if Energy=0. Exception: with legumes-as-main (R8), bread may still be optional (1 slice). If any Energy item present → Bread=0.',
+  R10: 'Peas as meat-side add-on: Peas are NOT energy, but they BLOCK the Energy slot → Energy=0. Bread may be optional (+1 slice) if carbs needed.',
+  R11: 'Template C (sandwich): Only snack; legumes forbidden; no banned sauces/sweeteners.',
+  R12: 'Outside-whitelist additions: Default=use whitelists only. Outside-whitelist ONLY if objectively required (MODE/medical/availability), mainstream/universal, available in Bulgaria. Add line: Reason: ...'
+};
+
+const ADLE_V8_SPECIAL_RULES = {
+  PEAS_FISH_BAN: 'Peas + fish combination is strictly forbidden.',
+  VEGETABLE_FORM_RULE: 'Choose exactly ONE vegetable form per meal: Salad (with dressing) OR Fresh side (sliced, no dressing). Never both.',
+  DAIRY_INCLUDES_SAUCE: 'Dairy count includes yogurt/cheese used in sauces, dressings, or cooking.',
+  OLIVES_NOT_FAT: 'Olives are salad add-on (NOT Fat slot). If olives present → do NOT add olive oil/butter.',
+  CORN_NOT_ENERGY: 'Corn is NOT an energy source. Small corn only in salads as add-on.',
+  TEMPLATE_C_RESTRICTION: 'Template C (sandwich) allowed ONLY for snacks, NOT for main meals.'
+};
+
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
 // Each chunk generates 2-3 days, building on previous days for variety and consistency
 const ENABLE_PROGRESSIVE_GENERATION = true;
@@ -1677,6 +1712,38 @@ BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
 Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
 
+=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
+ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
+
+0) HARD BANS (0% ВИНАГИ):
+- лук (всякаква форма), пуешко месо, изкуствени подсладители
+- мед, захар, конфитюр, сиропи
+- кетчуп, майонеза, BBQ/сладки сосове
+- грах + риба (забранена комбинация)
+
+0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
+
+HARD RULES (R1-R12):
+R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
+R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
+R3: Енергия = 0-1 (никога 2).
+R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
+R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
+R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
+R7: Правило за бекон: Ако бекон → Мазнини=0.
+R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
+R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
+R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
+R11: Template C (сандвич): Само закуска; бобови забранени; без забранени сосове/подсладители.
+R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
+
+СПЕЦИАЛНИ ПРАВИЛА:
+- Грах + риба = СТРОГО ЗАБРАНЕНО
+- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
+- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
+- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
+- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
+
 === КРИТИЧНИ ИЗИСКВАНИЯ ===
 1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
 2. ПРЕЦИЗНИ КАЛОРИИ: Изчислени като protein×4 + carbs×4 + fats×9 за ВСЯКО ястие
@@ -1905,6 +1972,38 @@ ${modificationsSection}
 Шаблони за ястия: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL] (печено пиле+картофи+салата), B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс (яхнии, купи), C) ЛЕКО/САНДВИЧ=[ENG-хляб]+[PRO]+[FAT]+[VOL] (сандвич, тост), D) ЕДИНЕН БЛОК=[CMPX]+[VOL] (лазаня+салата). 
 
 Филтриране според МОДИФИКАТОР "${dietaryModifier}": Веган=без животински [PRO]; Кето/Нисковъглехидратно=минимум [ENG], повече [PRO]+[FAT]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни; Щадящ стомах=готвени [VOL], без сурови влакнини. Избор на шаблон: закуска=C или A, обяд=A или B, вечеря=A/B/D. Слотове с продукти от филтриран списък. Избягвай: ${data.dietDislike || 'няма'}. Включвай: ${data.dietLove || 'няма'}. Естествен български език БЕЗ кодове в изхода.
+
+=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
+ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
+
+0) HARD BANS (0% ВИНАГИ):
+- лук (всякаква форма), пуешко месо, изкуствени подсладители
+- мед, захар, конфитюр, сиропи
+- кетчуп, майонеза, BBQ/сладки сосове
+- грах + риба (забранена комбинация)
+
+0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
+
+HARD RULES (R1-R12):
+R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
+R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
+R3: Енергия = 0-1 (никога 2).
+R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
+R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
+R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
+R7: Правило за бекон: Ако бекон → Мазнини=0.
+R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
+R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
+R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
+R11: Template C (сандвич): Само закуска; бобови забранени; без забранени сосове/подсладители.
+R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
+
+СПЕЦИАЛНИ ПРАВИЛА:
+- Грах + риба = СТРОГО ЗАБРАНЕНО
+- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
+- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
+- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
+- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
 
 === ВАЖНИ ОГРАНИЧЕНИЯ ===
 
