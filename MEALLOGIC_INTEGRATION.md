@@ -51,20 +51,21 @@ The ADLE v8 Universal Meal Constructor brings a sophisticated slot-based meal ge
 ## Files Modified
 
 ### worker.js
-**Lines 724-759**: Added ADLE v8 constants
+**Lines 731-764**: Added ADLE v8 constants
 - `ADLE_V8_HARD_BANS`: Array of completely banned items
 - `ADLE_V8_RARE_ITEMS`: Array of items limited to ≤2 times/week
 - `ADLE_V8_HARD_RULES`: Object containing R1-R12 rule descriptions
 - `ADLE_V8_SPECIAL_RULES`: Object containing special edge case rules
+- **Note**: These constants are currently used for documentation/reference and can be utilized in future validation logic or dynamic prompt generation
 
-**Lines 1710-1750**: Updated `generateMealPlanChunkPrompt()`
+**Lines 1715-1746**: Updated `generateMealPlanChunkPrompt()`
 - Added comprehensive ADLE v8 STRICT RULES section
 - Integrated priority system
 - Added hard bans list
 - Added all 12 hard rules (R1-R12)
 - Added special rules for edge cases
 
-**Lines 1974-2014**: Updated `generateMealPlanPrompt()`
+**Lines 1976-2006**: Updated `generateMealPlanPrompt()`
 - Added identical ADLE v8 STRICT RULES section
 - Ensures consistency between progressive and legacy generation modes
 
