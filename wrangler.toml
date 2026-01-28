@@ -2,6 +2,18 @@ name = "aidiet-worker"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+# Note: For production use with long-running AI requests (>30 seconds),
+# consider enabling Unbound Workers to remove CPU time limits.
+# See: https://developers.cloudflare.com/workers/platform/limits/#cpu-time
+# 
+# To enable Unbound Workers (requires Paid plan):
+# Add this to your wrangler.toml:
+# [usage_model]
+# type = "unbound"
+#
+# Current configuration works for most requests but may timeout during peak times
+# when multiple AI calls exceed 30 seconds total wall-clock time.
+
 # KV Namespace binding
 [[kv_namespaces]]
 binding = "page_content"
