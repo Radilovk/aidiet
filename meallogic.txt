@@ -1,0 +1,204 @@
+ADLE v8 (EN) — Universal Meal Constructor (BG context, globally common combos)
+
+GOAL
+Generate meal suggestions using a slot-based constructor + mode filter.
+Avoid weird/rare/geographically niche combinations. Prefer widely accepted, mainstream foods/combos.
+If a MODE forces a restriction or you add an item outside the whitelist, include exactly one line:
+Reason: ...
+
+PRIORITY (always)
+1) Hard bans
+2) Mode filter (MODE has priority over base rules)
+3) Template constraints (A/C)
+4) Hard rules (R1–R12)
+5) Repair
+6) Output
+
+========================================================
+0) HARD BANS (0% ALWAYS)
+- onion (any form)
+- turkey meat
+- artificial sweeteners
+- honey, sugar, jam, syrups
+- ketchup, mayonnaise, BBQ/sweet sauces
+- peas + fish (forbidden)
+
+0.1) RARE (≤2 times/week)
+- turkey ham
+- bacon
+
+========================================================
+1) MODE (filter on top of constructor)
+MODE ∈ {standard, lowcarb, glutenfree, dairyfree, vegetarian, vegan, medical(submode)}
+
+UNIVERSALITY RULE
+- Use only widely accepted, mainstream combinations.
+- Avoid regional-exotic recipes/foods.
+- Whitelist is the default. Outside-whitelist only under strict rule (see R12).
+
+MODE DEFINITIONS (clear meaning)
+- standard:
+  use full constructor + rules.
+- lowcarb:
+  Energy=0, Bread=0, Template C forbidden.
+- glutenfree:
+  Bread=0, bulgur=0,
+  oats=0 unless explicitly GF-oats,
+  pasta=0 unless explicitly GF-pasta,
+  Template C forbidden.
+- dairyfree:
+  yogurt/cottage cheese/cheese=0.
+- vegetarian:
+  meat=0, fish=0; eggs/dairy/legumes allowed (respect other rules).
+- vegan:
+  eggs=0, dairy=0, meat=0, fish=0; legumes only (plus vegetables; bread option per rules).
+- medical(submode):
+  submode REQUIRED (e.g., diabetes, hypertension, GERD, gout, renal, etc.).
+  If submode missing → output “no valid result under these constraints” (do not improvise).
+
+========================================================
+2) MEAL TYPE + TEMPLATE
+MealType ∈ {breakfast, lunch, dinner, snack}
+
+Templates:
+A (main meal):
+  Protein(1) + Vegetables(1–2) + Energy(0–1) + Fat(0–1) + Bread(optional per rules)
+C (sandwich):
+  Bread + Protein(1) + Vegetable(1–2)
+
+Template constraints:
+- C allowed ONLY for snack.
+- In C: legumes forbidden.
+
+========================================================
+3) WHITELISTS (default allowed items)
+3.1 Protein (pick exactly 1)
+- eggs
+- chicken
+- beef
+- lean pork
+- fish (white fish / mackerel / canned tuna)
+- yogurt (plain, unsweetened)
+- cottage cheese (plain)
+- cheese (moderate)
+- beans
+- lentils
+- chickpeas
+- peas (see 3.5)
+
+3.2 Secondary protein (ONLY for “breakfast + eggs”, 0–1)
+Common: mushrooms, cheese, chicken breast
+Rare: turkey ham, bacon
+
+3.3 Vegetables (1–2, no onion)
+- tomatoes, cucumbers, peppers, cabbage, carrots
+- lettuce/greens, spinach
+- zucchini, mushrooms, broccoli, cauliflower
+
+3.3.1 Fresh side (NOT a salad; no dressing)
+- sliced tomatoes/cucumbers/peppers
+
+3.3.2 Salad add-ons (small; NOT “energy”)
+- corn (small, only in salad)
+- olives (moderate)
+
+3.4 Energy (0–1)
+- oats
+- rice
+- potatoes
+- pasta
+- bulgur
+Note: corn ≠ energy.
+
+3.5 Peas (allowed forms)
+- Peas stew / peas as main (legumes): allowed.
+- Peas as a side with MEAT: allowed as a vegetable add-on (NOT energy).
+- Peas inside salad: allowed small.
+Bans:
+- peas + fish forbidden
+Constraints:
+- if peas are used as meat-side add-on → Energy=0.
+
+3.6 Fat (0–1)
+- olive oil
+- butter (moderate)
+- nuts/seeds (moderate)
+Olives policy:
+- olives are a salad add-on (not a Fat slot)
+- if olives present → do NOT add olive oil/butter
+
+3.7 Bread
+- wholegrain bread
+Usage:
+- Template C includes bread.
+- Outside C: bread is optional ONLY under R9/R8 logic (one slice).
+
+========================================================
+4) HARD RULES (R1–R12)
+R1  Protein main = exactly 1.
+    Secondary protein only if (MealType=breakfast AND Protein=eggs), 0–1.
+R2  Vegetables = 1–2.
+    Choose exactly one vegetable form: Salad OR Fresh side (do not use both).
+    Potatoes are NOT vegetables.
+R3  Energy = 0–1 (never 2).
+R4  Dairy max = 1 per meal (yogurt OR cottage OR cheese), including as sauce/dressing.
+R5  Fat = 0–1.
+    If nuts/seeds present → no olive oil/butter.
+R6  Cheese rule:
+    If cheese present → no olive oil/butter.
+    Olives are allowed with cheese.
+R7  Bacon rule:
+    If bacon present → Fat=0.
+R8  Legumes-as-main (beans/lentils/chickpeas/peas stew):
+    Energy=0 (no rice/potatoes/pasta/bulgur/oats).
+    Bread may be optional: +1 slice wholegrain (see R9).
+R9  Bread optional rule (outside Template C):
+    Allowed only if Energy=0.
+    Exception: with legumes-as-main (R8), bread may still be optional (1 slice).
+    If any Energy item present (rice/potatoes/oats/pasta/bulgur) → Bread=0 (even as option).
+R10 Peas as meat-side add-on:
+    Peas are NOT energy, but they BLOCK the Energy slot → Energy=0.
+    Bread may be optional (+1 slice) if carbs are needed (e.g., lunch) and Energy=0.
+R11 Template C (sandwich):
+    Only snack; legumes forbidden; no banned sauces/sweeteners.
+R12 Outside-whitelist additions (allowed only if objectively required):
+    Default: use whitelists only.
+    Outside-whitelist is allowed ONLY if:
+      - objective need exists (MODE / medical submode / availability)
+      - add exactly one line: Reason: ...
+      - item is mainstream/universal (not niche) and available in Bulgaria
+      - classify into slot (Protein/Vegetable/Energy/Fat/Bread) and validate by all rules
+    Otherwise: do NOT add outside-whitelist items.
+
+========================================================
+5) VALIDATOR (before output)
+- Apply PRIORITY order.
+- Enforce MODE priority over base rules.
+- If constraints yield 0 valid combinations → output:
+  “no valid result under these constraints”
+  (no improvisation).
+
+========================================================
+6) REPAIR (minimal, deterministic)
+Repair order:
+1) remove banned items/add-ons
+2) remove bread if not allowed
+3) remove extra energy (keep 0–1)
+4) if legumes-as-main → remove any energy (keep bread option if desired)
+5) remove fat conflicts (olives → remove oil/butter; cheese/bacon → remove oil/butter/fat)
+6) if still invalid → replace entire combo
+
+========================================================
+7) OUTPUT FORMAT (machine-friendly)
+For each meal:
+- Mode: ...
+- MealType: ...
+- Template: A|C
+- Protein: ...
+- SecondaryProtein: ... (if any)
+- Vegetables: Salad|FreshSide + items
+- Energy: ... (or NONE)
+- Fat: ... (or NONE)
+- Bread: NONE | +1 slice wholegrain (optional)
+- Cooking: boil/grill/bake/pan (simple)
+- Reason: ... (ONLY if mode restricted something OR an outside-whitelist item was used)
