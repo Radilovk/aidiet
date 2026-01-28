@@ -1678,12 +1678,13 @@
             simulateProgress();
 
             try {
-                // Increase HTTP request timeout to 120 seconds to allow for AI model processing time
+                // Increase HTTP request timeout to 300 seconds (5 minutes) to allow for AI model processing time
+                // This is needed because the archprompt integration requires multiple AI calls (analysis, strategy, meal plan)
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => {
-                    console.error('Request timeout after 120 seconds');
+                    console.error('Request timeout after 300 seconds');
                     controller.abort();
-                }, 120000);
+                }, 300000);
 
                 console.log('Sending request to backend...');
                 // Submit data to backend
