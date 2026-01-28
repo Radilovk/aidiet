@@ -843,7 +843,6 @@ function validatePlan(plan, userData) {
         
         // Validate that meals have macros
         let mealsWithoutMacros = 0;
-        let mealsWithInaccurateMacros = 0;
         day.meals.forEach((meal, mealIndex) => {
           if (!meal.macros || !meal.macros.protein || !meal.macros.carbs || !meal.macros.fats) {
             mealsWithoutMacros++;
@@ -859,15 +858,15 @@ function validatePlan(plan, userData) {
             // Allow 10% tolerance or minimum 50 kcal difference
             const tolerance = Math.max(50, declaredCalories * 0.1);
             if (difference > tolerance && declaredCalories > 0) {
-              mealsWithInaccurateMacros++;
               warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Макросите не съвпадат с калориите. Изчислени: ${calculatedCalories} kcal, Декларирани: ${declaredCalories} kcal (разлика: ${difference} kcal)`);
             }
             
             // Validate portion sizes (weight field)
             if (meal.weight) {
-              const weightMatch = meal.weight.match(/(\d+)/);
+              // Extract weight in grams, handling decimals and multiple servings
+              const weightMatch = meal.weight.match(/(\d+(?:\.\d+)?)\s*g/);
               if (weightMatch) {
-                const weightGrams = parseInt(weightMatch[1]);
+                const weightGrams = parseFloat(weightMatch[1]);
                 if (weightGrams < 50) {
                   warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Много малка порция (${weightGrams}g) - проверете дали е реалистична`);
                 } else if (weightGrams > 800) {
@@ -879,9 +878,6 @@ function validatePlan(plan, userData) {
         });
         if (mealsWithoutMacros > 0) {
           errors.push(`Ден ${i} има ${mealsWithoutMacros} хранения без макронутриенти`);
-        }
-        if (mealsWithInaccurateMacros > 0) {
-          warnings.push(`Ден ${i} има ${mealsWithInaccurateMacros} хранения с неточни макронутриенти`);
         }
         
         // Validate daily calorie totals
@@ -1069,10 +1065,12 @@ function validatePlan(plan, userData) {
   if (plan.weekPlan) {
     const mealNames = new Set();
     const repeatedMeals = new Set();
+    let totalMeals = 0;
     
     Object.keys(plan.weekPlan).forEach(dayKey => {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
+        totalMeals += day.meals.length;
         day.meals.forEach(meal => {
           if (meal.name) {
             // Normalize meal name (lowercase, remove extra spaces)
@@ -1086,8 +1084,10 @@ function validatePlan(plan, userData) {
       }
     });
     
-    if (repeatedMeals.size > 3) {
-      warnings.push(`Планът съдържа повтарящи се ястия (${repeatedMeals.size} различни ястия се повтарят). Примери: ${Array.from(repeatedMeals).slice(0, 3).join(', ')}`);
+    // More intelligent threshold: if >20% of meals are repeats, warn
+    const repetitionRatio = repeatedMeals.size / totalMeals;
+    if (repetitionRatio > 0.2 || repeatedMeals.size > 5) {
+      warnings.push(`Планът съдържа повтарящи се ястия (${repeatedMeals.size} различни ястия се повтарят, ${Math.round(repetitionRatio * 100)}% от менюто). Примери: ${Array.from(repeatedMeals).slice(0, 3).join(', ')}`);
     }
   }
   
@@ -1121,10 +1121,12 @@ function validatePlan(plan, userData) {
           if (/\b(лук|onion)\b/.test(mealText)) {
             errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ЛУК (hard ban от ADLE v8)`);
           }
-          if (/\b(пуешко месо|пуешко|turkey meat)\b/.test(mealText) && !/пуешка шунка/.test(mealText)) {
+          // Check for turkey meat but not turkey ham
+          if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
             errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ПУЕШКО МЕСО (hard ban от ADLE v8)`);
           }
-          if (/\b(мед|захар|сироп|honey|sugar|syrup)\b/.test(mealText)) {
+          // Check for honey/sugar/syrup in specific contexts (as ingredients, not in compound words)
+          if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(mealText) && !/медицин|междин|сиропен/.test(mealText)) {
             warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Може да съдържа МЕД/ЗАХАР/СИРОП (hard ban от ADLE v8) - проверете`);
           }
           if (/\b(кетчуп|майонеза|ketchup|mayonnaise)\b/.test(mealText)) {
@@ -1166,7 +1168,7 @@ function checkADLEv8Rules(meal) {
   // R8: Legumes as main should not have energy sources
   const hasLegumes = /\b(боб|леща|нахут|грах|beans|lentils|chickpeas)\b/.test(mealText);
   const hasEnergy = /\b(ориз|картофи|паста|овес|булгур|rice|potatoes|pasta|oats|bulgur)\b/.test(mealText);
-  if (hasLegumes && hasEnergy && !/салата/.test(mealText)) {
+  if (hasLegumes && hasEnergy) {
     warnings.push('Възможно нарушение на R8: Бобови + Енергия (бобовите като основно трябва Energy=0)');
   }
   
@@ -2349,11 +2351,14 @@ async function generateSimplifiedFallbackPlan(env, data) {
 - Целеви калории: ${recommendedCalories} kcal/ден
 - Цел: ${data.goal}
 - Възраст: ${data.age}, Пол: ${data.gender}
+- Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+- Алергии/Непоносимости: ${data.dietDislike || 'няма'}
 
 ИЗИСКВАНИЯ (ОПРОСТЕНИ):
 - 3 хранения на ден: Закуска, Обяд, Вечеря
 - Всяко ястие с calories и macros (protein, carbs, fats, fiber)
 - Балансирани български ястия
+- СПАЗВАЙ медицинските ограничения
 - Избягвай: ${data.dietDislike || 'няма'}
 - Включвай: ${data.dietLove || 'няма'}
 
