@@ -802,6 +802,7 @@ const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
  */
 function validatePlan(plan, userData) {
   const errors = [];
+  const warnings = [];
   
   // 1. Check for basic plan structure
   if (!plan || typeof plan !== 'object') {
