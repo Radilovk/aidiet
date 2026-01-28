@@ -2,17 +2,15 @@ name = "aidiet-worker"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-# Note: For production use with long-running AI requests (>30 seconds),
-# consider enabling Unbound Workers to remove CPU time limits.
+# Unbound Workers enabled to support long-running AI requests (>30 seconds)
+# This removes the wall-clock time limit and allows the multi-step AI generation
+# process (70-170 seconds) to complete without timeouts.
 # See: https://developers.cloudflare.com/workers/platform/limits/#cpu-time
 # 
-# To enable Unbound Workers (requires Paid plan):
-# Add this to your wrangler.toml:
-# [usage_model]
-# type = "unbound"
-#
-# Current configuration works for most requests but may timeout during peak times
-# when multiple AI calls exceed 30 seconds total wall-clock time.
+# Note: Unbound Workers requires a Cloudflare Paid plan.
+# Pricing is based on CPU time + duration (external API calls don't count toward CPU time).
+[usage_model]
+type = "unbound"
 
 # KV Namespace binding
 [[kv_namespaces]]
