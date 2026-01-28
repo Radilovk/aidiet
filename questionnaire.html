@@ -1496,6 +1496,7 @@
             
             let currentStage = -1; // Start at -1 so first stage (0) triggers activation
             const MAX_PROGRESS_INCREMENT = 2; // Maximum progress change per update for smoothness
+            const MAX_DISPLAY_PROGRESS = 95; // Cap progress display to prevent showing over 100% on long requests
             
             // Stage UI elements mapping
             const stageElements = [
@@ -1591,8 +1592,9 @@
                     progress = newProgress;
                 }
                 
-                // Cap progress at 95% to prevent showing over 100% on long-running requests
-                progress = Math.min(progress, 95);
+                // Cap progress at MAX_DISPLAY_PROGRESS to prevent showing over 100% on long-running requests
+                // This is a defensive measure to ensure users never see incorrect percentages
+                progress = Math.min(progress, MAX_DISPLAY_PROGRESS);
                 
                 // Update UI
                 currentProgressBar.style.width = Math.floor(progress) + '%';
