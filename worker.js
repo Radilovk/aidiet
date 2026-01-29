@@ -774,9 +774,9 @@ async function handleChat(request, env) {
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 
-// Token limit for meal plan generation - increased to ensure all 7 days with 3-4 meals each are generated with detailed macros
-// Note: This is the OUTPUT token limit. Increased from 5000 to 8000 to allow for complete macro calculations per meal
-const MEAL_PLAN_TOKEN_LIMIT = 8000;
+// Token limit for meal plan generation - optimized to reduce AI load
+// Note: This is the OUTPUT token limit. Reduced to 6000 for better performance
+const MEAL_PLAN_TOKEN_LIMIT = 6000;
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -784,7 +784,7 @@ const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's cl
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_CORRECTION_ATTEMPTS = 3; // Maximum number of AI correction attempts before failing (must be >= 0)
-const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests
+const CORRECTION_TOKEN_LIMIT = 6000; // Token limit for AI correction requests - optimized
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
@@ -1481,53 +1481,7 @@ function generateAnalysisPrompt(data) {
   return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента.
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
-${JSON.stringify({
-  name: data.name,
-  age: data.age,
-  gender: data.gender,
-  height: data.height,
-  weight: data.weight,
-  goal: data.goal,
-  lossKg: data.lossKg,
-  
-  // Sleep & circadian rhythm
-  sleepHours: data.sleepHours,
-  sleepInterrupt: data.sleepInterrupt,
-  chronotype: data.chronotype,
-  
-  // Activity & stress
-  sportActivity: data.sportActivity,
-  dailyActivityLevel: data.dailyActivityLevel,
-  stressLevel: data.stressLevel,
-  
-  // Nutrition & hydration
-  waterIntake: data.waterIntake,
-  drinksSweet: data.drinksSweet,
-  drinksAlcohol: data.drinksAlcohol,
-  
-  // Eating behavior
-  overeatingFrequency: data.overeatingFrequency,
-  eatingHabits: data.eatingHabits,
-  foodCravings: data.foodCravings,
-  foodTriggers: data.foodTriggers,
-  compensationMethods: data.compensationMethods,
-  socialComparison: data.socialComparison,
-  
-  // Medical & history
-  medicalConditions: data.medicalConditions,
-  medications: data.medications,
-  medicationsDetails: data.medicationsDetails,
-  weightChange: data.weightChange,
-  weightChangeDetails: data.weightChangeDetails,
-  dietHistory: data.dietHistory,
-  dietType: data.dietType,
-  dietResult: data.dietResult,
-  
-  // Preferences
-  dietPreference: data.dietPreference,
-  dietDislike: data.dietDislike,
-  dietLove: data.dietLove
-}, null, 2)}
+${JSON.stringify(summarizeUserDataForAnalysis(data), null, 2)}
 
 ═══ ИЗЧИСЛЕНИ СТОЙНОСТИ (Backend) ═══
 BMR: ${bmr} kcal (Mifflin-St Jeor формула)
@@ -2650,19 +2604,24 @@ async function generateNutritionPrompt(data, env) {
 }
 
 /**
- * Generate chat prompt with full context
+ * Generate chat prompt with optimized context
+ * Uses compact data for consultation mode to reduce token usage
  */
 async function generateChatPrompt(env, userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
-  // Base context that's always included
+  // Optimize data based on mode - consultation uses compact data, modification needs full data
+  const contextUserData = mode === 'consultation' ? compactUserData(userData) : userData;
+  const contextUserPlan = mode === 'consultation' ? compactUserPlan(userPlan) : userPlan;
+  
+  // Base context with optimized data
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
 КЛИЕНТСКИ ПРОФИЛ:
-${JSON.stringify(userData, null, 2)}
+${JSON.stringify(contextUserData, null, 2)}
 
-ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
-${JSON.stringify(userPlan, null, 2)}
+ХРАНИТЕЛЕН ПЛАН:
+${JSON.stringify(contextUserPlan, null, 2)}
 
-${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
+${conversationHistory.length > 0 ? `ИСТОРИЯ:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 `;
 
   // Get mode-specific instructions from KV (with caching)
@@ -2847,6 +2806,109 @@ async function getChatPrompts(env) {
 }
 
 /**
+ * Create a compact version of userData for chat prompts (consultation mode)
+ * Only includes essential fields needed for answering questions
+ */
+function compactUserData(userData) {
+  return {
+    name: userData.name,
+    age: userData.age,
+    gender: userData.gender,
+    weight: userData.weight,
+    height: userData.height,
+    goal: userData.goal,
+    dietPreference: userData.dietPreference,
+    dietDislike: userData.dietDislike,
+    dietLove: userData.dietLove,
+    medicalConditions: userData.medicalConditions,
+    medications: userData.medications
+  };
+}
+
+/**
+ * Create a compact version of userPlan for chat prompts (consultation mode)
+ * Only includes summary and meal structure without detailed descriptions
+ */
+function compactUserPlan(userPlan) {
+  if (!userPlan || !userPlan.weekPlan) return userPlan;
+  
+  const compactWeekPlan = {};
+  for (const [day, dayData] of Object.entries(userPlan.weekPlan)) {
+    compactWeekPlan[day] = {
+      meals: dayData.meals.map(meal => ({
+        type: meal.type,
+        time: meal.time,
+        name: meal.name,
+        calories: meal.calories
+      }))
+    };
+  }
+  
+  return {
+    summary: userPlan.summary,
+    weekPlan: compactWeekPlan,
+    recommendations: userPlan.recommendations,
+    forbidden: userPlan.forbidden
+  };
+}
+
+/**
+ * Create a summarized version of userData for analysis prompts
+ * Removes verbose fields that don't contribute significantly to analysis
+ */
+function summarizeUserDataForAnalysis(userData) {
+  // Return a copy with only the most important fields
+  const summarized = {
+    name: userData.name,
+    age: userData.age,
+    gender: userData.gender,
+    height: userData.height,
+    weight: userData.weight,
+    goal: userData.goal,
+    lossKg: userData.lossKg,
+    
+    // Sleep & circadian (keep essential only)
+    sleepHours: userData.sleepHours,
+    sleepInterrupt: userData.sleepInterrupt,
+    chronotype: userData.chronotype,
+    
+    // Activity & stress
+    sportActivity: userData.sportActivity,
+    dailyActivityLevel: userData.dailyActivityLevel,
+    stressLevel: userData.stressLevel,
+    
+    // Nutrition & hydration (simplified)
+    waterIntake: userData.waterIntake,
+    drinksSweet: userData.drinksSweet,
+    drinksAlcohol: userData.drinksAlcohol,
+    
+    // Eating behavior (key fields only)
+    overeatingFrequency: userData.overeatingFrequency,
+    foodCravings: userData.foodCravings,
+    foodTriggers: userData.foodTriggers,
+    
+    // Medical
+    medicalConditions: userData.medicalConditions,
+    medications: userData.medications,
+    medicationsDetails: userData.medicationsDetails,
+    
+    // Preferences
+    dietPreference: userData.dietPreference,
+    dietDislike: userData.dietDislike,
+    dietLove: userData.dietLove
+  };
+  
+  // Remove undefined fields to reduce size
+  Object.keys(summarized).forEach(key => {
+    if (summarized[key] === undefined || summarized[key] === null) {
+      delete summarized[key];
+    }
+  });
+  
+  return summarized;
+}
+
+/**
  * Improved token estimation for mixed Cyrillic/Latin text
  * Cyrillic characters typically use 2-3 bytes in UTF-8, so tokens/char ratio is higher
  */
@@ -2874,9 +2936,14 @@ async function callAIModel(env, prompt, maxTokens = null) {
   const estimatedInputTokens = estimateTokenCount(prompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
-  // Warn if input prompt is very large (potential issue with Gemini)
-  if (estimatedInputTokens > 8000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This may exceed API limits for some models.`);
+  // Warn if input prompt is large - reduced threshold for better optimization
+  if (estimatedInputTokens > 6000) {
+    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. Consider optimizing prompt size.`);
+  }
+  
+  // Alert if prompt is very large
+  if (estimatedInputTokens > 10000) {
+    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. This may cause API issues or high costs.`);
   }
   
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
