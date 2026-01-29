@@ -1132,7 +1132,10 @@
 
                 // Call API to regenerate plan
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+                const timeoutId = setTimeout(() => {
+                    console.error('Request timeout after 360 seconds');
+                    controller.abort();
+                }, 360000); // 360 second timeout (6 minutes) to allow sufficient time for AI plan generation
 
                 // Add forceRegenerate flag to bypass cache and generate new plan
                 const requestData = {
