@@ -1,10 +1,10 @@
 {
-  "id": "/",
+  "id": "/aidiet/",
   "name": "NutriPlan",
   "short_name": "NutriPlan",
   "description": "Твоят персонален хранителен режим",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/aidiet/",
+  "scope": "/aidiet/",
   "display": "standalone",
   "background_color": "#10b981",
   "theme_color": "#10b981",
