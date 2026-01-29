@@ -2,13 +2,43 @@
  * Cloudflare Worker for AI Diet Application
  * Backend endpoint: https://aidiet.radilov-k.workers.dev/
  * 
- * AI OPTIMIZATION STRATEGY:
- * Goal: Prevent overloading AI model while maintaining FULL data analysis quality
- * Approach: Distribute complex tasks across MULTIPLE AI requests instead of reducing data
- * - NO compromise on data completeness, analysis precision, or individualization
- * - Split large tasks into focused sub-tasks when needed
- * - Maintain high token limits to ensure detailed, quality responses
- * - Keep full context and correlational analysis capabilities
+ * AI LOAD DISTRIBUTION STRATEGY:
+ * 
+ * Problem: Sending all data in a single large request can overload AI model and reduce quality
+ * Solution: Multi-step architecture that distributes work across focused requests
+ * 
+ * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
+ * 
+ * ARCHITECTURE - Plan Generation (5-6 requests):
+ *   1. Analysis Request (4k token limit)
+ *      - Input: Full user data (profile, habits, medical, preferences)
+ *      - Output: Holistic health analysis with correlations
+ *   
+ *   2. Strategy Request (4k token limit)
+ *      - Input: User data + Analysis results
+ *      - Output: Personalized dietary strategy and approach
+ *   
+ *   3. Meal Plan Requests (4 requests, 8k token limit each)
+ *      - Progressive generation: 2 days per chunk
+ *      - Input: User data + Analysis + Strategy + Previous days context
+ *      - Output: Detailed meals with macros and descriptions
+ *      - Chunks: Day 1-2, Day 3-4, Day 5-6, Day 7
+ *   
+ *   4. Summary Request (2k token limit)
+ *      - Input: Strategy + Generated week plan
+ *      - Output: Summary, recommendations, psychology tips
+ * 
+ * ARCHITECTURE - Chat (1 request per message):
+ *   - Input: Full user data + Full plan + Conversation history (2k tokens max)
+ *   - Output: Response (2k token limit)
+ *   - Uses full context for precise consultation
+ * 
+ * BENEFITS:
+ *   ✓ Each request focused on specific task with full relevant data
+ *   ✓ No single request exceeds ~10k input tokens
+ *   ✓ Better error handling (chunk failures don't fail entire generation)
+ *   ✓ Progressive refinement (later days build on earlier days)
+ *   ✓ Full analysis quality maintained throughout
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -2869,119 +2899,6 @@ async function getChatPrompts(env) {
 }
 
 /**
- * UTILITY FUNCTIONS FOR DATA COMPACTING (Currently Not Used)
- * 
- * NOTE: These functions were created for reducing prompt size, but per requirements,
- * we must NOT compromise on data completeness, analysis precision, or individualization.
- * Keeping them here for potential future use in non-critical contexts where data reduction
- * doesn't impact quality (e.g., logging, debugging, or optional optimizations).
- */
-
-/**
- * Create a compact version of userData for chat prompts (consultation mode)
- * Only includes essential fields needed for answering questions
- * WARNING: Not currently used - we use full data to maintain analysis quality
- */
-function compactUserData(userData) {
-  return {
-    name: userData.name,
-    age: userData.age,
-    gender: userData.gender,
-    weight: userData.weight,
-    height: userData.height,
-    goal: userData.goal,
-    dietPreference: userData.dietPreference,
-    dietDislike: userData.dietDislike,
-    dietLove: userData.dietLove,
-    medicalConditions: userData.medicalConditions,
-    medications: userData.medications
-  };
-}
-
-/**
- * Create a compact version of userPlan for chat prompts (consultation mode)
- * Only includes summary and meal structure without detailed descriptions
- */
-function compactUserPlan(userPlan) {
-  if (!userPlan || !userPlan.weekPlan) return userPlan;
-  
-  const compactWeekPlan = {};
-  for (const [day, dayData] of Object.entries(userPlan.weekPlan)) {
-    compactWeekPlan[day] = {
-      meals: dayData.meals.map(meal => ({
-        type: meal.type,
-        time: meal.time,
-        name: meal.name,
-        calories: meal.calories
-      }))
-    };
-  }
-  
-  return {
-    summary: userPlan.summary,
-    weekPlan: compactWeekPlan,
-    recommendations: userPlan.recommendations,
-    forbidden: userPlan.forbidden
-  };
-}
-
-/**
- * Create a summarized version of userData for analysis prompts
- * Removes verbose fields that don't contribute significantly to analysis
- */
-function summarizeUserDataForAnalysis(userData) {
-  // Return a copy with only the most important fields
-  const summarized = {
-    name: userData.name,
-    age: userData.age,
-    gender: userData.gender,
-    height: userData.height,
-    weight: userData.weight,
-    goal: userData.goal,
-    lossKg: userData.lossKg,
-    
-    // Sleep & circadian (keep essential only)
-    sleepHours: userData.sleepHours,
-    sleepInterrupt: userData.sleepInterrupt,
-    chronotype: userData.chronotype,
-    
-    // Activity & stress
-    sportActivity: userData.sportActivity,
-    dailyActivityLevel: userData.dailyActivityLevel,
-    stressLevel: userData.stressLevel,
-    
-    // Nutrition & hydration (simplified)
-    waterIntake: userData.waterIntake,
-    drinksSweet: userData.drinksSweet,
-    drinksAlcohol: userData.drinksAlcohol,
-    
-    // Eating behavior (key fields only)
-    overeatingFrequency: userData.overeatingFrequency,
-    foodCravings: userData.foodCravings,
-    foodTriggers: userData.foodTriggers,
-    
-    // Medical
-    medicalConditions: userData.medicalConditions,
-    medications: userData.medications,
-    medicationsDetails: userData.medicationsDetails,
-    
-    // Preferences
-    dietPreference: userData.dietPreference,
-    dietDislike: userData.dietDislike,
-    dietLove: userData.dietLove
-  };
-  
-  // Remove undefined fields to reduce size
-  Object.keys(summarized).forEach(key => {
-    if (summarized[key] === undefined || summarized[key] === null) {
-      delete summarized[key];
-    }
-  });
-  
-  return summarized;
-}
-
-/**
  * Improved token estimation for mixed Cyrillic/Latin text
  * Cyrillic characters typically use 2-3 bytes in UTF-8, so tokens/char ratio is higher
  */
@@ -3002,22 +2919,24 @@ function estimateTokenCount(text) {
 }
 
 /**
- * Call AI model with optimized request distribution
- * Goal: Avoid overloading single requests while maintaining full data analysis quality
+ * Call AI model with load monitoring
+ * Goal: Monitor request sizes to ensure no single request is overloaded
+ * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
  */
 async function callAIModel(env, prompt, maxTokens = null) {
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(prompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
-  // Warn if input prompt is large - suggest splitting into multiple requests
+  // Monitor for large prompts - informational only
+  // Note: Progressive generation already distributes meal plan across multiple requests
   if (estimatedInputTokens > 8000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. Consider splitting into multiple AI requests to avoid overloading the model while maintaining analysis quality.`);
+    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context. Progressive generation is already enabled for meal plans.`);
   }
   
-  // Alert if prompt is very large - this should be split
+  // Alert if prompt is very large - may indicate issue
   if (estimatedInputTokens > 12000) {
-    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. This request should be split into multiple smaller requests to distribute load while preserving full data analysis.`);
+    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function to ensure this is intentional.`);
   }
   
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
