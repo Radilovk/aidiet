@@ -841,9 +841,13 @@ const ADLE_V8_SPECIAL_RULES = {
 };
 
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
-// Each chunk generates 2-3 days, building on previous days for variety and consistency
+// Progressive generation configuration:
+// - Splits 7-day plan into smaller chunks to avoid overloading single AI request
+// - Each chunk maintains full data quality and precision
+// - Smaller chunks = more requests but better load distribution
 const ENABLE_PROGRESSIVE_GENERATION = true;
-const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
+const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (optimal: 4 chunks total for 7 days)
+// Note: Can reduce to 1 day per chunk if needed for even better distribution (7 chunks total)
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -1825,7 +1829,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
         startDay, endDay, previousDays
       );
       
+      const chunkInputTokens = estimateTokenCount(chunkPrompt);
+      console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
+      
       const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT);
+      const chunkOutputTokens = estimateTokenCount(chunkResponse);
+      console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
+      
       const chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
