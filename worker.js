@@ -55,41 +55,15 @@ const PLAN_MODIFICATION_DESCRIPTIONS = {
 // Meal name and description formatting instructions for AI prompts
 const MEAL_NAME_FORMAT_INSTRUCTIONS = `
 === ФОРМАТ НА MEAL NAME И DESCRIPTION ===
-КРИТИЧНО ВАЖНО: Спазвай СТРОГО следния формат за структуриране на name и description:
+"name" (структуриран със символи):
+• Салата: [име] (ако има)
+• Основно: [име] с [гарнитура]
+• Хляб: [количество вид] (ако има)
 
-ФОРМАТ НА "name" (структуриран със СИМВОЛИ):
-- Използвай символи (•, -, *) за структура, НЕ пиши изречения
-- Разделяй компонентите на отделни редове със символи
-- Формат: компонент след компонент (без смесване)
+Примери: "• Салата Шопска\\n• Основно: Пилешки гърди на скара с картофено пюре", "• Овесена каша с боровинки"
+НЕ пиши изречения или смесени описания в name.
 
-Структура (по ред, само ако е налично):
-• Салата: [име на салатата] (ако има)
-• Основно: [име на основното ястие] (ако има гарнитура: "с [име на гарнитура]")
-• Хляб: [количество и вид] (ако има, напр. "1 филия пълнозърнест")
-
-Примери за ПРАВИЛЕН формат на name:
-✓ "• Салата Шопска\\n• Основно: Пилешки гърди на скара с картофено пюре"
-✓ "• Основно: Бяла риба печена с киноа"
-✓ "• Салата Зелена\\n• Основно: Леща яхния\\n• Хляб: 1 филия пълнозърнест"
-✓ "• Овесена каша с боровинки" (за закуска без салата/хляб)
-
-ЗАБРАНЕНИ формати за name (НЕ пиши така):
-✗ "Пилешки гърди на скара с картофено пюре и салата Шопска" (смесено описание)
-✗ "Печена бяла риба, приготвена с киноа и подправки" (изречение)
-✗ "Вкусна леща яхния с морков, червена леща и подправки" (твърде подробно)
-
-ФОРМАТ НА "description":
-- В description пиши ВСИЧКИ уточнения за:
-  * Начин на приготвяне (печено, задушено, на скара, пресно и т.н.)
-  * Препоръки за приготвяне
-  * Конкретни подправки (сол, черен пипер, риган, магданоз и т.н.)
-  * Допълнителни продукти (зехтин, лимон, чесън и т.н.)
-  * Количества и пропорции
-- Тук МОЖЕ да пишеш в изречения (естествен текст)
-
-Пример за ПРАВИЛНА комбинация name + description:
-name: "• Салата Зелена\\n• Основно: Пилешки гърди с киноа\\n• Хляб: 1 филия пълнозърнест"
-description: "Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган. Киноата се готви според инструкциите. Салатата е от зелени листа, краставици и чери домати с лимонов дресинг."
+"description": начин на приготвяне, подправки, продукти, количества (в изречения).
 `;
 
 
@@ -711,8 +685,8 @@ async function handleChat(request, env) {
       { role: 'assistant', content: finalResponse }
     );
     
-    // Trim history to keep within token budget (approx 1500 tokens = 6000 chars)
-    const MAX_HISTORY_TOKENS = 1500;
+    // Trim history to keep within token budget - optimized to reduce prompt size
+    const MAX_HISTORY_TOKENS = 1000;
     let totalTokens = 0;
     const trimmedHistory = [];
     
@@ -1328,7 +1302,7 @@ async function generatePlanMultiStep(env, data) {
     let analysisResponse, analysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt);
+      analysisResponse = await callAIModel(env, analysisPrompt, 3000);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1371,7 +1345,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt);
+      strategyResponse = await callAIModel(env, strategyPrompt, 3000);
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
