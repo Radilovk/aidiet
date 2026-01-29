@@ -679,6 +679,7 @@
             margin-bottom: 16px;
             font-weight: 700;
             padding-right: 40px;
+            white-space: pre-line;
         }
 
         .modal-body {
@@ -2214,6 +2215,13 @@
             }
         }
 
+        // Helper function to escape HTML and preserve newlines as <br>
+        function escapeHtmlWithBreaks(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
         // --- Render Day Meals ---
         function renderDay(dayNum) {
             currentDay = dayNum;
@@ -2248,9 +2256,9 @@
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
                 mealInfo.innerHTML = `
-                    <div class="meal-type">${meal.type}</div>
-                    <div class="meal-name">${meal.name}</div>
-                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${meal.weight}${meal.calories ? ` • ${meal.calories} kcal` : ''}</div>
+                    <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
+                    <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
+                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${meal.calories ? ` • ${Math.round(meal.calories)} kcal` : ''}</div>
                 `;
                 
                 mealCard.appendChild(mealInfo);
