@@ -679,6 +679,7 @@
             margin-bottom: 16px;
             font-weight: 700;
             padding-right: 40px;
+            white-space: pre-line;
         }
 
         .modal-body {
@@ -2247,9 +2248,11 @@
                 
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
+                // Replace newlines with <br> tags for proper display
+                const formattedMealName = meal.name.replace(/\n/g, '<br>');
                 mealInfo.innerHTML = `
                     <div class="meal-type">${meal.type}</div>
-                    <div class="meal-name">${meal.name}</div>
+                    <div class="meal-name">${formattedMealName}</div>
                     <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${meal.weight}${meal.calories ? ` • ${meal.calories} kcal` : ''}</div>
                 `;
                 
