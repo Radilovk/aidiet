@@ -1,16 +1,18 @@
 // Service Worker for NutriPlan PWA
+// Configure base path for GitHub Pages deployment
+const BASE_PATH = '/aidiet';
 const CACHE_NAME = 'nutriplan-v1';
 const STATIC_CACHE = [
-  '/aidiet/index.html',
-  '/aidiet/questionnaire.html',
-  '/aidiet/plan.html',
-  '/aidiet/profile.html',
-  '/aidiet/admin.html',
-  '/aidiet/icon-192x192.png',
-  '/aidiet/icon-192x192.svg',
-  '/aidiet/icon-512x512.png',
-  '/aidiet/icon-512x512.svg',
-  '/aidiet/manifest.json',
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/questionnaire.html`,
+  `${BASE_PATH}/plan.html`,
+  `${BASE_PATH}/profile.html`,
+  `${BASE_PATH}/admin.html`,
+  `${BASE_PATH}/icon-192x192.png`,
+  `${BASE_PATH}/icon-192x192.svg`,
+  `${BASE_PATH}/icon-512x512.png`,
+  `${BASE_PATH}/icon-512x512.svg`,
+  `${BASE_PATH}/manifest.json`,
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
@@ -72,11 +74,11 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           // Handle 404 responses for navigation requests - redirect to index.html
           if (response.status === 404 && request.mode === 'navigate') {
-            return caches.match('/aidiet/index.html').then(cachedIndex => {
+            return caches.match(`${BASE_PATH}/index.html`).then(cachedIndex => {
               if (cachedIndex) {
                 return cachedIndex;
               }
-              return fetch('/aidiet/index.html');
+              return fetch(`${BASE_PATH}/index.html`);
             });
           }
           
@@ -94,8 +96,8 @@ self.addEventListener('fetch', (event) => {
               return cachedResponse;
             }
             // Fallback to index.html for navigation requests
-            if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/aidiet/' || url.pathname === '/aidiet') {
-              return caches.match('/aidiet/index.html');
+            if (request.mode === 'navigate' || url.pathname === '/' || url.pathname.startsWith(BASE_PATH)) {
+              return caches.match(`${BASE_PATH}/index.html`);
             }
             // Return a basic 404 response
             return new Response('Not found', { status: 404 });
@@ -136,8 +138,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: event.data ? event.data.text() : 'Ново напомняне от NutriPlan',
-    icon: '/aidiet/icon-192x192.svg',
-    badge: '/aidiet/icon-192x192.svg',
+    icon: `${BASE_PATH}/icon-192x192.svg`,
+    badge: `${BASE_PATH}/icon-192x192.svg`,
     vibrate: [200, 100, 200],
     tag: 'nutriplan-notification',
     requireInteraction: false
@@ -154,6 +156,6 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   event.waitUntil(
-    clients.openWindow('/aidiet/index.html')
+    clients.openWindow(`${BASE_PATH}/index.html`)
   );
 });
