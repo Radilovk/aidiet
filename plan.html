@@ -2246,14 +2246,19 @@
                     );
                 };
                 
+                // Helper function to escape HTML and preserve newlines as <br>
+                function escapeHtmlWithBreaks(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML.replace(/\n/g, '<br>');
+                }
+                
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
-                // Replace newlines with <br> tags for proper display
-                const formattedMealName = meal.name.replace(/\n/g, '<br>');
                 mealInfo.innerHTML = `
-                    <div class="meal-type">${meal.type}</div>
-                    <div class="meal-name">${formattedMealName}</div>
-                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${meal.weight}${meal.calories ? ` • ${meal.calories} kcal` : ''}</div>
+                    <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
+                    <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
+                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${meal.calories ? ` • ${Math.round(meal.calories)} kcal` : ''}</div>
                 `;
                 
                 mealCard.appendChild(mealInfo);
