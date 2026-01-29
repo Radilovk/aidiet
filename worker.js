@@ -1,6 +1,14 @@
 /**
  * Cloudflare Worker for AI Diet Application
  * Backend endpoint: https://aidiet.radilov-k.workers.dev/
+ * 
+ * AI OPTIMIZATION STRATEGY:
+ * Goal: Prevent overloading AI model while maintaining FULL data analysis quality
+ * Approach: Distribute complex tasks across MULTIPLE AI requests instead of reducing data
+ * - NO compromise on data completeness, analysis precision, or individualization
+ * - Split large tasks into focused sub-tasks when needed
+ * - Maintain high token limits to ensure detailed, quality responses
+ * - Keep full context and correlational analysis capabilities
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -55,15 +63,41 @@ const PLAN_MODIFICATION_DESCRIPTIONS = {
 // Meal name and description formatting instructions for AI prompts
 const MEAL_NAME_FORMAT_INSTRUCTIONS = `
 === ФОРМАТ НА MEAL NAME И DESCRIPTION ===
-"name" (структуриран със символи):
-• Салата: [име] (ако има)
-• Основно: [име] с [гарнитура]
-• Хляб: [количество вид] (ако има)
+КРИТИЧНО ВАЖНО: Спазвай СТРОГО следния формат за структуриране на name и description:
 
-Примери: "• Салата Шопска\\n• Основно: Пилешки гърди на скара с картофено пюре", "• Овесена каша с боровинки"
-НЕ пиши изречения или смесени описания в name.
+ФОРМАТ НА "name" (структуриран със СИМВОЛИ):
+- Използвай символи (•, -, *) за структура, НЕ пиши изречения
+- Разделяй компонентите на отделни редове със символи
+- Формат: компонент след компонент (без смесване)
 
-"description": начин на приготвяне, подправки, продукти, количества (в изречения).
+Структура (по ред, само ако е налично):
+• Салата: [име на салатата] (ако има)
+• Основно: [име на основното ястие] (ако има гарнитура: "с [име на гарнитура]")
+• Хляб: [количество и вид] (ако има, напр. "1 филия пълнозърнест")
+
+Примери за ПРАВИЛЕН формат на name:
+✓ "• Салата Шопска\\n• Основно: Пилешки гърди на скара с картофено пюре"
+✓ "• Основно: Бяла риба печена с киноа"
+✓ "• Салата Зелена\\n• Основно: Леща яхния\\n• Хляб: 1 филия пълнозърнест"
+✓ "• Овесена каша с боровинки" (за закуска без салата/хляб)
+
+ЗАБРАНЕНИ формати за name (НЕ пиши така):
+✗ "Пилешки гърди на скара с картофено пюре и салата Шопска" (смесено описание)
+✗ "Печена бяла риба, приготвена с киноа и подправки" (изречение)
+✗ "Вкусна леща яхния с морков, червена леща и подправки" (твърде подробно)
+
+ФОРМАТ НА "description":
+- В description пиши ВСИЧКИ уточнения за:
+  * Начин на приготвяне (печено, задушено, на скара, пресно и т.н.)
+  * Препоръки за приготвяне
+  * Конкретни подправки (сол, черен пипер, риган, магданоз и т.н.)
+  * Допълнителни продукти (зехтин, лимон, чесън и т.н.)
+  * Количества и пропорции
+- Тук МОЖЕ да пишеш в изречения (естествен текст)
+
+Пример за ПРАВИЛНА комбинация name + description:
+name: "• Салата Зелена\\n• Основно: Пилешки гърди с киноа\\n• Хляб: 1 филия пълнозърнест"
+description: "Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган. Киноата се готви според инструкциите. Салатата е от зелени листа, краставици и чери домати с лимонов дресинг."
 `;
 
 
@@ -685,8 +719,8 @@ async function handleChat(request, env) {
       { role: 'assistant', content: finalResponse }
     );
     
-    // Trim history to keep within token budget - optimized to reduce prompt size
-    const MAX_HISTORY_TOKENS = 1000;
+    // Trim history to keep within token budget - keeping more history for better context
+    const MAX_HISTORY_TOKENS = 2000;
     let totalTokens = 0;
     const trimmedHistory = [];
     
@@ -748,9 +782,9 @@ async function handleChat(request, env) {
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 
-// Token limit for meal plan generation - optimized to reduce AI load
-// Note: This is the OUTPUT token limit. Reduced to 6000 for better performance
-const MEAL_PLAN_TOKEN_LIMIT = 6000;
+// Token limit for meal plan generation - must be high enough for detailed, high-quality responses
+// Note: This is the OUTPUT token limit. Set high to ensure complete, precise meal plans
+const MEAL_PLAN_TOKEN_LIMIT = 8000;
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -758,7 +792,7 @@ const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's cl
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_CORRECTION_ATTEMPTS = 3; // Maximum number of AI correction attempts before failing (must be >= 0)
-const CORRECTION_TOKEN_LIMIT = 6000; // Token limit for AI correction requests - optimized
+const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
@@ -1302,7 +1336,7 @@ async function generatePlanMultiStep(env, data) {
     let analysisResponse, analysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt, 3000);
+      analysisResponse = await callAIModel(env, analysisPrompt, 4000);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1345,7 +1379,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 3000);
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000);
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1455,7 +1489,53 @@ function generateAnalysisPrompt(data) {
   return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента.
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
-${JSON.stringify(summarizeUserDataForAnalysis(data), null, 2)}
+${JSON.stringify({
+  name: data.name,
+  age: data.age,
+  gender: data.gender,
+  height: data.height,
+  weight: data.weight,
+  goal: data.goal,
+  lossKg: data.lossKg,
+  
+  // Sleep & circadian rhythm
+  sleepHours: data.sleepHours,
+  sleepInterrupt: data.sleepInterrupt,
+  chronotype: data.chronotype,
+  
+  // Activity & stress
+  sportActivity: data.sportActivity,
+  dailyActivityLevel: data.dailyActivityLevel,
+  stressLevel: data.stressLevel,
+  
+  // Nutrition & hydration
+  waterIntake: data.waterIntake,
+  drinksSweet: data.drinksSweet,
+  drinksAlcohol: data.drinksAlcohol,
+  
+  // Eating behavior - FULL DATA for precise correlational analysis
+  overeatingFrequency: data.overeatingFrequency,
+  eatingHabits: data.eatingHabits,
+  foodCravings: data.foodCravings,
+  foodTriggers: data.foodTriggers,
+  compensationMethods: data.compensationMethods,
+  socialComparison: data.socialComparison,
+  
+  // Medical & history - FULL DATA for comprehensive understanding
+  medicalConditions: data.medicalConditions,
+  medications: data.medications,
+  medicationsDetails: data.medicationsDetails,
+  weightChange: data.weightChange,
+  weightChangeDetails: data.weightChangeDetails,
+  dietHistory: data.dietHistory,
+  dietType: data.dietType,
+  dietResult: data.dietResult,
+  
+  // Preferences
+  dietPreference: data.dietPreference,
+  dietDislike: data.dietDislike,
+  dietLove: data.dietLove
+}, null, 2)}
 
 ═══ ИЗЧИСЛЕНИ СТОЙНОСТИ (Backend) ═══
 BMR: ${bmr} kcal (Mifflin-St Jeor формула)
@@ -2578,24 +2658,23 @@ async function generateNutritionPrompt(data, env) {
 }
 
 /**
- * Generate chat prompt with optimized context
- * Uses compact data for consultation mode to reduce token usage
+ * Generate chat prompt with full context for precise analysis
+ * NOTE: Uses full data in both modes to ensure comprehensive understanding of user context
  */
 async function generateChatPrompt(env, userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
-  // Optimize data based on mode - consultation uses compact data, modification needs full data
-  const contextUserData = mode === 'consultation' ? compactUserData(userData) : userData;
-  const contextUserPlan = mode === 'consultation' ? compactUserPlan(userPlan) : userPlan;
+  // Use FULL data for both modes to ensure precise, comprehensive analysis
+  // No compromise on data completeness for individualization and quality
   
-  // Base context with optimized data
+  // Base context with complete data
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
 КЛИЕНТСКИ ПРОФИЛ:
-${JSON.stringify(contextUserData, null, 2)}
+${JSON.stringify(userData, null, 2)}
 
-ХРАНИТЕЛЕН ПЛАН:
-${JSON.stringify(contextUserPlan, null, 2)}
+ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
+${JSON.stringify(userPlan, null, 2)}
 
-${conversationHistory.length > 0 ? `ИСТОРИЯ:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
+${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 `;
 
   // Get mode-specific instructions from KV (with caching)
@@ -2780,8 +2859,18 @@ async function getChatPrompts(env) {
 }
 
 /**
+ * UTILITY FUNCTIONS FOR DATA COMPACTING (Currently Not Used)
+ * 
+ * NOTE: These functions were created for reducing prompt size, but per requirements,
+ * we must NOT compromise on data completeness, analysis precision, or individualization.
+ * Keeping them here for potential future use in non-critical contexts where data reduction
+ * doesn't impact quality (e.g., logging, debugging, or optional optimizations).
+ */
+
+/**
  * Create a compact version of userData for chat prompts (consultation mode)
  * Only includes essential fields needed for answering questions
+ * WARNING: Not currently used - we use full data to maintain analysis quality
  */
 function compactUserData(userData) {
   return {
@@ -2903,21 +2992,22 @@ function estimateTokenCount(text) {
 }
 
 /**
- * Call AI model (placeholder for Gemini or OpenAI)
+ * Call AI model with optimized request distribution
+ * Goal: Avoid overloading single requests while maintaining full data analysis quality
  */
 async function callAIModel(env, prompt, maxTokens = null) {
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(prompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
-  // Warn if input prompt is large - reduced threshold for better optimization
-  if (estimatedInputTokens > 6000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. Consider optimizing prompt size.`);
+  // Warn if input prompt is large - suggest splitting into multiple requests
+  if (estimatedInputTokens > 8000) {
+    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. Consider splitting into multiple AI requests to avoid overloading the model while maintaining analysis quality.`);
   }
   
-  // Alert if prompt is very large
-  if (estimatedInputTokens > 10000) {
-    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. This may cause API issues or high costs.`);
+  // Alert if prompt is very large - this should be split
+  if (estimatedInputTokens > 12000) {
+    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. This request should be split into multiple smaller requests to distribute load while preserving full data analysis.`);
   }
   
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
