@@ -1057,8 +1057,9 @@
 
         async function saveChanges() {
             // Validate data before saving
-            if (!validateFormData()) {
-                showAlert('⚠️ Моля, попълнете всички задължителни полета правилно.', 'warning');
+            const validationResult = validateFormDataWithDetails();
+            if (!validationResult.isValid) {
+                showAlert(`⚠️ Моля, попълнете правилно полето: ${validationResult.fieldLabel}`, 'warning');
                 return;
             }
             
@@ -1096,8 +1097,9 @@
 
         async function saveAndRegeneratePlan() {
             // Validate data before saving
-            if (!validateFormData()) {
-                showAlert('⚠️ Моля, попълнете всички задължителни полета правилно.', 'warning');
+            const validationResult = validateFormDataWithDetails();
+            if (!validationResult.isValid) {
+                showAlert(`⚠️ Моля, попълнете правилно полето: ${validationResult.fieldLabel}`, 'warning');
                 return;
             }
             
@@ -1194,30 +1196,48 @@
 
         // Validation function
         function validateFormData() {
-            const requiredFields = ['name', 'email', 'gender', 'age', 'height', 'weight', 'goal'];
+            const result = validateFormDataWithDetails();
+            return result.isValid;
+        }
+
+        // Enhanced validation function that returns details about validation failure
+        function validateFormDataWithDetails() {
+            const requiredFields = {
+                'name': 'Име',
+                'email': 'Имейл',
+                'gender': 'Пол',
+                'age': 'Възраст',
+                'height': 'Ръст',
+                'weight': 'Тегло',
+                'goal': 'Цел'
+            };
             const inputs = document.querySelectorAll('[data-field]');
             
             for (const input of inputs) {
                 const field = input.getAttribute('data-field');
-                if (requiredFields.includes(field)) {
+                if (field in requiredFields) {
                     const value = input.value.trim();
                     if (!value) {
+                        console.error('Validation failed: Empty field -', field);
                         input.focus();
-                        return false;
+                        return { isValid: false, field: field, fieldLabel: requiredFields[field], reason: 'empty' };
                     }
                     
                     // Additional validation
                     if (field === 'email' && !isValidEmail(value)) {
+                        console.error('Validation failed: Invalid email format');
                         input.focus();
-                        return false;
+                        return { isValid: false, field: field, fieldLabel: requiredFields[field], reason: 'invalid_email' };
                     }
                     if ((field === 'age' || field === 'height' || field === 'weight') && (isNaN(value) || value <= 0)) {
+                        console.error('Validation failed: Invalid number for', field, '-', value);
                         input.focus();
-                        return false;
+                        return { isValid: false, field: field, fieldLabel: requiredFields[field], reason: 'invalid_number' };
                     }
                 }
             }
-            return true;
+            console.log('Validation passed for all required fields');
+            return { isValid: true };
         }
 
         function isValidEmail(email) {
