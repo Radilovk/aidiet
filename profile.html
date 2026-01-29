@@ -1225,7 +1225,7 @@
                     
                     // Additional validation
                     if (field === 'email' && !isValidEmail(value)) {
-                        console.error('Validation failed: Invalid email -', value);
+                        console.error('Validation failed: Invalid email format');
                         input.focus();
                         return { isValid: false, field: field, fieldLabel: requiredFields[field], reason: 'invalid_email' };
                     }
