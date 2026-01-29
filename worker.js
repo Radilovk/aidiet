@@ -1,6 +1,44 @@
 /**
  * Cloudflare Worker for AI Diet Application
  * Backend endpoint: https://aidiet.radilov-k.workers.dev/
+ * 
+ * AI LOAD DISTRIBUTION STRATEGY:
+ * 
+ * Problem: Sending all data in a single large request can overload AI model and reduce quality
+ * Solution: Multi-step architecture that distributes work across focused requests
+ * 
+ * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
+ * 
+ * ARCHITECTURE - Plan Generation (5-6 requests):
+ *   1. Analysis Request (4k token limit)
+ *      - Input: Full user data (profile, habits, medical, preferences)
+ *      - Output: Holistic health analysis with correlations
+ *   
+ *   2. Strategy Request (4k token limit)
+ *      - Input: User data + Analysis results
+ *      - Output: Personalized dietary strategy and approach
+ *   
+ *   3. Meal Plan Requests (4 requests, 8k token limit each)
+ *      - Progressive generation: 2 days per chunk
+ *      - Input: User data + Analysis + Strategy + Previous days context
+ *      - Output: Detailed meals with macros and descriptions
+ *      - Chunks: Day 1-2, Day 3-4, Day 5-6, Day 7
+ *   
+ *   4. Summary Request (2k token limit)
+ *      - Input: Strategy + Generated week plan
+ *      - Output: Summary, recommendations, psychology tips
+ * 
+ * ARCHITECTURE - Chat (1 request per message):
+ *   - Input: Full user data + Full plan + Conversation history (2k tokens max)
+ *   - Output: Response (2k token limit)
+ *   - Uses full context for precise consultation
+ * 
+ * BENEFITS:
+ *   ✓ Each request focused on specific task with full relevant data
+ *   ✓ No single request exceeds ~10k input tokens
+ *   ✓ Better error handling (chunk failures don't fail entire generation)
+ *   ✓ Progressive refinement (later days build on earlier days)
+ *   ✓ Full analysis quality maintained throughout
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -711,8 +749,8 @@ async function handleChat(request, env) {
       { role: 'assistant', content: finalResponse }
     );
     
-    // Trim history to keep within token budget (approx 1500 tokens = 6000 chars)
-    const MAX_HISTORY_TOKENS = 1500;
+    // Trim history to keep within token budget - keeping more history for better context
+    const MAX_HISTORY_TOKENS = 2000;
     let totalTokens = 0;
     const trimmedHistory = [];
     
@@ -774,8 +812,8 @@ async function handleChat(request, env) {
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 
-// Token limit for meal plan generation - increased to ensure all 7 days with 3-4 meals each are generated with detailed macros
-// Note: This is the OUTPUT token limit. Increased from 5000 to 8000 to allow for complete macro calculations per meal
+// Token limit for meal plan generation - must be high enough for detailed, high-quality responses
+// Note: This is the OUTPUT token limit. Set high to ensure complete, precise meal plans
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
 
 // Validation constants
@@ -784,7 +822,7 @@ const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's cl
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_CORRECTION_ATTEMPTS = 3; // Maximum number of AI correction attempts before failing (must be >= 0)
-const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests
+const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
@@ -833,9 +871,13 @@ const ADLE_V8_SPECIAL_RULES = {
 };
 
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
-// Each chunk generates 2-3 days, building on previous days for variety and consistency
+// Progressive generation configuration:
+// - Splits 7-day plan into smaller chunks to avoid overloading single AI request
+// - Each chunk maintains full data quality and precision
+// - Smaller chunks = more requests but better load distribution
 const ENABLE_PROGRESSIVE_GENERATION = true;
-const DAYS_PER_CHUNK = 2; // Generate 2 days at a time for optimal balance
+const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (optimal: 4 chunks total for 7 days)
+// Note: Can reduce to 1 day per chunk if needed for even better distribution (7 chunks total)
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -1328,7 +1370,7 @@ async function generatePlanMultiStep(env, data) {
     let analysisResponse, analysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt);
+      analysisResponse = await callAIModel(env, analysisPrompt, 4000);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1371,7 +1413,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt);
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000);
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1505,7 +1547,7 @@ ${JSON.stringify({
   drinksSweet: data.drinksSweet,
   drinksAlcohol: data.drinksAlcohol,
   
-  // Eating behavior
+  // Eating behavior - FULL DATA for precise correlational analysis
   overeatingFrequency: data.overeatingFrequency,
   eatingHabits: data.eatingHabits,
   foodCravings: data.foodCravings,
@@ -1513,7 +1555,7 @@ ${JSON.stringify({
   compensationMethods: data.compensationMethods,
   socialComparison: data.socialComparison,
   
-  // Medical & history
+  // Medical & history - FULL DATA for comprehensive understanding
   medicalConditions: data.medicalConditions,
   medications: data.medications,
   medicationsDetails: data.medicationsDetails,
@@ -1817,7 +1859,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
         startDay, endDay, previousDays
       );
       
+      const chunkInputTokens = estimateTokenCount(chunkPrompt);
+      console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
+      
       const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT);
+      const chunkOutputTokens = estimateTokenCount(chunkResponse);
+      console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
+      
       const chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
@@ -2650,10 +2698,14 @@ async function generateNutritionPrompt(data, env) {
 }
 
 /**
- * Generate chat prompt with full context
+ * Generate chat prompt with full context for precise analysis
+ * NOTE: Uses full data in both modes to ensure comprehensive understanding of user context
  */
 async function generateChatPrompt(env, userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
-  // Base context that's always included
+  // Use FULL data for both modes to ensure precise, comprehensive analysis
+  // No compromise on data completeness for individualization and quality
+  
+  // Base context with complete data
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
 КЛИЕНТСКИ ПРОФИЛ:
@@ -2867,16 +2919,24 @@ function estimateTokenCount(text) {
 }
 
 /**
- * Call AI model (placeholder for Gemini or OpenAI)
+ * Call AI model with load monitoring
+ * Goal: Monitor request sizes to ensure no single request is overloaded
+ * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
  */
 async function callAIModel(env, prompt, maxTokens = null) {
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(prompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
-  // Warn if input prompt is very large (potential issue with Gemini)
+  // Monitor for large prompts - informational only
+  // Note: Progressive generation already distributes meal plan across multiple requests
   if (estimatedInputTokens > 8000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This may exceed API limits for some models.`);
+    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context. Progressive generation is already enabled for meal plans.`);
+  }
+  
+  // Alert if prompt is very large - may indicate issue
+  if (estimatedInputTokens > 12000) {
+    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function to ensure this is intentional.`);
   }
   
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
