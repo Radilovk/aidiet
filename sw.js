@@ -1,16 +1,16 @@
 // Service Worker for NutriPlan PWA
 const CACHE_NAME = 'nutriplan-v1';
 const STATIC_CACHE = [
-  './index.html',
-  './questionnaire.html',
-  './plan.html',
-  './profile.html',
-  './admin.html',
-  './icon-192x192.png',
-  './icon-192x192.svg',
-  './icon-512x512.png',
-  './icon-512x512.svg',
-  './manifest.json',
+  '/aidiet/index.html',
+  '/aidiet/questionnaire.html',
+  '/aidiet/plan.html',
+  '/aidiet/profile.html',
+  '/aidiet/admin.html',
+  '/aidiet/icon-192x192.png',
+  '/aidiet/icon-192x192.svg',
+  '/aidiet/icon-512x512.png',
+  '/aidiet/icon-512x512.svg',
+  '/aidiet/manifest.json',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
@@ -72,11 +72,11 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           // Handle 404 responses for navigation requests - redirect to index.html
           if (response.status === 404 && request.mode === 'navigate') {
-            return caches.match('./index.html').then(cachedIndex => {
+            return caches.match('/aidiet/index.html').then(cachedIndex => {
               if (cachedIndex) {
                 return cachedIndex;
               }
-              return fetch('./index.html');
+              return fetch('/aidiet/index.html');
             });
           }
           
@@ -94,8 +94,8 @@ self.addEventListener('fetch', (event) => {
               return cachedResponse;
             }
             // Fallback to index.html for navigation requests
-            if (request.mode === 'navigate' || url.pathname === '/') {
-              return caches.match('./index.html');
+            if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/aidiet/' || url.pathname === '/aidiet') {
+              return caches.match('/aidiet/index.html');
             }
             // Return a basic 404 response
             return new Response('Not found', { status: 404 });
@@ -136,8 +136,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: event.data ? event.data.text() : 'Ново напомняне от NutriPlan',
-    icon: './icon-192x192.svg',
-    badge: './icon-192x192.svg',
+    icon: '/aidiet/icon-192x192.svg',
+    badge: '/aidiet/icon-192x192.svg',
     vibrate: [200, 100, 200],
     tag: 'nutriplan-notification',
     requireInteraction: false
@@ -154,6 +154,6 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   event.waitUntil(
-    clients.openWindow('./index.html')
+    clients.openWindow('/aidiet/index.html')
   );
 });
