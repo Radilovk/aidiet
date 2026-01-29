@@ -825,7 +825,7 @@ const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermitt
 const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's clear reasoning and strategy)
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
-const MAX_CORRECTION_ATTEMPTS = 3; // Maximum number of AI correction attempts before failing (must be >= 0)
+const MAX_CORRECTION_ATTEMPTS = 4; // Maximum number of AI correction attempts before failing (must be >= 0)
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
@@ -1294,6 +1294,8 @@ ${JSON.stringify({
 }, null, 2)}
 
 ═══ ПРАВИЛА ЗА КОРИГИРАНЕ ═══
+
+${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
 ВАЖНО - СТРАТЕГИЯ И ОБОСНОВКА:
 1. ВСЯКА корекция ТРЯБВА да бъде обоснована
