@@ -335,27 +335,7 @@
             box-shadow: 0 2px 10px rgba(16, 185, 129, 0.5);
         }
 
-        .theme-toggle {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: var(--card-bg);
-            border: 2px solid var(--text-gray);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-dark);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 100;
-        }
-        .theme-toggle:hover {
-            border-color: var(--primary-red);
-            transform: scale(1.05);
-        }
+
         .btn-next:disabled {
             background-color: #e0e0e0;
             box-shadow: none;
@@ -814,11 +794,6 @@
         </div>
     </div>
 
-    <!-- Theme Toggle -->
-    <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема">
-        <i class="fas fa-moon" id="themeIcon"></i>
-    </button>
-
     <!-- Progress -->
     <div class="progress-container">
         <div class="progress-track">
@@ -844,24 +819,19 @@
 
     <script>
         // --- Theme Management ---
+        // Use system theme preference (matching index page behavior)
         function initializeTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
-        }
-
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        }
-
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById('themeIcon');
-            if (icon) {
-                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            // Check if user has a saved preference in localStorage (from other pages)
+            const savedTheme = localStorage.getItem('theme');
+            
+            if (savedTheme) {
+                // Use saved preference if available
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } else {
+                // Otherwise, use system preference
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const systemTheme = prefersDark ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', systemTheme);
             }
         }
 
