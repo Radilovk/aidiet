@@ -1317,7 +1317,7 @@
         function activateTestMode() {
             // Sample test data for all questionnaire fields
             const testData = {
-                name: "какаду",
+                name: "kakadu",  // Using Latin for consistency with trigger
                 gender: "Жена",
                 age: "35",
                 height: "165",
@@ -1359,6 +1359,7 @@
             localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
             
             // Navigate to the last question (before finish) with bounds check
+            // This allows the user to review the final question before submitting
             if (currentQueue && currentQueue.length > 0) {
                 currentIndex = currentQueue.length - 1;
                 renderStep();
