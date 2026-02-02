@@ -9,7 +9,7 @@
  * 
  * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
  * 
- * ARCHITECTURE - Plan Generation (5-6 requests):
+ * ARCHITECTURE - Plan Generation (9 requests):
  *   1. Analysis Request (4k token limit)
  *      - Input: Full user data (profile, habits, medical, preferences)
  *      - Output: Holistic health analysis with correlations
@@ -18,13 +18,13 @@
  *      - Input: User data + Analysis results
  *      - Output: Personalized dietary strategy and approach
  *   
- *   3. Meal Plan Requests (4 requests, 8k token limit each)
- *      - Progressive generation: 2 days per chunk
+ *   3. Meal Plan Requests (7 requests, 8k token limit each)
+ *      - Progressive generation: 1 day per chunk for minimum load
  *      - Input: User data + Analysis + Strategy + Previous days context
  *      - Output: Detailed meals with macros and descriptions
- *      - Chunks: Day 1-2, Day 3-4, Day 5-6, Day 7
+ *      - Chunks: Day 1, Day 2, Day 3, Day 4, Day 5, Day 6, Day 7
  *   
- *   4. Summary Request (2k token limit)
+ *   4. Summary Request (optional, 2k token limit)
  *      - Input: Strategy + Generated week plan
  *      - Output: Summary, recommendations, psychology tips
  * 
@@ -35,10 +35,11 @@
  * 
  * BENEFITS:
  *   ✓ Each request focused on specific task with full relevant data
- *   ✓ No single request exceeds ~10k input tokens
+ *   ✓ No single request exceeds ~8k input tokens
  *   ✓ Better error handling (chunk failures don't fail entire generation)
  *   ✓ Progressive refinement (later days build on earlier days)
  *   ✓ Full analysis quality maintained throughout
+ *   ✓ Minimum load per request - maximum reliability
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -977,8 +978,8 @@ const ADLE_V8_SPECIAL_RULES = {
 // - Each chunk maintains full data quality and precision
 // - Smaller chunks = more requests but better load distribution
 const ENABLE_PROGRESSIVE_GENERATION = true;
-const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (optimal: 4 chunks total for 7 days)
-// Note: Can reduce to 1 day per chunk if needed for even better distribution (7 chunks total)
+const DAYS_PER_CHUNK = 1; // Generate 1 day at a time for minimum load per request (7 chunks total for 7 days)
+// Precision and minimum load per request are priorities - more granular = more reliable
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
