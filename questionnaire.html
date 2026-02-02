@@ -1202,7 +1202,12 @@
                     card.appendChild(otherContainer);
 
                     // Check if we need to show it initially (if user went back)
-                    if(answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes('Друго')) {
+                    if(step.type === 'radio' && answers[step.id] === 'Друго') {
+                        // For radio buttons, check if the answer is 'Друго'
+                        otherContainer.classList.add('active');
+                        if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
+                    } else if(step.type === 'checkbox' && answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes('Друго')) {
+                        // For checkboxes, check if the array includes 'Друго'
                         otherContainer.classList.add('active');
                         if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
                     }
@@ -1223,6 +1228,16 @@
                 });
                 labelElem.classList.add('selected');
                 saveAnswer(qId, val);
+                
+                // Handle "Other" display for radio buttons
+                const otherContainer = document.getElementById(`other_${qId}`);
+                if(otherContainer) {
+                    if(val === 'Друго') {
+                        otherContainer.classList.add('active');
+                    } else {
+                        otherContainer.classList.remove('active');
+                    }
+                }
             } 
             else if (type === 'checkbox') {
                 // Handle mutual exclusion for negative options
