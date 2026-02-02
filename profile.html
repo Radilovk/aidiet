@@ -151,7 +151,7 @@
 
         /* Collapsible Plan Justification */
         .plan-justification-container {
-            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
+            background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
             border-radius: var(--radius);
             padding: 0;
             margin-bottom: 20px;
@@ -166,7 +166,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            color: white;
+            color: #ffffff;
             transition: all 0.3s ease;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -222,6 +222,10 @@
 
         [data-theme="dark"] .plan-justification-content {
             background: var(--card-bg);
+        }
+
+        [data-theme="dark"] .plan-justification-header {
+            color: #ffffff;
         }
         
         @media (max-width: 480px) {
