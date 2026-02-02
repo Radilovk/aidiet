@@ -149,6 +149,79 @@
             box-shadow: var(--shadow);
         }
 
+        /* Collapsible Plan Justification */
+        .plan-justification-container {
+            background: linear-gradient(135deg, var(--primary-red), rgba(52, 211, 153, 0.8));
+            border-radius: var(--radius);
+            padding: 0;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .plan-justification-header {
+            padding: 18px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .plan-justification-header:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .plan-justification-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .plan-justification-title i {
+            font-size: 1.4rem;
+        }
+
+        .plan-justification-toggle {
+            transition: transform 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .plan-justification-toggle.open {
+            transform: rotate(180deg);
+        }
+
+        .plan-justification-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            background: white;
+        }
+
+        .plan-justification-content.open {
+            max-height: 1000px;
+        }
+
+        .plan-justification-body {
+            padding: 20px;
+            color: var(--text-dark);
+            line-height: 1.7;
+        }
+
+        [data-theme="dark"] .plan-justification-content {
+            background: var(--card-bg);
+        }
+
+        [data-theme="dark"] .plan-justification-body {
+            color: var(--text-dark);
+        }
+
         .section-title {
             font-size: 1.2rem;
             font-weight: 700;
@@ -645,6 +718,22 @@
 
         <div id="alertContainer"></div>
 
+        <!-- Plan Justification (Collapsible) -->
+        <div class="plan-justification-container" id="planJustificationContainer" style="display: none;">
+            <div class="plan-justification-header" onclick="togglePlanJustification()">
+                <div class="plan-justification-title">
+                    <i class="fas fa-award"></i>
+                    <span>Защо този план е създаден специално за вас</span>
+                </div>
+                <i class="fas fa-chevron-down plan-justification-toggle" id="planJustificationToggle"></i>
+            </div>
+            <div class="plan-justification-content" id="planJustificationContent">
+                <div class="plan-justification-body">
+                    <p id="planJustificationProfileText">Зареждане...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Basic Info Section -->
         <div class="form-section">
             <div class="section-title">
@@ -909,6 +998,37 @@
         // --- Navigation ---
         function goBack() {
             window.location.href = 'plan.html';
+        }
+
+        // --- Plan Justification ---
+        function togglePlanJustification() {
+            const content = document.getElementById('planJustificationContent');
+            const toggle = document.getElementById('planJustificationToggle');
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                toggle.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                toggle.classList.add('open');
+            }
+        }
+
+        function loadPlanJustification() {
+            try {
+                const justification = localStorage.getItem('planJustification');
+                const container = document.getElementById('planJustificationContainer');
+                const textElement = document.getElementById('planJustificationProfileText');
+                
+                if (justification && justification.trim() !== '') {
+                    textElement.textContent = justification;
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading plan justification:', error);
+            }
         }
 
         // --- Data Loading ---
@@ -1379,6 +1499,7 @@
             initializeTheme();
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
+            loadPlanJustification(); // Load plan justification for profile
         });
 
         // --- PWA Install Banner Functionality ---
