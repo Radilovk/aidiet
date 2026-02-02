@@ -626,6 +626,12 @@
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             padding: 24px;
         }
+        
+        @media (max-width: 480px) {
+            .modal-overlay {
+                padding: 16px;
+            }
+        }
 
         .modal-overlay.active {
             opacity: 1;
@@ -707,7 +713,7 @@
         /* Welcome modal specific styles */
         .welcome-modal-card {
             max-width: 600px;
-            max-height: 85vh;
+            max-height: 90vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -716,10 +722,28 @@
         .welcome-modal-content {
             overflow-y: auto;
             overflow-x: hidden;
-            max-height: calc(85vh - 100px);
+            max-height: calc(90vh - 140px);
             padding-right: 10px;
             scrollbar-width: thin;
             scrollbar-color: var(--primary-red) var(--soft-red);
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+        
+        /* Mobile optimizations for welcome modal */
+        @media (max-width: 480px) {
+            .welcome-modal-card {
+                max-height: 92vh;
+                padding: 20px;
+            }
+            
+            .welcome-modal-content {
+                max-height: calc(92vh - 120px);
+                padding-right: 8px;
+            }
+            
+            .welcome-modal-body {
+                font-size: 0.95rem;
+            }
         }
         
         .welcome-modal-content::-webkit-scrollbar {
