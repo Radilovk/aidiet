@@ -847,7 +847,7 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг"], "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] } },
+            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] } },
             { "id": "secLifestyle", "type": "section", "sectionTitle": "Сън, ритъм и активност" },
             { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
             { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
@@ -1105,7 +1105,16 @@
                 input.className = 'modern-input';
                 input.placeholder = 'Вашият отговор...';
                 input.value = answers[step.id] || '';
-                input.oninput = (e) => saveAnswer(step.id, e.target.value);
+                input.oninput = (e) => {
+                    saveAnswer(step.id, e.target.value);
+                    // Test mode activation: when name is "kakadu" or "какаду"
+                    if (step.id === 'name') {
+                        const lowerValue = e.target.value.toLowerCase();
+                        if (lowerValue === 'kakadu' || lowerValue === 'какаду') {
+                            activateTestMode();
+                        }
+                    }
+                };
                 card.appendChild(input);
             } 
             else if (step.type === 'textarea') {
@@ -1196,7 +1205,12 @@
                     card.appendChild(otherContainer);
 
                     // Check if we need to show it initially (if user went back)
-                    if(answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes('Друго')) {
+                    if(step.type === 'radio' && answers[step.id] === 'Друго') {
+                        // For radio buttons, check if the answer is 'Друго'
+                        otherContainer.classList.add('active');
+                        if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
+                    } else if(step.type === 'checkbox' && answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes('Друго')) {
+                        // For checkboxes, check if the array includes 'Друго'
                         otherContainer.classList.add('active');
                         if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
                     }
@@ -1217,6 +1231,16 @@
                 });
                 labelElem.classList.add('selected');
                 saveAnswer(qId, val);
+                
+                // Handle "Other" display for radio buttons
+                const otherContainer = document.getElementById(`other_${qId}`);
+                if(otherContainer) {
+                    if(val === 'Друго') {
+                        otherContainer.classList.add('active');
+                    } else {
+                        otherContainer.classList.remove('active');
+                    }
+                }
             } 
             else if (type === 'checkbox') {
                 // Handle mutual exclusion for negative options
@@ -1287,6 +1311,59 @@
             answers[key] = value;
             // Persist to localStorage
             localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+        }
+
+        // --- TEST MODE: AUTO-FILL WITH "kakadu" ---
+        function activateTestMode() {
+            // Sample test data for all questionnaire fields
+            const testData = {
+                name: "kakadu",  // Using Latin for consistency with trigger
+                gender: "Жена",
+                age: "35",
+                height: "165",
+                weight: "70",
+                email: "test@example.com",
+                goal: "Отслабване",
+                lossKg: "5",
+                sleepHours: "7–8",
+                sleepInterrupt: "Не",
+                chronotype: "Сутрешен",
+                dailyActivityLevel: "Средно",
+                stressLevel: "Средно",
+                sportActivity: "Средна (2–4 дни седмично)",
+                waterIntake: "1.5–2 л",
+                drinksSweet: "Рядко",
+                drinksAlcohol: "Рядко",
+                weightChange: "Не",
+                dietHistory: "Не",
+                overeatingFrequency: "Понякога",
+                foodCravings: ["Сладко"],
+                foodTriggers: ["Стрес"],
+                eatingHabits: ["Не закусвам"],
+                compensationMethods: ["Не"],
+                socialComparison: "Рядко",
+                dietPreference: ["Средиземноморска"],
+                dietDislike: "Няма",
+                dietLove: "Плодове и зеленчуци",
+                medicalConditions: ["Нямам"],
+                medications: "Не",
+                additionalNotes: "Тестов режим активиран"
+            };
+
+            // Fill all answers
+            Object.keys(testData).forEach(key => {
+                answers[key] = testData[key];
+            });
+            
+            // Persist to localStorage
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            
+            // Navigate to the last question (before finish) with bounds check
+            // This allows the user to review the final question before submitting
+            if (currentQueue && currentQueue.length > 0) {
+                currentIndex = currentQueue.length - 1;
+                renderStep();
+            }
         }
 
         function validateInput() {
