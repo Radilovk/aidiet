@@ -9,24 +9,33 @@
  * 
  * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
  * 
- * ARCHITECTURE - Plan Generation (5-6 requests):
- *   1. Analysis Request (4k token limit)
- *      - Input: Full user data (profile, habits, medical, preferences)
- *      - Output: Holistic health analysis with correlations
+ * ARCHITECTURE - Plan Generation (10 requests):
+ *   1a. Basic Metabolic Analysis
+ *      - Input: Physical data, activity, medical conditions
+ *      - Output: BMR, TDEE, macro ratios, metabolic profile, nutritional needs
+ *      - Token limit: Gemini 800 / OpenAI 3000
  *   
- *   2. Strategy Request (4k token limit)
- *      - Input: User data + Analysis results
+ *   1b. Psychological & Risk Analysis
+ *      - Input: Sleep, stress, eating behaviors, medications, basic analysis
+ *      - Output: Psychological profile, health risks, success chance, problems
+ *      - Token limit: Gemini 800 / OpenAI 3000
+ *   
+ *   2. Strategy Request
+ *      - Input: User data + Combined analysis results
  *      - Output: Personalized dietary strategy and approach
+ *      - Token limit: Gemini 1200 / OpenAI 4000
  *   
- *   3. Meal Plan Requests (4 requests, 8k token limit each)
- *      - Progressive generation: 2 days per chunk
+ *   3. Meal Plan Requests (7 requests)
+ *      - Progressive generation: 1 day per chunk for minimum load
  *      - Input: User data + Analysis + Strategy + Previous days context
  *      - Output: Detailed meals with macros and descriptions
- *      - Chunks: Day 1-2, Day 3-4, Day 5-6, Day 7
+ *      - Chunks: Day 1, Day 2, Day 3, Day 4, Day 5, Day 6, Day 7
+ *      - Token limit: Gemini 1500 / OpenAI 8000
  *   
- *   4. Summary Request (2k token limit)
+ *   4. Summary Request (optional)
  *      - Input: Strategy + Generated week plan
  *      - Output: Summary, recommendations, psychology tips
+ *      - Token limit: Gemini 800 / OpenAI 2000
  * 
  * ARCHITECTURE - Chat (1 request per message):
  *   - Input: Full user data + Full plan + Conversation history (2k tokens max)
@@ -35,10 +44,12 @@
  * 
  * BENEFITS:
  *   ✓ Each request focused on specific task with full relevant data
- *   ✓ No single request exceeds ~10k input tokens
+ *   ✓ Provider-aware token limits (Gemini has stricter limits than OpenAI)
  *   ✓ Better error handling (chunk failures don't fail entire generation)
  *   ✓ Progressive refinement (later days build on earlier days)
  *   ✓ Full analysis quality maintained throughout
+ *   ✓ Minimum load per request - maximum reliability
+ *   ✓ Adaptive to AI provider capabilities (Gemini vs OpenAI)
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -488,7 +499,7 @@ async function handleGeneratePlan(request, env) {
       
       try {
         console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
-        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT);
+        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT, 'correction');
         const correctedPlan = parseAIResponse(correctionResponse);
         
         if (!correctedPlan || correctedPlan.error) {
@@ -612,7 +623,7 @@ async function handleChat(request, env) {
     const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, chatHistory, chatMode);
     
     // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
-    const aiResponse = await callAIModel(env, chatPrompt, 2000);
+    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat');
     
     // Check if the response contains a plan regeneration instruction
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
@@ -913,9 +924,35 @@ async function handleGetReports(request, env) {
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 
-// Token limit for meal plan generation - must be high enough for detailed, high-quality responses
-// Note: This is the OUTPUT token limit. Set high to ensure complete, precise meal plans
+// Token limits - Provider-aware configuration
+// Gemini has MUCH LOWER output limits than OpenAI!
+// Gemini Pro: ~2k output max (combined with input = 32k total)
+// OpenAI GPT-4o-mini: ~16k output max
+
+const TOKEN_LIMITS = {
+  // Gemini-specific limits (conservative to avoid MAX_TOKENS errors)
+  gemini: {
+    basicAnalysis: 800,      // Step 1a: Basic metabolic analysis
+    psychAnalysis: 800,      // Step 1b: Psychological analysis
+    strategy: 1200,          // Step 2: Strategy generation
+    mealPlan: 1500,          // Step 3: Meal plan per day
+    correction: 1200,        // Correction requests
+    chat: 800               // Chat responses
+  },
+  // OpenAI-specific limits (more generous)
+  openai: {
+    basicAnalysis: 3000,
+    psychAnalysis: 3000,
+    strategy: 4000,
+    mealPlan: 8000,
+    correction: 8000,
+    chat: 2000
+  }
+};
+
+// Legacy constants for backward compatibility
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
+const CORRECTION_TOKEN_LIMIT = 8000;
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -977,8 +1014,8 @@ const ADLE_V8_SPECIAL_RULES = {
 // - Each chunk maintains full data quality and precision
 // - Smaller chunks = more requests but better load distribution
 const ENABLE_PROGRESSIVE_GENERATION = true;
-const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (optimal: 4 chunks total for 7 days)
-// Note: Can reduce to 1 day per chunk if needed for even better distribution (7 chunks total)
+const DAYS_PER_CHUNK = 1; // Generate 1 day at a time for minimum load per request (7 chunks total for 7 days)
+// Precision and minimum load per request are priorities - more granular = more reliable
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -1459,7 +1496,7 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 }
 
 async function generatePlanMultiStep(env, data) {
-  console.log('Multi-step generation: Starting (3+ AI requests for precision)');
+  console.log('Multi-step generation: Starting (4+ AI requests for precision)');
   
   // Token tracking for multi-step generation
   let cumulativeTokens = {
@@ -1469,50 +1506,101 @@ async function generatePlanMultiStep(env, data) {
   };
   
   try {
-    // Step 1: Analyze user profile (1st AI request)
-    // Focus: Deep health analysis, metabolic profile, correlations
-    const analysisPrompt = generateAnalysisPrompt(data);
-    const analysisInputTokens = estimateTokenCount(analysisPrompt);
-    cumulativeTokens.input += analysisInputTokens;
+    // Step 1a: Basic Metabolic Analysis (1st AI request)
+    // Focus: BMR, TDEE, macro ratios, basic metabolic profile, nutritional needs
+    console.log('Multi-step generation: Step 1a - Basic metabolic analysis');
+    const basicAnalysisPrompt = generateBasicAnalysisPrompt(data);
+    const basicAnalysisInputTokens = estimateTokenCount(basicAnalysisPrompt);
+    cumulativeTokens.input += basicAnalysisInputTokens;
     
-    let analysisResponse, analysis;
+    let basicAnalysisResponse, basicAnalysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt, 4000);
-      const analysisOutputTokens = estimateTokenCount(analysisResponse);
-      cumulativeTokens.output += analysisOutputTokens;
+      basicAnalysisResponse = await callAIModel(env, basicAnalysisPrompt, 3000, 'basicAnalysis');
+      const basicAnalysisOutputTokens = estimateTokenCount(basicAnalysisResponse);
+      cumulativeTokens.output += basicAnalysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
-      console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
+      console.log(`Step 1a tokens: input=${basicAnalysisInputTokens}, output=${basicAnalysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
-      analysis = parseAIResponse(analysisResponse);
+      basicAnalysis = parseAIResponse(basicAnalysisResponse);
       
-      if (!analysis || analysis.error) {
-        const errorMsg = analysis.error || 'Невалиден формат на отговор';
-        console.error('Analysis parsing failed:', errorMsg);
-        console.error('AI Response preview (first 1000 chars):', analysisResponse?.substring(0, 1000));
-        throw new Error(`Анализът не можа да бъде създаден: ${errorMsg}`);
+      if (!basicAnalysis || basicAnalysis.error) {
+        const errorMsg = basicAnalysis.error || 'Невалиден формат на отговор';
+        console.error('Basic analysis parsing failed:', errorMsg);
+        console.error('AI Response preview (first 1000 chars):', basicAnalysisResponse?.substring(0, 1000));
+        throw new Error(`Основният анализ не можа да бъде създаден: ${errorMsg}`);
+      }
+    } catch (error) {
+      console.error('Basic analysis step failed:', error);
+      throw new Error(`Стъпка 1а (Основен Анализ): ${error.message}`);
+    }
+    
+    console.log('Multi-step generation: Basic analysis complete (1/10)');
+    
+    // Step 1b: Psychological & Risk Analysis (2nd AI request)
+    // Focus: Emotional eating, health risks, success chance, key problems
+    console.log('Multi-step generation: Step 1b - Psychological and risk analysis');
+    const psychAnalysisPrompt = generatePsychologicalAnalysisPrompt(data, basicAnalysis);
+    const psychAnalysisInputTokens = estimateTokenCount(psychAnalysisPrompt);
+    cumulativeTokens.input += psychAnalysisInputTokens;
+    
+    let psychAnalysisResponse, psychAnalysis;
+    
+    try {
+      psychAnalysisResponse = await callAIModel(env, psychAnalysisPrompt, 3000, 'psychAnalysis');
+      const psychAnalysisOutputTokens = estimateTokenCount(psychAnalysisResponse);
+      cumulativeTokens.output += psychAnalysisOutputTokens;
+      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      
+      console.log(`Step 1b tokens: input=${psychAnalysisInputTokens}, output=${psychAnalysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
+      
+      psychAnalysis = parseAIResponse(psychAnalysisResponse);
+      
+      if (!psychAnalysis || psychAnalysis.error) {
+        const errorMsg = psychAnalysis.error || 'Невалиден формат на отговор';
+        console.error('Psychological analysis parsing failed:', errorMsg);
+        console.error('AI Response preview (first 1000 chars):', psychAnalysisResponse?.substring(0, 1000));
+        throw new Error(`Психологическият анализ не можа да бъде създаден: ${errorMsg}`);
       }
       
       // REQUIREMENT 2: Filter out "Normal" severity problems from analysis
-      if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
-        const originalCount = analysis.keyProblems.length;
-        analysis.keyProblems = analysis.keyProblems.filter(problem => 
+      if (psychAnalysis.keyProblems && Array.isArray(psychAnalysis.keyProblems)) {
+        const originalCount = psychAnalysis.keyProblems.length;
+        psychAnalysis.keyProblems = psychAnalysis.keyProblems.filter(problem => 
           problem.severity !== 'Normal'
         );
-        const filteredCount = analysis.keyProblems.length;
+        const filteredCount = psychAnalysis.keyProblems.length;
         if (filteredCount < originalCount) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
     } catch (error) {
-      console.error('Analysis step failed:', error);
-      throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
+      console.error('Psychological analysis step failed:', error);
+      throw new Error(`Стъпка 1б (Психологически Анализ): ${error.message}`);
     }
     
-    console.log('Multi-step generation: Analysis complete (1/3)');
+    console.log('Multi-step generation: Psychological analysis complete (2/10)');
     
-    // Step 2: Generate dietary strategy based on analysis (2nd AI request)
+    // Combine both analysis parts into a complete analysis object
+    // Explicitly map properties to avoid conflicts
+    const analysis = {
+      // From basic analysis
+      bmr: basicAnalysis.bmr,
+      tdee: basicAnalysis.tdee,
+      recommendedCalories: basicAnalysis.recommendedCalories,
+      macroRatios: basicAnalysis.macroRatios,
+      metabolicProfile: basicAnalysis.metabolicProfile,
+      nutritionalNeeds: basicAnalysis.nutritionalNeeds,
+      // From psychological analysis
+      psychologicalProfile: psychAnalysis.psychologicalProfile,
+      healthRisks: psychAnalysis.healthRisks,
+      successChance: psychAnalysis.successChance,
+      successChanceReasoning: psychAnalysis.successChanceReasoning,
+      keyProblems: psychAnalysis.keyProblems
+    };
+    
+    // Step 2: Generate dietary strategy based on analysis (3rd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = generateStrategyPrompt(data, analysis);
     const strategyInputTokens = estimateTokenCount(strategyPrompt);
@@ -1521,7 +1609,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000);
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'strategy');
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1541,14 +1629,14 @@ async function generatePlanMultiStep(env, data) {
       throw new Error(`Стъпка 2 (Стратегия): ${error.message}`);
     }
     
-    console.log('Multi-step generation: Strategy complete (2/3)');
+    console.log('Multi-step generation: Strategy complete (3/10 - before meal plan)');
     
     // Step 3: Generate detailed meal plan
     // Use progressive generation if enabled (multiple smaller requests)
     let mealPlan;
     
     if (ENABLE_PROGRESSIVE_GENERATION) {
-      console.log('Multi-step generation: Using progressive meal plan generation');
+      console.log('Multi-step generation: Using progressive meal plan generation (requests 4-10)');
       try {
         mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy);
       } catch (error) {
@@ -1562,7 +1650,7 @@ async function generatePlanMultiStep(env, data) {
       let mealPlanResponse;
       
       try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'mealPlan');
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -1577,7 +1665,7 @@ async function generatePlanMultiStep(env, data) {
       }
     }
     
-    console.log('Multi-step generation: Meal plan complete (3/3)');
+    console.log('Multi-step generation: Meal plan complete (10/10 - all requests done)');
     
     // Final token usage summary
     console.log(`=== CUMULATIVE TOKEN USAGE ===`);
@@ -1609,11 +1697,11 @@ async function generatePlanMultiStep(env, data) {
 }
 
 /**
- * Step 1: Generate prompt for user profile analysis
- * Simplified - focuses on AI's strengths: correlations, psychology, individualization
- * Backend handles: BMR, TDEE, safety checks
+ * Step 1a: Generate prompt for basic metabolic analysis
+ * Focuses on: BMR, TDEE, macro ratios, basic metabolic profile, nutritional needs
+ * This is the first of two analysis steps to reduce token load
  */
-function generateAnalysisPrompt(data) {
+function generateBasicAnalysisPrompt(data) {
   // Calculate concrete numbers in backend
   const bmr = calculateBMR(data);
   const tdee = calculateTDEE(bmr, data.sportActivity);
@@ -1628,252 +1716,141 @@ function generateAnalysisPrompt(data) {
     recommendedCalories = tdee; // Maintenance
   }
   
-  return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента.
-
-═══ КЛИЕНТСКИ ПРОФИЛ ═══
-${JSON.stringify({
-  name: data.name,
-  age: data.age,
-  gender: data.gender,
-  height: data.height,
-  weight: data.weight,
-  goal: data.goal,
-  lossKg: data.lossKg,
+  // Basic profile for metabolic analysis
+  const basicProfile = `${data.name}, ${data.age}г, ${data.gender}, ${data.height}см, ${data.weight}кг
+Цел: ${data.goal}${data.lossKg ? ' (' + data.lossKg + 'кг)' : ''}
+Активност: ${data.sportActivity}, Дневна: ${data.dailyActivityLevel}
+Хронотип: ${data.chronotype}
+Диети преди: ${data.dietHistory === 'Да' ? data.dietType + ' → ' + data.dietResult : 'не'}
+Медицински: ${data.medicalConditions ? data.medicalConditions.join(', ') : 'няма'}`;
   
-  // Sleep & circadian rhythm
-  sleepHours: data.sleepHours,
-  sleepInterrupt: data.sleepInterrupt,
-  chronotype: data.chronotype,
-  
-  // Activity & stress
-  sportActivity: data.sportActivity,
-  dailyActivityLevel: data.dailyActivityLevel,
-  stressLevel: data.stressLevel,
-  
-  // Nutrition & hydration
-  waterIntake: data.waterIntake,
-  drinksSweet: data.drinksSweet,
-  drinksAlcohol: data.drinksAlcohol,
-  
-  // Eating behavior - FULL DATA for precise correlational analysis
-  overeatingFrequency: data.overeatingFrequency,
-  eatingHabits: data.eatingHabits,
-  foodCravings: data.foodCravings,
-  foodTriggers: data.foodTriggers,
-  compensationMethods: data.compensationMethods,
-  socialComparison: data.socialComparison,
-  
-  // Medical & history - FULL DATA for comprehensive understanding
-  medicalConditions: data.medicalConditions,
-  medications: data.medications,
-  medicationsDetails: data.medicationsDetails,
-  weightChange: data.weightChange,
-  weightChangeDetails: data.weightChangeDetails,
-  dietHistory: data.dietHistory,
-  dietType: data.dietType,
-  dietResult: data.dietResult,
-  
-  // Preferences
-  dietPreference: data.dietPreference,
-  dietDislike: data.dietDislike,
-  dietLove: data.dietLove
-}, null, 2)}
+  return `Основен метаболитен анализ за ${data.name}.
+BMR: ${bmr} kcal, TDEE: ${tdee} kcal, Препоръчани: ${recommendedCalories} kcal.
 
-═══ ИЗЧИСЛЕНИ СТОЙНОСТИ (Backend) ═══
-BMR: ${bmr} kcal (Mifflin-St Jeor формула)
-TDEE: ${tdee} kcal (BMR × активност)
-Препоръчани калории: ${recommendedCalories} kcal (според цел "${data.goal}")
+ПРОФИЛ:
+${basicProfile}
 
-═══ ТВОЯТА ЗАДАЧА ═══
-Фокусирай се на това, което САМО ТИ можеш да направиш - КОРЕЛАЦИОНЕН АНАЛИЗ:
+ЗАДАЧА:
+1. Определи макро разпределение (protein%, carbs%, fats%) според цел, активност, медицински
+2. Опиши основен метаболитен профил (хронотип, активност, история с диети)
+3. Идентифицирай хранителни нужди според активност и цел
 
-1. **СЪН ↔ СТРЕС ↔ ХРАНЕНЕ**: Как ${data.sleepHours}ч сън (прекъсван: ${data.sleepInterrupt}) + стрес (${data.stressLevel}) влияят на:
-   - Хормони (кортизол, грелин, лептин)
-   - Хранителни желания: ${JSON.stringify(data.foodCravings || [])}
-   - Прекомерно хранене: ${data.overeatingFrequency}
-
-2. **ПСИХОЛОГИЧЕСКИ ПРОФИЛ**: Анализирай връзката емоции ↔ хранене:
-   - Тригери: ${JSON.stringify(data.foodTriggers || [])}
-   - Компенсации: ${JSON.stringify(data.compensationMethods || [])}
-   - Социално сравнение: ${data.socialComparison}
-   - Оценка на самодисциплина и мотивация
-
-3. **МЕТАБОЛИТНИ ОСОБЕНОСТИ**: Идентифицирай уникален метаболитен профил базиран на:
-   - Хронотип (${data.chronotype}) → кога е оптимално храненето
-   - Активност (${data.sportActivity}, ${data.dailyActivityLevel})
-   - История: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'няма предишни диети'}
-   - ВАЖНО: Неуспешни диети в миналото обикновено означават намален метаболизъм
-
-4. **МЕДИЦИНСКИ ФАКТОРИ**: Как медицински състояния влияят на хранене:
-   - Състояния: ${JSON.stringify(data.medicalConditions || [])}
-   - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}
-   - Какви специфични нужди от макро/микроелементи?
-
-5. **ШАНС ЗА УСПЕХ**: Изчисли успех score (-100 до +100) базиран на ВСИЧКИ фактори:
-   - BMI и здравословно състояние
-   - Качество на съня и стрес
-   - История на диети (неуспешни намаляват шанса с 15-25 точки)
-   - Психологическа устойчивост
-   - Медицински условия и активност
-
-6. **КЛЮЧОВИ ПРОБЛЕМИ**: Идентифицирай 3-6 проблемни области (САМО Borderline/Risky/Critical severity):
-   - Фокус на фактори които АКТИВНО пречат на целта
-   - НЕ включвай "Normal" проблеми
-
-═══ ФОРМАТ НА ОТГОВОР ═══
+ОТГОВОР (JSON):
 {
-  "bmr": "${bmr} kcal (изчислен от backend)",
-  "tdee": "${tdee} kcal (изчислен от backend)",
-  "recommendedCalories": "${recommendedCalories} kcal (изчислен според цел ${data.goal})",
-  "macroRatios": {
-    "protein": "X% - обосновка защо този процент е оптимален за ${data.name}",
-    "carbs": "Y% - обосновка базирана на активност, медицински състояния",
-    "fats": "Z% - обосновка според нужди"
-  },
-  "metabolicProfile": "УНИКАЛЕН метаболитен профил - опиши как хронотип, активност, история влияят на метаболизма",
-  "healthRisks": ["риск 1 специфичен за профила", "риск 2", "риск 3"],
-  "nutritionalNeeds": ["нужда 1 базирана на анализа", "нужда 2", "нужда 3"],
-  "psychologicalProfile": "ДЕТАЙЛЕН анализ: емоционално хранене, тригери, копинг механизми, мотивация",
-  "successChance": число (-100 до 100),
-  "successChanceReasoning": "защо този шанс - кои фактори помагат и кои пречат",
-  "keyProblems": [
-    {
-      "title": "кратко име (2-4 думи)",
-      "description": "защо е проблем и до какво води",
-      "severity": "Borderline / Risky / Critical",
-      "severityValue": число 0-100,
-      "category": "Sleep / Nutrition / Hydration / Stress / Activity / Medical",
-      "impact": "въздействие върху здравето или целта"
-    }
-  ]
+  "bmr": "${bmr} kcal",
+  "tdee": "${tdee} kcal",
+  "recommendedCalories": "${recommendedCalories} kcal",
+  "macroRatios": {"protein": "X% - защо", "carbs": "Y% - защо", "fats": "Z% - защо"},
+  "metabolicProfile": "как хронотип, активност, история влияят на метаболизма",
+  "nutritionalNeeds": ["нужда 1", "нужда 2", "нужда 3"]
 }
 
-Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
+Конкретен анализ за ${data.name}!`;
+}
+
+/**
+ * Step 1b: Generate prompt for psychological and risk analysis
+ * Focuses on: emotional eating, health risks, success chance, key problems
+ * Requires results from Step 1a (basic analysis)
+ */
+function generatePsychologicalAnalysisPrompt(data, basicAnalysis) {
+  // Psychological profile
+  const psychProfile = `${data.name}, ${data.age}г, Цел: ${data.goal}
+Сън: ${data.sleepHours}ч${data.sleepInterrupt ? ', прекъсван: ' + data.sleepInterrupt : ''}, Стрес: ${data.stressLevel}
+Прекомерно хранене: ${data.overeatingFrequency || 'не'}${data.eatingHabits ? ', Навици: ' + data.eatingHabits.join(', ') : ''}
+Желания: ${data.foodCravings ? data.foodCravings.join(', ') : 'няма'}, Тригери: ${data.foodTriggers ? data.foodTriggers.join(', ') : 'няма'}
+Компенсация: ${data.compensationMethods ? data.compensationMethods.join(', ') : 'няма'}
+Соц.сравнение: ${data.socialComparison || 'не'}
+Медицински: ${data.medicalConditions ? data.medicalConditions.join(', ') : 'няма'}, Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не'}
+Промяна тегло: ${data.weightChange || 'не'}${data.weightChangeDetails ? ' - ' + data.weightChangeDetails : ''}
+Диети преди: ${data.dietHistory === 'Да' ? data.dietType + ' → ' + data.dietResult : 'не'}`;
+
+  // Basic analysis summary
+  const basicSummary = `BMR: ${basicAnalysis.bmr}, TDEE: ${basicAnalysis.tdee}, Калории: ${basicAnalysis.recommendedCalories}
+Макроси: ${basicAnalysis.macroRatios.protein}, ${basicAnalysis.macroRatios.carbs}, ${basicAnalysis.macroRatios.fats}
+Метаболизъм: ${basicAnalysis.metabolicProfile}`;
+  
+  return `Психологически и рисков анализ за ${data.name}.
+
+ОСНОВЕН АНАЛИЗ:
+${basicSummary}
+
+ПСИХОЛОГИЧЕСКИ ПРОФИЛ:
+${psychProfile}
+
+ЗАДАЧА:
+1. Анализирай СЪН-СТРЕС-ХРАНЕНЕ корелации (хормони, желания, прекомерно хранене)
+2. Оцени емоционално хранене, тригери, копинг механизми, мотивация
+3. Идентифицирай здравни рискове според медицински, стрес, сън, тегло
+4. Изчисли УСПЕХ SCORE (-100 до +100) според всички фактори
+5. Намери 3-6 ключови проблема (САМО Borderline/Risky/Critical severity)
+
+ОТГОВОР (JSON):
+{
+  "psychologicalProfile": "анализ: емоционално хранене, тригери, копинг, мотивация",
+  "healthRisks": ["риск 1", "риск 2", "риск 3"],
+  "successChance": число,
+  "successChanceReasoning": "обосновка",
+  "keyProblems": [{"title": "име", "description": "описание", "severity": "Borderline/Risky/Critical", "severityValue": число, "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical", "impact": "въздействие"}]
+}
+
+Конкретен анализ за ${data.name}!`;
 }
 
 function generateStrategyPrompt(data, analysis) {
-  return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
+  // Create compact analysis summary (not full JSON - saves tokens)
+  const analysisCompact = `BMR: ${analysis.bmr}, TDEE: ${analysis.tdee}, Калории: ${analysis.recommendedCalories}
+Макроси: Протеин ${analysis.macroRatios?.protein || 'N/A'}, Въглехидрати ${analysis.macroRatios?.carbs || 'N/A'}, Мазнини ${analysis.macroRatios?.fats || 'N/A'}
+Профил: ${analysis.metabolicProfile || 'N/A'}
+Рискове: ${analysis.healthRisks ? analysis.healthRisks.join('; ') : 'няма'}
+Нужди: ${analysis.nutritionalNeeds ? analysis.nutritionalNeeds.join('; ') : 'няма'}
+Психология: ${analysis.psychologicalProfile || 'N/A'}
+Успех: ${analysis.successChance || 'N/A'} (${analysis.successChanceReasoning || ''})
+Проблеми: ${analysis.keyProblems ? analysis.keyProblems.map(p => `${p.title} (${p.severity})`).join('; ') : 'няма'}`;
 
-КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
+  return `Стратегия за ${data.name}, ${data.age}г, ${data.gender}, Цел: ${data.goal}
 
 АНАЛИЗ:
-${JSON.stringify(analysis, null, 2)}
+${analysisCompact}
 
-ПРЕДПОЧИТАНИЯ:
-- Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
-${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : ''}
-- Не обича/непоносимост: ${data.dietDislike || 'Няма'}
-- Любими храни: ${data.dietLove || 'Няма'}
+ДАННИ:
+Тегло: ${data.weight}кг, Сън: ${data.sleepHours}ч, Стрес: ${data.stressLevel}, Активност: ${data.sportActivity}
+Медицински: ${data.medicalConditions ? data.medicalConditions.join(', ') : 'няма'}, Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не'}
+Предпочитания: ${data.dietPreference ? data.dietPreference.join(', ') : 'няма'}${data.dietPreference_other ? ' (+ ' + data.dietPreference_other + ')' : ''}
+Не обича: ${data.dietDislike || 'няма'}, Обича: ${data.dietLove || 'няма'}
 
-ВАЖНО: Вземи предвид ВСИЧКИ параметри холистично и създай КОРЕЛАЦИИ между тях:
-1. Медицинските състояния и лекарства - как влияят на хранителните нужди
-2. Хранителните непоносимости и алергии - строго ограничение
-3. Личните предпочитания и любими храни - за дългосрочна устойчивост
-4. Хронотипа и дневния ритъм - оптимално време на хранене
-5. Нивото на стрес и емоционалното хранене - психологическа подкрепа
-6. Културния контекст (български традиции и налични продукти)
-7. КОРЕЛАЦИИ между сън, стрес и хранителни желания
-8. ВРЪЗКАТА между физическа активност и калорийни нужди
-9. ВЗАИМОВРЪЗКАТА между медицински състояния и хранителни потребности
+ЗАДАЧИ:
+1. Определи МОДИФИКАТОР (Балансирано/Кето/Веган/Средиземноморско/др.) според анализ, медицински, цели, предпочитания
+2. Създай холистична седмична схема (може 16:8/OMAD/циклично/традиционно)
+3. Обоснови брой хранения (1-5/ден), време, хранения след вечеря
+4. ИНДИВИДУАЛНИ добавки (специфични за ${data.name} - според анализ, възраст, тегло, пол, медицински, стрес, сън, активност)
+5. Психологическа подкрепа според емоционален профил
 
-КРИТИЧНО ВАЖНО - ИНДИВИДУАЛИЗАЦИЯ НА ВСИЧКИ ПРЕПОРЪКИ:
-1. Хранителните добавки трябва да са СТРОГО ИНДИВИДУАЛНО подбрани за ${data.name}
-2. ЗАБРАНЕНО е използването на универсални/общи препоръки за добавки
-3. Всяка добавка трябва да е обоснована с КОНКРЕТНИ нужди от анализа
-4. Дозировките трябва да са персонализирани според възраст, тегло, пол и здравословно състояние
-5. Вземи предвид медицински състояния, лекарства и възможни взаимодействия
-6. КРИТИЧНО - ПРОВЕРКА ЗА ВЗАИМОДЕЙСТВИЯ:
-   - Ако клиентът приема лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}, провери:
-     * Витамин К + антикоагуланти (варфарин) = противопоказано
-     * Калций/Магнезий + антибиотици = намалено усвояване
-     * Желязо + антациди = блокирано усвояване
-     * Витамин D + кортикостероиди = необходима по-висока доза
-   - Ако има медицински състояния: ${JSON.stringify(data.medicalConditions || [])}, съобрази:
-     * Диабет: Хром, Витамин D, Омега-3 (контрол на кръвна захар)
-     * Хипертония: Магнезий, Калий, CoQ10 (понижаване на налягане)
-     * Щитовидна жлеза: Селен, Йод (само ако е дефицит!), Цинк
-     * Анемия: Желязо (хемово за по-добро усвояване), Витамин C (подпомага усвояването), B12
-     * PCOS/СПКЯ: Инозитол, Витамин D, Омега-3, Хром
-     * IBS/IBD: Пробиотици (специфични щамове), Витамин D, Омега-3
-7. ИНДИВИДУАЛНА ДОЗИРОВКА базирана на:
-   - Тегло: ${data.weight} кг (по-високо тегло = по-висока доза за липоразтворими витамини)
-   - Възраст: ${data.age} год. (по-възрастни = по-високи нужди от Витамин D, B12, Калций)
-   - Пол: ${data.gender} (жени = повече желязо при менструация; мъже = повече цинк)
-   - Сън: ${data.sleepHours}ч (под 7ч = Магнезий за сън, Мелатонин)
-   - Стрес: ${data.stressLevel} (висок стрес = Магнезий, Витамини B-комплекс, Ашваганда)
-   - Активност: ${data.sportActivity} (висока = Протеин, BCAA, Креатин, Витамин D)
+ВЗАИМОДЕЙСТВИЯ (при лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не'}):
+Витамин К + антикоагуланти = противопоказано; Калций/Магнезий + антибиотици = намалено; Желязо + антациди = блокирано
 
-КРИТИЧНО ВАЖНО - ОПРЕДЕЛЯНЕ НА МОДИФИКАТОР:
-След анализ на всички параметри, определи подходящ МОДИФИКАТОР (диетичен профил), който ще управлява логиката на генериране на ястия:
-- Може да бъде термин: "Кето", "Палео", "Веган", "Вегетарианско", "Средиземноморско", "Нисковъглехидратно", "Балансирано", "Щадящ стомах", "Без глутен" и др.
-- МОДИФИКАТОРЪТ трябва да отчита медицинските състояния, цели, предпочитания и всички анализирани фактори
-- Определи ЕДНА основна диетична стратегия, която е най-подходяща за клиента
-- Ако няма специфични ограничения, използвай "Балансирано" или "Средиземноморско"
+МЕДИЦИНСКИ ПРЕПОРЪКИ (${data.medicalConditions ? data.medicalConditions.join(', ') : 'няма'}):
+Диабет: Хром, Вит.D, Омега-3; Хипертония: Магнезий, Калий, CoQ10; Щитовидна: Селен, Йод, Цинк; Анемия: Желязо, Вит.C, B12; PCOS: Инозитол, Вит.D, Омега-3
 
-Анализирай ЗАДЪЛБОЧЕНО как всеки параметър влияе и взаимодейства с другите.
-
-КРИТИЧНО ВАЖНО - ДЪЛГОСРОЧНА СТРАТЕГИЯ:
-1. Създай ЯСНА дългосрочна стратегия за постигане на целите на ${data.name}
-2. Стратегията трябва да обхваща не само дневен, но и СЕДМИЧЕН/МНОГОДНЕВЕН хоризонт
-3. При обоснована физиологична, психологическа или стратегическа идея:
-   - Планирането може да обхваща 2-3 дни като цяло
-   - Хоризонтът на макроси и калории НЕ Е ЗАДЪЛЖИТЕЛНО 24 часа
-   - Може да има циклично разпределение на калории/макроси (напр. ниско-високи дни)
-4. Обоснови ЗАЩО избираш определен брой хранения (1-5) за всеки ден
-5. Обоснови ЗАЩО и КОГА са необходими хранения след вечеря (ако има такива)
-6. Всяка стратегическа нестандартна препоръка ТРЯБВА да има ясна цел и обосновка
-
-Върни JSON със стратегия (БЕЗ универсални препоръки):
+JSON (БЕЗ универсални препоръки):
 {
-  "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
-  "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
-  "welcomeMessage": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: ПЕРСОНАЛИЗИРАНО приветствие за ${data.name} при първото разглеждане на плана. Тонът трябва да бъде професионален, но топъл и мотивиращ. Включи: 1) Персонално поздравление с име, 2) Кратко споменаване на конкретни фактори от профила (възраст, цел, ключови предизвикателства), 3) Как планът е създаден специално за техните нужди, 4) Положителна визия за постигане на целите. Дължина: 150-250 думи. ВАЖНО: Избягвай генерични фрази - използвай конкретни детайли за ${data.name}.",
-  "planJustification": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: Детайлна обосновка на цялостната стратегия, включително брой хранения, време на хранене, циклично разпределение (ако има), хранения след вечеря (ако има), и ЗАЩО тази стратегия е оптимална за ${data.name}. Минимум 100 символа.",
-  "longTermStrategy": "ДЪЛГОСРОЧНА СТРАТЕГИЯ: Опиши как планът работи в рамките на 2-3 дни/седмица, не само на дневна база. Включи информация за циклично разпределение на калории/макроси, варииране на хранения, и как това подпомага целите.",
-  "mealCountJustification": "ОБОСНОВКА ЗА БРОЙ ХРАНЕНИЯ: Защо е избран точно този брой хранения (1-5) за всеки ден. Каква е стратегическата, физиологична или психологическа причина.",
-  "afterDinnerMealJustification": "ОБОСНОВКА ЗА ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ: Ако има хранения след вечеря, обясни ЗАЩО са необходими, каква е целта, и как подпомагат общата стратегия. Ако няма - напиши 'Не са необходими'.",
-  "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
-  "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
-  "mealTiming": {
-    "pattern": "седмичен модел на хранене описан детайлно - напр. 'Понеделник-Петък: 2 хранения (12:00, 19:00), Събота-Неделя: 3 хранения с едно свободно'",
-    "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
-    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите"
-  },
-  "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
-  "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
-  "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
-  "supplementRecommendations": [
-    "! ИНДИВИДУАЛНА добавка 1 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: възраст ${data.age} год., пол ${data.gender}, цел ${data.goal}, медицински състояния ${data.medicalConditions || 'няма'})",
-    "! ИНДИВИДУАЛНА добавка 2 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: активност ${data.sportActivity}, сън ${data.sleepHours}ч, стрес ${data.stressLevel})",
-    "! ИНДИВИДУАЛНА добавка 3 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: хранителни навици ${data.eatingHabits}, предпочитания ${data.dietPreference})"
-  ],
-  "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name} според активност и климат",
-  "psychologicalSupport": [
-    "! психологически съвет 1 базиран на емоционалното хранене на ${data.name}",
-    "! психологически съвет 2 базиран на стреса и поведението на ${data.name}",
-    "! психологически съвет 3 за мотивация специфичен за профила на ${data.name}"
-  ]
-}
-
-ВАЖНО ЗА СЕДМИЧНАТА СХЕМА:
-- Създай ХОЛИСТИЧЕН седмичен модел, който взема предвид целта, хронотипа и навиците
-- Интермитентно гладуване (16:8, 18:6, OMAD) е напълно валиден избор ако подхожда
-- Може да варираш броя хранения между дните (напр. 2 хранения в работни дни, 3 в почивни)
-- "Свободни дни" или "свободни хранения" са позволени като част от устойчива стратегия
-- Седмицата трябва да работи като СИСТЕМА, не като 7 независими дни
-
-ВАЖНО ЗА ХРАНИТЕЛНИ ДОБАВКИ:
-- Всяка добавка трябва да има ЯСНА обосновка базирана на:
-  * Дефицити от анализа (напр. нисък витамин D заради малко излагане на слънце)
-  * Медицински състояния (напр. магнезий за стрес, омега-3 за възпаление)
-  * Цели (напр. протеин за мускулна маса, желязо за енергия)
-  * Възраст и пол (напр. калций за жени над 40, цинк за мъже)
-- Дозировката трябва да е ПЕРСОНАЛИЗИРАНА според тегло, възраст и нужди
-- Времето на прием трябва да е оптимално за усвояване
-- СТРОГО ЗАБРАНЕНО: Използването на едни и същи добавки за различни клиенти
-- СТРОГО ЗАБРАНЕНО: Универсални "мултивитамини" без конкретна обосновка
-- Всяка добавка ТРЯБВА да е различна и специфична за конкретния клиент ${data.name}
-- Вземи предвид уникалната комбинация от: ${data.age} год. ${data.gender}, ${data.goal}, ${data.medicalConditions || 'няма мед. състояния'}, ${data.sportActivity}, стрес: ${data.stressLevel}`;
+  "dietaryModifier": "термин",
+  "modifierReasoning": "обосновка",
+  "welcomeMessage": "персонализирано за ${data.name} (150-250 думи)",
+  "planJustification": "детайлна обосновка (мин 100 символа)",
+  "longTermStrategy": "седмична/многодневна стратегия",
+  "mealCountJustification": "защо този брой хранения",
+  "afterDinnerMealJustification": "защо след вечеря или 'Не са необходими'",
+  "dietType": "тип диета",
+  "weeklyMealPattern": "седмична схема",
+  "mealTiming": {"pattern": "детайлен модел", "fastingWindows": "периоди", "flexibility": "гъвкавост"},
+  "keyPrinciples": ["принцип 1", "принцип 2", "принцип 3"],
+  "foodsToInclude": ["храна 1", "храна 2", "храна 3"],
+  "foodsToAvoid": ["храна 1", "храна 2", "храна 3"],
+  "supplementRecommendations": ["добавка 1 с доза и обосновка", "добавка 2...", "добавка 3..."],
+  "hydrationStrategy": "препоръки вода",
+  "psychologicalSupport": ["съвет 1", "съвет 2", "съвет 3"]
+}`;
 }
 
 /**
@@ -1971,7 +1948,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
       console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
       
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT);
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, 'mealPlan');
       const chunkOutputTokens = estimateTokenCount(chunkResponse);
       console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
       
@@ -2009,7 +1986,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan);
-    const summaryResponse = await callAIModel(env, summaryPrompt, 2000);
+    const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'chat');
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
@@ -2578,7 +2555,7 @@ JSON ФОРМАТ:
 
 ВАЖНО: Върни САМО JSON, без допълнителни обяснения!`;
 
-  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT);
+  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT, 'mealPlan');
   const plan = parseAIResponse(response);
   
   if (!plan || plan.error) {
@@ -3028,31 +3005,70 @@ function estimateTokenCount(text) {
 }
 
 /**
- * Call AI model with load monitoring
- * Goal: Monitor request sizes to ensure no single request is overloaded
- * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
+ * Get appropriate token limit based on provider and request type
+ * Gemini has much stricter output limits than OpenAI
  */
-async function callAIModel(env, prompt, maxTokens = null) {
+const DEFAULT_GEMINI_LIMIT = 1000;  // Conservative default for unknown request types
+const DEFAULT_OPENAI_LIMIT = 4000;  // Generous default for unknown request types
+
+function getTokenLimit(provider, requestType) {
+  // Normalize provider identifier (handle both 'google' and 'gemini')
+  const isGemini = provider === 'google' || provider === 'gemini';
+  const limits = isGemini ? TOKEN_LIMITS.gemini : TOKEN_LIMITS.openai;
+  
+  return limits[requestType] || (isGemini ? DEFAULT_GEMINI_LIMIT : DEFAULT_OPENAI_LIMIT);
+}
+
+
+/**
+ * Call AI model with load monitoring and provider-aware token limits
+ * Goal: Monitor request sizes and adapt to provider capabilities
+ * Gemini has stricter limits than OpenAI - adjust accordingly
+ */
+async function callAIModel(env, prompt, maxTokens = null, requestType = null) {
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(prompt);
-  console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
+  
+  // Get admin config with caching
+  const config = await getAdminConfig(env);
+  const preferredProvider = config.provider;
+  const modelName = config.modelName;
+  
+  // Determine actual provider that will be used
+  let actualProvider = preferredProvider;
+  if (preferredProvider === 'openai' && !env.OPENAI_API_KEY) {
+    actualProvider = 'google';
+  } else if ((preferredProvider === 'google' || preferredProvider === 'gemini') && !env.GEMINI_API_KEY) {
+    actualProvider = 'openai';
+  }
+  
+  // Validate that at least one provider is available
+  const hasOpenAI = !!env.OPENAI_API_KEY;
+  const hasGemini = !!env.GEMINI_API_KEY;
+  if (!hasOpenAI && !hasGemini && preferredProvider !== 'mock') {
+    console.warn('No AI API keys configured. Will use mock response.');
+    actualProvider = 'mock';
+  }
+  
+  // Adapt token limit based on provider
+  if (requestType && maxTokens) {
+    const adaptiveLimit = getTokenLimit(actualProvider, requestType);
+    // Use the smaller of requested and provider-specific limit
+    maxTokens = Math.min(maxTokens, adaptiveLimit);
+  }
+  
+  console.log(`AI Request: provider=${actualProvider}, estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
   // Monitor for large prompts - informational only
-  // Note: Progressive generation already distributes meal plan across multiple requests
   if (estimatedInputTokens > 8000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context. Progressive generation is already enabled for meal plans.`);
+    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context.`);
   }
   
   // Alert if prompt is very large - may indicate issue
   if (estimatedInputTokens > 12000) {
-    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function to ensure this is intentional.`);
+    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function.`);
   }
   
-  // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
-  const config = await getAdminConfig(env);
-  const preferredProvider = config.provider;
-  const modelName = config.modelName;
-
   // If mock is selected, return mock response
   if (preferredProvider === 'mock') {
     console.warn('Mock mode selected. Returning mock response.');
