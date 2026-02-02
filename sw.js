@@ -1,7 +1,7 @@
 // Service Worker for NutriPlan PWA
-// Configure base path for GitHub Pages deployment
-const BASE_PATH = '/aidiet';
-const CACHE_NAME = 'nutriplan-v1';
+// Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
+const BASE_PATH = '';
+const CACHE_NAME = 'nutriplan-v2';
 const STATIC_CACHE = [
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire.html`,
