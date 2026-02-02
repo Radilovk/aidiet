@@ -1504,7 +1504,7 @@ async function generatePlanMultiStep(env, data) {
       throw new Error(`Стъпка 1а (Основен Анализ): ${error.message}`);
     }
     
-    console.log('Multi-step generation: Basic analysis complete (1a/4)');
+    console.log('Multi-step generation: Basic analysis complete (1/10)');
     
     // Step 1b: Psychological & Risk Analysis (2nd AI request)
     // Focus: Emotional eating, health risks, success chance, key problems
@@ -1548,12 +1548,24 @@ async function generatePlanMultiStep(env, data) {
       throw new Error(`Стъпка 1б (Психологически Анализ): ${error.message}`);
     }
     
-    console.log('Multi-step generation: Psychological analysis complete (1b/4)');
+    console.log('Multi-step generation: Psychological analysis complete (2/10)');
     
     // Combine both analysis parts into a complete analysis object
+    // Explicitly map properties to avoid conflicts
     const analysis = {
-      ...basicAnalysis,
-      ...psychAnalysis
+      // From basic analysis
+      bmr: basicAnalysis.bmr,
+      tdee: basicAnalysis.tdee,
+      recommendedCalories: basicAnalysis.recommendedCalories,
+      macroRatios: basicAnalysis.macroRatios,
+      metabolicProfile: basicAnalysis.metabolicProfile,
+      nutritionalNeeds: basicAnalysis.nutritionalNeeds,
+      // From psychological analysis
+      psychologicalProfile: psychAnalysis.psychologicalProfile,
+      healthRisks: psychAnalysis.healthRisks,
+      successChance: psychAnalysis.successChance,
+      successChanceReasoning: psychAnalysis.successChanceReasoning,
+      keyProblems: psychAnalysis.keyProblems
     };
     
     // Step 2: Generate dietary strategy based on analysis (3rd AI request)
@@ -1585,14 +1597,14 @@ async function generatePlanMultiStep(env, data) {
       throw new Error(`Стъпка 2 (Стратегия): ${error.message}`);
     }
     
-    console.log('Multi-step generation: Strategy complete (2/4)');
+    console.log('Multi-step generation: Strategy complete (3/10 - before meal plan)');
     
     // Step 3: Generate detailed meal plan
     // Use progressive generation if enabled (multiple smaller requests)
     let mealPlan;
     
     if (ENABLE_PROGRESSIVE_GENERATION) {
-      console.log('Multi-step generation: Using progressive meal plan generation');
+      console.log('Multi-step generation: Using progressive meal plan generation (requests 4-10)');
       try {
         mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy);
       } catch (error) {
@@ -1621,7 +1633,7 @@ async function generatePlanMultiStep(env, data) {
       }
     }
     
-    console.log('Multi-step generation: Meal plan complete (3/4)');
+    console.log('Multi-step generation: Meal plan complete (10/10 - all requests done)');
     
     // Final token usage summary
     console.log(`=== CUMULATIVE TOKEN USAGE ===`);
