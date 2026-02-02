@@ -382,6 +382,10 @@ export default {
         return await handleGeneratePlan(request, env);
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
         return await handleChat(request, env);
+      } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
+        return await handleReportProblem(request, env);
+      } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
+        return await handleGetReports(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
         return await handleSavePrompt(request, env);
       } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
@@ -791,6 +795,99 @@ async function handleChat(request, env) {
   } catch (error) {
     console.error('Error in chat:', error);
     return jsonResponse({ error: `${ERROR_MESSAGES.CHAT_FAILED}: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Handle problem report submission
+ */
+async function handleReportProblem(request, env) {
+  try {
+    const { userId, userName, message, timestamp, userAgent } = await request.json();
+    
+    if (!message) {
+      return jsonResponse({ error: 'Message is required' }, 400);
+    }
+    
+    if (!env.AIDIET_KV) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Generate a unique report ID
+    const reportId = `report_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    
+    // Create report object
+    const report = {
+      id: reportId,
+      userId: userId || 'anonymous',
+      userName: userName || 'Anonymous',
+      message: message,
+      timestamp: timestamp || new Date().toISOString(),
+      userAgent: userAgent || 'unknown',
+      status: 'unread'
+    };
+    
+    // Store report in KV with reportId as key
+    await env.AIDIET_KV.put(`problem_report:${reportId}`, JSON.stringify(report));
+    
+    // Also maintain a list of all report IDs for easy retrieval
+    let reportsList = await env.AIDIET_KV.get('problem_reports_list');
+    reportsList = reportsList ? JSON.parse(reportsList) : [];
+    reportsList.unshift(reportId); // Add to beginning (most recent first)
+    
+    // Keep only last 100 reports in the list
+    if (reportsList.length > 100) {
+      reportsList = reportsList.slice(0, 100);
+    }
+    
+    await env.AIDIET_KV.put('problem_reports_list', JSON.stringify(reportsList));
+    
+    console.log('Problem report saved:', reportId);
+    
+    return jsonResponse({ 
+      success: true, 
+      reportId: reportId,
+      message: 'Report submitted successfully'
+    });
+  } catch (error) {
+    console.error('Error saving problem report:', error);
+    return jsonResponse({ error: `Failed to save report: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Get all problem reports for admin panel
+ */
+async function handleGetReports(request, env) {
+  try {
+    if (!env.AIDIET_KV) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get list of report IDs
+    const reportsList = await env.AIDIET_KV.get('problem_reports_list');
+    if (!reportsList) {
+      return jsonResponse({ success: true, reports: [] });
+    }
+    
+    const reportIds = JSON.parse(reportsList);
+    
+    // Fetch all reports in parallel for better performance
+    const reportPromises = reportIds.map(reportId => 
+      env.AIDIET_KV.get(`problem_report:${reportId}`)
+    );
+    
+    const reportDataList = await Promise.all(reportPromises);
+    const reports = reportDataList
+      .filter(data => data !== null)
+      .map(data => JSON.parse(data));
+    
+    return jsonResponse({ success: true, reports: reports });
+  } catch (error) {
+    console.error('Error getting problem reports:', error);
+    return jsonResponse({ error: `Failed to get reports: ${error.message}` }, 500);
   }
 }
 
