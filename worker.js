@@ -9,13 +9,17 @@
  * 
  * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
  * 
- * ARCHITECTURE - Plan Generation (9 requests):
- *   1. Analysis Request (4k token limit)
- *      - Input: Full user data (profile, habits, medical, preferences)
- *      - Output: Holistic health analysis with correlations
+ * ARCHITECTURE - Plan Generation (10 requests):
+ *   1a. Basic Metabolic Analysis (3k token limit)
+ *      - Input: Physical data, activity, medical conditions
+ *      - Output: BMR, TDEE, macro ratios, metabolic profile, nutritional needs
+ *   
+ *   1b. Psychological & Risk Analysis (3k token limit)
+ *      - Input: Sleep, stress, eating behaviors, medications, basic analysis
+ *      - Output: Psychological profile, health risks, success chance, problems
  *   
  *   2. Strategy Request (4k token limit)
- *      - Input: User data + Analysis results
+ *      - Input: User data + Combined analysis results
  *      - Output: Personalized dietary strategy and approach
  *   
  *   3. Meal Plan Requests (7 requests, 8k token limit each)
@@ -1460,7 +1464,7 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 }
 
 async function generatePlanMultiStep(env, data) {
-  console.log('Multi-step generation: Starting (3+ AI requests for precision)');
+  console.log('Multi-step generation: Starting (4+ AI requests for precision)');
   
   // Token tracking for multi-step generation
   let cumulativeTokens = {
@@ -1470,50 +1474,89 @@ async function generatePlanMultiStep(env, data) {
   };
   
   try {
-    // Step 1: Analyze user profile (1st AI request)
-    // Focus: Deep health analysis, metabolic profile, correlations
-    const analysisPrompt = generateAnalysisPrompt(data);
-    const analysisInputTokens = estimateTokenCount(analysisPrompt);
-    cumulativeTokens.input += analysisInputTokens;
+    // Step 1a: Basic Metabolic Analysis (1st AI request)
+    // Focus: BMR, TDEE, macro ratios, basic metabolic profile, nutritional needs
+    console.log('Multi-step generation: Step 1a - Basic metabolic analysis');
+    const basicAnalysisPrompt = generateBasicAnalysisPrompt(data);
+    const basicAnalysisInputTokens = estimateTokenCount(basicAnalysisPrompt);
+    cumulativeTokens.input += basicAnalysisInputTokens;
     
-    let analysisResponse, analysis;
+    let basicAnalysisResponse, basicAnalysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt, 4000);
-      const analysisOutputTokens = estimateTokenCount(analysisResponse);
-      cumulativeTokens.output += analysisOutputTokens;
+      basicAnalysisResponse = await callAIModel(env, basicAnalysisPrompt, 3000);
+      const basicAnalysisOutputTokens = estimateTokenCount(basicAnalysisResponse);
+      cumulativeTokens.output += basicAnalysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
-      console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
+      console.log(`Step 1a tokens: input=${basicAnalysisInputTokens}, output=${basicAnalysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
-      analysis = parseAIResponse(analysisResponse);
+      basicAnalysis = parseAIResponse(basicAnalysisResponse);
       
-      if (!analysis || analysis.error) {
-        const errorMsg = analysis.error || 'Невалиден формат на отговор';
-        console.error('Analysis parsing failed:', errorMsg);
-        console.error('AI Response preview (first 1000 chars):', analysisResponse?.substring(0, 1000));
-        throw new Error(`Анализът не можа да бъде създаден: ${errorMsg}`);
+      if (!basicAnalysis || basicAnalysis.error) {
+        const errorMsg = basicAnalysis.error || 'Невалиден формат на отговор';
+        console.error('Basic analysis parsing failed:', errorMsg);
+        console.error('AI Response preview (first 1000 chars):', basicAnalysisResponse?.substring(0, 1000));
+        throw new Error(`Основният анализ не можа да бъде създаден: ${errorMsg}`);
+      }
+    } catch (error) {
+      console.error('Basic analysis step failed:', error);
+      throw new Error(`Стъпка 1а (Основен Анализ): ${error.message}`);
+    }
+    
+    console.log('Multi-step generation: Basic analysis complete (1a/4)');
+    
+    // Step 1b: Psychological & Risk Analysis (2nd AI request)
+    // Focus: Emotional eating, health risks, success chance, key problems
+    console.log('Multi-step generation: Step 1b - Psychological and risk analysis');
+    const psychAnalysisPrompt = generatePsychologicalAnalysisPrompt(data, basicAnalysis);
+    const psychAnalysisInputTokens = estimateTokenCount(psychAnalysisPrompt);
+    cumulativeTokens.input += psychAnalysisInputTokens;
+    
+    let psychAnalysisResponse, psychAnalysis;
+    
+    try {
+      psychAnalysisResponse = await callAIModel(env, psychAnalysisPrompt, 3000);
+      const psychAnalysisOutputTokens = estimateTokenCount(psychAnalysisResponse);
+      cumulativeTokens.output += psychAnalysisOutputTokens;
+      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      
+      console.log(`Step 1b tokens: input=${psychAnalysisInputTokens}, output=${psychAnalysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
+      
+      psychAnalysis = parseAIResponse(psychAnalysisResponse);
+      
+      if (!psychAnalysis || psychAnalysis.error) {
+        const errorMsg = psychAnalysis.error || 'Невалиден формат на отговор';
+        console.error('Psychological analysis parsing failed:', errorMsg);
+        console.error('AI Response preview (first 1000 chars):', psychAnalysisResponse?.substring(0, 1000));
+        throw new Error(`Психологическият анализ не можа да бъде създаден: ${errorMsg}`);
       }
       
       // REQUIREMENT 2: Filter out "Normal" severity problems from analysis
-      if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
-        const originalCount = analysis.keyProblems.length;
-        analysis.keyProblems = analysis.keyProblems.filter(problem => 
+      if (psychAnalysis.keyProblems && Array.isArray(psychAnalysis.keyProblems)) {
+        const originalCount = psychAnalysis.keyProblems.length;
+        psychAnalysis.keyProblems = psychAnalysis.keyProblems.filter(problem => 
           problem.severity !== 'Normal'
         );
-        const filteredCount = analysis.keyProblems.length;
+        const filteredCount = psychAnalysis.keyProblems.length;
         if (filteredCount < originalCount) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
     } catch (error) {
-      console.error('Analysis step failed:', error);
-      throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
+      console.error('Psychological analysis step failed:', error);
+      throw new Error(`Стъпка 1б (Психологически Анализ): ${error.message}`);
     }
     
-    console.log('Multi-step generation: Analysis complete (1/3)');
+    console.log('Multi-step generation: Psychological analysis complete (1b/4)');
     
-    // Step 2: Generate dietary strategy based on analysis (2nd AI request)
+    // Combine both analysis parts into a complete analysis object
+    const analysis = {
+      ...basicAnalysis,
+      ...psychAnalysis
+    };
+    
+    // Step 2: Generate dietary strategy based on analysis (3rd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = generateStrategyPrompt(data, analysis);
     const strategyInputTokens = estimateTokenCount(strategyPrompt);
@@ -1542,7 +1585,7 @@ async function generatePlanMultiStep(env, data) {
       throw new Error(`Стъпка 2 (Стратегия): ${error.message}`);
     }
     
-    console.log('Multi-step generation: Strategy complete (2/3)');
+    console.log('Multi-step generation: Strategy complete (2/4)');
     
     // Step 3: Generate detailed meal plan
     // Use progressive generation if enabled (multiple smaller requests)
@@ -1578,7 +1621,7 @@ async function generatePlanMultiStep(env, data) {
       }
     }
     
-    console.log('Multi-step generation: Meal plan complete (3/3)');
+    console.log('Multi-step generation: Meal plan complete (3/4)');
     
     // Final token usage summary
     console.log(`=== CUMULATIVE TOKEN USAGE ===`);
@@ -1610,11 +1653,11 @@ async function generatePlanMultiStep(env, data) {
 }
 
 /**
- * Step 1: Generate prompt for user profile analysis
- * Simplified - focuses on AI's strengths: correlations, psychology, individualization
- * Backend handles: BMR, TDEE, safety checks
+ * Step 1a: Generate prompt for basic metabolic analysis
+ * Focuses on: BMR, TDEE, macro ratios, basic metabolic profile, nutritional needs
+ * This is the first of two analysis steps to reduce token load
  */
-function generateAnalysisPrompt(data) {
+function generateBasicAnalysisPrompt(data) {
   // Calculate concrete numbers in backend
   const bmr = calculateBMR(data);
   const tdee = calculateTDEE(bmr, data.sportActivity);
@@ -1629,48 +1672,85 @@ function generateAnalysisPrompt(data) {
     recommendedCalories = tdee; // Maintenance
   }
   
-  // Build compact profile text (no JSON formatting - saves tokens)
-  const profile = `Име: ${data.name}, Възраст: ${data.age}, Пол: ${data.gender}, Височина: ${data.height}см, Тегло: ${data.weight}кг, Цел: ${data.goal}${data.lossKg ? ', Желано отслабване: ' + data.lossKg + 'кг' : ''}
-Сън: ${data.sleepHours}ч${data.sleepInterrupt ? ', прекъсван: ' + data.sleepInterrupt : ''}, Хронотип: ${data.chronotype}
-Активност: ${data.sportActivity}, Дневна: ${data.dailyActivityLevel}, Стрес: ${data.stressLevel}
-Вода: ${data.waterIntake}, Сладки напитки: ${data.drinksSweet || 'не'}, Алкохол: ${data.drinksAlcohol || 'не'}
-Прекомерно хранене: ${data.overeatingFrequency || 'не'}${data.eatingHabits ? ', Навици: ' + data.eatingHabits.join(', ') : ''}
-Желания: ${data.foodCravings ? data.foodCravings.join(', ') : 'няма'}, Тригери: ${data.foodTriggers ? data.foodTriggers.join(', ') : 'няма'}
-Компенсация: ${data.compensationMethods ? data.compensationMethods.join(', ') : 'няма'}, Соц.сравнение: ${data.socialComparison || 'не'}
-Медицински: ${data.medicalConditions ? data.medicalConditions.join(', ') : 'няма'}, Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не'}
-Промяна тегло: ${data.weightChange || 'не'}${data.weightChangeDetails ? ' - ' + data.weightChangeDetails : ''}
+  // Basic profile for metabolic analysis
+  const basicProfile = `${data.name}, ${data.age}г, ${data.gender}, ${data.height}см, ${data.weight}кг
+Цел: ${data.goal}${data.lossKg ? ' (' + data.lossKg + 'кг)' : ''}
+Активност: ${data.sportActivity}, Дневна: ${data.dailyActivityLevel}
+Хронотип: ${data.chronotype}
 Диети преди: ${data.dietHistory === 'Да' ? data.dietType + ' → ' + data.dietResult : 'не'}
-Предпочитания: ${data.dietPreference ? data.dietPreference.join(', ') : 'няма'}, Не обича: ${data.dietDislike || 'няма'}, Обича: ${data.dietLove || 'няма'}`;
+Медицински: ${data.medicalConditions ? data.medicalConditions.join(', ') : 'няма'}`;
   
-  return `Експертен анализ за ${data.name}. BMR: ${bmr} kcal, TDEE: ${tdee} kcal, Препоръчани: ${recommendedCalories} kcal.
+  return `Основен метаболитен анализ за ${data.name}.
+BMR: ${bmr} kcal, TDEE: ${tdee} kcal, Препоръчани: ${recommendedCalories} kcal.
 
 ПРОФИЛ:
-${profile}
+${basicProfile}
 
-ЗАДАЧА - ХОЛИСТИЧЕН АНАЛИЗ:
-1. СЪН-СТРЕС-ХРАНЕНЕ: корелации (хормони, желания, прекомерно хранене)
-2. ПСИХОЛОГИЯ: емоционално хранене, тригери, копинг, мотивация
-3. МЕТАБОЛИЗЪМ: уникален профил (хронотип, активност, история)
-4. МЕДИЦИНСКИ: влияние, нужди от макро/микроелементи
-5. УСПЕХ SCORE (-100 до +100): базиран на всички фактори
-6. ПРОБЛЕМИ (3-6): САМО Borderline/Risky/Critical severity
+ЗАДАЧА:
+1. Определи макро разпределение (protein%, carbs%, fats%) според цел, активност, медицински
+2. Опиши основен метаболитен профил (хронотип, активност, история с диети)
+3. Идентифицирай хранителни нужди според активност и цел
 
 ОТГОВОР (JSON):
 {
   "bmr": "${bmr} kcal",
   "tdee": "${tdee} kcal",
   "recommendedCalories": "${recommendedCalories} kcal",
-  "macroRatios": {"protein": "X% - обосновка", "carbs": "Y% - обосновка", "fats": "Z% - обосновка"},
-  "metabolicProfile": "уникален профил - как хронотип/активност/история влияят",
-  "healthRisks": ["риск 1", "риск 2", "риск 3"],
-  "nutritionalNeeds": ["нужда 1", "нужда 2", "нужда 3"],
+  "macroRatios": {"protein": "X% - защо", "carbs": "Y% - защо", "fats": "Z% - защо"},
+  "metabolicProfile": "как хронотип, активност, история влияят на метаболизма",
+  "nutritionalNeeds": ["нужда 1", "нужда 2", "нужда 3"]
+}
+
+Конкретен анализ за ${data.name}!`;
+}
+
+/**
+ * Step 1b: Generate prompt for psychological and risk analysis
+ * Focuses on: emotional eating, health risks, success chance, key problems
+ * Requires results from Step 1a (basic analysis)
+ */
+function generatePsychologicalAnalysisPrompt(data, basicAnalysis) {
+  // Psychological profile
+  const psychProfile = `${data.name}, ${data.age}г, Цел: ${data.goal}
+Сън: ${data.sleepHours}ч${data.sleepInterrupt ? ', прекъсван: ' + data.sleepInterrupt : ''}, Стрес: ${data.stressLevel}
+Прекомерно хранене: ${data.overeatingFrequency || 'не'}${data.eatingHabits ? ', Навици: ' + data.eatingHabits.join(', ') : ''}
+Желания: ${data.foodCravings ? data.foodCravings.join(', ') : 'няма'}, Тригери: ${data.foodTriggers ? data.foodTriggers.join(', ') : 'няма'}
+Компенсация: ${data.compensationMethods ? data.compensationMethods.join(', ') : 'няма'}
+Соц.сравнение: ${data.socialComparison || 'не'}
+Медицински: ${data.medicalConditions ? data.medicalConditions.join(', ') : 'няма'}, Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не'}
+Промяна тегло: ${data.weightChange || 'не'}${data.weightChangeDetails ? ' - ' + data.weightChangeDetails : ''}
+Диети преди: ${data.dietHistory === 'Да' ? data.dietType + ' → ' + data.dietResult : 'не'}`;
+
+  // Basic analysis summary
+  const basicSummary = `BMR: ${basicAnalysis.bmr}, TDEE: ${basicAnalysis.tdee}, Калории: ${basicAnalysis.recommendedCalories}
+Макроси: ${basicAnalysis.macroRatios.protein}, ${basicAnalysis.macroRatios.carbs}, ${basicAnalysis.macroRatios.fats}
+Метаболизъм: ${basicAnalysis.metabolicProfile}`;
+  
+  return `Психологически и рисков анализ за ${data.name}.
+
+ОСНОВЕН АНАЛИЗ:
+${basicSummary}
+
+ПСИХОЛОГИЧЕСКИ ПРОФИЛ:
+${psychProfile}
+
+ЗАДАЧА:
+1. Анализирай СЪН-СТРЕС-ХРАНЕНЕ корелации (хормони, желания, прекомерно хранене)
+2. Оцени емоционално хранене, тригери, копинг механизми, мотивация
+3. Идентифицирай здравни рискове според медицински, стрес, сън, тегло
+4. Изчисли УСПЕХ SCORE (-100 до +100) според всички фактори
+5. Намери 3-6 ключови проблема (САМО Borderline/Risky/Critical severity)
+
+ОТГОВОР (JSON):
+{
   "psychologicalProfile": "анализ: емоционално хранене, тригери, копинг, мотивация",
+  "healthRisks": ["риск 1", "риск 2", "риск 3"],
   "successChance": число,
   "successChanceReasoning": "обосновка",
   "keyProblems": [{"title": "име", "description": "описание", "severity": "Borderline/Risky/Critical", "severityValue": число, "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical", "impact": "въздействие"}]
 }
 
-Конкретен анализ за ${data.name} - без общи фрази!`;
+Конкретен анализ за ${data.name}!`;
 }
 
 function generateStrategyPrompt(data, analysis) {
