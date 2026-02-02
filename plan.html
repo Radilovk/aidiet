@@ -626,6 +626,12 @@
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             padding: 24px;
         }
+        
+        @media (max-width: 480px) {
+            .modal-overlay {
+                padding: 16px;
+            }
+        }
 
         .modal-overlay.active {
             opacity: 1;
@@ -702,6 +708,64 @@
         .modal-benefit i {
             color: var(--secondary-accent);
             margin-right: 8px;
+        }
+        
+        /* Welcome modal specific styles */
+        .welcome-modal-card {
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .welcome-modal-content {
+            overflow-y: auto;
+            overflow-x: hidden;
+            max-height: calc(90vh - 140px);
+            padding-right: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-red) var(--soft-red);
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+        
+        /* Mobile optimizations for welcome modal */
+        @media (max-width: 480px) {
+            .welcome-modal-card {
+                max-height: 92vh;
+                padding: 20px;
+            }
+            
+            .welcome-modal-content {
+                max-height: calc(92vh - 120px);
+                padding-right: 8px;
+            }
+            
+            .welcome-modal-body {
+                font-size: 0.95rem;
+            }
+        }
+        
+        .welcome-modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .welcome-modal-content::-webkit-scrollbar-track {
+            background: var(--soft-red);
+            border-radius: 10px;
+        }
+        
+        .welcome-modal-content::-webkit-scrollbar-thumb {
+            background: var(--primary-red);
+            border-radius: 10px;
+        }
+        
+        .welcome-modal-content::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-accent);
+        }
+        
+        .welcome-modal-body {
+            font-size: 1rem;
         }
         
         /* Macronutrient stacked bar visualization */
@@ -1698,21 +1762,6 @@
             </div>
         </div>
         
-        <!-- REQUIREMENT 3: Plan Justification Banner -->
-        <div id="planJustificationBanner" style="display: none; background: linear-gradient(135deg, var(--primary-red), var(--primary-accent)); color: white; padding: 20px; border-radius: var(--radius); margin-bottom: 20px; box-shadow: var(--shadow); animation: fadeIn 0.6s ease;">
-            <div style="display: flex; align-items: flex-start; gap: 15px;">
-                <div style="flex-shrink: 0; font-size: 2.5rem; opacity: 0.9;">
-                    <i class="fas fa-award"></i>
-                </div>
-                <div style="flex: 1;">
-                    <h3 style="margin: 0 0 10px 0; font-size: 1.2rem; font-weight: 700;">Защо този план е създаден специално за вас</h3>
-                    <p id="planJustificationText" style="margin: 0; font-size: 1rem; line-height: 1.6; opacity: 0.95;">
-                        Зареждане...
-                    </p>
-                </div>
-            </div>
-        </div>
-        
         <!-- MEAL PLAN SECTION -->
         <div id="mealContainer">
             <!-- Примерно съдържание (ще се замести от JSON logic) -->
@@ -1853,6 +1902,32 @@
                         <!-- Legend items will be added dynamically -->
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WELCOME MODAL - Shows on first visit to plan.html -->
+    <div class="modal-overlay" id="welcomeModal">
+        <div class="modal-card welcome-modal-card">
+            <div class="welcome-modal-content">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 3.5rem; color: var(--primary-red); margin-bottom: 10px;">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <h3 class="modal-title" style="text-align: center; padding-right: 0;">
+                        Вашият Персонализиран План е Готов!
+                    </h3>
+                </div>
+                <div class="modal-body welcome-modal-body" id="welcomeModalContent">
+                    <div id="aiWelcomeMessage" style="line-height: 1.8; margin-bottom: 20px; white-space: pre-line;">
+                        Зареждане...
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; padding-top: 20px; border-top: 2px solid var(--soft-red); margin-top: 20px;">
+                <button class="btn-primary" onclick="closeWelcomeModal()" style="width: 100%; max-width: 300px; margin: 0 auto; padding: 14px 24px; font-size: 1.05rem;">
+                    <i class="fas fa-check"></i> Разбрах, нека започваме!
+                </button>
             </div>
         </div>
     </div>
@@ -2047,61 +2122,40 @@
                     return;
                 }
                 
-                const banner = document.getElementById('planJustificationBanner');
-                const textElement = document.getElementById('planJustificationText');
-                
-                if (!banner || !textElement) {
-                    return;
-                }
-                
                 // Check if this is first visit after questionnaire
                 const hasSeenJustification = localStorage.getItem('hasSeenPlanJustification');
                 
-                // Get justification from strategy with enhanced argumentation
-                let justification = dietPlan.strategy.planJustification || '';
+                // Get AI-generated welcome message from strategy
+                let welcomeMessage = dietPlan.strategy.welcomeMessage || '';
                 
-                // Enhance with more details for first-time view
-                if (!justification || justification.length < 20) {
-                    const modifier = dietPlan.strategy.dietaryModifier || 'Балансиран';
-                    const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
+                // Fallback to planJustification if welcomeMessage is not available (backward compatibility)
+                if (!welcomeMessage || welcomeMessage.length < 50) {
+                    welcomeMessage = dietPlan.strategy.planJustification || '';
                     
-                    // Build more detailed justification
-                    let enhancedJustification = `Този ${modifier ? modifier.toLowerCase() : 'балансиран'} план е създаден СПЕЦИАЛНО за вас, базиран на вашата уникална комбинация от: `;
-                    
-                    const factors = [];
-                    if (userData && userData.age) factors.push(`възраст ${userData.age} години`);
-                    if (userData && userData.gender) factors.push(userData.gender.toLowerCase());
-                    if (goal && goal !== 'здравословен живот') factors.push(`цел "${goal.toLowerCase()}"`);
-                    if (userData && userData.weight && userData.height && userData.weight > 0 && userData.height > 0) {
-                        const bmi = (userData.weight / Math.pow(userData.height / 100, 2)).toFixed(1);
-                        factors.push(`BMI ${bmi}`);
+                    // If still empty, create basic fallback
+                    if (!welcomeMessage || welcomeMessage.length < 20) {
+                        const modifier = dietPlan.strategy.dietaryModifier || 'Балансиран';
+                        const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
+                        
+                        welcomeMessage = `Здравейте, ${userData && userData.name ? userData.name : ''}!\n\n`;
+                        welcomeMessage += `Този ${modifier.toLowerCase()} план е създаден специално за Вас, базиран на вашата уникална комбинация от фактори. `;
+                        welcomeMessage += `Целта ви за ${goal.toLowerCase()} е водеща при изграждането на плана.\n\n`;
+                        welcomeMessage += `Всяка калория, всеки макронутриент и всяко хранене са прецизно подбрани, за да Ви помогнат да постигнете желаните резултати по здравословен и устойчив начин.`;
                     }
-                    if (userData && userData.sportActivity) factors.push(userData.sportActivity.toLowerCase());
-                    
-                    enhancedJustification += factors.join(', ') + '. ';
-                    
-                    // Add specific strategy reasoning
-                    if (dietPlan.analysis && dietPlan.analysis.keyProblems && dietPlan.analysis.keyProblems.length > 0) {
-                        const topProblem = dietPlan.analysis.keyProblems[0];
-                        if (topProblem && topProblem.problem) {
-                            enhancedJustification += `Планът адресира специфично: ${topProblem.problem.toLowerCase()}. `;
-                        }
-                    }
-                    
-                    enhancedJustification += `Калориите и макронутриентите са ПРЕЦИЗНО изчислени според вашите индивидуални нужди за постигане на оптимални резултати.`;
-                    
-                    justification = enhancedJustification;
                 }
                 
-                textElement.textContent = justification;
+                // Store for use in profile page (keep planJustification for profile)
+                const justification = dietPlan.strategy.planJustification || welcomeMessage;
+                localStorage.setItem('planJustification', justification);
                 
-                // Show banner only on first visit
+                // Show welcome modal only on first visit
                 if (!hasSeenJustification || hasSeenJustification !== 'true') {
-                    banner.style.display = 'block';
-                    localStorage.setItem('hasSeenPlanJustification', 'true');
-                    localStorage.setItem('planJustification', justification); // Store for profile
-                } else {
-                    banner.style.display = 'none';
+                    const welcomeMessageElement = document.getElementById('aiWelcomeMessage');
+                    if (welcomeMessageElement) {
+                        welcomeMessageElement.textContent = welcomeMessage;
+                    }
+                    welcomeModal.classList.add('active');
+                    // Note: hasSeenPlanJustification is set when user closes the modal
                 }
                 
             } catch (error) {
@@ -2618,6 +2672,19 @@
         // Close modal if clicking outside
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
+        });
+
+        // Welcome modal functions
+        const welcomeModal = document.getElementById('welcomeModal');
+        
+        function closeWelcomeModal() {
+            welcomeModal.classList.remove('active');
+            localStorage.setItem('hasSeenPlanJustification', 'true');
+        }
+        
+        // Close welcome modal if clicking outside
+        welcomeModal.addEventListener('click', (e) => {
+            if (e.target === welcomeModal) closeWelcomeModal();
         });
 
         // --- Chat Logic ---

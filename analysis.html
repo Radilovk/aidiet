@@ -1233,19 +1233,23 @@
             // and represent achievable improvements with dedication and consistency.
             
             // Assume significant improvement with plan adherence
-            // Health improvement: 15-25% increase
-            const healthImprovement = Math.floor((MAX_HEALTH_SCORE - healthScore) * 0.35); // 35% of gap to perfect
-            const futureHealthScore = Math.min(MAX_HEALTH_SCORE, healthScore + healthImprovement);
+            // Health improvement: ensure 80-100% range
+            const healthImprovement = Math.floor((MAX_HEALTH_SCORE - healthScore) * 0.50); // 50% of gap to perfect
+            let futureHealthScore = Math.min(MAX_HEALTH_SCORE, healthScore + healthImprovement);
+            // Ensure minimum 80% for future health score
+            futureHealthScore = Math.max(80, futureHealthScore);
             
-            // Success chance improvement: 20-35% increase
+            // Success chance improvement: ensure 80-100% range
             let futureSuccessChance;
             if (successChance < 0) {
                 // For negative values, move towards positive territory
-                futureSuccessChance = Math.min(MAX_SUCCESS_CHANCE, successChance + 40);
+                futureSuccessChance = Math.min(MAX_SUCCESS_CHANCE, successChance + 85);
             } else {
-                const successImprovement = Math.floor((MAX_SUCCESS_CHANCE - successChance) * 0.40); // 40% of gap to perfect
+                const successImprovement = Math.floor((MAX_SUCCESS_CHANCE - successChance) * 0.50); // 50% of gap to perfect
                 futureSuccessChance = Math.min(MAX_SUCCESS_CHANCE, successChance + successImprovement);
             }
+            // Ensure minimum 80% for future success chance
+            futureSuccessChance = Math.max(80, futureSuccessChance);
             
             // Calculate deltas
             const healthDelta = futureHealthScore - healthScore;
