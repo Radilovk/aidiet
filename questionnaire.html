@@ -1108,8 +1108,11 @@
                 input.oninput = (e) => {
                     saveAnswer(step.id, e.target.value);
                     // Test mode activation: when name is "kakadu" or "какаду"
-                    if (step.id === 'name' && (e.target.value.toLowerCase() === 'kakadu' || e.target.value.toLowerCase() === 'какаду')) {
-                        activateTestMode();
+                    if (step.id === 'name') {
+                        const lowerValue = e.target.value.toLowerCase();
+                        if (lowerValue === 'kakadu' || lowerValue === 'какаду') {
+                            activateTestMode();
+                        }
                     }
                 };
                 card.appendChild(input);
@@ -1355,9 +1358,11 @@
             // Persist to localStorage
             localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
             
-            // Navigate to the last question (before finish)
-            currentIndex = currentQueue.length - 1;
-            renderStep();
+            // Navigate to the last question (before finish) with bounds check
+            if (currentQueue && currentQueue.length > 0) {
+                currentIndex = currentQueue.length - 1;
+                renderStep();
+            }
         }
 
         function validateInput() {
