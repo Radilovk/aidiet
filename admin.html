@@ -284,6 +284,78 @@
             }
         }
 
+        /* Report Item Styles */
+        .report-item {
+            background: var(--bg-color);
+            border: 1px solid var(--text-gray);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .report-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .report-user {
+            font-weight: 600;
+            color: var(--primary-red);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .report-time {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        .report-message {
+            background: var(--white);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .report-meta {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .report-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-unread {
+            background: #ff9800;
+            color: white;
+        }
+
+        .badge-read {
+            background: #4CAF50;
+            color: white;
+        }
+
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
@@ -667,6 +739,22 @@
                 <button class="btn" onclick="saveModificationPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Промяна
                 </button>
+            </div>
+
+            <!-- Problem Reports Section -->
+            <div class="card">
+                <h2><i class="fas fa-exclamation-triangle"></i> Доклади за Проблеми</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Тук можете да видите всички доклади за проблеми, изпратени от потребителите.
+                </div>
+                <button class="btn" onclick="loadReports()" style="margin-bottom: 20px;">
+                    <i class="fas fa-sync"></i> Обнови Доклади
+                </button>
+                <div id="reportsContainer" style="max-height: 500px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                        Натиснете "Обнови Доклади" за да заредите докладите.
+                    </p>
+                </div>
             </div>
 
             <!-- System Actions -->
@@ -1216,6 +1304,73 @@
         // View Logs
         function viewLogs() {
             alert('Преглед на логове ще бъде имплементиран в бъдеща версия.\nЗа текущи логове, проверете Cloudflare Dashboard.');
+        }
+
+        // Load Problem Reports
+        async function loadReports() {
+            const container = document.getElementById('reportsContainer');
+            container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+            
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-reports');
+                if (!response.ok) {
+                    throw new Error('Failed to load reports');
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.reports) {
+                    if (result.reports.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма доклади за показване.</p>';
+                        return;
+                    }
+                    
+                    // Display reports
+                    let html = '';
+                    result.reports.forEach(report => {
+                        const date = new Date(report.timestamp);
+                        const dateStr = date.toLocaleString('bg-BG');
+                        
+                        html += `
+                            <div class="report-item">
+                                <div class="report-header">
+                                    <div class="report-user">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span>${escapeHtml(report.userName)}</span>
+                                        <span class="report-badge badge-${report.status || 'unread'}">${report.status === 'read' ? 'Прочетен' : 'Непрочетен'}</span>
+                                    </div>
+                                    <div class="report-time">
+                                        <i class="fas fa-clock"></i> ${dateStr}
+                                    </div>
+                                </div>
+                                <div class="report-message">
+                                    ${escapeHtml(report.message)}
+                                </div>
+                                <div class="report-meta">
+                                    <span><i class="fas fa-hashtag"></i> ID: ${report.id}</span>
+                                    <span><i class="fas fa-id-badge"></i> User ID: ${escapeHtml(report.userId)}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                    showSuccess(`Заредени ${result.reports.length} доклада`);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Error loading reports:', error);
+                container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на доклади</p>';
+                showError('Грешка при зареждане на доклади: ' + error.message);
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Helper Functions
