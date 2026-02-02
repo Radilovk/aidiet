@@ -809,7 +809,7 @@ async function handleReportProblem(request, env) {
       return jsonResponse({ error: 'Message is required' }, 400);
     }
     
-    if (!env.AIDIET_KV) {
+    if (!env.page_content) {
       console.error('KV namespace not configured');
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
@@ -829,10 +829,10 @@ async function handleReportProblem(request, env) {
     };
     
     // Store report in KV with reportId as key
-    await env.AIDIET_KV.put(`problem_report:${reportId}`, JSON.stringify(report));
+    await env.page_content.put(`problem_report:${reportId}`, JSON.stringify(report));
     
     // Also maintain a list of all report IDs for easy retrieval
-    let reportsList = await env.AIDIET_KV.get('problem_reports_list');
+    let reportsList = await env.page_content.get('problem_reports_list');
     reportsList = reportsList ? JSON.parse(reportsList) : [];
     reportsList.unshift(reportId); // Add to beginning (most recent first)
     
@@ -841,7 +841,7 @@ async function handleReportProblem(request, env) {
       reportsList = reportsList.slice(0, 100);
     }
     
-    await env.AIDIET_KV.put('problem_reports_list', JSON.stringify(reportsList));
+    await env.page_content.put('problem_reports_list', JSON.stringify(reportsList));
     
     console.log('Problem report saved:', reportId);
     
@@ -861,13 +861,13 @@ async function handleReportProblem(request, env) {
  */
 async function handleGetReports(request, env) {
   try {
-    if (!env.AIDIET_KV) {
+    if (!env.page_content) {
       console.error('KV namespace not configured');
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
     
     // Get list of report IDs
-    const reportsList = await env.AIDIET_KV.get('problem_reports_list');
+    const reportsList = await env.page_content.get('problem_reports_list');
     if (!reportsList) {
       return jsonResponse({ success: true, reports: [] });
     }
@@ -876,7 +876,7 @@ async function handleGetReports(request, env) {
     
     // Fetch all reports in parallel for better performance
     const reportPromises = reportIds.map(reportId => 
-      env.AIDIET_KV.get(`problem_report:${reportId}`)
+      env.page_content.get(`problem_report:${reportId}`)
     );
     
     const reportDataList = await Promise.all(reportPromises);
