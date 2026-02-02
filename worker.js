@@ -952,7 +952,6 @@ const TOKEN_LIMITS = {
 
 // Legacy constants for backward compatibility
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
-const CORRECTION_TOKEN_LIMIT = 8000;
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
