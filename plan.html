@@ -2808,6 +2808,13 @@
         }
 
         function switchToMode(targetMode) {
+            // Validate target mode
+            const validModes = ['consultation', 'modification', 'report'];
+            if (!validModes.includes(targetMode)) {
+                console.error('Invalid mode:', targetMode);
+                return;
+            }
+            
             if (chatMode === targetMode) {
                 // If already in this mode, switch back to consultation
                 chatMode = 'consultation';

@@ -874,14 +874,15 @@ async function handleGetReports(request, env) {
     
     const reportIds = JSON.parse(reportsList);
     
-    // Fetch all reports
-    const reports = [];
-    for (const reportId of reportIds) {
-      const reportData = await env.AIDIET_KV.get(`problem_report:${reportId}`);
-      if (reportData) {
-        reports.push(JSON.parse(reportData));
-      }
-    }
+    // Fetch all reports in parallel for better performance
+    const reportPromises = reportIds.map(reportId => 
+      env.AIDIET_KV.get(`problem_report:${reportId}`)
+    );
+    
+    const reportDataList = await Promise.all(reportPromises);
+    const reports = reportDataList
+      .filter(data => data !== null)
+      .map(data => JSON.parse(data));
     
     return jsonResponse({ success: true, reports: reports });
   } catch (error) {
