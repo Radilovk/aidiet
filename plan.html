@@ -704,6 +704,46 @@
             margin-right: 8px;
         }
         
+        /* Welcome modal specific styles */
+        .welcome-modal-card {
+            max-width: 600px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .welcome-modal-content {
+            overflow-y: auto;
+            overflow-x: hidden;
+            max-height: calc(85vh - 100px);
+            padding-right: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-red) var(--soft-red);
+        }
+        
+        .welcome-modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .welcome-modal-content::-webkit-scrollbar-track {
+            background: var(--soft-red);
+            border-radius: 10px;
+        }
+        
+        .welcome-modal-content::-webkit-scrollbar-thumb {
+            background: var(--primary-red);
+            border-radius: 10px;
+        }
+        
+        .welcome-modal-content::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-accent);
+        }
+        
+        .welcome-modal-body {
+            font-size: 1rem;
+        }
+        
         /* Macronutrient stacked bar visualization */
         .macro-breakdown {
             margin-top: 24px;
@@ -1698,21 +1738,6 @@
             </div>
         </div>
         
-        <!-- REQUIREMENT 3: Plan Justification Banner -->
-        <div id="planJustificationBanner" style="display: none; background: linear-gradient(135deg, var(--primary-red), var(--primary-accent)); color: white; padding: 20px; border-radius: var(--radius); margin-bottom: 20px; box-shadow: var(--shadow); animation: fadeIn 0.6s ease;">
-            <div style="display: flex; align-items: flex-start; gap: 15px;">
-                <div style="flex-shrink: 0; font-size: 2.5rem; opacity: 0.9;">
-                    <i class="fas fa-award"></i>
-                </div>
-                <div style="flex: 1;">
-                    <h3 style="margin: 0 0 10px 0; font-size: 1.2rem; font-weight: 700;">Защо този план е създаден специално за вас</h3>
-                    <p id="planJustificationText" style="margin: 0; font-size: 1rem; line-height: 1.6; opacity: 0.95;">
-                        Зареждане...
-                    </p>
-                </div>
-            </div>
-        </div>
-        
         <!-- MEAL PLAN SECTION -->
         <div id="mealContainer">
             <!-- Примерно съдържание (ще се замести от JSON logic) -->
@@ -1853,6 +1878,65 @@
                         <!-- Legend items will be added dynamically -->
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WELCOME MODAL - Shows on first visit to plan.html -->
+    <div class="modal-overlay" id="welcomeModal">
+        <div class="modal-card welcome-modal-card">
+            <div class="welcome-modal-content">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 3.5rem; color: var(--primary-red); margin-bottom: 10px;">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <h3 class="modal-title" style="text-align: center; padding-right: 0;">
+                        Разработихме този план специално за Вас!
+                    </h3>
+                </div>
+                <div class="modal-body welcome-modal-body" id="welcomeModalContent">
+                    <p style="font-size: 1.1rem; font-weight: 600; color: var(--primary-red); margin-bottom: 15px;">
+                        🎯 Добре дошли в Вашето персонализирано хранително пътешествие!
+                    </p>
+                    <p id="welcomeJustificationText" style="margin-bottom: 15px; line-height: 1.8;">
+                        Зареждане...
+                    </p>
+                    <div style="background: var(--soft-red); padding: 20px; border-radius: 12px; margin-bottom: 15px;">
+                        <p style="margin: 0 0 12px 0; font-weight: 600; color: var(--text-dark);">
+                            <i class="fas fa-handshake" style="color: var(--primary-red);"></i> 
+                            Ние сме Вашите партньори в постигането на целта!
+                        </p>
+                        <p style="margin: 0; line-height: 1.7; font-size: 0.95rem;">
+                            Този план не е просто списък с ястия - той е резултат от задълбочен анализ на Вашите уникални 
+                            характеристики, навици и цели. Всяка калория, всеки макронутриент и всяко хранене са 
+                            прецизно подбрани, за да Ви помогнат да постигнете желаните резултати по здравословен 
+                            и устойчив начин.
+                        </p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, var(--soft-red), rgba(52, 211, 153, 0.1)); padding: 20px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid var(--primary-red);">
+                        <p style="margin: 0 0 10px 0; font-weight: 600; color: var(--text-dark);">
+                            <i class="fas fa-star" style="color: var(--primary-red);"></i> 
+                            Защо този план е специален?
+                        </p>
+                        <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+                            <li>📊 Базиран на Вашите точни данни и анализи</li>
+                            <li>🎯 Съобразен с Вашата цел и начин на живот</li>
+                            <li>💪 Проектиран за устойчиви и трайни резултати</li>
+                            <li>🔬 Научно обоснован и балансиран подход</li>
+                            <li>❤️ Създаден с грижа специално за Вас</li>
+                        </ul>
+                    </div>
+                    <p style="font-size: 0.95rem; color: var(--text-light); line-height: 1.7; margin-bottom: 0;">
+                        <i class="fas fa-lightbulb" style="color: var(--accent-yellow);"></i>
+                        <strong>Съвет:</strong> За най-добри резултати следвайте плана последователно. 
+                        Не забравяйте, че сме тук, за да Ви подкрепим на всяка стъпка от пътя!
+                    </p>
+                </div>
+            </div>
+            <div style="text-align: center; padding-top: 20px; border-top: 2px solid var(--soft-red); margin-top: 20px;">
+                <button class="btn-primary" onclick="closeWelcomeModal()" style="width: 100%; max-width: 300px; margin: 0 auto; padding: 14px 24px; font-size: 1.05rem;">
+                    <i class="fas fa-check"></i> Разбрах, нека започваме!
+                </button>
             </div>
         </div>
     </div>
@@ -2047,13 +2131,6 @@
                     return;
                 }
                 
-                const banner = document.getElementById('planJustificationBanner');
-                const textElement = document.getElementById('planJustificationText');
-                
-                if (!banner || !textElement) {
-                    return;
-                }
-                
                 // Check if this is first visit after questionnaire
                 const hasSeenJustification = localStorage.getItem('hasSeenPlanJustification');
                 
@@ -2066,7 +2143,7 @@
                     const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
                     
                     // Build more detailed justification
-                    let enhancedJustification = `Този ${modifier ? modifier.toLowerCase() : 'балансиран'} план е създаден СПЕЦИАЛНО за вас, базиран на вашата уникална комбинация от: `;
+                    let enhancedJustification = `Този ${modifier ? modifier.toLowerCase() : 'балансиран'} план е създаден СПЕЦИАЛНО за Вас, базиран на вашата уникална комбинация от: `;
                     
                     const factors = [];
                     if (userData && userData.age) factors.push(`възраст ${userData.age} години`);
@@ -2093,15 +2170,17 @@
                     justification = enhancedJustification;
                 }
                 
-                textElement.textContent = justification;
+                // Store justification for use in profile page
+                localStorage.setItem('planJustification', justification);
                 
-                // Show banner only on first visit
+                // Show welcome modal only on first visit
                 if (!hasSeenJustification || hasSeenJustification !== 'true') {
-                    banner.style.display = 'block';
-                    localStorage.setItem('hasSeenPlanJustification', 'true');
-                    localStorage.setItem('planJustification', justification); // Store for profile
-                } else {
-                    banner.style.display = 'none';
+                    const welcomeTextElement = document.getElementById('welcomeJustificationText');
+                    if (welcomeTextElement) {
+                        welcomeTextElement.textContent = justification;
+                    }
+                    welcomeModal.classList.add('active');
+                    // Note: hasSeenPlanJustification is set when user closes the modal
                 }
                 
             } catch (error) {
@@ -2618,6 +2697,19 @@
         // Close modal if clicking outside
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
+        });
+
+        // Welcome modal functions
+        const welcomeModal = document.getElementById('welcomeModal');
+        
+        function closeWelcomeModal() {
+            welcomeModal.classList.remove('active');
+            localStorage.setItem('hasSeenPlanJustification', 'true');
+        }
+        
+        // Close welcome modal if clicking outside
+        welcomeModal.addEventListener('click', (e) => {
+            if (e.target === welcomeModal) closeWelcomeModal();
         });
 
         // --- Chat Logic ---
