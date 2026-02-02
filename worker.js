@@ -10,27 +10,32 @@
  * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
  * 
  * ARCHITECTURE - Plan Generation (10 requests):
- *   1a. Basic Metabolic Analysis (3k token limit)
+ *   1a. Basic Metabolic Analysis
  *      - Input: Physical data, activity, medical conditions
  *      - Output: BMR, TDEE, macro ratios, metabolic profile, nutritional needs
+ *      - Token limit: Gemini 800 / OpenAI 3000
  *   
- *   1b. Psychological & Risk Analysis (3k token limit)
+ *   1b. Psychological & Risk Analysis
  *      - Input: Sleep, stress, eating behaviors, medications, basic analysis
  *      - Output: Psychological profile, health risks, success chance, problems
+ *      - Token limit: Gemini 800 / OpenAI 3000
  *   
- *   2. Strategy Request (4k token limit)
+ *   2. Strategy Request
  *      - Input: User data + Combined analysis results
  *      - Output: Personalized dietary strategy and approach
+ *      - Token limit: Gemini 1200 / OpenAI 4000
  *   
- *   3. Meal Plan Requests (7 requests, 8k token limit each)
+ *   3. Meal Plan Requests (7 requests)
  *      - Progressive generation: 1 day per chunk for minimum load
  *      - Input: User data + Analysis + Strategy + Previous days context
  *      - Output: Detailed meals with macros and descriptions
  *      - Chunks: Day 1, Day 2, Day 3, Day 4, Day 5, Day 6, Day 7
+ *      - Token limit: Gemini 1500 / OpenAI 8000
  *   
- *   4. Summary Request (optional, 2k token limit)
+ *   4. Summary Request (optional)
  *      - Input: Strategy + Generated week plan
  *      - Output: Summary, recommendations, psychology tips
+ *      - Token limit: Gemini 800 / OpenAI 2000
  * 
  * ARCHITECTURE - Chat (1 request per message):
  *   - Input: Full user data + Full plan + Conversation history (2k tokens max)
@@ -39,11 +44,12 @@
  * 
  * BENEFITS:
  *   ✓ Each request focused on specific task with full relevant data
- *   ✓ No single request exceeds ~8k input tokens
+ *   ✓ Provider-aware token limits (Gemini has stricter limits than OpenAI)
  *   ✓ Better error handling (chunk failures don't fail entire generation)
  *   ✓ Progressive refinement (later days build on earlier days)
  *   ✓ Full analysis quality maintained throughout
  *   ✓ Minimum load per request - maximum reliability
+ *   ✓ Adaptive to AI provider capabilities (Gemini vs OpenAI)
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -493,7 +499,7 @@ async function handleGeneratePlan(request, env) {
       
       try {
         console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
-        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT);
+        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT, 'correction');
         const correctedPlan = parseAIResponse(correctionResponse);
         
         if (!correctedPlan || correctedPlan.error) {
@@ -617,7 +623,7 @@ async function handleChat(request, env) {
     const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, chatHistory, chatMode);
     
     // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
-    const aiResponse = await callAIModel(env, chatPrompt, 2000);
+    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat');
     
     // Check if the response contains a plan regeneration instruction
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
@@ -918,9 +924,35 @@ async function handleGetReports(request, env) {
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 
-// Token limit for meal plan generation - must be high enough for detailed, high-quality responses
-// Note: This is the OUTPUT token limit. Set high to ensure complete, precise meal plans
+// Token limits - Provider-aware configuration
+// Gemini has MUCH LOWER output limits than OpenAI!
+// Gemini Pro: ~2k output max (combined with input = 32k total)
+// OpenAI GPT-4o-mini: ~16k output max
+
+const TOKEN_LIMITS = {
+  // Gemini-specific limits (conservative to avoid MAX_TOKENS errors)
+  gemini: {
+    basicAnalysis: 800,      // Step 1a: Basic metabolic analysis
+    psychAnalysis: 800,      // Step 1b: Psychological analysis
+    strategy: 1200,          // Step 2: Strategy generation
+    mealPlan: 1500,          // Step 3: Meal plan per day
+    correction: 1200,        // Correction requests
+    chat: 800               // Chat responses
+  },
+  // OpenAI-specific limits (more generous)
+  openai: {
+    basicAnalysis: 3000,
+    psychAnalysis: 3000,
+    strategy: 4000,
+    mealPlan: 8000,
+    correction: 8000,
+    chat: 2000
+  }
+};
+
+// Legacy constants for backward compatibility
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
+const CORRECTION_TOKEN_LIMIT = 8000;
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -1484,7 +1516,7 @@ async function generatePlanMultiStep(env, data) {
     let basicAnalysisResponse, basicAnalysis;
     
     try {
-      basicAnalysisResponse = await callAIModel(env, basicAnalysisPrompt, 3000);
+      basicAnalysisResponse = await callAIModel(env, basicAnalysisPrompt, 3000, 'basicAnalysis');
       const basicAnalysisOutputTokens = estimateTokenCount(basicAnalysisResponse);
       cumulativeTokens.output += basicAnalysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1516,7 +1548,7 @@ async function generatePlanMultiStep(env, data) {
     let psychAnalysisResponse, psychAnalysis;
     
     try {
-      psychAnalysisResponse = await callAIModel(env, psychAnalysisPrompt, 3000);
+      psychAnalysisResponse = await callAIModel(env, psychAnalysisPrompt, 3000, 'psychAnalysis');
       const psychAnalysisOutputTokens = estimateTokenCount(psychAnalysisResponse);
       cumulativeTokens.output += psychAnalysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1577,7 +1609,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000);
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'strategy');
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1618,7 +1650,7 @@ async function generatePlanMultiStep(env, data) {
       let mealPlanResponse;
       
       try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'mealPlan');
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -1916,7 +1948,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
       console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
       
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT);
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, 'mealPlan');
       const chunkOutputTokens = estimateTokenCount(chunkResponse);
       console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
       
@@ -1954,7 +1986,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan);
-    const summaryResponse = await callAIModel(env, summaryPrompt, 2000);
+    const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'chat');
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
@@ -2523,7 +2555,7 @@ JSON ФОРМАТ:
 
 ВАЖНО: Върни САМО JSON, без допълнителни обяснения!`;
 
-  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT);
+  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT, 'mealPlan');
   const plan = parseAIResponse(response);
   
   if (!plan || plan.error) {
@@ -2973,31 +3005,58 @@ function estimateTokenCount(text) {
 }
 
 /**
- * Call AI model with load monitoring
- * Goal: Monitor request sizes to ensure no single request is overloaded
- * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
+ * Get appropriate token limit based on provider and request type
+ * Gemini has much stricter output limits than OpenAI
  */
-async function callAIModel(env, prompt, maxTokens = null) {
+function getTokenLimit(provider, requestType) {
+  const isGemini = provider === 'google' || provider === 'gemini';
+  const limits = isGemini ? TOKEN_LIMITS.gemini : TOKEN_LIMITS.openai;
+  
+  return limits[requestType] || (isGemini ? 1000 : 4000);
+}
+
+
+/**
+ * Call AI model with load monitoring and provider-aware token limits
+ * Goal: Monitor request sizes and adapt to provider capabilities
+ * Gemini has stricter limits than OpenAI - adjust accordingly
+ */
+async function callAIModel(env, prompt, maxTokens = null, requestType = null) {
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(prompt);
-  console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
+  
+  // Get admin config with caching
+  const config = await getAdminConfig(env);
+  const preferredProvider = config.provider;
+  const modelName = config.modelName;
+  
+  // Determine actual provider that will be used
+  let actualProvider = preferredProvider;
+  if (preferredProvider === 'openai' && !env.OPENAI_API_KEY) {
+    actualProvider = 'google';
+  } else if (preferredProvider === 'google' && !env.GEMINI_API_KEY) {
+    actualProvider = 'openai';
+  }
+  
+  // Adapt token limit based on provider
+  if (requestType && maxTokens) {
+    const adaptiveLimit = getTokenLimit(actualProvider, requestType);
+    // Use the smaller of requested and provider-specific limit
+    maxTokens = Math.min(maxTokens, adaptiveLimit);
+  }
+  
+  console.log(`AI Request: provider=${actualProvider}, estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
   // Monitor for large prompts - informational only
-  // Note: Progressive generation already distributes meal plan across multiple requests
   if (estimatedInputTokens > 8000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context. Progressive generation is already enabled for meal plans.`);
+    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context.`);
   }
   
   // Alert if prompt is very large - may indicate issue
   if (estimatedInputTokens > 12000) {
-    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function to ensure this is intentional.`);
+    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function.`);
   }
   
-  // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
-  const config = await getAdminConfig(env);
-  const preferredProvider = config.provider;
-  const modelName = config.modelName;
-
   // If mock is selected, return mock response
   if (preferredProvider === 'mock') {
     console.warn('Mock mode selected. Returning mock response.');
