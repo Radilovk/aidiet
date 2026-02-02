@@ -3008,11 +3008,15 @@ function estimateTokenCount(text) {
  * Get appropriate token limit based on provider and request type
  * Gemini has much stricter output limits than OpenAI
  */
+const DEFAULT_GEMINI_LIMIT = 1000;  // Conservative default for unknown request types
+const DEFAULT_OPENAI_LIMIT = 4000;  // Generous default for unknown request types
+
 function getTokenLimit(provider, requestType) {
+  // Normalize provider identifier (handle both 'google' and 'gemini')
   const isGemini = provider === 'google' || provider === 'gemini';
   const limits = isGemini ? TOKEN_LIMITS.gemini : TOKEN_LIMITS.openai;
   
-  return limits[requestType] || (isGemini ? 1000 : 4000);
+  return limits[requestType] || (isGemini ? DEFAULT_GEMINI_LIMIT : DEFAULT_OPENAI_LIMIT);
 }
 
 
@@ -3034,8 +3038,16 @@ async function callAIModel(env, prompt, maxTokens = null, requestType = null) {
   let actualProvider = preferredProvider;
   if (preferredProvider === 'openai' && !env.OPENAI_API_KEY) {
     actualProvider = 'google';
-  } else if (preferredProvider === 'google' && !env.GEMINI_API_KEY) {
+  } else if ((preferredProvider === 'google' || preferredProvider === 'gemini') && !env.GEMINI_API_KEY) {
     actualProvider = 'openai';
+  }
+  
+  // Validate that at least one provider is available
+  const hasOpenAI = !!env.OPENAI_API_KEY;
+  const hasGemini = !!env.GEMINI_API_KEY;
+  if (!hasOpenAI && !hasGemini && preferredProvider !== 'mock') {
+    console.warn('No AI API keys configured. Will use mock response.');
+    actualProvider = 'mock';
   }
   
   // Adapt token limit based on provider
