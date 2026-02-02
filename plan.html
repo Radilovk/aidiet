@@ -1915,46 +1915,13 @@
                         <i class="fas fa-award"></i>
                     </div>
                     <h3 class="modal-title" style="text-align: center; padding-right: 0;">
-                        Разработихме този план специално за Вас!
+                        Вашият Персонализиран План е Готов!
                     </h3>
                 </div>
                 <div class="modal-body welcome-modal-body" id="welcomeModalContent">
-                    <p style="font-size: 1.1rem; font-weight: 600; color: var(--primary-red); margin-bottom: 15px;">
-                        🎯 Добре дошли в Вашето персонализирано хранително пътешествие!
-                    </p>
-                    <p id="welcomeJustificationText" style="margin-bottom: 15px; line-height: 1.8;">
+                    <div id="aiWelcomeMessage" style="line-height: 1.8; margin-bottom: 20px; white-space: pre-line;">
                         Зареждане...
-                    </p>
-                    <div style="background: var(--soft-red); padding: 20px; border-radius: 12px; margin-bottom: 15px;">
-                        <p style="margin: 0 0 12px 0; font-weight: 600; color: var(--text-dark);">
-                            <i class="fas fa-handshake" style="color: var(--primary-red);"></i> 
-                            Ние сме Вашите партньори в постигането на целта!
-                        </p>
-                        <p style="margin: 0; line-height: 1.7; font-size: 0.95rem;">
-                            Този план не е просто списък с ястия - той е резултат от задълбочен анализ на Вашите уникални 
-                            характеристики, навици и цели. Всяка калория, всеки макронутриент и всяко хранене са 
-                            прецизно подбрани, за да Ви помогнат да постигнете желаните резултати по здравословен 
-                            и устойчив начин.
-                        </p>
                     </div>
-                    <div style="background: linear-gradient(135deg, var(--soft-red), rgba(52, 211, 153, 0.1)); padding: 20px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid var(--primary-red);">
-                        <p style="margin: 0 0 10px 0; font-weight: 600; color: var(--text-dark);">
-                            <i class="fas fa-star" style="color: var(--primary-red);"></i> 
-                            Защо този план е специален?
-                        </p>
-                        <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
-                            <li>📊 Базиран на Вашите точни данни и анализи</li>
-                            <li>🎯 Съобразен с Вашата цел и начин на живот</li>
-                            <li>💪 Проектиран за устойчиви и трайни резултати</li>
-                            <li>🔬 Научно обоснован и балансиран подход</li>
-                            <li>❤️ Създаден с грижа специално за Вас</li>
-                        </ul>
-                    </div>
-                    <p style="font-size: 0.95rem; color: var(--text-light); line-height: 1.7; margin-bottom: 0;">
-                        <i class="fas fa-lightbulb" style="color: var(--accent-yellow);"></i>
-                        <strong>Съвет:</strong> За най-добри резултати следвайте плана последователно. 
-                        Не забравяйте, че сме тук, за да Ви подкрепим на всяка стъпка от пътя!
-                    </p>
                 </div>
             </div>
             <div style="text-align: center; padding-top: 20px; border-top: 2px solid var(--soft-red); margin-top: 20px;">
@@ -2158,50 +2125,34 @@
                 // Check if this is first visit after questionnaire
                 const hasSeenJustification = localStorage.getItem('hasSeenPlanJustification');
                 
-                // Get justification from strategy with enhanced argumentation
-                let justification = dietPlan.strategy.planJustification || '';
+                // Get AI-generated welcome message from strategy
+                let welcomeMessage = dietPlan.strategy.welcomeMessage || '';
                 
-                // Enhance with more details for first-time view
-                if (!justification || justification.length < 20) {
-                    const modifier = dietPlan.strategy.dietaryModifier || 'Балансиран';
-                    const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
+                // Fallback to planJustification if welcomeMessage is not available (backward compatibility)
+                if (!welcomeMessage || welcomeMessage.length < 50) {
+                    welcomeMessage = dietPlan.strategy.planJustification || '';
                     
-                    // Build more detailed justification
-                    let enhancedJustification = `Този ${modifier ? modifier.toLowerCase() : 'балансиран'} план е създаден СПЕЦИАЛНО за Вас, базиран на вашата уникална комбинация от: `;
-                    
-                    const factors = [];
-                    if (userData && userData.age) factors.push(`възраст ${userData.age} години`);
-                    if (userData && userData.gender) factors.push(userData.gender.toLowerCase());
-                    if (goal && goal !== 'здравословен живот') factors.push(`цел "${goal.toLowerCase()}"`);
-                    if (userData && userData.weight && userData.height && userData.weight > 0 && userData.height > 0) {
-                        const bmi = (userData.weight / Math.pow(userData.height / 100, 2)).toFixed(1);
-                        factors.push(`BMI ${bmi}`);
+                    // If still empty, create basic fallback
+                    if (!welcomeMessage || welcomeMessage.length < 20) {
+                        const modifier = dietPlan.strategy.dietaryModifier || 'Балансиран';
+                        const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
+                        
+                        welcomeMessage = `Здравейте, ${userData && userData.name ? userData.name : ''}!\n\n`;
+                        welcomeMessage += `Този ${modifier.toLowerCase()} план е създаден специално за Вас, базиран на вашата уникална комбинация от фактори. `;
+                        welcomeMessage += `Целта ви за ${goal.toLowerCase()} е водеща при изграждането на плана.\n\n`;
+                        welcomeMessage += `Всяка калория, всеки макронутриент и всяко хранене са прецизно подбрани, за да Ви помогнат да постигнете желаните резултати по здравословен и устойчив начин.`;
                     }
-                    if (userData && userData.sportActivity) factors.push(userData.sportActivity.toLowerCase());
-                    
-                    enhancedJustification += factors.join(', ') + '. ';
-                    
-                    // Add specific strategy reasoning
-                    if (dietPlan.analysis && dietPlan.analysis.keyProblems && dietPlan.analysis.keyProblems.length > 0) {
-                        const topProblem = dietPlan.analysis.keyProblems[0];
-                        if (topProblem && topProblem.problem) {
-                            enhancedJustification += `Планът адресира специфично: ${topProblem.problem.toLowerCase()}. `;
-                        }
-                    }
-                    
-                    enhancedJustification += `Калориите и макронутриентите са ПРЕЦИЗНО изчислени според вашите индивидуални нужди за постигане на оптимални резултати.`;
-                    
-                    justification = enhancedJustification;
                 }
                 
-                // Store justification for use in profile page
+                // Store for use in profile page (keep planJustification for profile)
+                const justification = dietPlan.strategy.planJustification || welcomeMessage;
                 localStorage.setItem('planJustification', justification);
                 
                 // Show welcome modal only on first visit
                 if (!hasSeenJustification || hasSeenJustification !== 'true') {
-                    const welcomeTextElement = document.getElementById('welcomeJustificationText');
-                    if (welcomeTextElement) {
-                        welcomeTextElement.textContent = justification;
+                    const welcomeMessageElement = document.getElementById('aiWelcomeMessage');
+                    if (welcomeMessageElement) {
+                        welcomeMessageElement.textContent = welcomeMessage;
                     }
                     welcomeModal.classList.add('active');
                     // Note: hasSeenPlanJustification is set when user closes the modal
