@@ -1732,7 +1732,7 @@
                                         </summary>
                                         <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 10px;">
                                             <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.75rem;">
-                                                <div><span style="display: inline-block; width: 12px; height: 12px; background: #3498db; border-radius: 2px; margin-right: 5px;"></span><strong>Син:</strong> Hardcoded промпт от бекенд</div>
+                                                <div><span style="display: inline-block; width: 12px; height: 12px; background: #3498db; border-radius: 2px; margin-right: 5px;"></span><strong>Син:</strong> Системни инструкции и правила</div>
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #27ae60; border-radius: 2px; margin-right: 5px;"></span><strong>Зелен:</strong> Клиентски данни</div>
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #e67e22; border-radius: 2px; margin-right: 5px;"></span><strong>Оранжев:</strong> Изчислени данни от бекенд</div>
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #e91e63; border-radius: 2px; margin-right: 5px;"></span><strong>Розов:</strong> AI анализ от предходен етап</div>
@@ -1799,9 +1799,10 @@
 
         /**
          * Color-code AI prompt to distinguish:
-         * 1. Hardcoded backend instructions (blue)
+         * 1. System instructions and rules (blue)
          * 2. Client data from user input (green)
          * 3. Backend calculated values (orange)
+         * 4. AI analysis from previous step (pink)
          */
         function colorCodePrompt(prompt) {
             if (!prompt) return '';
