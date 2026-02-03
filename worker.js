@@ -4514,13 +4514,28 @@ async function handleGetConfig(request, env) {
     }
 
     // Use Promise.all to fetch all config values in parallel (reduces sequential KV reads)
-    const [provider, modelName, planPrompt, chatPrompt, consultationPrompt, modificationPrompt] = await Promise.all([
+    const [
+      provider, 
+      modelName, 
+      planPrompt, 
+      chatPrompt, 
+      consultationPrompt, 
+      modificationPrompt,
+      analysisPrompt,
+      strategyPrompt,
+      mealPlanPrompt,
+      summaryPrompt
+    ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
       env.page_content.get('admin_plan_prompt'),
       env.page_content.get('admin_chat_prompt'),
       env.page_content.get('admin_consultation_prompt'),
-      env.page_content.get('admin_modification_prompt')
+      env.page_content.get('admin_modification_prompt'),
+      env.page_content.get('admin_analysis_prompt'),
+      env.page_content.get('admin_strategy_prompt'),
+      env.page_content.get('admin_meal_plan_prompt'),
+      env.page_content.get('admin_summary_prompt')
     ]);
     
     return jsonResponse({ 
@@ -4530,7 +4545,11 @@ async function handleGetConfig(request, env) {
       planPrompt,
       chatPrompt,
       consultationPrompt,
-      modificationPrompt
+      modificationPrompt,
+      analysisPrompt,
+      strategyPrompt,
+      mealPlanPrompt,
+      summaryPrompt
     });
   } catch (error) {
     console.error('Error getting config:', error);

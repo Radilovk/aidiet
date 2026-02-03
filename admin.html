@@ -823,6 +823,90 @@
                 </button>
             </div>
 
+            <!-- Analysis Prompt Editor -->
+            <div class="card">
+                <h2><i class="fas fa-brain"></i> AI Промпт за Анализ (Стъпка 1)</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Този промпт се използва за холистичен анализ на клиента - BMR, TDEE, метаболитен профил, психологически фактори.
+                </div>
+                <div class="form-group">
+                    <label for="analysisPrompt">Промпт за Анализ:</label>
+                    <textarea id="analysisPrompt" placeholder="Въведете промпт за анализ..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Променливи:</strong> Използвайте {userData} за всички данни на клиента в JSON формат, или отделни променливи като {name}, {age}, {goal} и др.
+                </div>
+                <button class="btn" onclick="saveAnalysisPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Анализ
+                </button>
+                <button class="btn" onclick="resetAnalysisPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
+            <!-- Strategy Prompt Editor -->
+            <div class="card">
+                <h2><i class="fas fa-chess"></i> AI Промпт за Стратегия (Стъпка 2)</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Този промпт се използва за определяне на оптималната диетична стратегия базирана на анализа.
+                </div>
+                <div class="form-group">
+                    <label for="strategyPrompt">Промпт за Стратегия:</label>
+                    <textarea id="strategyPrompt" placeholder="Въведете промпт за стратегия..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Променливи:</strong> Използвайте {userData} за данни на клиента, {analysisData} за резултатите от анализа, {name}, {age}, {goal} и др.
+                </div>
+                <button class="btn" onclick="saveStrategyPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Стратегия
+                </button>
+                <button class="btn" onclick="resetStrategyPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
+            <!-- Meal Plan Prompt Editor -->
+            <div class="card">
+                <h2><i class="fas fa-utensils"></i> AI Промпт за Генериране на Хранителен План (Стъпка 3)</h2>
+                <div class="warning-box">
+                    <strong>Внимание:</strong> Този промпт е критичен - използва се за генериране на конкретните ястия и хранения за всеки ден.
+                </div>
+                <div class="form-group">
+                    <label for="mealPlanPrompt">Промпт за Хранителен План:</label>
+                    <textarea id="mealPlanPrompt" placeholder="Въведете промпт за хранителен план..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Променливи:</strong> {userData}, {analysisData}, {strategyData}, {bmr}, {recommendedCalories}, {startDay}, {endDay}, {previousDays}
+                </div>
+                <button class="btn" onclick="saveMealPlanPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Хранителен План
+                </button>
+                <button class="btn" onclick="resetMealPlanPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
+            <!-- Summary Prompt Editor -->
+            <div class="card">
+                <h2><i class="fas fa-clipboard-check"></i> AI Промпт за Обобщение (Стъпка 4)</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Този промпт се използва за генериране на обобщение, препоръки и допълнения към седмичния план.
+                </div>
+                <div class="form-group">
+                    <label for="summaryPrompt">Промпт за Обобщение:</label>
+                    <textarea id="summaryPrompt" placeholder="Въведете промпт за обобщение..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Променливи:</strong> {userData}, {strategyData}, {weekPlan}, {bmr}, {recommendedCalories}, {avgCalories}, {avgProtein}, {avgCarbs}, {avgFats}
+                </div>
+                <button class="btn" onclick="saveSummaryPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Обобщение
+                </button>
+                <button class="btn" onclick="resetSummaryPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
             <!-- Chat Prompt Editor - Consultation Mode -->
             <div class="card">
                 <h2><i class="fas fa-comments"></i> AI Промпт за Чат Асистент - Режим Консултация</h2>
@@ -1145,6 +1229,22 @@
                                 document.getElementById('modificationPrompt').value = config.modificationPrompt;
                                 localStorage.setItem('adminModificationPrompt', config.modificationPrompt);
                             }
+                            if (config.analysisPrompt) {
+                                document.getElementById('analysisPrompt').value = config.analysisPrompt;
+                                localStorage.setItem('adminAnalysisPrompt', config.analysisPrompt);
+                            }
+                            if (config.strategyPrompt) {
+                                document.getElementById('strategyPrompt').value = config.strategyPrompt;
+                                localStorage.setItem('adminStrategyPrompt', config.strategyPrompt);
+                            }
+                            if (config.mealPlanPrompt) {
+                                document.getElementById('mealPlanPrompt').value = config.mealPlanPrompt;
+                                localStorage.setItem('adminMealPlanPrompt', config.mealPlanPrompt);
+                            }
+                            if (config.summaryPrompt) {
+                                document.getElementById('summaryPrompt').value = config.summaryPrompt;
+                                localStorage.setItem('adminSummaryPrompt', config.summaryPrompt);
+                            }
                             return; // Successfully loaded from server
                         }
                     }
@@ -1168,6 +1268,18 @@
 
                 const savedModificationPrompt = localStorage.getItem('adminModificationPrompt') || DEFAULT_MODIFICATION_PROMPT;
                 document.getElementById('modificationPrompt').value = savedModificationPrompt;
+
+                const savedAnalysisPrompt = localStorage.getItem('adminAnalysisPrompt') || '';
+                document.getElementById('analysisPrompt').value = savedAnalysisPrompt;
+
+                const savedStrategyPrompt = localStorage.getItem('adminStrategyPrompt') || '';
+                document.getElementById('strategyPrompt').value = savedStrategyPrompt;
+
+                const savedMealPlanPrompt = localStorage.getItem('adminMealPlanPrompt') || '';
+                document.getElementById('mealPlanPrompt').value = savedMealPlanPrompt;
+
+                const savedSummaryPrompt = localStorage.getItem('adminSummaryPrompt') || '';
+                document.getElementById('summaryPrompt').value = savedSummaryPrompt;
 
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -1301,6 +1413,183 @@
             } catch (error) {
                 console.error('Error saving modification prompt:', error);
                 showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Analysis Prompt
+        async function saveAnalysisPrompt() {
+            const prompt = document.getElementById('analysisPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за анализ не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminAnalysisPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'analysis', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за анализ запазен успешно!');
+            } catch (error) {
+                console.error('Error saving analysis prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Strategy Prompt
+        async function saveStrategyPrompt() {
+            const prompt = document.getElementById('strategyPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за стратегия не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminStrategyPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'strategy', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за стратегия запазен успешно!');
+            } catch (error) {
+                console.error('Error saving strategy prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Meal Plan Prompt
+        async function saveMealPlanPrompt() {
+            const prompt = document.getElementById('mealPlanPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за хранителен план не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminMealPlanPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'meal_plan', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за хранителен план запазен успешно!');
+            } catch (error) {
+                console.error('Error saving meal plan prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Summary Prompt
+        async function saveSummaryPrompt() {
+            const prompt = document.getElementById('summaryPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за обобщение не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminSummaryPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'summary', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за обобщение запазен успешно!');
+            } catch (error) {
+                console.error('Error saving summary prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Reset Analysis Prompt
+        function resetAnalysisPrompt() {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта за анализ по подразбиране?')) {
+                document.getElementById('analysisPrompt').value = '';
+                localStorage.removeItem('adminAnalysisPrompt');
+                // Also delete from KV by saving empty string
+                fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'analysis', prompt: '' })
+                });
+                showSuccess('Промпт за анализ изтрит. Ще се използва стандартният промпт.');
+            }
+        }
+
+        // Reset Strategy Prompt
+        function resetStrategyPrompt() {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта за стратегия по подразбиране?')) {
+                document.getElementById('strategyPrompt').value = '';
+                localStorage.removeItem('adminStrategyPrompt');
+                fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'strategy', prompt: '' })
+                });
+                showSuccess('Промпт за стратегия изтрит. Ще се използва стандартният промпт.');
+            }
+        }
+
+        // Reset Meal Plan Prompt
+        function resetMealPlanPrompt() {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта за хранителен план по подразбиране?')) {
+                document.getElementById('mealPlanPrompt').value = '';
+                localStorage.removeItem('adminMealPlanPrompt');
+                fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'meal_plan', prompt: '' })
+                });
+                showSuccess('Промпт за хранителен план изтрит. Ще се използва стандартният промпт.');
+            }
+        }
+
+        // Reset Summary Prompt
+        function resetSummaryPrompt() {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта за обобщение по подразбиране?')) {
+                document.getElementById('summaryPrompt').value = '';
+                localStorage.removeItem('adminSummaryPrompt');
+                fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'summary', prompt: '' })
+                });
+                showSuccess('Промпт за обобщение изтрит. Ще се използва стандартният промпт.');
             }
         }
 
