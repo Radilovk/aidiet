@@ -757,6 +757,50 @@
                 </div>
             </div>
 
+            <!-- AI Communication Logs -->
+            <div class="card">
+                <h2><i class="fas fa-network-wired"></i> AI Комуникационни Логове</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Преглед на цялата комуникация между бекенда и AI модела. Вижте какво изисква всяка стъпка и каква натовареност има.
+                </div>
+                <div class="form-group">
+                    <label>Филтриране и Опции:</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="number" id="logsLimit" placeholder="Лимит (по подразбиране: 50)" value="50" style="flex: 1;">
+                        <input type="number" id="logsOffset" placeholder="Отместване (по подразбиране: 0)" value="0" style="flex: 1;">
+                    </div>
+                </div>
+                <button class="btn" onclick="loadAILogs()" style="margin-bottom: 20px;">
+                    <i class="fas fa-sync"></i> Зареди Логове
+                </button>
+                <div id="aiLogsStats" style="display: none; margin-bottom: 20px; padding: 15px; background: var(--soft-red); border-radius: 8px;">
+                    <h3 style="margin-bottom: 10px;">Статистика:</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                        <div>
+                            <strong>Общо Логове:</strong>
+                            <div id="totalLogs">-</div>
+                        </div>
+                        <div>
+                            <strong>Средно Време:</strong>
+                            <div id="avgDuration">-</div>
+                        </div>
+                        <div>
+                            <strong>Общо Входни Токени:</strong>
+                            <div id="totalInputTokens">-</div>
+                        </div>
+                        <div>
+                            <strong>Общо Изходни Токени:</strong>
+                            <div id="totalOutputTokens">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="aiLogsContainer" style="max-height: 600px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                        Натиснете "Зареди Логове" за да видите комуникационните логове.
+                    </p>
+                </div>
+            </div>
+
             <!-- System Actions -->
             <div class="card">
                 <h2><i class="fas fa-tools"></i> Системни Действия</h2>
@@ -1363,6 +1407,169 @@
                 console.error('Error loading reports:', error);
                 container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на доклади</p>';
                 showError('Грешка при зареждане на доклади: ' + error.message);
+            }
+        }
+
+        // Load AI communication logs
+        async function loadAILogs() {
+            const container = document.getElementById('aiLogsContainer');
+            const statsDiv = document.getElementById('aiLogsStats');
+            const limit = document.getElementById('logsLimit').value || 50;
+            const offset = document.getElementById('logsOffset').value || 0;
+            
+            container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+            statsDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${WORKER_URL}/api/admin/get-ai-logs?limit=${limit}&offset=${offset}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load AI logs');
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.logs) {
+                    if (result.logs.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма логове за показване.</p>';
+                        return;
+                    }
+                    
+                    // Calculate statistics
+                    let totalInputTokens = 0;
+                    let totalOutputTokens = 0;
+                    let totalDuration = 0;
+                    let successCount = 0;
+                    
+                    result.logs.forEach(log => {
+                        totalInputTokens += log.estimatedInputTokens || 0;
+                        if (log.response) {
+                            totalOutputTokens += log.response.estimatedOutputTokens || 0;
+                            totalDuration += log.response.duration || 0;
+                            if (log.response.success) successCount++;
+                        }
+                    });
+                    
+                    const avgDuration = result.logs.length > 0 ? (totalDuration / result.logs.length).toFixed(0) : 0;
+                    
+                    // Update statistics
+                    document.getElementById('totalLogs').textContent = result.total;
+                    document.getElementById('avgDuration').textContent = `${avgDuration} ms`;
+                    document.getElementById('totalInputTokens').textContent = totalInputTokens.toLocaleString();
+                    document.getElementById('totalOutputTokens').textContent = totalOutputTokens.toLocaleString();
+                    statsDiv.style.display = 'block';
+                    
+                    // Display logs
+                    let html = '';
+                    result.logs.forEach(log => {
+                        const requestDate = new Date(log.timestamp);
+                        const requestDateStr = requestDate.toLocaleString('bg-BG');
+                        
+                        const hasResponse = log.response !== null && log.response !== undefined;
+                        const statusColor = hasResponse && log.response.success ? '#27ae60' : '#e74c3c';
+                        const statusIcon = hasResponse && log.response.success ? 'check-circle' : 'times-circle';
+                        const statusText = hasResponse ? (log.response.success ? 'Успешен' : 'Грешка') : 'Без отговор';
+                        
+                        const stepNameBg = {
+                            'step1_analysis': 'Стъпка 1: Анализ',
+                            'step2_strategy': 'Стъпка 2: Стратегия',
+                            'step3_meal_plan_full': 'Стъпка 3: Пълен План',
+                            'step3_meal_plan_chunk_1': 'Стъпка 3: Блок 1',
+                            'step3_meal_plan_chunk_2': 'Стъпка 3: Блок 2',
+                            'step3_meal_plan_chunk_3': 'Стъпка 3: Блок 3',
+                            'step3_meal_plan_chunk_4': 'Стъпка 3: Блок 4',
+                            'step4_summary': 'Стъпка 4: Обобщение',
+                            'chat_consultation': 'Чат: Консултация',
+                            'plan_correction': 'Корекция на План',
+                            'fallback_plan_generation': 'Резервен План'
+                        }[log.stepName] || log.stepName;
+                        
+                        html += `
+                            <div class="report-item" style="border-left: 4px solid ${statusColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                    <div>
+                                        <strong style="font-size: 1.1rem; color: var(--text-dark);">
+                                            <i class="fas fa-${statusIcon}" style="color: ${statusColor};"></i>
+                                            ${stepNameBg}
+                                        </strong>
+                                        <div style="margin-top: 5px; color: var(--text-gray); font-size: 0.85rem;">
+                                            <i class="fas fa-clock"></i> ${requestDateStr}
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <span style="background: ${statusColor}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem;">
+                                            ${statusText}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--text-gray);">
+                                    <div>
+                                        <div style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 3px;">Провайдър / Модел</div>
+                                        <div style="font-weight: 600;">${log.provider} / ${log.modelName}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 3px;">Входни Токени</div>
+                                        <div style="font-weight: 600; color: #3498db;">${log.estimatedInputTokens?.toLocaleString() || 0}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 3px;">Изходни Токени</div>
+                                        <div style="font-weight: 600; color: #e67e22;">${hasResponse ? (log.response.estimatedOutputTokens?.toLocaleString() || 0) : '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 3px;">Време за Отговор</div>
+                                        <div style="font-weight: 600; color: #9b59b6;">${hasResponse ? (log.response.duration + ' ms') : '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 3px;">Дължина на Промпт</div>
+                                        <div style="font-weight: 600;">${log.promptLength?.toLocaleString() || 0} chars</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 3px;">Дължина на Отговор</div>
+                                        <div style="font-weight: 600;">${hasResponse ? (log.response.responseLength?.toLocaleString() || 0) + ' chars' : '-'}</div>
+                                    </div>
+                                </div>
+                                
+                                ${hasResponse && log.response.error ? `
+                                    <div style="margin-top: 15px; padding: 10px; background: #ffe6e6; border-radius: 8px; color: #e74c3c;">
+                                        <strong><i class="fas fa-exclamation-triangle"></i> Грешка:</strong> ${escapeHtml(log.response.error)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                    
+                    // Add pagination info
+                    if (result.total > result.limit) {
+                        const paginationInfo = document.createElement('div');
+                        paginationInfo.style.textAlign = 'center';
+                        paginationInfo.style.marginTop = '20px';
+                        paginationInfo.style.color = 'var(--text-gray)';
+                        paginationInfo.innerHTML = `
+                            <p>Показани ${result.logs.length} от ${result.total} логове</p>
+                            ${parseInt(offset) + parseInt(limit) < result.total ? `
+                                <button class="btn" onclick="document.getElementById('logsOffset').value = ${parseInt(offset) + parseInt(limit)}; loadAILogs();" style="margin-top: 10px;">
+                                    <i class="fas fa-arrow-right"></i> Покажи Следващи
+                                </button>
+                            ` : ''}
+                            ${parseInt(offset) > 0 ? `
+                                <button class="btn" onclick="document.getElementById('logsOffset').value = ${Math.max(0, parseInt(offset) - parseInt(limit))}; loadAILogs();" style="margin-top: 10px; margin-left: 10px;">
+                                    <i class="fas fa-arrow-left"></i> Покажи Предишни
+                                </button>
+                            ` : ''}
+                        `;
+                        container.appendChild(paginationInfo);
+                    }
+                    
+                    showSuccess(`Заредени ${result.logs.length} логове`);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Error loading AI logs:', error);
+                container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на логове</p>';
+                showError('Грешка при зареждане на логове: ' + error.message);
             }
         }
 
