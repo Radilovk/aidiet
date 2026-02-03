@@ -43,6 +43,9 @@
 
 // No default values - all calculations must be individualized based on user data
 
+// AI Communication Logging Configuration
+const MAX_LOG_ENTRIES = 1000; // Maximum number of log entries to keep in index
+
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
   PARSE_FAILURE: 'Имаше проблем с обработката на отговора. Моля опитайте отново.',
@@ -394,6 +397,8 @@ export default {
         return await handleSaveModel(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
         return await handleGetConfig(request, env);
+      } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
+        return await handleGetAILogs(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
@@ -488,7 +493,7 @@ async function handleGeneratePlan(request, env) {
       
       try {
         console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
-        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT);
+        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT, 'plan_correction');
         const correctedPlan = parseAIResponse(correctionResponse);
         
         if (!correctedPlan || correctedPlan.error) {
@@ -612,7 +617,7 @@ async function handleChat(request, env) {
     const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, chatHistory, chatMode);
     
     // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
-    const aiResponse = await callAIModel(env, chatPrompt, 2000);
+    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation');
     
     // Check if the response contains a plan regeneration instruction
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
@@ -1478,7 +1483,7 @@ async function generatePlanMultiStep(env, data) {
     let analysisResponse, analysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt, 4000);
+      analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis');
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1521,7 +1526,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000);
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy');
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1562,7 +1567,7 @@ async function generatePlanMultiStep(env, data) {
       let mealPlanResponse;
       
       try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT);
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full');
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -1971,7 +1976,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
       console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
       
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT);
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`);
       const chunkOutputTokens = estimateTokenCount(chunkResponse);
       console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
       
@@ -2009,7 +2014,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan);
-    const summaryResponse = await callAIModel(env, summaryPrompt, 2000);
+    const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'step4_summary');
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
@@ -2578,7 +2583,7 @@ JSON ФОРМАТ:
 
 ВАЖНО: Върни САМО JSON, без допълнителни обяснения!`;
 
-  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT);
+  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT, 'fallback_plan_generation');
   const plan = parseAIResponse(response);
   
   if (!plan || plan.error) {
@@ -3032,7 +3037,7 @@ function estimateTokenCount(text) {
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
  */
-async function callAIModel(env, prompt, maxTokens = null) {
+async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown') {
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(prompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
@@ -3053,29 +3058,64 @@ async function callAIModel(env, prompt, maxTokens = null) {
   const preferredProvider = config.provider;
   const modelName = config.modelName;
 
-  // If mock is selected, return mock response
-  if (preferredProvider === 'mock') {
-    console.warn('Mock mode selected. Returning mock response.');
-    return generateMockResponse(prompt);
+  // Log AI request
+  const logId = await logAIRequest(env, stepName, {
+    prompt: prompt,
+    estimatedInputTokens: estimatedInputTokens,
+    maxTokens: maxTokens,
+    provider: preferredProvider,
+    modelName: modelName
+  });
+
+  const startTime = Date.now();
+  let response;
+  let success = false;
+  let error = null;
+
+  try {
+    // If mock is selected, return mock response
+    if (preferredProvider === 'mock') {
+      console.warn('Mock mode selected. Returning mock response.');
+      response = generateMockResponse(prompt);
+      success = true;
+    } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
+      // Try preferred provider first
+      response = await callOpenAI(env, prompt, modelName, maxTokens);
+      success = true;
+    } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
+      response = await callGemini(env, prompt, modelName, maxTokens);
+      success = true;
+    } else if (env.OPENAI_API_KEY) {
+      // Fallback to any available API key
+      response = await callOpenAI(env, prompt, modelName, maxTokens);
+      success = true;
+    } else if (env.GEMINI_API_KEY) {
+      response = await callGemini(env, prompt, modelName, maxTokens);
+      success = true;
+    } else {
+      // Return mock response for development
+      console.warn('No AI API key configured. Returning mock response.');
+      response = generateMockResponse(prompt);
+      success = true;
+    }
+  } catch (e) {
+    error = e.message;
+    throw e;
+  } finally {
+    // Log AI response
+    const duration = Date.now() - startTime;
+    const estimatedOutputTokens = response ? estimateTokenCount(response) : 0;
+    
+    await logAIResponse(env, logId, stepName, {
+      response: response,
+      estimatedOutputTokens: estimatedOutputTokens,
+      duration: duration,
+      success: success,
+      error: error
+    });
   }
 
-  // Try preferred provider first
-  if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
-    return await callOpenAI(env, prompt, modelName, maxTokens);
-  } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-    return await callGemini(env, prompt, modelName, maxTokens);
-  }
-  
-  // Fallback to any available API key
-  if (env.OPENAI_API_KEY) {
-    return await callOpenAI(env, prompt, modelName, maxTokens);
-  } else if (env.GEMINI_API_KEY) {
-    return await callGemini(env, prompt, modelName, maxTokens);
-  } else {
-    // Return mock response for development
-    console.warn('No AI API key configured. Returning mock response.');
-    return generateMockResponse(prompt);
-  }
+  return response;
 }
 
 /**
@@ -3681,6 +3721,104 @@ function estimateTokens(text) {
 }
 
 /**
+ * Log AI communication to KV storage
+ * Tracks all communication between backend and AI model
+ */
+async function logAIRequest(env, stepName, requestData) {
+  try {
+    if (!env.page_content) {
+      console.warn('KV storage not configured, skipping AI request logging');
+      return null;
+    }
+
+    // Generate unique log ID using crypto.randomUUID() if available, fallback to timestamp+random
+    const logId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? `ai_log_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
+      : `ai_log_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    const timestamp = new Date().toISOString();
+    
+    const logEntry = {
+      id: logId,
+      timestamp: timestamp,
+      stepName: stepName,
+      type: 'request',
+      promptLength: requestData.prompt?.length || 0,
+      estimatedInputTokens: requestData.estimatedInputTokens || 0,
+      maxOutputTokens: requestData.maxTokens || null,
+      provider: requestData.provider || 'unknown',
+      modelName: requestData.modelName || 'unknown'
+    };
+
+    // Store individual log entry
+    await env.page_content.put(`ai_communication_log:${logId}`, JSON.stringify(logEntry));
+    
+    // Add to log index
+    let logIndex = await env.page_content.get('ai_communication_log_index');
+    logIndex = logIndex ? JSON.parse(logIndex) : [];
+    logIndex.unshift(logId); // Add to beginning (most recent first)
+    
+    // Keep only last MAX_LOG_ENTRIES log entries in index
+    // Note: Old log entries will remain in KV until their TTL expires or manual cleanup
+    // For now, we accept this trade-off to avoid expensive delete operations on every log write
+    // Future improvement: Implement periodic cleanup job or add expiration time when writing logs
+    if (logIndex.length > MAX_LOG_ENTRIES) {
+      const removedLogIds = logIndex.slice(MAX_LOG_ENTRIES);
+      logIndex = logIndex.slice(0, MAX_LOG_ENTRIES);
+      
+      // Optional: Cleanup old log entries asynchronously (doesn't block current request)
+      // This helps prevent storage bloat over time
+      if (removedLogIds.length > 0) {
+        // Use Promise.allSettled to avoid blocking if some deletes fail
+        Promise.allSettled(
+          removedLogIds.flatMap(id => [
+            env.page_content.delete(`ai_communication_log:${id}`),
+            env.page_content.delete(`ai_communication_log:${id}_response`)
+          ])
+        ).catch(err => console.error('Background log cleanup error:', err));
+      }
+    }
+    
+    await env.page_content.put('ai_communication_log_index', JSON.stringify(logIndex));
+    
+    console.log(`AI request logged: ${stepName} (${logId})`);
+    return logId;
+  } catch (error) {
+    console.error('Failed to log AI request:', error);
+    return null;
+  }
+}
+
+async function logAIResponse(env, logId, stepName, responseData) {
+  try {
+    if (!env.page_content || !logId) {
+      console.warn('KV storage not configured or missing logId, skipping AI response logging');
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+    
+    const logEntry = {
+      id: logId,
+      timestamp: timestamp,
+      stepName: stepName,
+      type: 'response',
+      responseLength: responseData.response?.length || 0,
+      estimatedOutputTokens: responseData.estimatedOutputTokens || 0,
+      duration: responseData.duration || 0,
+      success: responseData.success || false,
+      error: responseData.error || null
+    };
+
+    // Update the log entry with response data
+    await env.page_content.put(`ai_communication_log:${logId}_response`, JSON.stringify(logEntry));
+    
+    console.log(`AI response logged: ${stepName} (${logId})`);
+  } catch (error) {
+    console.error('Failed to log AI response:', error);
+  }
+}
+
+/**
  * Generate user ID from data
  */
 function generateUserId(data) {
@@ -3843,6 +3981,67 @@ async function handleGetConfig(request, env) {
   } catch (error) {
     console.error('Error getting config:', error);
     return jsonResponse({ error: 'Failed to get config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Get AI communication logs
+ * Returns logged AI requests and responses for monitoring and debugging
+ */
+async function handleGetAILogs(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const offset = parseInt(url.searchParams.get('offset') || '0');
+    
+    // Get log index
+    const logIndex = await env.page_content.get('ai_communication_log_index');
+    if (!logIndex) {
+      return jsonResponse({ success: true, logs: [], total: 0 });
+    }
+    
+    const logIds = JSON.parse(logIndex);
+    const total = logIds.length;
+    
+    // Apply pagination
+    const paginatedIds = logIds.slice(offset, offset + limit);
+    
+    // Fetch logs in parallel
+    const logPromises = paginatedIds.flatMap(logId => [
+      env.page_content.get(`ai_communication_log:${logId}`),
+      env.page_content.get(`ai_communication_log:${logId}_response`)
+    ]);
+    
+    const logData = await Promise.all(logPromises);
+    
+    // Combine request and response logs
+    const logs = [];
+    for (let i = 0; i < paginatedIds.length; i++) {
+      const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
+      const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
+      
+      if (requestLog) {
+        logs.push({
+          ...requestLog,
+          response: responseLog
+        });
+      }
+    }
+    
+    return jsonResponse({ 
+      success: true, 
+      logs: logs,
+      total: total,
+      limit: limit,
+      offset: offset
+    });
+  } catch (error) {
+    console.error('Error getting AI logs:', error);
+    return jsonResponse({ error: 'Failed to get AI logs: ' + error.message }, 500);
   }
 }
 
