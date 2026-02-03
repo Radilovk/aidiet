@@ -1817,7 +1817,7 @@
                 // Detect section boundaries
                 if (line.includes('КЛИЕНТСКИ ПРОФИЛ') || line.includes('CLIENT PROFILE')) {
                     currentSection = 'client_data';
-                    html += `<span style="color: #3498db; font-weight: bold;">${escapedLine}</span>\n`;
+                    html += `<span style="color: #27ae60; font-weight: bold;">${escapedLine}</span>\n`;
                     continue;
                 } else if (line.includes('ИЗЧИСЛЕНИ СТОЙНОСТИ') || line.includes('CALCULATED VALUES') || line.includes('Backend')) {
                     currentSection = 'backend_data';
