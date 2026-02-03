@@ -1414,8 +1414,8 @@
         async function loadAILogs() {
             const container = document.getElementById('aiLogsContainer');
             const statsDiv = document.getElementById('aiLogsStats');
-            const limit = document.getElementById('logsLimit').value || 50;
-            const offset = document.getElementById('logsOffset').value || 0;
+            const limit = parseInt(document.getElementById('logsLimit').value) || 50;
+            const offset = parseInt(document.getElementById('logsOffset').value) || 0;
             
             container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
             statsDiv.style.display = 'none';
@@ -1434,10 +1434,11 @@
                         return;
                     }
                     
-                    // Calculate statistics
+                    // Calculate statistics - only count logs with responses for average duration
                     let totalInputTokens = 0;
                     let totalOutputTokens = 0;
                     let totalDuration = 0;
+                    let logsWithResponses = 0;
                     let successCount = 0;
                     
                     result.logs.forEach(log => {
@@ -1445,11 +1446,12 @@
                         if (log.response) {
                             totalOutputTokens += log.response.estimatedOutputTokens || 0;
                             totalDuration += log.response.duration || 0;
+                            logsWithResponses++;
                             if (log.response.success) successCount++;
                         }
                     });
                     
-                    const avgDuration = result.logs.length > 0 ? (totalDuration / result.logs.length).toFixed(0) : 0;
+                    const avgDuration = logsWithResponses > 0 ? (totalDuration / logsWithResponses).toFixed(0) : 0;
                     
                     // Update statistics
                     document.getElementById('totalLogs').textContent = result.total;
@@ -1546,15 +1548,17 @@
                         paginationInfo.style.textAlign = 'center';
                         paginationInfo.style.marginTop = '20px';
                         paginationInfo.style.color = 'var(--text-gray)';
+                        const nextOffset = offset + limit;
+                        const prevOffset = Math.max(0, offset - limit);
                         paginationInfo.innerHTML = `
                             <p>Показани ${result.logs.length} от ${result.total} логове</p>
-                            ${parseInt(offset) + parseInt(limit) < result.total ? `
-                                <button class="btn" onclick="document.getElementById('logsOffset').value = ${parseInt(offset) + parseInt(limit)}; loadAILogs();" style="margin-top: 10px;">
+                            ${nextOffset < result.total ? `
+                                <button class="btn" onclick="document.getElementById('logsOffset').value = ${nextOffset}; loadAILogs();" style="margin-top: 10px;">
                                     <i class="fas fa-arrow-right"></i> Покажи Следващи
                                 </button>
                             ` : ''}
-                            ${parseInt(offset) > 0 ? `
-                                <button class="btn" onclick="document.getElementById('logsOffset').value = ${Math.max(0, parseInt(offset) - parseInt(limit))}; loadAILogs();" style="margin-top: 10px; margin-left: 10px;">
+                            ${offset > 0 ? `
+                                <button class="btn" onclick="document.getElementById('logsOffset').value = ${prevOffset}; loadAILogs();" style="margin-top: 10px; margin-left: 10px;">
                                     <i class="fas fa-arrow-left"></i> Покажи Предишни
                                 </button>
                             ` : ''}

@@ -43,6 +43,9 @@
 
 // No default values - all calculations must be individualized based on user data
 
+// AI Communication Logging Configuration
+const MAX_LOG_ENTRIES = 1000; // Maximum number of log entries to keep in index
+
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
   PARSE_FAILURE: 'Имаше проблем с обработката на отговора. Моля опитайте отново.',
@@ -3728,7 +3731,10 @@ async function logAIRequest(env, stepName, requestData) {
       return null;
     }
 
-    const logId = `ai_log_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    // Generate unique log ID using crypto.randomUUID() if available, fallback to timestamp+random
+    const logId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? `ai_log_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
+      : `ai_log_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     const timestamp = new Date().toISOString();
     
     const logEntry = {
@@ -3751,9 +3757,9 @@ async function logAIRequest(env, stepName, requestData) {
     logIndex = logIndex ? JSON.parse(logIndex) : [];
     logIndex.unshift(logId); // Add to beginning (most recent first)
     
-    // Keep only last 1000 log entries in index
-    if (logIndex.length > 1000) {
-      logIndex = logIndex.slice(0, 1000);
+    // Keep only last MAX_LOG_ENTRIES log entries in index
+    if (logIndex.length > MAX_LOG_ENTRIES) {
+      logIndex = logIndex.slice(0, MAX_LOG_ENTRIES);
     }
     
     await env.page_content.put('ai_communication_log_index', JSON.stringify(logIndex));
