@@ -416,6 +416,12 @@ export default {
         return await handleGetConfig(request, env);
       } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
         return await handleGetAILogs(request, env);
+      } else if (url.pathname === '/api/admin/get-blacklist' && request.method === 'GET') {
+        return await handleGetBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/add-to-blacklist' && request.method === 'POST') {
+        return await handleAddToBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/remove-from-blacklist' && request.method === 'POST') {
+        return await handleRemoveFromBlacklist(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
@@ -4439,6 +4445,119 @@ async function handleGetAILogs(request, env) {
   } catch (error) {
     console.error('Error getting AI logs:', error);
     return jsonResponse({ error: 'Failed to get AI logs: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Blacklist Management: Get blacklist from KV storage
+ */
+async function handleGetBlacklist(request, env) {
+  try {
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      // Return default blacklist if KV not available
+      const defaultBlacklist = [
+        'лук', 'onion', 
+        'пуешко месо', 'turkey meat',
+        'изкуствени подсладители', 'artificial sweeteners',
+        'мед', 'захар', 'конфитюр', 'сиропи', 
+        'honey', 'sugar', 'jam', 'syrups',
+        'кетчуп', 'майонеза', 'BBQ сос', 
+        'ketchup', 'mayonnaise', 'BBQ sauce',
+        'гръцко кисело мляко', 'greek yogurt'
+      ];
+      return jsonResponse({ success: true, blacklist: defaultBlacklist });
+    }
+    
+    const blacklistData = await env.page_content.get('food_blacklist');
+    const blacklist = blacklistData ? JSON.parse(blacklistData) : [
+      'лук', 'onion', 
+      'пуешко месо', 'turkey meat',
+      'изкуствени подсладители', 'artificial sweeteners',
+      'мед', 'захар', 'конфитюр', 'сиропи', 
+      'honey', 'sugar', 'jam', 'syrups',
+      'кетчуп', 'майонеза', 'BBQ сос', 
+      'ketchup', 'mayonnaise', 'BBQ sauce',
+      'гръцко кисело мляко', 'greek yogurt'
+    ];
+    
+    return jsonResponse({ success: true, blacklist: blacklist });
+  } catch (error) {
+    console.error('Error getting blacklist:', error);
+    return jsonResponse({ error: `Failed to get blacklist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Blacklist Management: Add item to blacklist
+ */
+async function handleAddToBlacklist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get current blacklist
+    const blacklistData = await env.page_content.get('food_blacklist');
+    let blacklist = blacklistData ? JSON.parse(blacklistData) : [
+      'лук', 'onion', 
+      'пуешко месо', 'turkey meat',
+      'изкуствени подсладители', 'artificial sweeteners',
+      'мед', 'захар', 'конфитюр', 'сиропи', 
+      'honey', 'sugar', 'jam', 'syrups',
+      'кетчуп', 'майонеза', 'BBQ сос', 
+      'ketchup', 'mayonnaise', 'BBQ sauce',
+      'гръцко кисело мляко', 'greek yogurt'
+    ];
+    
+    // Add item if not already in list
+    if (!blacklist.includes(item)) {
+      blacklist.push(item);
+      await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    }
+    
+    return jsonResponse({ success: true, blacklist: blacklist });
+  } catch (error) {
+    console.error('Error adding to blacklist:', error);
+    return jsonResponse({ error: `Failed to add to blacklist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Blacklist Management: Remove item from blacklist
+ */
+async function handleRemoveFromBlacklist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get current blacklist
+    const blacklistData = await env.page_content.get('food_blacklist');
+    let blacklist = blacklistData ? JSON.parse(blacklistData) : [];
+    
+    // Remove item
+    blacklist = blacklist.filter(i => i !== item);
+    await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    
+    return jsonResponse({ success: true, blacklist: blacklist });
+  } catch (error) {
+    console.error('Error removing from blacklist:', error);
+    return jsonResponse({ error: `Failed to remove from blacklist: ${error.message}` }, 500);
   }
 }
 

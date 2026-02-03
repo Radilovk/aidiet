@@ -801,6 +801,37 @@
                 </div>
             </div>
 
+            <!-- Blacklist Management -->
+            <div class="card">
+                <h2><i class="fas fa-ban"></i> Управление на Черен Списък с Храни</h2>
+                <div class="warning-box">
+                    <strong>Внимание:</strong> Храните в черния списък ще бъдат КАТЕГОРИЧНО ЗАБРАНЕНИ при генериране на планове. AI-то няма да може да ги използва.
+                </div>
+                <div class="form-group">
+                    <label>Текущ Черен Списък:</label>
+                    <div id="blacklistDisplay" style="padding: 15px; background: var(--soft-red); border-radius: 8px; margin-bottom: 15px; min-height: 80px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <!-- Blacklisted items will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Добави храна в черния списък:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="blacklistInput" placeholder="Напр: гръцко кисело мляко" style="flex: 1;">
+                        <button class="btn" onclick="addToBlacklist()" style="background: var(--accent-light-red);">
+                            <i class="fas fa-plus"></i> Добави
+                        </button>
+                    </div>
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        Добавете храни на български и/или английски език. Препоръчително е да добавите и двата варианта.
+                    </small>
+                </div>
+                <button class="btn" onclick="loadBlacklist()" style="background: var(--accent-blue); margin-top: 10px;">
+                    <i class="fas fa-sync"></i> Опресни Списъка
+                </button>
+            </div>
+
             <!-- System Actions -->
             <div class="card">
                 <h2><i class="fas fa-tools"></i> Системни Действия</h2>
@@ -968,6 +999,7 @@
             document.getElementById('adminDashboard').style.display = 'block';
             loadSettings();
             loadStats();
+            loadBlacklist(); // Load blacklist on dashboard load
         }
 
         // Load Settings
@@ -1348,6 +1380,143 @@
         // View Logs
         function viewLogs() {
             alert('Преглед на логове ще бъде имплементиран в бъдеща версия.\nЗа текущи логове, проверете Cloudflare Dashboard.');
+        }
+
+        // --- Blacklist Management ---
+        let currentBlacklist = [];
+
+        // Load blacklist from KV storage
+        async function loadBlacklist() {
+            const container = document.getElementById('blacklistDisplay');
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-blacklist');
+                if (!response.ok) {
+                    throw new Error('Failed to load blacklist');
+                }
+                
+                const result = await response.json();
+                currentBlacklist = result.blacklist || [];
+                displayBlacklist();
+                showSuccess('Черният списък е зареден успешно!');
+            } catch (error) {
+                console.error('Error loading blacklist:', error);
+                // Load from default hard bans
+                currentBlacklist = [
+                    'лук', 'onion', 
+                    'пуешко месо', 'turkey meat',
+                    'изкуствени подсладители', 'artificial sweeteners',
+                    'мед', 'захар', 'конфитюр', 'сиропи', 
+                    'honey', 'sugar', 'jam', 'syrups',
+                    'кетчуп', 'майонеза', 'BBQ сос', 
+                    'ketchup', 'mayonnaise', 'BBQ sauce',
+                    'гръцко кисело мляко', 'greek yogurt'
+                ];
+                displayBlacklist();
+                showError('Не може да се зареди черният списък. Показани са стандартните забранени храни.');
+            }
+        }
+
+        // Display blacklist items
+        function displayBlacklist() {
+            const container = document.getElementById('blacklistDisplay');
+            if (currentBlacklist.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-gray); text-align: center;">Няма храни в черния списък.</p>';
+                return;
+            }
+
+            const itemsHTML = currentBlacklist.map((item, index) => `
+                <div style="display: inline-flex; align-items: center; background: var(--white); padding: 8px 12px; border-radius: 20px; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <span style="color: var(--text-dark);">${escapeHtml(item)}</span>
+                    <button onclick="removeFromBlacklist(${index})" style="background: none; border: none; color: var(--accent-light-red); cursor: pointer; padding: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            container.innerHTML = `<div style="display: flex; flex-wrap: wrap; gap: 8px;">${itemsHTML}</div>`;
+        }
+
+        // Add item to blacklist
+        async function addToBlacklist() {
+            const input = document.getElementById('blacklistInput');
+            const item = input.value.trim().toLowerCase();
+            
+            if (!item) {
+                showError('Моля, въведете име на храна');
+                return;
+            }
+
+            if (currentBlacklist.includes(item)) {
+                showError('Тази храна вече е в черния списък');
+                return;
+            }
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/add-to-blacklist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ item: item })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to add to blacklist');
+                }
+
+                const result = await response.json();
+                currentBlacklist = result.blacklist || [...currentBlacklist, item];
+                displayBlacklist();
+                input.value = '';
+                showSuccess(`"${item}" е добавена в черния списък!`);
+            } catch (error) {
+                console.error('Error adding to blacklist:', error);
+                // Fallback to local update
+                currentBlacklist.push(item);
+                displayBlacklist();
+                input.value = '';
+                showSuccess(`"${item}" е добавена локално в черния списък!`);
+            }
+        }
+
+        // Remove item from blacklist
+        async function removeFromBlacklist(index) {
+            const item = currentBlacklist[index];
+            if (!confirm(`Сигурни ли сте, че искате да премахнете "${item}" от черния списък?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/remove-from-blacklist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ item: item })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to remove from blacklist');
+                }
+
+                const result = await response.json();
+                currentBlacklist = result.blacklist || currentBlacklist.filter((_, i) => i !== index);
+                displayBlacklist();
+                showSuccess(`"${item}" е премахната от черния списък!`);
+            } catch (error) {
+                console.error('Error removing from blacklist:', error);
+                // Fallback to local update
+                currentBlacklist.splice(index, 1);
+                displayBlacklist();
+                showSuccess(`"${item}" е премахната локално от черния списък!`);
+            }
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Load Problem Reports
