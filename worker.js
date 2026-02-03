@@ -1010,12 +1010,13 @@ const ADLE_V8_PROTEIN_WHITELIST = [
 ];
 
 // Proteins explicitly NOT on whitelist (should trigger warning)
+// Using word stems to catch variations (e.g., заешко, заешки, заешка)
 const ADLE_V8_NON_WHITELIST_PROTEINS = [
-  'заешко', 'rabbit', 'зайч',
-  'патица', 'duck', 'патешк',
-  'гъска', 'goose', 'гъсешк',
-  'агне', 'lamb', 'агнешк',
-  'дивеч', 'game', 'елен', 'deer', 'wild boar', 'глиган'
+  'заеш', 'rabbit', 'зайч',  // заешко, заешки, заешка
+  'патиц', 'патешк', 'duck',  // патица, патешко, патешки
+  'гъс', 'goose',  // гъска, гъсешко
+  'агн', 'lamb',  // агне, агнешко, агнешки
+  'дивеч', 'елен', 'deer', 'wild boar', 'глиган'
 ];
 
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
@@ -1378,7 +1379,10 @@ function validatePlan(plan, userData) {
           // Check for non-whitelist proteins (R12 enforcement)
           let foundNonWhitelistProtein = false;
           for (const protein of ADLE_V8_NON_WHITELIST_PROTEINS) {
-            if (mealText.includes(protein)) {
+            // Use flexible matching for Cyrillic - check if pattern exists without being part of another word
+            // For Bulgarian words, match at word start (e.g., "заеш" matches "заешко", "заешки")
+            const regex = new RegExp(`(^|[^а-яa-z])${protein}`, 'i');
+            if (regex.test(mealText)) {
               // Check if there's a "Reason:" justification in the description or meal
               const hasReason = /reason:/i.test(meal.description || '') || /reason:/i.test(meal.name || '');
               if (!hasReason) {
