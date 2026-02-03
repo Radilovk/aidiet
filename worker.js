@@ -1812,10 +1812,10 @@ function generateStrategyPrompt(data, analysis) {
     tdee: analysis.tdee || 'не изчислен',
     recommendedCalories: analysis.recommendedCalories || 'не изчислен',
     macroRatios: analysis.macroRatios ? 
-      `Protein: ${analysis.macroRatios.protein || 'N/A'}%, Carbs: ${analysis.macroRatios.carbs || 'N/A'}%, Fats: ${analysis.macroRatios.fats || 'N/A'}%` : 
+      `Protein: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Carbs: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Fats: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}` : 
       'не изчислени',
     macroGrams: analysis.macroGrams ?
-      `Protein: ${analysis.macroGrams.protein || 'N/A'}g, Carbs: ${analysis.macroGrams.carbs || 'N/A'}g, Fats: ${analysis.macroGrams.fats || 'N/A'}g` :
+      `Protein: ${analysis.macroGrams.protein != null ? analysis.macroGrams.protein + 'g' : 'N/A'}, Carbs: ${analysis.macroGrams.carbs != null ? analysis.macroGrams.carbs + 'g' : 'N/A'}, Fats: ${analysis.macroGrams.fats != null ? analysis.macroGrams.fats + 'g' : 'N/A'}` :
       'не изчислени',
     weeklyBlueprint: analysis.weeklyBlueprint || null,
     metabolicProfile: (analysis.metabolicProfile || '').length > 200 ? 
