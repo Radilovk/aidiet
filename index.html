@@ -1026,7 +1026,7 @@
             </div>
         </div>
         <div class="ios-instructions">
-            <p>Натисни бутона <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E" class="ios-share-icon"> и избери <strong>"Add to Home Screen"</strong></p>
+            <p>Натисни бутона <img id="ios-share-icon-img" class="ios-share-icon" alt="Share"> и избери <strong>"Add to Home Screen"</strong></p>
         </div>
     </div>
 
@@ -1114,6 +1114,18 @@
                         console.error('Service Worker registration failed:', error);
                     });
             });
+        }
+
+        // --- PWA Helper Functions ---
+        // Check if app is running in standalone mode
+        function isInStandaloneMode() {
+            return window.matchMedia('(display-mode: standalone)').matches || 
+                   (('standalone' in window.navigator) && (window.navigator.standalone));
+        }
+
+        // Get SVG data URL for iOS share icon
+        function getShareIconSvg() {
+            return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E";
         }
 
         // --- Push Notifications Support ---
@@ -1284,7 +1296,7 @@
             }
             
             // Don't show if already installed
-            if (window.matchMedia('(display-mode: standalone)').matches) {
+            if (isInStandaloneMode()) {
                 if (PWA_DEBUG) console.log('App already installed (standalone mode), not showing banner');
                 return;
             }
@@ -1470,12 +1482,17 @@
         // --- iOS-SPECIFIC BANNER LOGIC ---
         // Function to show iOS install banner
         function showIosInstallBanner() {
-            const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
             const hasDismissed = localStorage.getItem('ios_install_dismissed');
 
-            if (isIOS && !isInStandaloneMode && !hasDismissed) {
+            if (isIOS && !isInStandaloneMode() && !hasDismissed) {
                 const iosBanner = document.getElementById('ios-banner');
+                const shareIconImg = document.getElementById('ios-share-icon-img');
+                
                 if (iosBanner) {
+                    // Set the share icon SVG
+                    if (shareIconImg) {
+                        shareIconImg.src = getShareIconSvg();
+                    }
                     iosBanner.style.display = 'block';
                     if (PWA_DEBUG) console.log('iOS install banner shown');
                 }
@@ -1503,7 +1520,7 @@
         // This ensures automatic installation prompt instead of manual instructions
         window.addEventListener('load', () => {
             // Always show install button on Android if not installed
-            if (isAndroid && !window.matchMedia('(display-mode: standalone)').matches) {
+            if (isAndroid && !isInStandaloneMode()) {
                 setTimeout(() => {
                     if (!wasBannerRecentlyDismissed()) {
                         // Update banner for manual installation (will be updated if beforeinstallprompt fires)
@@ -1516,7 +1533,7 @@
             
             setTimeout(() => {
                 // Only log for debugging - don't show manual instructions
-                if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                if (!deferredPrompt && !isInStandaloneMode()) {
                     if (PWA_DEBUG) {
                         console.log('beforeinstallprompt has not fired after 2 seconds');
                         console.log('Install button available with manual instructions');
@@ -1544,7 +1561,7 @@
                 
                 // Check again after 32 seconds if user has interacted
                 setTimeout(() => {
-                    if (hasInteracted && !deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                    if (hasInteracted && !deferredPrompt && !isInStandaloneMode()) {
                         const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
                         if (PWA_DEBUG) {
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
@@ -1580,7 +1597,7 @@
                         console.log('- Browser:', isChrome ? 'Chrome' : (isEdge ? 'Edge' : 'Other'));
                         
                         // Check if already installed
-                        if (window.matchMedia('(display-mode: standalone)').matches) {
+                        if (isInStandaloneMode()) {
                             console.log('- Already installed: Yes (running as standalone app)');
                         } else {
                             console.log('- Already installed: No');
@@ -1649,10 +1666,7 @@
             }
 
             // On iOS, notifications only work in standalone mode
-            const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
-                                       (('standalone' in window.navigator) && (window.navigator.standalone));
-            
-            if (isIOS && !isInStandaloneMode) {
+            if (isIOS && !isInStandaloneMode()) {
                 console.log('iOS notifications require standalone mode. App must be installed first.');
                 // Hide notification section on iOS if not in standalone mode
                 const notificationSection = document.getElementById('notificationSection');
@@ -1718,10 +1732,7 @@
             }
 
             // Check if on iOS and not in standalone mode
-            const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
-                                       (('standalone' in window.navigator) && (window.navigator.standalone));
-            
-            if (isIOS && !isInStandaloneMode) {
+            if (isIOS && !isInStandaloneMode()) {
                 alert('За да използвате известия на iOS, моля първо инсталирайте приложението на началния екран.');
                 return false;
             }
@@ -1753,10 +1764,7 @@
             }
 
             // Check standalone mode for iOS
-            const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
-                                       (('standalone' in window.navigator) && (window.navigator.standalone));
-            
-            if (isIOS && !isInStandaloneMode) {
+            if (isIOS && !isInStandaloneMode()) {
                 console.log('iOS requires standalone mode for notifications');
                 return false;
             }
