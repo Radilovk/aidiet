@@ -2122,12 +2122,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
       
       return {
         summary: {
-          bmr: `${bmr}`,
-          dailyCalories: `${recommendedCalories}`,
+          bmr: bmr,
+          dailyCalories: recommendedCalories,
           macros: {
-            protein: calculatedMacros.protein ? `${calculatedMacros.protein}g (средно дневно)` : "Не е изчислено",
-            carbs: calculatedMacros.carbs ? `${calculatedMacros.carbs}g (средно дневно)` : "Не е изчислено",
-            fats: calculatedMacros.fats ? `${calculatedMacros.fats}g (средно дневно)` : "Не е изчислено"
+            protein: calculatedMacros.protein || 0,
+            carbs: calculatedMacros.carbs || 0,
+            fats: calculatedMacros.fats || 0
           }
         },
         weekPlan: weekPlan,
@@ -2141,8 +2141,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     
     return {
       summary: summaryData.summary || {
-        bmr: `${bmr}`,
-        dailyCalories: `${recommendedCalories}`,
+        bmr: bmr,
+        dailyCalories: recommendedCalories,
         macros: summaryData.macros || {}
       },
       weekPlan: weekPlan,
@@ -2159,12 +2159,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     
     return {
       summary: {
-        bmr: `${bmr}`,
-        dailyCalories: `${recommendedCalories}`,
+        bmr: bmr,
+        dailyCalories: recommendedCalories,
         macros: { 
-          protein: calculatedMacros.protein ? `${calculatedMacros.protein}g (средно дневно)` : "Не е изчислено",
-          carbs: calculatedMacros.carbs ? `${calculatedMacros.carbs}g (средно дневно)` : "Не е изчислено",
-          fats: calculatedMacros.fats ? `${calculatedMacros.fats}g (средно дневно)` : "Не е изчислено"
+          protein: calculatedMacros.protein || 0,
+          carbs: calculatedMacros.carbs || 0,
+          fats: calculatedMacros.fats || 0
         }
       },
       weekPlan: weekPlan,
@@ -2460,12 +2460,12 @@ BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
 - Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
 - Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
 
-JSON ФОРМАТ:
+JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
 {
   "summary": {
-    "bmr": "${bmr}",
-    "dailyCalories": "${avgCalories}",
-    "macros": {"protein": "${avgProtein}g базирано на плана", "carbs": "${avgCarbs}g базирано на плана", "fats": "${avgFats}g базирано на плана"}
+    "bmr": ${bmr},
+    "dailyCalories": ${avgCalories},
+    "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}
   },
   "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
@@ -2492,12 +2492,17 @@ JSON ФОРМАТ:
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
 function generateMealPlanPrompt(data, analysis, strategy) {
-  // Parse BMR from analysis (may be a string) or calculate from user data
+  // Parse BMR from analysis (may be a number or string) or calculate from user data
   let bmr;
   if (analysis.bmr) {
-    // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ИНДИВИДУАЛНО изчислен)")
-    const bmrMatch = String(analysis.bmr).match(/\d+/);
-    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    // If bmr is already a number, use it directly
+    if (typeof analysis.bmr === 'number') {
+      bmr = Math.round(analysis.bmr);
+    } else {
+      // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ІНДИВІДУАЛНО изчислен)")
+      const bmrMatch = String(analysis.bmr).match(/\d+/);
+      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    }
   }
   
   // If no valid BMR from analysis, calculate it
@@ -2508,9 +2513,14 @@ function generateMealPlanPrompt(data, analysis, strategy) {
   // Parse recommended calories from analysis or calculate from TDEE
   let recommendedCalories;
   if (analysis.recommendedCalories) {
-    // Try to extract numeric value from analysis.recommendedCalories
-    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    // If recommendedCalories is already a number, use it directly
+    if (typeof analysis.recommendedCalories === 'number') {
+      recommendedCalories = Math.round(analysis.recommendedCalories);
+    } else {
+      // Try to extract numeric value from analysis.recommendedCalories
+      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    }
   }
   
   // If no recommended calories from analysis, calculate TDEE
