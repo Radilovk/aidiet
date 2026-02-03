@@ -1557,7 +1557,7 @@
                                 
                                 <!-- Prompt Content Section -->
                                 ${log.prompt ? `
-                                    <details style="margin-top: 15px; padding: 10px; background: var(--soft-red); border-radius: 8px;">
+                                    <details style="margin-top: 15px; padding: 10px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--text-gray);">
                                         <summary style="cursor: pointer; font-weight: 600; color: var(--text-dark); padding: 5px;">
                                             <i class="fas fa-paper-plane"></i> Изпратен Промпт (${log.promptLength?.toLocaleString() || 0} chars)
                                         </summary>
@@ -1567,7 +1567,7 @@
                                 
                                 <!-- Response Content Section -->
                                 ${hasResponse && log.response.response ? `
-                                    <details style="margin-top: 15px; padding: 10px; background: var(--soft-red); border-radius: 8px;">
+                                    <details style="margin-top: 15px; padding: 10px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--text-gray);">
                                         <summary style="cursor: pointer; font-weight: 600; color: var(--text-dark); padding: 5px;">
                                             <i class="fas fa-reply"></i> Получен Отговор (${log.response.responseLength?.toLocaleString() || 0} chars)
                                         </summary>
