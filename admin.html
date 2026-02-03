@@ -1818,7 +1818,7 @@
                     currentSection = 'client_data';
                     html += `<span style="color: #27ae60; font-weight: bold;">${escapedLine}</span>\n`;
                     continue;
-                } else if (line.includes('ИЗЧИСЛЕНИ СТОЙНОСТИ') || line.includes('CALCULATED VALUES') || line.includes('Backend')) {
+                } else if (line.includes('ИЗЧИСЛЕНИ СТОЙНОСТИ') || line.includes('CALCULATED VALUES') || (line.includes('Backend') && line.includes('═══'))) {
                     currentSection = 'backend_data';
                     html += `<span style="color: #e67e22; font-weight: bold;">${escapedLine}</span>\n`;
                     continue;
