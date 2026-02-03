@@ -3056,11 +3056,11 @@ async function callAIModel(env, prompt, maxTokens = null, requestType = null) {
     // If maxTokens was specified, use the smaller of requested and provider-specific limit
     // If maxTokens was NOT specified, use the provider-specific limit as default
     const originalMaxTokens = maxTokens;
-    maxTokens = maxTokens !== null && maxTokens !== undefined 
-      ? Math.min(maxTokens, adaptiveLimit) 
-      : adaptiveLimit;
+    // Use != null to check for both null and undefined in a single comparison
+    // This correctly handles maxTokens=0 (which is valid but falsy)
+    maxTokens = (maxTokens != null) ? Math.min(maxTokens, adaptiveLimit) : adaptiveLimit;
     
-    console.log(`Token adaptation: provider=${actualProvider}, requestType=${requestType}, originalLimit=${originalMaxTokens}, adaptiveLimit=${adaptiveLimit}, finalLimit=${maxTokens}`);
+    console.debug(`Token adaptation: provider=${actualProvider}, requestType=${requestType}, originalLimit=${originalMaxTokens}, adaptiveLimit=${adaptiveLimit}, finalLimit=${maxTokens}`);
   }
   
   console.log(`AI Request: provider=${actualProvider}, estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
