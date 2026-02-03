@@ -607,6 +607,103 @@
             }
         }
 
+        /* --- iOS-SPECIFIC INSTALL BANNER --- */
+        .ios-prompt {
+            position: fixed;
+            bottom: 20px;
+            width: 90%;
+            left: 5%;
+            background: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            padding: 15px;
+            font-family: 'Poppins', sans-serif;
+            animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUpIOS {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .ios-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+
+        .ios-close:hover {
+            color: var(--text-dark);
+            transform: scale(1.1);
+        }
+
+        .ios-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .ios-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .ios-title-group h4 {
+            margin: 0;
+            color: var(--text-dark);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .ios-title-group p {
+            margin: 5px 0 0;
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .ios-instructions {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            font-size: 14px;
+            text-align: center;
+            color: var(--text-dark);
+        }
+
+        .ios-instructions p {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .ios-share-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -915,6 +1012,21 @@
                 <i class="fas fa-times"></i>
                 <span>По-късно</span>
             </button>
+        </div>
+    </div>
+
+    <!-- iOS-specific Install Banner -->
+    <div id="ios-banner" class="ios-prompt" style="display:none;">
+        <button onclick="dismissIosBanner()" class="ios-close">✕</button>
+        <div class="ios-header">
+            <img src="./icon-192x192.png" class="ios-icon" alt="NutriPlan Icon">
+            <div class="ios-title-group">
+                <h4>Инсталирай NutriPlan</h4>
+                <p>Добави на екрана за бърз достъп и известия</p>
+            </div>
+        </div>
+        <div class="ios-instructions">
+            <p>Натисни бутона <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E" class="ios-share-icon"> и избери <strong>"Add to Home Screen"</strong></p>
         </div>
     </div>
 
@@ -1355,6 +1467,38 @@
             deferredPrompt = null;
         });
         
+        // --- iOS-SPECIFIC BANNER LOGIC ---
+        // Function to show iOS install banner
+        function showIosInstallBanner() {
+            const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+            const hasDismissed = localStorage.getItem('ios_install_dismissed');
+
+            if (isIOS && !isInStandaloneMode && !hasDismissed) {
+                const iosBanner = document.getElementById('ios-banner');
+                if (iosBanner) {
+                    iosBanner.style.display = 'block';
+                    if (PWA_DEBUG) console.log('iOS install banner shown');
+                }
+            }
+        }
+
+        // Function to dismiss iOS banner
+        function dismissIosBanner() {
+            localStorage.setItem('ios_install_dismissed', 'true');
+            const iosBanner = document.getElementById('ios-banner');
+            if (iosBanner) {
+                iosBanner.style.display = 'none';
+            }
+            if (PWA_DEBUG) console.log('iOS install banner dismissed');
+        }
+
+        // Initialize iOS banner after a delay
+        if (isIOS && isSafari) {
+            setTimeout(() => {
+                showIosInstallBanner();
+            }, 3000); // Show after 3 seconds on iOS
+        }
+        
         // Don't show fallback guidance - only show banner when beforeinstallprompt fires
         // This ensures automatic installation prompt instead of manual instructions
         window.addEventListener('load', () => {
@@ -1504,6 +1648,20 @@
                 return;
             }
 
+            // On iOS, notifications only work in standalone mode
+            const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
+                                       (('standalone' in window.navigator) && (window.navigator.standalone));
+            
+            if (isIOS && !isInStandaloneMode) {
+                console.log('iOS notifications require standalone mode. App must be installed first.');
+                // Hide notification section on iOS if not in standalone mode
+                const notificationSection = document.getElementById('notificationSection');
+                if (notificationSection) {
+                    notificationSection.style.display = 'none';
+                }
+                return;
+            }
+
             const permission = Notification.permission;
             console.log('Notification permission:', permission);
             
@@ -1559,6 +1717,15 @@
                 return false;
             }
 
+            // Check if on iOS and not in standalone mode
+            const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
+                                       (('standalone' in window.navigator) && (window.navigator.standalone));
+            
+            if (isIOS && !isInStandaloneMode) {
+                alert('За да използвате известия на iOS, моля първо инсталирайте приложението на началния екран.');
+                return false;
+            }
+
             const permission = await Notification.requestPermission();
             console.log('Notification permission result:', permission);
 
@@ -1571,6 +1738,46 @@
                 console.log('Notification permission denied');
                 return false;
             }
+        }
+
+        // Function to request notification permission after user engagement
+        // Call this after meaningful user actions (e.g., completing questionnaire, saving plan)
+        async function requestNotificationPermissionAfterEngagement(context = 'action') {
+            if (!('Notification' in window)) {
+                return false;
+            }
+
+            // Check if already granted or denied
+            if (Notification.permission !== 'default') {
+                return Notification.permission === 'granted';
+            }
+
+            // Check standalone mode for iOS
+            const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
+                                       (('standalone' in window.navigator) && (window.navigator.standalone));
+            
+            if (isIOS && !isInStandaloneMode) {
+                console.log('iOS requires standalone mode for notifications');
+                return false;
+            }
+
+            // Show a contextual message before requesting permission
+            const contextMessages = {
+                'questionnaire': 'Искате ли да получавате известия за вашия хранителен план?',
+                'plan': 'Искате ли да получавате напомняния за вашите хранения?',
+                'action': 'Искате ли да получавате известия от NutriPlan?'
+            };
+
+            const message = contextMessages[context] || contextMessages['action'];
+            
+            // This gives user context before showing browser permission dialog
+            const userWantsNotifications = confirm(message);
+            
+            if (userWantsNotifications) {
+                return await requestNotificationPermission();
+            }
+            
+            return false;
         }
 
         // Subscribe to push notifications
