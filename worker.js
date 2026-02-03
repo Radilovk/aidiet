@@ -1708,6 +1708,38 @@ async function generatePlanMultiStep(env, data) {
 }
 
 /**
+ * Helper function to get custom prompt from KV storage
+ */
+async function getCustomPrompt(env, promptKey) {
+  if (!env || !env.page_content) {
+    return null;
+  }
+  
+  try {
+    return await env.page_content.get(promptKey);
+  } catch (error) {
+    console.error(`Error fetching custom prompt ${promptKey}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Helper function to replace variables in custom prompts
+ */
+function replacePromptVariables(template, variables) {
+  let result = template;
+  
+  // Replace each variable in the template
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`\\{${key}\\}`, 'g');
+    const replacement = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+    result = result.replace(regex, replacement);
+  }
+  
+  return result;
+}
+
+/**
  * Step 1: Generate prompt for user profile analysis
  * Simplified - focuses on AI's strengths: correlations, psychology, individualization
  * Backend handles: BMR, TDEE, safety checks
@@ -1717,20 +1749,13 @@ async function generateAnalysisPrompt(data, env) {
   // Backend no longer pre-calculates these values - AI does holistic analysis
   
   // Check if there's a custom prompt in KV storage
-  let customPrompt = null;
-  if (env && env.page_content) {
-    try {
-      customPrompt = await env.page_content.get('admin_analysis_prompt');
-    } catch (error) {
-      console.error('Error fetching custom analysis prompt:', error);
-    }
-  }
+  const customPrompt = await getCustomPrompt(env, 'admin_analysis_prompt');
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt with actual data
-    return customPrompt
-      .replace(/\{userData\}/g, JSON.stringify({
+    return replacePromptVariables(customPrompt, {
+      userData: {
         name: data.name,
         age: data.age,
         gender: data.gender,
@@ -1764,7 +1789,8 @@ async function generateAnalysisPrompt(data, env) {
         dietPreference: data.dietPreference,
         dietDislike: data.dietDislike,
         dietLove: data.dietLove
-      }, null, 2));
+      }
+    });
   }
   
   return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
@@ -1976,14 +2002,7 @@ ${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
 
 async function generateStrategyPrompt(data, analysis, env) {
   // Check if there's a custom prompt in KV storage
-  let customPrompt = null;
-  if (env && env.page_content) {
-    try {
-      customPrompt = await env.page_content.get('admin_strategy_prompt');
-    } catch (error) {
-      console.error('Error fetching custom strategy prompt:', error);
-    }
-  }
+  const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
   
   // Extract only essential analysis data (COMPACT - no full JSON)
   const analysisCompact = {
@@ -2016,12 +2035,13 @@ async function generateStrategyPrompt(data, analysis, env) {
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt
-    return customPrompt
-      .replace(/\{userData\}/g, JSON.stringify(data, null, 2))
-      .replace(/\{analysisData\}/g, JSON.stringify(analysisCompact, null, 2))
-      .replace(/\{name\}/g, data.name)
-      .replace(/\{age\}/g, data.age)
-      .replace(/\{goal\}/g, data.goal);
+    return replacePromptVariables(customPrompt, {
+      userData: data,
+      analysisData: analysisCompact,
+      name: data.name,
+      age: data.age,
+      goal: data.goal
+    });
   }
   
   return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
@@ -2372,14 +2392,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
  */
 async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env) {
   // Check if there's a custom prompt in KV storage
-  let customPrompt = null;
-  if (env && env.page_content) {
-    try {
-      customPrompt = await env.page_content.get('admin_meal_plan_prompt');
-    } catch (error) {
-      console.error('Error fetching custom meal plan prompt:', error);
-    }
-  }
+  const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
   
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   const daysInChunk = endDay - startDay + 1;
@@ -2657,15 +2670,16 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt
-    return customPrompt
-      .replace(/\{userData\}/g, JSON.stringify(data, null, 2))
-      .replace(/\{analysisData\}/g, JSON.stringify(analysis, null, 2))
-      .replace(/\{strategyData\}/g, JSON.stringify(strategy, null, 2))
-      .replace(/\{bmr\}/g, bmr)
-      .replace(/\{recommendedCalories\}/g, recommendedCalories)
-      .replace(/\{startDay\}/g, startDay)
-      .replace(/\{endDay\}/g, endDay)
-      .replace(/\{previousDays\}/g, JSON.stringify(previousDays, null, 2));
+    return replacePromptVariables(customPrompt, {
+      userData: data,
+      analysisData: analysis,
+      strategyData: strategy,
+      bmr: bmr,
+      recommendedCalories: recommendedCalories,
+      startDay: startDay,
+      endDay: endDay,
+      previousDays: previousDays
+    });
   }
   
   return defaultPrompt;
@@ -2676,14 +2690,7 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
  */
 async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env) {
   // Check if there's a custom prompt in KV storage
-  let customPrompt = null;
-  if (env && env.page_content) {
-    try {
-      customPrompt = await env.page_content.get('admin_summary_prompt');
-    } catch (error) {
-      console.error('Error fetching custom summary prompt:', error);
-    }
-  }
+  const customPrompt = await getCustomPrompt(env, 'admin_summary_prompt');
   
   // Calculate total calories and macros across the week for validation
   let totalCalories = 0;
@@ -2751,16 +2758,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt
-    return customPrompt
-      .replace(/\{userData\}/g, JSON.stringify(data, null, 2))
-      .replace(/\{strategyData\}/g, JSON.stringify(strategy, null, 2))
-      .replace(/\{weekPlan\}/g, JSON.stringify(weekPlan, null, 2))
-      .replace(/\{bmr\}/g, bmr)
-      .replace(/\{recommendedCalories\}/g, recommendedCalories)
-      .replace(/\{avgCalories\}/g, avgCalories)
-      .replace(/\{avgProtein\}/g, avgProtein)
-      .replace(/\{avgCarbs\}/g, avgCarbs)
-      .replace(/\{avgFats\}/g, avgFats);
+    return replacePromptVariables(customPrompt, {
+      userData: data,
+      strategyData: strategy,
+      weekPlan: weekPlan,
+      bmr: bmr,
+      recommendedCalories: recommendedCalories,
+      avgCalories: avgCalories,
+      avgProtein: avgProtein,
+      avgCarbs: avgCarbs,
+      avgFats: avgFats
+    });
   }
   
   return defaultPrompt;

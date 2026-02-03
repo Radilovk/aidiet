@@ -1189,6 +1189,62 @@
             document.getElementById('adminDashboard').style.display = 'none';
         }
 
+        // Generic helper function to save prompts
+        async function savePromptGeneric(type, elementId, localStorageKey, successMessage, errorMessage) {
+            const prompt = document.getElementById(elementId).value.trim();
+            
+            if (!prompt) {
+                showError(errorMessage);
+                return;
+            }
+
+            localStorage.setItem(localStorageKey, prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess(successMessage);
+            } catch (error) {
+                console.error(`Error saving ${type} prompt:`, error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Generic helper function to reset prompts
+        async function resetPromptGeneric(type, elementId, localStorageKey, successMessage) {
+            if (confirm('Сигурни ли сте, че искате да възстановите промпта по подразбиране?')) {
+                document.getElementById(elementId).value = '';
+                localStorage.removeItem(localStorageKey);
+                
+                // Delete from KV by saving empty string
+                try {
+                    const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type, prompt: '' })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to reset on server');
+                    }
+                    
+                    showSuccess(successMessage);
+                } catch (error) {
+                    console.error(`Error resetting ${type} prompt:`, error);
+                    showError('Грешка при възстановяване: ' + error.message);
+                }
+            }
+        }
+
         // Show Dashboard
         function showDashboard() {
             document.getElementById('loginScreen').style.display = 'none';
@@ -1418,179 +1474,50 @@
 
         // Save Analysis Prompt
         async function saveAnalysisPrompt() {
-            const prompt = document.getElementById('analysisPrompt').value.trim();
-            
-            if (!prompt) {
-                showError('Промптът за анализ не може да бъде празен!');
-                return;
-            }
-
-            localStorage.setItem('adminAnalysisPrompt', prompt);
-            
-            // Save to KV via worker API
-            try {
-                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'analysis', prompt })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to save to server');
-                }
-                
-                showSuccess('Промпт за анализ запазен успешно!');
-            } catch (error) {
-                console.error('Error saving analysis prompt:', error);
-                showError('Грешка при записване: ' + error.message);
-            }
+            await savePromptGeneric('analysis', 'analysisPrompt', 'adminAnalysisPrompt', 
+                'Промпт за анализ запазен успешно!', 'Промптът за анализ не може да бъде празен!');
         }
 
         // Save Strategy Prompt
         async function saveStrategyPrompt() {
-            const prompt = document.getElementById('strategyPrompt').value.trim();
-            
-            if (!prompt) {
-                showError('Промптът за стратегия не може да бъде празен!');
-                return;
-            }
-
-            localStorage.setItem('adminStrategyPrompt', prompt);
-            
-            // Save to KV via worker API
-            try {
-                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'strategy', prompt })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to save to server');
-                }
-                
-                showSuccess('Промпт за стратегия запазен успешно!');
-            } catch (error) {
-                console.error('Error saving strategy prompt:', error);
-                showError('Грешка при записване: ' + error.message);
-            }
+            await savePromptGeneric('strategy', 'strategyPrompt', 'adminStrategyPrompt', 
+                'Промпт за стратегия запазен успешно!', 'Промптът за стратегия не може да бъде празен!');
         }
 
         // Save Meal Plan Prompt
         async function saveMealPlanPrompt() {
-            const prompt = document.getElementById('mealPlanPrompt').value.trim();
-            
-            if (!prompt) {
-                showError('Промптът за хранителен план не може да бъде празен!');
-                return;
-            }
-
-            localStorage.setItem('adminMealPlanPrompt', prompt);
-            
-            // Save to KV via worker API
-            try {
-                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'meal_plan', prompt })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to save to server');
-                }
-                
-                showSuccess('Промпт за хранителен план запазен успешно!');
-            } catch (error) {
-                console.error('Error saving meal plan prompt:', error);
-                showError('Грешка при записване: ' + error.message);
-            }
+            await savePromptGeneric('meal_plan', 'mealPlanPrompt', 'adminMealPlanPrompt', 
+                'Промпт за хранителен план запазен успешно!', 'Промптът за хранителен план не може да бъде празен!');
         }
 
         // Save Summary Prompt
         async function saveSummaryPrompt() {
-            const prompt = document.getElementById('summaryPrompt').value.trim();
-            
-            if (!prompt) {
-                showError('Промптът за обобщение не може да бъде празен!');
-                return;
-            }
-
-            localStorage.setItem('adminSummaryPrompt', prompt);
-            
-            // Save to KV via worker API
-            try {
-                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'summary', prompt })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to save to server');
-                }
-                
-                showSuccess('Промпт за обобщение запазен успешно!');
-            } catch (error) {
-                console.error('Error saving summary prompt:', error);
-                showError('Грешка при записване: ' + error.message);
-            }
+            await savePromptGeneric('summary', 'summaryPrompt', 'adminSummaryPrompt', 
+                'Промпт за обобщение запазен успешно!', 'Промптът за обобщение не може да бъде празен!');
         }
 
         // Reset Analysis Prompt
-        function resetAnalysisPrompt() {
-            if (confirm('Сигурни ли сте, че искате да възстановите промпта за анализ по подразбиране?')) {
-                document.getElementById('analysisPrompt').value = '';
-                localStorage.removeItem('adminAnalysisPrompt');
-                // Also delete from KV by saving empty string
-                fetch(WORKER_URL + '/api/admin/save-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'analysis', prompt: '' })
-                });
-                showSuccess('Промпт за анализ изтрит. Ще се използва стандартният промпт.');
-            }
+        async function resetAnalysisPrompt() {
+            await resetPromptGeneric('analysis', 'analysisPrompt', 'adminAnalysisPrompt', 
+                'Промпт за анализ изтрит. Ще се използва стандартният промпт.');
         }
 
         // Reset Strategy Prompt
-        function resetStrategyPrompt() {
-            if (confirm('Сигурни ли сте, че искате да възстановите промпта за стратегия по подразбиране?')) {
-                document.getElementById('strategyPrompt').value = '';
-                localStorage.removeItem('adminStrategyPrompt');
-                fetch(WORKER_URL + '/api/admin/save-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'strategy', prompt: '' })
-                });
-                showSuccess('Промпт за стратегия изтрит. Ще се използва стандартният промпт.');
-            }
+        async function resetStrategyPrompt() {
+            await resetPromptGeneric('strategy', 'strategyPrompt', 'adminStrategyPrompt', 
+                'Промпт за стратегия изтрит. Ще се използва стандартният промпт.');
         }
 
         // Reset Meal Plan Prompt
-        function resetMealPlanPrompt() {
-            if (confirm('Сигурни ли сте, че искате да възстановите промпта за хранителен план по подразбиране?')) {
-                document.getElementById('mealPlanPrompt').value = '';
-                localStorage.removeItem('adminMealPlanPrompt');
-                fetch(WORKER_URL + '/api/admin/save-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'meal_plan', prompt: '' })
-                });
-                showSuccess('Промпт за хранителен план изтрит. Ще се използва стандартният промпт.');
-            }
+        async function resetMealPlanPrompt() {
+            await resetPromptGeneric('meal_plan', 'mealPlanPrompt', 'adminMealPlanPrompt', 
+                'Промпт за хранителен план изтрит. Ще се използва стандартният промпт.');
         }
 
         // Reset Summary Prompt
-        function resetSummaryPrompt() {
-            if (confirm('Сигурни ли сте, че искате да възстановите промпта за обобщение по подразбиране?')) {
-                document.getElementById('summaryPrompt').value = '';
-                localStorage.removeItem('adminSummaryPrompt');
-                fetch(WORKER_URL + '/api/admin/save-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'summary', prompt: '' })
-                });
-                showSuccess('Промпт за обобщение изтрит. Ще се използва стандартният промпт.');
-            }
+        async function resetSummaryPrompt() {
+            await resetPromptGeneric('summary', 'summaryPrompt', 'adminSummaryPrompt', 
+                'Промпт за обобщение изтрит. Ще се използва стандартният промпт.');
         }
 
         // Reset Prompt
