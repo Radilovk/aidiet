@@ -1808,7 +1808,6 @@
             let html = '';
             const lines = prompt.split('\n');
             let currentSection = 'instruction'; // instruction, client_data, backend_data
-            let inJsonBlock = false;
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
@@ -1829,14 +1828,6 @@
                     continue;
                 }
                 
-                // Track JSON blocks
-                if (line.trim().startsWith('{')) {
-                    inJsonBlock = true;
-                }
-                if (line.trim().startsWith('}') && inJsonBlock) {
-                    inJsonBlock = false;
-                }
-                
                 // Apply colors based on current section
                 if (currentSection === 'instruction') {
                     html += `<span style="color: #3498db;">${escapedLine}</span>\n`;
@@ -1844,8 +1835,6 @@
                     html += `<span style="color: #27ae60;">${escapedLine}</span>\n`;
                 } else if (currentSection === 'backend_data') {
                     html += `<span style="color: #e67e22;">${escapedLine}</span>\n`;
-                } else {
-                    html += `${escapedLine}\n`;
                 }
             }
             
