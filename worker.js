@@ -1757,12 +1757,35 @@ TDEE: ${tdee} kcal (BMR × активност)
 }
 
 function generateStrategyPrompt(data, analysis) {
+  // Extract only essential analysis data (COMPACT - no full JSON)
+  const analysisCompact = {
+    bmr: analysis.bmr || 'не изчислен',
+    tdee: analysis.tdee || 'не изчислен',
+    recommendedCalories: analysis.recommendedCalories || 'не изчислен',
+    macroRatios: analysis.macroRatios ? 
+      `Protein: ${analysis.macroRatios.protein || 'N/A'}, Carbs: ${analysis.macroRatios.carbs || 'N/A'}, Fats: ${analysis.macroRatios.fats || 'N/A'}` : 
+      'не изчислени',
+    metabolicProfile: (analysis.metabolicProfile || '').substring(0, 200) + '...', // First 200 chars only
+    healthRisks: (analysis.healthRisks || []).slice(0, 3).join('; '), // Top 3 risks
+    nutritionalNeeds: (analysis.nutritionalNeeds || []).slice(0, 3).join('; '), // Top 3 needs
+    psychologicalProfile: (analysis.psychologicalProfile || '').substring(0, 150) + '...', // First 150 chars
+    successChance: analysis.successChance || 'не изчислен',
+    keyProblems: (analysis.keyProblems || []).slice(0, 3).map(p => `${p.title} (${p.severity})`).join('; ') // Top 3 problems
+  };
+  
   return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
 
 КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
 
-АНАЛИЗ:
-${JSON.stringify(analysis, null, 2)}
+АНАЛИЗ (КОМПАКТЕН):
+- BMR/TDEE/Калории: ${analysisCompact.bmr} / ${analysisCompact.tdee} / ${analysisCompact.recommendedCalories}
+- Макро съотношения: ${analysisCompact.macroRatios}
+- Метаболитен профил: ${analysisCompact.metabolicProfile}
+- Здравни рискове: ${analysisCompact.healthRisks}
+- Хранителни нужди: ${analysisCompact.nutritionalNeeds}
+- Психологически профил: ${analysisCompact.psychologicalProfile}
+- Шанс за успех: ${analysisCompact.successChance}
+- Ключови проблеми: ${analysisCompact.keyProblems}
 
 ПРЕДПОЧИТАНИЯ:
 - Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
@@ -2097,7 +2120,7 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
     }
   }
   
-  // Build previous days context for variety
+  // Build previous days context for variety (compact - only meal names)
   let previousDaysContext = '';
   if (previousDays.length > 0) {
     const prevMeals = previousDays.map(d => {
@@ -2106,6 +2129,16 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
     }).join('; ');
     previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\nИЗБЯГВАЙ повтаряне на тези ястия в следващите дни!`;
   }
+  
+  // Extract only essential strategy fields (COMPACT - no full JSON)
+  const strategyCompact = {
+    dietType: strategy.dietType || 'Балансирана',
+    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
+    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
+    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '), // Only top 3
+    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '), // Only top 5
+    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
+  };
   
   return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
@@ -2117,11 +2150,13 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
 BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
 
-=== СТРАТЕГИЯ (КРАТКО) ===
-Диета: ${strategy.dietType || 'Балансирана'}
-Схема: ${strategy.weeklyMealPattern || 'Традиционна'}
-Избягвай: ${data.dietDislike || 'няма'}
-Включвай: ${data.dietLove || 'няма'}${previousDaysContext}
+=== СТРАТЕГИЯ (КОМПАКТНА) ===
+Диета: ${strategyCompact.dietType}
+Схема: ${strategyCompact.weeklyMealPattern}
+Хранения: ${strategyCompact.mealTiming}
+Принципи: ${strategyCompact.keyPrinciples}
+Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
+Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
 
 === КОРЕЛАЦИОННА АДАПТАЦИЯ ===
 СТРЕС И ХРАНЕНЕ:
@@ -2287,6 +2322,13 @@ function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommende
   const avgCarbs = dayCount > 0 ? Math.round(totalCarbs / dayCount) : 0;
   const avgFats = dayCount > 0 ? Math.round(totalFats / dayCount) : 0;
   
+  // Extract compact strategy info (no full JSON)
+  const psychologicalSupport = strategy.psychologicalSupport || ['Бъди мотивиран', 'Следвай плана', 'Постоянство е ключово'];
+  const supplementRecommendations = strategy.supplementRecommendations || ['Според нуждите'];
+  const hydrationStrategy = strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно';
+  const foodsToInclude = strategy.foodsToInclude || [];
+  const foodsToAvoid = strategy.foodsToAvoid || [];
+  
   return `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}
@@ -2294,8 +2336,12 @@ BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
 Реален среден прием: ${avgCalories} kcal/ден
 Реални средни макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
 
-СТРАТЕГИЯ:
-${JSON.stringify(strategy, null, 2)}
+СТРАТЕГИЯ (КОМПАКТНА):
+- Психологическа подкрепа: ${psychologicalSupport.slice(0, 3).join('; ')}
+- Добавки: ${supplementRecommendations.slice(0, 3).join('; ')}
+- Хидратация: ${hydrationStrategy}
+- Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
+- Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
 
 JSON ФОРМАТ:
 {
@@ -2383,6 +2429,19 @@ ${modLines.join('\n')}
   // Extract dietary modifier from strategy
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   
+  // Create compact strategy (no full JSON)
+  const strategyCompact = {
+    dietType: strategy.dietType || 'Балансирана',
+    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
+    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
+    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '),
+    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '),
+    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', '),
+    psychologicalSupport: (strategy.psychologicalSupport || []).slice(0, 3),
+    supplementRecommendations: (strategy.supplementRecommendations || []).slice(0, 3),
+    hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
+  };
+  
   return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
 === КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ ===
@@ -2401,8 +2460,13 @@ ${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning
 - Цел: ${data.goal}
 - Калории: ${recommendedCalories} kcal/ден (ИНДИВИДУАЛНО изчислени според BMR=${bmr}, активност и цел)
 
-=== ПЪЛНА СТРАТЕГИЯ ===
-${JSON.stringify(strategy, null, 2)}
+=== СТРАТЕГИЯ (КОМПАКТНА) ===
+Диета: ${strategyCompact.dietType}
+Схема: ${strategyCompact.weeklyMealPattern}
+Хранения: ${strategyCompact.mealTiming}
+Принципи: ${strategyCompact.keyPrinciples}
+Храни включвай: ${strategyCompact.foodsToInclude}
+Храни избягвай: ${strategyCompact.foodsToAvoid}
 ${modificationsSection}
 
 === АРХИТЕКТУРА НА ХРАНЕНЕТО ===
@@ -2465,9 +2529,9 @@ JSON ФОРМАТ:
   "weekPlan": {"day1": {"meals": [{"type": "Закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи за ${data.name}", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}, {"type": "Обяд", "name": "...", ...}, {"type": "Вечеря", "name": "...", ...}]}, ... "day7": {...}},
   "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5+"],
   "forbidden": ["храна 1", "храна 2", "храна 3", "храна 4+"],
-  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
-  "waterIntake": "${strategy.hydrationStrategy || 'препоръки за вода'}",
-  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
+  "psychology": ${JSON.stringify(strategyCompact.psychologicalSupport)},
+  "waterIntake": "${strategyCompact.hydrationStrategy}",
+  "supplements": ${JSON.stringify(strategyCompact.supplementRecommendations)}
 }
 
 === МЕДИЦИНСКИ И ДИЕТЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
