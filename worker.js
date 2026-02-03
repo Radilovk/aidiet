@@ -952,7 +952,7 @@ const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна 
 
 // Low glycemic index foods allowed in late-night snacks (GI < 55)
 const LOW_GI_FOODS = [
-  'кисело мляко', 'гръцко кисело мляко', 'кефир', 'ядки', 'бадеми', 'орехи', 'кашу', 'лешници',
+  'кисело мляко', 'кефир', 'ядки', 'бадеми', 'орехи', 'кашу', 'лешници',
   'ябълка', 'круша', 'ягоди', 'боровинки', 'малини', 'черници',
   'авокадо', 'краставица', 'домат', 'зелени листни зеленчуци',
   'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки'
@@ -960,11 +960,13 @@ const LOW_GI_FOODS = [
 
 // ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
 // Based on meallogic.txt - slot-based constructor with strict validation
+// This will be merged with dynamic blacklist from KV storage
 const ADLE_V8_HARD_BANS = [
   'лук', 'onion', 'пуешко месо', 'turkey meat',
   'изкуствени подсладители', 'artificial sweeteners',
   'мед', 'захар', 'конфитюр', 'сиропи', 'honey', 'sugar', 'jam', 'syrups',
-  'кетчуп', 'майонеза', 'BBQ сос', 'ketchup', 'mayonnaise', 'BBQ sauce'
+  'кетчуп', 'майонеза', 'BBQ сос', 'ketchup', 'mayonnaise', 'BBQ sauce',
+  'гръцко кисело мляко', 'greek yogurt'
 ];
 
 const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
@@ -1000,7 +1002,7 @@ const ADLE_V8_PROTEIN_WHITELIST = [
   'говеждо', 'beef', 'говежд',
   'свинско', 'свинска', 'pork', 'свин',
   'риба', 'fish', 'скумрия', 'mackerel', 'тон', 'tuna', 'сьомга', 'salmon',
-  'кисело мляко', 'гръцко кисело мляко', 'yogurt', 'greek yogurt', 'йогурт', 'кефир',
+  'кисело мляко', 'yogurt', 'йогурт', 'кефир',
   'извара', 'cottage cheese', 'извар',
   'сирене', 'cheese', 'сирен',
   'боб', 'beans', 'бобови',
@@ -1377,6 +1379,10 @@ function validatePlan(plan, userData) {
           // Check for turkey meat but not turkey ham
           if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
             errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ПУЕШКО МЕСО (hard ban от ADLE v8)`);
+          }
+          // Check for Greek yogurt (blacklisted)
+          if (/\bгръцко\s+кисело\s+мляко\b/.test(mealText) || /\bgreek\s+yogurt\b/.test(mealText)) {
+            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ГРЪЦКО КИСЕЛО МЛЯКО (в черния списък - използвай само обикновено кисело мляко)`);
           }
           // Check for honey/sugar/syrup in specific contexts (as ingredients, not in compound words)
           if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(mealText) && !/медицин|междин|сиропен/.test(mealText)) {
@@ -2414,6 +2420,7 @@ ${blueprintSection}
 - лук (всякаква форма), пуешко месо, изкуствени подсладители
 - мед, захар, конфитюр, сиропи
 - кетчуп, майонеза, BBQ/сладки сосове
+- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
 - грах + риба (забранена комбинация)
 
 0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
@@ -2761,6 +2768,7 @@ ${modificationsSection}
 - лук (всякаква форма), пуешко месо, изкуствени подсладители
 - мед, захар, конфитюр, сиропи
 - кетчуп, майонеза, BBQ/сладки сосове
+- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
 - грах + риба (забранена комбинация)
 
 0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
