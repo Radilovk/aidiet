@@ -1733,14 +1733,49 @@ TDEE: ${tdee} kcal (BMR × активност)
    - НЕ включвай "Normal" проблеми
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
+КРИТИЧНО ВАЖНО - ТИПОВЕ ДАННИ:
+- Числови полета ТРЯБВА да съдържат САМО числа (integer или float)
+- БЕЗ текст, единици измерване или обяснения в числовите полета
+- Обяснения се поставят в отделни "_reasoning" полета
+
 {
-  "bmr": "${bmr} kcal (изчислен от backend)",
-  "tdee": "${tdee} kcal (изчислен от backend)",
-  "recommendedCalories": "${recommendedCalories} kcal (изчислен според цел ${data.goal})",
+  "bmr": ${bmr},
+  "tdee": ${tdee},
+  "recommendedCalories": ${recommendedCalories},
   "macroRatios": {
-    "protein": "X% - обосновка защо този процент е оптимален за ${data.name}",
-    "carbs": "Y% - обосновка базирана на активност, медицински състояния",
-    "fats": "Z% - обосновка според нужди"
+    "protein": число (процент, напр. 30),
+    "carbs": число (процент, напр. 35),
+    "fats": число (процент, напр. 35)
+  },
+  "macroRatiosReasoning": {
+    "protein": "обосновка защо този процент е оптимален за ${data.name}",
+    "carbs": "обосновка базирана на активност, медицински състояния",
+    "fats": "обосновка според нужди"
+  },
+  "macroGrams": {
+    "protein": число (грамове дневно),
+    "carbs": число (грамове дневно),
+    "fats": число (грамове дневно)
+  },
+  "weeklyBlueprint": {
+    "skipBreakfast": boolean (true ако клиентът не закусва),
+    "dailyMealCount": число (колко хранения на ден, обикновено 2-4),
+    "mealCountReasoning": "защо този брой хранения е оптимален",
+    "dailyStructure": [
+      {
+        "dayIndex": 1,
+        "meals": [
+          {
+            "type": "breakfast/lunch/dinner/snack",
+            "active": boolean,
+            "calorieTarget": число (калории за това хранене),
+            "proteinSource": "предложен основен протеин (напр. chicken, fish, eggs)",
+            "carbSource": "предложен въглехидрат (напр. quinoa, rice, vegetables)"
+          }
+        ]
+      }
+      // ... повторете за всички 7 дни
+    ]
   },
   "metabolicProfile": "УНИКАЛЕН метаболитен профил - опиши как хронотип, активност, история влияят на метаболизма",
   "healthRisks": ["риск 1 специфичен за профила", "риск 2", "риск 3"],
@@ -1760,6 +1795,13 @@ TDEE: ${tdee} kcal (BMR × активност)
   ]
 }
 
+ВАЖНИ ПРАВИЛА ЗА weeklyBlueprint:
+1. Сборът на calorieTarget за всички активни хранения в един ден ТРЯБВА да е равен на ${recommendedCalories}
+2. Ако skipBreakfast е true, "breakfast" хранения ТРЯБВА да имат active: false и calorieTarget: 0
+3. Варирай proteinSource и carbSource между дните за разнообразие
+4. Типовете хранения трябва да са в хронологичен ред: breakfast -> lunch -> snack -> dinner
+5. Използвай dailyMealCount за консистентност през цялата седмица (освен ако няма специфична причина за вариация)
+
 Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
 }
 
@@ -1770,8 +1812,12 @@ function generateStrategyPrompt(data, analysis) {
     tdee: analysis.tdee || 'не изчислен',
     recommendedCalories: analysis.recommendedCalories || 'не изчислен',
     macroRatios: analysis.macroRatios ? 
-      `Protein: ${analysis.macroRatios.protein || 'N/A'}, Carbs: ${analysis.macroRatios.carbs || 'N/A'}, Fats: ${analysis.macroRatios.fats || 'N/A'}` : 
+      `Protein: ${analysis.macroRatios.protein || 'N/A'}%, Carbs: ${analysis.macroRatios.carbs || 'N/A'}%, Fats: ${analysis.macroRatios.fats || 'N/A'}%` : 
       'не изчислени',
+    macroGrams: analysis.macroGrams ?
+      `Protein: ${analysis.macroGrams.protein || 'N/A'}g, Carbs: ${analysis.macroGrams.carbs || 'N/A'}g, Fats: ${analysis.macroGrams.fats || 'N/A'}g` :
+      'не изчислени',
+    weeklyBlueprint: analysis.weeklyBlueprint || null,
     metabolicProfile: (analysis.metabolicProfile || '').length > 200 ? 
       (analysis.metabolicProfile || '').substring(0, 200) + '...' : 
       (analysis.metabolicProfile || 'не е анализиран'), // Only add '...' if truncated
@@ -1795,6 +1841,8 @@ function generateStrategyPrompt(data, analysis) {
 АНАЛИЗ (КОМПАКТЕН):
 - BMR/TDEE/Калории: ${analysisCompact.bmr} / ${analysisCompact.tdee} / ${analysisCompact.recommendedCalories}
 - Макро съотношения: ${analysisCompact.macroRatios}
+- Макро грамове дневно: ${analysisCompact.macroGrams}
+${analysisCompact.weeklyBlueprint ? `- Седмична структура: ${analysisCompact.weeklyBlueprint.dailyMealCount} хранения/ден${analysisCompact.weeklyBlueprint.skipBreakfast ? ', БЕЗ закуска' : ''}` : ''}
 - Метаболитен профил: ${analysisCompact.metabolicProfile}
 - Здравни рискове: ${analysisCompact.healthRisks}
 - Хранителни нужди: ${analysisCompact.nutritionalNeeds}
@@ -1971,11 +2019,17 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   const weekPlan = {};
   const previousDays = []; // Track previous days for variety
   
-  // Parse BMR and calories (same as original function)
+  // Parse BMR and calories - handle both numeric and string values
   let bmr;
   if (analysis.bmr) {
-    const bmrMatch = String(analysis.bmr).match(/\d+/);
-    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    // If bmr is already a number, use it directly
+    if (typeof analysis.bmr === 'number') {
+      bmr = Math.round(analysis.bmr);
+    } else {
+      // Otherwise, extract from string
+      const bmrMatch = String(analysis.bmr).match(/\d+/);
+      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    }
   }
   if (!bmr) {
     bmr = calculateBMR(data);
@@ -1983,8 +2037,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   
   let recommendedCalories;
   if (analysis.recommendedCalories) {
-    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    // If recommendedCalories is already a number, use it directly
+    if (typeof analysis.recommendedCalories === 'number') {
+      recommendedCalories = Math.round(analysis.recommendedCalories);
+    } else {
+      // Otherwise, extract from string
+      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    }
   }
   if (!recommendedCalories) {
     const tdee = calculateTDEE(bmr, data.sportActivity);
@@ -2155,6 +2215,48 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
     foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
   };
   
+  // Extract weekly blueprint if available
+  let blueprintSection = '';
+  if (analysis.weeklyBlueprint) {
+    const blueprint = analysis.weeklyBlueprint;
+    blueprintSection = `
+=== СЕДМИЧНА СТРУКТУРА (BLUEPRINT) ===
+КРИТИЧНО: Този план определя ТОЧНАТА структура и калории за всеки ден. СПАЗВАЙ ГО СТРИКТНО!
+
+Общи правила:
+- Пропусни закуска: ${blueprint.skipBreakfast ? 'ДА - БЕЗ закуски през седмицата' : 'НЕ - включи закуски'}
+- Брой хранения на ден: ${blueprint.dailyMealCount || '2-3'}
+- Причина: ${blueprint.mealCountReasoning || 'Според профила на клиента'}
+
+Дневна структура (ДНИ ${startDay}-${endDay}):`;
+
+    // Add structure for each day in the chunk
+    if (blueprint.dailyStructure && Array.isArray(blueprint.dailyStructure)) {
+      for (let day = startDay; day <= endDay; day++) {
+        const dayStructure = blueprint.dailyStructure.find(d => d.dayIndex === day);
+        if (dayStructure && dayStructure.meals) {
+          blueprintSection += `\n\nДЕН ${day}:`;
+          dayStructure.meals.forEach(meal => {
+            if (meal.active) {
+              blueprintSection += `\n  - ${meal.type}: ${meal.calorieTarget} kcal (Предложен протеин: ${meal.proteinSource || 'избери подходящ'}, Въглехидрати: ${meal.carbSource || 'избери подходящ'})`;
+            } else {
+              blueprintSection += `\n  - ${meal.type}: ПРОПУСНИ (не е активно)`;
+            }
+          });
+        }
+      }
+    }
+    
+    blueprintSection += `
+
+ВАЖНО: 
+- Спазвай ТОЧНИТЕ калорийни цели за всяко хранене
+- Използвай предложените протеинови източници и въглехидрати като насоки
+- Сборът на калориите за деня ТРЯБВА да отговаря на сумата от активните хранения
+- НЕ добавяй хранения които са маркирани като неактивни (active: false)
+`;
+  }
+  
   return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
 === ЗАДАЧА ===
@@ -2164,7 +2266,7 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
 Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
 BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
-
+${blueprintSection}
 === СТРАТЕГИЯ (КОМПАКТНА) ===
 Диета: ${strategyCompact.dietType}
 Схема: ${strategyCompact.weeklyMealPattern}
