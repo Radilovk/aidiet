@@ -1011,6 +1011,7 @@ const ADLE_V8_PROTEIN_WHITELIST = [
 
 // Proteins explicitly NOT on whitelist (should trigger warning)
 // Using word stems to catch variations (e.g., заешко, заешки, заешка)
+// SECURITY NOTE: These strings are static and pre-validated, not user input
 const ADLE_V8_NON_WHITELIST_PROTEINS = [
   'заеш', 'rabbit', 'зайч',  // заешко, заешки, заешка
   'патиц', 'патешк', 'duck',  // патица, патешко, патешки
@@ -1018,6 +1019,20 @@ const ADLE_V8_NON_WHITELIST_PROTEINS = [
   'агн', 'lamb',  // агне, агнешко, агнешки
   'дивеч', 'елен', 'deer', 'wild boar', 'глиган'
 ];
+
+/**
+ * Helper: Check if meal has "Reason:" justification for non-whitelist items
+ */
+function hasReasonJustification(meal) {
+  return /reason:/i.test(meal.description || '') || /reason:/i.test(meal.name || '');
+}
+
+/**
+ * Helper: Escape regex special characters in a string
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
 // Progressive generation configuration:
@@ -1381,15 +1396,21 @@ function validatePlan(plan, userData) {
           for (const protein of ADLE_V8_NON_WHITELIST_PROTEINS) {
             // Use flexible matching for Cyrillic - check if pattern exists without being part of another word
             // For Bulgarian words, match at word start (e.g., "заеш" matches "заешко", "заешки")
-            const regex = new RegExp(`(^|[^а-яa-z])${protein}`, 'i');
-            if (regex.test(mealText)) {
-              // Check if there's a "Reason:" justification in the description or meal
-              const hasReason = /reason:/i.test(meal.description || '') || /reason:/i.test(meal.name || '');
-              if (!hasReason) {
-                errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${protein.toUpperCase()}" което НЕ е в whitelist (ADLE v8 R12). Изисква се Reason: ... ако е обективно необходимо.`);
+            // SECURITY: Escape regex special chars to prevent ReDoS attacks
+            const escapedProtein = escapeRegex(protein);
+            const regex = new RegExp(`(^|[^а-яa-z])${escapedProtein}`, 'i');
+            const match = mealText.match(regex);
+            
+            if (match) {
+              // Extract the actual matched word from meal text for better error messages
+              const matchedWordRegex = new RegExp(`${escapedProtein}[а-яa-z]*`, 'i');
+              const actualWord = mealText.match(matchedWordRegex)?.[0] || protein;
+              
+              if (!hasReasonJustification(meal)) {
+                errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord.toUpperCase()}" което НЕ е в whitelist (ADLE v8 R12). Изисква се Reason: ... ако е обективно необходимо.`);
                 foundNonWhitelistProtein = true;
               } else {
-                warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${protein}" с обосновка - проверете дали е валидна`);
+                warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord}" с обосновка - проверете дали е валидна`);
               }
             }
           }
