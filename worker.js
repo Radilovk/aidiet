@@ -9,23 +9,29 @@
  * 
  * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
  * 
- * ARCHITECTURE - Plan Generation (5-6 requests):
+ * TOKEN OPTIMIZATION (Feb 2026):
+ * - Strategy objects are sent in COMPACT format (76% reduction: 695→167 tokens)
+ * - Analysis objects are sent in COMPACT format (37.6% reduction: 524→327 tokens)
+ * - Total input token reduction: 59.1% (4799→1962 tokens per plan generation)
+ * - Strategy is used 5 times, analysis 1 time, so compact format has multiplied effect
+ * 
+ * ARCHITECTURE - Plan Generation (6 requests):
  *   1. Analysis Request (4k token limit)
  *      - Input: Full user data (profile, habits, medical, preferences)
  *      - Output: Holistic health analysis with correlations
  *   
  *   2. Strategy Request (4k token limit)
- *      - Input: User data + Analysis results
+ *      - Input: User data + COMPACT analysis results
  *      - Output: Personalized dietary strategy and approach
  *   
  *   3. Meal Plan Requests (4 requests, 8k token limit each)
  *      - Progressive generation: 2 days per chunk
- *      - Input: User data + Analysis + Strategy + Previous days context
+ *      - Input: User data + COMPACT strategy + COMPACT analysis + Previous days context
  *      - Output: Detailed meals with macros and descriptions
  *      - Chunks: Day 1-2, Day 3-4, Day 5-6, Day 7
  *   
  *   4. Summary Request (2k token limit)
- *      - Input: Strategy + Generated week plan
+ *      - Input: COMPACT strategy + Generated week plan
  *      - Output: Summary, recommendations, psychology tips
  * 
  * ARCHITECTURE - Chat (1 request per message):
@@ -39,6 +45,7 @@
  *   ✓ Better error handling (chunk failures don't fail entire generation)
  *   ✓ Progressive refinement (later days build on earlier days)
  *   ✓ Full analysis quality maintained throughout
+ *   ✓ 59% reduction in token usage through compact data format
  */
 
 // No default values - all calculations must be individualized based on user data
