@@ -1804,14 +1804,19 @@ ${psychProfile}
 }
 
 function generateStrategyPrompt(data, analysis) {
+  // Helper to extract just percentage from macro ratio strings (saves tokens)
+  const extractPercentage = (ratioStr) => {
+    if (!ratioStr) return 'N/A';
+    const match = ratioStr.match(/(\d+%)/);
+    return match ? match[1] : ratioStr.split('-')[0].trim();
+  };
+  
   // Create compact analysis summary (not full JSON - saves tokens)
   const analysisCompact = `BMR: ${analysis.bmr}, TDEE: ${analysis.tdee}, Калории: ${analysis.recommendedCalories}
-Макроси: Протеин ${analysis.macroRatios?.protein || 'N/A'}, Въглехидрати ${analysis.macroRatios?.carbs || 'N/A'}, Мазнини ${analysis.macroRatios?.fats || 'N/A'}
-Профил: ${analysis.metabolicProfile || 'N/A'}
+Макроси: Протеин ${extractPercentage(analysis.macroRatios?.protein)}, Въглехидрати ${extractPercentage(analysis.macroRatios?.carbs)}, Мазнини ${extractPercentage(analysis.macroRatios?.fats)}
 Рискове: ${analysis.healthRisks ? analysis.healthRisks.join('; ') : 'няма'}
 Нужди: ${analysis.nutritionalNeeds ? analysis.nutritionalNeeds.join('; ') : 'няма'}
-Психология: ${analysis.psychologicalProfile || 'N/A'}
-Успех: ${analysis.successChance || 'N/A'} (${analysis.successChanceReasoning || ''})
+Успех: ${analysis.successChance || 'N/A'}${analysis.successChanceReasoning ? ' (' + analysis.successChanceReasoning.substring(0, 100) + '...)' : ''}
 Проблеми: ${analysis.keyProblems ? analysis.keyProblems.map(p => `${p.title} (${p.severity})`).join('; ') : 'няма'}`;
 
   return `Стратегия за ${data.name}, ${data.age}г, ${data.gender}, Цел: ${data.goal}
