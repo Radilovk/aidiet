@@ -3049,18 +3049,11 @@ async function callAIModel(env, prompt, maxTokens = null, requestType = null) {
     actualProvider = 'mock';
   }
   
-  // Adapt token limit based on provider - ALWAYS apply when requestType is provided
-  // This ensures Gemini doesn't exceed its strict token limits
-  if (requestType) {
+  // Adapt token limit based on provider
+  if (requestType && maxTokens) {
     const adaptiveLimit = getTokenLimit(actualProvider, requestType);
-    // If maxTokens was specified, use the smaller of requested and provider-specific limit
-    // If maxTokens was NOT specified, use the provider-specific limit as default
-    const originalMaxTokens = maxTokens;
-    // Use != null to check for both null and undefined in a single comparison
-    // This correctly handles maxTokens=0 (which is valid but falsy)
-    maxTokens = (maxTokens != null) ? Math.min(maxTokens, adaptiveLimit) : adaptiveLimit;
-    
-    console.debug(`Token adaptation: provider=${actualProvider}, requestType=${requestType}, originalLimit=${originalMaxTokens}, adaptiveLimit=${adaptiveLimit}, finalLimit=${maxTokens}`);
+    // Use the smaller of requested and provider-specific limit
+    maxTokens = Math.min(maxTokens, adaptiveLimit);
   }
   
   console.log(`AI Request: provider=${actualProvider}, estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
