@@ -1735,6 +1735,7 @@
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #3498db; border-radius: 2px; margin-right: 5px;"></span><strong>Син:</strong> Hardcoded промпт от бекенд</div>
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #27ae60; border-radius: 2px; margin-right: 5px;"></span><strong>Зелен:</strong> Клиентски данни</div>
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #e67e22; border-radius: 2px; margin-right: 5px;"></span><strong>Оранжев:</strong> Изчислени данни от бекенд</div>
+                                                <div><span style="display: inline-block; width: 12px; height: 12px; background: #e91e63; border-radius: 2px; margin-right: 5px;"></span><strong>Розов:</strong> AI анализ от предходен етап</div>
                                             </div>
                                         </div>
                                         <pre style="margin-top: 10px; padding: 10px; background: var(--white); border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;">${colorCodePrompt(log.prompt)}</pre>
@@ -1807,14 +1808,14 @@
             
             let html = '';
             const lines = prompt.split('\n');
-            let currentSection = 'instruction'; // instruction, client_data, backend_data
+            let currentSection = 'instruction'; // instruction, client_data, backend_data, ai_previous
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 const escapedLine = escapeHtml(line);
                 
                 // Detect section boundaries
-                if (line.includes('КЛИЕНТСКИ ПРОФИЛ') || line.includes('CLIENT PROFILE')) {
+                if (line.includes('КЛИЕНТСКИ ПРОФИЛ') || line.includes('CLIENT PROFILE') || line.includes('КЛИЕНТ:')) {
                     currentSection = 'client_data';
                     html += `<span style="color: #27ae60; font-weight: bold;">${escapedLine}</span>\n`;
                     continue;
@@ -1822,7 +1823,11 @@
                     currentSection = 'backend_data';
                     html += `<span style="color: #e67e22; font-weight: bold;">${escapedLine}</span>\n`;
                     continue;
-                } else if (line.includes('ТВОЯТА ЗАДАЧА') || line.includes('YOUR TASK') || line.includes('ФОРМАТ НА ОТГОВОР') || line.includes('RESPONSE FORMAT')) {
+                } else if (line.includes('АНАЛИЗ') || line.includes('ANALYSIS') || line.includes('КОМПАКТЕН') || line.includes('ПРЕДИШЕН АНАЛИЗ')) {
+                    currentSection = 'ai_previous';
+                    html += `<span style="color: #e91e63; font-weight: bold;">${escapedLine}</span>\n`;
+                    continue;
+                } else if (line.includes('ТВОЯТА ЗАДАЧА') || line.includes('YOUR TASK') || line.includes('ФОРМАТ НА ОТГОВОР') || line.includes('RESPONSE FORMAT') || line.includes('ПРЕДПОЧИТАНИЯ') || line.includes('ВАЖНО:') || line.includes('КРИТИЧНО')) {
                     currentSection = 'instruction';
                     html += `<span style="color: #3498db; font-weight: bold;">${escapedLine}</span>\n`;
                     continue;
@@ -1835,6 +1840,8 @@
                     html += `<span style="color: #27ae60;">${escapedLine}</span>\n`;
                 } else if (currentSection === 'backend_data') {
                     html += `<span style="color: #e67e22;">${escapedLine}</span>\n`;
+                } else if (currentSection === 'ai_previous') {
+                    html += `<span style="color: #e91e63;">${escapedLine}</span>\n`;
                 }
             }
             
