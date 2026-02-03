@@ -1730,7 +1730,14 @@
                                         <summary style="cursor: pointer; font-weight: 600; color: var(--text-dark); padding: 5px;">
                                             <i class="fas fa-paper-plane"></i> Изпратен Промпт (${log.promptLength?.toLocaleString() || 0} chars)
                                         </summary>
-                                        <pre style="margin-top: 10px; padding: 10px; background: var(--white); border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(log.prompt)}</pre>
+                                        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 10px;">
+                                            <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.75rem;">
+                                                <div><span style="display: inline-block; width: 12px; height: 12px; background: #3498db; border-radius: 2px; margin-right: 5px;"></span><strong>Син:</strong> Hardcoded промпт от бекенд</div>
+                                                <div><span style="display: inline-block; width: 12px; height: 12px; background: #27ae60; border-radius: 2px; margin-right: 5px;"></span><strong>Зелен:</strong> Клиентски данни</div>
+                                                <div><span style="display: inline-block; width: 12px; height: 12px; background: #e67e22; border-radius: 2px; margin-right: 5px;"></span><strong>Оранжев:</strong> Изчислени данни от бекенд</div>
+                                            </div>
+                                        </div>
+                                        <pre style="margin-top: 10px; padding: 10px; background: var(--white); border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;">${colorCodePrompt(log.prompt)}</pre>
                                     </details>
                                 ` : ''}
                                 
@@ -1740,7 +1747,12 @@
                                         <summary style="cursor: pointer; font-weight: 600; color: var(--text-dark); padding: 5px;">
                                             <i class="fas fa-reply"></i> Получен Отговор (${log.response.responseLength?.toLocaleString() || 0} chars)
                                         </summary>
-                                        <pre style="margin-top: 10px; padding: 10px; background: var(--white); border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(log.response.response)}</pre>
+                                        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 10px;">
+                                            <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.75rem;">
+                                                <div><span style="display: inline-block; width: 12px; height: 12px; background: #9b59b6; border-radius: 2px; margin-right: 5px;"></span><strong>Лилав:</strong> Анализирана информация от AI</div>
+                                            </div>
+                                        </div>
+                                        <pre style="margin-top: 10px; padding: 10px; background: var(--white); border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;">${colorCodeResponse(log.response.response)}</pre>
                                     </details>
                                 ` : ''}
                             </div>
@@ -1784,6 +1796,74 @@
             }
         }
 
+        /**
+         * Color-code AI prompt to distinguish:
+         * 1. Hardcoded backend instructions (blue)
+         * 2. Client data from user input (green)
+         * 3. Backend calculated values (orange)
+         */
+        function colorCodePrompt(prompt) {
+            if (!prompt) return '';
+            
+            let html = '';
+            const lines = prompt.split('\n');
+            let currentSection = 'instruction'; // instruction, client_data, backend_data
+            let inJsonBlock = false;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const escapedLine = escapeHtml(line);
+                
+                // Detect section boundaries
+                if (line.includes('КЛИЕНТСКИ ПРОФИЛ') || line.includes('CLIENT PROFILE')) {
+                    currentSection = 'client_data';
+                    html += `<span style="color: #3498db; font-weight: bold;">${escapedLine}</span>\n`;
+                    continue;
+                } else if (line.includes('ИЗЧИСЛЕНИ СТОЙНОСТИ') || line.includes('CALCULATED VALUES') || line.includes('Backend')) {
+                    currentSection = 'backend_data';
+                    html += `<span style="color: #e67e22; font-weight: bold;">${escapedLine}</span>\n`;
+                    continue;
+                } else if (line.includes('ТВОЯТА ЗАДАЧА') || line.includes('YOUR TASK') || line.includes('ФОРМАТ НА ОТГОВОР') || line.includes('RESPONSE FORMAT')) {
+                    currentSection = 'instruction';
+                    html += `<span style="color: #3498db; font-weight: bold;">${escapedLine}</span>\n`;
+                    continue;
+                }
+                
+                // Track JSON blocks
+                if (line.trim().startsWith('{')) {
+                    inJsonBlock = true;
+                }
+                if (line.trim().startsWith('}') && inJsonBlock) {
+                    inJsonBlock = false;
+                }
+                
+                // Apply colors based on current section
+                if (currentSection === 'instruction') {
+                    html += `<span style="color: #3498db;">${escapedLine}</span>\n`;
+                } else if (currentSection === 'client_data') {
+                    html += `<span style="color: #27ae60;">${escapedLine}</span>\n`;
+                } else if (currentSection === 'backend_data') {
+                    html += `<span style="color: #e67e22;">${escapedLine}</span>\n`;
+                } else {
+                    html += `${escapedLine}\n`;
+                }
+            }
+            
+            return html;
+        }
+        
+        /**
+         * Color-code AI response (analyzed data from AI)
+         * AI-generated content is shown in purple/magenta
+         */
+        function colorCodeResponse(response) {
+            if (!response) return '';
+            
+            // AI response is all analyzed data, show in purple
+            const escapedResponse = escapeHtml(response);
+            return `<span style="color: #9b59b6;">${escapedResponse}</span>`;
+        }
+        
         // Escape HTML to prevent XSS
         function escapeHtml(text) {
             const div = document.createElement('div');
