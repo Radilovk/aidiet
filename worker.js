@@ -1570,7 +1570,7 @@ async function generatePlanMultiStep(env, data) {
   try {
     // Step 1: Analyze user profile (1st AI request)
     // Focus: Deep health analysis, metabolic profile, correlations
-    const analysisPrompt = generateAnalysisPrompt(data);
+    const analysisPrompt = await generateAnalysisPrompt(data, env);
     const analysisInputTokens = estimateTokenCount(analysisPrompt);
     cumulativeTokens.input += analysisInputTokens;
     
@@ -1613,7 +1613,7 @@ async function generatePlanMultiStep(env, data) {
     
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
-    const strategyPrompt = generateStrategyPrompt(data, analysis);
+    const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
     const strategyInputTokens = estimateTokenCount(strategyPrompt);
     cumulativeTokens.input += strategyInputTokens;
     
@@ -1712,9 +1712,60 @@ async function generatePlanMultiStep(env, data) {
  * Simplified - focuses on AI's strengths: correlations, psychology, individualization
  * Backend handles: BMR, TDEE, safety checks
  */
-function generateAnalysisPrompt(data) {
+async function generateAnalysisPrompt(data, env) {
   // IMPORTANT: AI calculates BMR, TDEE, and calories based on ALL correlates
   // Backend no longer pre-calculates these values - AI does holistic analysis
+  
+  // Check if there's a custom prompt in KV storage
+  let customPrompt = null;
+  if (env && env.page_content) {
+    try {
+      customPrompt = await env.page_content.get('admin_analysis_prompt');
+    } catch (error) {
+      console.error('Error fetching custom analysis prompt:', error);
+    }
+  }
+  
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt with actual data
+    return customPrompt
+      .replace(/\{userData\}/g, JSON.stringify({
+        name: data.name,
+        age: data.age,
+        gender: data.gender,
+        height: data.height,
+        weight: data.weight,
+        goal: data.goal,
+        lossKg: data.lossKg,
+        sleepHours: data.sleepHours,
+        sleepInterrupt: data.sleepInterrupt,
+        chronotype: data.chronotype,
+        sportActivity: data.sportActivity,
+        dailyActivityLevel: data.dailyActivityLevel,
+        stressLevel: data.stressLevel,
+        waterIntake: data.waterIntake,
+        drinksSweet: data.drinksSweet,
+        drinksAlcohol: data.drinksAlcohol,
+        overeatingFrequency: data.overeatingFrequency,
+        eatingHabits: data.eatingHabits,
+        foodCravings: data.foodCravings,
+        foodTriggers: data.foodTriggers,
+        compensationMethods: data.compensationMethods,
+        socialComparison: data.socialComparison,
+        medicalConditions: data.medicalConditions,
+        medications: data.medications,
+        medicationsDetails: data.medicationsDetails,
+        weightChange: data.weightChange,
+        weightChangeDetails: data.weightChangeDetails,
+        dietHistory: data.dietHistory,
+        dietType: data.dietType,
+        dietResult: data.dietResult,
+        dietPreference: data.dietPreference,
+        dietDislike: data.dietDislike,
+        dietLove: data.dietLove
+      }, null, 2));
+  }
   
   return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
 
@@ -1923,7 +1974,17 @@ ${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
 Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
 }
 
-function generateStrategyPrompt(data, analysis) {
+async function generateStrategyPrompt(data, analysis, env) {
+  // Check if there's a custom prompt in KV storage
+  let customPrompt = null;
+  if (env && env.page_content) {
+    try {
+      customPrompt = await env.page_content.get('admin_strategy_prompt');
+    } catch (error) {
+      console.error('Error fetching custom strategy prompt:', error);
+    }
+  }
+  
   // Extract only essential analysis data (COMPACT - no full JSON)
   const analysisCompact = {
     bmr: analysis.bmr || 'не изчислен',
@@ -1951,6 +2012,17 @@ function generateStrategyPrompt(data, analysis) {
       .map(p => `${p.title} (${p.severity})`)
       .join('; ') // Up to 3 problems
   };
+  
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt
+    return customPrompt
+      .replace(/\{userData\}/g, JSON.stringify(data, null, 2))
+      .replace(/\{analysisData\}/g, JSON.stringify(analysisCompact, null, 2))
+      .replace(/\{name\}/g, data.name)
+      .replace(/\{age\}/g, data.age)
+      .replace(/\{goal\}/g, data.goal);
+  }
   
   return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
 
@@ -2184,9 +2256,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     console.log(`Progressive generation: Generating days ${startDay}-${endDay} (chunk ${chunkIndex + 1}/${chunks})`);
     
     try {
-      const chunkPrompt = generateMealPlanChunkPrompt(
+      const chunkPrompt = await generateMealPlanChunkPrompt(
         data, analysis, strategy, bmr, recommendedCalories,
-        startDay, endDay, previousDays
+        startDay, endDay, previousDays, env
       );
       
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
@@ -2229,7 +2301,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   // Generate summary, recommendations, etc. in final request
   console.log('Progressive generation: Generating summary and recommendations');
   try {
-    const summaryPrompt = generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan);
+    const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'step4_summary');
     const summaryData = parseAIResponse(summaryResponse);
     
@@ -2298,7 +2370,17 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
 /**
  * Generate prompt for a chunk of days (progressive generation)
  */
-function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays) {
+async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env) {
+  // Check if there's a custom prompt in KV storage
+  let customPrompt = null;
+  if (env && env.page_content) {
+    try {
+      customPrompt = await env.page_content.get('admin_meal_plan_prompt');
+    } catch (error) {
+      console.error('Error fetching custom meal plan prompt:', error);
+    }
+  }
+  
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   const daysInChunk = endDay - startDay + 1;
   
@@ -2375,7 +2457,7 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
 `;
   }
   
-  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+  const defaultPrompt = `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
 === ЗАДАЧА ===
 Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
@@ -2571,12 +2653,38 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
 }
 
 Генерирай дни ${startDay}-${endDay} с балансирани ястия в правилен хронологичен ред. ЗАДЪЛЖИТЕЛНО включи dailyTotals за проверка!`;
+  
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt
+    return customPrompt
+      .replace(/\{userData\}/g, JSON.stringify(data, null, 2))
+      .replace(/\{analysisData\}/g, JSON.stringify(analysis, null, 2))
+      .replace(/\{strategyData\}/g, JSON.stringify(strategy, null, 2))
+      .replace(/\{bmr\}/g, bmr)
+      .replace(/\{recommendedCalories\}/g, recommendedCalories)
+      .replace(/\{startDay\}/g, startDay)
+      .replace(/\{endDay\}/g, endDay)
+      .replace(/\{previousDays\}/g, JSON.stringify(previousDays, null, 2));
+  }
+  
+  return defaultPrompt;
 }
 
 /**
  * Generate prompt for summary and recommendations (final step of progressive generation)
  */
-function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan) {
+async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env) {
+  // Check if there's a custom prompt in KV storage
+  let customPrompt = null;
+  if (env && env.page_content) {
+    try {
+      customPrompt = await env.page_content.get('admin_summary_prompt');
+    } catch (error) {
+      console.error('Error fetching custom summary prompt:', error);
+    }
+  }
+  
   // Calculate total calories and macros across the week for validation
   let totalCalories = 0;
   let totalProtein = 0;
@@ -2610,7 +2718,7 @@ function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommende
   const foodsToInclude = strategy.foodsToInclude || [];
   const foodsToAvoid = strategy.foodsToAvoid || [];
   
-  return `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+  const defaultPrompt = `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}
 BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
@@ -2639,6 +2747,23 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 }
 
 ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt
+    return customPrompt
+      .replace(/\{userData\}/g, JSON.stringify(data, null, 2))
+      .replace(/\{strategyData\}/g, JSON.stringify(strategy, null, 2))
+      .replace(/\{weekPlan\}/g, JSON.stringify(weekPlan, null, 2))
+      .replace(/\{bmr\}/g, bmr)
+      .replace(/\{recommendedCalories\}/g, recommendedCalories)
+      .replace(/\{avgCalories\}/g, avgCalories)
+      .replace(/\{avgProtein\}/g, avgProtein)
+      .replace(/\{avgCarbs\}/g, avgCarbs)
+      .replace(/\{avgFats\}/g, avgFats);
+  }
+  
+  return defaultPrompt;
 }
 
 /**
@@ -4276,6 +4401,14 @@ async function handleSavePrompt(request, env) {
       key = 'admin_modification_prompt';
     } else if (type === 'chat') {
       key = 'admin_chat_prompt'; // Keep for backward compatibility
+    } else if (type === 'analysis') {
+      key = 'admin_analysis_prompt';
+    } else if (type === 'strategy') {
+      key = 'admin_strategy_prompt';
+    } else if (type === 'meal_plan') {
+      key = 'admin_meal_plan_prompt';
+    } else if (type === 'summary') {
+      key = 'admin_summary_prompt';
     } else {
       key = 'admin_plan_prompt';
     }
@@ -4307,7 +4440,25 @@ async function handleGetPrompt(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const key = type === 'chat' ? 'admin_chat_prompt' : 'admin_plan_prompt';
+    let key;
+    if (type === 'chat') {
+      key = 'admin_chat_prompt';
+    } else if (type === 'consultation') {
+      key = 'admin_consultation_prompt';
+    } else if (type === 'modification') {
+      key = 'admin_modification_prompt';
+    } else if (type === 'analysis') {
+      key = 'admin_analysis_prompt';
+    } else if (type === 'strategy') {
+      key = 'admin_strategy_prompt';
+    } else if (type === 'meal_plan') {
+      key = 'admin_meal_plan_prompt';
+    } else if (type === 'summary') {
+      key = 'admin_summary_prompt';
+    } else {
+      key = 'admin_plan_prompt';
+    }
+    
     const prompt = await env.page_content.get(key);
     
     return jsonResponse({ success: true, prompt: prompt || null });
