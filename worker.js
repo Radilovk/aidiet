@@ -1764,10 +1764,17 @@ function generatePsychologicalAnalysisPrompt(data, basicAnalysis) {
 Промяна тегло: ${data.weightChange || 'не'}${data.weightChangeDetails ? ' - ' + data.weightChangeDetails : ''}
 Диети преди: ${data.dietHistory === 'Да' ? data.dietType + ' → ' + data.dietResult : 'не'}`;
 
-  // Basic analysis summary
+  // COMPACT basic analysis summary (saves tokens by removing verbose descriptions)
+  // Extract just the percentage numbers from macro ratios (e.g., "30% - long explanation" -> "30%")
+  const extractPercentage = (ratioStr) => {
+    if (!ratioStr) return 'N/A';
+    const match = ratioStr.match(/(\d+%)/);
+    return match ? match[1] : ratioStr.split('-')[0].trim();
+  };
+  
   const basicSummary = `BMR: ${basicAnalysis.bmr}, TDEE: ${basicAnalysis.tdee}, Калории: ${basicAnalysis.recommendedCalories}
-Макроси: ${basicAnalysis.macroRatios.protein}, ${basicAnalysis.macroRatios.carbs}, ${basicAnalysis.macroRatios.fats}
-Метаболизъм: ${basicAnalysis.metabolicProfile}`;
+Макроси: Протеин ${extractPercentage(basicAnalysis.macroRatios?.protein)}, Въглехидрати ${extractPercentage(basicAnalysis.macroRatios?.carbs)}, Мазнини ${extractPercentage(basicAnalysis.macroRatios?.fats)}
+Нужди: ${basicAnalysis.nutritionalNeeds ? basicAnalysis.nutritionalNeeds.join('; ') : 'няма'}`;
   
   return `Психологически и рисков анализ за ${data.name}.
 
