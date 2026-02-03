@@ -1772,12 +1772,20 @@ function generateStrategyPrompt(data, analysis) {
     macroRatios: analysis.macroRatios ? 
       `Protein: ${analysis.macroRatios.protein || 'N/A'}, Carbs: ${analysis.macroRatios.carbs || 'N/A'}, Fats: ${analysis.macroRatios.fats || 'N/A'}` : 
       'не изчислени',
-    metabolicProfile: (analysis.metabolicProfile || '').substring(0, 200) + '...', // First 200 chars only
-    healthRisks: (analysis.healthRisks || []).slice(0, 3).join('; '), // Top 3 risks
-    nutritionalNeeds: (analysis.nutritionalNeeds || []).slice(0, 3).join('; '), // Top 3 needs
-    psychologicalProfile: (analysis.psychologicalProfile || '').substring(0, 150) + '...', // First 150 chars
+    metabolicProfile: (analysis.metabolicProfile || '').length > 200 ? 
+      (analysis.metabolicProfile || '').substring(0, 200) + '...' : 
+      (analysis.metabolicProfile || 'не е анализиран'), // Only add '...' if truncated
+    healthRisks: (analysis.healthRisks || []).slice(0, 3).join('; '), // Up to 3 risks
+    nutritionalNeeds: (analysis.nutritionalNeeds || []).slice(0, 3).join('; '), // Up to 3 needs
+    psychologicalProfile: (analysis.psychologicalProfile || '').length > 150 ?
+      (analysis.psychologicalProfile || '').substring(0, 150) + '...' : 
+      (analysis.psychologicalProfile || 'не е анализиран'), // Only add '...' if truncated
     successChance: analysis.successChance || 'не изчислен',
-    keyProblems: (analysis.keyProblems || []).slice(0, 3).map(p => `${p.title} (${p.severity})`).join('; ') // Top 3 problems
+    keyProblems: (analysis.keyProblems || [])
+      .filter(p => p && p.title && p.severity) // Filter out invalid entries
+      .slice(0, 3)
+      .map(p => `${p.title} (${p.severity})`)
+      .join('; ') // Up to 3 problems
   };
   
   return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:

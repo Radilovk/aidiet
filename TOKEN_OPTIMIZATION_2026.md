@@ -32,13 +32,37 @@ ${JSON.stringify(analysis, null, 2)}  // ~524 tokens
 
 ### After (Compact Format)
 ```javascript
-// In generateStrategyPrompt
+// In generateStrategyPrompt - create compact object first
+const analysisCompact = {
+  bmr: analysis.bmr || 'не изчислен',
+  tdee: analysis.tdee || 'не изчислен',
+  recommendedCalories: analysis.recommendedCalories || 'не изчислен',
+  macroRatios: analysis.macroRatios ? 
+    `Protein: ${analysis.macroRatios.protein || 'N/A'}, Carbs: ${analysis.macroRatios.carbs || 'N/A'}, Fats: ${analysis.macroRatios.fats || 'N/A'}` : 
+    'не изчислени',
+  metabolicProfile: (analysis.metabolicProfile || '').length > 200 ? 
+    (analysis.metabolicProfile || '').substring(0, 200) + '...' : 
+    (analysis.metabolicProfile || 'не е анализиран'),
+  healthRisks: (analysis.healthRisks || []).slice(0, 3).join('; '),
+  nutritionalNeeds: (analysis.nutritionalNeeds || []).slice(0, 3).join('; '),
+  psychologicalProfile: (analysis.psychologicalProfile || '').length > 150 ?
+    (analysis.psychologicalProfile || '').substring(0, 150) + '...' : 
+    (analysis.psychologicalProfile || 'не е анализиран'),
+  successChance: analysis.successChance || 'не изчислен',
+  keyProblems: (analysis.keyProblems || [])
+    .filter(p => p && p.title && p.severity)
+    .slice(0, 3)
+    .map(p => `${p.title} (${p.severity})`)
+    .join('; ')
+};
+
+// Then use in prompt
 АНАЛИЗ (КОМПАКТЕН):
 - BMR/TDEE/Калории: ${analysisCompact.bmr} / ${analysisCompact.tdee} / ${analysisCompact.recommendedCalories}
 - Макро съотношения: ${analysisCompact.macroRatios}
-- Метаболитен профил: ${analysisCompact.metabolicProfile.substring(0, 200)}...
-- Здравни рискове: ${analysisCompact.healthRisks.slice(0, 3).join('; ')}
-// ... only top 3 items, truncated descriptions
+- Метаболитен профил: ${analysisCompact.metabolicProfile}
+- Здравни рискове: ${analysisCompact.healthRisks}
+- Хранителни нужди: ${analysisCompact.nutritionalNeeds}
 // ~327 tokens (37.6% reduction)
 ```
 
