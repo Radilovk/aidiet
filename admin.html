@@ -1414,8 +1414,26 @@
         async function loadAILogs() {
             const container = document.getElementById('aiLogsContainer');
             const statsDiv = document.getElementById('aiLogsStats');
-            const limit = parseInt(document.getElementById('logsLimit').value) || 50;
-            const offset = parseInt(document.getElementById('logsOffset').value) || 0;
+            
+            // Parse and validate limit and offset
+            let limit = parseInt(document.getElementById('logsLimit').value);
+            let offset = parseInt(document.getElementById('logsOffset').value);
+            
+            // Validate and sanitize inputs
+            if (isNaN(limit) || limit <= 0) {
+                limit = 50;
+                document.getElementById('logsLimit').value = 50;
+            }
+            if (isNaN(offset) || offset < 0) {
+                offset = 0;
+                document.getElementById('logsOffset').value = 0;
+            }
+            
+            // Cap maximum limit to prevent excessive load
+            if (limit > 200) {
+                limit = 200;
+                document.getElementById('logsLimit').value = 200;
+            }
             
             container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
             statsDiv.style.display = 'none';

@@ -3732,7 +3732,7 @@ async function logAIRequest(env, stepName, requestData) {
     }
 
     // Generate unique log ID using crypto.randomUUID() if available, fallback to timestamp+random
-    const logId = typeof crypto !== 'undefined' && crypto.randomUUID 
+    const logId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? `ai_log_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
       : `ai_log_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     const timestamp = new Date().toISOString();
@@ -3758,8 +3758,24 @@ async function logAIRequest(env, stepName, requestData) {
     logIndex.unshift(logId); // Add to beginning (most recent first)
     
     // Keep only last MAX_LOG_ENTRIES log entries in index
+    // Note: Old log entries will remain in KV until their TTL expires or manual cleanup
+    // For now, we accept this trade-off to avoid expensive delete operations on every log write
+    // Future improvement: Implement periodic cleanup job or add expiration time when writing logs
     if (logIndex.length > MAX_LOG_ENTRIES) {
+      const removedLogIds = logIndex.slice(MAX_LOG_ENTRIES);
       logIndex = logIndex.slice(0, MAX_LOG_ENTRIES);
+      
+      // Optional: Cleanup old log entries asynchronously (doesn't block current request)
+      // This helps prevent storage bloat over time
+      if (removedLogIds.length > 0) {
+        // Use Promise.allSettled to avoid blocking if some deletes fail
+        Promise.allSettled(
+          removedLogIds.flatMap(id => [
+            env.page_content.delete(`ai_communication_log:${id}`),
+            env.page_content.delete(`ai_communication_log:${id}_response`)
+          ])
+        ).catch(err => console.error('Background log cleanup error:', err));
+      }
     }
     
     await env.page_content.put('ai_communication_log_index', JSON.stringify(logIndex));
