@@ -150,6 +150,13 @@ description: "• Зелена салата от листа, краставиц�
  * Men: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) + 5
  * Women: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) - 161
  * 
+ * NOTE (2026-02-03): This function is DEPRECATED for primary calorie calculation.
+ * AI model now calculates BMR/TDEE/calories holistically considering ALL correlates.
+ * This function is kept ONLY for:
+ * - Safety validation (ensure AI values are reasonable)
+ * - Fallback if AI calculation fails
+ * - Testing and comparison purposes
+ * 
  * IMPORTANT: Never returns default values - all calculations are individualized
  * If required data is missing, throws an error to ensure proper data collection
  */
@@ -182,6 +189,9 @@ function calculateBMR(data) {
 /**
  * Calculate TDEE (Total Daily Energy Expenditure) based on activity level
  * Multipliers based on medical research (Mifflin-St Jeor + activity factors)
+ * 
+ * NOTE (2026-02-03): This function is DEPRECATED for primary calorie calculation.
+ * AI model now calculates TDEE holistically. Kept for validation/fallback only.
  */
 function calculateTDEE(bmr, activityLevel) {
   const activityMultipliers = {
@@ -1626,21 +1636,10 @@ async function generatePlanMultiStep(env, data) {
  * Backend handles: BMR, TDEE, safety checks
  */
 function generateAnalysisPrompt(data) {
-  // Calculate concrete numbers in backend
-  const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, data.sportActivity);
+  // IMPORTANT: AI calculates BMR, TDEE, and calories based on ALL correlates
+  // Backend no longer pre-calculates these values - AI does holistic analysis
   
-  // Determine recommended calories based on goal
-  let recommendedCalories;
-  if (data.goal && data.goal.toLowerCase().includes('отслабване')) {
-    recommendedCalories = Math.round(tdee * 0.85); // 15% deficit
-  } else if (data.goal && data.goal.toLowerCase().includes('мускулна маса')) {
-    recommendedCalories = Math.round(tdee * 1.1); // 10% surplus
-  } else {
-    recommendedCalories = tdee; // Maintenance
-  }
-  
-  return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента.
+  return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
 ${JSON.stringify({
@@ -1691,56 +1690,133 @@ ${JSON.stringify({
   dietLove: data.dietLove
 }, null, 2)}
 
-═══ ИЗЧИСЛЕНИ СТОЙНОСТИ (Backend) ═══
-BMR: ${bmr} kcal (Mifflin-St Jeor формула)
-TDEE: ${tdee} kcal (BMR × активност)
-Препоръчани калории: ${recommendedCalories} kcal (според цел "${data.goal}")
+═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
+Основни физически параметри (за референция):
+- Тегло: ${data.weight} кг
+- Височина: ${data.height} см
+- Възраст: ${data.age} години
+- Пол: ${data.gender}
+- Цел: ${data.goal}
+${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
+
+ВАЖНО: Използвай Mifflin-St Jeor формула като ОТПРАВНА ТОЧКА, но АНАЛИЗИРАЙ ХОЛИСТИЧНО:
+- Качество на сън и стрес
+- История на диети (метаболитна адаптация)
+- Медицински състояния и лекарства
+- Психологически фактори и емоционално хранене
+- Реален дневен ритъм и хронотип
+- Съотношение спорт/дневна активност
+
+═══ НАСОКИ ЗА ХОЛИСТИЧНО ИЗЧИСЛЕНИЕ ═══
+
+ФОРМУЛА КАТО БАЗА:
+- BMR: Mifflin-St Jeor (10×тегло + 6.25×височина - 5×възраст + 5/-161)
+- TDEE: BMR × Activity Factor (1.2 до 1.9 според активност)
+- Калории: според цел (отслабване обикновено с дефицит, мускулна маса с излишък)
+
+КЛЮЧОВИ ФАКТОРИ ЗА КОРЕКЦИЯ:
+- Качество на сън влияе на хормони и метаболизъм
+- Стрес влияе на кортизол и енергийна ефективност
+- История на диети може да означава метаболитна адаптация
+- Медицински състояния (щитовидна жлеза, СПКЯ, диабет) влияят на метаболизма
+- Психологически фактори определят реалистичните и устойчиви цели
+- Хронотип и дневен ритъм влияят на оптималното разпределение
+
+ПРИМЕР ЗА ИЛЮСТРАЦИЯ (не следвай точно):
+Жена, 35г, 70кг, 165см, средна активност:
+- Добър профил (добър сън, нисък стрес, без диети): BMR≈1400, TDEE≈2160, Цел≈1840 kcal
+- Предизвикателен профил (лош сън, висок стрес, 3 диети): BMR≈1180, TDEE≈1780, Цел≈1600 kcal
+(Забележка: AI моделът прецени по-нисък BMR/TDEE и по-консервативен дефицит заради кумулативния ефект)
 
 ═══ ТВОЯТА ЗАДАЧА ═══
-Фокусирай се на това, което САМО ТИ можеш да направиш - КОРЕЛАЦИОНЕН АНАЛИЗ:
+1. АНАЛИЗИРАЙ ХОЛИСТИЧНО всички данни за ${data.name}
+2. ИЗЧИСЛИ BMR, TDEE и препоръчани калории базирано на ТВОЯТА ПРОФЕСИОНАЛНА ПРЕЦЕНКА
+3. ОБЯСНИ детайлно ЗАЩО си избрал точно тези стойности
+4. Покажи логиката и математиката в reasoning полетата
 
-1. **СЪН ↔ СТРЕС ↔ ХРАНЕНЕ**: Как ${data.sleepHours}ч сън (прекъсван: ${data.sleepInterrupt}) + стрес (${data.stressLevel}) влияят на:
+2. КОРЕЛАЦИОНЕН АНАЛИЗ:
+
+**СЪН ↔ СТРЕС ↔ ХРАНЕНЕ**: Как ${data.sleepHours}ч сън (прекъсван: ${data.sleepInterrupt}) + стрес (${data.stressLevel}) влияят на:
    - Хормони (кортизол, грелин, лептин)
    - Хранителни желания: ${JSON.stringify(data.foodCravings || [])}
    - Прекомерно хранене: ${data.overeatingFrequency}
 
-2. **ПСИХОЛОГИЧЕСКИ ПРОФИЛ**: Анализирай връзката емоции ↔ хранене:
+**ПСИХОЛОГИЧЕСКИ ПРОФИЛ**: Анализирай връзката емоции ↔ хранене:
    - Тригери: ${JSON.stringify(data.foodTriggers || [])}
    - Компенсации: ${JSON.stringify(data.compensationMethods || [])}
    - Социално сравнение: ${data.socialComparison}
    - Оценка на самодисциплина и мотивация
 
-3. **МЕТАБОЛИТНИ ОСОБЕНОСТИ**: Идентифицирай уникален метаболитен профил базиран на:
+**МЕТАБОЛИТНИ ОСОБЕНОСТИ**: Идентифицирай уникален метаболитен профил базиран на:
    - Хронотип (${data.chronotype}) → кога е оптимално храненето
    - Активност (${data.sportActivity}, ${data.dailyActivityLevel})
    - История: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'няма предишни диети'}
    - ВАЖНО: Неуспешни диети в миналото обикновено означават намален метаболизъм
 
-4. **МЕДИЦИНСКИ ФАКТОРИ**: Как медицински състояния влияят на хранене:
+**МЕДИЦИНСКИ ФАКТОРИ**: Как медицински състояния влияят на хранене:
    - Състояния: ${JSON.stringify(data.medicalConditions || [])}
    - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}
    - Какви специфични нужди от макро/микроелементи?
 
-5. **ШАНС ЗА УСПЕХ**: Изчисли успех score (-100 до +100) базиран на ВСИЧКИ фактори:
+3. **ШАНС ЗА УСПЕХ**: Изчисли успех score (-100 до +100) базиран на ВСИЧКИ фактори:
    - BMI и здравословно състояние
    - Качество на съня и стрес
    - История на диети (неуспешни намаляват шанса с 15-25 точки)
    - Психологическа устойчивост
    - Медицински условия и активност
 
-6. **КЛЮЧОВИ ПРОБЛЕМИ**: Идентифицирай 3-6 проблемни области (САМО Borderline/Risky/Critical severity):
+4. **КЛЮЧОВИ ПРОБЛЕМИ**: Идентифицирай 3-6 проблемни области (САМО Borderline/Risky/Critical severity):
    - Фокус на фактори които АКТИВНО пречат на целта
    - НЕ включвай "Normal" проблеми
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
+КРИТИЧНО ВАЖНО - ТИПОВЕ ДАННИ И ИЗЧИСЛЕНИЯ:
+- Числови полета ТРЯБВА да съдържат САМО числа (integer или float)
+- БЕЗ текст, единици измерване или обяснения в числовите полета
+- Обяснения се поставят в отделни "_reasoning" полета
+- BMR, TDEE, recommendedCalories - ТИ ги изчисляваш базирано на ВСИЧКИ корелати!
+
 {
-  "bmr": "${bmr} kcal (изчислен от backend)",
-  "tdee": "${tdee} kcal (изчислен от backend)",
-  "recommendedCalories": "${recommendedCalories} kcal (изчислен според цел ${data.goal})",
+  "bmr": число (ТИ изчисляваш холистично),
+  "bmrReasoning": "обяснение как и защо си коригирал базовата Mifflin-St Jeor формула",
+  "tdee": число (ТИ изчисляваш холистично),
+  "tdeeReasoning": "обяснение как активността, стресът, съня влияят на TDEE",
+  "recommendedCalories": число (ТИ определяш базирано на цел и корелати),
+  "caloriesReasoning": "обяснение защо ТОЧНО тези калории - как целта, стресът, историята на диети, метаболизма влияят на изчислението",
   "macroRatios": {
-    "protein": "X% - обосновка защо този процент е оптимален за ${data.name}",
-    "carbs": "Y% - обосновка базирана на активност, медицински състояния",
-    "fats": "Z% - обосновка според нужди"
+    "protein": число (процент, напр. 30),
+    "carbs": число (процент, напр. 35),
+    "fats": число (процент, напр. 35)
+  },
+  "macroRatiosReasoning": {
+    "protein": "обосновка защо този процент е оптимален за ${data.name}",
+    "carbs": "обосновка базирана на активност, медицински състояния",
+    "fats": "обосновка според нужди"
+  },
+  "macroGrams": {
+    "protein": число (грамове дневно),
+    "carbs": число (грамове дневно),
+    "fats": число (грамове дневно)
+  },
+  "weeklyBlueprint": {
+    "skipBreakfast": boolean (true ако клиентът не закусва),
+    "dailyMealCount": число (колко хранения на ден, обикновено 2-4),
+    "mealCountReasoning": "защо този брой хранения е оптимален",
+    "dailyStructure": [
+      {
+        "dayIndex": 1,
+        "meals": [
+          {
+            "type": "breakfast/lunch/dinner/snack",
+            "active": boolean,
+            "calorieTarget": число (калории за това хранене),
+            "proteinSource": "предложен основен протеин (напр. chicken, fish, eggs)",
+            "carbSource": "предложен въглехидрат (напр. quinoa, rice, vegetables)"
+          }
+        ]
+      }
+      // ... повторете за всички 7 дни
+    ]
   },
   "metabolicProfile": "УНИКАЛЕН метаболитен профил - опиши как хронотип, активност, история влияят на метаболизма",
   "healthRisks": ["риск 1 специфичен за профила", "риск 2", "риск 3"],
@@ -1760,6 +1836,13 @@ TDEE: ${tdee} kcal (BMR × активност)
   ]
 }
 
+ВАЖНИ ПРАВИЛА ЗА weeklyBlueprint:
+1. Сборът на calorieTarget за всички активни хранения в един ден ТРЯБВА да е равен на твоите изчислени recommendedCalories
+2. Ако skipBreakfast е true, "breakfast" хранения ТРЯБВА да имат active: false и calorieTarget: 0
+3. Варирай proteinSource и carbSource между дните за разнообразие
+4. Типовете хранения трябва да са в хронологичен ред: breakfast -> lunch -> snack -> dinner
+5. Използвай dailyMealCount за консистентност през цялата седмица (освен ако няма специфична причина за вариация)
+
 Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
 }
 
@@ -1770,8 +1853,12 @@ function generateStrategyPrompt(data, analysis) {
     tdee: analysis.tdee || 'не изчислен',
     recommendedCalories: analysis.recommendedCalories || 'не изчислен',
     macroRatios: analysis.macroRatios ? 
-      `Protein: ${analysis.macroRatios.protein || 'N/A'}, Carbs: ${analysis.macroRatios.carbs || 'N/A'}, Fats: ${analysis.macroRatios.fats || 'N/A'}` : 
+      `Protein: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Carbs: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Fats: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}` : 
       'не изчислени',
+    macroGrams: analysis.macroGrams ?
+      `Protein: ${analysis.macroGrams.protein != null ? analysis.macroGrams.protein + 'g' : 'N/A'}, Carbs: ${analysis.macroGrams.carbs != null ? analysis.macroGrams.carbs + 'g' : 'N/A'}, Fats: ${analysis.macroGrams.fats != null ? analysis.macroGrams.fats + 'g' : 'N/A'}` :
+      'не изчислени',
+    weeklyBlueprint: analysis.weeklyBlueprint || null,
     metabolicProfile: (analysis.metabolicProfile || '').length > 200 ? 
       (analysis.metabolicProfile || '').substring(0, 200) + '...' : 
       (analysis.metabolicProfile || 'не е анализиран'), // Only add '...' if truncated
@@ -1795,6 +1882,8 @@ function generateStrategyPrompt(data, analysis) {
 АНАЛИЗ (КОМПАКТЕН):
 - BMR/TDEE/Калории: ${analysisCompact.bmr} / ${analysisCompact.tdee} / ${analysisCompact.recommendedCalories}
 - Макро съотношения: ${analysisCompact.macroRatios}
+- Макро грамове дневно: ${analysisCompact.macroGrams}
+${analysisCompact.weeklyBlueprint ? `- Седмична структура: ${analysisCompact.weeklyBlueprint.dailyMealCount} хранения/ден${analysisCompact.weeklyBlueprint.skipBreakfast ? ', БЕЗ закуска' : ''}` : ''}
 - Метаболитен профил: ${analysisCompact.metabolicProfile}
 - Здравни рискове: ${analysisCompact.healthRisks}
 - Хранителни нужди: ${analysisCompact.nutritionalNeeds}
@@ -1971,11 +2060,17 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   const weekPlan = {};
   const previousDays = []; // Track previous days for variety
   
-  // Parse BMR and calories (same as original function)
+  // Parse BMR and calories - handle both numeric and string values
   let bmr;
   if (analysis.bmr) {
-    const bmrMatch = String(analysis.bmr).match(/\d+/);
-    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    // If bmr is already a number, use it directly
+    if (typeof analysis.bmr === 'number') {
+      bmr = Math.round(analysis.bmr);
+    } else {
+      // Otherwise, extract from string
+      const bmrMatch = String(analysis.bmr).match(/\d+/);
+      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    }
   }
   if (!bmr) {
     bmr = calculateBMR(data);
@@ -1983,8 +2078,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   
   let recommendedCalories;
   if (analysis.recommendedCalories) {
-    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    // If recommendedCalories is already a number, use it directly
+    if (typeof analysis.recommendedCalories === 'number') {
+      recommendedCalories = Math.round(analysis.recommendedCalories);
+    } else {
+      // Otherwise, extract from string
+      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    }
   }
   if (!recommendedCalories) {
     const tdee = calculateTDEE(bmr, data.sportActivity);
@@ -2062,12 +2163,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
       
       return {
         summary: {
-          bmr: `${bmr}`,
-          dailyCalories: `${recommendedCalories}`,
+          bmr: bmr,
+          dailyCalories: recommendedCalories,
           macros: {
-            protein: calculatedMacros.protein ? `${calculatedMacros.protein}g (средно дневно)` : "Не е изчислено",
-            carbs: calculatedMacros.carbs ? `${calculatedMacros.carbs}g (средно дневно)` : "Не е изчислено",
-            fats: calculatedMacros.fats ? `${calculatedMacros.fats}g (средно дневно)` : "Не е изчислено"
+            protein: calculatedMacros.protein || 0,
+            carbs: calculatedMacros.carbs || 0,
+            fats: calculatedMacros.fats || 0
           }
         },
         weekPlan: weekPlan,
@@ -2081,8 +2182,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     
     return {
       summary: summaryData.summary || {
-        bmr: `${bmr}`,
-        dailyCalories: `${recommendedCalories}`,
+        bmr: bmr,
+        dailyCalories: recommendedCalories,
         macros: summaryData.macros || {}
       },
       weekPlan: weekPlan,
@@ -2099,12 +2200,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     
     return {
       summary: {
-        bmr: `${bmr}`,
-        dailyCalories: `${recommendedCalories}`,
+        bmr: bmr,
+        dailyCalories: recommendedCalories,
         macros: { 
-          protein: calculatedMacros.protein ? `${calculatedMacros.protein}g (средно дневно)` : "Не е изчислено",
-          carbs: calculatedMacros.carbs ? `${calculatedMacros.carbs}g (средно дневно)` : "Не е изчислено",
-          fats: calculatedMacros.fats ? `${calculatedMacros.fats}g (средно дневно)` : "Не е изчислено"
+          protein: calculatedMacros.protein || 0,
+          carbs: calculatedMacros.carbs || 0,
+          fats: calculatedMacros.fats || 0
         }
       },
       weekPlan: weekPlan,
@@ -2155,6 +2256,48 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
     foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
   };
   
+  // Extract weekly blueprint if available
+  let blueprintSection = '';
+  if (analysis.weeklyBlueprint) {
+    const blueprint = analysis.weeklyBlueprint;
+    blueprintSection = `
+=== СЕДМИЧНА СТРУКТУРА (BLUEPRINT) ===
+КРИТИЧНО: Този план определя ТОЧНАТА структура и калории за всеки ден. СПАЗВАЙ ГО СТРИКТНО!
+
+Общи правила:
+- Пропусни закуска: ${blueprint.skipBreakfast ? 'ДА - БЕЗ закуски през седмицата' : 'НЕ - включи закуски'}
+- Брой хранения на ден: ${blueprint.dailyMealCount || '2-3'}
+- Причина: ${blueprint.mealCountReasoning || 'Според профила на клиента'}
+
+Дневна структура (ДНИ ${startDay}-${endDay}):`;
+
+    // Add structure for each day in the chunk
+    if (blueprint.dailyStructure && Array.isArray(blueprint.dailyStructure)) {
+      for (let day = startDay; day <= endDay; day++) {
+        const dayStructure = blueprint.dailyStructure.find(d => d.dayIndex === day);
+        if (dayStructure && dayStructure.meals) {
+          blueprintSection += `\n\nДЕН ${day}:`;
+          dayStructure.meals.forEach(meal => {
+            if (meal.active) {
+              blueprintSection += `\n  - ${meal.type}: ${meal.calorieTarget} kcal (Предложен протеин: ${meal.proteinSource || 'избери подходящ'}, Въглехидрати: ${meal.carbSource || 'избери подходящ'})`;
+            } else {
+              blueprintSection += `\n  - ${meal.type}: ПРОПУСНИ (не е активно)`;
+            }
+          });
+        }
+      }
+    }
+    
+    blueprintSection += `
+
+ВАЖНО: 
+- Спазвай ТОЧНИТЕ калорийни цели за всяко хранене
+- Използвай предложените протеинови източници и въглехидрати като насоки
+- Сборът на калориите за деня ТРЯБВА да отговаря на сумата от активните хранения
+- НЕ добавяй хранения които са маркирани като неактивни (active: false)
+`;
+  }
+  
   return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
 === ЗАДАЧА ===
@@ -2164,7 +2307,7 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
 Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
 BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
-
+${blueprintSection}
 === СТРАТЕГИЯ (КОМПАКТНА) ===
 Диета: ${strategyCompact.dietType}
 Схема: ${strategyCompact.weeklyMealPattern}
@@ -2358,12 +2501,12 @@ BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
 - Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
 - Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
 
-JSON ФОРМАТ:
+JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
 {
   "summary": {
-    "bmr": "${bmr}",
-    "dailyCalories": "${avgCalories}",
-    "macros": {"protein": "${avgProtein}g базирано на плана", "carbs": "${avgCarbs}g базирано на плана", "fats": "${avgFats}g базирано на плана"}
+    "bmr": ${bmr},
+    "dailyCalories": ${avgCalories},
+    "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}
   },
   "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
@@ -2390,12 +2533,17 @@ JSON ФОРМАТ:
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
 function generateMealPlanPrompt(data, analysis, strategy) {
-  // Parse BMR from analysis (may be a string) or calculate from user data
+  // Parse BMR from analysis (may be a number or string) or calculate from user data
   let bmr;
   if (analysis.bmr) {
-    // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ИНДИВИДУАЛНО изчислен)")
-    const bmrMatch = String(analysis.bmr).match(/\d+/);
-    bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    // If bmr is already a number, use it directly
+    if (typeof analysis.bmr === 'number') {
+      bmr = Math.round(analysis.bmr);
+    } else {
+      // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ІНДИВІДУАЛНО изчислен)")
+      const bmrMatch = String(analysis.bmr).match(/\d+/);
+      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    }
   }
   
   // If no valid BMR from analysis, calculate it
@@ -2406,9 +2554,14 @@ function generateMealPlanPrompt(data, analysis, strategy) {
   // Parse recommended calories from analysis or calculate from TDEE
   let recommendedCalories;
   if (analysis.recommendedCalories) {
-    // Try to extract numeric value from analysis.recommendedCalories
-    const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-    recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    // If recommendedCalories is already a number, use it directly
+    if (typeof analysis.recommendedCalories === 'number') {
+      recommendedCalories = Math.round(analysis.recommendedCalories);
+    } else {
+      // Try to extract numeric value from analysis.recommendedCalories
+      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    }
   }
   
   // If no recommended calories from analysis, calculate TDEE
