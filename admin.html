@@ -1554,6 +1554,26 @@
                                         <strong><i class="fas fa-exclamation-triangle"></i> Грешка:</strong> ${escapeHtml(log.response.error)}
                                     </div>
                                 ` : ''}
+                                
+                                <!-- Prompt Content Section -->
+                                ${log.prompt ? `
+                                    <details style="margin-top: 15px; padding: 10px; background: var(--soft-red); border-radius: 8px;">
+                                        <summary style="cursor: pointer; font-weight: 600; color: var(--text-dark); padding: 5px;">
+                                            <i class="fas fa-paper-plane"></i> Изпратен Промпт (${log.promptLength?.toLocaleString() || 0} chars)
+                                        </summary>
+                                        <pre style="margin-top: 10px; padding: 10px; background: var(--white); border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(log.prompt)}</pre>
+                                    </details>
+                                ` : ''}
+                                
+                                <!-- Response Content Section -->
+                                ${hasResponse && log.response.response ? `
+                                    <details style="margin-top: 15px; padding: 10px; background: var(--soft-red); border-radius: 8px;">
+                                        <summary style="cursor: pointer; font-weight: 600; color: var(--text-dark); padding: 5px;">
+                                            <i class="fas fa-reply"></i> Получен Отговор (${log.response.responseLength?.toLocaleString() || 0} chars)
+                                        </summary>
+                                        <pre style="margin-top: 10px; padding: 10px; background: var(--white); border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(log.response.response)}</pre>
+                                    </details>
+                                ` : ''}
                             </div>
                         `;
                     });
