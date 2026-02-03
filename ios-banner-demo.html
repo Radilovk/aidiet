@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS Banner Demo - NutriPlan</title>
+    <style>
+        :root {
+            --primary-red: #10b981;
+            --text-dark: #1e3a20;
+            --text-gray: #4b5563;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .demo-container {
+            max-width: 800px;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: var(--primary-red);
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        p {
+            color: var(--text-gray);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .demo-button {
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        /* iOS Banner Styles */
+        .ios-prompt {
+            position: fixed;
+            bottom: 20px;
+            width: 90%;
+            left: 5%;
+            max-width: 500px;
+            background: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            padding: 15px;
+            font-family: 'Arial', sans-serif;
+            animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUpIOS {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .ios-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+
+        .ios-close:hover {
+            color: var(--text-dark);
+            transform: scale(1.1);
+        }
+
+        .ios-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .ios-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .ios-title-group h4 {
+            margin: 0;
+            color: var(--text-dark);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .ios-title-group p {
+            margin: 5px 0 0;
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .ios-instructions {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            font-size: 14px;
+            text-align: center;
+            color: var(--text-dark);
+        }
+
+        .ios-instructions p {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .ios-share-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+        }
+
+        .feature-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .feature-list li {
+            margin: 10px 0;
+            color: var(--text-dark);
+        }
+
+        .feature-list strong {
+            color: var(--primary-red);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🎉 iOS Install Banner Demo</h1>
+        
+        <p>Демонстрация на новия iOS-специфичен банер за инсталация на NutriPlan PWA приложението.</p>
+        
+        <div class="feature-list">
+            <h3>Ключови функции:</h3>
+            <ul>
+                <li>✅ <strong>Образователен дизайн</strong> - Ясни инструкции за iOS потребители</li>
+                <li>✅ <strong>Автоматично показване</strong> - След 3 секунди на iOS Safari</li>
+                <li>✅ <strong>Визуален guide</strong> - С Share button икона</li>
+                <li>✅ <strong>Persist dismiss</strong> - Запазва предпочитанието в localStorage</li>
+                <li>✅ <strong>Responsive</strong> - Работи на всички екрани</li>
+            </ul>
+        </div>
+
+        <p><strong>Инструкции:</strong> Кликнете бутона по-долу за да покажете iOS банера.</p>
+        
+        <button class="demo-button" onclick="showBanner()">Покажи iOS Banner</button>
+        <button class="demo-button" onclick="hideBanner()">Скрий Banner</button>
+    </div>
+
+    <!-- iOS Install Banner -->
+    <div id="ios-banner" class="ios-prompt" style="display:none;">
+        <button onclick="dismissBanner()" class="ios-close">✕</button>
+        <div class="ios-header">
+            <img src="./icon-192x192.png" class="ios-icon" alt="NutriPlan Icon">
+            <div class="ios-title-group">
+                <h4>Инсталирай NutriPlan</h4>
+                <p>Добави на екрана за бърз достъп и известия</p>
+            </div>
+        </div>
+        <div class="ios-instructions">
+            <p>Натисни бутона <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E" class="ios-share-icon" alt="Share"> и избери <strong>"Add to Home Screen" (Добави към начален екран)</strong></p>
+        </div>
+    </div>
+
+    <script>
+        function showBanner() {
+            const banner = document.getElementById('ios-banner');
+            if (banner) {
+                banner.style.display = 'block';
+            }
+        }
+
+        function hideBanner() {
+            const banner = document.getElementById('ios-banner');
+            if (banner) {
+                banner.style.display = 'none';
+            }
+        }
+
+        function dismissBanner() {
+            hideBanner();
+            alert('Banner dismissed! (В реалното приложение това се запазва в localStorage)');
+        }
+
+        // Auto-show after 2 seconds for demo
+        setTimeout(() => {
+            showBanner();
+        }, 2000);
+    </script>
+</body>
+</html>

@@ -625,6 +625,103 @@
                 padding: 12px 24px;
             }
         }
+
+        .ios-prompt {
+            position: fixed;
+            bottom: 20px;
+            width: 90%;
+            left: 5%;
+            background: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            padding: 15px;
+            font-family: 'Poppins', sans-serif;
+            animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUpIOS {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .ios-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+
+        .ios-close:hover {
+            color: var(--text-dark);
+            transform: scale(1.1);
+        }
+
+        .ios-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .ios-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .ios-title-group h4 {
+            margin: 0;
+            color: var(--text-dark);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .ios-title-group p {
+            margin: 5px 0 0;
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .ios-instructions {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            font-size: 14px;
+            text-align: center;
+            color: var(--text-dark);
+        }
+
+        .ios-instructions p {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .ios-share-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -727,6 +824,21 @@
                 <i class="fas fa-times"></i>
                 <span>По-късно</span>
             </button>
+        </div>
+    </div>
+
+    <!-- iOS Install Banner -->
+    <div id="ios-banner" class="ios-prompt" style="display:none;">
+        <button onclick="dismissIosBanner()" class="ios-close">✕</button>
+        <div class="ios-header">
+            <img src="./icon-192x192.png" class="ios-icon" alt="NutriPlan Icon">
+            <div class="ios-title-group">
+                <h4>Инсталирай NutriPlan</h4>
+                <p>Добави на екрана за бърз достъп и известия</p>
+            </div>
+        </div>
+        <div class="ios-instructions">
+            <p>Натисни бутона <img id="ios-share-icon-img" class="ios-share-icon" alt="Share"> и избери <strong>"Add to Home Screen" (Добави към начален екран)</strong></p>
         </div>
     </div>
     
@@ -1628,7 +1740,7 @@
                 // Auto-trigger installation prompt after 3 seconds for better automatic experience
                 // This ensures users don't miss the installation opportunity
                 setTimeout(() => {
-                    if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                    if (deferredPrompt && !isInStandaloneMode()) {
                         if (PWA_DEBUG) console.log('Auto-triggering install prompt after 3 seconds');
                         triggerInstallPrompt();
                     }
@@ -1661,7 +1773,7 @@
             if (wasBannerRecentlyDismissed()) return;
             
             // Don't show if already installed
-            if (window.matchMedia('(display-mode: standalone)').matches) return;
+            if (isInStandaloneMode()) return;
             
             const installBanner = document.getElementById('installBanner');
             if (!installBanner) return;
@@ -1690,11 +1802,11 @@
             } else if (isIOS && isSafari) {
                 // iOS Safari - guide to Share button
                 if (titleEl) titleEl.textContent = '📱 Добави към iPhone/iPad';
-                if (textEl) textEl.textContent = 'Натисни бутона Share (⬆️) и избери "Add to Home Screen"';
+                if (textEl) textEl.textContent = 'Натисни бутона Share (⬆️) и избери "Add to Home Screen" (Добави към начален екран)';
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-share"></i><span>Виж как</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)');
+                        alert('За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран) (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)');
                     };
                 }
                 installBanner.classList.add('show');
@@ -1783,6 +1895,42 @@
             }
         }
 
+        // iOS Install Banner Functions
+        function showIosInstallBanner() {
+            const hasDismissed = localStorage.getItem('ios_install_dismissed');
+
+            if (isIOS && !isInStandaloneMode() && !hasDismissed) {
+                const iosBanner = document.getElementById('ios-banner');
+                const shareIconImg = document.getElementById('ios-share-icon-img');
+                
+                if (iosBanner) {
+                    // Set the share icon SVG
+                    if (shareIconImg) {
+                        shareIconImg.src = getShareIconSvg();
+                    }
+                    iosBanner.style.display = 'block';
+                    if (PWA_DEBUG) console.log('iOS install banner shown');
+                }
+            }
+        }
+
+        // Function to dismiss iOS banner
+        function dismissIosBanner() {
+            localStorage.setItem('ios_install_dismissed', 'true');
+            const iosBanner = document.getElementById('ios-banner');
+            if (iosBanner) {
+                iosBanner.style.display = 'none';
+            }
+            if (PWA_DEBUG) console.log('iOS install banner dismissed');
+        }
+
+        // Initialize iOS banner after a delay
+        if (isIOS && isSafari) {
+            setTimeout(() => {
+                showIosInstallBanner();
+            }, 3000); // Show after 3 seconds on iOS
+        }
+
         // Handle install button click
         const installBtn = document.getElementById('installBtn');
         if (installBtn) {
@@ -1814,7 +1962,7 @@
         window.addEventListener('load', () => {
             setTimeout(() => {
                 // Only log for debugging - don't show manual instructions
-                if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                if (!deferredPrompt && !isInStandaloneMode()) {
                     if (PWA_DEBUG) {
                         console.log('beforeinstallprompt has not fired after 2 seconds');
                         console.log('Waiting for automatic prompt - no manual instructions shown');
@@ -1842,7 +1990,7 @@
                 
                 // Check again after 32 seconds if user has interacted
                 setTimeout(() => {
-                    if (hasInteracted && !deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                    if (hasInteracted && !deferredPrompt && !isInStandaloneMode()) {
                         const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
                         if (PWA_DEBUG) {
                             console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
@@ -1879,7 +2027,7 @@
                         console.log('- Browser:', isChrome ? 'Chrome' : (isEdge ? 'Edge' : 'Other'));
                         
                         // Check if already installed
-                        if (window.matchMedia('(display-mode: standalone)').matches) {
+                        if (isInStandaloneMode()) {
                             console.log('- Already installed: Yes (running as standalone app)');
                         } else {
                             console.log('- Already installed: No');
@@ -1930,6 +2078,18 @@
                         console.error('Service Worker registration failed:', error);
                     });
             });
+        }
+
+        // --- PWA Helper Functions ---
+        // Check if app is running in standalone mode
+        function isInStandaloneMode() {
+            return window.matchMedia('(display-mode: standalone)').matches || 
+                   (('standalone' in window.navigator) && (window.navigator.standalone));
+        }
+
+        // Get SVG data URL for iOS share icon
+        function getShareIconSvg() {
+            return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E";
         }
     </script>
 </body>
