@@ -1810,38 +1810,59 @@
             const lines = prompt.split('\n');
             let currentSection = 'instruction'; // instruction, client_data, backend_data, ai_previous
             
+            // Section header keywords
+            const sectionKeywords = {
+                client_data: ['КЛИЕНТСКИ ПРОФИЛ', 'CLIENT PROFILE', 'КЛИЕНТ:'],
+                backend_data: ['ИЗЧИСЛЕНИ СТОЙНОСТИ', 'CALCULATED VALUES'],
+                ai_previous: ['АНАЛИЗ (КОМПАКТЕН)', 'АНАЛИЗ (', 'ANALYSIS (', 'ПРЕДИШЕН АНАЛИЗ'],
+                instruction: ['ТВОЯТА ЗАДАЧА', 'YOUR TASK', 'ФОРМАТ НА ОТГОВОР', 'RESPONSE FORMAT', 
+                             'ПРЕДПОЧИТАНИЯ:', 'ВАЖНО:', 'КРИТИЧНО']
+            };
+            
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 const escapedLine = escapeHtml(line);
                 
-                // Detect section boundaries
-                if (line.includes('КЛИЕНТСКИ ПРОФИЛ') || line.includes('CLIENT PROFILE') || line.includes('КЛИЕНТ:')) {
+                // Detect section boundaries - check if line starts with or contains section keywords
+                let sectionChanged = false;
+                
+                // Check for client data section
+                if (sectionKeywords.client_data.some(kw => line.includes(kw))) {
                     currentSection = 'client_data';
                     html += `<span style="color: #27ae60; font-weight: bold;">${escapedLine}</span>\n`;
-                    continue;
-                } else if (line.includes('ИЗЧИСЛЕНИ СТОЙНОСТИ') || line.includes('CALCULATED VALUES') || (line.includes('Backend') && line.includes('═══'))) {
+                    sectionChanged = true;
+                }
+                // Check for backend data section (must have section marker ═══ or specific format)
+                else if (sectionKeywords.backend_data.some(kw => line.includes(kw)) || 
+                         (line.includes('Backend') && line.includes('═══'))) {
                     currentSection = 'backend_data';
                     html += `<span style="color: #e67e22; font-weight: bold;">${escapedLine}</span>\n`;
-                    continue;
-                } else if (line.includes('АНАЛИЗ') || line.includes('ANALYSIS') || line.includes('КОМПАКТЕН') || line.includes('ПРЕДИШЕН АНАЛИЗ')) {
+                    sectionChanged = true;
+                }
+                // Check for AI previous analysis section (must have specific markers)
+                else if (sectionKeywords.ai_previous.some(kw => line.includes(kw))) {
                     currentSection = 'ai_previous';
                     html += `<span style="color: #e91e63; font-weight: bold;">${escapedLine}</span>\n`;
-                    continue;
-                } else if (line.includes('ТВОЯТА ЗАДАЧА') || line.includes('YOUR TASK') || line.includes('ФОРМАТ НА ОТГОВОР') || line.includes('RESPONSE FORMAT') || line.includes('ПРЕДПОЧИТАНИЯ') || line.includes('ВАЖНО:') || line.includes('КРИТИЧНО')) {
+                    sectionChanged = true;
+                }
+                // Check for instruction section (keywords with colon or at start)
+                else if (sectionKeywords.instruction.some(kw => line.includes(kw))) {
                     currentSection = 'instruction';
                     html += `<span style="color: #3498db; font-weight: bold;">${escapedLine}</span>\n`;
-                    continue;
+                    sectionChanged = true;
                 }
                 
-                // Apply colors based on current section
-                if (currentSection === 'instruction') {
-                    html += `<span style="color: #3498db;">${escapedLine}</span>\n`;
-                } else if (currentSection === 'client_data') {
-                    html += `<span style="color: #27ae60;">${escapedLine}</span>\n`;
-                } else if (currentSection === 'backend_data') {
-                    html += `<span style="color: #e67e22;">${escapedLine}</span>\n`;
-                } else if (currentSection === 'ai_previous') {
-                    html += `<span style="color: #e91e63;">${escapedLine}</span>\n`;
+                // If section didn't change, apply color for current section
+                if (!sectionChanged) {
+                    if (currentSection === 'instruction') {
+                        html += `<span style="color: #3498db;">${escapedLine}</span>\n`;
+                    } else if (currentSection === 'client_data') {
+                        html += `<span style="color: #27ae60;">${escapedLine}</span>\n`;
+                    } else if (currentSection === 'backend_data') {
+                        html += `<span style="color: #e67e22;">${escapedLine}</span>\n`;
+                    } else if (currentSection === 'ai_previous') {
+                        html += `<span style="color: #e91e63;">${escapedLine}</span>\n`;
+                    }
                 }
             }
             
