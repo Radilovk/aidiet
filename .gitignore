@@ -39,3 +39,5 @@ Thumbs.db
 test-*.js
 test-*.html
 test-loading-animation.html
+# Test scripts
+test-whitelist-validation.js
