@@ -416,6 +416,12 @@ export default {
         return await handleGetConfig(request, env);
       } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
         return await handleGetAILogs(request, env);
+      } else if (url.pathname === '/api/admin/get-blacklist' && request.method === 'GET') {
+        return await handleGetBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/add-to-blacklist' && request.method === 'POST') {
+        return await handleAddToBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/remove-from-blacklist' && request.method === 'POST') {
+        return await handleRemoveFromBlacklist(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
@@ -960,11 +966,13 @@ const LOW_GI_FOODS = [
 
 // ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
 // Based on meallogic.txt - slot-based constructor with strict validation
+// This will be merged with dynamic blacklist from KV storage
 const ADLE_V8_HARD_BANS = [
   'лук', 'onion', 'пуешко месо', 'turkey meat',
   'изкуствени подсладители', 'artificial sweeteners',
   'мед', 'захар', 'конфитюр', 'сиропи', 'honey', 'sugar', 'jam', 'syrups',
-  'кетчуп', 'майонеза', 'BBQ сос', 'ketchup', 'mayonnaise', 'BBQ sauce'
+  'кетчуп', 'майонеза', 'BBQ сос', 'ketchup', 'mayonnaise', 'BBQ sauce',
+  'гръцко кисело мляко', 'greek yogurt'
 ];
 
 const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
@@ -1377,6 +1385,10 @@ function validatePlan(plan, userData) {
           // Check for turkey meat but not turkey ham
           if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
             errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ПУЕШКО МЕСО (hard ban от ADLE v8)`);
+          }
+          // Check for Greek yogurt (blacklisted)
+          if (/\bгръцко\s+кисело\s+мляко\b/.test(mealText) || /\bgreek\s+yogurt\b/.test(mealText)) {
+            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ГРЪЦКО КИСЕЛО МЛЯКО (в черния списък - използвай само обикновено кисело мляко)`);
           }
           // Check for honey/sugar/syrup in specific contexts (as ingredients, not in compound words)
           if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(mealText) && !/медицин|междин|сиропен/.test(mealText)) {
@@ -2414,6 +2426,7 @@ ${blueprintSection}
 - лук (всякаква форма), пуешко месо, изкуствени подсладители
 - мед, захар, конфитюр, сиропи
 - кетчуп, майонеза, BBQ/сладки сосове
+- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
 - грах + риба (забранена комбинация)
 
 0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
@@ -2761,6 +2774,7 @@ ${modificationsSection}
 - лук (всякаква форма), пуешко месо, изкуствени подсладители
 - мед, захар, конфитюр, сиропи
 - кетчуп, майонеза, BBQ/сладки сосове
+- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
 - грах + риба (забранена комбинация)
 
 0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
@@ -4431,6 +4445,119 @@ async function handleGetAILogs(request, env) {
   } catch (error) {
     console.error('Error getting AI logs:', error);
     return jsonResponse({ error: 'Failed to get AI logs: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Blacklist Management: Get blacklist from KV storage
+ */
+async function handleGetBlacklist(request, env) {
+  try {
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      // Return default blacklist if KV not available
+      const defaultBlacklist = [
+        'лук', 'onion', 
+        'пуешко месо', 'turkey meat',
+        'изкуствени подсладители', 'artificial sweeteners',
+        'мед', 'захар', 'конфитюр', 'сиропи', 
+        'honey', 'sugar', 'jam', 'syrups',
+        'кетчуп', 'майонеза', 'BBQ сос', 
+        'ketchup', 'mayonnaise', 'BBQ sauce',
+        'гръцко кисело мляко', 'greek yogurt'
+      ];
+      return jsonResponse({ success: true, blacklist: defaultBlacklist });
+    }
+    
+    const blacklistData = await env.page_content.get('food_blacklist');
+    const blacklist = blacklistData ? JSON.parse(blacklistData) : [
+      'лук', 'onion', 
+      'пуешко месо', 'turkey meat',
+      'изкуствени подсладители', 'artificial sweeteners',
+      'мед', 'захар', 'конфитюр', 'сиропи', 
+      'honey', 'sugar', 'jam', 'syrups',
+      'кетчуп', 'майонеза', 'BBQ сос', 
+      'ketchup', 'mayonnaise', 'BBQ sauce',
+      'гръцко кисело мляко', 'greek yogurt'
+    ];
+    
+    return jsonResponse({ success: true, blacklist: blacklist });
+  } catch (error) {
+    console.error('Error getting blacklist:', error);
+    return jsonResponse({ error: `Failed to get blacklist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Blacklist Management: Add item to blacklist
+ */
+async function handleAddToBlacklist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get current blacklist
+    const blacklistData = await env.page_content.get('food_blacklist');
+    let blacklist = blacklistData ? JSON.parse(blacklistData) : [
+      'лук', 'onion', 
+      'пуешко месо', 'turkey meat',
+      'изкуствени подсладители', 'artificial sweeteners',
+      'мед', 'захар', 'конфитюр', 'сиропи', 
+      'honey', 'sugar', 'jam', 'syrups',
+      'кетчуп', 'майонеза', 'BBQ сос', 
+      'ketchup', 'mayonnaise', 'BBQ sauce',
+      'гръцко кисело мляко', 'greek yogurt'
+    ];
+    
+    // Add item if not already in list
+    if (!blacklist.includes(item)) {
+      blacklist.push(item);
+      await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    }
+    
+    return jsonResponse({ success: true, blacklist: blacklist });
+  } catch (error) {
+    console.error('Error adding to blacklist:', error);
+    return jsonResponse({ error: `Failed to add to blacklist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Blacklist Management: Remove item from blacklist
+ */
+async function handleRemoveFromBlacklist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get current blacklist
+    const blacklistData = await env.page_content.get('food_blacklist');
+    let blacklist = blacklistData ? JSON.parse(blacklistData) : [];
+    
+    // Remove item
+    blacklist = blacklist.filter(i => i !== item);
+    await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    
+    return jsonResponse({ success: true, blacklist: blacklist });
+  } catch (error) {
+    console.error('Error removing from blacklist:', error);
+    return jsonResponse({ error: `Failed to remove from blacklist: ${error.message}` }, 500);
   }
 }
 
