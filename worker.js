@@ -953,6 +953,9 @@ const TOKEN_LIMITS = {
 // Legacy constants for backward compatibility
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
 
+// Prompt optimization constants
+const MAX_REASONING_LENGTH = 100; // Maximum characters to include from successChanceReasoning
+
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
 const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's clear reasoning and strategy)
@@ -1765,13 +1768,7 @@ function generatePsychologicalAnalysisPrompt(data, basicAnalysis) {
 Диети преди: ${data.dietHistory === 'Да' ? data.dietType + ' → ' + data.dietResult : 'не'}`;
 
   // COMPACT basic analysis summary (saves tokens by removing verbose descriptions)
-  // Extract just the percentage numbers from macro ratios (e.g., "30% - long explanation" -> "30%")
-  const extractPercentage = (ratioStr) => {
-    if (!ratioStr) return 'N/A';
-    const match = ratioStr.match(/(\d+%)/);
-    return match ? match[1] : ratioStr.split('-')[0].trim();
-  };
-  
+  // Uses extractPercentage() to extract just percentage numbers from macro ratios
   const basicSummary = `BMR: ${basicAnalysis.bmr}, TDEE: ${basicAnalysis.tdee}, Калории: ${basicAnalysis.recommendedCalories}
 Макроси: Протеин ${extractPercentage(basicAnalysis.macroRatios?.protein)}, Въглехидрати ${extractPercentage(basicAnalysis.macroRatios?.carbs)}, Мазнини ${extractPercentage(basicAnalysis.macroRatios?.fats)}
 Нужди: ${basicAnalysis.nutritionalNeeds ? basicAnalysis.nutritionalNeeds.join('; ') : 'няма'}`;
@@ -1804,19 +1801,13 @@ ${psychProfile}
 }
 
 function generateStrategyPrompt(data, analysis) {
-  // Helper to extract just percentage from macro ratio strings (saves tokens)
-  const extractPercentage = (ratioStr) => {
-    if (!ratioStr) return 'N/A';
-    const match = ratioStr.match(/(\d+%)/);
-    return match ? match[1] : ratioStr.split('-')[0].trim();
-  };
-  
   // Create compact analysis summary (not full JSON - saves tokens)
+  // Uses extractPercentage() and MAX_REASONING_LENGTH constant
   const analysisCompact = `BMR: ${analysis.bmr}, TDEE: ${analysis.tdee}, Калории: ${analysis.recommendedCalories}
 Макроси: Протеин ${extractPercentage(analysis.macroRatios?.protein)}, Въглехидрати ${extractPercentage(analysis.macroRatios?.carbs)}, Мазнини ${extractPercentage(analysis.macroRatios?.fats)}
 Рискове: ${analysis.healthRisks ? analysis.healthRisks.join('; ') : 'няма'}
 Нужди: ${analysis.nutritionalNeeds ? analysis.nutritionalNeeds.join('; ') : 'няма'}
-Успех: ${analysis.successChance || 'N/A'}${analysis.successChanceReasoning ? ' (' + analysis.successChanceReasoning.substring(0, 100) + '...)' : ''}
+Успех: ${analysis.successChance || 'N/A'}${analysis.successChanceReasoning ? ' (' + analysis.successChanceReasoning.substring(0, MAX_REASONING_LENGTH) + '...)' : ''}
 Проблеми: ${analysis.keyProblems ? analysis.keyProblems.map(p => `${p.title} (${p.severity})`).join('; ') : 'няма'}`;
 
   return `Стратегия за ${data.name}, ${data.age}г, ${data.gender}, Цел: ${data.goal}
@@ -3028,6 +3019,18 @@ function getTokenLimit(provider, requestType) {
   const limits = isGemini ? TOKEN_LIMITS.gemini : TOKEN_LIMITS.openai;
   
   return limits[requestType] || (isGemini ? DEFAULT_GEMINI_LIMIT : DEFAULT_OPENAI_LIMIT);
+}
+
+/**
+ * Extract just the percentage number from macro ratio strings
+ * Saves tokens by removing verbose explanations like "30% - За запазване на мускулна маса при отслабване"
+ * @param {string} ratioStr - Macro ratio string like "30% - explanation"
+ * @returns {string} Just the percentage like "30%" or "N/A" if invalid
+ */
+function extractPercentage(ratioStr) {
+  if (!ratioStr) return 'N/A';
+  const match = ratioStr.match(/(\d+%)/);
+  return match ? match[1] : ratioStr.split('-')[0].trim();
 }
 
 
