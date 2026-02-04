@@ -1963,6 +1963,8 @@ RULES for weeklyBlueprint:
 5. Use dailyMealCount consistently across week (unless specific reason for variation)
 
 Be SPECIFIC for ${data.name}. Avoid generic phrases like "good metabolism" - explain WHY + HOW using compressed technical format!
+`;
+}
 
 async function generateStrategyPrompt(data, analysis, env) {
   // Check if there's a custom prompt in KV storage
