@@ -1570,7 +1570,7 @@ async function generatePlanMultiStep(env, data) {
   try {
     // Step 1: Analyze user profile (1st AI request)
     // Focus: Deep health analysis, metabolic profile, correlations
-    const analysisPrompt = generateAnalysisPrompt(data);
+    const analysisPrompt = await generateAnalysisPrompt(data, env);
     const analysisInputTokens = estimateTokenCount(analysisPrompt);
     cumulativeTokens.input += analysisInputTokens;
     
@@ -1613,7 +1613,7 @@ async function generatePlanMultiStep(env, data) {
     
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
-    const strategyPrompt = generateStrategyPrompt(data, analysis);
+    const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
     const strategyInputTokens = estimateTokenCount(strategyPrompt);
     cumulativeTokens.input += strategyInputTokens;
     
@@ -1708,13 +1708,55 @@ async function generatePlanMultiStep(env, data) {
 }
 
 /**
+ * Helper function to get custom prompt from KV storage
+ */
+async function getCustomPrompt(env, promptKey) {
+  if (!env || !env.page_content) {
+    return null;
+  }
+  
+  try {
+    return await env.page_content.get(promptKey);
+  } catch (error) {
+    console.error(`Error fetching custom prompt ${promptKey}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Helper function to replace variables in custom prompts
+ */
+function replacePromptVariables(template, variables) {
+  // Use replace with regex and replacer function for efficient variable substitution
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
+    if (key in variables) {
+      const value = variables[key];
+      return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+    }
+    return match; // Return original if variable not found
+  });
+}
+
+/**
  * Step 1: Generate prompt for user profile analysis
  * Simplified - focuses on AI's strengths: correlations, psychology, individualization
  * Backend handles: BMR, TDEE, safety checks
  */
-function generateAnalysisPrompt(data) {
+async function generateAnalysisPrompt(data, env) {
   // IMPORTANT: AI calculates BMR, TDEE, and calories based on ALL correlates
   // Backend no longer pre-calculates these values - AI does holistic analysis
+  
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_analysis_prompt');
+  
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt with actual data
+    // Pass the entire data object as userData
+    return replacePromptVariables(customPrompt, {
+      userData: data
+    });
+  }
   
   return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
 
@@ -1923,7 +1965,10 @@ ${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
 Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
 }
 
-function generateStrategyPrompt(data, analysis) {
+async function generateStrategyPrompt(data, analysis, env) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
+  
   // Extract only essential analysis data (COMPACT - no full JSON)
   const analysisCompact = {
     bmr: analysis.bmr || 'не изчислен',
@@ -1951,6 +1996,18 @@ function generateStrategyPrompt(data, analysis) {
       .map(p => `${p.title} (${p.severity})`)
       .join('; ') // Up to 3 problems
   };
+  
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt
+    return replacePromptVariables(customPrompt, {
+      userData: data,
+      analysisData: analysisCompact,
+      name: data.name,
+      age: data.age,
+      goal: data.goal
+    });
+  }
   
   return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
 
@@ -2184,9 +2241,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     console.log(`Progressive generation: Generating days ${startDay}-${endDay} (chunk ${chunkIndex + 1}/${chunks})`);
     
     try {
-      const chunkPrompt = generateMealPlanChunkPrompt(
+      const chunkPrompt = await generateMealPlanChunkPrompt(
         data, analysis, strategy, bmr, recommendedCalories,
-        startDay, endDay, previousDays
+        startDay, endDay, previousDays, env
       );
       
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
@@ -2229,7 +2286,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   // Generate summary, recommendations, etc. in final request
   console.log('Progressive generation: Generating summary and recommendations');
   try {
-    const summaryPrompt = generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan);
+    const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'step4_summary');
     const summaryData = parseAIResponse(summaryResponse);
     
@@ -2298,7 +2355,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
 /**
  * Generate prompt for a chunk of days (progressive generation)
  */
-function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays) {
+async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
+  
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   const daysInChunk = endDay - startDay + 1;
   
@@ -2375,7 +2435,7 @@ function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedC
 `;
   }
   
-  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+  const defaultPrompt = `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
 === ЗАДАЧА ===
 Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
@@ -2571,12 +2631,32 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
 }
 
 Генерирай дни ${startDay}-${endDay} с балансирани ястия в правилен хронологичен ред. ЗАДЪЛЖИТЕЛНО включи dailyTotals за проверка!`;
+  
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt
+    return replacePromptVariables(customPrompt, {
+      userData: data,
+      analysisData: analysis,
+      strategyData: strategy,
+      bmr: bmr,
+      recommendedCalories: recommendedCalories,
+      startDay: startDay,
+      endDay: endDay,
+      previousDays: previousDays
+    });
+  }
+  
+  return defaultPrompt;
 }
 
 /**
  * Generate prompt for summary and recommendations (final step of progressive generation)
  */
-function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan) {
+async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_summary_prompt');
+  
   // Calculate total calories and macros across the week for validation
   let totalCalories = 0;
   let totalProtein = 0;
@@ -2610,7 +2690,7 @@ function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommende
   const foodsToInclude = strategy.foodsToInclude || [];
   const foodsToAvoid = strategy.foodsToAvoid || [];
   
-  return `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+  const defaultPrompt = `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}
 BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
@@ -2639,6 +2719,24 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 }
 
 ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt
+    return replacePromptVariables(customPrompt, {
+      userData: data,
+      strategyData: strategy,
+      weekPlan: weekPlan,
+      bmr: bmr,
+      recommendedCalories: recommendedCalories,
+      avgCalories: avgCalories,
+      avgProtein: avgProtein,
+      avgCarbs: avgCarbs,
+      avgFats: avgFats
+    });
+  }
+  
+  return defaultPrompt;
 }
 
 /**
@@ -4255,32 +4353,43 @@ function checkFoodExistsInPlan(plan, foodName) {
 }
 
 /**
+ * Helper function to get KV key for prompt type
+ */
+function getPromptKVKey(type) {
+  const keyMap = {
+    'consultation': 'admin_consultation_prompt',
+    'modification': 'admin_modification_prompt',
+    'chat': 'admin_chat_prompt',
+    'analysis': 'admin_analysis_prompt',
+    'strategy': 'admin_strategy_prompt',
+    'meal_plan': 'admin_meal_plan_prompt',
+    'summary': 'admin_summary_prompt',
+    'plan': 'admin_plan_prompt'
+  };
+  
+  return keyMap[type] || 'admin_plan_prompt';
+}
+
+/**
  * Admin: Save AI prompt to KV
  */
 async function handleSavePrompt(request, env) {
   try {
     const { type, prompt } = await request.json();
     
-    if (!type || !prompt) {
-      return jsonResponse({ error: 'Missing type or prompt' }, 400);
+    // Type is required, but prompt can be empty (to revert to default)
+    if (!type) {
+      return jsonResponse({ error: 'Missing type' }, 400);
     }
 
     if (!env.page_content) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    let key;
-    if (type === 'consultation') {
-      key = 'admin_consultation_prompt';
-    } else if (type === 'modification') {
-      key = 'admin_modification_prompt';
-    } else if (type === 'chat') {
-      key = 'admin_chat_prompt'; // Keep for backward compatibility
-    } else {
-      key = 'admin_plan_prompt';
-    }
+    const key = getPromptKVKey(type);
     
-    await env.page_content.put(key, prompt);
+    // Save the prompt, even if empty (empty = use default)
+    await env.page_content.put(key, prompt || '');
     
     // Invalidate chat prompts cache if consultation or modification prompt was updated
     if (type === 'consultation' || type === 'modification') {
@@ -4307,7 +4416,7 @@ async function handleGetPrompt(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const key = type === 'chat' ? 'admin_chat_prompt' : 'admin_plan_prompt';
+    const key = getPromptKVKey(type);
     const prompt = await env.page_content.get(key);
     
     return jsonResponse({ success: true, prompt: prompt || null });
@@ -4363,13 +4472,28 @@ async function handleGetConfig(request, env) {
     }
 
     // Use Promise.all to fetch all config values in parallel (reduces sequential KV reads)
-    const [provider, modelName, planPrompt, chatPrompt, consultationPrompt, modificationPrompt] = await Promise.all([
+    const [
+      provider, 
+      modelName, 
+      planPrompt, 
+      chatPrompt, 
+      consultationPrompt, 
+      modificationPrompt,
+      analysisPrompt,
+      strategyPrompt,
+      mealPlanPrompt,
+      summaryPrompt
+    ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
       env.page_content.get('admin_plan_prompt'),
       env.page_content.get('admin_chat_prompt'),
       env.page_content.get('admin_consultation_prompt'),
-      env.page_content.get('admin_modification_prompt')
+      env.page_content.get('admin_modification_prompt'),
+      env.page_content.get('admin_analysis_prompt'),
+      env.page_content.get('admin_strategy_prompt'),
+      env.page_content.get('admin_meal_plan_prompt'),
+      env.page_content.get('admin_summary_prompt')
     ]);
     
     return jsonResponse({ 
@@ -4379,7 +4503,11 @@ async function handleGetConfig(request, env) {
       planPrompt,
       chatPrompt,
       consultationPrompt,
-      modificationPrompt
+      modificationPrompt,
+      analysisPrompt,
+      strategyPrompt,
+      mealPlanPrompt,
+      summaryPrompt
     });
   } catch (error) {
     console.error('Error getting config:', error);
