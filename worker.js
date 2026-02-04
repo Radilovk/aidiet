@@ -2234,196 +2234,70 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 `;
   }
   
-  const defaultPrompt = `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+  const defaultPrompt = `ADLE meal plan generation for days ${startDay}-${endDay} for ${data.name}.
 
-=== ЗАДАЧА ===
-Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
-
-=== КЛИЕНТ ===
-Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
-BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
-Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
+CLIENT: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day
+BMR: ${bmr}, Modifier: "${dietaryModifier}"${modificationsSection}
+Stress: ${data.stressLevel}, Sleep: ${data.sleepHours}h, Chronotype: ${data.chronotype}
 ${blueprintSection}
-=== СТРАТЕГИЯ (КОМПАКТНА) ===
-Диета: ${strategyCompact.dietType}
-Схема: ${strategyCompact.weeklyMealPattern}
-Хранения: ${strategyCompact.mealTiming}
-Принципи: ${strategyCompact.keyPrinciples}
-Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
-Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
+STRATEGY: Diet ${strategyCompact.dietType}, Pattern ${strategyCompact.weeklyMealPattern}, Timing ${strategyCompact.mealTiming}
+Principles: ${strategyCompact.keyPrinciples}
+Avoid: ${data.dietDislike || 'none'}, ${strategyCompact.foodsToAvoid}
+Include: ${data.dietLove || 'none'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
 
-=== КОРЕЛАЦИОННА АДАПТАЦИЯ ===
-СТРЕС И ХРАНЕНЕ:
-- Стрес: ${data.stressLevel}
-- При висок стрес, включи храни богати на:
-  * Магнезий (тъмно зелени листни зеленчуци, ядки, семена, пълнозърнести храни)
-  * Витамин C (цитруси, чушки, зеле)
-  * Омега-3 (мазна риба, ленено семе, орехи)
-  * Комплекс B витамини (яйца, месо, бобови)
-- Избягвай стимуланти (кафе, енергийни напитки) при висок стрес
+CORRELATIONAL ADAPTATION:
+STRESS→FOOD: ${data.stressLevel} - High stress: include Mg (leafy greens, nuts, seeds, whole grains), Vit C (citrus, peppers, cabbage), Omega-3 (fatty fish, flaxseed, walnuts), B vitamins (eggs, meat, legumes); avoid stimulants
+CHRONOTYPE→CALORIES: ${data.chronotype} - Early bird: larger breakfast (30-35% cal), moderate dinner (25%); Night owl: light breakfast (20%), larger dinner (35%); Mixed: balanced (25-30-25-20%)
+SLEEP→FOOD: ${data.sleepHours}h - Poor sleep (<6h): include tryptophan (eggs, yogurt, bananas, cheese); avoid heavy foods at night if interrupted
 
-ХРОНОТИП И КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ:
-- Хронотип: ${data.chronotype}
-- "Ранобуден" / "Сова на сутринта" → По-обилна закуска (30-35% калории), умерена вечеря (25%)
-- "Вечерен тип" / "Нощна сова" → Лека закуска (20%), по-обилна вечеря (35% калории)
-- "Смесен тип" → Балансирано разпределение (25-30-25-20%)
+ARCHITECTURE:
+Categories: [PRO]=Protein, [ENG]=Energy/carbs, [VOL]=Veggies/fiber, [FAT]=Fats, [CMPX]=Complex dishes
+Templates: A) DIVIDED PLATE=[PRO]+[ENG]+[VOL], B) MIXED=[PRO]+[ENG]+[VOL], C) LIGHT/SANDWICH, D) SINGLE BLOCK=[CMPX]+[VOL]
+Filters for "${dietaryModifier}": Vegan=no animal [PRO]; Keto=minimal [ENG]; Gluten-free=[ENG] only rice/potatoes/quinoa/buckwheat; Paleo=no grains/legumes/dairy${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nBREAKFAST: Client does NOT eat breakfast - skip or drink only if critical` : ''}
 
-СЪН И ХРАНЕНЕ:
-- Сън: ${data.sleepHours}ч
-- При малко сън (< 6ч): Включи храни с триптофан (яйца, кисело мляко, банани, сирене) за подобряване на съня
-- Избягвай тежки храни вечер ако съня е прекъсван
+ADLE v8 RULES (MANDATORY):
+Priority: 1) Hard bans → 2) Mode filter → 3) Template → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
 
-=== АРХИТЕКТУРА ===
-Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
-Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
-Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
+0) HARD BANS: onions, turkey, sweeteners, honey/sugar/jam/syrups, ketchup/mayo/BBQ sauces, Greek yogurt (use plain yogurt only), peas+fish
+0.1) RARE (≤2x/week): turkey ham, bacon
 
-=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
-ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
+R1-R12: Main protein=1; Veggies=1-2 (Salad OR Fresh, not both); Energy=0-1; Dairy max=1/meal; Fats=0-1 (nuts/seeds→no oil); Cheese→no oil (olives ok); Bacon→Fats=0; Legumes-as-main→Energy=0 (bread optional); Bread only if Energy=0; Peas as side→Energy=0; Sandwich=breakfast only; Off-whitelist only if needed (Reason:...)
 
-0) HARD BANS (0% ВИНАГИ):
-- лук (всякаква форма), пуешко месо, изкуствени подсладители
-- мед, захар, конфитюр, сиропи
-- кетчуп, майонеза, BBQ/сладки сосове
-- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
-- грах + риба (забранена комбинация)
+WHITELISTS: PROTEIN (1 main): eggs, chicken, beef, lean pork, fish, yogurt (plain), cottage cheese, cheese, beans, lentils, chickpeas, peas. BANNED: turkey (HARD), rabbit/duck/goose/lamb/game/exotic. VEGETABLES (1-2): tomatoes, cucumbers, peppers, cabbage, carrots, lettuce/greens, spinach, zucchini, mushrooms, broccoli, cauliflower, fresh cut. ENERGY (0-1): oats, rice, potatoes, pasta, bulgur (NOTE: corn NOT energy). FAT (0-1): olive oil, butter, nuts/seeds.
 
-0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
+RULES: Peas+fish=FORBIDDEN; Veggies ONE form (Salad OR Fresh); Olives=salad addition (not Fat); Corn=NOT energy; Sandwich=breakfast only
 
-HARD RULES (R1-R12):
-R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
-R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
-R3: Енергия = 0-1 (никога 2).
-R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
-R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
-R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
-R7: Правило за бекон: Ако бекон → Мазнини=0.
-R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
-R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
-R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
-R11: Template C (сандвич): Само за закуски; бобови забранени; без забранени сосове/подсладители.
-R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
-
-=== WHITELISTS (РАЗРЕШЕНИ ХРАНИ) - ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ ===
-КРИТИЧНО: Използвай САМО храни от тези списъци! Извън-whitelist САМО с Reason: ...
-
-WHITELIST PROTEIN (избери точно 1 главен белтък):
-- яйца (eggs)
-- пилешко (chicken)
-- говеждо (beef)
-- постна свинска (lean pork)
-- риба (white fish, скумрия/mackerel, риба тон/canned tuna)
-- кисело мляко (yogurt - plain, несладко)
-- извара (cottage cheese - plain)
-- сирене (cheese - умерено)
-- боб (beans)
-- леща (lentils)
-- нахут (chickpeas)
-- грах (peas - виж 3.5)
-
-ЗАБРАНЕНИ БЕЛТЪЦИ (НЕ използвай без Reason):
-- пуешко месо (turkey meat) - HARD BAN
-- заешко (rabbit) - ИЗВЪН whitelist
-- патица (duck) - ИЗВЪН whitelist
-- гъска (goose) - ИЗВЪН whitelist
-- агне (lamb) - ИЗВЪН whitelist
-- дивеч (game meat) - ИЗВЪН whitelist
-- всички екзотични меса - ИЗВЪН whitelist
-
-WHITELIST VEGETABLES (избери 1-2):
-- домати, краставици, чушки, зеле, моркови
-- салата/листни зеленчуци (lettuce/greens), спанак
-- тиквички, гъби, броколи, карфиол
-- пресни нарязани: домати/краставици/чушки (БЕЗ дресинг)
-
-WHITELIST ENERGY (избери 0-1):
-- овесени ядки (oats)
-- ориз (rice)
-- картофи (potatoes)
-- паста (pasta)
-- булгур (bulgur)
-ЗАБЕЛЕЖКА: Царевица НЕ е енергия!
-
-WHITELIST FAT (избери 0-1):
-- зехтин (olive oil)
-- масло (butter - умерено)
-- ядки/семена (nuts/seeds - умерено)
-
-СПЕЦИАЛНИ ПРАВИЛА:
-- Грах + риба = СТРОГО ЗАБРАНЕНО
-- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
-- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
-- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
-- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
-
-=== КРИТИЧНИ ИЗИСКВАНИЯ ===
-1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
-2. ПРЕЦИЗНИ КАЛОРИИ: Изчислени като protein×4 + carbs×4 + fats×9 за ВСЯКО ястие
-3. ЦЕЛЕВА ДНЕВНА СУМА: Около ${recommendedCalories} kcal на ден (±${DAILY_CALORIE_TOLERANCE} kcal е приемливо)
-   - Целта е ОРИЕНТИР, НЕ строго изискване
-   - По-важно е да спазиш правилния брой и ред на хранения, отколкото да достигнеш точно калориите
-4. БРОЙ ХРАНЕНИЯ: 1-6 хранения на ден според диетичната стратегия и целта
-   - 1 хранене (OMAD): само при ясна стратегия за интермитентно гладуване
-   - 2 хранения: при стратегия за интермитентно гладуване (16:8, 18:6)
-   - 3 хранения: Закуска, Обяд, Вечеря (стандартен вариант)
-   - 4 хранения: Закуска, Обяд, Следобедна закуска, Вечеря (при нужда от по-честа хранене)
-   - 5 хранения: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска (при специфични случаи)
-   - 6 хранения: рядко, само при специфична медицинска/спортна стратегия
-   - КРИТИЧНО: Броят хранения се определя от СТРАТЕГИЯТА, НЕ от нуждата да се достигнат калории!
-   - НИКОГА не добавяй хранения САМО за достигане на калории!
-5. РАЗНООБРАЗИЕ: Всеки ден различен от предишните
-6. Реалистични български/средиземноморски ястия
-
-=== МЕДИЦИНСКИ И ДИЕТЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
-КРИТИЧНО ВАЖНО: Следвай СТРОГО медицинските и диететични принципи за ред на храненията:
-
-1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
-   - "Закуска" (сутрин) - САМО като първо хранене на деня
-   - "Обяд" (обед) - САМО след закуската или като първо хранене (ако няма закуска)
-   - "Следобедна закуска" (опционално, между обяд и вечеря)
-   - "Вечеря" (вечер) - обикновено последно хранене
-   - "Късна закуска" (опционално, САМО след вечеря, специални случаи)
-
-2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
-   - НЕ може да има закуска след обяд
-   - НЕ може да има обяд след вечеря
-   - НЕ може да има вечеря преди обяд
-
-3. КЪСНА ЗАКУСКА - строги изисквания:
-   КОГАТО Е ДОПУСТИМА:
-   - Дълъг период между вечеря и сън (> 4 часа)
-   - Проблеми със съня заради глад
-   - Диабет тип 2 (стабилизиране на кръвната захар)
-   - Интензивни тренировки вечер
-   - Работа на смени (нощни смени)
-   
-   ЗАДЪЛЖИТЕЛНИ УСЛОВИЯ:
-   - САМО след "Вечеря" (никога преди)
-   - МАКСИМУМ 1 на ден
-   - САМО храни с НИСЪК ГЛИКЕМИЧЕН ИНДЕКС (ГИ < 55):
-     * Кисело мляко (150ml), кефир
-     * Ядки: 30-40g бадеми/орехи/лешници/кашу
-     * Ягоди/боровинки/малини (50-100g)
-     * Авокадо (половин)
-     * Семена: чиа/ленено/тиквени (1-2 с.л.)
-   - МАКСИМУМ ${MAX_LATE_SNACK_CALORIES} калории
-   - НЕ използвай ако не е оправдано от профила на клиента!
-
-4. КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ: 
-   - Разпредели калориите в избраните хранения според стратегията (1-6 хранения)
-   - Ако порциите стават твърде големи, това е приемливо - по-добре от добавяне на хранения след вечеря
-   - Допустимо е да имаш 1800 kcal вместо 2000 kcal - това НЕ е проблем
-   - АБСОЛЮТНО ЗАБРАНЕНО е да добавяш хранения след вечеря без оправдание!
+CONSTRAINTS: Avoid overly specific names (YES: "fruit with yogurt", "fish with veggies"; NO: "blueberries", "trout"), strange combos, exotic products, repetition, non-traditional Bulgarian/Mediterranean. Medical: ${JSON.stringify(data.medicalConditions || [])}. VARIETY daily.${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? ` CLIENT DOES NOT EAT BREAKFAST - respect preference.` : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
-JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
-{
-  "day${startDay}": {
-    "meals": [
-      {"type": "Закуска", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
-      {"type": "Обяд", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
-      {"type": "Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+JSON (Bulgarian output for meals, days ${startDay}-${endDay} only):
+CRITICAL:
+1. MANDATORY MACROS: protein, carbs, fats, fiber (grams) for each meal
+2. PRECISE CALORIES: protein×4 + carbs×4 + fats×9
+3. TARGET DAILY: ~${recommendedCalories} kcal/day (±${DAILY_CALORIE_TOLERANCE} acceptable)
+4. MEAL COUNT: 1-6/day per strategy (NEVER add meals just to hit calories!)
+   - 1 meal (OMAD): clear IF strategy only
+   - 2 meals: IF strategy (16:8, 18:6)
+   - 3 meals: Breakfast, Lunch, Dinner (standard)
+   - 4 meals: +Afternoon snack
+   - 5 meals: +Late snack (rare, justified only)
+   - 6 meals: very rare, specific medical/sport needs
+5. VARIETY: Each day different
+6. Realistic Bulgarian/Mediterranean dishes
+
+MEAL ORDER (chronological, MANDATORY):
+"Закуска" (morning) → "Обяд" (noon) → "Следобедна закуска" (optional, afternoon) → "Вечеря" (evening) → "Късна закуска" (optional, ONLY after dinner if justified)
+
+LATE SNACK ("Късна закуска") STRICT RULES:
+Allowed ONLY if: Long gap dinner-sleep (>4h), sleep issues from hunger, type 2 diabetes, evening workouts, shift work
+Conditions: ONLY after "Вечеря", max 1/day, LOW GI foods only (<55): yogurt 150ml, nuts 30-40g, berries 50-100g, avocado half, seeds 1-2tbsp
+Max ${MAX_LATE_SNACK_CALORIES} calories. DO NOT use if not justified!
+
+${MEAL_NAME_FORMAT_INSTRUCTIONS}
+
+JSON (return days ${startDay}-${endDay} only):
+{"day${startDay}": {"meals": [{"type": "Закуска", "name": "Bulgarian name", "weight": "Xg", "description": "Bulgarian desc", "benefits": "Bulgarian benefits", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}, ...]}, ..., "day${endDay}": {...}}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
