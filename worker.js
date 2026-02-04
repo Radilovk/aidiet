@@ -920,23 +920,28 @@ async function handleGetReports(request, env) {
 }
 
 
+// Quality validation constants
+const MIN_PROFILE_LENGTH = 50;
+const MIN_REASONING_LENGTH = 20;
+const DOSAGE_UNITS = ['mg', 'µg', 'mcg', 'IU', 'г', 'g', 'UI'];
+
 /**
  * Validate that analysis contains meaningful, non-empty data
  * Ensures AI responses meet quality standards (no generic/empty values)
  */
-function validateAnalysisQuality(analysis, clientName) {
+function validateAnalysisQuality(analysis) {
   const warnings = [];
   
   // Check user-facing Bulgarian fields are meaningful
   if (analysis.metabolicProfile && (
-      analysis.metabolicProfile.length < 50 || 
+      analysis.metabolicProfile.length < MIN_PROFILE_LENGTH || 
       analysis.metabolicProfile.includes('не е анализиран') || 
       analysis.metabolicProfile.toLowerCase().includes('standard'))) {
     warnings.push('Metabolic profile may be generic - should be specific to client');
   }
   
   if (analysis.psychologicalProfile && (
-      analysis.psychologicalProfile.length < 50 ||
+      analysis.psychologicalProfile.length < MIN_PROFILE_LENGTH ||
       analysis.psychologicalProfile.includes('не е анализиран'))) {
     warnings.push('Psychological profile may be generic - should be specific to client');
   }
@@ -947,7 +952,7 @@ function validateAnalysisQuality(analysis, clientName) {
 /**
  * Validate that strategy contains meaningful, individualized recommendations
  */
-function validateStrategyQuality(strategy, clientName) {
+function validateStrategyQuality(strategy) {
   const warnings = [];
   
   // Check for generic phrases in supplements
@@ -955,8 +960,10 @@ function validateStrategyQuality(strategy, clientName) {
     for (const supp of strategy.supplementRecommendations) {
       if (typeof supp === 'string') {
         // Check if supplement has dosage
-        if (!supp.includes('mg') && !supp.includes('µg') && !supp.includes('IU') && !supp.includes('г') && !supp.includes('mcg')) {
-          warnings.push(`Supplement may be missing dosage: "${supp.substring(0, 50)}..."`);
+        const hasDosage = DOSAGE_UNITS.some(unit => supp.includes(unit));
+        if (!hasDosage) {
+          const preview = supp.length > 50 ? supp.substring(0, 50) + '...' : supp;
+          warnings.push(`Supplement may be missing dosage: "${preview}"`);
         }
       }
     }
@@ -1657,6 +1664,14 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Analysis complete (1/3)');
     
+    // Quality check on analysis
+    if (analysis) {
+      const analysisQuality = validateAnalysisQuality(analysis);
+      if (analysisQuality.length > 0) {
+        console.warn('Analysis quality warnings:', analysisQuality);
+      }
+    }
+    
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
@@ -1687,6 +1702,14 @@ async function generatePlanMultiStep(env, data) {
     }
     
     console.log('Multi-step generation: Strategy complete (2/3)');
+    
+    // Quality check on strategy
+    if (strategy) {
+      const strategyQuality = validateStrategyQuality(strategy);
+      if (strategyQuality.length > 0) {
+        console.warn('Strategy quality warnings:', strategyQuality);
+      }
+    }
     
     // Step 3: Generate detailed meal plan
     // Use progressive generation if enabled (multiple smaller requests)
