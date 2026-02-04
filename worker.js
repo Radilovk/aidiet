@@ -1828,7 +1828,7 @@ NOTE: Client data fields (gender, dietHistory, medications) are in Bulgarian fro
 - Target kcal: adjusted per goal (deficit for weight loss, surplus for muscle gain)
 
 AI CRITICAL REVIEW REQUIRED:
-Review backend baseline considering ALL correlations:
+Review backend baseline considering ALL factors:
 - Sleep quality (${data.sleepHours}h) + stress (${data.stressLevel}) → hormone/metabolism impact
 - Diet history (${data.dietHistory}) → metabolic adaptation check
 - Medical conditions (${JSON.stringify(data.medicalConditions || [])}) → metabolic modifiers
@@ -1892,7 +1892,7 @@ CORRELATIONAL ANALYSIS:
 CRITICAL - DATA TYPES:
 - Numeric fields: numbers ONLY (int/float), NO text/units/explanations
 - Explanations: in separate "_reasoning" fields
-- BMR, TDEE, recommendedCalories: AI calculates based on ALL correlations
+- BMR, TDEE, recommendedCalories: AI calculates based on ALL factors
 - Use compressed English/machine format (internal, not for frontend display)
 
 {
@@ -2099,7 +2099,7 @@ Internal/technical fields can use compressed English format.
 {
   "dietaryModifier": "dietary profile term (e.g. Balanced, Keto, Vegan, Mediterranean, Low-carb, Gentle stomach)",
   "modifierReasoning": "compact explanation why this MODIFIER chosen SPECIFICALLY for ${data.name}",
-  "welcomeMessage": "MANDATORY FIELD (IN BULGARIAN): PERSONALIZED greeting for ${data.name} when first viewing plan. Tone: professional yet warm, motivating. Include: 1) Personal greeting with name, 2) Brief mention of specific profile factors (age, goal, key challenges), 3) How plan created specifically for their needs, 4) Positive vision for achieving goals. Length: 150-250 Bulgarian words (approximately 800-1500 characters). IMPORTANT: Avoid generic phrases - use specific details for ${data.name}.",
+  "welcomeMessage": "MANDATORY FIELD (IN BULGARIAN): PERSONALIZED greeting for ${data.name} when first viewing plan. Tone: professional yet warm, motivating. Include: 1) Personal greeting with name, 2) Brief mention of specific profile factors (age, goal, key challenges), 3) How plan created specifically for their needs, 4) Positive vision for achieving goals. Length: approximately 150-250 Bulgarian words. IMPORTANT: Avoid generic phrases - use specific details for ${data.name}.",
   "planJustification": "MANDATORY FIELD (IN BULGARIAN): Detailed justification of overall strategy, including meal count, timing, cyclical distribution (if any), after-dinner meals (if any), WHY this strategy optimal for ${data.name}. Minimum 100 chars.",
   "longTermStrategy": "LONG-TERM STRATEGY (IN BULGARIAN): Describe how plan works within 2-3 days/week, not just daily. Include info on cyclical calorie/macro distribution, meal variation, how this supports goals.",
   "mealCountJustification": "MEAL COUNT JUSTIFICATION (IN BULGARIAN): Why this exact meal count (1-5) chosen for each day. Strategic, physiological, or psychological reason.",
