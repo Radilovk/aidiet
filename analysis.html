@@ -1308,7 +1308,11 @@
 
             const categoryClass = `category-${(problem.category || 'medical').toLowerCase()}`;
             const categoryIcon = categoryIcons[problem.category] || 'fa-heartbeat';
-            const severityLabel = severityLabels[problem.severity] || problem.severity;
+            // Case-insensitive severity label lookup to handle any capitalization from AI
+            const severityKey = problem.severity ? 
+                Object.keys(severityLabels).find(key => key.toLowerCase() === problem.severity.toLowerCase()) : 
+                null;
+            const severityLabel = severityKey ? severityLabels[severityKey] : (problem.severity || 'Нормално');
             const severityValue = problem.severityValue || 50;
 
             card.innerHTML = `
