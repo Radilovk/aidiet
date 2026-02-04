@@ -1763,7 +1763,7 @@ TASK: Holistic client analysis + caloric/macro calculations
 
 BACKEND-AI PROTOCOL:
 1. Backend provides mathematical baseline (Mifflin-St Jeor formula below)
-2. AI must critically review baseline considering ALL correlations
+2. AI must critically review baseline considering ALL correlates
 3. Only modify if confident after comprehensive data analysis
 4. Response format: compressed, technical, English/machine language (internal use only)
 
@@ -1845,7 +1845,7 @@ REFERENCE (illustrative, do NOT copy):
 F, 35y, 70kg, 165cm, moderate activity:
 - Good profile (sleep OK, stress low, no diet history): BMR≈1400, TDEE≈2160, Target≈1840 kcal
 - Challenged profile (sleep poor, stress high, 3 failed diets): BMR≈1180, TDEE≈1780, Target≈1600 kcal
-(Note: AI may lower BMR/TDEE due cumulative metabolic adaptation)
+(Note: AI may lower BMR/TDEE due to cumulative metabolic adaptation)
 
 ═══ AI TASK ═══
 1. HOLISTIC ANALYSIS: Review all data for ${data.name}
@@ -2095,8 +2095,10 @@ LONG-TERM STRATEGY DEVELOPMENT:
 6. Each non-standard strategy recommendation MUST have clear goal + justification
 
 OUTPUT JSON format (NO generic recommendations):
-NOTE: Fields for frontend display (welcomeMessage, planJustification, longTermStrategy, etc.) MUST be in BULGARIAN.
-Internal/technical fields can use compressed English format.
+NOTE: Fields for frontend display MUST be in BULGARIAN:
+- MANDATORY: welcomeMessage, planJustification, longTermStrategy, mealCountJustification, afterDinnerMealJustification
+- USER-FACING: dietType, weeklyMealPattern, mealTiming (all sub-fields), keyPrinciples, foodsToInclude, foodsToAvoid, supplementRecommendations, hydrationStrategy, psychologicalSupport
+Internal/technical fields (dietaryModifier, modifierReasoning) can use compressed English format.
 
 {
   "dietaryModifier": "dietary profile term (e.g. Balanced, Keto, Vegan, Mediterranean, Low-carb, Gentle stomach)",
@@ -2105,27 +2107,27 @@ Internal/technical fields can use compressed English format.
   "planJustification": "MANDATORY FIELD (IN BULGARIAN): Detailed justification of overall strategy, including meal count, timing, cyclical distribution (if any), after-dinner meals (if any), WHY this strategy optimal for ${data.name}. Minimum 100 chars.",
   "longTermStrategy": "LONG-TERM STRATEGY (IN BULGARIAN): Describe how plan works within 2-3 days/week, not just daily. Include info on cyclical calorie/macro distribution, meal variation, how this supports goals.",
   "mealCountJustification": "MEAL COUNT JUSTIFICATION (IN BULGARIAN): Why this exact meal count (1-5) chosen for each day. Strategic, physiological, or psychological reason.",
-  "afterDinnerMealJustification": "AFTER-DINNER MEAL JUSTIFICATION (IN BULGARIAN): If after-dinner meals exist, explain WHY needed, goal, how they support overall strategy. If none - write 'Not needed'.",
-  "dietType": "diet type personalized for ${data.name} (e.g. mediterranean, balanced, low-carb)",
-  "weeklyMealPattern": "HOLISTIC weekly eating scheme (e.g. '16:8 IF daily', '5:2 approach', 'cyclical fasting', 'free weekend', or traditional scheme with varying meals)",
+  "afterDinnerMealJustification": "AFTER-DINNER MEAL JUSTIFICATION (IN BULGARIAN): If after-dinner meals exist, explain WHY needed, goal, how they support overall strategy. Ако няма – напиши „Не са необходими".",
+  "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
+  "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "mealTiming": {
-    "pattern": "weekly eating model described in detail - e.g. 'Mon-Fri: 2 meals (12:00, 19:00), Sat-Sun: 3 meals with one free'",
-    "fastingWindows": "fasting periods if applied (e.g. '16h between last meal and next', or 'not applied')",
-    "flexibility": "description of scheme flexibility by day and needs"
+    "pattern": "седмичен модел на хранене описан детайлно - напр. 'Понеделник-Петък: 2 хранения (12:00, 19:00), Събота-Неделя: 3 хранения с едно свободно'",
+    "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
+    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите"
   },
-  "keyPrinciples": ["principle 1 specific for ${data.name}", "principle 2 specific for ${data.name}", "principle 3 specific for ${data.name}"],
-  "foodsToInclude": ["food 1 suitable for ${data.name}", "food 2 suitable for ${data.name}", "food 3 suitable for ${data.name}"],
-  "foodsToAvoid": ["food 1 unsuitable for ${data.name}", "food 2 unsuitable for ${data.name}", "food 3 unsuitable for ${data.name}"],
+  "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
+  "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
+  "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
   "supplementRecommendations": [
-    "! INDIVIDUAL supplement 1 for ${data.name} - specific supplement with dosage + justification why NEEDED for this client (BASED on: age ${data.age}y, sex ${data.gender}, goal ${data.goal}, medical conditions ${data.medicalConditions || 'none'})",
-    "! INDIVIDUAL supplement 2 for ${data.name} - specific supplement with dosage + justification why NEEDED for this client (BASED on: activity ${data.sportActivity}, sleep ${data.sleepHours}h, stress ${data.stressLevel})",
-    "! INDIVIDUAL supplement 3 for ${data.name} - specific supplement with dosage + justification why NEEDED for this client (BASED on: eating habits ${data.eatingHabits}, preferences ${data.dietPreference})"
+    "! ИНДИВИДУАЛНА добавка 1 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: възраст ${data.age} год., пол ${data.gender}, цел ${data.goal}, медицински състояния ${data.medicalConditions || 'няма'})",
+    "! ИНДИВИДУАЛНА добавка 2 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: активност ${data.sportActivity}, сън ${data.sleepHours}ч, стрес ${data.stressLevel})",
+    "! ИНДИВИДУАЛНА добавка 3 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: хранителни навици ${data.eatingHabits}, предпочитания ${data.dietPreference})"
   ],
-  "hydrationStrategy": "fluid intake recommendations personalized for ${data.name} by activity + climate",
+  "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name} според активност и климат",
   "psychologicalSupport": [
-    "! psychological advice 1 based on ${data.name}'s emotional eating",
-    "! psychological advice 2 based on ${data.name}'s stress + behavior",
-    "! psychological advice 3 for motivation specific to ${data.name}'s profile"
+    "! психологически съвет 1 базиран на емоционалното хранене на ${data.name}",
+    "! психологически съвет 2 базиран на стреса и поведението на ${data.name}",
+    "! психологически съвет 3 за мотивация специфичен за профила на ${data.name}"
   ]
 }
 
