@@ -921,6 +921,52 @@ async function handleGetReports(request, env) {
 
 
 /**
+ * Validate that analysis contains meaningful, non-empty data
+ * Ensures AI responses meet quality standards (no generic/empty values)
+ */
+function validateAnalysisQuality(analysis, clientName) {
+  const warnings = [];
+  
+  // Check user-facing Bulgarian fields are meaningful
+  if (analysis.metabolicProfile && (
+      analysis.metabolicProfile.length < 50 || 
+      analysis.metabolicProfile.includes('не е анализиран') || 
+      analysis.metabolicProfile.toLowerCase().includes('standard'))) {
+    warnings.push('Metabolic profile may be generic - should be specific to client');
+  }
+  
+  if (analysis.psychologicalProfile && (
+      analysis.psychologicalProfile.length < 50 ||
+      analysis.psychologicalProfile.includes('не е анализиран'))) {
+    warnings.push('Psychological profile may be generic - should be specific to client');
+  }
+  
+  return warnings;
+}
+
+/**
+ * Validate that strategy contains meaningful, individualized recommendations
+ */
+function validateStrategyQuality(strategy, clientName) {
+  const warnings = [];
+  
+  // Check for generic phrases in supplements
+  if (strategy.supplementRecommendations && strategy.supplementRecommendations.length > 0) {
+    for (const supp of strategy.supplementRecommendations) {
+      if (typeof supp === 'string') {
+        // Check if supplement has dosage
+        if (!supp.includes('mg') && !supp.includes('µg') && !supp.includes('IU') && !supp.includes('г') && !supp.includes('mcg')) {
+          warnings.push(`Supplement may be missing dosage: "${supp.substring(0, 50)}..."`);
+        }
+      }
+    }
+  }
+  
+  return warnings;
+}
+
+
+/**
  * Multi-step plan generation for better individualization
  * 
  * This approach uses MULTIPLE AI requests for maximum precision and personalization:
@@ -1760,9 +1806,16 @@ async function generateAnalysisPrompt(data, env) {
   
   return `Expert nutritional analysis. Calculate BMR, TDEE, target kcal, macros. Review baseline holistically using all client factors.
 
+CRITICAL QUALITY STANDARDS:
+1. INDIVIDUALIZATION: Base EVERY conclusion on THIS client's specific data - avoid generic/averaged approaches
+2. CORRELATIONAL THINKING: Analyze interconnections (sleep↔stress↔eating, chronotype↔meal timing, psychology↔behavior)
+3. EVIDENCE-BASED: Use modern, proven methods - no outdated/worn-out approaches
+4. SPECIFICITY: Concrete recommendations, not vague generalities
+5. NO DEFAULTS: All values calculated from client data, no standard templates
+
 PROTOCOL:
-- Backend baseline: Mifflin-St Jeor formula
-- AI: Adjust only if comprehensive analysis warrants
+- Backend baseline: Mifflin-St Jeor formula as starting point
+- AI: Critically review and adjust using comprehensive analysis of ALL factors
 - Format: Reasoning in English, user fields in Bulgarian
 
 CLIENT DATA:
@@ -1909,7 +1962,15 @@ async function generateStrategyPrompt(data, analysis, env) {
     });
   }
   
-  return `Dietary strategy optimization. Review analysis, determine dietary modifier, develop individualized plan.
+  return `Dietary strategy optimization. Develop UNIQUE, individualized approach for THIS specific client.
+
+CRITICAL QUALITY STANDARDS:
+1. STRICTLY FORBIDDEN: Generic/universal/averaged recommendations - everything must be client-specific
+2. MODERN APPROACHES: Use current, evidence-based methods (IF, cyclical nutrition, chronotype optimization, psychology-based)
+3. AVOID CLICHÉS: No "eat more vegetables", "drink water", "exercise" - client knows basics, wants SPECIFICS
+4. INDIVIDUALIZED SUPPLEMENTS: Each supplement justified by THIS client's specific needs (not standard multivitamin lists)
+5. CONCRETE DETAILS: Specific foods, precise dosages, exact timing - not vague suggestions
+6. STRATEGIC THINKING: Consider 2-3 day horizons, cyclical approaches, non-standard solutions if justified
 
 CLIENT: ${data.name}, ${data.age}y, Goal: ${data.goal}
 ANALYSIS: BMR/TDEE/kcal ${analysisCompact.bmr}/${analysisCompact.tdee}/${analysisCompact.recommendedCalories}, Macros ${analysisCompact.macroRatios} (${analysisCompact.macroGrams})
@@ -1930,12 +1991,19 @@ Chronotype + rhythm → timing
 Sleep ↔ stress ↔ cravings → psychology
 
 TASKS:
-1. Determine MODIFIER (Keto/Paleo/Vegan/Vegetarian/Mediterranean/Low-carb/Balanced/Gentle stomach/Gluten-free) - ONE primary strategy
-2. Develop weekly/multi-day strategy (cyclical distribution if justified)
-3. Justify meal count (1-5/day), after-dinner meals (if needed)
-4. Individualize supplements (FORBIDDEN: generic recommendations, must justify each by specific needs, personalize dosage/timing, check interactions)
+1. Determine MODIFIER (Keto/Paleo/Vegan/Vegetarian/Mediterranean/Low-carb/Balanced/Gentle stomach/Gluten-free) - ONE primary strategy based on THIS client's unique situation
+2. Develop weekly/multi-day strategy with cyclical distribution if physiologically/psychologically beneficial for THIS client
+3. Justify meal count (1-5/day), after-dinner meals based on THIS client's specific needs (not standard 3-meal approach)
+4. Individualize supplements: EACH must be justified by specific deficiency/need from analysis + personalized dosage + timing + interaction checks for THIS client
 
-OUTPUT (JSON, NO generic content):
+FORBIDDEN GENERIC APPROACHES:
+- Standard multivitamins without specific justification
+- "Eat balanced meals" - be SPECIFIC what foods and why for THIS client
+- "Drink 2L water" - calculate based on weight, activity, climate for THIS client  
+- Cookie-cutter meal plans - design for THIS client's chronotype, schedule, preferences
+- Textbook recommendations - adapt proven methods to THIS client's unique factors
+
+OUTPUT (JSON, STRICTLY NO GENERIC CONTENT):
 USER-FACING FIELDS IN BULGARIAN: welcomeMessage (150-250 words, personalized greeting referencing specific factors), planJustification, longTermStrategy (2-3 day/week horizon), mealCountJustification, afterDinnerMealJustification (or "Не са необходими"), dietaryModifier, modifierReasoning, dietType, weeklyMealPattern, mealTiming{pattern/fastingWindows/flexibility}, keyPrinciples[], foodsToInclude[], foodsToAvoid[], supplementRecommendations[] (individualized with dosage + rationale), hydrationStrategy, psychologicalSupport[]
 
 Weekly model: Holistic system (not 7 independent days), IF/OMAD valid if suitable, vary meal count between days if beneficial, free days/meals allowed for sustainability`;
@@ -2236,6 +2304,14 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   
   const defaultPrompt = `ADLE meal plan generation for days ${startDay}-${endDay} for ${data.name}.
 
+CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
+1. NO GENERIC MEALS: Each meal must be unique to THIS client's needs, preferences, chronotype
+2. NO REPETITION: Days ${startDay}-${endDay} must ALL be distinctly different from each other${previousDays.length > 0 ? ' and from previous days' : ''}
+3. REALISTIC & CULTURAL: Bulgarian/Mediterranean cuisine - no exotic/trendy/hard-to-find ingredients
+4. SPECIFIC BENEFITS: Each meal's "benefits" field must explain WHY this specific meal helps THIS client's specific goal
+5. AVOID OVERLY SPECIFIC: "fish with vegetables" NOT "180g sea bass with 200g steamed broccoli" - allow client flexibility
+6. STRATEGIC THINKING: Consider chronotype for meal timing/size, psychology for sustainability
+
 CLIENT: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day
 BMR: ${bmr}, Modifier: "${dietaryModifier}"${modificationsSection}
 Stress: ${data.stressLevel}, Sleep: ${data.sleepHours}h, Chronotype: ${data.chronotype}
@@ -2489,8 +2565,16 @@ ${modLines.join('\n')}
   
   return `ADLE (Advanced Dietary Logic Engine) - Meal plan constructor for ${data.name}.
 
+CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
+1. THIS PLAN IS ONLY FOR ${data.name} - no generic/template approach
+2. FORBIDDEN: Copy-paste standard meal plans, textbook examples, average portions
+3. REQUIRED: Unique combinations based on client's preferences, medical needs, chronotype, psychology
+4. VARIETY: Never repeat meals - each day must be distinctly different
+5. CULTURAL CONTEXT: Real Bulgarian/Mediterranean dishes - not exotic/trendy/unrealistic foods
+6. SPECIFICITY: "Grilled chicken with vegetables" NOT "170g chicken breast with 200g broccoli and 15g olive oil"
+
 INDIVIDUALIZED PLAN (NO defaults):
-Client: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day (BMR=${bmr})
+Client: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day (INDIVIDUALLY calculated BMR=${bmr})
 Modifier: "${dietaryModifier}"${strategy.modifierReasoning ? ` - ${strategy.modifierReasoning}` : ''}
 
 STRATEGY: Diet ${strategyCompact.dietType}, Pattern ${strategyCompact.weeklyMealPattern}, Timing ${strategyCompact.mealTiming}
