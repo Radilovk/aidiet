@@ -920,6 +920,58 @@ async function handleGetReports(request, env) {
 }
 
 
+// Quality validation constants
+const MIN_PROFILE_LENGTH = 50;
+const DOSAGE_UNITS = ['mg', 'µg', 'mcg', 'IU', 'г', 'g', 'UI'];
+
+/**
+ * Validate that analysis contains meaningful, non-empty data
+ * Ensures AI responses meet quality standards (no generic/empty values)
+ */
+function validateAnalysisQuality(analysis) {
+  const warnings = [];
+  
+  // Check user-facing Bulgarian fields are meaningful
+  if (analysis.metabolicProfile && (
+      analysis.metabolicProfile.length < MIN_PROFILE_LENGTH || 
+      analysis.metabolicProfile.includes('не е анализиран') || 
+      analysis.metabolicProfile.toLowerCase().includes('standard'))) {
+    warnings.push('Metabolic profile may be generic - should be specific to client');
+  }
+  
+  if (analysis.psychologicalProfile && (
+      analysis.psychologicalProfile.length < MIN_PROFILE_LENGTH ||
+      analysis.psychologicalProfile.includes('не е анализиран'))) {
+    warnings.push('Psychological profile may be generic - should be specific to client');
+  }
+  
+  return warnings;
+}
+
+/**
+ * Validate that strategy contains meaningful, individualized recommendations
+ */
+function validateStrategyQuality(strategy) {
+  const warnings = [];
+  
+  // Check for generic phrases in supplements
+  if (strategy.supplementRecommendations && strategy.supplementRecommendations.length > 0) {
+    for (const supp of strategy.supplementRecommendations) {
+      if (typeof supp === 'string') {
+        // Check if supplement has dosage
+        const hasDosage = DOSAGE_UNITS.some(unit => supp.includes(unit));
+        if (!hasDosage) {
+          const preview = supp.length > 50 ? supp.substring(0, 50) + '...' : supp;
+          warnings.push(`Supplement may be missing dosage: "${preview}"`);
+        }
+      }
+    }
+  }
+  
+  return warnings;
+}
+
+
 /**
  * Multi-step plan generation for better individualization
  * 
@@ -1611,6 +1663,14 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Analysis complete (1/3)');
     
+    // Quality check on analysis
+    if (analysis) {
+      const analysisQuality = validateAnalysisQuality(analysis);
+      if (analysisQuality.length > 0) {
+        console.warn('Analysis quality warnings:', analysisQuality);
+      }
+    }
+    
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
@@ -1641,6 +1701,14 @@ async function generatePlanMultiStep(env, data) {
     }
     
     console.log('Multi-step generation: Strategy complete (2/3)');
+    
+    // Quality check on strategy
+    if (strategy) {
+      const strategyQuality = validateStrategyQuality(strategy);
+      if (strategyQuality.length > 0) {
+        console.warn('Strategy quality warnings:', strategyQuality);
+      }
+    }
     
     // Step 3: Generate detailed meal plan
     // Use progressive generation if enabled (multiple smaller requests)
@@ -1758,11 +1826,24 @@ async function generateAnalysisPrompt(data, env) {
     });
   }
   
-  return `You are an expert nutritionist. Analyze the client's data and calculate personalized nutrition parameters.
+  return `Expert nutritional analysis. Calculate BMR, TDEE, target kcal, macros. Review baseline holistically using all client factors.
 
-Calculate BMR (Mifflin-St Jeor formula), TDEE, target calories, and macro ratios based on client's goal, activity level, and other factors.
+CRITICAL QUALITY STANDARDS:
+1. INDIVIDUALIZATION: Base EVERY conclusion on THIS client's specific data - avoid generic/averaged approaches
+2. CORRELATIONAL THINKING: Analyze interconnections (sleep↔stress↔eating, chronotype↔meal timing, psychology↔behavior)
+3. EVIDENCE-BASED: Use modern, proven methods - no outdated/worn-out approaches
+4. SPECIFICITY: Concrete recommendations, not vague generalities
+5. NO DEFAULTS: All values calculated from client data, no standard templates
 
-Consider correlations: sleep quality affects metabolism, stress affects eating behavior, chronotype affects meal timing preferences.
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food terms: "fish" (NOT "cod/mackerel/bonito"), "vegetables" (NOT specific varieties unless medically critical)
+
+PROTOCOL:
+- Backend baseline: Mifflin-St Jeor formula as starting point
+- AI: Critically review and adjust using comprehensive analysis of ALL factors
+- Format: Reasoning in English, user fields in Bulgarian
 
 CLIENT DATA:
 ${JSON.stringify({
@@ -1908,7 +1989,21 @@ async function generateStrategyPrompt(data, analysis, env) {
     });
   }
   
-  return `Develop personalized dietary strategy for ${data.name}.
+  return `Dietary strategy optimization. Develop UNIQUE, individualized approach for THIS specific client.
+
+CRITICAL QUALITY STANDARDS:
+1. STRICTLY FORBIDDEN: Generic/universal/averaged recommendations - everything must be client-specific
+2. MODERN APPROACHES: Use current, evidence-based methods (IF, cyclical nutrition, chronotype optimization, psychology-based)
+3. AVOID CLICHÉS: No "eat more vegetables", "drink water", "exercise" - client knows basics, wants SPECIFICS
+4. INDIVIDUALIZED SUPPLEMENTS: Each supplement justified by THIS client's specific needs (not standard multivitamin lists)
+5. CONCRETE DETAILS: Specific strategies and approaches for THIS client
+6. STRATEGIC THINKING: Consider 2-3 day horizons, cyclical approaches, non-standard solutions if justified
+
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food terms: "fish" (NOT "cod/mackerel/bonito"), "vegetables" (NOT specific varieties unless medically critical)
+- Dosages approximate ranges (e.g. "300-400mg", "2-3g") not exact values
 
 CLIENT: ${data.name}, ${data.age}y, Goal: ${data.goal}
 ANALYSIS: BMR/TDEE/kcal ${analysisCompact.bmr}/${analysisCompact.tdee}/${analysisCompact.recommendedCalories}, Macros ${analysisCompact.macroRatios} (${analysisCompact.macroGrams})
@@ -1924,13 +2019,31 @@ Medical: ${JSON.stringify(data.medicalConditions || [])}, Medications: ${data.me
 Weight ${data.weight}kg, Age ${data.age}y, Sex ${data.gender}, Sleep ${data.sleepHours}h, Stress ${data.stressLevel}, Activity ${data.sportActivity}
 Chronotype: ${data.chronotype}
 
-Determine dietary modifier (Keto/Paleo/Vegan/Vegetarian/Mediterranean/Low-carb/Balanced/Gentle stomach/Gluten-free).
-Justify meal count (1-5/day) and timing based on client's needs.
-Suggest supplements if needed based on deficiencies from analysis.
-Consider medical conditions and medication interactions.
+INTEGRATION FACTORS:
+Medical + meds: ${JSON.stringify(data.medicalConditions || [])} + ${data.medications === 'Да' ? data.medicationsDetails : 'none'} → check interactions (VitK+warfarin, Ca/Mg+antibiotics, Iron+antacids, VitD+corticosteroids)
+Condition-specific: Diabetes→Chromium/VitD/Omega3, Hypertension→Mg/K/CoQ10, Thyroid→Selenium/Iodine/Zinc, Anemia→Iron/VitC/B12, PCOS→Inositol/VitD/Omega3, IBS/IBD→Probiotics/VitD/Omega3
+Individual dosing: Weight ${data.weight}kg, Age ${data.age}y, Sex ${data.gender}, Sleep ${data.sleepHours}h, Stress ${data.stressLevel}, Activity ${data.sportActivity}
+Preferences + cultural (Bulgarian products) → sustainability
+Chronotype + rhythm → timing (meal names, not specific hours)
+Sleep ↔ stress ↔ cravings → psychology
 
-OUTPUT (JSON):
-USER-FACING FIELDS IN BULGARIAN: welcomeMessage, planJustification, longTermStrategy, mealCountJustification, afterDinnerMealJustification (or "Не са необходими"), dietaryModifier, modifierReasoning, dietType, weeklyMealPattern, mealTiming{pattern/fastingWindows/flexibility}, keyPrinciples[], foodsToInclude[], foodsToAvoid[], supplementRecommendations[], hydrationStrategy, psychologicalSupport[]`;
+TASKS:
+1. Determine MODIFIER (Keto/Paleo/Vegan/Vegetarian/Mediterranean/Low-carb/Balanced/Gentle stomach/Gluten-free) - ONE primary strategy based on THIS client's unique situation
+2. Develop weekly/multi-day strategy with cyclical distribution if physiologically/psychologically beneficial for THIS client
+3. Justify meal count (1-5/day), after-dinner meals based on THIS client's specific needs (not standard 3-meal approach)
+4. Individualize supplements: EACH must be justified by specific deficiency/need from analysis + appropriate dosage range + general timing + interaction checks for THIS client
+
+FORBIDDEN GENERIC APPROACHES:
+- Standard multivitamins without specific justification
+- "Eat balanced meals" - specify food groups from whitelist appropriate for THIS client
+- "Drink 2L water" - approximate based on weight, activity, climate for THIS client  
+- Cookie-cutter meal plans - design for THIS client's chronotype, schedule, preferences
+- Textbook recommendations - adapt proven methods to THIS client's unique factors
+
+OUTPUT (JSON, STRICTLY NO GENERIC CONTENT):
+USER-FACING FIELDS IN BULGARIAN: welcomeMessage (150-250 words, personalized greeting referencing specific factors), planJustification, longTermStrategy (2-3 day/week horizon), mealCountJustification, afterDinnerMealJustification (or "Не са необходими"), dietaryModifier, modifierReasoning, dietType, weeklyMealPattern, mealTiming{pattern/fastingWindows/flexibility}, keyPrinciples[], foodsToInclude[], foodsToAvoid[], supplementRecommendations[] (individualized with dosage + rationale), hydrationStrategy, psychologicalSupport[]
+
+Weekly model: Holistic system (not 7 independent days), IF/OMAD valid if suitable, vary meal count between days if beneficial, free days/meals allowed for sustainability`;
 }
 
 /**
@@ -2226,7 +2339,20 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 `;
   }
   
-  const defaultPrompt = `Generate meal plan for days ${startDay}-${endDay} for ${data.name}.
+  const defaultPrompt = `ADLE meal plan generation for days ${startDay}-${endDay} for ${data.name}.
+
+CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
+1. NO GENERIC MEALS: Each meal must be unique to THIS client's needs, preferences, chronotype
+2. NO REPETITION: Days ${startDay}-${endDay} must ALL be distinctly different from each other${previousDays.length > 0 ? ' and from previous days' : ''}
+3. REALISTIC & CULTURAL: Bulgarian/Mediterranean cuisine - no exotic/trendy/hard-to-find ingredients
+4. SPECIFIC BENEFITS: Each meal's "benefits" field must explain WHY this specific meal helps THIS client's specific goal
+5. STRATEGIC THINKING: Consider chronotype for meal timing/size, psychology for sustainability
+
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food terms: "fish" (NOT "cod/mackerel/bonito" unless medically critical), "vegetables" (NOT specific varieties unless medically critical)
+- Focus on food groups: "fish with vegetables", "meat with salad" (NOT "180g sea bass with 200g broccoli")
 
 CLIENT: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day
 BMR: ${bmr}, Modifier: "${dietaryModifier}"${modificationsSection}
@@ -2479,9 +2605,24 @@ ${modLines.join('\n')}
     hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
   };
   
-  return `Generate 7-day meal plan for ${data.name}.
+  return `ADLE (Advanced Dietary Logic Engine) - Meal plan constructor for ${data.name}.
 
-Client: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day (BMR=${bmr})
+CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
+1. THIS PLAN IS ONLY FOR ${data.name} - no generic/template approach
+2. FORBIDDEN: Copy-paste standard meal plans, textbook examples, average portions
+3. REQUIRED: Unique combinations based on client's preferences, medical needs, chronotype, psychology
+4. VARIETY: Never repeat meals - each day must be distinctly different
+5. CULTURAL CONTEXT: Real Bulgarian/Mediterranean dishes - not exotic/trendy/unrealistic foods
+6. FLEXIBILITY: Use food groups and types from whitelist - allow client flexibility in portions
+
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food terms: "fish" (NOT "cod/mackerel/bonito" unless medically critical), "vegetables" (NOT specific varieties unless medically critical)
+- Focus on food groups from whitelist, not overly specific ingredient names
+
+INDIVIDUALIZED PLAN (NO defaults):
+Client: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day (INDIVIDUALLY calculated BMR=${bmr})
 Modifier: "${dietaryModifier}"${strategy.modifierReasoning ? ` - ${strategy.modifierReasoning}` : ''}
 
 STRATEGY: Diet ${strategyCompact.dietType}, Pattern ${strategyCompact.weeklyMealPattern}, Timing ${strategyCompact.mealTiming}
