@@ -1838,7 +1838,13 @@ CRITICAL QUALITY STANDARDS:
 IMPORTANT FORMATTING RULES:
 - NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner")
 - Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
-- Use general food terms: "fish" (NOT "cod/mackerel/bonito"), "vegetables" (NOT specific varieties unless medically critical)
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
+- Supplement dosages: EXACT values (e.g. "400mg", "2g"), NOT ranges like "300-400mg" or "2-3g"
+- Supplements must be prescribed specifically for THIS client based on deficiencies/needs, not generic rules
 
 PROTOCOL:
 - Backend baseline: Mifflin-St Jeor formula as starting point
@@ -2002,8 +2008,13 @@ CRITICAL QUALITY STANDARDS:
 IMPORTANT FORMATTING RULES:
 - NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
 - Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
-- Use general food terms: "fish" (NOT "cod/mackerel/bonito"), "vegetables" (NOT specific varieties unless medically critical)
-- Dosages approximate ranges (e.g. "300-400mg", "2-3g") not exact values
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
+- Supplement dosages: EXACT values (e.g. "400mg", "2g"), NOT ranges like "300-400mg" or "2-3g"
+- Supplements must be prescribed specifically for THIS client based on deficiencies/needs, not generic rules
 
 CLIENT: ${data.name}, ${data.age}y, Goal: ${data.goal}
 ANALYSIS: BMR/TDEE/kcal ${analysisCompact.bmr}/${analysisCompact.tdee}/${analysisCompact.recommendedCalories}, Macros ${analysisCompact.macroRatios} (${analysisCompact.macroGrams})
@@ -2351,7 +2362,11 @@ CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
 IMPORTANT FORMATTING RULES:
 - NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
 - Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
-- Use general food terms: "fish" (NOT "cod/mackerel/bonito" unless medically critical), "vegetables" (NOT specific varieties unless medically critical)
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
 - Focus on food groups: "fish with vegetables", "meat with salad" (NOT "180g sea bass with 200g broccoli")
 
 CLIENT: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day
@@ -2618,7 +2633,11 @@ CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
 IMPORTANT FORMATTING RULES:
 - NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
 - Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
-- Use general food terms: "fish" (NOT "cod/mackerel/bonito" unless medically critical), "vegetables" (NOT specific varieties unless medically critical)
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
 - Focus on food groups from whitelist, not overly specific ingredient names
 
 INDIVIDUALIZED PLAN (NO defaults):
