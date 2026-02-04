@@ -1193,12 +1193,7 @@
         async function savePromptGeneric(type, elementId, localStorageKey, successMessage, errorMessage) {
             const prompt = document.getElementById(elementId).value.trim();
             
-            // Allow empty prompts - they will cause the system to use defaults
-            // if (!prompt) {
-            //     showError(errorMessage);
-            //     return;
-            // }
-
+            // Empty prompts are allowed - they will cause the system to use defaults
             localStorage.setItem(localStorageKey, prompt);
             
             // Save to KV via worker API

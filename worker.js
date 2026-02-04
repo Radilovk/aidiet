@@ -1727,7 +1727,7 @@ async function getCustomPrompt(env, promptKey) {
  * Helper function to replace variables in custom prompts
  */
 function replacePromptVariables(template, variables) {
-  // Use replaceAll with a function for better performance
+  // Use replace with regex and replacer function for efficient variable substitution
   return template.replace(/\{(\w+)\}/g, (match, key) => {
     if (key in variables) {
       const value = variables[key];
