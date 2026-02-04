@@ -1081,6 +1081,12 @@
             'Critical': 'Критично'
         };
 
+        // Create a cached lowercase-to-Bulgarian map for performance
+        const severityLabelsLowercase = Object.keys(severityLabels).reduce((map, key) => {
+            map[key.toLowerCase()] = severityLabels[key];
+            return map;
+        }, {});
+
         // Load and display analysis
         function loadAnalysis() {
             try {
@@ -1308,11 +1314,10 @@
 
             const categoryClass = `category-${(problem.category || 'medical').toLowerCase()}`;
             const categoryIcon = categoryIcons[problem.category] || 'fa-heartbeat';
-            // Case-insensitive severity label lookup to handle any capitalization from AI
-            const severityKey = problem.severity ? 
-                Object.keys(severityLabels).find(key => key.toLowerCase() === problem.severity.toLowerCase()) : 
-                null;
-            const severityLabel = severityKey ? severityLabels[severityKey] : (problem.severity || 'Нормално');
+            // Case-insensitive severity label lookup using cached lowercase map
+            const severityLabel = problem.severity ? 
+                (severityLabelsLowercase[problem.severity.toLowerCase()] || 'Нормално') : 
+                'Нормално';
             const severityValue = problem.severityValue || 50;
 
             card.innerHTML = `
