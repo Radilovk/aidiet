@@ -149,13 +149,13 @@ CRITICAL QUALITY STANDARDS:
 3. AVOID CLICHÉS: No "eat more vegetables", "drink water", "exercise"
    - client knows basics, wants SPECIFICS
 4. INDIVIDUALIZED SUPPLEMENTS: Each justified by THIS client's specific needs
-5. CONCRETE DETAILS: Specific foods, precise dosages, exact timing
+5. APPROPRIATE DETAILS: Food groups from whitelist, approximate dosages, flexible timing
 6. STRATEGIC THINKING: Consider 2-3 day horizons, cyclical approaches
 
 FORBIDDEN GENERIC APPROACHES:
 - Standard multivitamins without specific justification
-- "Eat balanced meals" - be SPECIFIC what foods and why for THIS client
-- "Drink 2L water" - calculate based on weight, activity, climate
+- "Eat balanced meals" - specify food groups from whitelist appropriate for THIS client
+- "Drink 2L water" - approximate based on weight, activity, climate
 - Cookie-cutter meal plans - design for THIS client's chronotype
 - Textbook recommendations - adapt to THIS client's unique factors
 ```
@@ -176,11 +176,12 @@ FORBIDDEN GENERIC APPROACHES:
 - "Пийте 2л вода"
 - "Яжте повече зеленчуци"
 
-✅ **ИЗИСКВАНО (Individual):**
-- "Магнезий 400mg вечер преди лягане (заради ниския сън 5ч и високия стрес ниво 8/10, който влияе на cortisol и качеството на съня)"
-- "2 хранения дневно (12:00, 19:00) с 16:8 интермитентно гладуване, подходящо за вечерния хронотип и работния график до 18:00"
-- "2.8л вода дневно (85kg × 33ml/kg, повишено до 35ml заради високата спортна активност 5 пъти седмично)"
-- "По-обилна вечеря (35% от дневните калории) вместо закуска (20%), тъй като хронотипът е 'Нощна сова' и работата е до късно"
+✅ **ИЗИСКВАНО (Individual, но не прекалено специфично):**
+- "Магнезий 300-400mg вечер (заради ниския сън 5ч и високия стрес)"
+- "2 хранения дневно около 12:00-13:00 и 19:00-20:00 (16:8 IF за вечерния хронотип)"
+- "Около 2.5-3л вода дневно (85kg, висока активност)"
+- "По-обилна вечеря (около 35% калории) заради вечерния хронотип"
+- "Риба със зеленчуци" (НЕ "180g моруна със 200g броколи")
 
 **Quality validation:**
 ```javascript

@@ -120,7 +120,7 @@ CRITICAL QUALITY STANDARDS:
 3. AVOID CLICHÉS: No "eat more vegetables", "drink water", "exercise" 
    - client knows basics, wants SPECIFICS
 4. INDIVIDUALIZED SUPPLEMENTS: Each justified by THIS client's specific needs
-5. CONCRETE DETAILS: Specific foods, precise dosages, exact timing
+5. APPROPRIATE DETAILS: Food groups from whitelist, approximate dosages, flexible timing
 6. STRATEGIC THINKING: Consider 2-3 day horizons, cyclical approaches
 ```
 
@@ -141,17 +141,19 @@ CRITICAL QUALITY STANDARDS:
 - **Psychology-based**: Базирано на емоционален профил
 - **Multi-day horizon**: 2-3 дневен хоризонт, не само дневен
 
-**Индивидуализирани добавки** (Strategy prompt, линия 1932):
+**Индивидуализирани добавки**:
 ```
 FORBIDDEN GENERIC APPROACHES:
 - Standard multivitamins without specific justification
-- Cookie-cutter meal plans - design for THIS client's chronotype, schedule, preferences
-- Textbook recommendations - adapt proven methods to THIS client's unique factors
+- "Eat balanced meals" - specify food groups from whitelist appropriate for THIS client
+- "Drink 2L water" - approximate based on weight, activity, climate
+- Cookie-cutter meal plans - design for THIS client's chronotype
+- Textbook recommendations - adapt to THIS client's unique factors
 ```
 
 **Validation на индивидуализация:**
 ```javascript
-// Check for dosage in supplements
+// Check for dosage in supplements - approximate ranges acceptable
 const hasDosage = DOSAGE_UNITS.some(unit => supp.includes(unit));
 if (!hasDosage) {
   warnings.push('Supplement may be missing dosage');
@@ -166,18 +168,24 @@ if (!hasDosage) {
 - "3 хранения дневно"
 - "Пийте 2л вода"
 
-✅ **ПРАВИЛНО (Individual):**
-- "Магнезий 400mg вечер (заради ниския сън 5ч и високия стрес)"
-- "2 хранения дневно (12:00, 19:00) - 16:8 IF, подходящо за вечерния хронотип и работния график"
-- "2.8л вода дневно (85kg × 33ml, повишено заради високата активност)"
-- "По-обилна вечеря (35% калории) заради вечерния хронотип и работа до 18:00"
+✅ **ПРАВИЛНО (Individual, но не прекалено специфично):**
+- "Магнезий 300-400mg вечер (заради ниския сън 5ч и високия стрес)"
+- "2 хранения дневно около 12:00-13:00 и 19:00-20:00 (16:8 IF за вечерния хронотип)"
+- "Около 2.5-3л вода дневно (85kg, висока активност)"
+- "По-обилна вечеря (около 35% калории) заради вечерния хронотип"
 
-**Meal Plan Quality Standards** (Chunk prompt, линия 2237):
+**Meal Plan Quality Standards**:
 ```
 CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
-1. NO GENERIC MEALS: Each meal unique to THIS client's needs, preferences, chronotype
-2. NO REPETITION: Days must ALL be distinctly different
+1. NO GENERIC MEALS: Each unique to client
+2. NO REPETITION: All days different
 3. REALISTIC & CULTURAL: Bulgarian/Mediterranean cuisine
+4. SPECIFIC BENEFITS: WHY this meal helps THIS goal
+5. FOOD GROUPS & FLEXIBILITY: Use food groups from whitelist (e.g. "fish with vegetables"), 
+   NOT overly specific quantities
+6. WHITELIST FOCUS: Prioritize availability, accessibility, close macro values
+7. STRATEGIC THINKING: Chronotype for timing, psychology for sustainability
+```
 4. SPECIFIC BENEFITS: Explain WHY this meal helps THIS client's specific goal
 5. AVOID OVERLY SPECIFIC: "fish with vegetables" NOT "180g sea bass with 200g broccoli"
 6. STRATEGIC THINKING: Chronotype for timing/size, psychology for sustainability

@@ -1992,7 +1992,7 @@ CRITICAL QUALITY STANDARDS:
 2. MODERN APPROACHES: Use current, evidence-based methods (IF, cyclical nutrition, chronotype optimization, psychology-based)
 3. AVOID CLICHÉS: No "eat more vegetables", "drink water", "exercise" - client knows basics, wants SPECIFICS
 4. INDIVIDUALIZED SUPPLEMENTS: Each supplement justified by THIS client's specific needs (not standard multivitamin lists)
-5. CONCRETE DETAILS: Specific foods, precise dosages, exact timing - not vague suggestions
+5. APPROPRIATE DETAILS: Food groups from whitelist, approximate dosages, flexible timing - not overly constraining
 6. STRATEGIC THINKING: Consider 2-3 day horizons, cyclical approaches, non-standard solutions if justified
 
 CLIENT: ${data.name}, ${data.age}y, Goal: ${data.goal}
@@ -2017,12 +2017,12 @@ TASKS:
 1. Determine MODIFIER (Keto/Paleo/Vegan/Vegetarian/Mediterranean/Low-carb/Balanced/Gentle stomach/Gluten-free) - ONE primary strategy based on THIS client's unique situation
 2. Develop weekly/multi-day strategy with cyclical distribution if physiologically/psychologically beneficial for THIS client
 3. Justify meal count (1-5/day), after-dinner meals based on THIS client's specific needs (not standard 3-meal approach)
-4. Individualize supplements: EACH must be justified by specific deficiency/need from analysis + personalized dosage + timing + interaction checks for THIS client
+4. Individualize supplements: EACH must be justified by specific deficiency/need from analysis + appropriate dosage range + general timing + interaction checks for THIS client
 
 FORBIDDEN GENERIC APPROACHES:
 - Standard multivitamins without specific justification
-- "Eat balanced meals" - be SPECIFIC what foods and why for THIS client
-- "Drink 2L water" - calculate based on weight, activity, climate for THIS client  
+- "Eat balanced meals" - specify food groups from whitelist appropriate for THIS client
+- "Drink 2L water" - approximate based on weight, activity, climate for THIS client  
 - Cookie-cutter meal plans - design for THIS client's chronotype, schedule, preferences
 - Textbook recommendations - adapt proven methods to THIS client's unique factors
 
@@ -2332,8 +2332,9 @@ CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
 2. NO REPETITION: Days ${startDay}-${endDay} must ALL be distinctly different from each other${previousDays.length > 0 ? ' and from previous days' : ''}
 3. REALISTIC & CULTURAL: Bulgarian/Mediterranean cuisine - no exotic/trendy/hard-to-find ingredients
 4. SPECIFIC BENEFITS: Each meal's "benefits" field must explain WHY this specific meal helps THIS client's specific goal
-5. AVOID OVERLY SPECIFIC: "fish with vegetables" NOT "180g sea bass with 200g steamed broccoli" - allow client flexibility
-6. STRATEGIC THINKING: Consider chronotype for meal timing/size, psychology for sustainability
+5. FOOD GROUPS & FLEXIBILITY: Use food groups and types from whitelist (e.g. "fish with vegetables", "meat with salad"), NOT overly specific quantities (NOT "180g sea bass with 200g steamed broccoli")
+6. WHITELIST FOCUS: Prioritize availability, accessibility, and close macro values within allowed food groups
+7. STRATEGIC THINKING: Consider chronotype for meal timing/size, psychology for sustainability
 
 CLIENT: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day
 BMR: ${bmr}, Modifier: "${dietaryModifier}"${modificationsSection}
@@ -2594,7 +2595,8 @@ CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
 3. REQUIRED: Unique combinations based on client's preferences, medical needs, chronotype, psychology
 4. VARIETY: Never repeat meals - each day must be distinctly different
 5. CULTURAL CONTEXT: Real Bulgarian/Mediterranean dishes - not exotic/trendy/unrealistic foods
-6. SPECIFICITY: "Grilled chicken with vegetables" NOT "170g chicken breast with 200g broccoli and 15g olive oil"
+6. FLEXIBILITY: Use food groups and types from whitelist (e.g. "fish with vegetables", "chicken with rice"), NOT overly specific (NOT "170g chicken breast with 200g broccoli")
+7. WHITELIST PRIORITY: Focus on availability, accessibility, and close macro values within allowed food groups
 
 INDIVIDUALIZED PLAN (NO defaults):
 Client: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day (INDIVIDUALLY calculated BMR=${bmr})
