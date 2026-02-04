@@ -1822,6 +1822,7 @@ Physical params:
 - Goal: ${data.goal}${data.lossKg ? `, Target loss: ${data.lossKg} kg` : ''}
 
 BACKEND FORMULA (Mifflin-St Jeor baseline):
+NOTE: Client data comes from Bulgarian frontend, so gender comparison uses Bulgarian values
 - BMR = 10×weight + 6.25×height - 5×age + (${data.gender === 'Мъж' ? '5' : '-161'})
 - TDEE = BMR × ActivityFactor (1.2-1.9 based on ${data.sportActivity})
 - Target kcal: adjusted per goal (deficit for weight loss, surplus for muscle gain)
@@ -1868,12 +1869,12 @@ CORRELATIONAL ANALYSIS:
 **METABOLIC FACTORS**: Unique metabolic profile based on:
    - Chronotype (${data.chronotype}) → optimal eating timing
    - Activity (${data.sportActivity}, ${data.dailyActivityLevel})
-   - History: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'no prior diets'}
+   - History: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'no prior diets'} (NOTE: Bulgarian data)
    - CRITICAL: Failed diets typically indicate reduced metabolism
 
 **MEDICAL FACTORS**: Medical conditions impact on nutrition:
    - Conditions: ${JSON.stringify(data.medicalConditions || [])}
-   - Medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'}
+   - Medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'} (NOTE: Bulgarian data)
    - Specific macro/micronutrient needs?
 
 **SUCCESS SCORE**: Calculate (-100 to +100) based on ALL factors:
@@ -2053,7 +2054,7 @@ CRITICAL - INDIVIDUALIZED RECOMMENDATIONS:
 4. Dosages personalized by age, weight, sex, health status
 5. Consider medical conditions, medications, possible interactions
 6. CRITICAL - INTERACTION CHECKS:
-   - If on medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'}, check:
+   - If on medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'}, check: (NOTE: Bulgarian data input)
      * Vit K + anticoagulants (warfarin) = contraindicated
      * Ca/Mg + antibiotics = reduced absorption
      * Iron + antacids = blocked absorption
