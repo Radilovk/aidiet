@@ -2095,14 +2095,13 @@ LONG-TERM STRATEGY DEVELOPMENT:
 6. Each non-standard strategy recommendation MUST have clear goal + justification
 
 OUTPUT JSON format (NO generic recommendations):
-NOTE: Fields for frontend display MUST be in BULGARIAN:
+NOTE: ALL fields shown to users MUST be in BULGARIAN:
 - MANDATORY: welcomeMessage, planJustification, longTermStrategy, mealCountJustification, afterDinnerMealJustification
-- USER-FACING: dietType, weeklyMealPattern, mealTiming (all sub-fields), keyPrinciples, foodsToInclude, foodsToAvoid, supplementRecommendations, hydrationStrategy, psychologicalSupport
-Internal/technical fields (dietaryModifier, modifierReasoning) can use compressed English format.
+- USER-FACING: dietaryModifier, modifierReasoning, dietType, weeklyMealPattern, mealTiming (all sub-fields), keyPrinciples, foodsToInclude, foodsToAvoid, supplementRecommendations, hydrationStrategy, psychologicalSupport
 
 {
-  "dietaryModifier": "dietary profile term (e.g. Balanced, Keto, Vegan, Mediterranean, Low-carb, Gentle stomach)",
-  "modifierReasoning": "compact explanation why this MODIFIER chosen SPECIFICALLY for ${data.name}",
+  "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
+  "modifierReasoning": "компресирано обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
   "welcomeMessage": "MANDATORY FIELD (IN BULGARIAN): PERSONALIZED greeting for ${data.name} when first viewing plan. Tone: professional yet warm, motivating. Include: 1) Personal greeting with name, 2) Brief mention of specific profile factors (age, goal, key challenges), 3) How plan created specifically for their needs, 4) Positive vision for achieving goals. Length: approximately 150-250 Bulgarian words. IMPORTANT: Avoid generic phrases - use specific details for ${data.name}.",
   "planJustification": "MANDATORY FIELD (IN BULGARIAN): Detailed justification of overall strategy, including meal count, timing, cyclical distribution (if any), after-dinner meals (if any), WHY this strategy optimal for ${data.name}. Minimum 100 chars.",
   "longTermStrategy": "LONG-TERM STRATEGY (IN BULGARIAN): Describe how plan works within 2-3 days/week, not just daily. Include info on cyclical calorie/macro distribution, meal variation, how this supports goals.",
