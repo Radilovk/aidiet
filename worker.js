@@ -2489,35 +2489,18 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   const foodsToInclude = strategy.foodsToInclude || [];
   const foodsToAvoid = strategy.foodsToAvoid || [];
   
-  const defaultPrompt = `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+  const defaultPrompt = `Generate summary, recommendations, supplements for 7-day meal plan.
 
-КЛИЕНТ: ${data.name}, Цел: ${data.goal}
-BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
-Реален среден прием: ${avgCalories} kcal/ден
-Реални средни макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
+CLIENT: ${data.name}, Goal: ${data.goal}
+BMR: ${bmr}, Target: ${recommendedCalories} kcal/day
+Actual avg: ${avgCalories} kcal/day, Macros: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
 
-СТРАТЕГИЯ (КОМПАКТНА):
-- Психологическа подкрепа: ${psychologicalSupport.slice(0, 3).join('; ')}
-- Добавки: ${supplementRecommendations.slice(0, 3).join('; ')}
-- Хидратация: ${hydrationStrategy}
-- Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
-- Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
+STRATEGY: Psychology: ${psychologicalSupport.slice(0, 3).join('; ')}, Supplements: ${supplementRecommendations.slice(0, 3).join('; ')}, Hydration: ${hydrationStrategy}, Include: ${foodsToInclude.slice(0, 5).join(', ')}, Avoid: ${foodsToAvoid.slice(0, 5).join(', ')}
 
-JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
-{
-  "summary": {
-    "bmr": ${bmr},
-    "dailyCalories": ${avgCalories},
-    "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}
-  },
-  "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
-  "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
-  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
-  "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
-  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
-}
+JSON (numbers only for numeric fields, Bulgarian for user-facing content):
+{"summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}}, "recommendations": ["specific food 1", "food 2", "food 3", "food 4", "food 5"], "forbidden": ["banned food 1", "food 2", "food 3", "food 4"], "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["Bulgarian tip 1", "tip 2", "tip 3"]'}, "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}", "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["Bulgarian supplement 1 with dosage", "supplement 2", "supplement 3"]'}}
 
-ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+NOTE: recommendations/forbidden = specific foods for goal ${data.goal}, NOT general advice. All user-visible text in Bulgarian.`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
