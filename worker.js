@@ -1727,16 +1727,14 @@ async function getCustomPrompt(env, promptKey) {
  * Helper function to replace variables in custom prompts
  */
 function replacePromptVariables(template, variables) {
-  let result = template;
-  
-  // Replace each variable in the template
-  for (const [key, value] of Object.entries(variables)) {
-    const regex = new RegExp(`\\{${key}\\}`, 'g');
-    const replacement = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
-    result = result.replace(regex, replacement);
-  }
-  
-  return result;
+  // Use replaceAll with a function for better performance
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
+    if (key in variables) {
+      const value = variables[key];
+      return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+    }
+    return match; // Return original if variable not found
+  });
 }
 
 /**
@@ -1754,42 +1752,9 @@ async function generateAnalysisPrompt(data, env) {
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt with actual data
+    // Pass the entire data object as userData
     return replacePromptVariables(customPrompt, {
-      userData: {
-        name: data.name,
-        age: data.age,
-        gender: data.gender,
-        height: data.height,
-        weight: data.weight,
-        goal: data.goal,
-        lossKg: data.lossKg,
-        sleepHours: data.sleepHours,
-        sleepInterrupt: data.sleepInterrupt,
-        chronotype: data.chronotype,
-        sportActivity: data.sportActivity,
-        dailyActivityLevel: data.dailyActivityLevel,
-        stressLevel: data.stressLevel,
-        waterIntake: data.waterIntake,
-        drinksSweet: data.drinksSweet,
-        drinksAlcohol: data.drinksAlcohol,
-        overeatingFrequency: data.overeatingFrequency,
-        eatingHabits: data.eatingHabits,
-        foodCravings: data.foodCravings,
-        foodTriggers: data.foodTriggers,
-        compensationMethods: data.compensationMethods,
-        socialComparison: data.socialComparison,
-        medicalConditions: data.medicalConditions,
-        medications: data.medications,
-        medicationsDetails: data.medicationsDetails,
-        weightChange: data.weightChange,
-        weightChangeDetails: data.weightChangeDetails,
-        dietHistory: data.dietHistory,
-        dietType: data.dietType,
-        dietResult: data.dietResult,
-        dietPreference: data.dietPreference,
-        dietDislike: data.dietDislike,
-        dietLove: data.dietLove
-      }
+      userData: data
     });
   }
   
@@ -4388,40 +4353,43 @@ function checkFoodExistsInPlan(plan, foodName) {
 }
 
 /**
+ * Helper function to get KV key for prompt type
+ */
+function getPromptKVKey(type) {
+  const keyMap = {
+    'consultation': 'admin_consultation_prompt',
+    'modification': 'admin_modification_prompt',
+    'chat': 'admin_chat_prompt',
+    'analysis': 'admin_analysis_prompt',
+    'strategy': 'admin_strategy_prompt',
+    'meal_plan': 'admin_meal_plan_prompt',
+    'summary': 'admin_summary_prompt',
+    'plan': 'admin_plan_prompt'
+  };
+  
+  return keyMap[type] || 'admin_plan_prompt';
+}
+
+/**
  * Admin: Save AI prompt to KV
  */
 async function handleSavePrompt(request, env) {
   try {
     const { type, prompt } = await request.json();
     
-    if (!type || !prompt) {
-      return jsonResponse({ error: 'Missing type or prompt' }, 400);
+    // Type is required, but prompt can be empty (to revert to default)
+    if (!type) {
+      return jsonResponse({ error: 'Missing type' }, 400);
     }
 
     if (!env.page_content) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    let key;
-    if (type === 'consultation') {
-      key = 'admin_consultation_prompt';
-    } else if (type === 'modification') {
-      key = 'admin_modification_prompt';
-    } else if (type === 'chat') {
-      key = 'admin_chat_prompt'; // Keep for backward compatibility
-    } else if (type === 'analysis') {
-      key = 'admin_analysis_prompt';
-    } else if (type === 'strategy') {
-      key = 'admin_strategy_prompt';
-    } else if (type === 'meal_plan') {
-      key = 'admin_meal_plan_prompt';
-    } else if (type === 'summary') {
-      key = 'admin_summary_prompt';
-    } else {
-      key = 'admin_plan_prompt';
-    }
+    const key = getPromptKVKey(type);
     
-    await env.page_content.put(key, prompt);
+    // Save the prompt, even if empty (empty = use default)
+    await env.page_content.put(key, prompt || '');
     
     // Invalidate chat prompts cache if consultation or modification prompt was updated
     if (type === 'consultation' || type === 'modification') {
@@ -4448,25 +4416,7 @@ async function handleGetPrompt(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    let key;
-    if (type === 'chat') {
-      key = 'admin_chat_prompt';
-    } else if (type === 'consultation') {
-      key = 'admin_consultation_prompt';
-    } else if (type === 'modification') {
-      key = 'admin_modification_prompt';
-    } else if (type === 'analysis') {
-      key = 'admin_analysis_prompt';
-    } else if (type === 'strategy') {
-      key = 'admin_strategy_prompt';
-    } else if (type === 'meal_plan') {
-      key = 'admin_meal_plan_prompt';
-    } else if (type === 'summary') {
-      key = 'admin_summary_prompt';
-    } else {
-      key = 'admin_plan_prompt';
-    }
-    
+    const key = getPromptKVKey(type);
     const prompt = await env.page_content.get(key);
     
     return jsonResponse({ success: true, prompt: prompt || null });

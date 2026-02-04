@@ -1193,10 +1193,11 @@
         async function savePromptGeneric(type, elementId, localStorageKey, successMessage, errorMessage) {
             const prompt = document.getElementById(elementId).value.trim();
             
-            if (!prompt) {
-                showError(errorMessage);
-                return;
-            }
+            // Allow empty prompts - they will cause the system to use defaults
+            // if (!prompt) {
+            //     showError(errorMessage);
+            //     return;
+            // }
 
             localStorage.setItem(localStorageKey, prompt);
             
@@ -1205,7 +1206,7 @@
                 const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, prompt })
+                    body: JSON.stringify({ type, prompt: prompt || '' })
                 });
                 
                 if (!response.ok) {
