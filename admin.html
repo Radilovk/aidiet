@@ -2389,7 +2389,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showSuccess('Черният списък е зареден успешно!');
             } catch (error) {
                 console.error('Error loading blacklist:', error);
-                // Keep current empty list or show error - backend will provide defaults
+                // Reset to empty - defaults will be loaded on next successful fetch from backend
                 currentBlacklist = [];
                 displayBlacklist();
                 showError('Не може да се зареди черният списък. Моля, опитайте отново.');
@@ -2510,7 +2510,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showSuccess('Белият списък е зареден успешно!');
             } catch (error) {
                 console.error('Error loading whitelist:', error);
-                // Keep current empty list or show error - backend will provide defaults
+                // Reset to empty - defaults will be loaded on next successful fetch from backend
                 currentWhitelist = [];
                 displayWhitelist();
                 showError('Не може да се зареди белият списък. Моля, опитайте отново.');

@@ -1001,12 +1001,12 @@ const DEFAULT_FOOD_WHITELIST = [
 
 // Default blacklist - hard banned foods for admin panel
 const DEFAULT_FOOD_BLACKLIST = [
-  'лук', 'onion', 
+  'лук', 'onion',
   'пуешко месо', 'turkey meat',
   'изкуствени подсладители', 'artificial sweeteners',
-  'мед', 'захар', 'конфитюр', 'сиропи', 
+  'мед', 'захар', 'конфитюр', 'сиропи',
   'honey', 'sugar', 'jam', 'syrups',
-  'кетчуп', 'майонеза', 'BBQ сос', 
+  'кетчуп', 'майонеза', 'BBQ сос',
   'ketchup', 'mayonnaise', 'BBQ sauce',
   'гръцко кисело мляко', 'greek yogurt'
 ];
@@ -5488,7 +5488,7 @@ async function handleRemoveFromWhitelist(request, env) {
     
     // Get current whitelist
     const whitelistData = await env.page_content.get('food_whitelist');
-    let whitelist = whitelistData ? JSON.parse(whitelistData) : [];
+    let whitelist = whitelistData ? JSON.parse(whitelistData) : DEFAULT_FOOD_WHITELIST;
     
     // Remove item
     whitelist = whitelist.filter(i => i !== item);
