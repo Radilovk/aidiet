@@ -160,5 +160,5 @@ The reset functionality remains unchanged:
 
 ## Code Locations
 
-- **Worker.js Changes:** Lines 414 (route), 4177-4576 (handler function)
+- **Worker.js Changes:** Lines 414 (route), 4177-4528 (handler function)
 - **Admin.html Changes:** Lines 2137-2156 (viewDefaultPrompt function)

@@ -4177,7 +4177,13 @@ async function handleGetPrompt(request, env) {
 async function handleGetDefaultPrompt(request, env) {
   try {
     const url = new URL(request.url);
-    const type = url.searchParams.get('type') || 'plan';
+    const type = url.searchParams.get('type');
+    
+    if (!type) {
+      return jsonResponse({ 
+        error: 'Missing required parameter: type. Valid types: analysis, strategy, meal_plan, summary, consultation, modification' 
+      }, 400);
+    }
     
     // Return the actual default prompts from worker.js
     const defaultPrompts = {
