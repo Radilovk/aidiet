@@ -2137,7 +2137,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         async function viewDefaultPrompt(promptType, elementId) {
             try {
                 // Fetch the actual default prompt from worker.js
-                const response = await fetch(`/api/admin/get-default-prompt?type=${promptType}`);
+                const response = await fetch(`${WORKER_URL}/api/admin/get-default-prompt?type=${promptType}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
