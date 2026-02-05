@@ -1767,7 +1767,7 @@ BACKEND-AI PROTOCOL:
 1. Backend provides mathematical baseline (Mifflin-St Jeor formula below)
 2. AI must critically review baseline considering ALL correlates
 3. Only modify if confident after comprehensive data analysis
-4. Response format: compressed, technical format (reasoning fields in English, user-facing fields in Bulgarian)
+4. Response format: compressed, technical, English/machine language (internal use only)
 
 ═══ CLIENT PROFILE ═══
 ${JSON.stringify({
@@ -1852,8 +1852,8 @@ F, 35y, 70kg, 165cm, moderate activity:
 ═══ AI TASK ═══
 1. HOLISTIC ANALYSIS: Review all data for ${data.name}
 2. CALCULATE: BMR, TDEE, target kcal based on AI professional judgment
-3. EXPLAIN: Detail reasoning in "_reasoning" fields (use English for internal reasoning)
-4. USER-FACING FIELDS: Use Bulgarian language for all user-visible content (title, description, impact)
+3. EXPLAIN: Detail reasoning in "_reasoning" fields
+4. Use compressed English/machine format (internal analysis, not for frontend)
 
 CORRELATIONAL ANALYSIS:
 
@@ -1893,9 +1893,9 @@ CORRELATIONAL ANALYSIS:
 ═══ OUTPUT FORMAT ═══
 CRITICAL - DATA TYPES:
 - Numeric fields: numbers ONLY (int/float), NO text/units/explanations
-- Explanations: in separate "_reasoning" fields (English for internal use)
+- Explanations: in separate "_reasoning" fields
 - BMR, TDEE, recommendedCalories: AI calculates based on ALL factors
-- USER-FACING CONTENT: Bulgarian language REQUIRED for title, description, impact, metabolicProfile, healthRisks, nutritionalNeeds, psychologicalProfile
+- Use compressed English/machine format (internal, not for frontend display)
 
 {
   "bmr": number (AI holistic calculation),
@@ -1939,20 +1939,20 @@ CRITICAL - DATA TYPES:
       // ... repeat for all 7 days
     ]
   },
-  "metabolicProfile": "НА БЪЛГАРСКИ: УНИКАЛЕН метаболитен профил - compressed: как хронотип, активност, история влияят на метаболизма",
-  "healthRisks": ["НА БЪЛГАРСКИ: риск 1 конкретен", "риск 2", "риск 3"],
-  "nutritionalNeeds": ["НА БЪЛГАРСКИ: нужда 1 от анализа", "нужда 2", "нужда 3"],
-  "psychologicalProfile": "НА БЪЛГАРСКИ: ДЕТАЙЛЕН анализ: емоционално хранене, тригери, копинг механизми, мотивация (compressed format)",
+  "metabolicProfile": "UNIQUE metabolic profile - compressed: how chronotype, activity, history impact metabolism",
+  "healthRisks": ["risk 1 specific", "risk 2", "risk 3"],
+  "nutritionalNeeds": ["need 1 from analysis", "need 2", "need 3"],
+  "psychologicalProfile": "DETAILED analysis: emotional eating, triggers, coping, motivation (compressed format)",
   "successChance": number (-100 to 100),
   "successChanceReasoning": "compact: why score - helping/hindering factors",
   "keyProblems": [
     {
-      "title": "кратко име НА БЪЛГАРСКИ (2-4 думи)",
-      "description": "НА БЪЛГАРСКИ: защо е проблем и какви последствия има",
+      "title": "short name (2-4 words)",
+      "description": "why problem + consequence",
       "severity": "Borderline / Risky / Critical",
       "severityValue": number 0-100,
       "category": "Sleep / Nutrition / Hydration / Stress / Activity / Medical",
-      "impact": "НА БЪЛГАРСКИ: въздействие върху здравето/целта"
+      "impact": "health/goal impact"
     }
   ]
 }
