@@ -983,6 +983,34 @@ const ADLE_V8_HARD_BANS = [
   'гръцко кисело мляко', 'greek yogurt'
 ];
 
+// Default whitelist - approved foods for admin panel
+const DEFAULT_FOOD_WHITELIST = [
+  'яйца', 'eggs',
+  'пилешко', 'chicken',
+  'говеждо', 'beef',
+  'свинско', 'свинска', 'pork',
+  'риба', 'fish', 'скумрия', 'тон', 'сьомга',
+  'кисело мляко', 'yogurt',
+  'извара', 'cottage cheese',
+  'сирене', 'cheese',
+  'боб', 'beans',
+  'леща', 'lentils',
+  'нахут', 'chickpeas',
+  'грах', 'peas'
+];
+
+// Default blacklist - hard banned foods for admin panel
+const DEFAULT_FOOD_BLACKLIST = [
+  'лук', 'onion', 
+  'пуешко месо', 'turkey meat',
+  'изкуствени подсладители', 'artificial sweeteners',
+  'мед', 'захар', 'конфитюр', 'сиропи', 
+  'honey', 'sugar', 'jam', 'syrups',
+  'кетчуп', 'майонеза', 'BBQ сос', 
+  'ketchup', 'mayonnaise', 'BBQ sauce',
+  'гръцко кисело мляко', 'greek yogurt'
+];
+
 const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
 
 const ADLE_V8_HARD_RULES = {
@@ -2361,6 +2389,44 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
 }
 
 /**
+ * Helper function to fetch and build dynamic whitelist/blacklist sections for prompts
+ */
+async function getDynamicFoodListsSections(env) {
+  let dynamicWhitelist = [];
+  let dynamicBlacklist = [];
+  
+  try {
+    if (env && env.page_content) {
+      const whitelistData = await env.page_content.get('food_whitelist');
+      if (whitelistData) {
+        dynamicWhitelist = JSON.parse(whitelistData);
+      }
+      
+      const blacklistData = await env.page_content.get('food_blacklist');
+      if (blacklistData) {
+        dynamicBlacklist = JSON.parse(blacklistData);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading whitelist/blacklist from KV:', error);
+  }
+  
+  // Build dynamic whitelist section if there are custom items
+  let dynamicWhitelistSection = '';
+  if (dynamicWhitelist.length > 0) {
+    dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
+  }
+  
+  // Build dynamic blacklist section if there are custom items
+  let dynamicBlacklistSection = '';
+  if (dynamicBlacklist.length > 0) {
+    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
+  }
+  
+  return { dynamicWhitelistSection, dynamicBlacklistSection };
+}
+
+/**
  * Generate prompt for a chunk of days (progressive generation)
  */
 async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env) {
@@ -2402,36 +2468,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   };
   
   // Fetch dynamic whitelist and blacklist from KV storage
-  let dynamicWhitelist = [];
-  let dynamicBlacklist = [];
-  
-  try {
-    if (env.page_content) {
-      const whitelistData = await env.page_content.get('food_whitelist');
-      if (whitelistData) {
-        dynamicWhitelist = JSON.parse(whitelistData);
-      }
-      
-      const blacklistData = await env.page_content.get('food_blacklist');
-      if (blacklistData) {
-        dynamicBlacklist = JSON.parse(blacklistData);
-      }
-    }
-  } catch (error) {
-    console.error('Error loading whitelist/blacklist from KV:', error);
-  }
-  
-  // Build dynamic whitelist section if there are custom items
-  let dynamicWhitelistSection = '';
-  if (dynamicWhitelist.length > 0) {
-    dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
-  }
-  
-  // Build dynamic blacklist section if there are custom items
-  let dynamicBlacklistSection = '';
-  if (dynamicBlacklist.length > 0) {
-    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
-  }
+  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
   
   // Extract weekly blueprint if available
   let blueprintSection = '';
@@ -2860,36 +2897,7 @@ ${modLines.join('\n')}
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   
   // Fetch dynamic whitelist and blacklist from KV storage
-  let dynamicWhitelist = [];
-  let dynamicBlacklist = [];
-  
-  try {
-    if (env && env.page_content) {
-      const whitelistData = await env.page_content.get('food_whitelist');
-      if (whitelistData) {
-        dynamicWhitelist = JSON.parse(whitelistData);
-      }
-      
-      const blacklistData = await env.page_content.get('food_blacklist');
-      if (blacklistData) {
-        dynamicBlacklist = JSON.parse(blacklistData);
-      }
-    }
-  } catch (error) {
-    console.error('Error loading whitelist/blacklist from KV:', error);
-  }
-  
-  // Build dynamic whitelist section if there are custom items
-  let dynamicWhitelistSection = '';
-  if (dynamicWhitelist.length > 0) {
-    dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
-  }
-  
-  // Build dynamic blacklist section if there are custom items
-  let dynamicBlacklistSection = '';
-  if (dynamicBlacklist.length > 0) {
-    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
-  }
+  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
   
   // Create compact strategy (no full JSON)
   const strategyCompact = {
@@ -5331,30 +5339,11 @@ async function handleGetBlacklist(request, env) {
     if (!env.page_content) {
       console.error('KV namespace not configured');
       // Return default blacklist if KV not available
-      const defaultBlacklist = [
-        'лук', 'onion', 
-        'пуешко месо', 'turkey meat',
-        'изкуствени подсладители', 'artificial sweeteners',
-        'мед', 'захар', 'конфитюр', 'сиропи', 
-        'honey', 'sugar', 'jam', 'syrups',
-        'кетчуп', 'майонеза', 'BBQ сос', 
-        'ketchup', 'mayonnaise', 'BBQ sauce',
-        'гръцко кисело мляко', 'greek yogurt'
-      ];
-      return jsonResponse({ success: true, blacklist: defaultBlacklist });
+      return jsonResponse({ success: true, blacklist: DEFAULT_FOOD_BLACKLIST });
     }
     
     const blacklistData = await env.page_content.get('food_blacklist');
-    const blacklist = blacklistData ? JSON.parse(blacklistData) : [
-      'лук', 'onion', 
-      'пуешко месо', 'turkey meat',
-      'изкуствени подсладители', 'artificial sweeteners',
-      'мед', 'захар', 'конфитюр', 'сиропи', 
-      'honey', 'sugar', 'jam', 'syrups',
-      'кетчуп', 'майонеза', 'BBQ сос', 
-      'ketchup', 'mayonnaise', 'BBQ sauce',
-      'гръцко кисело мляко', 'greek yogurt'
-    ];
+    const blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
     
     return jsonResponse({ success: true, blacklist: blacklist });
   } catch (error) {
@@ -5381,16 +5370,7 @@ async function handleAddToBlacklist(request, env) {
     
     // Get current blacklist
     const blacklistData = await env.page_content.get('food_blacklist');
-    let blacklist = blacklistData ? JSON.parse(blacklistData) : [
-      'лук', 'onion', 
-      'пуешко месо', 'turkey meat',
-      'изкуствени подсладители', 'artificial sweeteners',
-      'мед', 'захар', 'конфитюр', 'сиропи', 
-      'honey', 'sugar', 'jam', 'syrups',
-      'кетчуп', 'майонеза', 'BBQ сос', 
-      'ketchup', 'mayonnaise', 'BBQ sauce',
-      'гръцко кисело мляко', 'greek yogurt'
-    ];
+    let blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
     
     // Add item if not already in list
     if (!blacklist.includes(item)) {
@@ -5444,38 +5424,11 @@ async function handleGetWhitelist(request, env) {
     if (!env.page_content) {
       console.error('KV namespace not configured');
       // Return default whitelist if KV not available
-      const defaultWhitelist = [
-        'яйца', 'eggs',
-        'пилешко', 'chicken',
-        'говеждо', 'beef',
-        'свинско', 'свинска', 'pork',
-        'риба', 'fish', 'скумрия', 'тон', 'сьомга',
-        'кисело мляко', 'yogurt',
-        'извара', 'cottage cheese',
-        'сирене', 'cheese',
-        'боб', 'beans',
-        'леща', 'lentils',
-        'нахут', 'chickpeas',
-        'грах', 'peas'
-      ];
-      return jsonResponse({ success: true, whitelist: defaultWhitelist });
+      return jsonResponse({ success: true, whitelist: DEFAULT_FOOD_WHITELIST });
     }
     
     const whitelistData = await env.page_content.get('food_whitelist');
-    const whitelist = whitelistData ? JSON.parse(whitelistData) : [
-      'яйца', 'eggs',
-      'пилешко', 'chicken',
-      'говеждо', 'beef',
-      'свинско', 'свинска', 'pork',
-      'риба', 'fish', 'скумрия', 'тон', 'сьомга',
-      'кисело мляко', 'yogurt',
-      'извара', 'cottage cheese',
-      'сирене', 'cheese',
-      'боб', 'beans',
-      'леща', 'lentils',
-      'нахут', 'chickpeas',
-      'грах', 'peas'
-    ];
+    const whitelist = whitelistData ? JSON.parse(whitelistData) : DEFAULT_FOOD_WHITELIST;
     
     return jsonResponse({ success: true, whitelist: whitelist });
   } catch (error) {
@@ -5502,20 +5455,7 @@ async function handleAddToWhitelist(request, env) {
     
     // Get current whitelist
     const whitelistData = await env.page_content.get('food_whitelist');
-    let whitelist = whitelistData ? JSON.parse(whitelistData) : [
-      'яйца', 'eggs',
-      'пилешко', 'chicken',
-      'говеждо', 'beef',
-      'свинско', 'свинска', 'pork',
-      'риба', 'fish', 'скумрия', 'тон', 'сьомга',
-      'кисело мляко', 'yogurt',
-      'извара', 'cottage cheese',
-      'сирене', 'cheese',
-      'боб', 'beans',
-      'леща', 'lentils',
-      'нахут', 'chickpeas',
-      'грах', 'peas'
-    ];
+    let whitelist = whitelistData ? JSON.parse(whitelistData) : DEFAULT_FOOD_WHITELIST;
     
     // Add item if not already in list
     if (!whitelist.includes(item)) {
