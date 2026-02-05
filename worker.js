@@ -920,6 +920,58 @@ async function handleGetReports(request, env) {
 }
 
 
+// Quality validation constants
+const MIN_PROFILE_LENGTH = 50;
+const DOSAGE_UNITS = ['mg', 'µg', 'mcg', 'IU', 'г', 'g', 'UI'];
+
+/**
+ * Validate that analysis contains meaningful, non-empty data
+ * Ensures AI responses meet quality standards (no generic/empty values)
+ */
+function validateAnalysisQuality(analysis) {
+  const warnings = [];
+  
+  // Check user-facing Bulgarian fields are meaningful
+  if (analysis.metabolicProfile && (
+      analysis.metabolicProfile.length < MIN_PROFILE_LENGTH || 
+      analysis.metabolicProfile.includes('не е анализиран') || 
+      analysis.metabolicProfile.toLowerCase().includes('standard'))) {
+    warnings.push('Metabolic profile may be generic - should be specific to client');
+  }
+  
+  if (analysis.psychologicalProfile && (
+      analysis.psychologicalProfile.length < MIN_PROFILE_LENGTH ||
+      analysis.psychologicalProfile.includes('не е анализиран'))) {
+    warnings.push('Psychological profile may be generic - should be specific to client');
+  }
+  
+  return warnings;
+}
+
+/**
+ * Validate that strategy contains meaningful, individualized recommendations
+ */
+function validateStrategyQuality(strategy) {
+  const warnings = [];
+  
+  // Check for generic phrases in supplements
+  if (strategy.supplementRecommendations && strategy.supplementRecommendations.length > 0) {
+    for (const supp of strategy.supplementRecommendations) {
+      if (typeof supp === 'string') {
+        // Check if supplement has dosage
+        const hasDosage = DOSAGE_UNITS.some(unit => supp.includes(unit));
+        if (!hasDosage) {
+          const preview = supp.length > 50 ? supp.substring(0, 50) + '...' : supp;
+          warnings.push(`Supplement may be missing dosage: "${preview}"`);
+        }
+      }
+    }
+  }
+  
+  return warnings;
+}
+
+
 /**
  * Multi-step plan generation for better individualization
  * 
@@ -1611,6 +1663,14 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Analysis complete (1/3)');
     
+    // Quality check on analysis
+    if (analysis) {
+      const analysisQuality = validateAnalysisQuality(analysis);
+      if (analysisQuality.length > 0) {
+        console.warn('Analysis quality warnings:', analysisQuality);
+      }
+    }
+    
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
@@ -1641,6 +1701,14 @@ async function generatePlanMultiStep(env, data) {
     }
     
     console.log('Multi-step generation: Strategy complete (2/3)');
+    
+    // Quality check on strategy
+    if (strategy) {
+      const strategyQuality = validateStrategyQuality(strategy);
+      if (strategyQuality.length > 0) {
+        console.warn('Strategy quality warnings:', strategyQuality);
+      }
+    }
     
     // Step 3: Generate detailed meal plan
     // Use progressive generation if enabled (multiple smaller requests)
@@ -1758,16 +1826,32 @@ async function generateAnalysisPrompt(data, env) {
     });
   }
   
-  return `ROLE: Expert dietitian, psychologist, endocrinologist
-TASK: Holistic client analysis + caloric/macro calculations
+  return `Expert nutritional analysis. Calculate BMR, TDEE, target kcal, macros. Review baseline holistically using all client factors.
 
-BACKEND-AI PROTOCOL:
-1. Backend provides mathematical baseline (Mifflin-St Jeor formula below)
-2. AI must critically review baseline considering ALL correlates
-3. Only modify if confident after comprehensive data analysis
-4. Response format: compressed, technical format (reasoning fields in English, user-facing fields in Bulgarian)
+CRITICAL QUALITY STANDARDS:
+1. INDIVIDUALIZATION: Base EVERY conclusion on THIS client's specific data - avoid generic/averaged approaches
+2. CORRELATIONAL THINKING: Analyze interconnections (sleep↔stress↔eating, chronotype↔meal timing, psychology↔behavior)
+3. EVIDENCE-BASED: Use modern, proven methods - no outdated/worn-out approaches
+4. SPECIFICITY: Concrete recommendations, not vague generalities
+5. NO DEFAULTS: All values calculated from client data, no standard templates
 
-═══ CLIENT PROFILE ═══
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
+- Supplement dosages: EXACT values (e.g. "400mg", "2g"), NOT ranges like "300-400mg" or "2-3g"
+- Supplements must be prescribed specifically for THIS client based on deficiencies/needs, not generic rules
+
+PROTOCOL:
+- Backend baseline: Mifflin-St Jeor formula as starting point
+- AI: Critically review and adjust using comprehensive analysis of ALL factors
+- Format: Reasoning in English, user fields in Bulgarian
+
+CLIENT DATA:
 ${JSON.stringify({
   name: data.name,
   age: data.age,
@@ -1816,154 +1900,55 @@ ${JSON.stringify({
   dietLove: data.dietLove
 }, null, 2)}
 
-═══ BACKEND BASELINE (MATHEMATICAL GUIDANCE) ═══
-Physical params:
-- Weight: ${data.weight} kg, Height: ${data.height} cm, Age: ${data.age}, Sex: ${data.gender}
-- Goal: ${data.goal}${data.lossKg ? `, Target loss: ${data.lossKg} kg` : ''}
+BASELINE (Mifflin-St Jeor):
+Weight ${data.weight}kg, Height ${data.height}cm, Age ${data.age}, Sex ${data.gender}, Goal ${data.goal}${data.lossKg ? `, Loss ${data.lossKg}kg` : ''}
+BMR = 10×weight + 6.25×height - 5×age + (${data.gender === 'Мъж' ? '5' : '-161'})
+TDEE = BMR × Activity(1.2-1.9), Target = TDEE±deficit/surplus
 
-BACKEND FORMULA (Mifflin-St Jeor baseline):
-NOTE: Client data fields (gender, dietHistory, medications) are in Bulgarian from frontend questionnaire
-- BMR = 10×weight + 6.25×height - 5×age + (${data.gender === 'Мъж' ? '5' : '-161'})
-- TDEE = BMR × ActivityFactor (1.2-1.9 based on ${data.sportActivity})
-- Target kcal: adjusted per goal (deficit for weight loss, surplus for muscle gain)
+ANALYSIS FACTORS:
+Sleep: ${data.sleepHours}h (interrupted: ${data.sleepInterrupt}), Stress: ${data.stressLevel} → hormones, cravings: ${JSON.stringify(data.foodCravings || [])}
+Triggers: ${JSON.stringify(data.foodTriggers || [])}, Compensations: ${JSON.stringify(data.compensationMethods || [])}
+Chronotype: ${data.chronotype}, Activity: ${data.sportActivity}/${data.dailyActivityLevel}
+Diet history: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'none'} (failed diets = metabolic adaptation)
+Medical: ${JSON.stringify(data.medicalConditions || [])}, Meds: ${data.medications === 'Да' ? data.medicationsDetails : 'none'}
 
-AI CRITICAL REVIEW REQUIRED:
-Review backend baseline considering ALL factors:
-- Sleep quality (${data.sleepHours}h) + stress (${data.stressLevel}) → hormone/metabolism impact
-- Diet history (${data.dietHistory}) → metabolic adaptation check
-- Medical conditions (${JSON.stringify(data.medicalConditions || [])}) → metabolic modifiers
-- Psychological factors → realistic sustainable targets
-- Chronotype (${data.chronotype}) → optimal timing
-- Activity ratio: sport vs daily
+TASK:
+1. Calculate BMR/TDEE/target kcal, adjust for all factors
+2. Success score (-100 to +100) based on holistic assessment  
+3. Identify 3-6 key problems (Borderline/Risky/Critical only)
+4. All reasoning in English, user fields in Bulgarian
 
-AI DECISION:
-- Confirm baseline if data supports standard calculations
-- Adjust ONLY if confident after analyzing correlates
-- Explain deviations from baseline in reasoning fields
-
-REFERENCE (illustrative, do NOT copy):
-F, 35y, 70kg, 165cm, moderate activity:
-- Good profile (sleep OK, stress low, no diet history): BMR≈1400, TDEE≈2160, Target≈1840 kcal
-- Challenged profile (sleep poor, stress high, 3 failed diets): BMR≈1180, TDEE≈1780, Target≈1600 kcal
-(Note: AI may lower BMR/TDEE due to cumulative metabolic adaptation)
-
-═══ AI TASK ═══
-1. HOLISTIC ANALYSIS: Review all data for ${data.name}
-2. CALCULATE: BMR, TDEE, target kcal based on AI professional judgment
-3. EXPLAIN: Detail reasoning in "_reasoning" fields (use English for internal reasoning)
-4. USER-FACING FIELDS: Use Bulgarian language for all user-visible content (title, description, impact)
-
-CORRELATIONAL ANALYSIS:
-
-**SLEEP ↔ STRESS ↔ EATING**: ${data.sleepHours}h sleep (interrupted: ${data.sleepInterrupt}) + stress (${data.stressLevel}) → impact on:
-   - Hormones (cortisol, ghrelin, leptin)
-   - Cravings: ${JSON.stringify(data.foodCravings || [])}
-   - Overeating freq: ${data.overeatingFrequency}
-
-**PSYCHOLOGICAL PROFILE**: Emotion ↔ eating link analysis:
-   - Triggers: ${JSON.stringify(data.foodTriggers || [])}
-   - Compensations: ${JSON.stringify(data.compensationMethods || [])}
-   - Social comparison: ${data.socialComparison}
-   - Self-discipline + motivation assessment
-
-**METABOLIC FACTORS**: Unique metabolic profile based on:
-   - Chronotype (${data.chronotype}) → optimal eating timing
-   - Activity (${data.sportActivity}, ${data.dailyActivityLevel})
-   - History: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'no prior diets'} (NOTE: Bulgarian data)
-   - CRITICAL: Failed diets typically indicate reduced metabolism
-
-**MEDICAL FACTORS**: Medical conditions impact on nutrition:
-   - Conditions: ${JSON.stringify(data.medicalConditions || [])}
-   - Medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'} (NOTE: Bulgarian data)
-   - Specific macro/micronutrient needs?
-
-**SUCCESS SCORE**: Calculate (-100 to +100) based on ALL factors:
-   - BMI + health status
-   - Sleep quality + stress
-   - Diet history (failed diets reduce score by 15-25 pts)
-   - Psychological resilience
-   - Medical conditions + activity
-
-**KEY PROBLEMS**: Identify 3-6 problem areas (ONLY Borderline/Risky/Critical severity):
-   - Focus on factors actively hindering goal
-   - EXCLUDE "Normal" problems
-
-═══ OUTPUT FORMAT ═══
-CRITICAL - DATA TYPES:
-- Numeric fields: numbers ONLY (int/float), NO text/units/explanations
-- Explanations: in separate "_reasoning" fields (English for internal use)
-- BMR, TDEE, recommendedCalories: AI calculates based on ALL factors
-- USER-FACING CONTENT: Bulgarian language REQUIRED for title, description, impact, metabolicProfile, healthRisks, nutritionalNeeds, psychologicalProfile
+OUTPUT (JSON):
+- Numeric fields: numbers only (no text/units)
+- Reasoning fields: English, compact
+- User fields (metabolicProfile, healthRisks, nutritionalNeeds, psychologicalProfile, keyProblems title/description/impact): Bulgarian
 
 {
-  "bmr": number (AI holistic calculation),
-  "bmrReasoning": "compact explanation: how/why baseline adjusted",
-  "tdee": number (AI holistic calculation),
-  "tdeeReasoning": "compact: activity, stress, sleep impact on TDEE",
-  "recommendedCalories": number (AI determines from goal + correlates),
-  "caloriesReasoning": "compact: why these exact kcal - goal, stress, diet history, metabolism factors",
-  "macroRatios": {
-    "protein": number (%, e.g. 30),
-    "carbs": number (%, e.g. 35),
-    "fats": number (%, e.g. 35)
-  },
-  "macroRatiosReasoning": {
-    "protein": "compact: why optimal % for ${data.name}",
-    "carbs": "compact: based on activity, medical conditions",
-    "fats": "compact: based on needs"
-  },
-  "macroGrams": {
-    "protein": number (grams/day),
-    "carbs": number (grams/day),
-    "fats": number (grams/day)
-  },
+  "bmr": number,
+  "bmrReasoning": "English: adjustment rationale",
+  "tdee": number,
+  "tdeeReasoning": "English: activity/stress/sleep impact",
+  "recommendedCalories": number,
+  "caloriesReasoning": "English: goal/stress/diet history factors",
+  "macroRatios": {"protein": %, "carbs": %, "fats": %},
+  "macroRatiosReasoning": {"protein": "English", "carbs": "English", "fats": "English"},
+  "macroGrams": {"protein": g, "carbs": g, "fats": g},
   "weeklyBlueprint": {
-    "skipBreakfast": boolean (true if client doesn't eat breakfast),
-    "dailyMealCount": number (meals/day, typically 2-4),
-    "mealCountReasoning": "compact: why this meal count optimal",
-    "dailyStructure": [
-      {
-        "dayIndex": 1,
-        "meals": [
-          {
-            "type": "breakfast/lunch/dinner/snack",
-            "active": boolean,
-            "calorieTarget": number (kcal for this meal),
-            "proteinSource": "suggested main protein (e.g. chicken, fish, eggs)",
-            "carbSource": "suggested carb (e.g. quinoa, rice, vegetables)"
-          }
-        ]
-      }
-      // ... repeat for all 7 days
-    ]
+    "skipBreakfast": boolean,
+    "dailyMealCount": number,
+    "mealCountReasoning": "English",
+    "dailyStructure": [{"dayIndex": 1, "meals": [{"type": "breakfast/lunch/dinner/snack", "active": boolean, "calorieTarget": kcal, "proteinSource": "e.g. chicken", "carbSource": "e.g. rice"}]}]
   },
-  "metabolicProfile": "НА БЪЛГАРСКИ: УНИКАЛЕН метаболитен профил - compressed: как хронотип, активност, история влияят на метаболизма",
-  "healthRisks": ["НА БЪЛГАРСКИ: риск 1 конкретен", "риск 2", "риск 3"],
-  "nutritionalNeeds": ["НА БЪЛГАРСКИ: нужда 1 от анализа", "нужда 2", "нужда 3"],
-  "psychologicalProfile": "НА БЪЛГАРСКИ: ДЕТАЙЛЕН анализ: емоционално хранене, тригери, копинг механизми, мотивация (compressed format)",
-  "successChance": number (-100 to 100),
-  "successChanceReasoning": "compact: why score - helping/hindering factors",
-  "keyProblems": [
-    {
-      "title": "кратко име НА БЪЛГАРСКИ (2-4 думи)",
-      "description": "НА БЪЛГАРСКИ: защо е проблем и какви последствия има",
-      "severity": "Borderline / Risky / Critical",
-      "severityValue": number 0-100,
-      "category": "Sleep / Nutrition / Hydration / Stress / Activity / Medical",
-      "impact": "НА БЪЛГАРСКИ: въздействие върху здравето/целта"
-    }
-  ]
+  "metabolicProfile": "BULGARIAN: unique profile - chronotype, activity, history impact",
+  "healthRisks": ["BULGARIAN: specific risk 1", "risk 2", "risk 3"],
+  "nutritionalNeeds": ["BULGARIAN: need 1", "need 2", "need 3"],
+  "psychologicalProfile": "BULGARIAN: emotional eating, triggers, coping, motivation",
+  "successChance": number,
+  "successChanceReasoning": "English: helping/hindering factors",
+  "keyProblems": [{"title": "BULGARIAN 2-4 words", "description": "BULGARIAN: why problem + consequences", "severity": "Borderline/Risky/Critical", "severityValue": 0-100, "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical", "impact": "BULGARIAN: health/goal impact"}]
 }
 
-RULES for weeklyBlueprint:
-1. Sum of calorieTarget for all active meals = recommendedCalories/day
-2. If skipBreakfast=true → "breakfast" meals active=false, calorieTarget=0
-3. Vary proteinSource + carbSource between days for variety
-4. Meal types chronological order: breakfast → lunch → snack → dinner
-5. Use dailyMealCount consistently across week (unless specific reason for variation)
-
-Be SPECIFIC for ${data.name}. Avoid generic phrases like "good metabolism" - explain WHY + HOW using compressed technical format!
-`;
+WeeklyBlueprint rules: Sum calorieTarget = recommendedCalories/day. If skipBreakfast=true, breakfast active=false. Vary protein/carb sources. Chronological meal order.`;
 }
 
 async function generateStrategyPrompt(data, analysis, env) {
@@ -2010,145 +1995,66 @@ async function generateStrategyPrompt(data, analysis, env) {
     });
   }
   
-  return `TASK: Determine optimal dietary strategy based on health profile + analysis
+  return `Dietary strategy optimization. Develop UNIQUE, individualized approach for THIS specific client.
 
-BACKEND-AI PROTOCOL:
-1. Backend provides analysis baseline (BMR/TDEE/macros calculated in Step 1)
-2. AI must critically review strategy considering ALL factors holistically
-3. Only deviate from analysis if confident after comprehensive review
-4. Response format: compressed English/machine (internal), BUT Bulgarian for frontend fields (welcomeMessage, planJustification, etc.)
+CRITICAL QUALITY STANDARDS:
+1. STRICTLY FORBIDDEN: Generic/universal/averaged recommendations - everything must be client-specific
+2. MODERN APPROACHES: Use current, evidence-based methods (IF, cyclical nutrition, chronotype optimization, psychology-based)
+3. AVOID CLICHÉS: No "eat more vegetables", "drink water", "exercise" - client knows basics, wants SPECIFICS
+4. INDIVIDUALIZED SUPPLEMENTS: Each supplement justified by THIS client's specific needs (not standard multivitamin lists)
+5. CONCRETE DETAILS: Specific strategies and approaches for THIS client
+6. STRATEGIC THINKING: Consider 2-3 day horizons, cyclical approaches, non-standard solutions if justified
+
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
+- Supplement dosages: EXACT values (e.g. "400mg", "2g"), NOT ranges like "300-400mg" or "2-3g"
+- Supplements must be prescribed specifically for THIS client based on deficiencies/needs, not generic rules
 
 CLIENT: ${data.name}, ${data.age}y, Goal: ${data.goal}
+ANALYSIS: BMR/TDEE/kcal ${analysisCompact.bmr}/${analysisCompact.tdee}/${analysisCompact.recommendedCalories}, Macros ${analysisCompact.macroRatios} (${analysisCompact.macroGrams})
+${analysisCompact.weeklyBlueprint ? `Weekly: ${analysisCompact.weeklyBlueprint.dailyMealCount} meals/day${analysisCompact.weeklyBlueprint.skipBreakfast ? ', no breakfast' : ''}` : ''}
+Profile: ${analysisCompact.metabolicProfile}
+Risks: ${analysisCompact.healthRisks}, Needs: ${analysisCompact.nutritionalNeeds}
+Psychology: ${analysisCompact.psychologicalProfile}, Success: ${analysisCompact.successChance}, Problems: ${analysisCompact.keyProblems}
 
-ANALYSIS BASELINE (from Step 1):
-- BMR/TDEE/kcal: ${analysisCompact.bmr} / ${analysisCompact.tdee} / ${analysisCompact.recommendedCalories}
-- Macro ratios: ${analysisCompact.macroRatios}
-- Macro grams/day: ${analysisCompact.macroGrams}
-${analysisCompact.weeklyBlueprint ? `- Weekly structure: ${analysisCompact.weeklyBlueprint.dailyMealCount} meals/day${analysisCompact.weeklyBlueprint.skipBreakfast ? ', NO breakfast' : ''}` : ''}
-- Metabolic profile: ${analysisCompact.metabolicProfile}
-- Health risks: ${analysisCompact.healthRisks}
-- Nutritional needs: ${analysisCompact.nutritionalNeeds}
-- Psychological profile: ${analysisCompact.psychologicalProfile}
-- Success chance: ${analysisCompact.successChance}
-- Key problems: ${analysisCompact.keyProblems}
+PREFERENCES: ${JSON.stringify(data.dietPreference || [])}${data.dietPreference_other ? ` + ${data.dietPreference_other}` : ''}
+Dislikes: ${data.dietDislike || 'None'}, Loves: ${data.dietLove || 'None'}
 
-PREFERENCES:
-- Diet preferences: ${JSON.stringify(data.dietPreference || [])}
-${data.dietPreference_other ? `  (Other: ${data.dietPreference_other})` : ''}
-- Dislikes/intolerances: ${data.dietDislike || 'None'}
-- Favorite foods: ${data.dietLove || 'None'}
+Medical: ${JSON.stringify(data.medicalConditions || [])}, Medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'}
+Weight ${data.weight}kg, Age ${data.age}y, Sex ${data.gender}, Sleep ${data.sleepHours}h, Stress ${data.stressLevel}, Activity ${data.sportActivity}
+Chronotype: ${data.chronotype}
 
-HOLISTIC INTEGRATION - Consider ALL params + correlations:
-1. Medical conditions + medications → nutritional needs impact
-2. Food intolerances + allergies → strict constraints
-3. Personal preferences + favorites → long-term sustainability
-4. Chronotype + daily rhythm → optimal meal timing
-5. Stress level + emotional eating → psychological support
-6. Cultural context (Bulgarian traditions + available products)
-7. Sleep ↔ stress ↔ food cravings correlations
-8. Physical activity ↔ caloric needs link
-9. Medical conditions ↔ nutritional requirements interplay
+INTEGRATION FACTORS:
+Medical + meds: ${JSON.stringify(data.medicalConditions || [])} + ${data.medications === 'Да' ? data.medicationsDetails : 'none'} → check interactions (VitK+warfarin, Ca/Mg+antibiotics, Iron+antacids, VitD+corticosteroids)
+Condition-specific: Diabetes→Chromium/VitD/Omega3, Hypertension→Mg/K/CoQ10, Thyroid→Selenium/Iodine/Zinc, Anemia→Iron/VitC/B12, PCOS→Inositol/VitD/Omega3, IBS/IBD→Probiotics/VitD/Omega3
+Individual dosing: Weight ${data.weight}kg, Age ${data.age}y, Sex ${data.gender}, Sleep ${data.sleepHours}h, Stress ${data.stressLevel}, Activity ${data.sportActivity}
+Preferences + cultural (Bulgarian products) → sustainability
+Chronotype + rhythm → timing (meal names, not specific hours)
+Sleep ↔ stress ↔ cravings → psychology
 
-CRITICAL - INDIVIDUALIZED RECOMMENDATIONS:
-1. Supplements must be STRICTLY INDIVIDUALIZED for ${data.name}
-2. FORBIDDEN: generic/universal supplement recommendations
-3. Each supplement justified by SPECIFIC needs from analysis
-4. Dosages personalized by age, weight, sex, health status
-5. Consider medical conditions, medications, possible interactions
-6. CRITICAL - INTERACTION CHECKS:
-   - If on medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'}, check: (NOTE: Bulgarian data input)
-     * Vit K + anticoagulants (warfarin) = contraindicated
-     * Ca/Mg + antibiotics = reduced absorption
-     * Iron + antacids = blocked absorption
-     * Vit D + corticosteroids = higher dose needed
-   - If medical conditions: ${JSON.stringify(data.medicalConditions || [])}, consider:
-     * Diabetes: Chromium, Vit D, Omega-3 (blood sugar control)
-     * Hypertension: Mg, K, CoQ10 (BP reduction)
-     * Thyroid: Selenium, Iodine (only if deficient!), Zinc
-     * Anemia: Iron (heme for better absorption), Vit C (aids absorption), B12
-     * PCOS: Inositol, Vit D, Omega-3, Chromium
-     * IBS/IBD: Probiotics (specific strains), Vit D, Omega-3
-7. INDIVIDUAL DOSING based on:
-   - Weight: ${data.weight} kg (higher weight = higher dose for fat-soluble vitamins)
-   - Age: ${data.age}y (older = higher Vit D, B12, Ca needs)
-   - Sex: ${data.gender} (women = more iron during menstruation; men = more zinc)
-   - Sleep: ${data.sleepHours}h (under 7h = Mg for sleep, Melatonin)
-   - Stress: ${data.stressLevel} (high stress = Mg, B-complex vitamins, Ashwagandha)
-   - Activity: ${data.sportActivity} (high = Protein, BCAA, Creatine, Vit D)
+TASKS:
+1. Determine MODIFIER (Keto/Paleo/Vegan/Vegetarian/Mediterranean/Low-carb/Balanced/Gentle stomach/Gluten-free) - ONE primary strategy based on THIS client's unique situation
+2. Develop weekly/multi-day strategy with cyclical distribution if physiologically/psychologically beneficial for THIS client
+3. Justify meal count (1-5/day), after-dinner meals based on THIS client's specific needs (not standard 3-meal approach)
+4. Individualize supplements: EACH must be justified by specific deficiency/need from analysis + appropriate dosage range + general timing + interaction checks for THIS client
 
-CRITICAL - MODIFIER DETERMINATION:
-After analyzing all params, determine appropriate MODIFIER (dietary profile) controlling meal generation logic:
-- Terms: "Keto", "Paleo", "Vegan", "Vegetarian", "Mediterranean", "Low-carb", "Balanced", "Gentle stomach", "Gluten-free", etc.
-- MODIFIER must account for medical conditions, goals, preferences, all analyzed factors
-- Determine ONE primary dietary strategy most suitable for client
-- If no specific restrictions, use "Balanced" or "Mediterranean"
+FORBIDDEN GENERIC APPROACHES:
+- Standard multivitamins without specific justification
+- "Eat balanced meals" - specify food groups from whitelist appropriate for THIS client
+- "Drink 2L water" - approximate based on weight, activity, climate for THIS client  
+- Cookie-cutter meal plans - design for THIS client's chronotype, schedule, preferences
+- Textbook recommendations - adapt proven methods to THIS client's unique factors
 
-LONG-TERM STRATEGY DEVELOPMENT:
-1. Create CLEAR long-term strategy for achieving ${data.name}'s goals
-2. Strategy must cover not just daily, but WEEKLY/MULTI-DAY horizon
-3. If physiologically/psychologically/strategically justified:
-   - Planning can span 2-3 days as whole
-   - Macro/calorie horizon NOT necessarily 24h
-   - Cyclical calorie/macro distribution possible (e.g. low-high days)
-4. Justify WHY specific meal count (1-5) chosen for each day
-5. Justify WHY + WHEN after-dinner meals needed (if any)
-6. Each non-standard strategy recommendation MUST have clear goal + justification
+OUTPUT (JSON, STRICTLY NO GENERIC CONTENT):
+USER-FACING FIELDS IN BULGARIAN: welcomeMessage (150-250 words, personalized greeting referencing specific factors), planJustification, longTermStrategy (2-3 day/week horizon), mealCountJustification, afterDinnerMealJustification (or "Не са необходими"), dietaryModifier, modifierReasoning, dietType, weeklyMealPattern, mealTiming{pattern/fastingWindows/flexibility}, keyPrinciples[], foodsToInclude[], foodsToAvoid[], supplementRecommendations[] (individualized with dosage + rationale), hydrationStrategy, psychologicalSupport[]
 
-OUTPUT JSON format (NO generic recommendations):
-NOTE: ALL fields shown to users MUST be in BULGARIAN:
-- MANDATORY: welcomeMessage, planJustification, longTermStrategy, mealCountJustification, afterDinnerMealJustification
-- USER-FACING: dietaryModifier, modifierReasoning, dietType, weeklyMealPattern, mealTiming (all sub-fields), keyPrinciples, foodsToInclude, foodsToAvoid, supplementRecommendations, hydrationStrategy, psychologicalSupport
-
-{
-  "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
-  "modifierReasoning": "компресирано обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
-  "welcomeMessage": "MANDATORY FIELD (IN BULGARIAN): PERSONALIZED greeting for ${data.name} when first viewing plan. Tone: professional yet warm, motivating. Include: 1) Personal greeting with name, 2) Brief mention of specific profile factors (age, goal, key challenges), 3) How plan created specifically for their needs, 4) Positive vision for achieving goals. Length: approximately 150-250 Bulgarian words. IMPORTANT: Avoid generic phrases - use specific details for ${data.name}.",
-  "planJustification": "MANDATORY FIELD (IN BULGARIAN): Detailed justification of overall strategy, including meal count, timing, cyclical distribution (if any), after-dinner meals (if any), WHY this strategy optimal for ${data.name}. Minimum 100 chars.",
-  "longTermStrategy": "LONG-TERM STRATEGY (IN BULGARIAN): Describe how plan works within 2-3 days/week, not just daily. Include info on cyclical calorie/macro distribution, meal variation, how this supports goals.",
-  "mealCountJustification": "MEAL COUNT JUSTIFICATION (IN BULGARIAN): Why this exact meal count (1-5) chosen for each day. Strategic, physiological, or psychological reason.",
-  "afterDinnerMealJustification": "AFTER-DINNER MEAL JUSTIFICATION (IN BULGARIAN): If after-dinner meals exist, explain WHY needed, goal, how they support overall strategy. Ако няма – напиши „Не са необходими".",
-  "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
-  "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
-  "mealTiming": {
-    "pattern": "седмичен модел на хранене описан детайлно - напр. 'Понеделник-Петък: 2 хранения (12:00, 19:00), Събота-Неделя: 3 хранения с едно свободно'",
-    "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
-    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите"
-  },
-  "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
-  "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
-  "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
-  "supplementRecommendations": [
-    "! ИНДИВИДУАЛНА добавка 1 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: възраст ${data.age} год., пол ${data.gender}, цел ${data.goal}, медицински състояния ${data.medicalConditions || 'няма'})",
-    "! ИНДИВИДУАЛНА добавка 2 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: активност ${data.sportActivity}, сън ${data.sleepHours}ч, стрес ${data.stressLevel})",
-    "! ИНДИВИДУАЛНА добавка 3 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: хранителни навици ${data.eatingHabits}, предпочитания ${data.dietPreference})"
-  ],
-  "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name} според активност и климат",
-  "psychologicalSupport": [
-    "! психологически съвет 1 базиран на емоционалното хранене на ${data.name}",
-    "! психологически съвет 2 базиран на стреса и поведението на ${data.name}",
-    "! психологически съвет 3 за мотивация специфичен за профила на ${data.name}"
-  ]
-}
-
-IMPORTANT for WEEKLY SCHEME:
-- Create HOLISTIC weekly model considering goal, chronotype, habits
-- Intermittent fasting (16:8, 18:6, OMAD) fully valid choice if suitable
-- Can vary meal count between days (e.g. 2 meals workdays, 3 rest days)
-- "Free days" or "free meals" allowed as part of sustainable strategy
-- Week must work as SYSTEM, not as 7 independent days
-
-IMPORTANT for SUPPLEMENTS:
-- Each supplement must have CLEAR justification based on:
-  * Analysis deficiencies (e.g. low Vit D due to limited sun exposure)
-  * Medical conditions (e.g. Mg for stress, Omega-3 for inflammation)
-  * Goals (e.g. protein for muscle mass, iron for energy)
-  * Age + sex (e.g. Ca for women 40+, Zn for men)
-- Dosage must be PERSONALIZED by weight, age, needs
-- Intake timing must be optimal for absorption
-- STRICTLY FORBIDDEN: Using same supplements for different clients
-- STRICTLY FORBIDDEN: Generic "multivitamins" without specific justification
-- Each supplement MUST be different + specific for client ${data.name}
-- Consider unique combination: ${data.age}y ${data.gender}, ${data.goal}, ${data.medicalConditions || 'no med conditions'}, ${data.sportActivity}, stress: ${data.stressLevel}`;
+Weekly model: Holistic system (not 7 independent days), IF/OMAD valid if suitable, vary meal count between days if beneficial, free days/meals allowed for sustainability`;
 }
 
 /**
@@ -2444,196 +2350,87 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 `;
   }
   
-  const defaultPrompt = `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+  const defaultPrompt = `ADLE meal plan generation for days ${startDay}-${endDay} for ${data.name}.
 
-=== ЗАДАЧА ===
-Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
+CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
+1. NO GENERIC MEALS: Each meal must be unique to THIS client's needs, preferences, chronotype
+2. NO REPETITION: Days ${startDay}-${endDay} must ALL be distinctly different from each other${previousDays.length > 0 ? ' and from previous days' : ''}
+3. REALISTIC & CULTURAL: Bulgarian/Mediterranean cuisine - no exotic/trendy/hard-to-find ingredients
+4. SPECIFIC BENEFITS: Each meal's "benefits" field must explain WHY this specific meal helps THIS client's specific goal
+5. STRATEGIC THINKING: Consider chronotype for meal timing/size, psychology for sustainability
 
-=== КЛИЕНТ ===
-Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
-BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
-Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
+- Focus on food groups: "fish with vegetables", "meat with salad" (NOT "180g sea bass with 200g broccoli")
+
+CLIENT: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day
+BMR: ${bmr}, Modifier: "${dietaryModifier}"${modificationsSection}
+Stress: ${data.stressLevel}, Sleep: ${data.sleepHours}h, Chronotype: ${data.chronotype}
 ${blueprintSection}
-=== СТРАТЕГИЯ (КОМПАКТНА) ===
-Диета: ${strategyCompact.dietType}
-Схема: ${strategyCompact.weeklyMealPattern}
-Хранения: ${strategyCompact.mealTiming}
-Принципи: ${strategyCompact.keyPrinciples}
-Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
-Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
+STRATEGY: Diet ${strategyCompact.dietType}, Pattern ${strategyCompact.weeklyMealPattern}, Timing ${strategyCompact.mealTiming}
+Principles: ${strategyCompact.keyPrinciples}
+Avoid: ${data.dietDislike || 'none'}, ${strategyCompact.foodsToAvoid}
+Include: ${data.dietLove || 'none'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
 
-=== КОРЕЛАЦИОННА АДАПТАЦИЯ ===
-СТРЕС И ХРАНЕНЕ:
-- Стрес: ${data.stressLevel}
-- При висок стрес, включи храни богати на:
-  * Магнезий (тъмно зелени листни зеленчуци, ядки, семена, пълнозърнести храни)
-  * Витамин C (цитруси, чушки, зеле)
-  * Омега-3 (мазна риба, ленено семе, орехи)
-  * Комплекс B витамини (яйца, месо, бобови)
-- Избягвай стимуланти (кафе, енергийни напитки) при висок стрес
+CORRELATIONAL ADAPTATION:
+STRESS→FOOD: ${data.stressLevel} - High stress: include Mg (leafy greens, nuts, seeds, whole grains), Vit C (citrus, peppers, cabbage), Omega-3 (fatty fish, flaxseed, walnuts), B vitamins (eggs, meat, legumes); avoid stimulants
+CHRONOTYPE→CALORIES: ${data.chronotype} - Early bird: larger breakfast (30-35% cal), moderate dinner (25%); Night owl: light breakfast (20%), larger dinner (35%); Mixed: balanced (25-30-25-20%)
+SLEEP→FOOD: ${data.sleepHours}h - Poor sleep (<6h): include tryptophan (eggs, yogurt, bananas, cheese); avoid heavy foods at night if interrupted
 
-ХРОНОТИП И КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ:
-- Хронотип: ${data.chronotype}
-- "Ранобуден" / "Сова на сутринта" → По-обилна закуска (30-35% калории), умерена вечеря (25%)
-- "Вечерен тип" / "Нощна сова" → Лека закуска (20%), по-обилна вечеря (35% калории)
-- "Смесен тип" → Балансирано разпределение (25-30-25-20%)
+ARCHITECTURE:
+Categories: [PRO]=Protein, [ENG]=Energy/carbs, [VOL]=Veggies/fiber, [FAT]=Fats, [CMPX]=Complex dishes
+Templates: A) DIVIDED PLATE=[PRO]+[ENG]+[VOL], B) MIXED=[PRO]+[ENG]+[VOL], C) LIGHT/SANDWICH, D) SINGLE BLOCK=[CMPX]+[VOL]
+Filters for "${dietaryModifier}": Vegan=no animal [PRO]; Keto=minimal [ENG]; Gluten-free=[ENG] only rice/potatoes/quinoa/buckwheat; Paleo=no grains/legumes/dairy${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nBREAKFAST: Client does NOT eat breakfast - skip or drink only if critical` : ''}
 
-СЪН И ХРАНЕНЕ:
-- Сън: ${data.sleepHours}ч
-- При малко сън (< 6ч): Включи храни с триптофан (яйца, кисело мляко, банани, сирене) за подобряване на съня
-- Избягвай тежки храни вечер ако съня е прекъсван
+ADLE v8 RULES (MANDATORY):
+Priority: 1) Hard bans → 2) Mode filter → 3) Template → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
 
-=== АРХИТЕКТУРА ===
-Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
-Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
-Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
+0) HARD BANS: onions, turkey, sweeteners, honey/sugar/jam/syrups, ketchup/mayo/BBQ sauces, Greek yogurt (use plain yogurt only), peas+fish
+0.1) RARE (≤2x/week): turkey ham, bacon
 
-=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
-ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
+R1-R12: Main protein=1; Veggies=1-2 (Salad OR Fresh, not both); Energy=0-1; Dairy max=1/meal; Fats=0-1 (nuts/seeds→no oil); Cheese→no oil (olives ok); Bacon→Fats=0; Legumes-as-main→Energy=0 (bread optional); Bread only if Energy=0; Peas as side→Energy=0; Sandwich=breakfast only; Off-whitelist only if needed (Reason:...)
 
-0) HARD BANS (0% ВИНАГИ):
-- лук (всякаква форма), пуешко месо, изкуствени подсладители
-- мед, захар, конфитюр, сиропи
-- кетчуп, майонеза, BBQ/сладки сосове
-- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
-- грах + риба (забранена комбинация)
+WHITELISTS: PROTEIN (1 main): eggs, chicken, beef, lean pork, fish, yogurt (plain), cottage cheese, cheese, beans, lentils, chickpeas, peas. BANNED: turkey (HARD), rabbit/duck/goose/lamb/game/exotic. VEGETABLES (1-2): tomatoes, cucumbers, peppers, cabbage, carrots, lettuce/greens, spinach, zucchini, mushrooms, broccoli, cauliflower, fresh cut. ENERGY (0-1): oats, rice, potatoes, pasta, bulgur (NOTE: corn NOT energy). FAT (0-1): olive oil, butter, nuts/seeds.
 
-0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
+RULES: Peas+fish=FORBIDDEN; Veggies ONE form (Salad OR Fresh); Olives=salad addition (not Fat); Corn=NOT energy; Sandwich=breakfast only
 
-HARD RULES (R1-R12):
-R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
-R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
-R3: Енергия = 0-1 (никога 2).
-R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
-R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
-R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
-R7: Правило за бекон: Ако бекон → Мазнини=0.
-R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
-R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
-R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
-R11: Template C (сандвич): Само за закуски; бобови забранени; без забранени сосове/подсладители.
-R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
-
-=== WHITELISTS (РАЗРЕШЕНИ ХРАНИ) - ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ ===
-КРИТИЧНО: Използвай САМО храни от тези списъци! Извън-whitelist САМО с Reason: ...
-
-WHITELIST PROTEIN (избери точно 1 главен белтък):
-- яйца (eggs)
-- пилешко (chicken)
-- говеждо (beef)
-- постна свинска (lean pork)
-- риба (white fish, скумрия/mackerel, риба тон/canned tuna)
-- кисело мляко (yogurt - plain, несладко)
-- извара (cottage cheese - plain)
-- сирене (cheese - умерено)
-- боб (beans)
-- леща (lentils)
-- нахут (chickpeas)
-- грах (peas - виж 3.5)
-
-ЗАБРАНЕНИ БЕЛТЪЦИ (НЕ използвай без Reason):
-- пуешко месо (turkey meat) - HARD BAN
-- заешко (rabbit) - ИЗВЪН whitelist
-- патица (duck) - ИЗВЪН whitelist
-- гъска (goose) - ИЗВЪН whitelist
-- агне (lamb) - ИЗВЪН whitelist
-- дивеч (game meat) - ИЗВЪН whitelist
-- всички екзотични меса - ИЗВЪН whitelist
-
-WHITELIST VEGETABLES (избери 1-2):
-- домати, краставици, чушки, зеле, моркови
-- салата/листни зеленчуци (lettuce/greens), спанак
-- тиквички, гъби, броколи, карфиол
-- пресни нарязани: домати/краставици/чушки (БЕЗ дресинг)
-
-WHITELIST ENERGY (избери 0-1):
-- овесени ядки (oats)
-- ориз (rice)
-- картофи (potatoes)
-- паста (pasta)
-- булгур (bulgur)
-ЗАБЕЛЕЖКА: Царевица НЕ е енергия!
-
-WHITELIST FAT (избери 0-1):
-- зехтин (olive oil)
-- масло (butter - умерено)
-- ядки/семена (nuts/seeds - умерено)
-
-СПЕЦИАЛНИ ПРАВИЛА:
-- Грах + риба = СТРОГО ЗАБРАНЕНО
-- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
-- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
-- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
-- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
-
-=== КРИТИЧНИ ИЗИСКВАНИЯ ===
-1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
-2. ПРЕЦИЗНИ КАЛОРИИ: Изчислени като protein×4 + carbs×4 + fats×9 за ВСЯКО ястие
-3. ЦЕЛЕВА ДНЕВНА СУМА: Около ${recommendedCalories} kcal на ден (±${DAILY_CALORIE_TOLERANCE} kcal е приемливо)
-   - Целта е ОРИЕНТИР, НЕ строго изискване
-   - По-важно е да спазиш правилния брой и ред на хранения, отколкото да достигнеш точно калориите
-4. БРОЙ ХРАНЕНИЯ: 1-6 хранения на ден според диетичната стратегия и целта
-   - 1 хранене (OMAD): само при ясна стратегия за интермитентно гладуване
-   - 2 хранения: при стратегия за интермитентно гладуване (16:8, 18:6)
-   - 3 хранения: Закуска, Обяд, Вечеря (стандартен вариант)
-   - 4 хранения: Закуска, Обяд, Следобедна закуска, Вечеря (при нужда от по-честа хранене)
-   - 5 хранения: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска (при специфични случаи)
-   - 6 хранения: рядко, само при специфична медицинска/спортна стратегия
-   - КРИТИЧНО: Броят хранения се определя от СТРАТЕГИЯТА, НЕ от нуждата да се достигнат калории!
-   - НИКОГА не добавяй хранения САМО за достигане на калории!
-5. РАЗНООБРАЗИЕ: Всеки ден различен от предишните
-6. Реалистични български/средиземноморски ястия
-
-=== МЕДИЦИНСКИ И ДИЕТЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
-КРИТИЧНО ВАЖНО: Следвай СТРОГО медицинските и диететични принципи за ред на храненията:
-
-1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
-   - "Закуска" (сутрин) - САМО като първо хранене на деня
-   - "Обяд" (обед) - САМО след закуската или като първо хранене (ако няма закуска)
-   - "Следобедна закуска" (опционално, между обяд и вечеря)
-   - "Вечеря" (вечер) - обикновено последно хранене
-   - "Късна закуска" (опционално, САМО след вечеря, специални случаи)
-
-2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
-   - НЕ може да има закуска след обяд
-   - НЕ може да има обяд след вечеря
-   - НЕ може да има вечеря преди обяд
-
-3. КЪСНА ЗАКУСКА - строги изисквания:
-   КОГАТО Е ДОПУСТИМА:
-   - Дълъг период между вечеря и сън (> 4 часа)
-   - Проблеми със съня заради глад
-   - Диабет тип 2 (стабилизиране на кръвната захар)
-   - Интензивни тренировки вечер
-   - Работа на смени (нощни смени)
-   
-   ЗАДЪЛЖИТЕЛНИ УСЛОВИЯ:
-   - САМО след "Вечеря" (никога преди)
-   - МАКСИМУМ 1 на ден
-   - САМО храни с НИСЪК ГЛИКЕМИЧЕН ИНДЕКС (ГИ < 55):
-     * Кисело мляко (150ml), кефир
-     * Ядки: 30-40g бадеми/орехи/лешници/кашу
-     * Ягоди/боровинки/малини (50-100g)
-     * Авокадо (половин)
-     * Семена: чиа/ленено/тиквени (1-2 с.л.)
-   - МАКСИМУМ ${MAX_LATE_SNACK_CALORIES} калории
-   - НЕ използвай ако не е оправдано от профила на клиента!
-
-4. КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ: 
-   - Разпредели калориите в избраните хранения според стратегията (1-6 хранения)
-   - Ако порциите стават твърде големи, това е приемливо - по-добре от добавяне на хранения след вечеря
-   - Допустимо е да имаш 1800 kcal вместо 2000 kcal - това НЕ е проблем
-   - АБСОЛЮТНО ЗАБРАНЕНО е да добавяш хранения след вечеря без оправдание!
+CONSTRAINTS: Avoid overly specific names (YES: "fruit with yogurt", "fish with veggies"; NO: "blueberries", "trout"), strange combos, exotic products, repetition, non-traditional Bulgarian/Mediterranean. Medical: ${JSON.stringify(data.medicalConditions || [])}. VARIETY daily.${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? ` CLIENT DOES NOT EAT BREAKFAST - respect preference.` : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
-JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
-{
-  "day${startDay}": {
-    "meals": [
-      {"type": "Закуска", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
-      {"type": "Обяд", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
-      {"type": "Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+JSON (Bulgarian output for meals, days ${startDay}-${endDay} only):
+CRITICAL:
+1. MANDATORY MACROS: protein, carbs, fats, fiber (grams) for each meal
+2. PRECISE CALORIES: protein×4 + carbs×4 + fats×9
+3. TARGET DAILY: ~${recommendedCalories} kcal/day (±${DAILY_CALORIE_TOLERANCE} acceptable)
+4. MEAL COUNT: 1-6/day per strategy (NEVER add meals just to hit calories!)
+   - 1 meal (OMAD): clear IF strategy only
+   - 2 meals: IF strategy (16:8, 18:6)
+   - 3 meals: Breakfast, Lunch, Dinner (standard)
+   - 4 meals: +Afternoon snack
+   - 5 meals: +Late snack (rare, justified only)
+   - 6 meals: very rare, specific medical/sport needs
+5. VARIETY: Each day different
+6. Realistic Bulgarian/Mediterranean dishes
+
+MEAL ORDER (chronological, MANDATORY):
+"Закуска" (morning) → "Обяд" (noon) → "Следобедна закуска" (optional, afternoon) → "Вечеря" (evening) → "Късна закуска" (optional, ONLY after dinner if justified)
+
+LATE SNACK ("Късна закуска") STRICT RULES:
+Allowed ONLY if: Long gap dinner-sleep (>4h), sleep issues from hunger, type 2 diabetes, evening workouts, shift work
+Conditions: ONLY after "Вечеря", max 1/day, LOW GI foods only (<55): yogurt 150ml, nuts 30-40g, berries 50-100g, avocado half, seeds 1-2tbsp
+Max ${MAX_LATE_SNACK_CALORIES} calories. DO NOT use if not justified!
+
+${MEAL_NAME_FORMAT_INSTRUCTIONS}
+
+JSON (return days ${startDay}-${endDay} only):
+{"day${startDay}": {"meals": [{"type": "Закуска", "name": "Bulgarian name", "weight": "Xg", "description": "Bulgarian desc", "benefits": "Bulgarian benefits", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}, ...]}, ..., "day${endDay}": {...}}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
@@ -2699,35 +2496,18 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   const foodsToInclude = strategy.foodsToInclude || [];
   const foodsToAvoid = strategy.foodsToAvoid || [];
   
-  const defaultPrompt = `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+  const defaultPrompt = `Generate summary, recommendations, supplements for 7-day meal plan.
 
-КЛИЕНТ: ${data.name}, Цел: ${data.goal}
-BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
-Реален среден прием: ${avgCalories} kcal/ден
-Реални средни макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
+CLIENT: ${data.name}, Goal: ${data.goal}
+BMR: ${bmr}, Target: ${recommendedCalories} kcal/day
+Actual avg: ${avgCalories} kcal/day, Macros: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
 
-СТРАТЕГИЯ (КОМПАКТНА):
-- Психологическа подкрепа: ${psychologicalSupport.slice(0, 3).join('; ')}
-- Добавки: ${supplementRecommendations.slice(0, 3).join('; ')}
-- Хидратация: ${hydrationStrategy}
-- Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
-- Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
+STRATEGY: Psychology: ${psychologicalSupport.slice(0, 3).join('; ')}, Supplements: ${supplementRecommendations.slice(0, 3).join('; ')}, Hydration: ${hydrationStrategy}, Include: ${foodsToInclude.slice(0, 5).join(', ')}, Avoid: ${foodsToAvoid.slice(0, 5).join(', ')}
 
-JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
-{
-  "summary": {
-    "bmr": ${bmr},
-    "dailyCalories": ${avgCalories},
-    "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}
-  },
-  "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
-  "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
-  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
-  "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
-  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
-}
+JSON (numbers only for numeric fields, Bulgarian for user-facing content):
+{"summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}}, "recommendations": ["specific food 1", "food 2", "food 3", "food 4", "food 5"], "forbidden": ["banned food 1", "food 2", "food 3", "food 4"], "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["Bulgarian tip 1", "tip 2", "tip 3"]'}, "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}", "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["Bulgarian supplement 1 with dosage", "supplement 2", "supplement 3"]'}}
 
-ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+NOTE: recommendations/forbidden = specific foods for goal ${data.goal}, NOT general advice. All user-visible text in Bulgarian.`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -2840,139 +2620,92 @@ ${modLines.join('\n')}
     hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
   };
   
-  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+  return `ADLE (Advanced Dietary Logic Engine) - Meal plan constructor for ${data.name}.
 
-=== КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ ===
-- Този план е САМО и ЕДИНСТВЕНО за ${data.name}
-- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
-- ВСИЧКИ калории, макронутриенти и препоръки са ИНДИВИДУАЛНО изчислени
-- Хранителните добавки са ПЕРСОНАЛНО подбрани според анализа и нуждите
-- Психологическите съвети са базирани на КОНКРЕТНИЯ емоционален профил на ${data.name}
+CRITICAL QUALITY STANDARDS - INDIVIDUALIZATION:
+1. THIS PLAN IS ONLY FOR ${data.name} - no generic/template approach
+2. FORBIDDEN: Copy-paste standard meal plans, textbook examples, average portions
+3. REQUIRED: Unique combinations based on client's preferences, medical needs, chronotype, psychology
+4. VARIETY: Never repeat meals - each day must be distinctly different
+5. CULTURAL CONTEXT: Real Bulgarian/Mediterranean dishes - not exotic/trendy/unrealistic foods
+6. FLEXIBILITY: Use food groups and types from whitelist - allow client flexibility in portions
 
-=== МОДИФИКАТОР (Потребителски профил) ===
-ОПРЕДЕЛЕН МОДИФИКАТОР ЗА КЛИЕНТА: "${dietaryModifier}"
-${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning}` : ''}
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner", "snack")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
+- Focus on food groups from whitelist, not overly specific ingredient names
 
-=== КЛИЕНТ И ЦЕЛИ ===
-- Име: ${data.name}
-- Цел: ${data.goal}
-- Калории: ${recommendedCalories} kcal/ден (ИНДИВИДУАЛНО изчислени според BMR=${bmr}, активност и цел)
+INDIVIDUALIZED PLAN (NO defaults):
+Client: ${data.name}, Goal: ${data.goal}, Calories: ${recommendedCalories} kcal/day (INDIVIDUALLY calculated BMR=${bmr})
+Modifier: "${dietaryModifier}"${strategy.modifierReasoning ? ` - ${strategy.modifierReasoning}` : ''}
 
-=== СТРАТЕГИЯ (КОМПАКТНА) ===
-Диета: ${strategyCompact.dietType}
-Схема: ${strategyCompact.weeklyMealPattern}
-Хранения: ${strategyCompact.mealTiming}
-Принципи: ${strategyCompact.keyPrinciples}
-Храни включвай: ${strategyCompact.foodsToInclude}
-Храни избягвай: ${strategyCompact.foodsToAvoid}
+STRATEGY: Diet ${strategyCompact.dietType}, Pattern ${strategyCompact.weeklyMealPattern}, Timing ${strategyCompact.mealTiming}
+Principles: ${strategyCompact.keyPrinciples}, Include: ${strategyCompact.foodsToInclude}, Avoid: ${strategyCompact.foodsToAvoid}
 ${modificationsSection}
 
-=== АРХИТЕКТУРА НА ХРАНЕНЕТО ===
-Категории: [PRO]=Белтък (животински: месо, риба, яйца, млечни; растителен: тофу, темпе; бобови: леща, боб, нахут), [ENG]=Енергия/въглехидрати (зърнени: ориз, киноа, елда, овес, паста, хляб; кореноплодни: картофи; плодове), [VOL]=Зеленчуци/фибри (листни салати, краставици, домати, броколи, тиквички, чушки, гъби, карфиол, патладжан), [FAT]=Мазнини (зехтин, масло, авокадо, ядки, семена, тахан, маслини), [CMPX]=Сложни ястия (пица, лазаня, мусака, баница, бургер, врап, ризото, паеля).
+MEAL ARCHITECTURE:
+Categories: [PRO]=Protein (animal: meat/fish/eggs/dairy; plant: tofu/tempeh; legumes: lentils/beans/chickpeas), [ENG]=Energy/carbs (grains: rice/quinoa/buckwheat/oats/pasta/bread; roots: potatoes; fruits), [VOL]=Veggies/fiber (leafy salads, cucumbers, tomatoes, broccoli, zucchini, peppers, mushrooms, cauliflower, eggplant), [FAT]=Fats (olive oil, butter, avocado, nuts, seeds, tahini, olives), [CMPX]=Complex dishes (pizza, lasagna, moussaka, banitsa, burger, wrap, risotto, paella).
 
-Шаблони за ястия: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL] (печено пиле+картофи+салата), B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс (яхнии, купи), C) ЛЕКО/САНДВИЧ=[ENG-хляб]+[PRO]+[FAT]+[VOL] (сандвич, тост), D) ЕДИНЕН БЛОК=[CMPX]+[VOL] (лазаня+салата). 
+Templates: A) DIVIDED PLATE=[PRO]+[ENG]+[VOL] (grilled chicken+potatoes+salad), B) MIXED=[PRO]+[ENG]+[VOL] combined (stews, bowls), C) LIGHT/SANDWICH=[ENG-bread]+[PRO]+[FAT]+[VOL] (sandwich, toast), D) SINGLE BLOCK=[CMPX]+[VOL] (lasagna+salad).
 
-Филтриране според МОДИФИКАТОР "${dietaryModifier}": Веган=без животински [PRO]; Кето/Нисковъглехидратно=минимум [ENG], повече [PRO]+[FAT]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни; Щадящ стомах=готвени [VOL], без сурови влакнини. Избор на шаблон: закуска=C или A, обяд=A или B, вечеря=A/B/D. Слотове с продукти от филтриран списък. Избягвай: ${data.dietDislike || 'няма'}. Включвай: ${data.dietLove || 'няма'}. Естествен български език БЕЗ кодове в изхода.
+Modifier filters: Vegan=no animal [PRO]; Keto/Low-carb=minimal [ENG], more [PRO]+[FAT]; Gluten-free=[ENG] only rice/potatoes/quinoa/buckwheat; Paleo=no grains/legumes/dairy; Gentle stomach=cooked [VOL], no raw fiber. Template choice: breakfast=C or A, lunch=A or B, dinner=A/B/D. Slots from filtered list. Avoid: ${data.dietDislike || 'none'}, Include: ${data.dietLove || 'none'}. Natural Bulgarian output (no codes).
 
-=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
-ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
+ADLE v8 RULES (MANDATORY):
+Priority: 1) Hard bans → 2) Mode filter → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
 
-0) HARD BANS (0% ВИНАГИ):
-- лук (всякаква форма), пуешко месо, изкуствени подсладители
-- мед, захар, конфитюр, сиропи
-- кетчуп, майонеза, BBQ/сладки сосове
-- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
-- грах + риба (забранена комбинация)
+0) HARD BANS (always 0%):
+- onions (any form), turkey meat, artificial sweeteners
+- honey, sugar, jam, syrops
+- ketchup, mayo, BBQ/sweet sauces
+- Greek yogurt (use ONLY plain yogurt)
+- peas + fish (forbidden combination)
 
-0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
+0.1) RARE (≤2x/week): turkey ham, bacon
 
 HARD RULES (R1-R12):
-R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
-R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
-R3: Енергия = 0-1 (никога 2).
-R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
-R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
-R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
-R7: Правило за бекон: Ако бекон → Мазнини=0.
-R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
-R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
-R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
-R11: Template C (сандвич): Само за закуски; бобови забранени; без забранени сосове/подсладители.
-R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
+R1: Main protein = exactly 1. Secondary protein ONLY if (breakfast AND eggs), 0-1.
+R2: Veggies = 1-2. Choose EXACTLY ONE form: Salad OR Fresh cut (NOT both). Potatoes NOT veggies.
+R3: Energy = 0-1 (never 2).
+R4: Dairy max = 1 per meal (yogurt OR cottage cheese OR cheese), including as sauce/dressing.
+R5: Fats = 0-1. If nuts/seeds → no oil/butter.
+R6: Cheese rule: If cheese → no oil/butter. Olives allowed with cheese.
+R7: Bacon rule: If bacon → Fats=0.
+R8: Legumes-as-main (beans/lentils/chickpeas/pea stew): Energy=0 (no rice/potatoes/pasta/bulgur/oats). Bread optional: +1 slice whole grain.
+R9: Bread rule (outside Template C): Allowed ONLY if Energy=0. Exception: with legumes-as-main (R8), bread optional (1 slice). If Energy exists → Bread=0.
+R10: Peas as side with meat: Peas NOT energy, but BLOCKS Energy slot → Energy=0. Bread optional (+1 slice).
+R11: Template C (sandwich): Breakfast only; legumes forbidden; no banned sauces/sweeteners.
+R12: Off-whitelist addition: Default=whitelist only. Off-whitelist ONLY if objectively needed (MODE/medical/availability), mainstream/universal, available in Bulgaria. Add line: Reason: ...
 
-=== WHITELISTS (РАЗРЕШЕНИ ХРАНИ) - ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ ===
-КРИТИЧНО: Използвай САМО храни от тези списъци! Извън-whitelist САМО с Reason: ...
+WHITELISTS (ALLOWED FOODS) - MANDATORY:
+PROTEIN (choose exactly 1 main): eggs, chicken, beef, lean pork, fish (white fish, mackerel, canned tuna), yogurt (plain), cottage cheese (plain), cheese (moderate), beans, lentils, chickpeas, peas (see 3.5)
+BANNED PROTEINS: turkey meat (HARD BAN), rabbit/duck/goose/lamb/game/exotic meats (OFF whitelist)
 
-WHITELIST PROTEIN (избери точно 1 главен белтък):
-- яйца (eggs)
-- пилешко (chicken)
-- говеждо (beef)
-- постна свинска (lean pork)
-- риба (white fish, скумрия/mackerel, риба тон/canned tuna)
-- кисело мляко (yogurt - plain, несладко)
-- извара (cottage cheese - plain)
-- сирене (cheese - умерено)
-- боб (beans)
-- леща (lentils)
-- нахут (chickpeas)
-- грах (peas - виж 3.5)
+VEGETABLES (choose 1-2): tomatoes, cucumbers, peppers, cabbage, carrots, lettuce/greens, spinach, zucchini, mushrooms, broccoli, cauliflower, fresh cut: tomatoes/cucumbers/peppers (NO dressing)
 
-ЗАБРАНЕНИ БЕЛТЪЦИ (НЕ използвай без Reason):
-- пуешко месо (turkey meat) - HARD BAN
-- заешко (rabbit) - ИЗВЪН whitelist
-- патица (duck) - ИЗВЪН whitelist
-- гъска (goose) - ИЗВЪН whitelist
-- агне (lamb) - ИЗВЪН whitelist
-- дивеч (game meat) - ИЗВЪН whitelist
-- всички екзотични меса - ИЗВЪН whitelist
+ENERGY (choose 0-1): oats, rice, potatoes, pasta, bulgur. NOTE: Corn NOT energy!
 
-WHITELIST VEGETABLES (избери 1-2):
-- домати, краставици, чушки, зеле, моркови
-- салата/листни зеленчуци (lettuce/greens), спанак
-- тиквички, гъби, броколи, карфиол
-- пресни нарязани: домати/краставици/чушки (БЕЗ дресинг)
+FAT (choose 0-1): olive oil, butter (moderate), nuts/seeds (moderate)
 
-WHITELIST ENERGY (избери 0-1):
-- овесени ядки (oats)
-- ориз (rice)
-- картофи (potatoes)
-- паста (pasta)
-- булгур (bulgur)
-ЗАБЕЛЕЖКА: Царевица НЕ е енергия!
+SPECIAL RULES:
+- Peas + fish = STRICTLY FORBIDDEN
+- Veggies: ONE form per meal (Salad OR Fresh cut, not both)
+- Olives = salad addition (NOT Fat slot). If olives → NO oil/butter
+- Corn = NOT energy. Small corn only in salads as addition
+- Template C (sandwich) = Breakfast ONLY, NOT for main meals
 
-WHITELIST FAT (избери 0-1):
-- зехтин (olive oil)
-- масло (butter - умерено)
-- ядки/семена (nuts/seeds - умерено)
-
-СПЕЦИАЛНИ ПРАВИЛА:
-- Грах + риба = СТРОГО ЗАБРАНЕНО
-- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
-- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
-- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
-- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
-
-=== ВАЖНИ ОГРАНИЧЕНИЯ ===
-
-СТРОГО ИЗБЯГВАЙ:
-- Прекалено конкретни имена (позволи избор на клиента)
-  ДА: "плодове с кисело мляко", "риба със зеленчуци", "месо със салата"
-  НЕ: "боровинки с кисело мляко", "пастърва с броколи"
-- Странни комбинации (чийзкейк със салата, пица с тофу)
-- Екзотични продукти (труднодостъпни в България)
-- Повтаряне на същите храни в различни дни
-- Нетрадиционни комбинации за българската/средиземноморска кухня
-
-ОГРАНИЧЕНИЯ: Избягвай странни комбинации, екзотични продукти, повтаряне на храни, нетрадиционни комбинации. Медицински: ${JSON.stringify(data.medicalConditions || [])}. РАЗНООБРАЗИЕ всеки ден. Реалистични български/средиземноморски ястия.${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? ` ЗАКУСКА: Клиентът НЕ ЗАКУСВА - уважи предпочитанието. Допустима САМО напитка ако критично важно.` : ''}
+CONSTRAINTS:
+Avoid: overly specific names (allow client choice - YES: "fruit with yogurt", "fish with veggies"; NO: "blueberries with yogurt", "trout with broccoli"), strange combinations, exotic products, food repetition, non-traditional combinations for Bulgarian/Mediterranean cuisine
+Medical: ${JSON.stringify(data.medicalConditions || [])}. VARIETY daily. Realistic Bulgarian/Mediterranean dishes.${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? ` BREAKFAST: Client does NOT eat breakfast - respect preference. Drink only if critically important.` : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
-JSON ФОРМАТ:
-{
-  "summary": {"bmr": "${bmr}", "dailyCalories": "${recommendedCalories}", "macros": {"protein": "Xg", "carbs": "Xg", "fats": "Xg"}},
-  "weekPlan": {"day1": {"meals": [{"type": "Закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи за ${data.name}", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}, {"type": "Обяд", "name": "...", ...}, {"type": "Вечеря", "name": "...", ...}]}, ... "day7": {...}},
-  "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5+"],
-  "forbidden": ["храна 1", "храна 2", "храна 3", "храна 4+"],
+JSON FORMAT (Bulgarian output):
+{"summary": {"bmr": "${bmr}", "dailyCalories": "${recommendedCalories}", "macros": {"protein": "Xg", "carbs": "Xg", "fats": "Xg"}}, "weekPlan": {"day1": {"meals": [{"type": "Закуска", "name": "Bulgarian name", "weight": "Xg", "description": "Bulgarian", "benefits": "Bulgarian benefits for ${data.name}", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}, ...]}, ..., "day7": {...}}, "recommendations": ["food 1", "food 2", ...], "forbidden": ["food 1", "food 2", ...],
   "psychology": ${JSON.stringify(strategyCompact.psychologicalSupport)},
   "waterIntake": "${strategyCompact.hydrationStrategy}",
   "supplements": ${JSON.stringify(strategyCompact.supplementRecommendations)}
