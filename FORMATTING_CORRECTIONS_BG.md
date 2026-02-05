@@ -60,12 +60,15 @@ IMPORTANT FORMATTING RULES:
 - Portions approximate, in ~50g increments 
   → (50g, 100g, 150g, 200g, 250g, 300g)
   
-- Use general food terms: 
-  → "fish" (NOT "cod/mackerel/bonito" unless medically critical)
-  → "vegetables" (NOT specific varieties unless medically critical)
+- Use general food categories unless specific type is medically critical:
+  → "fish" (NOT "cod/mackerel/bonito")
+  → "vegetables" (NOT "broccoli/cauliflower")
+  → "fruits" (NOT "apples/bananas")
+  → "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
   
-- Dosages approximate ranges 
-  → (e.g. "300-400mg", "2-3g") not exact values
+- Supplement dosages: EXACT values (e.g. "400mg", "2g")
+  → NOT ranges like "300-400mg" or "2-3g"
+  → Supplements must be prescribed specifically for THIS client based on deficiencies/needs, not generic rules
 ```
 
 ### 3. Възстановени validation функции
