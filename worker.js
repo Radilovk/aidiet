@@ -1760,16 +1760,9 @@ async function generateAnalysisPrompt(data, env) {
     });
   }
   
-  return `ROLE: Expert dietitian, psychologist, endocrinologist
-TASK: Holistic client analysis + caloric/macro calculations
+  return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
 
-BACKEND-AI PROTOCOL:
-1. Backend provides mathematical baseline (Mifflin-St Jeor formula below)
-2. AI must critically review baseline considering ALL correlations
-3. Only modify if confident after comprehensive data analysis
-4. Response format: compressed, technical, English/machine language (internal use only)
-
-═══ CLIENT PROFILE ═══
+═══ КЛИЕНТСКИ ПРОФИЛ ═══
 ${JSON.stringify({
   name: data.name,
   age: data.age,
@@ -1818,111 +1811,118 @@ ${JSON.stringify({
   dietLove: data.dietLove
 }, null, 2)}
 
-═══ BACKEND BASELINE (MATHEMATICAL GUIDANCE) ═══
-Physical params:
-- Weight: ${data.weight} kg, Height: ${data.height} cm, Age: ${data.age}, Sex: ${data.gender}
-- Goal: ${data.goal}${data.lossKg ? `, Target loss: ${data.lossKg} kg` : ''}
+═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
+Основни физически параметри (за референция):
+- Тегло: ${data.weight} кг
+- Височина: ${data.height} см
+- Възраст: ${data.age} години
+- Пол: ${data.gender}
+- Цел: ${data.goal}
+${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
 
-BACKEND FORMULA (Mifflin-St Jeor baseline):
-NOTE: Client data fields (gender, dietHistory, medications) are in Bulgarian from frontend questionnaire
-- BMR = 10×weight + 6.25×height - 5×age + (${data.gender === 'Мъж' ? '5' : '-161'})
-- TDEE = BMR × ActivityFactor (1.2-1.9 based on ${data.sportActivity})
-- Target kcal: adjusted per goal (deficit for weight loss, surplus for muscle gain)
+ВАЖНО: Използвай Mifflin-St Jeor формула като ОТПРАВНА ТОЧКА, но АНАЛИЗИРАЙ ХОЛИСТИЧНО:
+- Качество на сън и стрес
+- История на диети (метаболитна адаптация)
+- Медицински състояния и лекарства
+- Психологически фактори и емоционално хранене
+- Реален дневен ритъм и хронотип
+- Съотношение спорт/дневна активност
 
-AI CRITICAL REVIEW REQUIRED:
-Review backend baseline considering ALL factors:
-- Sleep quality (${data.sleepHours}h) + stress (${data.stressLevel}) → hormone/metabolism impact
-- Diet history (${data.dietHistory}) → metabolic adaptation check
-- Medical conditions (${JSON.stringify(data.medicalConditions || [])}) → metabolic modifiers
-- Psychological factors → realistic sustainable targets
-- Chronotype (${data.chronotype}) → optimal timing
-- Activity ratio: sport vs daily
+═══ НАСОКИ ЗА ХОЛИСТИЧНО ИЗЧИСЛЕНИЕ ═══
 
-AI DECISION:
-- Confirm baseline if data supports standard calculations
-- Adjust ONLY if confident after analyzing correlates
-- Explain deviations from baseline in reasoning fields
+ФОРМУЛА КАТО БАЗА:
+- BMR: Mifflin-St Jeor (10×тегло + 6.25×височина - 5×възраст + 5/-161)
+- TDEE: BMR × Activity Factor (1.2 до 1.9 според активност)
+- Калории: според цел (отслабване обикновено с дефицит, мускулна маса с излишък)
 
-REFERENCE (illustrative, do NOT copy):
-F, 35y, 70kg, 165cm, moderate activity:
-- Good profile (sleep OK, stress low, no diet history): BMR≈1400, TDEE≈2160, Target≈1840 kcal
-- Challenged profile (sleep poor, stress high, 3 failed diets): BMR≈1180, TDEE≈1780, Target≈1600 kcal
-(Note: AI may lower BMR/TDEE due cumulative metabolic adaptation)
+КЛЮЧОВИ ФАКТОРИ ЗА КОРЕКЦИЯ:
+- Качество на сън влияе на хормони и метаболизъм
+- Стрес влияе на кортизол и енергийна ефективност
+- История на диети може да означава метаболитна адаптация
+- Медицински състояния (щитовидна жлеза, СПКЯ, диабет) влияят на метаболизма
+- Психологически фактори определят реалистичните и устойчиви цели
+- Хронотип и дневен ритъм влияят на оптималното разпределение
 
-═══ AI TASK ═══
-1. HOLISTIC ANALYSIS: Review all data for ${data.name}
-2. CALCULATE: BMR, TDEE, target kcal based on AI professional judgment
-3. EXPLAIN: Detail reasoning in "_reasoning" fields
-4. Use compressed English/machine format (internal analysis, not for frontend)
+ПРИМЕР ЗА ИЛЮСТРАЦИЯ (не следвай точно):
+Жена, 35г, 70кг, 165см, средна активност:
+- Добър профил (добър сън, нисък стрес, без диети): BMR≈1400, TDEE≈2160, Цел≈1840 kcal
+- Предизвикателен профил (лош сън, висок стрес, 3 диети): BMR≈1180, TDEE≈1780, Цел≈1600 kcal
+(Забележка: AI моделът прецени по-нисък BMR/TDEE и по-консервативен дефицит заради кумулативния ефект)
 
-CORRELATIONAL ANALYSIS:
+═══ ТВОЯТА ЗАДАЧА ═══
+1. АНАЛИЗИРАЙ ХОЛИСТИЧНО всички данни за ${data.name}
+2. ИЗЧИСЛИ BMR, TDEE и препоръчани калории базирано на ТВОЯТА ПРОФЕСИОНАЛНА ПРЕЦЕНКА
+3. ОБЯСНИ детайлно ЗАЩО си избрал точно тези стойности
+4. Покажи логиката и математиката в reasoning полетата
 
-**SLEEP ↔ STRESS ↔ EATING**: ${data.sleepHours}h sleep (interrupted: ${data.sleepInterrupt}) + stress (${data.stressLevel}) → impact on:
-   - Hormones (cortisol, ghrelin, leptin)
-   - Cravings: ${JSON.stringify(data.foodCravings || [])}
-   - Overeating freq: ${data.overeatingFrequency}
+2. КОРЕЛАЦИОНЕН АНАЛИЗ:
 
-**PSYCHOLOGICAL PROFILE**: Emotion ↔ eating link analysis:
-   - Triggers: ${JSON.stringify(data.foodTriggers || [])}
-   - Compensations: ${JSON.stringify(data.compensationMethods || [])}
-   - Social comparison: ${data.socialComparison}
-   - Self-discipline + motivation assessment
+**СЪН ↔ СТРЕС ↔ ХРАНЕНЕ**: Как ${data.sleepHours}ч сън (прекъсван: ${data.sleepInterrupt}) + стрес (${data.stressLevel}) влияят на:
+   - Хормони (кортизол, грелин, лептин)
+   - Хранителни желания: ${JSON.stringify(data.foodCravings || [])}
+   - Прекомерно хранене: ${data.overeatingFrequency}
 
-**METABOLIC FACTORS**: Unique metabolic profile based on:
-   - Chronotype (${data.chronotype}) → optimal eating timing
-   - Activity (${data.sportActivity}, ${data.dailyActivityLevel})
-   - History: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'no prior diets'} (NOTE: Bulgarian data)
-   - CRITICAL: Failed diets typically indicate reduced metabolism
+**ПСИХОЛОГИЧЕСКИ ПРОФИЛ**: Анализирай връзката емоции ↔ хранене:
+   - Тригери: ${JSON.stringify(data.foodTriggers || [])}
+   - Компенсации: ${JSON.stringify(data.compensationMethods || [])}
+   - Социално сравнение: ${data.socialComparison}
+   - Оценка на самодисциплина и мотивация
 
-**MEDICAL FACTORS**: Medical conditions impact on nutrition:
-   - Conditions: ${JSON.stringify(data.medicalConditions || [])}
-   - Medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'} (NOTE: Bulgarian data)
-   - Specific macro/micronutrient needs?
+**МЕТАБОЛИТНИ ОСОБЕНОСТИ**: Идентифицирай уникален метаболитен профил базиран на:
+   - Хронотип (${data.chronotype}) → кога е оптимално храненето
+   - Активност (${data.sportActivity}, ${data.dailyActivityLevel})
+   - История: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'няма предишни диети'}
+   - ВАЖНО: Неуспешни диети в миналото обикновено означават намален метаболизъм
 
-**SUCCESS SCORE**: Calculate (-100 to +100) based on ALL factors:
-   - BMI + health status
-   - Sleep quality + stress
-   - Diet history (failed diets reduce score by 15-25 pts)
-   - Psychological resilience
-   - Medical conditions + activity
+**МЕДИЦИНСКИ ФАКТОРИ**: Как медицински състояния влияят на хранене:
+   - Състояния: ${JSON.stringify(data.medicalConditions || [])}
+   - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}
+   - Какви специфични нужди от макро/микроелементи?
 
-**KEY PROBLEMS**: Identify 3-6 problem areas (ONLY Borderline/Risky/Critical severity):
-   - Focus on factors actively hindering goal
-   - EXCLUDE "Normal" problems
+3. **ШАНС ЗА УСПЕХ**: Изчисли успех score (-100 до +100) базиран на ВСИЧКИ фактори:
+   - BMI и здравословно състояние
+   - Качество на съня и стрес
+   - История на диети (неуспешни намаляват шанса с 15-25 точки)
+   - Психологическа устойчивост
+   - Медицински условия и активност
 
-═══ OUTPUT FORMAT ═══
-CRITICAL - DATA TYPES:
-- Numeric fields: numbers ONLY (int/float), NO text/units/explanations
-- Explanations: in separate "_reasoning" fields
-- BMR, TDEE, recommendedCalories: AI calculates based on ALL factors
-- Use compressed English/machine format (internal, not for frontend display)
+4. **КЛЮЧОВИ ПРОБЛЕМИ**: Идентифицирай 3-6 проблемни области (САМО Borderline/Risky/Critical severity):
+   - Фокус на фактори които АКТИВНО пречат на целта
+   - НЕ включвай "Normal" проблеми
+
+═══ ФОРМАТ НА ОТГОВОР ═══
+КРИТИЧНО ВАЖНО - ТИПОВЕ ДАННИ И ИЗЧИСЛЕНИЯ:
+- Числови полета ТРЯБВА да съдържат САМО числа (integer или float)
+- БЕЗ текст, единици измерване или обяснения в числовите полета
+- Обяснения се поставят в отделни "_reasoning" полета
+- BMR, TDEE, recommendedCalories - ТИ ги изчисляваш базирано на ВСИЧКИ корелати!
 
 {
-  "bmr": number (AI holistic calculation),
-  "bmrReasoning": "compact explanation: how/why baseline adjusted",
-  "tdee": number (AI holistic calculation),
-  "tdeeReasoning": "compact: activity, stress, sleep impact on TDEE",
-  "recommendedCalories": number (AI determines from goal + correlates),
-  "caloriesReasoning": "compact: why these exact kcal - goal, stress, diet history, metabolism factors",
+  "bmr": число (ТИ изчисляваш холистично),
+  "bmrReasoning": "обяснение как и защо си коригирал базовата Mifflin-St Jeor формула",
+  "tdee": число (ТИ изчисляваш холистично),
+  "tdeeReasoning": "обяснение как активността, стресът, съня влияят на TDEE",
+  "recommendedCalories": число (ТИ определяш базирано на цел и корелати),
+  "caloriesReasoning": "обяснение защо ТОЧНО тези калории - как целта, стресът, историята на диети, метаболизма влияят на изчислението",
   "macroRatios": {
-    "protein": number (%, e.g. 30),
-    "carbs": number (%, e.g. 35),
-    "fats": number (%, e.g. 35)
+    "protein": число (процент, напр. 30),
+    "carbs": число (процент, напр. 35),
+    "fats": число (процент, напр. 35)
   },
   "macroRatiosReasoning": {
-    "protein": "compact: why optimal % for ${data.name}",
-    "carbs": "compact: based on activity, medical conditions",
-    "fats": "compact: based on needs"
+    "protein": "обосновка защо този процент е оптимален за ${data.name}",
+    "carbs": "обосновка базирана на активност, медицински състояния",
+    "fats": "обосновка според нужди"
   },
   "macroGrams": {
-    "protein": number (grams/day),
-    "carbs": number (grams/day),
-    "fats": number (grams/day)
+    "protein": число (грамове дневно),
+    "carbs": число (грамове дневно),
+    "fats": число (грамове дневно)
   },
   "weeklyBlueprint": {
-    "skipBreakfast": boolean (true if client doesn't eat breakfast),
-    "dailyMealCount": number (meals/day, typically 2-4),
-    "mealCountReasoning": "compact: why this meal count optimal",
+    "skipBreakfast": boolean (true ако клиентът не закусва),
+    "dailyMealCount": число (колко хранения на ден, обикновено 2-4),
+    "mealCountReasoning": "защо този брой хранения е оптимален",
     "dailyStructure": [
       {
         "dayIndex": 1,
@@ -1930,41 +1930,42 @@ CRITICAL - DATA TYPES:
           {
             "type": "breakfast/lunch/dinner/snack",
             "active": boolean,
-            "calorieTarget": number (kcal for this meal),
-            "proteinSource": "suggested main protein (e.g. chicken, fish, eggs)",
-            "carbSource": "suggested carb (e.g. quinoa, rice, vegetables)"
+            "calorieTarget": число (калории за това хранене),
+            "proteinSource": "предложен основен протеин (напр. chicken, fish, eggs)",
+            "carbSource": "предложен въглехидрат (напр. quinoa, rice, vegetables)"
           }
         ]
       }
-      // ... repeat for all 7 days
+      // ... повторете за всички 7 дни
     ]
   },
-  "metabolicProfile": "UNIQUE metabolic profile - compressed: how chronotype, activity, history impact metabolism",
-  "healthRisks": ["risk 1 specific", "risk 2", "risk 3"],
-  "nutritionalNeeds": ["need 1 from analysis", "need 2", "need 3"],
-  "psychologicalProfile": "DETAILED analysis: emotional eating, triggers, coping, motivation (compressed format)",
-  "successChance": number (-100 to 100),
-  "successChanceReasoning": "compact: why score - helping/hindering factors",
+  "metabolicProfile": "УНИКАЛЕН метаболитен профил - опиши как хронотип, активност, история влияят на метаболизма",
+  "healthRisks": ["риск 1 специфичен за профила", "риск 2", "риск 3"],
+  "nutritionalNeeds": ["нужда 1 базирана на анализа", "нужда 2", "нужда 3"],
+  "psychologicalProfile": "ДЕТАЙЛЕН анализ: емоционално хранене, тригери, копинг механизми, мотивация",
+  "successChance": число (-100 до 100),
+  "successChanceReasoning": "защо този шанс - кои фактори помагат и кои пречат",
   "keyProblems": [
     {
-      "title": "short name (2-4 words)",
-      "description": "why problem + consequence",
+      "title": "кратко име (2-4 думи)",
+      "description": "защо е проблем и до какво води",
       "severity": "Borderline / Risky / Critical",
-      "severityValue": number 0-100,
+      "severityValue": число 0-100,
       "category": "Sleep / Nutrition / Hydration / Stress / Activity / Medical",
-      "impact": "health/goal impact"
+      "impact": "въздействие върху здравето или целта"
     }
   ]
 }
 
-RULES for weeklyBlueprint:
-1. Sum of calorieTarget for all active meals = recommendedCalories/day
-2. If skipBreakfast=true → "breakfast" meals active=false, calorieTarget=0
-3. Vary proteinSource + carbSource between days for variety
-4. Meal types chronological order: breakfast → lunch → snack → dinner
-5. Use dailyMealCount consistently across week (unless specific reason for variation)
+ВАЖНИ ПРАВИЛА ЗА weeklyBlueprint:
+1. Сборът на calorieTarget за всички активни хранения в един ден ТРЯБВА да е равен на твоите изчислени recommendedCalories
+2. Ако skipBreakfast е true, "breakfast" хранения ТРЯБВА да имат active: false и calorieTarget: 0
+3. Варирай proteinSource и carbSource между дните за разнообразие
+4. Типовете хранения трябва да са в хронологичен ред: breakfast -> lunch -> snack -> dinner
+5. Използвай dailyMealCount за консистентност през цялата седмица (освен ако няма специфична причина за вариация)
 
-Be SPECIFIC for ${data.name}. Avoid generic phrases like "good metabolism" - explain WHY + HOW using compressed technical format!
+Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
+}
 
 async function generateStrategyPrompt(data, analysis, env) {
   // Check if there's a custom prompt in KV storage
@@ -2010,144 +2011,137 @@ async function generateStrategyPrompt(data, analysis, env) {
     });
   }
   
-  return `TASK: Determine optimal dietary strategy based on health profile + analysis
+  return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
 
-BACKEND-AI PROTOCOL:
-1. Backend provides analysis baseline (BMR/TDEE/macros calculated in Step 1)
-2. AI must critically review strategy considering ALL factors holistically
-3. Only deviate from analysis if confident after comprehensive review
-4. Response format: compressed English/machine (internal), BUT Bulgarian for frontend fields (welcomeMessage, planJustification, etc.)
+КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
 
-CLIENT: ${data.name}, ${data.age}y, Goal: ${data.goal}
+АНАЛИЗ (КОМПАКТЕН):
+- BMR/TDEE/Калории: ${analysisCompact.bmr} / ${analysisCompact.tdee} / ${analysisCompact.recommendedCalories}
+- Макро съотношения: ${analysisCompact.macroRatios}
+- Макро грамове дневно: ${analysisCompact.macroGrams}
+${analysisCompact.weeklyBlueprint ? `- Седмична структура: ${analysisCompact.weeklyBlueprint.dailyMealCount} хранения/ден${analysisCompact.weeklyBlueprint.skipBreakfast ? ', БЕЗ закуска' : ''}` : ''}
+- Метаболитен профил: ${analysisCompact.metabolicProfile}
+- Здравни рискове: ${analysisCompact.healthRisks}
+- Хранителни нужди: ${analysisCompact.nutritionalNeeds}
+- Психологически профил: ${analysisCompact.psychologicalProfile}
+- Шанс за успех: ${analysisCompact.successChance}
+- Ключови проблеми: ${analysisCompact.keyProblems}
 
-ANALYSIS BASELINE (from Step 1):
-- BMR/TDEE/kcal: ${analysisCompact.bmr} / ${analysisCompact.tdee} / ${analysisCompact.recommendedCalories}
-- Macro ratios: ${analysisCompact.macroRatios}
-- Macro grams/day: ${analysisCompact.macroGrams}
-${analysisCompact.weeklyBlueprint ? `- Weekly structure: ${analysisCompact.weeklyBlueprint.dailyMealCount} meals/day${analysisCompact.weeklyBlueprint.skipBreakfast ? ', NO breakfast' : ''}` : ''}
-- Metabolic profile: ${analysisCompact.metabolicProfile}
-- Health risks: ${analysisCompact.healthRisks}
-- Nutritional needs: ${analysisCompact.nutritionalNeeds}
-- Psychological profile: ${analysisCompact.psychologicalProfile}
-- Success chance: ${analysisCompact.successChance}
-- Key problems: ${analysisCompact.keyProblems}
+ПРЕДПОЧИТАНИЯ:
+- Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
+${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : ''}
+- Не обича/непоносимост: ${data.dietDislike || 'Няма'}
+- Любими храни: ${data.dietLove || 'Няма'}
 
-PREFERENCES:
-- Diet preferences: ${JSON.stringify(data.dietPreference || [])}
-${data.dietPreference_other ? `  (Other: ${data.dietPreference_other})` : ''}
-- Dislikes/intolerances: ${data.dietDislike || 'None'}
-- Favorite foods: ${data.dietLove || 'None'}
+ВАЖНО: Вземи предвид ВСИЧКИ параметри холистично и създай КОРЕЛАЦИИ между тях:
+1. Медицинските състояния и лекарства - как влияят на хранителните нужди
+2. Хранителните непоносимости и алергии - строго ограничение
+3. Личните предпочитания и любими храни - за дългосрочна устойчивост
+4. Хронотипа и дневния ритъм - оптимално време на хранене
+5. Нивото на стрес и емоционалното хранене - психологическа подкрепа
+6. Културния контекст (български традиции и налични продукти)
+7. КОРЕЛАЦИИ между сън, стрес и хранителни желания
+8. ВРЪЗКАТА между физическа активност и калорийни нужди
+9. ВЗАИМОВРЪЗКАТА между медицински състояния и хранителни потребности
 
-HOLISTIC INTEGRATION - Consider ALL params + correlations:
-1. Medical conditions + medications → nutritional needs impact
-2. Food intolerances + allergies → strict constraints
-3. Personal preferences + favorites → long-term sustainability
-4. Chronotype + daily rhythm → optimal meal timing
-5. Stress level + emotional eating → psychological support
-6. Cultural context (Bulgarian traditions + available products)
-7. Sleep ↔ stress ↔ food cravings correlations
-8. Physical activity ↔ caloric needs link
-9. Medical conditions ↔ nutritional requirements interplay
+КРИТИЧНО ВАЖНО - ИНДИВИДУАЛИЗАЦИЯ НА ВСИЧКИ ПРЕПОРЪКИ:
+1. Хранителните добавки трябва да са СТРОГО ИНДИВИДУАЛНО подбрани за ${data.name}
+2. ЗАБРАНЕНО е използването на универсални/общи препоръки за добавки
+3. Всяка добавка трябва да е обоснована с КОНКРЕТНИ нужди от анализа
+4. Дозировките трябва да са персонализирани според възраст, тегло, пол и здравословно състояние
+5. Вземи предвид медицински състояния, лекарства и възможни взаимодействия
+6. КРИТИЧНО - ПРОВЕРКА ЗА ВЗАИМОДЕЙСТВИЯ:
+   - Ако клиентът приема лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}, провери:
+     * Витамин К + антикоагуланти (варфарин) = противопоказано
+     * Калций/Магнезий + антибиотици = намалено усвояване
+     * Желязо + антациди = блокирано усвояване
+     * Витамин D + кортикостероиди = необходима по-висока доза
+   - Ако има медицински състояния: ${JSON.stringify(data.medicalConditions || [])}, съобрази:
+     * Диабет: Хром, Витамин D, Омега-3 (контрол на кръвна захар)
+     * Хипертония: Магнезий, Калий, CoQ10 (понижаване на налягане)
+     * Щитовидна жлеза: Селен, Йод (само ако е дефицит!), Цинк
+     * Анемия: Желязо (хемово за по-добро усвояване), Витамин C (подпомага усвояването), B12
+     * PCOS/СПКЯ: Инозитол, Витамин D, Омега-3, Хром
+     * IBS/IBD: Пробиотици (специфични щамове), Витамин D, Омега-3
+7. ИНДИВИДУАЛНА ДОЗИРОВКА базирана на:
+   - Тегло: ${data.weight} кг (по-високо тегло = по-висока доза за липоразтворими витамини)
+   - Възраст: ${data.age} год. (по-възрастни = по-високи нужди от Витамин D, B12, Калций)
+   - Пол: ${data.gender} (жени = повече желязо при менструация; мъже = повече цинк)
+   - Сън: ${data.sleepHours}ч (под 7ч = Магнезий за сън, Мелатонин)
+   - Стрес: ${data.stressLevel} (висок стрес = Магнезий, Витамини B-комплекс, Ашваганда)
+   - Активност: ${data.sportActivity} (висока = Протеин, BCAA, Креатин, Витамин D)
 
-CRITICAL - INDIVIDUALIZED RECOMMENDATIONS:
-1. Supplements must be STRICTLY INDIVIDUALIZED for ${data.name}
-2. FORBIDDEN: generic/universal supplement recommendations
-3. Each supplement justified by SPECIFIC needs from analysis
-4. Dosages personalized by age, weight, sex, health status
-5. Consider medical conditions, medications, possible interactions
-6. CRITICAL - INTERACTION CHECKS:
-   - If on medications: ${data.medications === 'Да' ? data.medicationsDetails : 'none'}, check: (NOTE: Bulgarian data input)
-     * Vit K + anticoagulants (warfarin) = contraindicated
-     * Ca/Mg + antibiotics = reduced absorption
-     * Iron + antacids = blocked absorption
-     * Vit D + corticosteroids = higher dose needed
-   - If medical conditions: ${JSON.stringify(data.medicalConditions || [])}, consider:
-     * Diabetes: Chromium, Vit D, Omega-3 (blood sugar control)
-     * Hypertension: Mg, K, CoQ10 (BP reduction)
-     * Thyroid: Selenium, Iodine (only if deficient!), Zinc
-     * Anemia: Iron (heme for better absorption), Vit C (aids absorption), B12
-     * PCOS: Inositol, Vit D, Omega-3, Chromium
-     * IBS/IBD: Probiotics (specific strains), Vit D, Omega-3
-7. INDIVIDUAL DOSING based on:
-   - Weight: ${data.weight} kg (higher weight = higher dose for fat-soluble vitamins)
-   - Age: ${data.age}y (older = higher Vit D, B12, Ca needs)
-   - Sex: ${data.gender} (women = more iron during menstruation; men = more zinc)
-   - Sleep: ${data.sleepHours}h (under 7h = Mg for sleep, Melatonin)
-   - Stress: ${data.stressLevel} (high stress = Mg, B-complex vitamins, Ashwagandha)
-   - Activity: ${data.sportActivity} (high = Protein, BCAA, Creatine, Vit D)
+КРИТИЧНО ВАЖНО - ОПРЕДЕЛЯНЕ НА МОДИФИКАТОР:
+След анализ на всички параметри, определи подходящ МОДИФИКАТОР (диетичен профил), който ще управлява логиката на генериране на ястия:
+- Може да бъде термин: "Кето", "Палео", "Веган", "Вегетарианско", "Средиземноморско", "Нисковъглехидратно", "Балансирано", "Щадящ стомах", "Без глутен" и др.
+- МОДИФИКАТОРЪТ трябва да отчита медицинските състояния, цели, предпочитания и всички анализирани фактори
+- Определи ЕДНА основна диетична стратегия, която е най-подходяща за клиента
+- Ако няма специфични ограничения, използвай "Балансирано" или "Средиземноморско"
 
-CRITICAL - MODIFIER DETERMINATION:
-After analyzing all params, determine appropriate MODIFIER (dietary profile) controlling meal generation logic:
-- Terms: "Keto", "Paleo", "Vegan", "Vegetarian", "Mediterranean", "Low-carb", "Balanced", "Gentle stomach", "Gluten-free", etc.
-- MODIFIER must account for medical conditions, goals, preferences, all analyzed factors
-- Determine ONE primary dietary strategy most suitable for client
-- If no specific restrictions, use "Balanced" or "Mediterranean"
+Анализирай ЗАДЪЛБОЧЕНО как всеки параметър влияе и взаимодейства с другите.
 
-LONG-TERM STRATEGY DEVELOPMENT:
-1. Create CLEAR long-term strategy for achieving ${data.name}'s goals
-2. Strategy must cover not just daily, but WEEKLY/MULTI-DAY horizon
-3. If physiologically/psychologically/strategically justified:
-   - Planning can span 2-3 days as whole
-   - Macro/calorie horizon NOT necessarily 24h
-   - Cyclical calorie/macro distribution possible (e.g. low-high days)
-4. Justify WHY specific meal count (1-5) chosen for each day
-5. Justify WHY + WHEN after-dinner meals needed (if any)
-6. Each non-standard strategy recommendation MUST have clear goal + justification
+КРИТИЧНО ВАЖНО - ДЪЛГОСРОЧНА СТРАТЕГИЯ:
+1. Създай ЯСНА дългосрочна стратегия за постигане на целите на ${data.name}
+2. Стратегията трябва да обхваща не само дневен, но и СЕДМИЧЕН/МНОГОДНЕВЕН хоризонт
+3. При обоснована физиологична, психологическа или стратегическа идея:
+   - Планирането може да обхваща 2-3 дни като цяло
+   - Хоризонтът на макроси и калории НЕ Е ЗАДЪЛЖИТЕЛНО 24 часа
+   - Може да има циклично разпределение на калории/макроси (напр. ниско-високи дни)
+4. Обоснови ЗАЩО избираш определен брой хранения (1-5) за всеки ден
+5. Обоснови ЗАЩО и КОГА са необходими хранения след вечеря (ако има такива)
+6. Всяка стратегическа нестандартна препоръка ТРЯБВА да има ясна цел и обосновка
 
-OUTPUT JSON format (NO generic recommendations):
-NOTE: Fields for frontend display (welcomeMessage, planJustification, longTermStrategy, etc.) MUST be in BULGARIAN.
-Internal/technical fields can use compressed English format.
-
+Върни JSON със стратегия (БЕЗ универсални препоръки):
 {
-  "dietaryModifier": "dietary profile term (e.g. Balanced, Keto, Vegan, Mediterranean, Low-carb, Gentle stomach)",
-  "modifierReasoning": "compact explanation why this MODIFIER chosen SPECIFICALLY for ${data.name}",
-  "welcomeMessage": "MANDATORY FIELD (IN BULGARIAN): PERSONALIZED greeting for ${data.name} when first viewing plan. Tone: professional yet warm, motivating. Include: 1) Personal greeting with name, 2) Brief mention of specific profile factors (age, goal, key challenges), 3) How plan created specifically for their needs, 4) Positive vision for achieving goals. Length: approximately 150-250 Bulgarian words. IMPORTANT: Avoid generic phrases - use specific details for ${data.name}.",
-  "planJustification": "MANDATORY FIELD (IN BULGARIAN): Detailed justification of overall strategy, including meal count, timing, cyclical distribution (if any), after-dinner meals (if any), WHY this strategy optimal for ${data.name}. Minimum 100 chars.",
-  "longTermStrategy": "LONG-TERM STRATEGY (IN BULGARIAN): Describe how plan works within 2-3 days/week, not just daily. Include info on cyclical calorie/macro distribution, meal variation, how this supports goals.",
-  "mealCountJustification": "MEAL COUNT JUSTIFICATION (IN BULGARIAN): Why this exact meal count (1-5) chosen for each day. Strategic, physiological, or psychological reason.",
-  "afterDinnerMealJustification": "AFTER-DINNER MEAL JUSTIFICATION (IN BULGARIAN): If after-dinner meals exist, explain WHY needed, goal, how they support overall strategy. If none - write 'Not needed'.",
-  "dietType": "diet type personalized for ${data.name} (e.g. mediterranean, balanced, low-carb)",
-  "weeklyMealPattern": "HOLISTIC weekly eating scheme (e.g. '16:8 IF daily', '5:2 approach', 'cyclical fasting', 'free weekend', or traditional scheme with varying meals)",
+  "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
+  "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
+  "welcomeMessage": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: ПЕРСОНАЛИЗИРАНО приветствие за ${data.name} при първото разглеждане на плана. Тонът трябва да бъде професионален, но топъл и мотивиращ. Включи: 1) Персонално поздравление с име, 2) Кратко споменаване на конкретни фактори от профила (възраст, цел, ключови предизвикателства), 3) Как планът е създаден специално за техните нужди, 4) Положителна визия за постигане на целите. Дължина: 150-250 думи. ВАЖНО: Избягвай генерични фрази - използвай конкретни детайли за ${data.name}.",
+  "planJustification": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: Детайлна обосновка на цялостната стратегия, включително брой хранения, време на хранене, циклично разпределение (ако има), хранения след вечеря (ако има), и ЗАЩО тази стратегия е оптимална за ${data.name}. Минимум 100 символа.",
+  "longTermStrategy": "ДЪЛГОСРОЧНА СТРАТЕГИЯ: Опиши как планът работи в рамките на 2-3 дни/седмица, не само на дневна база. Включи информация за циклично разпределение на калории/макроси, варииране на хранения, и как това подпомага целите.",
+  "mealCountJustification": "ОБОСНОВКА ЗА БРОЙ ХРАНЕНИЯ: Защо е избран точно този брой хранения (1-5) за всеки ден. Каква е стратегическата, физиологична или психологическа причина.",
+  "afterDinnerMealJustification": "ОБОСНОВКА ЗА ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ: Ако има хранения след вечеря, обясни ЗАЩО са необходими, каква е целта, и как подпомагат общата стратегия. Ако няма - напиши 'Не са необходими'.",
+  "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
+  "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "mealTiming": {
-    "pattern": "weekly eating model described in detail - e.g. 'Mon-Fri: 2 meals (12:00, 19:00), Sat-Sun: 3 meals with one free'",
-    "fastingWindows": "fasting periods if applied (e.g. '16h between last meal and next', or 'not applied')",
-    "flexibility": "description of scheme flexibility by day and needs"
+    "pattern": "седмичен модел на хранене описан детайлно - напр. 'Понеделник-Петък: 2 хранения (12:00, 19:00), Събота-Неделя: 3 хранения с едно свободно'",
+    "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
+    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите"
   },
-  "keyPrinciples": ["principle 1 specific for ${data.name}", "principle 2 specific for ${data.name}", "principle 3 specific for ${data.name}"],
-  "foodsToInclude": ["food 1 suitable for ${data.name}", "food 2 suitable for ${data.name}", "food 3 suitable for ${data.name}"],
-  "foodsToAvoid": ["food 1 unsuitable for ${data.name}", "food 2 unsuitable for ${data.name}", "food 3 unsuitable for ${data.name}"],
+  "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
+  "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
+  "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
   "supplementRecommendations": [
-    "! INDIVIDUAL supplement 1 for ${data.name} - specific supplement with dosage + justification why NEEDED for this client (BASED on: age ${data.age}y, sex ${data.gender}, goal ${data.goal}, medical conditions ${data.medicalConditions || 'none'})",
-    "! INDIVIDUAL supplement 2 for ${data.name} - specific supplement with dosage + justification why NEEDED for this client (BASED on: activity ${data.sportActivity}, sleep ${data.sleepHours}h, stress ${data.stressLevel})",
-    "! INDIVIDUAL supplement 3 for ${data.name} - specific supplement with dosage + justification why NEEDED for this client (BASED on: eating habits ${data.eatingHabits}, preferences ${data.dietPreference})"
+    "! ИНДИВИДУАЛНА добавка 1 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: възраст ${data.age} год., пол ${data.gender}, цел ${data.goal}, медицински състояния ${data.medicalConditions || 'няма'})",
+    "! ИНДИВИДУАЛНА добавка 2 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: активност ${data.sportActivity}, сън ${data.sleepHours}ч, стрес ${data.stressLevel})",
+    "! ИНДИВИДУАЛНА добавка 3 за ${data.name} - конкретна добавка с дозировка и обосновка защо Е НУЖНА за този клиент (БАЗИРАНА на: хранителни навици ${data.eatingHabits}, предпочитания ${data.dietPreference})"
   ],
-  "hydrationStrategy": "fluid intake recommendations personalized for ${data.name} by activity + climate",
+  "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name} според активност и климат",
   "psychologicalSupport": [
-    "! psychological advice 1 based on ${data.name}'s emotional eating",
-    "! psychological advice 2 based on ${data.name}'s stress + behavior",
-    "! psychological advice 3 for motivation specific to ${data.name}'s profile"
+    "! психологически съвет 1 базиран на емоционалното хранене на ${data.name}",
+    "! психологически съвет 2 базиран на стреса и поведението на ${data.name}",
+    "! психологически съвет 3 за мотивация специфичен за профила на ${data.name}"
   ]
 }
 
-IMPORTANT for WEEKLY SCHEME:
-- Create HOLISTIC weekly model considering goal, chronotype, habits
-- Intermittent fasting (16:8, 18:6, OMAD) fully valid choice if suitable
-- Can vary meal count between days (e.g. 2 meals workdays, 3 rest days)
-- "Free days" or "free meals" allowed as part of sustainable strategy
-- Week must work as SYSTEM, not as 7 independent days
+ВАЖНО ЗА СЕДМИЧНАТА СХЕМА:
+- Създай ХОЛИСТИЧЕН седмичен модел, който взема предвид целта, хронотипа и навиците
+- Интермитентно гладуване (16:8, 18:6, OMAD) е напълно валиден избор ако подхожда
+- Може да варираш броя хранения между дните (напр. 2 хранения в работни дни, 3 в почивни)
+- "Свободни дни" или "свободни хранения" са позволени като част от устойчива стратегия
+- Седмицата трябва да работи като СИСТЕМА, не като 7 независими дни
 
-IMPORTANT for SUPPLEMENTS:
-- Each supplement must have CLEAR justification based on:
-  * Analysis deficiencies (e.g. low Vit D due to limited sun exposure)
-  * Medical conditions (e.g. Mg for stress, Omega-3 for inflammation)
-  * Goals (e.g. protein for muscle mass, iron for energy)
-  * Age + sex (e.g. Ca for women 40+, Zn for men)
-- Dosage must be PERSONALIZED by weight, age, needs
-- Intake timing must be optimal for absorption
-- STRICTLY FORBIDDEN: Using same supplements for different clients
-- STRICTLY FORBIDDEN: Generic "multivitamins" without specific justification
-- Each supplement MUST be different + specific for client ${data.name}
-- Consider unique combination: ${data.age}y ${data.gender}, ${data.goal}, ${data.medicalConditions || 'no med conditions'}, ${data.sportActivity}, stress: ${data.stressLevel}`;
+ВАЖНО ЗА ХРАНИТЕЛНИ ДОБАВКИ:
+- Всяка добавка трябва да има ЯСНА обосновка базирана на:
+  * Дефицити от анализа (напр. нисък витамин D заради малко излагане на слънце)
+  * Медицински състояния (напр. магнезий за стрес, омега-3 за възпаление)
+  * Цели (напр. протеин за мускулна маса, желязо за енергия)
+  * Възраст и пол (напр. калций за жени над 40, цинк за мъже)
+- Дозировката трябва да е ПЕРСОНАЛИЗИРАНА според тегло, възраст и нужди
+- Времето на прием трябва да е оптимално за усвояване
+- СТРОГО ЗАБРАНЕНО: Използването на едни и същи добавки за различни клиенти
+- СТРОГО ЗАБРАНЕНО: Универсални "мултивитамини" без конкретна обосновка
+- Всяка добавка ТРЯБВА да е различна и специфична за конкретния клиент ${data.name}
+- Вземи предвид уникалната комбинация от: ${data.age} год. ${data.gender}, ${data.goal}, ${data.medicalConditions || 'няма мед. състояния'}, ${data.sportActivity}, стрес: ${data.stressLevel}`;
 }
 
 /**
