@@ -5,7 +5,11 @@ This directory contains historical development notes, implementation summaries, 
 ## Directory Structure
 
 ### `/` (Root)
-88 markdown files containing:
+90 markdown files containing:
+- **Analysis Reports:**
+  - `ДОКЛАД_АНАЛИЗ_СХЕМА.md` - Comprehensive analysis of ПЪЛНА_СХЕМА_АНАЛИЗ_И_ПЛАН.md (Bulgarian, 1126 lines, 36 issues identified)
+  - `SCHEMA_ANALYSIS_REPORT_SUMMARY_EN.md` - Executive summary of schema analysis (English)
+  - `ПЪЛНА_СХЕМА_АНАЛИЗ_И_ПЛАН.md` - Full schema documentation (2138 lines)
 - Implementation summaries and progress reports (IMPLEMENTATION_SUMMARY_*.md)
 - Bug fix documentation (CORS_FIX_NOTES.md, JSON_PARSING_FIX.md, etc.)
 - Feature integration notes (MEALLOGIC_INTEGRATION.md, etc.)
