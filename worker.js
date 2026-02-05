@@ -1094,6 +1094,32 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Helper: Get merged blacklist (hard bans + dynamic blacklist from KV storage)
+ * Returns array of banned food items
+ */
+async function getMergedBlacklist(env) {
+  try {
+    // Get dynamic blacklist from KV storage
+    if (env && env.page_content) {
+      const blacklistData = await env.page_content.get('food_blacklist');
+      const dynamicBlacklist = blacklistData ? JSON.parse(blacklistData) : [];
+      
+      // Merge with hard bans and remove duplicates
+      const mergedBlacklist = [...new Set([...ADLE_V8_HARD_BANS, ...dynamicBlacklist])];
+      
+      console.log(`Merged blacklist: ${ADLE_V8_HARD_BANS.length} hard bans + ${dynamicBlacklist.length} dynamic = ${mergedBlacklist.length} total`);
+      
+      return mergedBlacklist;
+    }
+  } catch (error) {
+    console.error('Error retrieving dynamic blacklist:', error);
+  }
+  
+  // Fallback to hard bans only if KV not available or error
+  return ADLE_V8_HARD_BANS;
+}
+
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
 // Progressive generation configuration:
 // - Splits 7-day plan into smaller chunks to avoid overloading single AI request
@@ -1731,7 +1757,7 @@ async function generatePlanMultiStep(env, data) {
     } else {
       // Fallback to single-request generation
       console.log('Multi-step generation: Using single-request meal plan generation');
-      const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
+      const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env);
       let mealPlanResponse;
       
       try {
@@ -2319,6 +2345,9 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   const daysInChunk = endDay - startDay + 1;
   
+  // Get merged blacklist (hard bans + dynamic blacklist from KV)
+  const mergedBlacklist = await getMergedBlacklist(env);
+  
   // Build modifications section
   let modificationsSection = '';
   if (data.planModifications && data.planModifications.length > 0) {
@@ -2433,7 +2462,7 @@ Filters for "${dietaryModifier}": Vegan=no animal [PRO]; Keto=minimal [ENG]; Glu
 ADLE v8 RULES (MANDATORY):
 Priority: 1) Hard bans → 2) Mode filter → 3) Template → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
 
-0) HARD BANS: onions, turkey, sweeteners, honey/sugar/jam/syrups, ketchup/mayo/BBQ sauces, Greek yogurt (use plain yogurt only), peas+fish
+0) HARD BANS (strictly forbidden): ${mergedBlacklist.join(', ')}
 0.1) RARE (≤2x/week): turkey ham, bacon
 
 R1-R12: Main protein=1; Veggies=1-2 (Salad OR Fresh, not both); Energy=0-1; Dairy max=1/meal; Fats=0-1 (nuts/seeds→no oil); Cheese→no oil (olives ok); Bacon→Fats=0; Legumes-as-main→Energy=0 (bread optional); Bread only if Energy=0; Peas as side→Energy=0; Sandwich=breakfast only; Off-whitelist only if needed (Reason:...)
@@ -2593,7 +2622,10 @@ CRITICAL: recommendations and forbidden must contain specific foods for goal ${d
  * The MODIFIER acts as a filter applied to the universal food architecture:
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
-function generateMealPlanPrompt(data, analysis, strategy) {
+async function generateMealPlanPrompt(data, analysis, strategy, env) {
+  // Get merged blacklist (hard bans + dynamic blacklist from KV)
+  const mergedBlacklist = await getMergedBlacklist(env);
+  
   // Parse BMR from analysis (may be a number or string) or calculate from user data
   let bmr;
   if (analysis.bmr) {
@@ -2709,12 +2741,7 @@ Modifier filters: Vegan=no animal [PRO]; Keto/Low-carb=minimal [ENG], more [PRO]
 ADLE v8 RULES (MANDATORY):
 Priority: 1) Hard bans → 2) Mode filter → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
 
-0) HARD BANS (always 0%):
-- onions (any form), turkey meat, artificial sweeteners
-- honey, sugar, jam, syrops
-- ketchup, mayo, BBQ/sweet sauces
-- Greek yogurt (use ONLY plain yogurt)
-- peas + fish (forbidden combination)
+0) HARD BANS (strictly forbidden - always 0%): ${mergedBlacklist.join(', ')}
 
 0.1) RARE (≤2x/week): turkey ham, bacon
 
