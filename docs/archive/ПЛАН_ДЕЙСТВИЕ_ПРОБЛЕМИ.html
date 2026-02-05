@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>План за Действие - Резолюция на Проблеми</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .tracking-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header-banner {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header-banner h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header-banner p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .statistics-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 3px solid #e0e0e0;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .content-area {
+            padding: 40px;
+        }
+        
+        .problem-card {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .problem-card:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        
+        .problem-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .problem-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .problem-title {
+            flex: 1;
+        }
+        
+        .problem-title h3 {
+            color: #2c3e50;
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .severity-critical {
+            background: #fee;
+            color: #c0392b;
+        }
+        
+        .severity-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .problem-description {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .problem-description strong {
+            color: #2c3e50;
+        }
+        
+        .proposed-solution {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .proposed-solution h4 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .proposed-solution ul {
+            margin-left: 20px;
+            color: #555;
+        }
+        
+        .proposed-solution li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        
+        .decision-section {
+            background: #fff9e6;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #ffd700;
+        }
+        
+        .decision-section h4 {
+            color: #f39c12;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .choice-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .choice-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .choice-option:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+        }
+        
+        .choice-option input[type="radio"] {
+            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .choice-option label {
+            cursor: pointer;
+            flex: 1;
+            font-size: 1em;
+            color: #2c3e50;
+        }
+        
+        .custom-proposal-area {
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .custom-proposal-area.active {
+            display: block;
+        }
+        
+        .custom-proposal-area textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95em;
+            resize: vertical;
+        }
+        
+        .custom-proposal-area textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .action-buttons {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 20px 40px;
+            border-top: 3px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-save {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+        
+        .btn-export {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+        
+        .btn-load {
+            background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-load:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(156, 39, 176, 0.4);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .notification.show {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .progress-indicator {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50 0%, #45a049 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="tracking-container">
+        <div class="header-banner">
+            <h1>📋 План за Действие</h1>
+            <p>Трекър за Разрешаване на Идентифицирани Проблеми</p>
+        </div>
+        
+        <div class="statistics-bar">
+            <div class="stat-item">
+                <div class="stat-number" id="totalProblems">36</div>
+                <div class="stat-label">Общо Проблеми</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="criticalProblems">19</div>
+                <div class="stat-label">Критични</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="decidedProblems">0</div>
+                <div class="stat-label">Взети Решения</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="progressPercent">0%</div>
+                <div class="stat-label">Прогрес</div>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="progress-indicator">
+                <strong>Общ Прогрес на Решенията</strong>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 0%;">0%</div>
+                </div>
+            </div>
+            
+            <div id="problemsList"></div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-save" onclick="saveDecisions()">💾 Запази Решенията</button>
+            <button class="btn btn-export" onclick="exportToJSON()">📥 Експортирай JSON</button>
+            <button class="btn btn-load" onclick="loadDecisions()">📂 Зареди Запазени</button>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification"></div>
+
+    <script>
+        const issuesDatabase = [
+            {
+                id: 1,
+                title: "Противоречие в Броя на AI Заявките",
+                severity: "critical",
+                category: "Критични Несъответствия",
+                description: "Заглавието казва '6-Стъпкова AI Система', но на линия 903 се споменава 'Request 7'. Разработчиците не знаят дали трябва да правят 6 или 7 заявки.",
+                location: "Линии 457-505 срещу линия 903",
+                impact: "Объркване при имплементацията",
+                recommendation: [
+                    "Прегледайте цялата нумерация на заявките",
+                    "Ако има 6 заявки, коригирайте линия 903",
+                    "Ако има 7 заявки, актуализирайте диаграмата и заглавието"
+                ]
+            },
+            {
+                id: 2,
+                title: "Грешка в Изчислението на Макронутриентите",
+                severity: "critical",
+                category: "Критични Несъответствия",
+                description: "Примерът показва: 'Протеини: 78 × 2.0 = 156g → 624 cal' след това 'Корекция: Протеини: 130g → 520 cal (32%)'. Откъде идват 130g? Липсва алгоритъм за разрешаване на конфликти.",
+                location: "Линии 1925-1933",
+                impact: "Невъзможност за правилно имплементиране на макронутриенти",
+                recommendation: [
+                    "Добавете ясен алгоритъм за разрешаване на конфликти",
+                    "Обяснете логиката за 'корекция'",
+                    "Предоставете работещ математически пример от А до Я"
+                ]
+            },
+            {
+                id: 3,
+                title: "Липса на База Данни за Лекарствени Взаимодействия",
+                severity: "critical",
+                category: "Критични Проблеми",
+                description: "Системата препоръчва добавки без да проверява взаимодействия с лекарства. Примери: Warfarin + Omega-3 → кръвоизлив, SSRI + 5-HTP → сероtonинов синдром.",
+                location: "Линии 231, 729-734",
+                impact: "КРИТИЧНА здравна опасност за потребителите",
+                recommendation: [
+                    "Интегрирайте OpenFDA или DrugBank API",
+                    "Имплементирайте проверки преди препоръчване на добавки",
+                    "Добавете disclaimers за консултация с лекар"
+                ]
+            },
+            {
+                id: 4,
+                title: "localStorage Не Е Криптиран",
+                severity: "critical",
+                category: "Проблеми със Сигурността",
+                description: "Здравни данни (диагнози, психологически данни, chat история) се съхраняват некриптирани в localStorage. GDPR Article 32 проблем.",
+                location: "Линии 1115-1121",
+                impact: "Риск за privacy, възможни правни проблеми",
+                recommendation: [
+                    "Имплементирайте криптиране с Web Crypto API (AES-256)",
+                    "Добавете опция за потребителя да изтрива данни",
+                    "Актуализирайте Privacy Policy"
+                ]
+            },
+            {
+                id: 5,
+                title: "Липса на API Authentication",
+                severity: "critical",
+                category: "Проблеми със Сигурността",
+                description: "Worker получава userData без authentication. Лесно изпълними DoS атаки със спам заявки към /api/generate-plan.",
+                location: "Линии 369-383, 1409-1419",
+                impact: "API abuse, високи разходи, изтичане на API keys",
+                recommendation: [
+                    "Имплементирайте rate limiting (10 заявки/час на IP)",
+                    "Добавете API token за frontend → backend",
+                    "Използвайте Cloudflare DDoS protection"
+                ]
+            },
+            {
+                id: 6,
+                title: "Грешка в Token Оптимизация Примера",
+                severity: "critical",
+                category: "Технически Грешки",
+                description: "Противоречиви цифри: Strategy 695→167 (75.9%) vs Общо 4799→1962 (59.1%). Откъде идват 4799 токена преди оптимизация?",
+                location: "Линии 507-516, 1998-2010",
+                impact: "Объркани разработчици, невъзможност за верификация",
+                recommendation: [
+                    "Предоставете пълна breakdown таблица",
+                    "Покажете изчисленията стъпка по стъпка",
+                    "Базирайте примерите на реални данни"
+                ]
+            },
+            {
+                id: 7,
+                title: "Объркване в Activity Factor",
+                severity: "critical",
+                category: "Технически Грешки",
+                description: "Смесване между 'dailyActivityLevel' и 'sportActivity'. Примерът показва 1.55 за '1-2 пъти седмично', което трябва да е 1.375.",
+                location: "Линии 123, 584-587, 1881-1886",
+                impact: "Грешни калорични изчисления",
+                recommendation: [
+                    "Ясно дефинирайте mapping между полетата и TDEE",
+                    "Предоставете таблица: sportActivity → activityFactor",
+                    "Коригирайте примера"
+                ]
+            },
+            {
+                id: 8,
+                title: "Липса на BMR Верификация",
+                severity: "critical",
+                category: "Технически Грешки",
+                description: "Mifflin-St Jeor формулата е спомената, но липсва верификация че е правилно имплементирана. Няма test cases.",
+                location: "Линии 578-580",
+                impact: "Потенциално грешни BMR изчисления",
+                recommendation: [
+                    "Добавете примери с изчисления",
+                    "Създайте unit тестове за BMR функцията",
+                    "Верифицирайте имплементацията"
+                ]
+            },
+            {
+                id: 9,
+                title: "Нереалистичен TDEE Пример",
+                severity: "critical",
+                category: "Технически Грешки",
+                description: "Примерът показва 1650 cal за жена (BMR≈1480, TDEE≈2553), което е 903 cal дефицит (35% под TDEE) - твърде агресивно!",
+                location: "Линии 1925-1933",
+                impact: "Опасни планове за потребителите",
+                recommendation: [
+                    "Коригирайте примера с реалистични цифри",
+                    "Добавете предупреждения за максимален дефицит (20-25%)",
+                    "Проверете AI генерираните планове"
+                ]
+            },
+            {
+                id: 10,
+                title: "TDEE Factors Дублирани",
+                severity: "medium",
+                category: "Несъответствия",
+                description: "Activity factors са дефинирани на 2 места с леки разлики в описанията.",
+                location: "Линии 584-587 и 1881-1886",
+                impact: "Консистентност на документацията",
+                recommendation: [
+                    "Консолидирайте на едно място",
+                    "Добавете референция от другото място"
+                ]
+            },
+            {
+                id: 11,
+                title: "Противоречие в Правилото за Повторение",
+                severity: "medium",
+                category: "Несъответствия",
+                description: "Две различни метрики: '< 20% повторение' (процент) срещу '< 5 еднакви хранения' (абсолютен брой).",
+                location: "Линия 1956 срещу 1961",
+                impact: "Неясни изисквания",
+                recommendation: [
+                    "Изберете една метрика",
+                    "Използвайте я консистентно"
+                ]
+            },
+            {
+                id: 12,
+                title: "Формат на Meal Timing Противоречив",
+                severity: "medium",
+                category: "Несъответствия",
+                description: "Документацията казва различни времена за Пн-Пт vs Съб-Нед, но JSON показва еднакви времена.",
+                location: "Линия 699 срещу 1718-1725",
+                impact: "Несъответствие между документация и имплементация",
+                recommendation: [
+                    "Решете дали времената се различават",
+                    "Актуализирайте документацията или схемата"
+                ]
+            },
+            {
+                id: 13,
+                title: "Conditional Полета Недефинирани",
+                severity: "medium",
+                category: "Несъответствия",
+                description: "Много полета са '(conditional)' но липсват правила кога са задължителни. Например: weightChangeDetails, sleepProblems, emotionalEatingDetails.",
+                location: "Линии 1638, 1640-1641",
+                impact: "Неясна валидация",
+                recommendation: [
+                    "Добавете таблица с conditional правила",
+                    "Спецификирайте: поле, условие, задължително да/не"
+                ]
+            },
+            {
+                id: 14,
+                title: "Несиметрично Chunk Разпределение",
+                severity: "medium",
+                category: "Несъответствия",
+                description: "Chunks: Дни 1-2, 3-4, 5-6, 7. Защо ден 7 е сам? Логично е 1-2, 3-5, 6-7 или 1-3, 4-7.",
+                location: "Линии 747-752",
+                impact: "Субоптимална chunking стратегия",
+                recommendation: [
+                    "Прегледайте chunking за баланс",
+                    "Обяснете защо последният chunk има 1 ден"
+                ]
+            },
+            {
+                id: 15,
+                title: "Липсва Chronotype Алгоритъм",
+                severity: "critical",
+                category: "Липсваща Информация",
+                description: "Споменава се че chronotype влияе на meal times, но липсва алгоритъм как. Колко shift за Early bird vs Night owl?",
+                location: "Линии 114, 608",
+                impact: "Невъзможна имплементация на функцията",
+                recommendation: [
+                    "Добавете таблица: Chronotype → Закуска, Обяд, Вечеря",
+                    "Спецификирайте shift в часове"
+                ]
+            },
+            {
+                id: 16,
+                title: "Error Recovery Не Е Спецификиран",
+                severity: "critical",
+                category: "Липсваща Информация",
+                description: "'Максимум 3 опита' е споменато, но какво след провал? Частичен план? Какво съобщение вижда потребителят?",
+                location: "Линии 896-899",
+                impact: "Лош UX при грешки",
+                recommendation: [
+                    "Добавете Error Handling Strategy секция",
+                    "Дефинирайте опит 1, 2, 3 и fallback",
+                    "Спецификирайте user messages"
+                ]
+            },
+            {
+                id: 17,
+                title: "Chat Modification Команди Непълни",
+                severity: "critical",
+                category: "Липсваща Информация",
+                description: "Списъкът с модификации е непълен. Липсват: add_sugar_restriction, increase_fiber, change_cuisine, add_allergy, adjust_portions.",
+                location: "Линии 1574-1579",
+                impact: "Ограничена функционалност",
+                recommendation: [
+                    "Добавете пълен списък с всички команди",
+                    "Предоставете примери",
+                    "Обяснете разпознаването"
+                ]
+            },
+            {
+                id: 18,
+                title: "Липсва База за Supplement Interactions",
+                severity: "critical",
+                category: "Липсваща Информация",
+                description: "Warfarin + Vitamin K е споменато, но липсва база данни. Как системата проверява взаимодействия?",
+                location: "Линия 231",
+                impact: "Здравна опасност",
+                recommendation: [
+                    "Добавете референция към база данни",
+                    "Имплементирайте API integration",
+                    "Добавете disclaimer"
+                ]
+            },
+            {
+                id: 19,
+                title: "Липсва Формула за Sleep Adjustment",
+                severity: "critical",
+                category: "Липсваща Информация",
+                description: "Казва '-10-15% при недостатъчен сън' но липсва формула. 5h → -15%? 6h → -10%? Линейна интерполация?",
+                location: "Линии 612, 591-592",
+                impact: "Неточни метаболитни изчисления",
+                recommendation: [
+                    "Добавете формула: sleep_adj = max(-15%, min(0%, (hours-7)*5%))",
+                    "Примери за различни часове сън"
+                ]
+            },
+            {
+                id: 20,
+                title: "Success Chance Calculation Липсва",
+                severity: "critical",
+                category: "Липсваща Информация",
+                description: "Показва 'successChance: 65' но няма обяснение как се изчислява. Кои фактори влияят?",
+                location: "Линии 642, 660",
+                impact: "Неразбираем метрик",
+                recommendation: [
+                    "Добавете алгоритъм със всички фактори",
+                    "Базова стойност + adjustments",
+                    "Cap между 0 и 100"
+                ]
+            },
+            {
+                id: 21,
+                title: "Chat History с Чувствителни Данни",
+                severity: "critical",
+                category: "Проблеми със Сигурността",
+                description: "Chat съдържа медицински въпроси ('Мога ли банани при диабет?') - съхранява се некриптиран в localStorage.",
+                location: "Линии 1097-1111",
+                impact: "Privacy риск",
+                recommendation: [
+                    "Криптирайте chat history",
+                    "Auto-delete след 30 дни",
+                    "Предупредете потребителя"
+                ]
+            },
+            {
+                id: 22,
+                title: "Липсва Data Deletion Спецификация",
+                severity: "critical",
+                category: "Проблеми със Сигурността",
+                description: "Казва 'потребителят може да изчисти браузъра' но няма селективно изтриване или UI за управление.",
+                location: "Линии 1115-1121",
+                impact: "GDPR 'right to erasure' проблем",
+                recommendation: [
+                    "Добавете UI за управление: delete plan, chat, all",
+                    "Auto-cleanup при достигане на лимит",
+                    "Export before delete опция"
+                ]
+            },
+            {
+                id: 23,
+                title: "XSS Защита Недостатъчна",
+                severity: "critical",
+                category: "Проблеми със Сигурността",
+                description: "escapeHtml() е споменат но липсва имплементация. Къде се прилага? Всички XSS вектори покрити?",
+                location: "Линия 2084",
+                impact: "XSS уязвимост",
+                recommendation: [
+                    "Предоставете пълна escapeHtml() имплементация",
+                    "Документирайте всички места за прилагане",
+                    "Използвайте CSP headers"
+                ]
+            },
+            {
+                id: 24,
+                title: "Дублирани Схеми",
+                severity: "medium",
+                category: "Структурни Проблеми",
+                description: "userData и dietPlan схемите са дефинирани на 3 места. Промените трябва да се правят навсякъде.",
+                location: "Линии 1609-1662, 263-314, 1670-1808",
+                impact: "Поддръжка nightmare",
+                recommendation: [
+                    "Консолидирайте на едно място",
+                    "Използвайте референции",
+                    "Добавете version number"
+                ]
+            },
+            {
+                id: 25,
+                title: "Activity Factors 3 Пъти",
+                severity: "medium",
+                category: "Структурни Проблеми",
+                description: "Activity factors се появяват на 3 места с малки вариации.",
+                location: "Линии 123, 584-587, 1881-1886",
+                impact: "Консистентност",
+                recommendation: [
+                    "Дефинирайте на едно място (раздел Формули)",
+                    "Референции от други места"
+                ]
+            },
+            {
+                id: 26,
+                title: "Некоректна TOC Нумерация",
+                severity: "medium",
+                category: "Структурни Проблеми",
+                description: "TOC показва Стъпка 3 с подстъпки 3.1-3.4 (Request 6), след което директно Стъпка 4. Объркващо.",
+                location: "Линии 3-13",
+                impact: "Навигация",
+                recommendation: [
+                    "Опростете структурата",
+                    "Ясна йерархия"
+                ]
+            },
+            {
+                id: 27,
+                title: "Липсва Индекс по Теми",
+                severity: "medium",
+                category: "Структурни Проблеми",
+                description: "При 2138 реда търсенето на информация е трудно. Няма индекс.",
+                location: "Общо",
+                impact: "Usability",
+                recommendation: [
+                    "Добавете индекс в края",
+                    "BMR формула → линия X",
+                    "userData schema → линия Y"
+                ]
+            },
+            {
+                id: 28,
+                title: "Circular Logic в Макронутриенти",
+                severity: "medium",
+                category: "Логически Проблеми",
+                description: "Протеини 1.6-2.2 g/kg + Мазнини 20-35% може да остави твърде малко въглехидрати. Пример: 78kg жена → 171g протеин + 25% мазнини = 138g carbs (твърде ниско за PCOS).",
+                location: "Линии 601-604",
+                impact: "Неизпълними планове",
+                recommendation: [
+                    "Добавете алгоритъм за конфликти",
+                    "Приоритизирайте макронутриентите",
+                    "Балансирайте автоматично"
+                ]
+            },
+            {
+                id: 29,
+                title: "Supplement Без Drug Check",
+                severity: "medium",
+                category: "Логически Проблеми",
+                description: "AI препоръчва добавки без проверка на medications. Пример: Warfarin потребител → Omega-3 препоръка = опасност.",
+                location: "Линии 729-734",
+                impact: "Здравна опасност",
+                recommendation: [
+                    "Имплементирайте interaction check",
+                    "Блокирайте опасни комбинации"
+                ]
+            },
+            {
+                id: 30,
+                title: "Meal Timing Еднакво",
+                severity: "medium",
+                category: "Логически Проблеми",
+                description: "weeklyBlueprint показва идентични времена за weekdayMeals и weekendMeals, но документацията казва различни.",
+                location: "Линии 1718-1725",
+                impact: "Несъответствие",
+                recommendation: [
+                    "Коригирайте примера или документацията",
+                    "Решете кое е правилно"
+                ]
+            },
+            {
+                id: 31,
+                title: "Липсват Ranges за Числа",
+                severity: "medium",
+                category: "Проблеми с Валидацията",
+                description: "Няма валидация ranges: age (18-100?), height (130-230 cm?), weight (40-200 kg?).",
+                location: "Линии 269-270",
+                impact: "Невалидни входни данни",
+                recommendation: [
+                    "Добавете таблица с min/max за всяко поле",
+                    "Integer vs Float спецификация"
+                ]
+            },
+            {
+                id: 32,
+                title: "Email Валидация Липсва",
+                severity: "medium",
+                category: "Проблеми с Валидацията",
+                description: "Email се събира като 'optional' но няма regex валидация.",
+                location: "Линия 99",
+                impact: "Потенциално невалидни emails",
+                recommendation: [
+                    "Ако не се използва, премахнете от въпросник",
+                    "Ако се използва, добавете regex валидация"
+                ]
+            },
+            {
+                id: 33,
+                title: "Text Field Length Limits Липсват",
+                severity: "medium",
+                category: "Проблеми с Валидацията",
+                description: "Полета като 'Допълнителна информация' нямат character limit. Може ли потребител да paste 100KB текст?",
+                location: "Линии 240-241, 200-201",
+                impact: "localStorage overflow",
+                recommendation: [
+                    "Добавете limits: additionalInfo 2000, foodIntoleranceDetails 1000, и т.н."
+                ]
+            },
+            {
+                id: 34,
+                title: "Array Validation Неясна",
+                severity: "medium",
+                category: "Проблеми с Валидацията",
+                description: "'Поне 1 избрана опция' но 'Няма' взаимно изключва всичко. Валидно ли е 'Няма' като единствена опция?",
+                location: "Линии 295-298, 148-152",
+                impact: "Неясни правила",
+                recommendation: [
+                    "Уточнете: 'Няма' = валиден избор",
+                    "'Няма' + други опции = невалидно (conflict)"
+                ]
+            },
+            {
+                id: 35,
+                title: "localStorage Size Limit Risk",
+                severity: "medium",
+                category: "Производителност",
+                description: "dietPlan 100KB + chatHistory 30KB = 130KB на потребител. След 50 генерации = 5MB (близо до лимита 5-10MB). След 100 = exceeded quota!",
+                location: "Линии 1050-1059",
+                impact: "Апликацията спира да работи",
+                recommendation: [
+                    "Cleanup стратегия: запази само 5 плана",
+                    "Warning при 80% от лимита",
+                    "Компресирайте с LZ-string"
+                ]
+            },
+            {
+                id: 36,
+                title: "Worker Timeout Risk",
+                severity: "medium",
+                category: "Производителност",
+                description: "Frontend timeout 360s, Worker 60s на заявка, 6 AI заявки × 60s = 360s минимум. Ако една заявка > 60s → провал.",
+                location: "Линии 372, 1989-1992",
+                impact: "Цялостен провал при timeout",
+                recommendation: [
+                    "Resume mechanism с междинни резултати",
+                    "Progress indicator за всяка заявка",
+                    "Разгледайте streaming API"
+                ]
+            }
+        ];
+
+        function renderProblems() {
+            const container = document.getElementById('problemsList');
+            container.innerHTML = '';
+            
+            issuesDatabase.forEach(issue => {
+                const card = document.createElement('div');
+                card.className = 'problem-card';
+                card.id = `problem-${issue.id}`;
+                
+                const severityClass = issue.severity === 'critical' ? 'severity-critical' : 'severity-medium';
+                const severityText = issue.severity === 'critical' ? '🔴 Критичен' : '🟡 Среден';
+                
+                card.innerHTML = `
+                    <div class="problem-header">
+                        <div class="problem-number">${issue.id}</div>
+                        <div class="problem-title">
+                            <h3>${issue.title}</h3>
+                            <span class="${severityClass} severity-badge">${severityText}</span>
+                            <span class="severity-badge" style="background: #e3f2fd; color: #1976d2; margin-left: 10px;">${issue.category}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="problem-description">
+                        <strong>Описание:</strong> ${issue.description}
+                        <br><br>
+                        <strong>Локация:</strong> ${issue.location}
+                        <br>
+                        <strong>Въздействие:</strong> ${issue.impact}
+                    </div>
+                    
+                    <div class="proposed-solution">
+                        <h4>💡 Предложено Решение:</h4>
+                        <ul>
+                            ${issue.recommendation.map(rec => `<li>${rec}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="decision-section">
+                        <h4>⚡ Вашето Решение:</h4>
+                        <div class="choice-options">
+                            <div class="choice-option">
+                                <input type="radio" name="decision-${issue.id}" id="skip-${issue.id}" value="skip" onchange="handleDecisionChange(${issue.id})">
+                                <label for="skip-${issue.id}">🚫 Пропусни този проблем</label>
+                            </div>
+                            <div class="choice-option">
+                                <input type="radio" name="decision-${issue.id}" id="accept-${issue.id}" value="accept" onchange="handleDecisionChange(${issue.id})">
+                                <label for="accept-${issue.id}">✅ Приемам предложеното решение</label>
+                            </div>
+                            <div class="choice-option">
+                                <input type="radio" name="decision-${issue.id}" id="custom-${issue.id}" value="custom" onchange="handleDecisionChange(${issue.id})">
+                                <label for="custom-${issue.id}">✏️ Създавам друго предложение</label>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-proposal-area" id="custom-area-${issue.id}">
+                            <textarea id="custom-text-${issue.id}" placeholder="Опишете вашето алтернативно предложение тук..."></textarea>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function handleDecisionChange(issueId) {
+            const customRadio = document.getElementById(`custom-${issueId}`);
+            const customArea = document.getElementById(`custom-area-${issueId}`);
+            
+            if (customRadio.checked) {
+                customArea.classList.add('active');
+            } else {
+                customArea.classList.remove('active');
+            }
+            
+            updateProgress();
+        }
+
+        function updateProgress() {
+            let decidedCount = 0;
+            
+            issuesDatabase.forEach(issue => {
+                const radios = document.getElementsByName(`decision-${issue.id}`);
+                for (let radio of radios) {
+                    if (radio.checked) {
+                        decidedCount++;
+                        break;
+                    }
+                }
+            });
+            
+            const totalProblems = issuesDatabase.length;
+            const progressPercent = Math.round((decidedCount / totalProblems) * 100);
+            
+            document.getElementById('decidedProblems').textContent = decidedCount;
+            document.getElementById('progressPercent').textContent = progressPercent + '%';
+            document.getElementById('progressBar').style.width = progressPercent + '%';
+            document.getElementById('progressBar').textContent = progressPercent + '%';
+        }
+
+        function collectDecisions() {
+            const decisions = [];
+            
+            issuesDatabase.forEach(issue => {
+                const radios = document.getElementsByName(`decision-${issue.id}`);
+                let selectedDecision = null;
+                
+                for (let radio of radios) {
+                    if (radio.checked) {
+                        selectedDecision = radio.value;
+                        break;
+                    }
+                }
+                
+                let customProposal = '';
+                if (selectedDecision === 'custom') {
+                    customProposal = document.getElementById(`custom-text-${issue.id}`).value;
+                }
+                
+                decisions.push({
+                    issueId: issue.id,
+                    title: issue.title,
+                    decision: selectedDecision,
+                    customProposal: customProposal,
+                    timestamp: new Date().toISOString()
+                });
+            });
+            
+            return decisions;
+        }
+
+        function saveDecisions() {
+            const decisions = collectDecisions();
+            const dataToSave = {
+                metadata: {
+                    savedAt: new Date().toISOString(),
+                    totalIssues: issuesDatabase.length,
+                    decidedIssues: decisions.filter(d => d.decision !== null).length
+                },
+                decisions: decisions
+            };
+            
+            localStorage.setItem('issueResolutions', JSON.stringify(dataToSave));
+            
+            showNotification('✅ Решенията са запазени успешно!');
+        }
+
+        function loadDecisions() {
+            const savedData = localStorage.getItem('issueResolutions');
+            
+            if (!savedData) {
+                showNotification('⚠️ Няма запазени решения.', 'warning');
+                return;
+            }
+            
+            const data = JSON.parse(savedData);
+            
+            data.decisions.forEach(savedDecision => {
+                if (savedDecision.decision) {
+                    const radio = document.getElementById(`${savedDecision.decision}-${savedDecision.issueId}`);
+                    if (radio) {
+                        radio.checked = true;
+                        
+                        if (savedDecision.decision === 'custom' && savedDecision.customProposal) {
+                            document.getElementById(`custom-text-${savedDecision.issueId}`).value = savedDecision.customProposal;
+                            document.getElementById(`custom-area-${savedDecision.issueId}`).classList.add('active');
+                        }
+                    }
+                }
+            });
+            
+            updateProgress();
+            showNotification('✅ Решенията са заредени!');
+        }
+
+        function exportToJSON() {
+            const decisions = collectDecisions();
+            const exportData = {
+                exportedAt: new Date().toISOString(),
+                totalIssues: issuesDatabase.length,
+                decidedIssues: decisions.filter(d => d.decision !== null).length,
+                decisions: decisions
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(dataBlob);
+            downloadLink.download = `issue-resolutions-${new Date().toISOString().split('T')[0]}.json`;
+            downloadLink.click();
+            
+            showNotification('📥 JSON файлът е изтеглен!');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = type === 'success' ? '#4caf50' : '#ff9800';
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            renderProblems();
+            
+            // Try to load saved decisions
+            const savedData = localStorage.getItem('issueResolutions');
+            if (savedData) {
+                const autoLoad = confirm('Намерени са запазени решения. Желаете ли да ги заредите?');
+                if (autoLoad) {
+                    loadDecisions();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
