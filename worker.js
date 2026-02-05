@@ -1665,7 +1665,7 @@ async function generatePlanMultiStep(env, data) {
     } else {
       // Fallback to single-request generation
       console.log('Multi-step generation: Using single-request meal plan generation');
-      const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
+      const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env);
       let mealPlanResponse;
       
       try {
@@ -2401,6 +2401,38 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
   };
   
+  // Fetch dynamic whitelist and blacklist from KV storage
+  let dynamicWhitelist = [];
+  let dynamicBlacklist = [];
+  
+  try {
+    if (env.page_content) {
+      const whitelistData = await env.page_content.get('food_whitelist');
+      if (whitelistData) {
+        dynamicWhitelist = JSON.parse(whitelistData);
+      }
+      
+      const blacklistData = await env.page_content.get('food_blacklist');
+      if (blacklistData) {
+        dynamicBlacklist = JSON.parse(blacklistData);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading whitelist/blacklist from KV:', error);
+  }
+  
+  // Build dynamic whitelist section if there are custom items
+  let dynamicWhitelistSection = '';
+  if (dynamicWhitelist.length > 0) {
+    dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
+  }
+  
+  // Build dynamic blacklist section if there are custom items
+  let dynamicBlacklistSection = '';
+  if (dynamicBlacklist.length > 0) {
+    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
+  }
+  
   // Extract weekly blueprint if available
   let blueprintSection = '';
   if (analysis.weeklyBlueprint) {
@@ -2557,6 +2589,7 @@ WHITELIST FAT (избери 0-1):
 - зехтин (olive oil)
 - масло (butter - умерено)
 - ядки/семена (nuts/seeds - умерено)
+${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 СПЕЦИАЛНИ ПРАВИЛА:
 - Грах + риба = СТРОГО ЗАБРАНЕНО
@@ -2761,7 +2794,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
  * The MODIFIER acts as a filter applied to the universal food architecture:
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
-function generateMealPlanPrompt(data, analysis, strategy) {
+async function generateMealPlanPrompt(data, analysis, strategy, env) {
   // Parse BMR from analysis (may be a number or string) or calculate from user data
   let bmr;
   if (analysis.bmr) {
@@ -2825,6 +2858,38 @@ ${modLines.join('\n')}
   
   // Extract dietary modifier from strategy
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
+  
+  // Fetch dynamic whitelist and blacklist from KV storage
+  let dynamicWhitelist = [];
+  let dynamicBlacklist = [];
+  
+  try {
+    if (env && env.page_content) {
+      const whitelistData = await env.page_content.get('food_whitelist');
+      if (whitelistData) {
+        dynamicWhitelist = JSON.parse(whitelistData);
+      }
+      
+      const blacklistData = await env.page_content.get('food_blacklist');
+      if (blacklistData) {
+        dynamicBlacklist = JSON.parse(blacklistData);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading whitelist/blacklist from KV:', error);
+  }
+  
+  // Build dynamic whitelist section if there are custom items
+  let dynamicWhitelistSection = '';
+  if (dynamicWhitelist.length > 0) {
+    dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
+  }
+  
+  // Build dynamic blacklist section if there are custom items
+  let dynamicBlacklistSection = '';
+  if (dynamicBlacklist.length > 0) {
+    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
+  }
   
   // Create compact strategy (no full JSON)
   const strategyCompact = {
@@ -2943,6 +3008,7 @@ WHITELIST FAT (избери 0-1):
 - зехтин (olive oil)
 - масло (butter - умерено)
 - ядки/семена (nuts/seeds - умерено)
+${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 СПЕЦИАЛНИ ПРАВИЛА:
 - Грах + риба = СТРОГО ЗАБРАНЕНО
