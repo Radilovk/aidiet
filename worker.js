@@ -410,6 +410,8 @@ export default {
         return await handleSavePrompt(request, env);
       } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
         return await handleGetPrompt(request, env);
+      } else if (url.pathname === '/api/admin/get-default-prompt' && request.method === 'GET') {
+        return await handleGetDefaultPrompt(request, env);
       } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
         return await handleSaveModel(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
@@ -4165,6 +4167,369 @@ async function handleGetPrompt(request, env) {
   } catch (error) {
     console.error('Error getting prompt:', error);
     return jsonResponse({ error: 'Failed to get prompt: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Get default AI prompt from worker.js (not from KV)
+ * This returns the actual default prompts used by the system
+ */
+async function handleGetDefaultPrompt(request, env) {
+  try {
+    const url = new URL(request.url);
+    const type = url.searchParams.get('type');
+    
+    if (!type) {
+      return jsonResponse({ 
+        error: 'Missing required parameter: type. Valid types: analysis, strategy, meal_plan, summary, consultation, modification' 
+      }, 400);
+    }
+    
+    // Return the actual default prompts from worker.js
+    const defaultPrompts = {
+      analysis: `Expert nutritional analysis. Calculate BMR, TDEE, target kcal, macros. Review baseline holistically using all client factors.
+
+CRITICAL QUALITY STANDARDS:
+1. INDIVIDUALIZATION: Base EVERY conclusion on THIS client's specific data - avoid generic/averaged approaches
+2. CORRELATIONAL THINKING: Analyze interconnections (sleep↔stress↔eating, chronotype↔meal timing, psychology↔behavior)
+3. EVIDENCE-BASED: Use modern, proven methods - no outdated/worn-out approaches
+4. SPECIFICITY: Concrete recommendations, not vague generalities
+5. NO DEFAULTS: All values calculated from client data, no standard templates
+
+IMPORTANT FORMATTING RULES:
+- NO specific meal times (NOT "12:00", "19:00") - use meal type names ("breakfast", "lunch", "dinner")
+- Portions approximate, in ~50g increments (50g, 100g, 150g, 200g, 250g, 300g)
+- Use general food categories unless specific type is medically critical:
+  * "fish" (NOT "cod/mackerel/bonito")
+  * "vegetables" (NOT "broccoli/cauliflower")
+  * "fruits" (NOT "apples/bananas")
+  * "nuts" with specification "raw, unsalted" (NOT "peanuts/almonds")
+- Supplement dosages: EXACT values (e.g. "400mg", "2g"), NOT ranges like "300-400mg" or "2-3g"
+- Supplements must be prescribed specifically for THIS client based on deficiencies/needs, not generic rules
+
+PROTOCOL:
+- Backend baseline: Mifflin-St Jeor formula as starting point
+- AI: Critically review and adjust using comprehensive analysis of ALL factors
+- Format: Reasoning in English, user fields in Bulgarian
+
+CLIENT DATA:
+{userData} (will contain all user data as JSON)
+
+BASELINE (Mifflin-St Jeor):
+Weight {weight}kg, Height {height}cm, Age {age}, Sex {gender}, Goal {goal}
+BMR = 10×weight + 6.25×height - 5×age + (5 for male / -161 for female)
+TDEE = BMR × Activity(1.2-1.9), Target = TDEE±deficit/surplus
+
+ANALYSIS FACTORS:
+Sleep: {sleepHours}h (interrupted: {sleepInterrupt}), Stress: {stressLevel} → hormones, cravings
+Triggers, Compensations, Chronotype: {chronotype}, Activity: {sportActivity}/{dailyActivityLevel}
+Diet history: failed diets = metabolic adaptation
+Medical conditions, Medications
+
+TASK:
+1. Calculate BMR/TDEE/target kcal, adjust for all factors
+2. Success score (-100 to +100) based on holistic assessment  
+3. Identify 3-6 key problems (Borderline/Risky/Critical only)
+4. All reasoning in English, user fields in Bulgarian
+
+OUTPUT (JSON):
+- Numeric fields: numbers only (no text/units)
+- Reasoning fields: English, compact
+- User fields (metabolicProfile, healthRisks, nutritionalNeeds, psychologicalProfile, keyProblems title/description/impact): Bulgarian
+
+{
+  "bmr": number,
+  "bmrReasoning": "English: adjustment rationale",
+  "tdee": number,
+  "tdeeReasoning": "English: activity/stress/sleep impact",
+  "recommendedCalories": number,
+  "caloriesReasoning": "English: goal/stress/diet history factors",
+  "macroRatios": {"protein": %, "carbs": %, "fats": %},
+  "macroRatiosReasoning": {"protein": "English", "carbs": "English", "fats": "English"},
+  "macroGrams": {"protein": g, "carbs": g, "fats": g},
+  "weeklyBlueprint": {
+    "skipBreakfast": boolean,
+    "dailyMealCount": number,
+    "mealCountReasoning": "English",
+    "dailyStructure": [{"dayIndex": 1, "meals": [{"type": "breakfast/lunch/dinner/snack", "active": boolean, "calorieTarget": kcal, "proteinSource": "e.g. chicken", "carbSource": "e.g. rice"}]}]
+  },
+  "metabolicProfile": "BULGARIAN: unique profile - chronotype, activity, history impact",
+  "healthRisks": ["BULGARIAN: specific risk 1", "risk 2", "risk 3"],
+  "nutritionalNeeds": ["BULGARIAN: need 1", "need 2", "need 3"],
+  "psychologicalProfile": "BULGARIAN: emotional eating, triggers, coping, motivation",
+  "successChance": number,
+  "successChanceReasoning": "English: helping/hindering factors",
+  "keyProblems": [{"title": "BULGARIAN 2-4 words", "description": "BULGARIAN: why problem + consequences", "severity": "Borderline/Risky/Critical", "severityValue": 0-100, "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical", "impact": "BULGARIAN: health/goal impact"}]
+}
+
+WeeklyBlueprint rules: Sum calorieTarget = recommendedCalories/day. If skipBreakfast=true, breakfast active=false. Vary protein/carb sources. Chronological meal order.`,
+
+      strategy: `Dietary strategy optimization. Develop UNIQUE, individualized approach for THIS specific client.
+
+CRITICAL QUALITY STANDARDS:
+1. INDIVIDUALIZATION: Base EVERY conclusion on THIS client's specific data
+2. CORRELATIONAL THINKING: Analyze interconnections
+3. EVIDENCE-BASED: Use modern, proven methods
+4. SPECIFICITY: Concrete recommendations, not vague generalities
+
+CLIENT: {name}, {age} years, Goal: {goal}
+
+ANALYSIS (COMPACT):
+- BMR/TDEE/Calories: {bmr} / {tdee} / {recommendedCalories}
+- Macro ratios: {macroRatios}
+- Macro grams daily: {macroGrams}
+- Weekly blueprint: {weeklyBlueprint}
+- Metabolic profile: {metabolicProfile}
+- Health risks: {healthRisks}
+- Nutritional needs: {nutritionalNeeds}
+- Psychological profile: {psychologicalProfile}
+- Success chance: {successChance}
+- Key problems: {keyProblems}
+
+PREFERENCES:
+- Dietary preferences: {dietPreference}
+- Dislikes/intolerances: {dietDislike}
+- Favorite foods: {dietLove}
+
+IMPORTANT: Consider ALL parameters holistically and create CORRELATIONS:
+1. Medical conditions and medications - how they affect nutritional needs
+2. Food intolerances and allergies - strict restriction
+3. Personal preferences and favorite foods - for long-term sustainability
+4. Chronotype and daily rhythm - optimal meal timing
+5. Stress level and emotional eating - psychological support
+6. Cultural context (Bulgarian traditions and available products)
+7. CORRELATIONS between sleep, stress and food cravings
+8. RELATIONSHIP between physical activity and caloric needs
+9. INTERCONNECTION between medical conditions and nutritional requirements
+
+CRITICAL - INDIVIDUALIZATION OF ALL RECOMMENDATIONS:
+1. Supplements must be STRICTLY INDIVIDUALLY selected for {name}
+2. FORBIDDEN to use universal/general supplement recommendations
+3. Each supplement must be justified with SPECIFIC needs from analysis
+4. Dosages must be personalized based on age, weight, sex and health status
+5. Consider medical conditions, medications and possible interactions
+
+CRITICAL - DETERMINING MODIFIER:
+After analyzing all parameters, determine appropriate MODIFIER (dietary profile):
+- Can be term: "Keto", "Paleo", "Vegan", "Vegetarian", "Mediterranean", "Low-carb", "Balanced", "Gentle stomach", "Gluten-free" etc.
+- MODIFIER must account for medical conditions, goals, preferences and all analyzed factors
+
+Return JSON with strategy (NO universal recommendations):
+{
+  "dietaryModifier": "term for main dietary profile (e.g. Balanced, Keto, Vegan, Mediterranean, Low-carb, Gentle stomach)",
+  "modifierReasoning": "Detailed explanation why this MODIFIER is chosen SPECIFICALLY for {name}",
+  "welcomeMessage": "REQUIRED: PERSONALIZED greeting for {name} at first view of plan. Tone should be professional but warm and motivating. Include: 1) Personal greeting with name, 2) Brief mention of specific factors from profile (age, goal, key challenges), 3) How plan is created specifically for their needs, 4) Positive vision for achieving goals. Length: 150-250 words. IMPORTANT: Avoid generic phrases - use concrete details for {name}.",
+  "planJustification": "REQUIRED: Detailed justification of overall strategy, including meal count, meal timing, cyclic distribution (if any), meals after dinner (if any), and WHY this strategy is optimal for {name}. Minimum 100 characters.",
+  "longTermStrategy": "LONG-TERM STRATEGY: Describe how plan works within 2-3 days/week, not just daily basis. Include information about cyclic distribution of calories/macros, meal variation, and how this supports goals.",
+  "mealCountJustification": "JUSTIFICATION FOR MEAL COUNT: Why exactly this number of meals (1-5) is chosen for each day. What is the strategic, physiological or psychological reason.",
+  "afterDinnerMealJustification": "JUSTIFICATION FOR MEALS AFTER DINNER: If there are meals after dinner, explain WHY they are necessary, what is the goal, and how they support overall strategy. If none - write 'Not necessary'.",
+  "dietType": "diet type personalized for {name} (e.g. Mediterranean, balanced, low-carb)",
+  "weeklyMealPattern": "HOLISTIC weekly eating pattern (e.g. '16:8 intermittent fasting daily', '5:2 approach', 'cyclic fasting', 'free weekend', or traditional pattern with varying meals)",
+  "mealTiming": {
+    "pattern": "weekly eating model described in detail",
+    "fastingWindows": "fasting periods if applied or 'not applied'",
+    "flexibility": "description of flexibility in pattern according to days and needs"
+  },
+  "keyPrinciples": ["principle 1 specific for {name}", "principle 2 specific for {name}", "principle 3 specific for {name}"],
+  "foodsToInclude": ["food 1 suitable for {name}", "food 2 suitable for {name}", "food 3 suitable for {name}"],
+  "foodsToAvoid": ["food 1 unsuitable for {name}", "food 2 unsuitable for {name}", "food 3 unsuitable for {name}"],
+  "supplementRecommendations": [
+    "! INDIVIDUAL supplement 1 for {name} - specific supplement with dosage and justification why IS NEEDED for this client",
+    "! INDIVIDUAL supplement 2 for {name} - specific supplement with dosage and justification why IS NEEDED for this client"
+  ],
+  "hydrationStrategy": "fluid intake recommendations personalized for {name} based on activity and climate",
+  "psychologicalSupport": [
+    "! psychological advice 1 based on emotional eating of {name}",
+    "! psychological advice 2 based on stress and behavior of {name}",
+    "! psychological advice 3 for motivation specific for profile of {name}"
+  ]
+}`,
+
+      meal_plan: `ADLE meal plan generation. Create concrete, individualized meals for THIS client.
+
+CRITICAL QUALITY STANDARDS:
+1. INDIVIDUALIZATION: Base meals on THIS client's specific data
+2. VARIETY: Different meals each day, varied ingredients
+3. BULGARIAN CONTEXT: Use traditional Bulgarian foods and available products
+4. PRACTICALITY: Simple, achievable recipes
+5. PRECISION: Exact portions and macros
+
+Generate meals for days {startDay} to {endDay} (2 days per chunk).
+
+USER DATA:
+{userData}
+
+ANALYSIS:
+BMR: {bmr}, TDEE: {tdee}, Target calories: {recommendedCalories}
+Macros: Protein {proteinGrams}g, Carbs {carbsGrams}g, Fats {fatsGrams}g
+
+STRATEGY:
+{strategyData}
+
+PREVIOUS DAYS (for variety):
+{previousDays}
+
+MEAL ARCHITECTURE:
+Follow weeklyBlueprint structure for meal count and timing.
+Vary protein and carb sources between days.
+Use dietary modifier for food selection.
+
+OUTPUT (JSON):
+For each day, provide:
+{
+  "day": number,
+  "meals": [
+    {
+      "type": "breakfast/lunch/dinner/snack",
+      "name": "Meal name in Bulgarian",
+      "ingredients": [
+        {"name": "ingredient", "amount": "150g", "calories": 150, "protein": 10, "carbs": 20, "fats": 5}
+      ],
+      "instructions": "Preparation in Bulgarian",
+      "totalNutrition": {"calories": 500, "protein": 30, "carbs": 50, "fats": 15}
+    }
+  ],
+  "dailyTotals": {"calories": 2000, "protein": 120, "carbs": 200, "fats": 60}
+}
+
+Ensure daily totals match target calories ±50 kcal.`,
+
+      summary: `Generate summary, recommendations and supplements for 7-day meal plan.
+
+USER DATA:
+{userData}
+
+STRATEGY:
+{strategyData}
+
+WEEK PLAN (all 7 days):
+{weekPlan}
+
+CALCULATE:
+- Average daily: calories, protein, carbs, fats
+- Weekly totals
+- Macro distribution consistency
+
+OUTPUT (JSON):
+{
+  "weekSummary": {
+    "averageCalories": number,
+    "averageProtein": number,
+    "averageCarbs": number,
+    "averageFats": number,
+    "weeklyTotals": {"calories": number, "protein": number, "carbs": number, "fats": number}
+  },
+  "recommendations": [
+    "Recommendation 1 specific for {name} and their goal",
+    "Recommendation 2 specific for {name} and their goal"
+  ],
+  "supplements": [
+    {"name": "Supplement", "dosage": "400mg", "timing": "morning", "reason": "Why needed for THIS client"}
+  ],
+  "tips": [
+    "Practical tip 1 for {name}",
+    "Practical tip 2 for {name}"
+  ]
+}
+
+Note: All recommendations must be specific to {goal} and individual needs.`,
+
+      consultation: `ТЕКУЩ РЕЖИМ: КОНСУЛТАЦИЯ
+
+ВАЖНИ ПРАВИЛА:
+1. Можеш да четеш плана, но НЕ МОЖЕШ да го променяш.
+2. Бъди КРАТЪК но информативен - максимум 3-4 изречения, прост език.
+3. Ако клиентът иска промяна, кажи: "За промяна активирай режима за промяна на плана."
+4. НИКОГА не използвай [REGENERATE_PLAN:...] инструкции.
+5. Винаги поддържай мотивиращ тон.
+6. Форматирай отговорите си ясно - използвай нови редове за разделяне на мисли.
+7. Задавай максимум 1 въпрос на отговор.
+
+ПРИМЕРИ:
+- "Закуската съдържа овесени ядки с банан (350 калории). За промяна, активирай режима за промяна."
+- "Можеш да замениш рибата с пилешко - и двете са отлични източници на протеин. За промяна, активирай режима за промяна."`,
+
+      modification: `ТЕКУЩ РЕЖИМ: ПРОМЯНА НА ПЛАНА
+
+ВАЖНИ ПРАВИЛА:
+1. Ти си професионален диетолог. Бъди КРАТЪК но информативен, ЯСЕН и директен.
+2. Използвай ПРОСТ език, лесно разбираем.
+3. Ограничи се до МАКСИМУМ 3-4 изречения в отговор.
+4. Задавай МАКСИМУМ 1 въпрос на отговор.
+5. Форматирай отговорите си ясно:
+   - Използвай нови редове за разделяне на различни мисли
+   - Когато изброяваш опции, сложи всяка на нов ред с тире (-)
+   - Използвай празни редове за по-добра четимост между параграфи
+
+2. Когато клиентът иска промяна:
+   - Анализирай дали е здравословно за цел: {goal}
+   - Обясни КРАТКО последиците (само основното)
+   - Ако има по-добра алтернатива, предложи я с 1 изречение
+   - Запитай с 1 въпрос за потвърждение
+   - След потвърждение, приложи с [REGENERATE_PLAN:{"modifications":["описание"]}]
+
+3. РАЗПОЗНАВАНЕ НА ПОТВЪРЖДЕНИЕ:
+   - "да", "yes", "добре", "ок", "окей", "сигурен", "сигурна" = ПОТВЪРЖДЕНИЕ
+   - Ако клиентът потвърди (каже "да"), НЕ питай отново! Приложи промяната ВЕДНАГА.
+   - Ако вече си задавал същия въпрос в историята, НЕ го питай отново - приложи промяната!
+   - НИКОГА не задавай един и същ въпрос повече от ВЕДНЪЖ.
+
+4. НИКОГА не прилагай директно промяна без обсъждане! Винаги обясни и консултирай първо.
+
+5. ЗА ПРЕМАХВАНЕ НА КОНКРЕТНИ ХРАНИ:
+   - Ако клиентът иска да премахне конкретна храна (напр. "овесени ядки"), използвай специален модификатор:
+   - Формат: "exclude_food:име_на_храната" (напр. "exclude_food:овесени ядки")
+   - Пример: [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]
+   - Това ще регенерира плана БЕЗ тази храна
+
+6. ПРИМЕР С ФОРМАТИРАНЕ:
+   Клиент: "премахни междинните хранения"
+   
+   Отговор: "Разбирам. Премахването може да опрости храненето, но може и да доведе до преяждане.
+   
+   За твоята цел препоръчвам една от двете:
+   - Премахване на всички междинни хранения (само 3 основни)
+   - Оставяне на 1 здравословна закуска (по-балансирано)
+   
+   Какво предпочиташ?"
+   
+   [ЧАКАЙ потвърждение преди REGENERATE_PLAN]
+   
+   Клиент: "да" или "добре, премахни всички"
+   
+   Отговор: "✓ Разбрано! Регенерирам плана със 3 основни хранения.
+   
+   [REGENERATE_PLAN:{"modifications":["3_meals_per_day"]}]"
+
+7. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
+   - "no_intermediate_meals" - без междинни хранения
+   - "3_meals_per_day" - 3 хранения дневно
+   - "4_meals_per_day" - 4 хранения дневно
+   - "vegetarian" - вегетариански план
+   - "no_dairy" - без млечни продукти
+   - "low_carb" - нисковъглехидратна диета
+   - "increase_protein" - повече протеини
+   - "exclude_food:име_на_храна" - премахване на конкретна храна
+
+ПОМНИ: 
+- Форматирай ясно с нови редове и изброяване
+- Максимум 3-4 изречения
+- Максимум 1 въпрос
+- АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`
+    };
+    
+    const prompt = defaultPrompts[type];
+    
+    if (!prompt) {
+      return jsonResponse({ 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification` 
+      }, 400);
+    }
+    
+    return jsonResponse({ success: true, prompt: prompt });
+  } catch (error) {
+    console.error('Error getting default prompt:', error);
+    return jsonResponse({ error: 'Failed to get default prompt: ' + error.message }, 500);
   }
 }
 
