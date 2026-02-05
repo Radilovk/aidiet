@@ -424,6 +424,12 @@ export default {
         return await handleAddToBlacklist(request, env);
       } else if (url.pathname === '/api/admin/remove-from-blacklist' && request.method === 'POST') {
         return await handleRemoveFromBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/get-whitelist' && request.method === 'GET') {
+        return await handleGetWhitelist(request, env);
+      } else if (url.pathname === '/api/admin/add-to-whitelist' && request.method === 'POST') {
+        return await handleAddToWhitelist(request, env);
+      } else if (url.pathname === '/api/admin/remove-from-whitelist' && request.method === 'POST') {
+        return await handleRemoveFromWhitelist(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
@@ -974,6 +980,34 @@ const ADLE_V8_HARD_BANS = [
   'изкуствени подсладители', 'artificial sweeteners',
   'мед', 'захар', 'конфитюр', 'сиропи', 'honey', 'sugar', 'jam', 'syrups',
   'кетчуп', 'майонеза', 'BBQ сос', 'ketchup', 'mayonnaise', 'BBQ sauce',
+  'гръцко кисело мляко', 'greek yogurt'
+];
+
+// Default whitelist - approved foods for admin panel
+const DEFAULT_FOOD_WHITELIST = [
+  'яйца', 'eggs',
+  'пилешко', 'chicken',
+  'говеждо', 'beef',
+  'свинско', 'свинска', 'pork',
+  'риба', 'fish', 'скумрия', 'тон', 'сьомга',
+  'кисело мляко', 'yogurt',
+  'извара', 'cottage cheese',
+  'сирене', 'cheese',
+  'боб', 'beans',
+  'леща', 'lentils',
+  'нахут', 'chickpeas',
+  'грах', 'peas'
+];
+
+// Default blacklist - hard banned foods for admin panel
+const DEFAULT_FOOD_BLACKLIST = [
+  'лук', 'onion',
+  'пуешко месо', 'turkey meat',
+  'изкуствени подсладители', 'artificial sweeteners',
+  'мед', 'захар', 'конфитюр', 'сиропи',
+  'honey', 'sugar', 'jam', 'syrups',
+  'кетчуп', 'майонеза', 'BBQ сос',
+  'ketchup', 'mayonnaise', 'BBQ sauce',
   'гръцко кисело мляко', 'greek yogurt'
 ];
 
@@ -1659,7 +1693,7 @@ async function generatePlanMultiStep(env, data) {
     } else {
       // Fallback to single-request generation
       console.log('Multi-step generation: Using single-request meal plan generation');
-      const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
+      const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env);
       let mealPlanResponse;
       
       try {
@@ -2355,6 +2389,44 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
 }
 
 /**
+ * Helper function to fetch and build dynamic whitelist/blacklist sections for prompts
+ */
+async function getDynamicFoodListsSections(env) {
+  let dynamicWhitelist = [];
+  let dynamicBlacklist = [];
+  
+  try {
+    if (env && env.page_content) {
+      const whitelistData = await env.page_content.get('food_whitelist');
+      if (whitelistData) {
+        dynamicWhitelist = JSON.parse(whitelistData);
+      }
+      
+      const blacklistData = await env.page_content.get('food_blacklist');
+      if (blacklistData) {
+        dynamicBlacklist = JSON.parse(blacklistData);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading whitelist/blacklist from KV:', error);
+  }
+  
+  // Build dynamic whitelist section if there are custom items
+  let dynamicWhitelistSection = '';
+  if (dynamicWhitelist.length > 0) {
+    dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
+  }
+  
+  // Build dynamic blacklist section if there are custom items
+  let dynamicBlacklistSection = '';
+  if (dynamicBlacklist.length > 0) {
+    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
+  }
+  
+  return { dynamicWhitelistSection, dynamicBlacklistSection };
+}
+
+/**
  * Generate prompt for a chunk of days (progressive generation)
  */
 async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env) {
@@ -2394,6 +2466,9 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '), // Only top 5
     foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
   };
+  
+  // Fetch dynamic whitelist and blacklist from KV storage
+  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
   
   // Extract weekly blueprint if available
   let blueprintSection = '';
@@ -2551,6 +2626,7 @@ WHITELIST FAT (избери 0-1):
 - зехтин (olive oil)
 - масло (butter - умерено)
 - ядки/семена (nuts/seeds - умерено)
+${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 СПЕЦИАЛНИ ПРАВИЛА:
 - Грах + риба = СТРОГО ЗАБРАНЕНО
@@ -2755,7 +2831,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
  * The MODIFIER acts as a filter applied to the universal food architecture:
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
-function generateMealPlanPrompt(data, analysis, strategy) {
+async function generateMealPlanPrompt(data, analysis, strategy, env) {
   // Parse BMR from analysis (may be a number or string) or calculate from user data
   let bmr;
   if (analysis.bmr) {
@@ -2819,6 +2895,9 @@ ${modLines.join('\n')}
   
   // Extract dietary modifier from strategy
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
+  
+  // Fetch dynamic whitelist and blacklist from KV storage
+  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
   
   // Create compact strategy (no full JSON)
   const strategyCompact = {
@@ -2937,6 +3016,7 @@ WHITELIST FAT (избери 0-1):
 - зехтин (olive oil)
 - масло (butter - умерено)
 - ядки/семена (nuts/seeds - умерено)
+${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 СПЕЦИАЛНИ ПРАВИЛА:
 - Грах + риба = СТРОГО ЗАБРАНЕНО
@@ -5259,30 +5339,11 @@ async function handleGetBlacklist(request, env) {
     if (!env.page_content) {
       console.error('KV namespace not configured');
       // Return default blacklist if KV not available
-      const defaultBlacklist = [
-        'лук', 'onion', 
-        'пуешко месо', 'turkey meat',
-        'изкуствени подсладители', 'artificial sweeteners',
-        'мед', 'захар', 'конфитюр', 'сиропи', 
-        'honey', 'sugar', 'jam', 'syrups',
-        'кетчуп', 'майонеза', 'BBQ сос', 
-        'ketchup', 'mayonnaise', 'BBQ sauce',
-        'гръцко кисело мляко', 'greek yogurt'
-      ];
-      return jsonResponse({ success: true, blacklist: defaultBlacklist });
+      return jsonResponse({ success: true, blacklist: DEFAULT_FOOD_BLACKLIST });
     }
     
     const blacklistData = await env.page_content.get('food_blacklist');
-    const blacklist = blacklistData ? JSON.parse(blacklistData) : [
-      'лук', 'onion', 
-      'пуешко месо', 'turkey meat',
-      'изкуствени подсладители', 'artificial sweeteners',
-      'мед', 'захар', 'конфитюр', 'сиропи', 
-      'honey', 'sugar', 'jam', 'syrups',
-      'кетчуп', 'майонеза', 'BBQ сос', 
-      'ketchup', 'mayonnaise', 'BBQ sauce',
-      'гръцко кисело мляко', 'greek yogurt'
-    ];
+    const blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
     
     return jsonResponse({ success: true, blacklist: blacklist });
   } catch (error) {
@@ -5309,16 +5370,7 @@ async function handleAddToBlacklist(request, env) {
     
     // Get current blacklist
     const blacklistData = await env.page_content.get('food_blacklist');
-    let blacklist = blacklistData ? JSON.parse(blacklistData) : [
-      'лук', 'onion', 
-      'пуешко месо', 'turkey meat',
-      'изкуствени подсладители', 'artificial sweeteners',
-      'мед', 'захар', 'конфитюр', 'сиропи', 
-      'honey', 'sugar', 'jam', 'syrups',
-      'кетчуп', 'майонеза', 'BBQ сос', 
-      'ketchup', 'mayonnaise', 'BBQ sauce',
-      'гръцко кисело мляко', 'greek yogurt'
-    ];
+    let blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
     
     // Add item if not already in list
     if (!blacklist.includes(item)) {
@@ -5361,6 +5413,91 @@ async function handleRemoveFromBlacklist(request, env) {
   } catch (error) {
     console.error('Error removing from blacklist:', error);
     return jsonResponse({ error: `Failed to remove from blacklist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Whitelist Management: Get whitelist from KV storage
+ */
+async function handleGetWhitelist(request, env) {
+  try {
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      // Return default whitelist if KV not available
+      return jsonResponse({ success: true, whitelist: DEFAULT_FOOD_WHITELIST });
+    }
+    
+    const whitelistData = await env.page_content.get('food_whitelist');
+    const whitelist = whitelistData ? JSON.parse(whitelistData) : DEFAULT_FOOD_WHITELIST;
+    
+    return jsonResponse({ success: true, whitelist: whitelist });
+  } catch (error) {
+    console.error('Error getting whitelist:', error);
+    return jsonResponse({ error: `Failed to get whitelist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Whitelist Management: Add item to whitelist
+ */
+async function handleAddToWhitelist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get current whitelist
+    const whitelistData = await env.page_content.get('food_whitelist');
+    let whitelist = whitelistData ? JSON.parse(whitelistData) : DEFAULT_FOOD_WHITELIST;
+    
+    // Add item if not already in list
+    if (!whitelist.includes(item)) {
+      whitelist.push(item);
+      await env.page_content.put('food_whitelist', JSON.stringify(whitelist));
+    }
+    
+    return jsonResponse({ success: true, whitelist: whitelist });
+  } catch (error) {
+    console.error('Error adding to whitelist:', error);
+    return jsonResponse({ error: `Failed to add to whitelist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Whitelist Management: Remove item from whitelist
+ */
+async function handleRemoveFromWhitelist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get current whitelist
+    const whitelistData = await env.page_content.get('food_whitelist');
+    let whitelist = whitelistData ? JSON.parse(whitelistData) : DEFAULT_FOOD_WHITELIST;
+    
+    // Remove item
+    whitelist = whitelist.filter(i => i !== item);
+    await env.page_content.put('food_whitelist', JSON.stringify(whitelist));
+    
+    return jsonResponse({ success: true, whitelist: whitelist });
+  } catch (error) {
+    console.error('Error removing from whitelist:', error);
+    return jsonResponse({ error: `Failed to remove from whitelist: ${error.message}` }, 500);
   }
 }
 
