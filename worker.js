@@ -424,6 +424,12 @@ export default {
         return await handleAddToBlacklist(request, env);
       } else if (url.pathname === '/api/admin/remove-from-blacklist' && request.method === 'POST') {
         return await handleRemoveFromBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/get-whitelist' && request.method === 'GET') {
+        return await handleGetWhitelist(request, env);
+      } else if (url.pathname === '/api/admin/add-to-whitelist' && request.method === 'POST') {
+        return await handleAddToWhitelist(request, env);
+      } else if (url.pathname === '/api/admin/remove-from-whitelist' && request.method === 'POST') {
+        return await handleRemoveFromWhitelist(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
@@ -5361,6 +5367,131 @@ async function handleRemoveFromBlacklist(request, env) {
   } catch (error) {
     console.error('Error removing from blacklist:', error);
     return jsonResponse({ error: `Failed to remove from blacklist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Whitelist Management: Get whitelist from KV storage
+ */
+async function handleGetWhitelist(request, env) {
+  try {
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      // Return default whitelist if KV not available
+      const defaultWhitelist = [
+        'яйца', 'eggs',
+        'пилешко', 'chicken',
+        'говеждо', 'beef',
+        'свинско', 'свинска', 'pork',
+        'риба', 'fish', 'скумрия', 'тон', 'сьомга',
+        'кисело мляко', 'yogurt',
+        'извара', 'cottage cheese',
+        'сирене', 'cheese',
+        'боб', 'beans',
+        'леща', 'lentils',
+        'нахут', 'chickpeas',
+        'грах', 'peas'
+      ];
+      return jsonResponse({ success: true, whitelist: defaultWhitelist });
+    }
+    
+    const whitelistData = await env.page_content.get('food_whitelist');
+    const whitelist = whitelistData ? JSON.parse(whitelistData) : [
+      'яйца', 'eggs',
+      'пилешко', 'chicken',
+      'говеждо', 'beef',
+      'свинско', 'свинска', 'pork',
+      'риба', 'fish', 'скумрия', 'тон', 'сьомга',
+      'кисело мляко', 'yogurt',
+      'извара', 'cottage cheese',
+      'сирене', 'cheese',
+      'боб', 'beans',
+      'леща', 'lentils',
+      'нахут', 'chickpeas',
+      'грах', 'peas'
+    ];
+    
+    return jsonResponse({ success: true, whitelist: whitelist });
+  } catch (error) {
+    console.error('Error getting whitelist:', error);
+    return jsonResponse({ error: `Failed to get whitelist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Whitelist Management: Add item to whitelist
+ */
+async function handleAddToWhitelist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get current whitelist
+    const whitelistData = await env.page_content.get('food_whitelist');
+    let whitelist = whitelistData ? JSON.parse(whitelistData) : [
+      'яйца', 'eggs',
+      'пилешко', 'chicken',
+      'говеждо', 'beef',
+      'свинско', 'свинска', 'pork',
+      'риба', 'fish', 'скумрия', 'тон', 'сьомга',
+      'кисело мляко', 'yogurt',
+      'извара', 'cottage cheese',
+      'сирене', 'cheese',
+      'боб', 'beans',
+      'леща', 'lentils',
+      'нахут', 'chickpeas',
+      'грах', 'peas'
+    ];
+    
+    // Add item if not already in list
+    if (!whitelist.includes(item)) {
+      whitelist.push(item);
+      await env.page_content.put('food_whitelist', JSON.stringify(whitelist));
+    }
+    
+    return jsonResponse({ success: true, whitelist: whitelist });
+  } catch (error) {
+    console.error('Error adding to whitelist:', error);
+    return jsonResponse({ error: `Failed to add to whitelist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Whitelist Management: Remove item from whitelist
+ */
+async function handleRemoveFromWhitelist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get current whitelist
+    const whitelistData = await env.page_content.get('food_whitelist');
+    let whitelist = whitelistData ? JSON.parse(whitelistData) : [];
+    
+    // Remove item
+    whitelist = whitelist.filter(i => i !== item);
+    await env.page_content.put('food_whitelist', JSON.stringify(whitelist));
+    
+    return jsonResponse({ success: true, whitelist: whitelist });
+  } catch (error) {
+    console.error('Error removing from whitelist:', error);
+    return jsonResponse({ error: `Failed to remove from whitelist: ${error.message}` }, 500);
   }
 }
 
