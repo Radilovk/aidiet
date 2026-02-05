@@ -1096,32 +1096,6 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Helper: Get merged blacklist (hard bans + dynamic blacklist from KV storage)
- * Returns array of banned food items
- */
-async function getMergedBlacklist(env) {
-  try {
-    // Get dynamic blacklist from KV storage
-    if (env && env.page_content) {
-      const blacklistData = await env.page_content.get('food_blacklist');
-      const dynamicBlacklist = blacklistData ? JSON.parse(blacklistData) : [];
-      
-      // Merge with hard bans and remove duplicates
-      const mergedBlacklist = [...new Set([...ADLE_V8_HARD_BANS, ...dynamicBlacklist])];
-      
-      console.log(`Merged blacklist: ${ADLE_V8_HARD_BANS.length} hard bans + ${dynamicBlacklist.length} dynamic = ${mergedBlacklist.length} total`);
-      
-      return mergedBlacklist;
-    }
-  } catch (error) {
-    console.error('Error retrieving dynamic blacklist:', error);
-  }
-  
-  // Fallback to hard bans only if KV not available or error
-  return ADLE_V8_HARD_BANS;
-}
-
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
 // Progressive generation configuration:
 // - Splits 7-day plan into smaller chunks to avoid overloading single AI request
@@ -1593,28 +1567,25 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
    - "Вечеря" (вечер)
    - "Късна закуска" (опционално, след вечеря - С ОБОСНОВКА!)
 
-2. БРОЙ ХРАНЕНИЯ: 1-5 на ден (НЕ 6!)
-   - ЗАДЪЛЖИТЕЛНО обоснови избора в strategy.mealCountJustification (минимум 20 символа)
+2. БРОЙ ХРАНЕНИЯ: 1-5 на ден
+   - ЗАДЪЛЖИТЕЛНО обоснови избора в strategy.mealCountJustification
 
 3. ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ - разрешени С ОБОСНОВКА:
-   - Физиологична причина (диабет, дълъг период до сън >4ч, проблеми със съня)
+   - Физиологична причина (диабет, дълъг период до сън, проблеми със съня)
    - Психологическа причина (управление на стрес)
    - Стратегическа причина (спортни тренировки вечер, работа на смени)
-   - ДОБАВИ обосновката в strategy.afterDinnerMealJustification (минимум 20 символа)!
-   - Предпочитай ниско-гликемични храни (<55 GI): кисело мляко/кефир, ядки, ягоди/боровинки, ябълка/круша, авокадо, семена
-   - Максимум ${MAX_LATE_SNACK_CALORIES} kcal ако няма обосновка
+   - ДОБАВИ обосновката в strategy.afterDinnerMealJustification!
+   - Предпочитай ниско-гликемични храни (кисело мляко, ядки, ягоди, семена)
 
 4. МНОГОДНЕВЕН ХОРИЗОНТ:
    - Може да планираш 2-3 дни като цяло при обоснована стратегия
    - Циклично разпределение на калории/макроси е позволено
    - ОБЯСНИ в strategy.longTermStrategy
 
-5. МЕДИЦИНСКИ ИЗИСКВАНИЯ (КРИТИЧНИ):
-   - При диабет: НЕ "високовъглехидратно" (използвай Low-carb или Balanced с контрол)
-   - При анемия + вегетарианство/веганство: добавка с желязо ЗАДЪЛЖИТЕЛНА
-   - При PCOS/СПКЯ: избягвай "високовъглехидратно" и стандартно "балансирано"
-   - При IBS/IBD: ТРЯБВА "щадящ/gentle" в modifier
-   - При Warfarin: НЕ Витамин K добавки (ОПАСНА интеракция!)
+5. МЕДИЦИНСКИ ИЗИСКВАНИЯ:
+   - При диабет: НЕ високовъглехидратни храни
+   - При анемия + вегетарианство: добавка с желязо ЗАДЪЛЖИТЕЛНА
+   - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
    - Спазвай: ${JSON.stringify(userData.medicalConditions || [])}
 
 6. КАЛОРИИ И МАКРОСИ:
@@ -1629,14 +1600,11 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
    - Включвай: ${userData.dietLove || 'няма'}
 
 ═══ ТВОЯТА ЗАДАЧА ═══
-Коригирай проблемните части и ДОБАВИ ЗАДЪЛЖИТЕЛНИ ОБОСНОВКИ в strategy полетата:
-- strategy.planJustification - обща обосновка на плана (минимум 100 символа)
-- strategy.welcomeMessage - персонализирано приветствие (150-250 думи, минимум 100 символа)
-- strategy.mealCountJustification - защо този брой хранения (минимум 20 символа)
-- strategy.afterDinnerMealJustification - защо хранения след вечеря (минимум 20 символа) ИЛИ "Не са необходими"
+Коригирай проблемните части и ДОБАВИ ОБОСНОВКИ в strategy полетата:
+- strategy.planJustification - обща обосновка на плана
+- strategy.mealCountJustification - защо този брой хранения
+- strategy.afterDinnerMealJustification - защо хранения след вечеря (ако има)
 - strategy.longTermStrategy - многодневна стратегия (ако има)
-
-ЗАДЪЛЖИТЕЛНО ВКЛЮЧИ recommendations (минимум 3-5 храни) и forbidden (минимум 3-5 храни) списъци!
 
 Върни ПЪЛНИЯ КОРИГИРАН план в същия JSON формат като оригиналния.
 
@@ -1759,7 +1727,7 @@ async function generatePlanMultiStep(env, data) {
     } else {
       // Fallback to single-request generation
       console.log('Multi-step generation: Using single-request meal plan generation');
-      const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env);
+      const mealPlanPrompt = generateMealPlanPrompt(data, analysis, strategy);
       let mealPlanResponse;
       
       try {
@@ -1949,9 +1917,8 @@ Medical: ${JSON.stringify(data.medicalConditions || [])}, Meds: ${data.medicatio
 TASK:
 1. Calculate BMR/TDEE/target kcal, adjust for all factors
 2. Success score (-100 to +100) based on holistic assessment  
-3. Identify 3-6 key problems (CRITICAL: ONLY Borderline/Risky/Critical severity - NEVER "Normal" severity)
+3. Identify 3-6 key problems (Borderline/Risky/Critical only)
 4. All reasoning in English, user fields in Bulgarian
-5. Ensure minimum field lengths: metabolicProfile ≥50 chars, psychologicalProfile ≥50 chars, each reasoning field ≥20 chars
 
 OUTPUT (JSON):
 - Numeric fields: numbers only (no text/units)
@@ -2073,24 +2040,11 @@ Preferences + cultural (Bulgarian products) → sustainability
 Chronotype + rhythm → timing (meal names, not specific hours)
 Sleep ↔ stress ↔ cravings → psychology
 
-TASKS - MANDATORY OUTPUTS:
+TASKS:
 1. Determine MODIFIER (Keto/Paleo/Vegan/Vegetarian/Mediterranean/Low-carb/Balanced/Gentle stomach/Gluten-free) - ONE primary strategy based on THIS client's unique situation
 2. Develop weekly/multi-day strategy with cyclical distribution if physiologically/psychologically beneficial for THIS client
-3. MANDATORY JUSTIFICATIONS (specific character minimums enforced):
-   - mealCountJustification: Justify meal count (1-5/day) based on THIS client's specific needs (minimum 20 characters)
-   - afterDinnerMealJustification: If meals after dinner (like late snack), explain why (minimum 20 characters) OR set to "Не са необходими"
-   - planJustification: Detailed explanation why this plan is unique for THIS client (minimum 100 characters)
-   - welcomeMessage: Personalized greeting (150-250 words) referencing THIS client's specific factors, goals, challenges
-4. Individualize supplements: EACH must be justified by specific deficiency/need from analysis + EXACT dosage (not ranges) + general timing + interaction checks for THIS client
-
-CRITICAL MEDICAL RULES - MUST FOLLOW:
-- Diabetes + медикаменти → NEVER "високовъглехидратно" modifier (use Low-carb or Balanced with carb control)
-- PCOS/СПКЯ → AVOID "високовъглехидратно" and standard "балансирано" (prefer Low-carb or moderate carb with focus on low GI)
-- IBS/IBD → MUST include "щадящ/gentle" in modifier or modifierReasoning (gentle on stomach)
-- Anemia + Vegetarian/Vegan → MANDATORY iron supplement with vitamin C for absorption
-- Warfarin (blood thinner) + Vitamin K → DANGEROUS INTERACTION - DO NOT recommend Vitamin K
-- Antibiotics + Calcium/Magnesium → Note timing separation required (2+ hours apart)
-- Antacids + Iron → Note timing separation required (2+ hours apart)
+3. Justify meal count (1-5/day), after-dinner meals based on THIS client's specific needs (not standard 3-meal approach)
+4. Individualize supplements: EACH must be justified by specific deficiency/need from analysis + appropriate dosage range + general timing + interaction checks for THIS client
 
 FORBIDDEN GENERIC APPROACHES:
 - Standard multivitamins without specific justification
@@ -2099,30 +2053,8 @@ FORBIDDEN GENERIC APPROACHES:
 - Cookie-cutter meal plans - design for THIS client's chronotype, schedule, preferences
 - Textbook recommendations - adapt proven methods to THIS client's unique factors
 
-OUTPUT (JSON, STRICTLY NO GENERIC CONTENT) - ALL FIELDS REQUIRED:
-USER-FACING FIELDS IN BULGARIAN:
-- welcomeMessage: 150-250 WORDS personalized greeting referencing specific client factors (MINIMUM 100 characters enforced)
-- planJustification: Detailed explanation why THIS plan is individualized for THIS client (MINIMUM 100 characters enforced)
-- longTermStrategy: 2-3 day/week planning horizon explanation
-- mealCountJustification: Specific reasoning for chosen meal count (1-5/day) for THIS client (MINIMUM 20 characters enforced)
-- afterDinnerMealJustification: If late snacks/meals after dinner, explain medical/lifestyle reason (MINIMUM 20 characters) OR "Не са необходими" if none
-- dietaryModifier: Primary strategy (one of: Keto/Paleo/Vegan/Vegetarian/Mediterranean/Low-carb/Balanced/Gentle/Gluten-free)
-- modifierReasoning: Why THIS modifier for THIS client
-- dietType: Diet type description
-- weeklyMealPattern: Weekly eating pattern
-- mealTiming: {pattern, fastingWindows, flexibility}
-- keyPrinciples: Array of 3-6 key principles for THIS client
-- foodsToInclude: Array of 5-10 specific food types to emphasize
-- foodsToAvoid: Array of 5-10 specific foods to avoid
-- supplementRecommendations: Array of supplements with EXACT dosages + specific rationale for THIS client (e.g., "Магнезий 400mg вечер - ниски нива сън, висок стрес")
-- hydrationStrategy: Specific to THIS client's weight/activity/climate (not generic "2L water")
-- psychologicalSupport: Array of 3-5 psychology-based tips specific to THIS client's triggers/challenges
-
-REQUIREMENTS FOR LISTS:
-- recommendations: minimum 3 specific food types
-- forbidden: minimum 3 specific foods to avoid
-- psychologicalSupport: minimum 3 tips
-- supplementRecommendations: individualized with exact dosages, not generic multivitamin list
+OUTPUT (JSON, STRICTLY NO GENERIC CONTENT):
+USER-FACING FIELDS IN BULGARIAN: welcomeMessage (150-250 words, personalized greeting referencing specific factors), planJustification, longTermStrategy (2-3 day/week horizon), mealCountJustification, afterDinnerMealJustification (or "Не са необходими"), dietaryModifier, modifierReasoning, dietType, weeklyMealPattern, mealTiming{pattern/fastingWindows/flexibility}, keyPrinciples[], foodsToInclude[], foodsToAvoid[], supplementRecommendations[] (individualized with dosage + rationale), hydrationStrategy, psychologicalSupport[]
 
 Weekly model: Holistic system (not 7 independent days), IF/OMAD valid if suitable, vary meal count between days if beneficial, free days/meals allowed for sustainability`;
 }
@@ -2347,9 +2279,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   const daysInChunk = endDay - startDay + 1;
   
-  // Get merged blacklist (hard bans + dynamic blacklist from KV)
-  const mergedBlacklist = await getMergedBlacklist(env);
-  
   // Build modifications section
   let modificationsSection = '';
   if (data.planModifications && data.planModifications.length > 0) {
@@ -2464,7 +2393,7 @@ Filters for "${dietaryModifier}": Vegan=no animal [PRO]; Keto=minimal [ENG]; Glu
 ADLE v8 RULES (MANDATORY):
 Priority: 1) Hard bans → 2) Mode filter → 3) Template → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
 
-0) HARD BANS (strictly forbidden): ${mergedBlacklist.join(', ')}
+0) HARD BANS: onions, turkey, sweeteners, honey/sugar/jam/syrups, ketchup/mayo/BBQ sauces, Greek yogurt (use plain yogurt only), peas+fish
 0.1) RARE (≤2x/week): turkey ham, bacon
 
 R1-R12: Main protein=1; Veggies=1-2 (Salad OR Fresh, not both); Energy=0-1; Dairy max=1/meal; Fats=0-1 (nuts/seeds→no oil); Cheese→no oil (olives ok); Bacon→Fats=0; Legumes-as-main→Energy=0 (bread optional); Bread only if Energy=0; Peas as side→Energy=0; Sandwich=breakfast only; Off-whitelist only if needed (Reason:...)
@@ -2480,26 +2409,25 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 JSON (Bulgarian output for meals, days ${startDay}-${endDay} only):
 CRITICAL:
 1. MANDATORY MACROS: protein, carbs, fats, fiber (grams) for each meal
-2. PRECISE CALORIES: protein×4 + carbs×4 + fats×9 (calculated must match declared within ±10% or ±50 kcal tolerance)
-3. TARGET DAILY: ~${recommendedCalories} kcal/day (±${DAILY_CALORIE_TOLERANCE} acceptable, minimum 800 kcal/day)
-4. MEAL COUNT: 1-5/day per strategy (NEVER add meals just to hit calories!)
+2. PRECISE CALORIES: protein×4 + carbs×4 + fats×9
+3. TARGET DAILY: ~${recommendedCalories} kcal/day (±${DAILY_CALORIE_TOLERANCE} acceptable)
+4. MEAL COUNT: 1-6/day per strategy (NEVER add meals just to hit calories!)
    - 1 meal (OMAD): clear IF strategy only
    - 2 meals: IF strategy (16:8, 18:6)
    - 3 meals: Breakfast, Lunch, Dinner (standard)
    - 4 meals: +Afternoon snack
-   - 5 meals: +Late snack (rare, justified only - requires afterDinnerMealJustification in strategy)
-5. VARIETY: Each day different - avoid repetition across week
-6. Realistic Bulgarian/Mediterranean dishes with practical portion sizes (typically 50-800g per component)
+   - 5 meals: +Late snack (rare, justified only)
+   - 6 meals: very rare, specific medical/sport needs
+5. VARIETY: Each day different
+6. Realistic Bulgarian/Mediterranean dishes
 
 MEAL ORDER (chronological, MANDATORY):
 "Закуска" (morning) → "Обяд" (noon) → "Следобедна закуска" (optional, afternoon) → "Вечеря" (evening) → "Късна закуска" (optional, ONLY after dinner if justified)
 
-LATE SNACK ("Късна закуска") STRICT RULES - CRITICAL:
+LATE SNACK ("Късна закуска") STRICT RULES:
 Allowed ONLY if: Long gap dinner-sleep (>4h), sleep issues from hunger, type 2 diabetes, evening workouts, shift work
-Conditions: ONLY after "Вечеря", max 1/day, max ${MAX_LATE_SNACK_CALORIES} kcal
-LOW GI FOODS ONLY (<55 GI): кисело мляко/yogurt (150ml), кефир, ядки/nuts (30-40g: бадеми/almonds, орехи/walnuts, кашу/cashews, лешници/hazelnuts), ягоди/berries (50-100g: боровинки/blueberries, малини/raspberries, черници/blackberries), ябълка/apple, круша/pear, авокадо/avocado (half), семена/seeds (1-2 tbsp: чиа/chia, ленено/flax, тиквени/pumpkin), краставица/cucumber, домат/tomato, хумус/hummus
-MANDATORY: If using late snack, explain justification in strategy.afterDinnerMealJustification (minimum 20 characters)
-DO NOT use if not justified!
+Conditions: ONLY after "Вечеря", max 1/day, LOW GI foods only (<55): yogurt 150ml, nuts 30-40g, berries 50-100g, avocado half, seeds 1-2tbsp
+Max ${MAX_LATE_SNACK_CALORIES} calories. DO NOT use if not justified!
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
@@ -2578,18 +2506,10 @@ Actual avg: ${avgCalories} kcal/day, Macros: Protein ${avgProtein}g, Carbs ${avg
 
 STRATEGY: Psychology: ${psychologicalSupport.slice(0, 3).join('; ')}, Supplements: ${supplementRecommendations.slice(0, 3).join('; ')}, Hydration: ${hydrationStrategy}, Include: ${foodsToInclude.slice(0, 5).join(', ')}, Avoid: ${foodsToAvoid.slice(0, 5).join(', ')}
 
-REQUIRED OUTPUT (JSON):
-- summary: {bmr, dailyCalories, macros} - numeric values only
-- recommendations: Array of MINIMUM 3-5 specific food types recommended for THIS client's goal (NOT general advice)
-- forbidden: Array of MINIMUM 3-5 specific foods THIS client should avoid (NOT general advice)
-- psychology: Array of 3-5 psychology tips from strategy (already provided)
-- waterIntake: Hydration strategy from strategy (already provided)
-- supplements: Array of supplements from strategy with exact dosages (already provided)
+JSON (numbers only for numeric fields, Bulgarian for user-facing content):
+{"summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}}, "recommendations": ["specific food 1", "food 2", "food 3", "food 4", "food 5"], "forbidden": ["banned food 1", "food 2", "food 3", "food 4"], "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["Bulgarian tip 1", "tip 2", "tip 3"]'}, "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}", "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["Bulgarian supplement 1 with dosage", "supplement 2", "supplement 3"]'}}
 
-JSON FORMAT (numbers only for numeric fields, Bulgarian for user-facing content):
-{"summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}}, "recommendations": ["specific food type 1 (minimum 3 required)", "food type 2", "food type 3", "food type 4", "food type 5"], "forbidden": ["specific banned food 1 (minimum 3 required)", "food 2", "food 3", "food 4"], "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["Bulgarian tip 1", "tip 2", "tip 3"]'}, "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}", "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["Bulgarian supplement 1 with dosage", "supplement 2", "supplement 3"]'}}
-
-CRITICAL: recommendations and forbidden must contain specific foods for goal ${data.goal}, NOT general nutritional advice like "eat vegetables" or "avoid sugar". Be specific: "риба (омега-3)", "зелени листни зеленчуци (магнезий)", "преработени месни изделия", "газирани напитки". All user-visible text in Bulgarian.`;
+NOTE: recommendations/forbidden = specific foods for goal ${data.goal}, NOT general advice. All user-visible text in Bulgarian.`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -2624,10 +2544,7 @@ CRITICAL: recommendations and forbidden must contain specific foods for goal ${d
  * The MODIFIER acts as a filter applied to the universal food architecture:
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
-async function generateMealPlanPrompt(data, analysis, strategy, env) {
-  // Get merged blacklist (hard bans + dynamic blacklist from KV)
-  const mergedBlacklist = await getMergedBlacklist(env);
-  
+function generateMealPlanPrompt(data, analysis, strategy) {
   // Parse BMR from analysis (may be a number or string) or calculate from user data
   let bmr;
   if (analysis.bmr) {
@@ -2743,7 +2660,12 @@ Modifier filters: Vegan=no animal [PRO]; Keto/Low-carb=minimal [ENG], more [PRO]
 ADLE v8 RULES (MANDATORY):
 Priority: 1) Hard bans → 2) Mode filter → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
 
-0) HARD BANS (strictly forbidden - always 0%): ${mergedBlacklist.join(', ')}
+0) HARD BANS (always 0%):
+- onions (any form), turkey meat, artificial sweeteners
+- honey, sugar, jam, syrops
+- ketchup, mayo, BBQ/sweet sauces
+- Greek yogurt (use ONLY plain yogurt)
+- peas + fish (forbidden combination)
 
 0.1) RARE (≤2x/week): turkey ham, bacon
 
