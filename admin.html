@@ -2133,24 +2133,27 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
-        // View Default Prompt - Load default prompt into textarea for viewing/editing
-        function viewDefaultPrompt(promptType, elementId) {
-            const promptMap = {
-                'analysis': DEFAULT_ANALYSIS_PROMPT,
-                'strategy': DEFAULT_STRATEGY_PROMPT,
-                'meal_plan': DEFAULT_MEAL_PLAN_PROMPT,
-                'summary': DEFAULT_SUMMARY_PROMPT,
-                'consultation': DEFAULT_CONSULTATION_PROMPT,
-                'modification': DEFAULT_MODIFICATION_PROMPT
-            };
-
-            const defaultPrompt = promptMap[promptType];
-            
-            if (defaultPrompt) {
-                document.getElementById(elementId).value = defaultPrompt;
-                showSuccess(`Стандартният промпт за ${promptType} е зареден в редактора. Можете да го прегледате или редактирате.`);
-            } else {
-                showError(`Грешка: Няма наличен стандартен промпт за тип "${promptType}".`);
+        // View Default Prompt - Load default prompt from worker.js via API
+        async function viewDefaultPrompt(promptType, elementId) {
+            try {
+                // Fetch the actual default prompt from worker.js
+                const response = await fetch(`/api/admin/get-default-prompt?type=${promptType}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.prompt) {
+                    document.getElementById(elementId).value = data.prompt;
+                    showSuccess(`Стандартният промпт от worker.js за ${promptType} е зареден в редактора. Можете да го прегледате или редактирате.`);
+                } else {
+                    showError(`Грешка: Няма наличен стандартен промпт за тип "${promptType}".`);
+                }
+            } catch (error) {
+                console.error('Error fetching default prompt:', error);
+                showError(`Грешка при зареждане на стандартен промпт: ${error.message}`);
             }
         }
 
