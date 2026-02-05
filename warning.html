@@ -24,6 +24,11 @@
             --card-bg: #ffffff;
             --shadow: 0 10px 30px rgba(239,68,68,0.2);
             --radius: 16px;
+            /* Safe area insets for mobile devices with notches/dynamic island */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
         }
 
         /* Dark theme */
@@ -52,7 +57,7 @@
             color: var(--text-dark);
             min-height: 100vh;
             transition: background-color 0.3s ease, color 0.3s ease;
-            padding: 20px;
+            padding: calc(20px + var(--safe-area-inset-top)) calc(20px + var(--safe-area-inset-right)) calc(20px + var(--safe-area-inset-bottom)) calc(20px + var(--safe-area-inset-left));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -60,8 +65,8 @@
 
         .theme-toggle {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: calc(20px + var(--safe-area-inset-top));
+            right: calc(20px + var(--safe-area-inset-right));
             background: var(--card-bg);
             border: 2px solid var(--text-gray);
             width: 50px;

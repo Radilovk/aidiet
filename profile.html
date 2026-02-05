@@ -25,6 +25,11 @@
             --card-bg: #ffffff;
             --shadow: 0 4px 6px rgba(16,185,129,0.1);
             --radius: 12px;
+            /* Safe area insets for mobile devices with notches/dynamic island */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
         }
 
         /* Dark theme */
@@ -59,7 +64,7 @@
         /* --- HEADER --- */
         header {
             background-color: var(--card-bg);
-            padding: 15px 20px;
+            padding: calc(15px + var(--safe-area-inset-top)) calc(20px + var(--safe-area-inset-right)) 15px calc(20px + var(--safe-area-inset-left));
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -451,7 +456,7 @@
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
-            bottom: 20px;
+            bottom: calc(20px + var(--safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             background: var(--card-bg);
@@ -628,7 +633,7 @@
 
         .ios-prompt {
             position: fixed;
-            bottom: 20px;
+            bottom: calc(20px + var(--safe-area-inset-bottom));
             width: 90%;
             left: 5%;
             background: var(--white);

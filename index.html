@@ -30,6 +30,11 @@
             --white: #ffffff;
             --shadow: 0 10px 30px rgba(16,185,129,0.15);
             --radius: 16px;
+            /* Safe area insets for mobile devices with notches/dynamic island */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
         }
 
         /* Dark theme */
@@ -69,7 +74,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 5%;
+            padding: calc(20px + var(--safe-area-inset-top)) calc(5% + var(--safe-area-inset-right)) 20px calc(5% + var(--safe-area-inset-left));
             background: var(--white);
             backdrop-filter: blur(10px);
             position: fixed;
