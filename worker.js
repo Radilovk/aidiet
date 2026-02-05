@@ -1565,25 +1565,28 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
    - "Вечеря" (вечер)
    - "Късна закуска" (опционално, след вечеря - С ОБОСНОВКА!)
 
-2. БРОЙ ХРАНЕНИЯ: 1-5 на ден
-   - ЗАДЪЛЖИТЕЛНО обоснови избора в strategy.mealCountJustification
+2. БРОЙ ХРАНЕНИЯ: 1-5 на ден (НЕ 6!)
+   - ЗАДЪЛЖИТЕЛНО обоснови избора в strategy.mealCountJustification (минимум 20 символа)
 
 3. ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ - разрешени С ОБОСНОВКА:
-   - Физиологична причина (диабет, дълъг период до сън, проблеми със съня)
+   - Физиологична причина (диабет, дълъг период до сън >4ч, проблеми със съня)
    - Психологическа причина (управление на стрес)
    - Стратегическа причина (спортни тренировки вечер, работа на смени)
-   - ДОБАВИ обосновката в strategy.afterDinnerMealJustification!
-   - Предпочитай ниско-гликемични храни (кисело мляко, ядки, ягоди, семена)
+   - ДОБАВИ обосновката в strategy.afterDinnerMealJustification (минимум 20 символа)!
+   - Предпочитай ниско-гликемични храни (<55 GI): кисело мляко/кефир, ядки, ягоди/боровинки, ябълка/круша, авокадо, семена
+   - Максимум ${MAX_LATE_SNACK_CALORIES} kcal ако няма обосновка
 
 4. МНОГОДНЕВЕН ХОРИЗОНТ:
    - Може да планираш 2-3 дни като цяло при обоснована стратегия
    - Циклично разпределение на калории/макроси е позволено
    - ОБЯСНИ в strategy.longTermStrategy
 
-5. МЕДИЦИНСКИ ИЗИСКВАНИЯ:
-   - При диабет: НЕ високовъглехидратни храни
-   - При анемия + вегетарианство: добавка с желязо ЗАДЪЛЖИТЕЛНА
-   - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
+5. МЕДИЦИНСКИ ИЗИСКВАНИЯ (КРИТИЧНИ):
+   - При диабет: НЕ "високовъглехидратно" (използвай Low-carb или Balanced с контрол)
+   - При анемия + вегетарианство/веганство: добавка с желязо ЗАДЪЛЖИТЕЛНА
+   - При PCOS/СПКЯ: избягвай "високовъглехидратно" и стандартно "балансирано"
+   - При IBS/IBD: ТРЯБВА "щадящ/gentle" в modifier
+   - При Warfarin: НЕ Витамин K добавки (ОПАСНА интеракция!)
    - Спазвай: ${JSON.stringify(userData.medicalConditions || [])}
 
 6. КАЛОРИИ И МАКРОСИ:
@@ -1598,11 +1601,14 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
    - Включвай: ${userData.dietLove || 'няма'}
 
 ═══ ТВОЯТА ЗАДАЧА ═══
-Коригирай проблемните части и ДОБАВИ ОБОСНОВКИ в strategy полетата:
-- strategy.planJustification - обща обосновка на плана
-- strategy.mealCountJustification - защо този брой хранения
-- strategy.afterDinnerMealJustification - защо хранения след вечеря (ако има)
+Коригирай проблемните части и ДОБАВИ ЗАДЪЛЖИТЕЛНИ ОБОСНОВКИ в strategy полетата:
+- strategy.planJustification - обща обосновка на плана (минимум 100 символа)
+- strategy.welcomeMessage - персонализирано приветствие (150-250 думи, минимум 100 символа)
+- strategy.mealCountJustification - защо този брой хранения (минимум 20 символа)
+- strategy.afterDinnerMealJustification - защо хранения след вечеря (минимум 20 символа) ИЛИ "Не са необходими"
 - strategy.longTermStrategy - многодневна стратегия (ако има)
+
+ЗАДЪЛЖИТЕЛНО ВКЛЮЧИ recommendations (минимум 3-5 храни) и forbidden (минимум 3-5 храни) списъци!
 
 Върни ПЪЛНИЯ КОРИГИРАН план в същия JSON формат като оригиналния.
 
@@ -1915,8 +1921,9 @@ Medical: ${JSON.stringify(data.medicalConditions || [])}, Meds: ${data.medicatio
 TASK:
 1. Calculate BMR/TDEE/target kcal, adjust for all factors
 2. Success score (-100 to +100) based on holistic assessment  
-3. Identify 3-6 key problems (Borderline/Risky/Critical only)
+3. Identify 3-6 key problems (CRITICAL: ONLY Borderline/Risky/Critical severity - NEVER "Normal" severity)
 4. All reasoning in English, user fields in Bulgarian
+5. Ensure minimum field lengths: metabolicProfile ≥50 chars, psychologicalProfile ≥50 chars, each reasoning field ≥20 chars
 
 OUTPUT (JSON):
 - Numeric fields: numbers only (no text/units)
