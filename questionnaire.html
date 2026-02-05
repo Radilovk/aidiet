@@ -37,6 +37,12 @@
             --wrapper-padding-default: 140px;
             --wrapper-padding-compact: 120px;
             --footer-position-delay-ms: 50; /* Delay in milliseconds for DOM rendering before positioning */
+            
+            /* Safe area insets for mobile devices with notches/dynamic island */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
         }
 
         /* Dark theme */
@@ -72,7 +78,7 @@
 
         /* --- PROGRESS BAR --- */
         .progress-container {
-            padding: 20px 20px 0 20px;
+            padding: calc(20px + var(--safe-area-inset-top)) calc(20px + var(--safe-area-inset-right)) 0 calc(20px + var(--safe-area-inset-left));
             background: var(--bg-color);
             z-index: 10;
         }
@@ -364,7 +370,7 @@
         /* Quick Complete Button */
         .quick-complete-banner {
             position: fixed;
-            top: 80px;
+            top: calc(80px + var(--safe-area-inset-top));
             left: 50%;
             transform: translateX(-50%);
             background: linear-gradient(135deg, var(--primary-red), var(--primary-red-hover));
@@ -491,7 +497,7 @@
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
-            bottom: 20px;
+            bottom: calc(20px + var(--safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             background: var(--card-bg);
@@ -668,7 +674,7 @@
 
         .ios-prompt {
             position: fixed;
-            bottom: 20px;
+            bottom: calc(20px + var(--safe-area-inset-bottom));
             width: 90%;
             left: 5%;
             background: var(--white);
