@@ -869,7 +869,7 @@
                     <textarea id="analysisPrompt" placeholder="Въведете промпт за анализ..."></textarea>
                 </div>
                 <div class="info-box">
-                    <strong>Променливи:</strong> Използвайте {userData} за всички данни на клиента в JSON формат, или отделни променливи като {name}, {age}, {goal} и др.
+                    <strong>Променливи:</strong> Използвайте {userData} за ЦЕЛИЯ обект като JSON, или конкретни полета: {userData.name}, {userData.age}, {userData.weight}, {userData.goal} и т.н. Също: {name}, {age}, {goal} (преки променливи).
                 </div>
                 <button class="btn" onclick="saveAnalysisPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Анализ
@@ -899,7 +899,7 @@
                     <textarea id="strategyPrompt" placeholder="Въведете промпт за стратегия..."></textarea>
                 </div>
                 <div class="info-box">
-                    <strong>Променливи:</strong> Използвайте {userData} за данни на клиента, {analysisData} за резултатите от анализа, {name}, {age}, {goal} и др.
+                    <strong>Променливи:</strong> {userData}, {analysisData}, {name}, {age}, {goal}. За вложени полета: {userData.weight}, {analysisData.bmr}, {analysisData.recommendedCalories} и т.н.
                 </div>
                 <button class="btn" onclick="saveStrategyPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Стратегия
@@ -2209,7 +2209,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 
                 if (data.success && data.prompt) {
                     document.getElementById(elementId).value = data.prompt;
-                    showSuccess(`Стандартният промпт от worker.js за ${promptType} е зареден в редактора. Можете да го прегледате или редактирате.`);
+                    
+                    // Build success message with variable info if available
+                    let successMessage = `Стандартният промпт от worker.js за ${promptType} е зареден в редактора. Можете да го прегледате или редактирате.`;
+                    if (data.note) {
+                        successMessage += `\n\n📝 ${data.note}`;
+                    }
+                    if (data.variables) {
+                        successMessage += `\n\n🔧 ${data.variables}`;
+                    }
+                    
+                    showSuccess(successMessage);
                 } else {
                     showError(`Грешка: Няма наличен стандартен промпт за тип "${promptType}".`);
                 }
