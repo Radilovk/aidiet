@@ -2911,15 +2911,39 @@ async function getCustomPrompt(env, promptKey) {
 
 /**
  * Helper function to replace variables in custom prompts
+ * Supports both simple variables ({name}) and nested properties ({userData.name})
+ * 
+ * Examples:
+ * - {name} - replaced with variables.name
+ * - {userData} - replaced with JSON.stringify(variables.userData)
+ * - {userData.name} - replaced with variables.userData.name (if nested access is enabled)
  */
 function replacePromptVariables(template, variables) {
-  // Use replace with regex and replacer function for efficient variable substitution
-  return template.replace(/\{(\w+)\}/g, (match, key) => {
+  // Replace variables with support for nested properties (e.g., {userData.name})
+  return template.replace(/\{([\w.]+)\}/g, (match, key) => {
+    // Handle nested properties (e.g., userData.name)
+    if (key.includes('.')) {
+      const parts = key.split('.');
+      let value = variables;
+      
+      for (const part of parts) {
+        if (value && typeof value === 'object' && part in value) {
+          value = value[part];
+        } else {
+          return match; // Property not found, return original
+        }
+      }
+      
+      return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+    }
+    
+    // Handle simple variables (e.g., {name})
     if (key in variables) {
       const value = variables[key];
       return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
     }
-    return match; // Return original if variable not found
+    
+    return match; // Variable not found, return original
   });
 }
 
@@ -4835,7 +4859,8 @@ async function handleGetDefaultPrompt(request, env) {
       return jsonResponse({ 
         success: true, 
         prompt: prompt,
-        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично с реалните данни на клиента.'
+        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично с реалните данни на клиента.',
+        variables: 'При редактиране можете да използвате променливи: {userData} (целият обект с данни) или {userData.name}, {userData.age}, {userData.weight}, {userData.goal}, и т.н. за конкретни полета.'
       });
     }
     
@@ -4862,7 +4887,8 @@ async function handleGetDefaultPrompt(request, env) {
       return jsonResponse({ 
         success: true, 
         prompt: prompt,
-        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично с реалните данни на клиента и анализа.'
+        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично с реалните данни на клиента и анализа.',
+        variables: 'Налични променливи: {userData}, {analysisData}, {name}, {age}, {goal}, {userData.weight}, {analysisData.bmr}, и т.н.'
       });
     }
     
