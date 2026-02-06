@@ -2924,7 +2924,8 @@ function replacePromptVariables(template, variables) {
   const MAX_NESTING_DEPTH = 10; // Prevent DoS through deeply nested property access
   
   // Replace variables with support for nested properties (e.g., {userData.name})
-  return template.replace(/\{([\w.]+)\}/g, (match, key) => {
+  // Regex ensures dots only appear between valid identifiers (no consecutive dots)
+  return template.replace(/\{([\w]+(?:\.[\w]+)*)\}/g, (match, key) => {
     // Handle nested properties (e.g., userData.name)
     if (key.includes('.')) {
       const parts = key.split('.');
@@ -2945,6 +2946,11 @@ function replacePromptVariables(template, variables) {
         }
       }
       
+      // Handle null values explicitly (return empty string instead of 'null')
+      if (value === null) {
+        return '';
+      }
+      
       // For production: use compact JSON for performance
       return typeof value === 'object' ? JSON.stringify(value) : String(value);
     }
@@ -2952,6 +2958,12 @@ function replacePromptVariables(template, variables) {
     // Handle simple variables (e.g., {name})
     if (key in variables) {
       const value = variables[key];
+      
+      // Handle null values explicitly (return empty string instead of 'null')
+      if (value === null) {
+        return '';
+      }
+      
       // For production: use compact JSON for performance
       return typeof value === 'object' ? JSON.stringify(value) : String(value);
     }
