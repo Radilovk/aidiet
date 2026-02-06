@@ -4887,6 +4887,7 @@ async function handleGetDefaultPrompt(request, env) {
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
 {userData}
+(Full client JSON including: name, age, gender, height, weight, goal, lossKg, sleepHours, sleepInterrupt, chronotype, sportActivity, dailyActivityLevel, stressLevel, waterIntake, drinksSweet, drinksAlcohol, overeatingFrequency, eatingHabits, foodCravings, foodTriggers, compensationMethods, socialComparison, medicalConditions, medications, medicationsDetails, weightChange, weightChangeDetails, dietHistory, dietType, dietResult, dietPreference, dietDislike, dietLove)
 
 ═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
 Основни физически параметри (за референция):
@@ -4992,7 +4993,31 @@ async function handleGetDefaultPrompt(request, env) {
    - Състояния: {medicalConditions}
    - Лекарства: {medications} / {medicationsDetails}
    
-   {medicationAnalysisInstructions}
+   ⚠️ ЗАДЪЛЖИТЕЛНА ПРОВЕРКА ЗА ЛЕКАРСТВЕНИ ВЗАИМОДЕЙСТВИЯ:
+   (Ако клиентът приема лекарства, задължително провери:)
+   
+   ТИ ТРЯБВА ДА:
+   1. АНАЛИЗИРАШ всеки медикамент и неговото влияние върху:
+      - Метаболизъм и енергийни нужди
+      - Усвояване на хранителни вещества
+      - Апетит и телесно тегло
+      - Нужди от специфични макро/микроелементи
+   
+   2. ПРОВЕРИШ взаимодействия ХРАНА-ЛЕКАРСТВО:
+      - Кои храни могат да намалят ефективността на лекарствата
+      - Кои храни могат да усилят странични ефекти
+      - Кои храни подпомагат действието на лекарствата
+      - Времето на хранене спрямо приема на лекарства
+   
+   3. ИДЕНТИФИЦИРАШ противопоказани хранителни добавки:
+      - Витамини/минерали, които взаимодействат с лекарствата
+      - Билки/екстракти, които са опасни при съчетаване
+      - Какви добавки са БЕЗОПАСНИ и ПОДХОДЯЩИ
+   
+   4. ПРЕПОРЪЧАШ храни, които подпомагат лечението:
+      - Храни, богати на необходими вещества
+      - Храни, които намаляват странични ефекти
+      - Храни, които подобряват усвояването на лекарствата
    
    - Какви специфични нужди от макро/микроелементи?
    - Как медикаментите влияят на хранителните потребности?
