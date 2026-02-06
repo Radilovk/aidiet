@@ -1956,6 +1956,8 @@ async function handleGetReports(request, env) {
 // Token limit for meal plan generation - must be high enough for detailed, high-quality responses
 // Note: This is the OUTPUT token limit. Set high to ensure complete, precise meal plans
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
+const MEAL_PLAN_CHUNK_TOKEN_LIMIT = 4000; // Token limit for each chunk in progressive generation
+const MEAL_PLAN_SUMMARY_TOKEN_LIMIT = 2000; // Token limit for summary generation
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -2793,7 +2795,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
       const chunkResponse = await callAIModel(
         env, 
         chunkPrompt, 
-        4000, 
+        MEAL_PLAN_CHUNK_TOKEN_LIMIT, 
         `step3_meal_plan_chunk_${chunkIndex + 1}`
       );
       
@@ -2840,7 +2842,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     env
   );
   
-  const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'step3_meal_plan_summary');
+  const summaryResponse = await callAIModel(env, summaryPrompt, MEAL_PLAN_SUMMARY_TOKEN_LIMIT, 'step3_meal_plan_summary');
   const summaryData = parseAIResponse(summaryResponse);
   
   // Return complete meal plan with week plan and summary data
