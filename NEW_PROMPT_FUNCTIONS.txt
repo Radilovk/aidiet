@@ -1,0 +1,265 @@
+/**
+ * FOUR NEW PROMPT GENERATOR FUNCTIONS
+ * To be inserted in DEFAULT_PROMPTS object in worker.js after line 244 (after "modification" prompt)
+ * 
+ * Add a comma after the modification prompt, then paste this code.
+ */
+
+,
+  // Analysis prompt - extracts holistic health analysis from user data
+  analysis: (data) => {
+    const activityData = calculateUnifiedActivityScore(data);
+    const bmr = calculateBMR(data);
+    const tdee = calculateTDEE(bmr, activityData.combinedScore);
+    const deficitData = calculateSafeDeficit(tdee, data.goal);
+    const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+    
+    const backendCalculations = `
+УНИФИЦИРАН АКТИВНОСТ СКОР (Issue #7):
+- Дневна активност: ${data.dailyActivityLevel} → ${activityData.dailyScore}/3
+- Спортна активност: ${data.sportActivity} → ~${activityData.sportDays} дни
+- КОМБИНИРАН СКОР: ${activityData.combinedScore}/10 (${activityData.activityLevel})
+- Формула: дневна активност (1-3) + спортни дни → скала 1-10
+
+БАЗОВИ КАЛКУЛАЦИИ:
+- BMR (Mifflin-St Jeor): ${bmr} kcal
+  * Мъж: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} + 5
+  * Жена: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} - 161
+  
+- TDEE (Issue #10): ${tdee} kcal
+  * BMR × ${(tdee / bmr).toFixed(2)} (фактор за активност скор ${activityData.combinedScore})
+  * Нов множител базиран на 1-10 скала (не дублирани дефиниции)
+  
+- БЕЗОПАСЕН ДЕФИЦИТ (Issue #9): ${deficitData.targetCalories} kcal
+  * Максимален дефицит: 25% (${deficitData.maxDeficitCalories} kcal минимум)
+  * Стандартен дефицит: ${deficitData.deficitPercent}%
+  * AI може да коригира за специални стратегии (интермитентно гладуване и др.)
+
+БАЗОВИ МАКРОНУТРИЕНТИ (Issue #2, #28 - НЕ циркулярна логика):
+- Протеин: ${macros.protein}% (${macros.proteinGramsPerKg}g/kg за ${data.gender})
+  * ${data.gender === 'Мъж' ? 'Мъже имат по-високи нужди' : 'Жени имат по-ниски нужди'} от протеин
+  * Коригирано според активност скор ${activityData.combinedScore}
+- Въглехидрати: ${macros.carbs}%
+- Мазнини: ${macros.fats}%
+- СУМА: ${macros.protein + macros.carbs + macros.fats}% (валидирано = 100%)
+- Формула: процентно разпределение базирано на активност и цел
+`;
+    
+    return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
+
+═══ КЛИЕНТСКИ ПРОФИЛ ═══
+${JSON.stringify({
+  name: data.name,
+  age: data.age,
+  gender: data.gender,
+  height: data.height,
+  weight: data.weight,
+  goal: data.goal,
+  lossKg: data.lossKg,
+  sleepHours: data.sleepHours,
+  sleepInterrupt: data.sleepInterrupt,
+  chronotype: data.chronotype,
+  sportActivity: data.sportActivity,
+  dailyActivityLevel: data.dailyActivityLevel,
+  stressLevel: data.stressLevel,
+  waterIntake: data.waterIntake,
+  drinksSweet: data.drinksSweet,
+  drinksAlcohol: data.drinksAlcohol,
+  overeatingFrequency: data.overeatingFrequency,
+  eatingHabits: data.eatingHabits,
+  foodCravings: data.foodCravings,
+  foodTriggers: data.foodTriggers,
+  compensationMethods: data.compensationMethods,
+  socialComparison: data.socialComparison,
+  medicalConditions: data.medicalConditions,
+  medications: data.medications,
+  medicationsDetails: data.medicationsDetails,
+  weightChange: data.weightChange,
+  weightChangeDetails: data.weightChangeDetails,
+  dietHistory: data.dietHistory,
+  dietType: data.dietType,
+  dietResult: data.dietResult,
+  dietPreference: data.dietPreference,
+  dietDislike: data.dietDislike,
+  dietLove: data.dietLove
+}, null, 2)}
+
+═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
+Основни физически параметри (за референция):
+- Тегло: ${data.weight} кг
+- Височина: ${data.height} см
+- Възраст: ${data.age} години
+- Пол: ${data.gender}
+- Цел: ${data.goal}
+${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
+
+═══ BACKEND РЕФЕРЕНТНИ ИЗЧИСЛЕНИЯ (Issues #2, #7, #9, #10, #28 - Feb 2026) ═══
+${backendCalculations}
+
+ВАЖНО: Използвай горните РЕФЕРЕНТНИ изчисления като ОТПРАВНА ТОЧКА, но АНАЛИЗИРАЙ ХОЛИСТИЧНО:
+- Качество на сън и стрес
+- История на диети (метаболитна адаптация)
+- Медицински състояния и лекарства
+- Психологически фактори и емоционално хранене
+- Реален дневен ритъм и хронотип
+- Специфични корелации за този клиент
+
+ТИ ТРЯБВА ДА ПОТВЪРДИШ ИЛИ КОРИГИРАШ тези базови изчисления според индивидуалната ситуация!
+
+[... Rest of the complete analysis prompt - see lines 2076-2445 in worker.js for full template ...]
+
+Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
+  },
+  
+  // Strategy prompt - defines dietary strategy based on analysis
+  strategy: (data, analysisCompact) => {
+    return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
+
+КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
+
+АНАЛИЗ (КОМПАКТЕН):
+- BMR/TDEE/Калории: ${analysisCompact.bmr} / ${analysisCompact.tdee} / ${analysisCompact.recommendedCalories}
+- Макро съотношения: ${analysisCompact.macroRatios}
+- Макро грамове дневно: ${analysisCompact.macroGrams}
+${analysisCompact.weeklyBlueprint ? `- Седмична структура: ${analysisCompact.weeklyBlueprint.dailyMealCount} хранения/ден${analysisCompact.weeklyBlueprint.skipBreakfast ? ', БЕЗ закуска' : ''}` : ''}
+- Метаболитен профил: ${analysisCompact.metabolicProfile}
+- Здравни рискове: ${analysisCompact.healthRisks}
+- Хранителни нужди: ${analysisCompact.nutritionalNeeds}
+- Психологически профил: ${analysisCompact.psychologicalProfile}
+- Шанс за успех: ${analysisCompact.successChance}
+- Ключови проблеми: ${analysisCompact.keyProblems}
+
+ЗАДАЧА: Определи оптималната диетична стратегия която реализира анализа в практичен план.
+
+ФОРМАТ НА ОТГОВОР:
+{
+  "dietType": "конкретен тип диета (напр. Балансирана, Ниско-въглехидратна, Средиземноморска)",
+  "dietTypeReasoning": "защо точно този тип е оптимален за ${data.name}",
+  "weeklyMealPattern": "седмична схема (напр. Традиционна, Интермитентно гладуване, Циклична)",
+  "weeklyMealPatternReasoning": "защо тази схема отговаря на нуждите",
+  "mealTiming": {
+    "pattern": "описание на дневния модел (напр. 3 хранения, 16:8 IF, 2 основни + 1 снак)",
+    "reasoning": "защо този timing е оптимален според хронотип и профил"
+  },
+  "keyPrinciples": [
+    "основен принцип 1 (конкретен за ${data.name})",
+    "принцип 2",
+    "принцип 3",
+    "принцип 4",
+    "принцип 5"
+  ],
+  "dietaryModifier": "модификатор за филтриране (напр. Балансирано, Веган, Кето, Без глутен, Палео)",
+  "foodsToInclude": [
+    "конкретна храна 1 с причина",
+    "храна 2 с причина",
+    "храна 3 с причина",
+    "храна 4 с причина",
+    "храна 5 с причина"
+  ],
+  "foodsToAvoid": [
+    "конкретна храна 1 с причина",
+    "храна 2 с причина",
+    "храна 3 с причина",
+    "храна 4 с причина"
+  ],
+  "supplementRecommendations": [
+    "добавка 1: доза и причина",
+    "добавка 2: доза и причина",
+    "добавка 3: доза и причина"
+  ],
+  "hydrationStrategy": "конкретна стратегия за хидратация с количество и timing",
+  "psychologicalSupport": [
+    "психологически съвет 1 (конкретен за тригерите и копинг механизмите)",
+    "съвет 2",
+    "съвет 3",
+    "съвет 4"
+  ],
+  "implementationStrategy": "как да се приложи практически този план - конкретни стъпки и съвети"
+}
+
+ВАЖНО:
+- Базирай се на анализа и weeklyBlueprint
+- Бъди КОНКРЕТЕН за ${data.name} - избягвай общи фрази
+- foodsToInclude/foodsToAvoid трябва да са конкретни храни, НЕ категории
+- Психологическата подкрепа трябва да адресира специфичните тригери и копинг механизми
+- dietaryModifier определя филтрирането в Step 3 (meal plan generation)`;
+  },
+  
+  // Meal plan chunk prompt - generates specific days of meal plan
+  mealPlanChunk: (data, strategyCompact, bmr, recommendedCalories, startDay, endDay, blueprintSection, modificationsSection, previousDaysContext, dynamicWhitelistSection, dynamicBlacklistSection) => {
+    const dietaryModifier = strategyCompact.dietType || 'Балансирано';
+    const daysInChunk = endDay - startDay + 1;
+    
+    return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+
+=== ЗАДАЧА ===
+Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
+
+=== КЛИЕНТ ===
+Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
+BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
+Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
+${blueprintSection}
+=== СТРАТЕГИЯ (КОМПАКТНА) ===
+Диета: ${strategyCompact.dietType}
+Схема: ${strategyCompact.weeklyMealPattern}
+Хранения: ${strategyCompact.mealTiming}
+Принципи: ${strategyCompact.keyPrinciples}
+Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
+Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
+
+[... Complete ADLE v8 rules, whitelists, and meal structure rules - see lines 2960-3156 in worker.js ...]
+
+JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
+{
+  "day${startDay}": {
+    "meals": [
+      {"type": "Закуска", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
+      {"type": "Обяд", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
+      {"type": "Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+    ],
+    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
+  }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
+}
+
+Генерирай дни ${startDay}-${endDay} с балансирани ястия в правилен хронологичен ред. ЗАДЪЛЖИТЕЛНО включи dailyTotals за проверка!`;
+  },
+  
+  // Meal plan summary prompt - generates summary and recommendations
+  mealPlanSummary: (data, strategy, bmr, recommendedCalories, avgCalories, avgProtein, avgCarbs, avgFats) => {
+    const psychologicalSupport = strategy.psychologicalSupport || ['Бъди мотивиран', 'Следвай плана', 'Постоянство е ключово'];
+    const supplementRecommendations = strategy.supplementRecommendations || ['Според нуждите'];
+    const hydrationStrategy = strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно';
+    const foodsToInclude = strategy.foodsToInclude || [];
+    const foodsToAvoid = strategy.foodsToAvoid || [];
+    
+    return `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+
+КЛИЕНТ: ${data.name}, Цел: ${data.goal}
+BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
+Реален среден прием: ${avgCalories} kcal/ден
+Реални средни макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
+
+СТРАТЕГИЯ (КОМПАКТНА):
+- Психологическа подкрепа: ${psychologicalSupport.slice(0, 3).join('; ')}
+- Добавки: ${supplementRecommendations.slice(0, 3).join('; ')}
+- Хидратация: ${hydrationStrategy}
+- Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
+- Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
+
+JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
+{
+  "summary": {
+    "bmr": ${bmr},
+    "dailyCalories": ${avgCalories},
+    "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}
+  },
+  "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
+  "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
+  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
+  "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
+  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
+}
+
+ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+  }
