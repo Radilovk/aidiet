@@ -1547,16 +1547,15 @@ function validatePlan(plan, userData) {
     }
   }
   
-  // 10. Check for food repetition across days (avoid monotony)
+  // 10. Check for food repetition across days (Issue #11 - ФАЗА 4: ЕДНА проста метрика)
+  // SIMPLIFIED REPETITION METRIC: Максимум 5 повтарящи се ястия в седмичния план
   if (plan.weekPlan) {
     const mealNames = new Set();
     const repeatedMeals = new Set();
-    let totalMeals = 0;
     
     Object.keys(plan.weekPlan).forEach(dayKey => {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
-        totalMeals += day.meals.length;
         day.meals.forEach(meal => {
           if (meal.name) {
             // Normalize meal name (lowercase, remove extra spaces)
@@ -1570,10 +1569,9 @@ function validatePlan(plan, userData) {
       }
     });
     
-    // More intelligent threshold: if >20% of meals are repeats, warn
-    const repetitionRatio = repeatedMeals.size / totalMeals;
-    if (repetitionRatio > 0.2 || repeatedMeals.size > 5) {
-      warnings.push(`Планът съдържа повтарящи се ястия (${repeatedMeals.size} различни ястия се повтарят, ${Math.round(repetitionRatio * 100)}% от менюто). Примери: ${Array.from(repeatedMeals).slice(0, 3).join(', ')}`);
+    // SIMPLIFIED RULE (Issue #11): Максимум 5 повтарящи се ястия
+    if (repeatedMeals.size > 5) {
+      warnings.push(`Планът съдържа твърде много повтарящи се ястия (${repeatedMeals.size} > 5). За разнообразие, ограничи повторенията до 5 ястия максимум. Повтарящи се: ${Array.from(repeatedMeals).slice(0, 5).join(', ')}`);
     }
   }
   
@@ -2340,6 +2338,21 @@ ${(() => {
 2. Ако skipBreakfast е true, "breakfast" хранения ТРЯБВА да имат active: false и calorieTarget: 0
 3. Варирай proteinSource и carbSource между дните за разнообразие
 4. Типовете хранения трябва да са в хронологичен ред: breakfast -> lunch -> snack -> dinner
+
+ВАЖНО - MEAL TIMING СЕМАНТИКА (Issue #30 - ФАЗА 4):
+НЯМА точни часове! Работим с концепции, които AI интерпретира според клиентския профил:
+- "breakfast" (закуска) - рано сутрин, според хронотипа
+- "lunch" (обяд) - обедно време
+- "snack" (следобедна закуска) - следобед
+- "dinner" (вечеря) - вечерно време
+- "late_meal" (късно хранене) - нощно хранене (ако е обосновано)
+
+AI решава КОГА точно се случват тези хранения базирано на:
+- Хронотип на ${data.name}: ${data.chronotype}
+- Дневен ритъм и навици
+- Оптимални енергийни периоди
+- Медицински нужди и сън качество
+
 5. Използвай dailyMealCount за консистентност през цялата седмица (освен ако няма специфична причина за вариация)
 
 Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
@@ -2481,9 +2494,10 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
   "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
   "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "mealTiming": {
-    "pattern": "седмичен модел на хранене описан детайлно - напр. 'Понеделник-Петък: 2 хранения (12:00, 19:00), Събота-Неделя: 3 хранения с едно свободно'",
+    "pattern": "седмичен модел на хранене БЕЗ точни часове - използвай концепции като 'закуска', 'обяд', 'вечеря' според профила. Напр. 'Понеделник-Петък: 2 хранения (обяд, вечеря), Събота-Неделя: 3 хранения с закуска'",
     "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
-    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите"
+    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите",
+    "chronotypeGuidance": "ВАЖНО (Issue #30): Обясни КАК хронотипът ${data.chronotype} влияе на времето на хранене - напр. 'Ранобудна птица: Закуска 07:00-08:00, Вечеря до 19:00' или 'Нощна птица: Първо хранене 12:00-13:00, Последно 22:00-23:00'"
   },
   "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
   "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
@@ -2798,7 +2812,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       const mealNames = d.meals.map(m => m.name).join(', ');
       return `Ден ${d.day}: ${mealNames}`;
     }).join('; ');
-    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\nИЗБЯГВАЙ повтаряне на тези ястия в следващите дни!`;
+    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\n\nПОВТОРЕНИЕ (Issue #11 - ФАЗА 4): Максимум 5 ястия могат да се повторят в цялата седмица. ИЗБЯГВАЙ повтаряне на горните ястия, освен ако не е абсолютно необходимо!`;
   }
   
   // Extract only essential strategy fields (COMPACT - no full JSON)
