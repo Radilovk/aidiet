@@ -84,6 +84,7 @@
         header {
             background: rgba(255, 255, 255, 0.7);
             padding: calc(20px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) 20px calc(24px + var(--safe-area-inset-left));
+            min-height: calc(60px + var(--safe-area-inset-top));
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -1668,6 +1669,14 @@
             width: 20px;
             height: 20px;
             vertical-align: middle;
+        }
+
+        /* PWA Standalone mode enhancements */
+        @media all and (display-mode: standalone) {
+            header {
+                /* Additional styling for installed PWA if needed */
+                background: rgba(255, 255, 255, 0.7);
+            }
         }
 
     </style>
