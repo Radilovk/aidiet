@@ -319,7 +319,7 @@ function calculateBMI(data) {
  * @param {Object} data - User data with weight, gender, goal
  * @param {number} activityScore - Unified activity score (1-10)
  * @param {number} tdee - Total Daily Energy Expenditure (optional, for accurate %)
- * @returns {protein: %, carbs: %, fats: %} - percentages that sum to 100
+ * @returns {{protein: number, carbs: number, fats: number, proteinGramsPerKg: number}} - protein/carbs/fats are percentages that sum to 100, proteinGramsPerKg is g/kg
  */
 function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   const weight = parseFloat(data.weight) || 70;
@@ -390,7 +390,7 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
  * Calculate safe caloric deficit - Issue #9 Resolution
  * Maximum 25% deficit, but AI can adjust for specific strategies
  * 
- * @returns {targetCalories, deficitPercent, maxDeficitCalories}
+ * @returns {{targetCalories: number, deficitPercent: number, maxDeficitCalories: number}}
  */
 function calculateSafeDeficit(tdee, goal) {
   const MAX_DEFICIT_PERCENT = 0.25; // 25% maximum
