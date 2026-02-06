@@ -730,7 +730,7 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
   },
 
   // Meal plan chunk prompt generator - used by generateMealPlanChunkPrompt  
-  mealPlan: async (data, strategyCompact, bmr, recommendedCalories, startDay, endDay, previousDaysContext, blueprintSection, modificationsSection, dynamicWhitelistSection, dynamicBlacklistSection) => {
+  mealPlan: (data, strategyCompact, bmr, recommendedCalories, startDay, endDay, previousDaysContext, blueprintSection, modificationsSection, dynamicWhitelistSection, dynamicBlacklistSection) => {
     const dietaryModifier = strategyCompact.dietType || 'Балансирано';
     const skipBreakfastNote = data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : '';
     
@@ -2945,7 +2945,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   }
   
   // Use DEFAULT_PROMPTS.mealPlan function
-  return await DEFAULT_PROMPTS.mealPlan(data, strategyCompact, bmr, recommendedCalories, startDay, endDay, previousDaysContext, blueprintSection, modificationsSection, dynamicWhitelistSection, dynamicBlacklistSection);
+  return DEFAULT_PROMPTS.mealPlan(data, strategyCompact, bmr, recommendedCalories, startDay, endDay, previousDaysContext, blueprintSection, modificationsSection, dynamicWhitelistSection, dynamicBlacklistSection);
 }
 
 async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env) {
