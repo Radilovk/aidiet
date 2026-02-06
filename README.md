@@ -296,6 +296,19 @@ wrangler dev
 ### Mock данни:
 Worker автоматично връща mock данни когато няма конфигуриран API ключ.
 
+## 📚 Документация
+
+### Архитектура и Стратегия
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Обща архитектура на системата
+- [HYBRID_MODEL_ARCHITECTURE.md](./HYBRID_MODEL_ARCHITECTURE.md) - Хибриден модел (Детерминирана логика + AI)
+- [MULTI_STEP_SUMMARY.md](./MULTI_STEP_SUMMARY.md) - Multi-step генериране (3 AI заявки)
+- **[СТРАТЕГИЯ_ХРАНИТЕЛНИ_КОМБИНАЦИИ.md](./СТРАТЕГИЯ_ХРАНИТЕЛНИ_КОМБИНАЦИИ.md)** - 📖 **Подробна документация за стратегията и комбинациите за генериране на адекватни хранителни режими**
+
+### Deployment и Разработка
+- [WORKER_README.md](./WORKER_README.md) - Cloudflare Worker deployment
+- [FEATURES_GUIDE.md](./FEATURES_GUIDE.md) - Ръководство за функционалности
+- [QUICK_START.md](./QUICK_START.md) - Бърз старт
+
 ## 📝 TODO / Бъдещи Подобрения
 
 - [ ] Добавяне на потребителска регистрация
