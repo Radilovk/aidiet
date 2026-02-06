@@ -187,23 +187,92 @@ function calculateBMR(data) {
 }
 
 /**
- * Calculate TDEE (Total Daily Energy Expenditure) based on activity level
- * Multipliers based on medical research (Mifflin-St Jeor + activity factors)
+ * Calculate unified activity score (1-10 scale) - Issue #7 Resolution
+ * Combines daily activity level (1-3) with sport/exercise frequency (0-7 days/week)
  * 
- * NOTE (2026-02-03): This function is DEPRECATED for primary calorie calculation.
+ * Scale interpretation:
+ * - dailyActivityLevel: "Ниско"=1, "Средно"=2, "Високо"=3
+ * - sportActivity: Extract days per week from string (0-7)
+ * - Combined score = dailyActivityLevel + min(sportDays, 7)
+ * 
+ * Examples:
+ * - Високо (3) + Ниска 1-2 дни (1.5avg) → ~4.5 → 5
+ * - Ниско (1) + Средна 2-4 дни (3avg) → ~4
+ * - Средно (2) + Висока 5-7 дни (6avg) → ~8
+ */
+function calculateUnifiedActivityScore(data) {
+  // Map daily activity level to 1-3 scale
+  const dailyActivityMap = {
+    'Ниско': 1,
+    'Средно': 2,
+    'Високо': 3
+  };
+  
+  const dailyScore = dailyActivityMap[data.dailyActivityLevel] || 2;
+  
+  // Extract sport days from sportActivity string
+  let sportDays = 0;
+  if (data.sportActivity) {
+    const sportStr = data.sportActivity;
+    if (sportStr.includes('0 дни')) sportDays = 0;
+    else if (sportStr.includes('1–2 дни')) sportDays = 1.5;
+    else if (sportStr.includes('2–4 дни')) sportDays = 3;
+    else if (sportStr.includes('5–7 дни')) sportDays = 6;
+  }
+  
+  // Combined score: 1-10 scale
+  const combinedScore = Math.min(10, Math.max(1, dailyScore + sportDays));
+  
+  return {
+    dailyScore,
+    sportDays,
+    combinedScore: Math.round(combinedScore * 10) / 10, // Round to 1 decimal
+    activityLevel: combinedScore <= 3 ? 'Ниска' : 
+                   combinedScore <= 6 ? 'Средна' : 
+                   combinedScore <= 8 ? 'Висока' : 'Много висока'
+  };
+}
+
+/**
+ * Calculate TDEE (Total Daily Energy Expenditure) based on unified activity score
+ * Updated multipliers based on 1-10 activity scale - Issue #7 & #10 Resolution
+ * 
+ * NOTE (2026-02-06): Updated to use unified activity score (1-10)
+ * Maximum caloric deficit capped at 25% per Issue #9
  * AI model now calculates TDEE holistically. Kept for validation/fallback only.
  */
 function calculateTDEE(bmr, activityLevel) {
-  const activityMultipliers = {
-    'Никаква (0 дни седмично)': 1.2,      // Sedentary
-    'Ниска (1–2 дни седмично)': 1.375,    // Light activity
-    'Средна (2–4 дни седмично)': 1.55,    // Moderate activity
-    'Висока (5–7 дни седмично)': 1.725,   // Very active
-    'Много висока (атлети)': 1.9,          // Extra active / Athletes
-    'default': 1.4
+  // Legacy support: if activityLevel is string, use old multipliers
+  if (typeof activityLevel === 'string') {
+    const activityMultipliers = {
+      'Никаква (0 дни седмично)': 1.2,
+      'Ниска (1–2 дни седмично)': 1.375,
+      'Средна (2–4 дни седмично)': 1.55,
+      'Висока (5–7 дни седмично)': 1.725,
+      'Много висока (атлети)': 1.9,
+      'default': 1.4
+    };
+    const multiplier = activityMultipliers[activityLevel] || activityMultipliers['default'];
+    return Math.round(bmr * multiplier);
+  }
+  
+  // New unified score-based multipliers (1-10 scale)
+  // Smoother progression for more accurate TDEE calculation
+  const scoreMultipliers = {
+    1: 1.2,    // Sedentary
+    2: 1.3,
+    3: 1.375,  // Light
+    4: 1.45,
+    5: 1.525,
+    6: 1.6,    // Moderate
+    7: 1.675,
+    8: 1.75,   // Very active
+    9: 1.85,
+    10: 1.95   // Extremely active
   };
   
-  const multiplier = activityMultipliers[activityLevel] || activityMultipliers['default'];
+  const score = Math.round(activityLevel);
+  const multiplier = scoreMultipliers[score] || scoreMultipliers[5];
   return Math.round(bmr * multiplier);
 }
 
@@ -220,6 +289,110 @@ function calculateBMI(data) {
   const heightInMeters = parseFloat(data.height) / 100; // Convert cm to meters
   
   return weight / (heightInMeters * heightInMeters);
+}
+
+/**
+ * Calculate macronutrient ratios - Issue #2 & #28 Resolution
+ * Non-circular formula based on percentage distribution
+ * Gender-specific protein requirements
+ * 
+ * NOTE (2026-02-06): This provides baseline ratios for reference.
+ * AI model should see and validate/adjust these based on individual factors.
+ * 
+ * @returns {protein: %, carbs: %, fats: %} - percentages that sum to 100
+ */
+function calculateMacronutrientRatios(data, activityScore) {
+  const weight = parseFloat(data.weight) || 70;
+  const gender = data.gender;
+  const goal = data.goal || '';
+  
+  // Base protein needs (g/kg body weight)
+  // Women generally need slightly less due to lower muscle mass
+  // Men need more for muscle maintenance/growth
+  let proteinPerKg;
+  if (gender === 'Мъж') {
+    proteinPerKg = activityScore >= 7 ? 2.0 : activityScore >= 5 ? 1.6 : 1.2;
+  } else { // Жена
+    proteinPerKg = activityScore >= 7 ? 1.8 : activityScore >= 5 ? 1.4 : 1.0;
+  }
+  
+  // Adjust for goal
+  if (goal.includes('Мускулна маса')) {
+    proteinPerKg *= 1.2;
+  } else if (goal.includes('Отслабване')) {
+    proteinPerKg *= 1.1; // Slightly more protein to preserve muscle
+  }
+  
+  // Calculate protein grams needed
+  const proteinGrams = weight * proteinPerKg;
+  
+  // Protein has 4 cal/g, use typical TDEE as reference
+  const estimatedCalories = 2000; // Will be overridden by AI
+  const proteinCalories = proteinGrams * 4;
+  const proteinPercent = Math.round((proteinCalories / estimatedCalories) * 100);
+  
+  // Distribute remaining calories between carbs and fats
+  // Higher activity = more carbs for energy
+  // Lower activity = more fats for satiety
+  const remainingPercent = 100 - proteinPercent;
+  let carbsPercent, fatsPercent;
+  
+  if (activityScore >= 7) {
+    // Very active: prioritize carbs for energy
+    carbsPercent = Math.round(remainingPercent * 0.6);
+    fatsPercent = remainingPercent - carbsPercent;
+  } else if (activityScore >= 4) {
+    // Moderate: balanced
+    carbsPercent = Math.round(remainingPercent * 0.5);
+    fatsPercent = remainingPercent - carbsPercent;
+  } else {
+    // Low activity: prioritize fats for satiety
+    carbsPercent = Math.round(remainingPercent * 0.4);
+    fatsPercent = remainingPercent - carbsPercent;
+  }
+  
+  // Ensure ratios sum to exactly 100%
+  const total = proteinPercent + carbsPercent + fatsPercent;
+  if (total !== 100) {
+    fatsPercent += (100 - total); // Adjust fats to make it exactly 100
+  }
+  
+  return {
+    protein: proteinPercent,
+    carbs: carbsPercent,
+    fats: fatsPercent,
+    proteinGramsPerKg: Math.round(proteinPerKg * 10) / 10
+  };
+}
+
+/**
+ * Calculate safe caloric deficit - Issue #9 Resolution
+ * Maximum 25% deficit, but AI can adjust for specific strategies
+ * 
+ * @returns {targetCalories, deficitPercent, maxDeficitCalories}
+ */
+function calculateSafeDeficit(tdee, goal) {
+  const MAX_DEFICIT_PERCENT = 0.25; // 25% maximum
+  
+  if (!goal || !goal.includes('Отслабване')) {
+    return {
+      targetCalories: tdee,
+      deficitPercent: 0,
+      maxDeficitCalories: tdee
+    };
+  }
+  
+  // Conservative deficit: 15-20% for most people
+  const standardDeficit = 0.18;
+  const targetCalories = Math.round(tdee * (1 - standardDeficit));
+  const maxDeficitCalories = Math.round(tdee * (1 - MAX_DEFICIT_PERCENT));
+  
+  return {
+    targetCalories,
+    deficitPercent: standardDeficit * 100,
+    maxDeficitCalories,
+    note: 'AI може да коригира при специални стратегии (напр. интермитентно гладуване)'
+  };
 }
 
 /**
@@ -1854,20 +2027,66 @@ ${JSON.stringify({
 - Цел: ${data.goal}
 ${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
 
-ВАЖНО: Използвай Mifflin-St Jeor формула като ОТПРАВНА ТОЧКА, но АНАЛИЗИРАЙ ХОЛИСТИЧНО:
+═══ BACKEND РЕФЕРЕНТНИ ИЗЧИСЛЕНИЯ (Issues #2, #7, #9, #10, #28 - Feb 2026) ═══
+${(() => {
+  // Calculate unified activity score (Issue #7)
+  const activityData = calculateUnifiedActivityScore(data);
+  
+  // Calculate BMR
+  const bmr = calculateBMR(data);
+  
+  // Calculate TDEE using new unified score
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  
+  // Calculate safe deficit (Issue #9)
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  
+  // Calculate baseline macros (Issue #2, #28)
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore);
+  
+  return `
+УНИФИЦИРАН АКТИВНОСТ СКОР (Issue #7):
+- Дневна активност: ${data.dailyActivityLevel} → ${activityData.dailyScore}/3
+- Спортна активност: ${data.sportActivity} → ~${activityData.sportDays} дни
+- КОМБИНИРАН СКОР: ${activityData.combinedScore}/10 (${activityData.activityLevel})
+- Формула: дневна активност (1-3) + спортни дни → скала 1-10
+
+БАЗОВИ КАЛКУЛАЦИИ:
+- BMR (Mifflin-St Jeor): ${bmr} kcal
+  * Мъж: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} + 5
+  * Жена: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} - 161
+  
+- TDEE (Issue #10): ${tdee} kcal
+  * BMR × ${(tdee / bmr).toFixed(2)} (фактор за активност скор ${activityData.combinedScore})
+  * Нов множител базиран на 1-10 скала (не дублирани дефиниции)
+  
+- БЕЗОПАСЕН ДЕФИЦИТ (Issue #9): ${deficitData.targetCalories} kcal
+  * Максимален дефицит: 25% (${deficitData.maxDeficitCalories} kcal минимум)
+  * Стандартен дефицит: ${deficitData.deficitPercent}%
+  * AI може да коригира за специални стратегии (интермитентно гладуване и др.)
+
+БАЗОВИ МАКРОНУТРИЕНТИ (Issue #2, #28 - НЕ циркулярна логика):
+- Протеин: ${macros.protein}% (${macros.proteinGramsPerKg}g/kg за ${data.gender})
+  * ${data.gender === 'Мъж' ? 'Мъже имат по-високи нужди' : 'Жени имат по-ниски нужди'} от протеин
+  * Коригирано според активност скор ${activityData.combinedScore}
+- Въглехидрати: ${macros.carbs}%
+- Мазнини: ${macros.fats}%
+- СУМА: ${macros.protein + macros.carbs + macros.fats}% (валидирано = 100%)
+- Формула: процентно разпределение базирано на активност и цел
+`;
+})()}
+
+ВАЖНО: Използвай горните РЕФЕРЕНТНИ изчисления като ОТПРАВНА ТОЧКА, но АНАЛИЗИРАЙ ХОЛИСТИЧНО:
 - Качество на сън и стрес
 - История на диети (метаболитна адаптация)
 - Медицински състояния и лекарства
 - Психологически фактори и емоционално хранене
 - Реален дневен ритъм и хронотип
-- Съотношение спорт/дневна активност
+- Специфични корелации за този клиент
+
+ТИ ТРЯБВА ДА ПОТВЪРДИШ ИЛИ КОРИГИРАШ тези базови изчисления според индивидуалната ситуация!
 
 ═══ НАСОКИ ЗА ХОЛИСТИЧНО ИЗЧИСЛЕНИЕ ═══
-
-ФОРМУЛА КАТО БАЗА:
-- BMR: Mifflin-St Jeor (10×тегло + 6.25×височина - 5×възраст + 5/-161)
-- TDEE: BMR × Activity Factor (1.2 до 1.9 според активност)
-- Калории: според цел (отслабване обикновено с дефицит, мускулна маса с излишък)
 
 КЛЮЧОВИ ФАКТОРИ ЗА КОРЕКЦИЯ:
 - Качество на сън влияе на хормони и метаболизъм
