@@ -4787,15 +4787,24 @@ async function handleGetDefaultPrompt(request, env) {
     
     // For analysis, strategy, meal_plan, and summary - generate actual prompts with sample data
     // This allows admins to see the real prompts being used
+    
+    // Base sample data used across multiple prompt types
+    const baseSampleData = {
+      name: 'Иван',
+      age: 35,
+      gender: 'Мъж',
+      goal: 'Отслабване',
+      dietPreference: ['Балансирано'],
+      dietDislike: 'Лук',
+      dietLove: 'Пилешко месо, ориз'
+    };
+    
     if (type === 'analysis') {
-      // Generate sample data for analysis prompt
+      // Generate sample data for analysis prompt with extended fields
       const sampleData = {
-        name: 'Иван',
-        age: 35,
-        gender: 'Мъж',
+        ...baseSampleData,
         height: 180,
         weight: 85,
-        goal: 'Отслабване',
         lossKg: 10,
         sleepHours: 7,
         sleepInterrupt: 'Рядко',
@@ -4819,10 +4828,7 @@ async function handleGetDefaultPrompt(request, env) {
         weightChangeDetails: '+5 кг за последната година',
         dietHistory: 'Да',
         dietType: 'Нисковъглехидратна',
-        dietResult: 'Частично успешна',
-        dietPreference: ['Балансирано'],
-        dietDislike: 'Лук',
-        dietLove: 'Пилешко месо, ориз'
+        dietResult: 'Частично успешна'
       };
       
       const prompt = DEFAULT_PROMPTS.analysis(sampleData);
@@ -4834,17 +4840,6 @@ async function handleGetDefaultPrompt(request, env) {
     }
     
     if (type === 'strategy') {
-      // Generate sample data for strategy prompt
-      const sampleData = {
-        name: 'Иван',
-        age: 35,
-        gender: 'Мъж',
-        goal: 'Отслабване',
-        dietPreference: ['Балансирано'],
-        dietDislike: 'Лук',
-        dietLove: 'Пилешко месо, ориз'
-      };
-      
       const sampleAnalysisCompact = {
         bmr: 1800,
         tdee: 2500,
@@ -4863,7 +4858,7 @@ async function handleGetDefaultPrompt(request, env) {
         keyProblems: 'Емоционално хранене (Risky); Нисък сън (Borderline)'
       };
       
-      const prompt = DEFAULT_PROMPTS.strategy(sampleData, sampleAnalysisCompact);
+      const prompt = DEFAULT_PROMPTS.strategy(baseSampleData, sampleAnalysisCompact);
       return jsonResponse({ 
         success: true, 
         prompt: prompt,
@@ -4872,13 +4867,9 @@ async function handleGetDefaultPrompt(request, env) {
     }
     
     if (type === 'meal_plan') {
-      // Generate sample data for meal plan prompt
       const sampleData = {
-        name: 'Иван',
-        goal: 'Отслабване',
+        ...baseSampleData,
         eatingHabits: ['Закусвам редовно'],
-        dietDislike: 'Лук',
-        dietLove: 'Пилешко месо, ориз',
         stressLevel: 'Среден',
         sleepHours: 7,
         chronotype: 'Ранобуден',
@@ -4917,12 +4908,6 @@ async function handleGetDefaultPrompt(request, env) {
     }
     
     if (type === 'summary') {
-      // Generate sample data for summary prompt
-      const sampleData = {
-        name: 'Иван',
-        goal: 'Отслабване'
-      };
-      
       const sampleStrategyCompact = {
         psychologicalSupport: ['Мотивация', 'Управление на стреса'],
         supplementRecommendations: ['Витамин D 2000 IU', 'Омега-3 1000mg'],
@@ -4932,7 +4917,7 @@ async function handleGetDefaultPrompt(request, env) {
       };
       
       const prompt = DEFAULT_PROMPTS.summary(
-        sampleData,
+        baseSampleData,
         1800, // bmr
         2000, // recommendedCalories
         1950, // avgCalories
