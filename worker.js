@@ -390,7 +390,7 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
  * Calculate safe caloric deficit - Issue #9 Resolution
  * Maximum 25% deficit, but AI can adjust for specific strategies
  * 
- * @returns {{targetCalories: number, deficitPercent: number, maxDeficitCalories: number}}
+ * @returns {{targetCalories: number, deficitPercent: number, maxDeficitCalories: number, note?: string}}
  */
 function calculateSafeDeficit(tdee, goal) {
   const MAX_DEFICIT_PERCENT = 0.25; // 25% maximum
