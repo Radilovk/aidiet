@@ -211,13 +211,18 @@ function calculateUnifiedActivityScore(data) {
   const dailyScore = dailyActivityMap[data.dailyActivityLevel] || 2;
   
   // Extract sport days from sportActivity string
+  // Using midpoint values for ranges: 1-2 days → 1.5, 2-4 days → 3, 5-7 days → 6
+  const SPORT_DAYS_LOW = 1.5;    // Average of 1-2 days range
+  const SPORT_DAYS_MEDIUM = 3;   // Average of 2-4 days range  
+  const SPORT_DAYS_HIGH = 6;     // Average of 5-7 days range
+  
   let sportDays = 0;
   if (data.sportActivity) {
     const sportStr = data.sportActivity;
     if (sportStr.includes('0 дни')) sportDays = 0;
-    else if (sportStr.includes('1–2 дни')) sportDays = 1.5;
-    else if (sportStr.includes('2–4 дни')) sportDays = 3;
-    else if (sportStr.includes('5–7 дни')) sportDays = 6;
+    else if (sportStr.includes('1–2 дни')) sportDays = SPORT_DAYS_LOW;
+    else if (sportStr.includes('2–4 дни')) sportDays = SPORT_DAYS_MEDIUM;
+    else if (sportStr.includes('5–7 дни')) sportDays = SPORT_DAYS_HIGH;
   }
   
   // Combined score: 1-10 scale
@@ -299,9 +304,12 @@ function calculateBMI(data) {
  * NOTE (2026-02-06): This provides baseline ratios for reference.
  * AI model should see and validate/adjust these based on individual factors.
  * 
+ * @param {Object} data - User data with weight, gender, goal
+ * @param {number} activityScore - Unified activity score (1-10)
+ * @param {number} tdee - Total Daily Energy Expenditure (optional, for accurate %)
  * @returns {protein: %, carbs: %, fats: %} - percentages that sum to 100
  */
-function calculateMacronutrientRatios(data, activityScore) {
+function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   const weight = parseFloat(data.weight) || 70;
   const gender = data.gender;
   const goal = data.goal || '';
@@ -326,8 +334,9 @@ function calculateMacronutrientRatios(data, activityScore) {
   // Calculate protein grams needed
   const proteinGrams = weight * proteinPerKg;
   
-  // Protein has 4 cal/g, use typical TDEE as reference
-  const estimatedCalories = 2000; // Will be overridden by AI
+  // Protein has 4 cal/g
+  // Use provided TDEE if available, otherwise estimate based on weight/gender
+  const estimatedCalories = tdee || (gender === 'Мъж' ? weight * 30 : weight * 28);
   const proteinCalories = proteinGrams * 4;
   const proteinPercent = Math.round((proteinCalories / estimatedCalories) * 100);
   
@@ -2041,8 +2050,8 @@ ${(() => {
   // Calculate safe deficit (Issue #9)
   const deficitData = calculateSafeDeficit(tdee, data.goal);
   
-  // Calculate baseline macros (Issue #2, #28)
-  const macros = calculateMacronutrientRatios(data, activityData.combinedScore);
+  // Calculate baseline macros (Issue #2, #28) - pass TDEE for accurate percentages
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
   
   return `
 УНИФИЦИРАН АКТИВНОСТ СКОР (Issue #7):
