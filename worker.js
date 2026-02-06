@@ -15,24 +15,35 @@
  * - Total input token reduction: 59.1% (4799→1962 tokens per plan generation)
  * - Strategy is used 5 times, analysis 1 time, so compact format has multiplied effect
  * 
- * ARCHITECTURE - Plan Generation (6 requests):
+ * ARCHITECTURE - Plan Generation (Issue #1 - ФАЗА 2 clarification):
+ * Структура: 4 основни стъпки, стъпка 3 с 4 подстъпки = 7 + 1 валидираща = 8 заявки
+ * 
  *   1. Analysis Request (4k token limit)
  *      - Input: Full user data (profile, habits, medical, preferences)
  *      - Output: Holistic health analysis with correlations
+ *      - ФАЗА 2: Enhanced medication interactions, chronotype adaptation, success calculation
  *   
  *   2. Strategy Request (4k token limit)
  *      - Input: User data + COMPACT analysis results
  *      - Output: Personalized dietary strategy and approach
+ *      - ФАЗА 2: Medication-aware supplement recommendations
  *   
- *   3. Meal Plan Requests (4 requests, 8k token limit each)
+ *   3. Meal Plan Requests (4 sub-requests, 8k token limit each)
  *      - Progressive generation: 2 days per chunk
  *      - Input: User data + COMPACT strategy + COMPACT analysis + Previous days context
  *      - Output: Detailed meals with macros and descriptions
- *      - Chunks: Day 1-2, Day 3-4, Day 5-6, Day 7
+ *      - Sub-steps:
+ *        3.1: Day 1-2
+ *        3.2: Day 3-4
+ *        3.3: Day 5-6
+ *        3.4: Day 7 (final day)
  *   
- *   4. Summary Request (2k token limit)
+ *   4. Summary Request (2k token limit) - VALIDATION STEP
  *      - Input: COMPACT strategy + Generated week plan
  *      - Output: Summary, recommendations, psychology tips
+ * 
+ * Total: 1 (analysis) + 1 (strategy) + 4 (meal plan sub-steps) + 1 (summary) = 7 steps
+ *        But conceptually: 4 main steps (where step 3 has 4 sub-steps) + 1 validation = 8 requests
  * 
  * ARCHITECTURE - Chat (1 request per message):
  *   - Input: Full user data + Full plan + Conversation history (2k tokens max)
@@ -46,6 +57,7 @@
  *   ✓ Progressive refinement (later days build on earlier days)
  *   ✓ Full analysis quality maintained throughout
  *   ✓ 59% reduction in token usage through compact data format
+ *   ✓ ФАЗА 2: Enhanced AI instructions for medications, chronotype, success chance
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -2130,23 +2142,127 @@ ${(() => {
    - Социално сравнение: ${data.socialComparison}
    - Оценка на самодисциплина и мотивация
 
-**МЕТАБОЛИТНИ ОСОБЕНОСТИ**: Идентифицирай уникален метаболитен профил базиран на:
-   - Хронотип (${data.chronotype}) → кога е оптимално храненето
+**МЕТАБОЛИТНИ ОСОБЕНОСТИ И ХРОНОТИП (Issue #15 - ФАЗА 2)**: 
+Идентифицирай уникален метаболитен профил базиран на:
+   - Хронотип (${data.chronotype}) → СВОБОДНА AI ПРЕЦЕНКА за оптимално хранене
+   
+   ИНСТРУКЦИИ ЗА ХРОНОТИП АДАПТАЦИЯ (Issue #15):
+   Хронотипът НЕ ТРЯБВА да има фиксирана hardcoded логика!
+   ТИ решаваш как ${data.chronotype} влияе на ${data.name} базирано на:
+   
+   1. ПСИХОЛОГИЧЕСКИ ПРОФИЛ ↔ ХРОНОТИП:
+      - Емоционално хранене: ${JSON.stringify(data.foodTriggers || [])}
+      - Как хронотипът влияе на самоконтрол през деня
+      - Кога ${data.name} е най-податлив на тригери
+      - Времето на ден с най-добра дисциплина
+   
+   2. ЗДРАВЕН СТАТУС ↔ ХРОНОТИП:
+      - Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+      - Как хронотипът влияе на симптомите
+      - Оптимално време за хранене според здравето
+      - Периоди за избягване на тежка храна
+   
+   3. ЕНЕРГИЙНИ ПЕРИОДИ ↔ ХРОНОТИП:
+      - Пикови енергийни часове за ${data.chronotype}
+      - Периоди на спад в енергията
+      - Кога да планираш по-големи хранения
+      - Кога да планираш по-леки хранения
+      - Оптимално време за спорт: ${data.sportActivity}
+   
+   4. СЪН ↔ ХРОНОТИП ↔ ХРАНЕНЕ:
+      - Сън: ${data.sleepHours}ч, прекъсван: ${data.sleepInterrupt}
+      - Как хронотипът влияе на качеството на съня
+      - Време на последно хранене за добър сън
+      - Връзка между хранене и циркаден ритъм
+   
+   ТИ РЕШАВАШ дали са необходими адаптации в:
+   - Време на хранене (закуска, обяд, вечеря)
+   - Разпределение на калории през деня
+   - Вид храни според времето на деня
+   - Интермитентно гладуване (ако подходящо)
+   
    - Активност (${data.sportActivity}, ${data.dailyActivityLevel})
    - История: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'няма предишни диети'}
    - ВАЖНО: Неуспешни диети в миналото обикновено означават намален метаболизъм
 
-**МЕДИЦИНСКИ ФАКТОРИ**: Как медицински състояния влияят на хранене:
+**МЕДИЦИНСКИ ФАКТОРИ И ЛЕКАРСТВЕНИ ВЗАИМОДЕЙСТВИЯ (Issue #3 - ФАЗА 2)**:
+КРИТИЧНО ВАЖНО - AI МОДЕЛ ЗАДЪЛЖИТЕЛНО ТРЯБВА ДА АНАЛИЗИРА ЛЕКАРСТВА:
    - Състояния: ${JSON.stringify(data.medicalConditions || [])}
    - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}
+   
+   ${data.medications === 'Да' && data.medicationsDetails ? `
+   ⚠️ ЗАДЪЛЖИТЕЛНА ПРОВЕРКА ЗА ЛЕКАРСТВЕНИ ВЗАИМОДЕЙСТВИЯ:
+   Клиентът приема: ${data.medicationsDetails}
+   
+   ТИ ТРЯБВА ДА:
+   1. АНАЛИЗИРАШ всеки медикамент и неговото влияние върху:
+      - Метаболизъм и енергийни нужди
+      - Усвояване на хранителни вещества
+      - Апетит и телесно тегло
+      - Нужди от специфични макро/микроелементи
+   
+   2. ПРОВЕРИШ взаимодействия ХРАНА-ЛЕКАРСТВО:
+      - Кои храни могат да намалят ефективността на лекарствата
+      - Кои храни могат да усилят странични ефекти
+      - Кои храни подпомагат действието на лекарствата
+      - Времето на хранене спрямо приема на лекарства
+   
+   3. ИДЕНТИФИЦИРАШ противопоказани хранителни добавки:
+      - Витамини/минерали, които взаимодействат с лекарствата
+      - Билки/екстракти, които са опасни при съчетаване
+      - Какви добавки са БЕЗОПАСНИ и ПОДХОДЯЩИ
+   
+   4. ПРЕПОРЪЧАШ храни, които подпомагат лечението:
+      - Храни, богати на необходими вещества
+      - Храни, които намаляват странични ефекти
+      - Храни, които подобряват усвояването на лекарствата
+   ` : ''}
+   
    - Какви специфични нужди от макро/микроелементи?
+   - Как медикаментите влияят на хранителните потребности?
 
-3. **ШАНС ЗА УСПЕХ**: Изчисли успех score (-100 до +100) базиран на ВСИЧКИ фактори:
-   - BMI и здравословно състояние
-   - Качество на съня и стрес
-   - История на диети (неуспешни намаляват шанса с 15-25 точки)
-   - Психологическа устойчивост
-   - Медицински условия и активност
+3. **ШАНС ЗА УСПЕХ (Issue #20 - ФАЗА 2)**: 
+   ТИ определяш success chance (-100 до +100) БЕЗ hardcoded формули!
+   
+   ХОЛИСТИЧНА AI ОЦЕНКА базирана на ПЪЛНИЯ ПРОФИЛ:
+   
+   ПОЗИТИВНИ ФАКТОРИ (увеличават шанса):
+   - ✓ BMI в нормален диапазон или близо до него
+   - ✓ Добро качество на съня (${data.sleepHours}ч, ${data.sleepInterrupt})
+   - ✓ Нисък/среден стрес (${data.stressLevel})
+   - ✓ Високa самодисциплина и мотивация
+   - ✓ Реалистични цели (${data.goal})
+   - ✓ Подкрепяща социална среда (${data.socialComparison})
+   - ✓ Добра хидратация (${data.waterIntake})
+   - ✓ Физическа активност (${data.sportActivity})
+   - ✓ Без значителни медицински ограничения
+   - ✓ Ясни хранителни предпочитания
+   - ✓ Успешен опит с диети в миналото
+   
+   НЕГАТИВНИ ФАКТОРИ (намаляват шанса):
+   - ✗ История на неуспешни диети (-15 до -25 точки ВСЯКА)
+   - ✗ Висок стрес и емоционално хранене
+   - ✗ Лош сън (под 6ч или често прекъсван)
+   - ✗ Медицински състояния, които усложняват диетата
+   - ✗ Нереалистични очаквания
+   - ✗ Ниска самодисциплина
+   - ✗ Нездравословни копинг механизми
+   - ✗ Липса на социална подкрепа
+   - ✗ Много ограничителни предпочитания
+   - ✗ Седящ начин на живот
+   
+   СПЕЦИФИЧНИ КОРЕКЦИИ:
+   - Неуспешна диета в миналото: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'няма'} 
+     ${data.dietHistory === 'Да' && data.dietResult && data.dietResult.includes('неуспешн') ? '→ намали с 15-25 точки' : ''}
+   - Метаболитна адаптация: ${data.dietHistory === 'Да' ? 'вероятна → намали още 10-15 точки' : 'не се очаква'}
+   - Психологическа бариера: анализирай ${JSON.stringify(data.foodTriggers || [])}
+   - Медицински бариери: ${JSON.stringify(data.medicalConditions || [])}
+   
+   ТИ АНАЛИЗИРАШ ВСИЧКИ ФАКТОРИ и правиш ИНФОРМИРАНА ПРЕЦЕНКА:
+   - Какво помага на ${data.name}
+   - Какво пречи на ${data.name}
+   - Каква е общата вероятност за успех
+   - Как да максимизираш шанса
 
 4. **КЛЮЧОВИ ПРОБЛЕМИ**: Идентифицирай 3-6 проблемни области (САМО Borderline/Risky/Critical severity):
    - Фокус на фактори които АКТИВНО пречат на целта
