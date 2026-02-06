@@ -1222,6 +1222,12 @@
                 input.className = 'modern-input';
                 input.placeholder = 'Вашият отговор...';
                 input.value = answers[step.id] || '';
+                
+                // PHASE 3 - Issue #33: Add maxlength for text fields (200 char limit)
+                if (step.type === 'text') {
+                    input.setAttribute('maxlength', '200');
+                }
+                
                 input.oninput = (e) => {
                     saveAnswer(step.id, e.target.value);
                     // Test mode activation: when name is "kakadu" or "какаду"
@@ -1239,6 +1245,10 @@
                 input.className = 'modern-input';
                 input.placeholder = 'Напишете тук...';
                 input.value = answers[step.id] || '';
+                
+                // PHASE 3 - Issue #33: Add maxlength for textareas (200 char limit)
+                input.setAttribute('maxlength', '200');
+                
                 input.oninput = (e) => saveAnswer(step.id, e.target.value);
                 card.appendChild(input);
             }
@@ -1290,6 +1300,8 @@
                         detailInput.className = 'modern-input';
                         detailInput.placeholder = `Моля уточнете ${opt.toLowerCase()}...`;
                         detailInput.style.marginTop = '10px';
+                        // PHASE 3 - Issue #33: Add maxlength
+                        detailInput.setAttribute('maxlength', '200');
                         detailInput.oninput = (e) => saveOther(`${step.id}_${opt}`, e.target.value);
 
                         detailContainer.appendChild(detailInput);
@@ -1316,6 +1328,8 @@
                     otherInput.className = 'modern-input';
                     otherInput.placeholder = 'Моля уточнете...';
                     otherInput.style.marginTop = '10px';
+                    // PHASE 3 - Issue #33: Add maxlength
+                    otherInput.setAttribute('maxlength', '200');
                     otherInput.oninput = (e) => saveOther(`${step.id}_other`, e.target.value);
 
                     otherContainer.appendChild(otherInput);

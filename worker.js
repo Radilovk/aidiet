@@ -15,24 +15,35 @@
  * - Total input token reduction: 59.1% (4799→1962 tokens per plan generation)
  * - Strategy is used 5 times, analysis 1 time, so compact format has multiplied effect
  * 
- * ARCHITECTURE - Plan Generation (6 requests):
+ * ARCHITECTURE - Plan Generation (Issue #1 - ФАЗА 2 clarification):
+ * Структура: 4 основни стъпки, стъпка 3 с 4 подстъпки = 7 + 1 валидираща = 8 заявки
+ * 
  *   1. Analysis Request (4k token limit)
  *      - Input: Full user data (profile, habits, medical, preferences)
  *      - Output: Holistic health analysis with correlations
+ *      - ФАЗА 2: Enhanced medication interactions, chronotype adaptation, success calculation
  *   
  *   2. Strategy Request (4k token limit)
  *      - Input: User data + COMPACT analysis results
  *      - Output: Personalized dietary strategy and approach
+ *      - ФАЗА 2: Medication-aware supplement recommendations
  *   
- *   3. Meal Plan Requests (4 requests, 8k token limit each)
+ *   3. Meal Plan Requests (4 sub-requests, 8k token limit each)
  *      - Progressive generation: 2 days per chunk
  *      - Input: User data + COMPACT strategy + COMPACT analysis + Previous days context
  *      - Output: Detailed meals with macros and descriptions
- *      - Chunks: Day 1-2, Day 3-4, Day 5-6, Day 7
+ *      - Sub-steps:
+ *        3.1: Day 1-2
+ *        3.2: Day 3-4
+ *        3.3: Day 5-6
+ *        3.4: Day 7 (final day)
  *   
- *   4. Summary Request (2k token limit)
+ *   4. Summary Request (2k token limit) - VALIDATION STEP
  *      - Input: COMPACT strategy + Generated week plan
  *      - Output: Summary, recommendations, psychology tips
+ * 
+ * Total: 1 (analysis) + 1 (strategy) + 4 (meal plan sub-steps) + 1 (summary) = 7 steps
+ *        But conceptually: 4 main steps (where step 3 has 4 sub-steps) + 1 validation = 8 requests
  * 
  * ARCHITECTURE - Chat (1 request per message):
  *   - Input: Full user data + Full plan + Conversation history (2k tokens max)
@@ -46,6 +57,7 @@
  *   ✓ Progressive refinement (later days build on earlier days)
  *   ✓ Full analysis quality maintained throughout
  *   ✓ 59% reduction in token usage through compact data format
+ *   ✓ ФАЗА 2: Enhanced AI instructions for medications, chronotype, success chance
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -187,23 +199,97 @@ function calculateBMR(data) {
 }
 
 /**
- * Calculate TDEE (Total Daily Energy Expenditure) based on activity level
- * Multipliers based on medical research (Mifflin-St Jeor + activity factors)
+ * Calculate unified activity score (1-10 scale) - Issue #7 Resolution
+ * Combines daily activity level (1-3) with sport/exercise frequency (0-7 days/week)
  * 
- * NOTE (2026-02-03): This function is DEPRECATED for primary calorie calculation.
+ * Scale interpretation:
+ * - dailyActivityLevel: "Ниско"=1, "Средно"=2, "Високо"=3
+ * - sportActivity: Extract days per week from string (0-7)
+ * - Combined score = dailyActivityLevel + min(sportDays, 7)
+ * 
+ * Examples:
+ * - Високо (3) + Ниска 1-2 дни (1.5avg) → ~4.5 → 5
+ * - Ниско (1) + Средна 2-4 дни (3avg) → ~4
+ * - Средно (2) + Висока 5-7 дни (6avg) → ~8
+ */
+function calculateUnifiedActivityScore(data) {
+  // Map daily activity level to 1-3 scale
+  const dailyActivityMap = {
+    'Ниско': 1,
+    'Средно': 2,
+    'Високо': 3
+  };
+  
+  const dailyScore = dailyActivityMap[data.dailyActivityLevel] || 2;
+  
+  // Extract sport days from sportActivity string
+  // Using midpoint values for ranges: 1-2 days → 1.5, 2-4 days → 3, 5-7 days → 6
+  const SPORT_DAYS_LOW = 1.5;    // Average of 1-2 days range
+  const SPORT_DAYS_MEDIUM = 3;   // Average of 2-4 days range  
+  const SPORT_DAYS_HIGH = 6;     // Average of 5-7 days range
+  
+  let sportDays = 0;
+  if (data.sportActivity) {
+    const sportStr = data.sportActivity;
+    if (sportStr.includes('0 дни')) sportDays = 0;
+    else if (sportStr.includes('1–2 дни')) sportDays = SPORT_DAYS_LOW;
+    else if (sportStr.includes('2–4 дни')) sportDays = SPORT_DAYS_MEDIUM;
+    else if (sportStr.includes('5–7 дни')) sportDays = SPORT_DAYS_HIGH;
+  }
+  
+  // Combined score: 1-10 scale
+  const combinedScore = Math.min(10, Math.max(1, dailyScore + sportDays));
+  
+  return {
+    dailyScore,
+    sportDays,
+    combinedScore: Math.round(combinedScore * 10) / 10, // Round to 1 decimal
+    activityLevel: combinedScore <= 3 ? 'Ниска' : 
+                   combinedScore <= 6 ? 'Средна' : 
+                   combinedScore <= 8 ? 'Висока' : 'Много висока'
+  };
+}
+
+/**
+ * Calculate TDEE (Total Daily Energy Expenditure) based on unified activity score
+ * Updated multipliers based on 1-10 activity scale - Issue #7 & #10 Resolution
+ * 
+ * NOTE (2026-02-06): Updated to use unified activity score (1-10)
+ * Maximum caloric deficit capped at 25% per Issue #9
  * AI model now calculates TDEE holistically. Kept for validation/fallback only.
  */
 function calculateTDEE(bmr, activityLevel) {
-  const activityMultipliers = {
-    'Никаква (0 дни седмично)': 1.2,      // Sedentary
-    'Ниска (1–2 дни седмично)': 1.375,    // Light activity
-    'Средна (2–4 дни седмично)': 1.55,    // Moderate activity
-    'Висока (5–7 дни седмично)': 1.725,   // Very active
-    'Много висока (атлети)': 1.9,          // Extra active / Athletes
-    'default': 1.4
+  // Legacy support: if activityLevel is string, use old multipliers
+  if (typeof activityLevel === 'string') {
+    const activityMultipliers = {
+      'Никаква (0 дни седмично)': 1.2,
+      'Ниска (1–2 дни седмично)': 1.375,
+      'Средна (2–4 дни седмично)': 1.55,
+      'Висока (5–7 дни седмично)': 1.725,
+      'Много висока (атлети)': 1.9,
+      'default': 1.4
+    };
+    const multiplier = activityMultipliers[activityLevel] || activityMultipliers['default'];
+    return Math.round(bmr * multiplier);
+  }
+  
+  // New unified score-based multipliers (1-10 scale)
+  // Smoother progression for more accurate TDEE calculation
+  const scoreMultipliers = {
+    1: 1.2,    // Sedentary
+    2: 1.3,
+    3: 1.375,  // Light
+    4: 1.45,
+    5: 1.525,
+    6: 1.6,    // Moderate
+    7: 1.675,
+    8: 1.75,   // Very active
+    9: 1.85,
+    10: 1.95   // Extremely active
   };
   
-  const multiplier = activityMultipliers[activityLevel] || activityMultipliers['default'];
+  const score = Math.round(activityLevel);
+  const multiplier = scoreMultipliers[score] || scoreMultipliers[5];
   return Math.round(bmr * multiplier);
 }
 
@@ -220,6 +306,114 @@ function calculateBMI(data) {
   const heightInMeters = parseFloat(data.height) / 100; // Convert cm to meters
   
   return weight / (heightInMeters * heightInMeters);
+}
+
+/**
+ * Calculate macronutrient ratios - Issue #2 & #28 Resolution
+ * Non-circular formula based on percentage distribution
+ * Gender-specific protein requirements
+ * 
+ * NOTE (2026-02-06): This provides baseline ratios for reference.
+ * AI model should see and validate/adjust these based on individual factors.
+ * 
+ * @param {Object} data - User data with weight, gender, goal
+ * @param {number} activityScore - Unified activity score (1-10)
+ * @param {number} tdee - Total Daily Energy Expenditure (optional, for accurate %)
+ * @returns {protein: %, carbs: %, fats: %} - percentages that sum to 100
+ */
+function calculateMacronutrientRatios(data, activityScore, tdee = null) {
+  const weight = parseFloat(data.weight) || 70;
+  const gender = data.gender;
+  const goal = data.goal || '';
+  
+  // Base protein needs (g/kg body weight)
+  // Women generally need slightly less due to lower muscle mass
+  // Men need more for muscle maintenance/growth
+  let proteinPerKg;
+  if (gender === 'Мъж') {
+    proteinPerKg = activityScore >= 7 ? 2.0 : activityScore >= 5 ? 1.6 : 1.2;
+  } else { // Жена
+    proteinPerKg = activityScore >= 7 ? 1.8 : activityScore >= 5 ? 1.4 : 1.0;
+  }
+  
+  // Adjust for goal
+  if (goal.includes('Мускулна маса')) {
+    proteinPerKg *= 1.2;
+  } else if (goal.includes('Отслабване')) {
+    proteinPerKg *= 1.1; // Slightly more protein to preserve muscle
+  }
+  
+  // Calculate protein grams needed
+  const proteinGrams = weight * proteinPerKg;
+  
+  // Protein has 4 cal/g
+  // Use provided TDEE if available, otherwise estimate based on weight/gender
+  const estimatedCalories = tdee || (gender === 'Мъж' ? weight * 30 : weight * 28);
+  const proteinCalories = proteinGrams * 4;
+  const proteinPercent = Math.round((proteinCalories / estimatedCalories) * 100);
+  
+  // Distribute remaining calories between carbs and fats
+  // Higher activity = more carbs for energy
+  // Lower activity = more fats for satiety
+  const remainingPercent = 100 - proteinPercent;
+  let carbsPercent, fatsPercent;
+  
+  if (activityScore >= 7) {
+    // Very active: prioritize carbs for energy
+    carbsPercent = Math.round(remainingPercent * 0.6);
+    fatsPercent = remainingPercent - carbsPercent;
+  } else if (activityScore >= 4) {
+    // Moderate: balanced
+    carbsPercent = Math.round(remainingPercent * 0.5);
+    fatsPercent = remainingPercent - carbsPercent;
+  } else {
+    // Low activity: prioritize fats for satiety
+    carbsPercent = Math.round(remainingPercent * 0.4);
+    fatsPercent = remainingPercent - carbsPercent;
+  }
+  
+  // Ensure ratios sum to exactly 100%
+  const total = proteinPercent + carbsPercent + fatsPercent;
+  if (total !== 100) {
+    fatsPercent += (100 - total); // Adjust fats to make it exactly 100
+  }
+  
+  return {
+    protein: proteinPercent,
+    carbs: carbsPercent,
+    fats: fatsPercent,
+    proteinGramsPerKg: Math.round(proteinPerKg * 10) / 10
+  };
+}
+
+/**
+ * Calculate safe caloric deficit - Issue #9 Resolution
+ * Maximum 25% deficit, but AI can adjust for specific strategies
+ * 
+ * @returns {targetCalories, deficitPercent, maxDeficitCalories}
+ */
+function calculateSafeDeficit(tdee, goal) {
+  const MAX_DEFICIT_PERCENT = 0.25; // 25% maximum
+  
+  if (!goal || !goal.includes('Отслабване')) {
+    return {
+      targetCalories: tdee,
+      deficitPercent: 0,
+      maxDeficitCalories: tdee
+    };
+  }
+  
+  // Conservative deficit: 15-20% for most people
+  const standardDeficit = 0.18;
+  const targetCalories = Math.round(tdee * (1 - standardDeficit));
+  const maxDeficitCalories = Math.round(tdee * (1 - MAX_DEFICIT_PERCENT));
+  
+  return {
+    targetCalories,
+    deficitPercent: standardDeficit * 100,
+    maxDeficitCalories,
+    note: 'AI може да коригира при специални стратегии (напр. интермитентно гладуване)'
+  };
 }
 
 /**
@@ -1353,16 +1547,15 @@ function validatePlan(plan, userData) {
     }
   }
   
-  // 10. Check for food repetition across days (avoid monotony)
+  // 10. Check for food repetition across days (Issue #11 - ФАЗА 4: ЕДНА проста метрика)
+  // SIMPLIFIED REPETITION METRIC: Максимум 5 повтарящи се ястия в седмичния план
   if (plan.weekPlan) {
     const mealNames = new Set();
     const repeatedMeals = new Set();
-    let totalMeals = 0;
     
     Object.keys(plan.weekPlan).forEach(dayKey => {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
-        totalMeals += day.meals.length;
         day.meals.forEach(meal => {
           if (meal.name) {
             // Normalize meal name (lowercase, remove extra spaces)
@@ -1376,10 +1569,9 @@ function validatePlan(plan, userData) {
       }
     });
     
-    // More intelligent threshold: if >20% of meals are repeats, warn
-    const repetitionRatio = repeatedMeals.size / totalMeals;
-    if (repetitionRatio > 0.2 || repeatedMeals.size > 5) {
-      warnings.push(`Планът съдържа повтарящи се ястия (${repeatedMeals.size} различни ястия се повтарят, ${Math.round(repetitionRatio * 100)}% от менюто). Примери: ${Array.from(repeatedMeals).slice(0, 3).join(', ')}`);
+    // SIMPLIFIED RULE (Issue #11): Максимум 5 повтарящи се ястия
+    if (repeatedMeals.size > 5) {
+      warnings.push(`Планът съдържа твърде много повтарящи се ястия (${repeatedMeals.size} > 5). За разнообразие, ограничи повторенията до 5 ястия максимум. Повтарящи се: ${Array.from(repeatedMeals).slice(0, 5).join(', ')}`);
     }
   }
   
@@ -1854,20 +2046,66 @@ ${JSON.stringify({
 - Цел: ${data.goal}
 ${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
 
-ВАЖНО: Използвай Mifflin-St Jeor формула като ОТПРАВНА ТОЧКА, но АНАЛИЗИРАЙ ХОЛИСТИЧНО:
+═══ BACKEND РЕФЕРЕНТНИ ИЗЧИСЛЕНИЯ (Issues #2, #7, #9, #10, #28 - Feb 2026) ═══
+${(() => {
+  // Calculate unified activity score (Issue #7)
+  const activityData = calculateUnifiedActivityScore(data);
+  
+  // Calculate BMR
+  const bmr = calculateBMR(data);
+  
+  // Calculate TDEE using new unified score
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  
+  // Calculate safe deficit (Issue #9)
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  
+  // Calculate baseline macros (Issue #2, #28) - pass TDEE for accurate percentages
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  
+  return `
+УНИФИЦИРАН АКТИВНОСТ СКОР (Issue #7):
+- Дневна активност: ${data.dailyActivityLevel} → ${activityData.dailyScore}/3
+- Спортна активност: ${data.sportActivity} → ~${activityData.sportDays} дни
+- КОМБИНИРАН СКОР: ${activityData.combinedScore}/10 (${activityData.activityLevel})
+- Формула: дневна активност (1-3) + спортни дни → скала 1-10
+
+БАЗОВИ КАЛКУЛАЦИИ:
+- BMR (Mifflin-St Jeor): ${bmr} kcal
+  * Мъж: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} + 5
+  * Жена: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} - 161
+  
+- TDEE (Issue #10): ${tdee} kcal
+  * BMR × ${(tdee / bmr).toFixed(2)} (фактор за активност скор ${activityData.combinedScore})
+  * Нов множител базиран на 1-10 скала (не дублирани дефиниции)
+  
+- БЕЗОПАСЕН ДЕФИЦИТ (Issue #9): ${deficitData.targetCalories} kcal
+  * Максимален дефицит: 25% (${deficitData.maxDeficitCalories} kcal минимум)
+  * Стандартен дефицит: ${deficitData.deficitPercent}%
+  * AI може да коригира за специални стратегии (интермитентно гладуване и др.)
+
+БАЗОВИ МАКРОНУТРИЕНТИ (Issue #2, #28 - НЕ циркулярна логика):
+- Протеин: ${macros.protein}% (${macros.proteinGramsPerKg}g/kg за ${data.gender})
+  * ${data.gender === 'Мъж' ? 'Мъже имат по-високи нужди' : 'Жени имат по-ниски нужди'} от протеин
+  * Коригирано според активност скор ${activityData.combinedScore}
+- Въглехидрати: ${macros.carbs}%
+- Мазнини: ${macros.fats}%
+- СУМА: ${macros.protein + macros.carbs + macros.fats}% (валидирано = 100%)
+- Формула: процентно разпределение базирано на активност и цел
+`;
+})()}
+
+ВАЖНО: Използвай горните РЕФЕРЕНТНИ изчисления като ОТПРАВНА ТОЧКА, но АНАЛИЗИРАЙ ХОЛИСТИЧНО:
 - Качество на сън и стрес
 - История на диети (метаболитна адаптация)
 - Медицински състояния и лекарства
 - Психологически фактори и емоционално хранене
 - Реален дневен ритъм и хронотип
-- Съотношение спорт/дневна активност
+- Специфични корелации за този клиент
+
+ТИ ТРЯБВА ДА ПОТВЪРДИШ ИЛИ КОРИГИРАШ тези базови изчисления според индивидуалната ситуация!
 
 ═══ НАСОКИ ЗА ХОЛИСТИЧНО ИЗЧИСЛЕНИЕ ═══
-
-ФОРМУЛА КАТО БАЗА:
-- BMR: Mifflin-St Jeor (10×тегло + 6.25×височина - 5×възраст + 5/-161)
-- TDEE: BMR × Activity Factor (1.2 до 1.9 според активност)
-- Калории: според цел (отслабване обикновено с дефицит, мускулна маса с излишък)
 
 КЛЮЧОВИ ФАКТОРИ ЗА КОРЕКЦИЯ:
 - Качество на сън влияе на хормони и метаболизъм
@@ -1902,23 +2140,127 @@ ${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
    - Социално сравнение: ${data.socialComparison}
    - Оценка на самодисциплина и мотивация
 
-**МЕТАБОЛИТНИ ОСОБЕНОСТИ**: Идентифицирай уникален метаболитен профил базиран на:
-   - Хронотип (${data.chronotype}) → кога е оптимално храненето
+**МЕТАБОЛИТНИ ОСОБЕНОСТИ И ХРОНОТИП (Issue #15 - ФАЗА 2)**: 
+Идентифицирай уникален метаболитен профил базиран на:
+   - Хронотип (${data.chronotype}) → СВОБОДНА AI ПРЕЦЕНКА за оптимално хранене
+   
+   ИНСТРУКЦИИ ЗА ХРОНОТИП АДАПТАЦИЯ (Issue #15):
+   Хронотипът НЕ ТРЯБВА да има фиксирана hardcoded логика!
+   ТИ решаваш как ${data.chronotype} влияе на ${data.name} базирано на:
+   
+   1. ПСИХОЛОГИЧЕСКИ ПРОФИЛ ↔ ХРОНОТИП:
+      - Емоционално хранене: ${JSON.stringify(data.foodTriggers || [])}
+      - Как хронотипът влияе на самоконтрол през деня
+      - Кога ${data.name} е най-податлив на тригери
+      - Времето на ден с най-добра дисциплина
+   
+   2. ЗДРАВЕН СТАТУС ↔ ХРОНОТИП:
+      - Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+      - Как хронотипът влияе на симптомите
+      - Оптимално време за хранене според здравето
+      - Периоди за избягване на тежка храна
+   
+   3. ЕНЕРГИЙНИ ПЕРИОДИ ↔ ХРОНОТИП:
+      - Пикови енергийни часове за ${data.chronotype}
+      - Периоди на спад в енергията
+      - Кога да планираш по-големи хранения
+      - Кога да планираш по-леки хранения
+      - Оптимално време за спорт: ${data.sportActivity}
+   
+   4. СЪН ↔ ХРОНОТИП ↔ ХРАНЕНЕ:
+      - Сън: ${data.sleepHours}ч, прекъсван: ${data.sleepInterrupt}
+      - Как хронотипът влияе на качеството на съня
+      - Време на последно хранене за добър сън
+      - Връзка между хранене и циркаден ритъм
+   
+   ТИ РЕШАВАШ дали са необходими адаптации в:
+   - Време на хранене (закуска, обяд, вечеря)
+   - Разпределение на калории през деня
+   - Вид храни според времето на деня
+   - Интермитентно гладуване (ако подходящо)
+   
    - Активност (${data.sportActivity}, ${data.dailyActivityLevel})
    - История: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'няма предишни диети'}
    - ВАЖНО: Неуспешни диети в миналото обикновено означават намален метаболизъм
 
-**МЕДИЦИНСКИ ФАКТОРИ**: Как медицински състояния влияят на хранене:
+**МЕДИЦИНСКИ ФАКТОРИ И ЛЕКАРСТВЕНИ ВЗАИМОДЕЙСТВИЯ (Issue #3 - ФАЗА 2)**:
+КРИТИЧНО ВАЖНО - AI МОДЕЛ ЗАДЪЛЖИТЕЛНО ТРЯБВА ДА АНАЛИЗИРА ЛЕКАРСТВА:
    - Състояния: ${JSON.stringify(data.medicalConditions || [])}
    - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'не приема'}
+   
+   ${data.medications === 'Да' && data.medicationsDetails ? `
+   ⚠️ ЗАДЪЛЖИТЕЛНА ПРОВЕРКА ЗА ЛЕКАРСТВЕНИ ВЗАИМОДЕЙСТВИЯ:
+   Клиентът приема: ${data.medicationsDetails}
+   
+   ТИ ТРЯБВА ДА:
+   1. АНАЛИЗИРАШ всеки медикамент и неговото влияние върху:
+      - Метаболизъм и енергийни нужди
+      - Усвояване на хранителни вещества
+      - Апетит и телесно тегло
+      - Нужди от специфични макро/микроелементи
+   
+   2. ПРОВЕРИШ взаимодействия ХРАНА-ЛЕКАРСТВО:
+      - Кои храни могат да намалят ефективността на лекарствата
+      - Кои храни могат да усилят странични ефекти
+      - Кои храни подпомагат действието на лекарствата
+      - Времето на хранене спрямо приема на лекарства
+   
+   3. ИДЕНТИФИЦИРАШ противопоказани хранителни добавки:
+      - Витамини/минерали, които взаимодействат с лекарствата
+      - Билки/екстракти, които са опасни при съчетаване
+      - Какви добавки са БЕЗОПАСНИ и ПОДХОДЯЩИ
+   
+   4. ПРЕПОРЪЧАШ храни, които подпомагат лечението:
+      - Храни, богати на необходими вещества
+      - Храни, които намаляват странични ефекти
+      - Храни, които подобряват усвояването на лекарствата
+   ` : ''}
+   
    - Какви специфични нужди от макро/микроелементи?
+   - Как медикаментите влияят на хранителните потребности?
 
-3. **ШАНС ЗА УСПЕХ**: Изчисли успех score (-100 до +100) базиран на ВСИЧКИ фактори:
-   - BMI и здравословно състояние
-   - Качество на съня и стрес
-   - История на диети (неуспешни намаляват шанса с 15-25 точки)
-   - Психологическа устойчивост
-   - Медицински условия и активност
+3. **ШАНС ЗА УСПЕХ (Issue #20 - ФАЗА 2)**: 
+   ТИ определяш success chance (-100 до +100) БЕЗ hardcoded формули!
+   
+   ХОЛИСТИЧНА AI ОЦЕНКА базирана на ПЪЛНИЯ ПРОФИЛ:
+   
+   ПОЗИТИВНИ ФАКТОРИ (увеличават шанса):
+   - ✓ BMI в нормален диапазон или близо до него
+   - ✓ Добро качество на съня (${data.sleepHours}ч, ${data.sleepInterrupt})
+   - ✓ Нисък/среден стрес (${data.stressLevel})
+   - ✓ Високa самодисциплина и мотивация
+   - ✓ Реалистични цели (${data.goal})
+   - ✓ Подкрепяща социална среда (${data.socialComparison})
+   - ✓ Добра хидратация (${data.waterIntake})
+   - ✓ Физическа активност (${data.sportActivity})
+   - ✓ Без значителни медицински ограничения
+   - ✓ Ясни хранителни предпочитания
+   - ✓ Успешен опит с диети в миналото
+   
+   НЕГАТИВНИ ФАКТОРИ (намаляват шанса):
+   - ✗ История на неуспешни диети (-15 до -25 точки ВСЯКА)
+   - ✗ Висок стрес и емоционално хранене
+   - ✗ Лош сън (под 6ч или често прекъсван)
+   - ✗ Медицински състояния, които усложняват диетата
+   - ✗ Нереалистични очаквания
+   - ✗ Ниска самодисциплина
+   - ✗ Нездравословни копинг механизми
+   - ✗ Липса на социална подкрепа
+   - ✗ Много ограничителни предпочитания
+   - ✗ Седящ начин на живот
+   
+   СПЕЦИФИЧНИ КОРЕКЦИИ:
+   - Неуспешна диета в миналото: ${data.dietHistory === 'Да' ? `${data.dietType} → ${data.dietResult}` : 'няма'} 
+     ${data.dietHistory === 'Да' && data.dietResult && data.dietResult.includes('неуспешн') ? '→ намали с 15-25 точки' : ''}
+   - Метаболитна адаптация: ${data.dietHistory === 'Да' ? 'вероятна → намали още 10-15 точки' : 'не се очаква'}
+   - Психологическа бариера: анализирай ${JSON.stringify(data.foodTriggers || [])}
+   - Медицински бариери: ${JSON.stringify(data.medicalConditions || [])}
+   
+   ТИ АНАЛИЗИРАШ ВСИЧКИ ФАКТОРИ и правиш ИНФОРМИРАНА ПРЕЦЕНКА:
+   - Какво помага на ${data.name}
+   - Какво пречи на ${data.name}
+   - Каква е общата вероятност за успех
+   - Как да максимизираш шанса
 
 4. **КЛЮЧОВИ ПРОБЛЕМИ**: Идентифицирай 3-6 проблемни области (САМО Borderline/Risky/Critical severity):
    - Фокус на фактори които АКТИВНО пречат на целта
@@ -1996,6 +2338,21 @@ ${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
 2. Ако skipBreakfast е true, "breakfast" хранения ТРЯБВА да имат active: false и calorieTarget: 0
 3. Варирай proteinSource и carbSource между дните за разнообразие
 4. Типовете хранения трябва да са в хронологичен ред: breakfast -> lunch -> snack -> dinner
+
+ВАЖНО - MEAL TIMING СЕМАНТИКА (Issue #30 - ФАЗА 4):
+НЯМА точни часове! Работим с концепции, които AI интерпретира според клиентския профил:
+- "breakfast" (закуска) - рано сутрин, според хронотипа
+- "lunch" (обяд) - обедно време
+- "snack" (следобедна закуска) - следобед
+- "dinner" (вечеря) - вечерно време
+- "late_meal" (късно хранене) - нощно хранене (ако е обосновано)
+
+AI решава КОГА точно се случват тези хранения базирано на:
+- Хронотип на ${data.name}: ${data.chronotype}
+- Дневен ритъм и навици
+- Оптимални енергийни периоди
+- Медицински нужди и сън качество
+
 5. Използвай dailyMealCount за консистентност през цялата седмица (освен ако няма специфична причина за вариация)
 
 Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
@@ -2137,9 +2494,10 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
   "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
   "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "mealTiming": {
-    "pattern": "седмичен модел на хранене описан детайлно - напр. 'Понеделник-Петък: 2 хранения (12:00, 19:00), Събота-Неделя: 3 хранения с едно свободно'",
+    "pattern": "седмичен модел на хранене БЕЗ точни часове - използвай концепции като 'закуска', 'обяд', 'вечеря' според профила. Напр. 'Понеделник-Петък: 2 хранения (обяд, вечеря), Събота-Неделя: 3 хранения с закуска'",
     "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
-    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите"
+    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите",
+    "chronotypeGuidance": "ВАЖНО (Issue #30): Обясни КАК хронотипът ${data.chronotype} влияе на времето на хранене - напр. 'Ранобудна птица: Закуска 07:00-08:00, Вечеря до 19:00' или 'Нощна птица: Първо хранене 12:00-13:00, Последно 22:00-23:00'"
   },
   "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
   "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
@@ -2454,7 +2812,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       const mealNames = d.meals.map(m => m.name).join(', ');
       return `Ден ${d.day}: ${mealNames}`;
     }).join('; ');
-    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\nИЗБЯГВАЙ повтаряне на тези ястия в следващите дни!`;
+    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\n\nПОВТОРЕНИЕ (Issue #11 - ФАЗА 4): Максимум 5 ястия могат да се повторят в цялата седмица. ИЗБЯГВАЙ повтаряне на горните ястия, освен ако не е абсолютно необходимо!`;
   }
   
   // Extract only essential strategy fields (COMPACT - no full JSON)
