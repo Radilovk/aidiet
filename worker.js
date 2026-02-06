@@ -2917,13 +2917,24 @@ async function getCustomPrompt(env, promptKey) {
  * - {name} - replaced with variables.name
  * - {userData} - replaced with JSON.stringify(variables.userData)
  * - {userData.name} - replaced with variables.userData.name (if nested access is enabled)
+ * 
+ * Security: Limits nesting depth to 10 levels to prevent DoS attacks
  */
 function replacePromptVariables(template, variables) {
+  const MAX_NESTING_DEPTH = 10; // Prevent DoS through deeply nested property access
+  
   // Replace variables with support for nested properties (e.g., {userData.name})
   return template.replace(/\{([\w.]+)\}/g, (match, key) => {
     // Handle nested properties (e.g., userData.name)
     if (key.includes('.')) {
       const parts = key.split('.');
+      
+      // Security check: prevent excessive nesting
+      if (parts.length > MAX_NESTING_DEPTH) {
+        console.warn(`Variable ${key} exceeds maximum nesting depth of ${MAX_NESTING_DEPTH}`);
+        return match; // Return original to avoid potential DoS
+      }
+      
       let value = variables;
       
       for (const part of parts) {
@@ -2934,13 +2945,15 @@ function replacePromptVariables(template, variables) {
         }
       }
       
-      return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+      // For production: use compact JSON for performance
+      return typeof value === 'object' ? JSON.stringify(value) : String(value);
     }
     
     // Handle simple variables (e.g., {name})
     if (key in variables) {
       const value = variables[key];
-      return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+      // For production: use compact JSON for performance
+      return typeof value === 'object' ? JSON.stringify(value) : String(value);
     }
     
     return match; // Variable not found, return original

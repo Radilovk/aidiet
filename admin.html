@@ -2211,15 +2211,15 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     document.getElementById(elementId).value = data.prompt;
                     
                     // Build success message with variable info if available
-                    let message = `Стандартният промпт от worker.js за ${promptType} е зареден в редактора. Можете да го прегледате или редактирате.`;
+                    let successMessage = `Стандартният промпт от worker.js за ${promptType} е зареден в редактора. Можете да го прегледате или редактирате.`;
                     if (data.note) {
-                        message += `\n\n📝 ${data.note}`;
+                        successMessage += `\n\n📝 ${data.note}`;
                     }
                     if (data.variables) {
-                        message += `\n\n🔧 ${data.variables}`;
+                        successMessage += `\n\n🔧 ${data.variables}`;
                     }
                     
-                    showSuccess(message);
+                    showSuccess(successMessage);
                 } else {
                     showError(`Грешка: Няма наличен стандартен промпт за тип "${promptType}".`);
                 }
