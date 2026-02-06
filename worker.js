@@ -4785,20 +4785,167 @@ async function handleGetDefaultPrompt(request, env) {
       return jsonResponse({ success: true, prompt: DEFAULT_PROMPTS.modification });
     }
     
-    // For analysis, strategy, meal_plan, and summary - these are dynamically generated functions
-    // Return a note explaining they are generated based on user data
-    const dynamicPromptNote = {
-      analysis: 'This prompt is dynamically generated based on user data, including BMR/TDEE calculations, medical conditions, and psychological profile. It cannot be displayed as a static template because it includes real-time calculations and data processing.',
-      strategy: 'This prompt is dynamically generated based on the analysis results and user preferences. It includes calculated calories, macros, and personalized recommendations.',
-      meal_plan: 'This prompt is dynamically generated for each meal plan chunk, including weekly blueprints, previous days context, and dynamic food lists from KV storage.',
-      summary: 'This prompt is dynamically generated based on the completed meal plan, including calculated averages and strategy recommendations.'
-    };
-    
-    if (dynamicPromptNote[type]) {
+    // For analysis, strategy, meal_plan, and summary - generate actual prompts with sample data
+    // This allows admins to see the real prompts being used
+    if (type === 'analysis') {
+      // Generate sample data for analysis prompt
+      const sampleData = {
+        name: 'Иван',
+        age: 35,
+        gender: 'Мъж',
+        height: 180,
+        weight: 85,
+        goal: 'Отслабване',
+        lossKg: 10,
+        sleepHours: 7,
+        sleepInterrupt: 'Рядко',
+        chronotype: 'Ранобуден',
+        sportActivity: '3-4 пъти седмично',
+        dailyActivityLevel: 'Умерено активен',
+        stressLevel: 'Среден',
+        waterIntake: '2 литра',
+        drinksSweet: 'Рядко',
+        drinksAlcohol: 'Рядко',
+        overeatingFrequency: 'Понякога',
+        eatingHabits: ['Закусвам редовно', 'Обядвам навън'],
+        foodCravings: ['Сладко', 'Солено'],
+        foodTriggers: ['Стрес', 'Скука'],
+        compensationMethods: ['Спорт', 'Прогулка'],
+        socialComparison: 'Понякога',
+        medicalConditions: [],
+        medications: 'Не',
+        medicationsDetails: '',
+        weightChange: 'Увеличило се',
+        weightChangeDetails: '+5 кг за последната година',
+        dietHistory: 'Да',
+        dietType: 'Нисковъглехидратна',
+        dietResult: 'Частично успешна',
+        dietPreference: ['Балансирано'],
+        dietDislike: 'Лук',
+        dietLove: 'Пилешко месо, ориз'
+      };
+      
+      const prompt = DEFAULT_PROMPTS.analysis(sampleData);
       return jsonResponse({ 
         success: true, 
-        prompt: dynamicPromptNote[type],
-        note: 'This prompt is generated dynamically by a function. To customize it, use the custom prompt feature in the admin panel.'
+        prompt: prompt,
+        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично с реалните данни на клиента.'
+      });
+    }
+    
+    if (type === 'strategy') {
+      // Generate sample data for strategy prompt
+      const sampleData = {
+        name: 'Иван',
+        age: 35,
+        gender: 'Мъж',
+        goal: 'Отслабване',
+        dietPreference: ['Балансирано'],
+        dietDislike: 'Лук',
+        dietLove: 'Пилешко месо, ориз'
+      };
+      
+      const sampleAnalysisCompact = {
+        bmr: 1800,
+        tdee: 2500,
+        recommendedCalories: 2000,
+        macroRatios: 'Protein: 30%, Carbs: 40%, Fats: 30%',
+        macroGrams: 'Protein: 150g, Carbs: 200g, Fats: 67g',
+        weeklyBlueprint: {
+          dailyMealCount: 3,
+          skipBreakfast: false
+        },
+        metabolicProfile: 'Нормален метаболизъм с добра активност',
+        healthRisks: 'Леко наднормено тегло',
+        nutritionalNeeds: 'Повече протеин; Повече фибри',
+        psychologicalProfile: 'Емоционално хранене при стрес',
+        successChance: 70,
+        keyProblems: 'Емоционално хранене (Risky); Нисък сън (Borderline)'
+      };
+      
+      const prompt = DEFAULT_PROMPTS.strategy(sampleData, sampleAnalysisCompact);
+      return jsonResponse({ 
+        success: true, 
+        prompt: prompt,
+        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично с реалните данни на клиента и анализа.'
+      });
+    }
+    
+    if (type === 'meal_plan') {
+      // Generate sample data for meal plan prompt
+      const sampleData = {
+        name: 'Иван',
+        goal: 'Отслабване',
+        eatingHabits: ['Закусвам редовно'],
+        dietDislike: 'Лук',
+        dietLove: 'Пилешко месо, ориз',
+        stressLevel: 'Среден',
+        sleepHours: 7,
+        chronotype: 'Ранобуден',
+        sportActivity: '3-4 пъти седмично',
+        dailyActivityLevel: 'Умерено активен'
+      };
+      
+      const sampleStrategyCompact = {
+        dietType: 'Балансирана',
+        weeklyMealPattern: 'Традиционна',
+        mealTiming: '3 хранения дневно',
+        keyPrinciples: ['Балансирани макроси', 'Качествени протеини'],
+        foodsToInclude: ['Пилешко месо', 'Ориз', 'Зеленчуци'],
+        foodsToAvoid: ['Лук', 'Преработени храни']
+      };
+      
+      const prompt = DEFAULT_PROMPTS.mealPlan(
+        sampleData,
+        sampleStrategyCompact,
+        1800, // bmr
+        2000, // recommendedCalories
+        1, // startDay
+        2, // endDay
+        '', // previousDaysContext
+        'Седмична структура: 3 хранения/ден', // blueprintSection
+        '', // modificationsSection
+        '', // dynamicWhitelistSection
+        '' // dynamicBlacklistSection
+      );
+      
+      return jsonResponse({ 
+        success: true, 
+        prompt: prompt,
+        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично за всяко парче (chunk) от седмичния план.'
+      });
+    }
+    
+    if (type === 'summary') {
+      // Generate sample data for summary prompt
+      const sampleData = {
+        name: 'Иван',
+        goal: 'Отслабване'
+      };
+      
+      const sampleStrategyCompact = {
+        psychologicalSupport: ['Мотивация', 'Управление на стреса'],
+        supplementRecommendations: ['Витамин D 2000 IU', 'Омега-3 1000mg'],
+        hydrationStrategy: 'Минимум 2-2.5л вода дневно',
+        foodsToInclude: ['Пилешко месо', 'Ориз', 'Зеленчуци'],
+        foodsToAvoid: ['Лук', 'Преработени храни']
+      };
+      
+      const prompt = DEFAULT_PROMPTS.summary(
+        sampleData,
+        1800, // bmr
+        2000, // recommendedCalories
+        1950, // avgCalories
+        145, // avgProtein
+        195, // avgCarbs
+        65, // avgFats
+        sampleStrategyCompact
+      );
+      
+      return jsonResponse({ 
+        success: true, 
+        prompt: prompt,
+        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично след завършване на седмичния план.'
       });
     }
     
