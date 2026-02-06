@@ -1,0 +1,259 @@
+{
+  "exportedAt": "2026-02-05T23:59:53.930Z",
+  "totalIssues": 36,
+  "decidedIssues": 36,
+  "decisions": [
+    {
+      "issueId": 1,
+      "title": "Противоречие в Броя на AI Заявките",
+      "decision": "custom",
+      "customProposal": "реално има 4 стъпки, но стъпка 3 е с 4 отделни подстъпки. Което прави реални 7 стъпки + една валидираща",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 2,
+      "title": "Грешка в Изчислението на Макронутриентите",
+      "decision": "custom",
+      "customProposal": "не знам за какви протеини ми говориш. при жена и при мъж и спрямо всички релевантни корелации се изчисляват различни необходимости от протеин. Ако бекенда има заложени формули, те трябва да са видими за ai модела и той ще потвърди дали изчислените от бекенд логиката остават или индивидуалната ситуация налага корекция на базовия прием. ",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 3,
+      "title": "Липса на База Данни за Лекарствени Взаимодействия",
+      "decision": "custom",
+      "customProposal": "ai модела задължителни трябва да вземе предвид описаните лекарства и хранителни добавки, които пациента приема както за изготвянето на план и съвети, така и към препоръчителните хранителни добавки",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 4,
+      "title": "localStorage Не Е Криптиран",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 5,
+      "title": "Липса на API Authentication",
+      "decision": "custom",
+      "customProposal": "добави възможни защити без да пречат на работата и функциите",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 6,
+      "title": "Грешка в Token Оптимизация Примера",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 7,
+      "title": "Объркване в Activity Factor",
+      "decision": "custom",
+      "customProposal": "просто прегледай и прецизирай логиката. примерно: dailyActivityLevel може да е 1, 2 или 3 според нивото. към това добавяш и дните спорт. при активно ежедневие 3 и спорт 2 дни - общо ниво на активност ще е 5, ниско ниво на ежедневна активност 1 и 3 тренировки седмично е  общо ниво 4. \nпо тази скала от 1 до 10 трябва да се смята активността",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 8,
+      "title": "Липса на BMR Верификация",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 9,
+      "title": "Нереалистичен TDEE Пример",
+      "decision": "custom",
+      "customProposal": "максимален дефицит 25%, но при ясна стратегия прдложена от ai модела, като например вид фастинг в определени дни, търпи корекция след неговия анализ",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 10,
+      "title": "TDEE Factors Дублирани",
+      "decision": "custom",
+      "customProposal": "преизчисли реалистично, обмислено ",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 11,
+      "title": "Противоречие в Правилото за Повторение",
+      "decision": "custom",
+      "customProposal": "избери една метрика, помисли за максимално приложима, проста, релевантна",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 12,
+      "title": "Формат на Meal Timing Противоречив",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 13,
+      "title": "Conditional Полета Недефинирани",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 14,
+      "title": "Несиметрично Chunk Разпределение",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 15,
+      "title": "Липсва Chronotype Алгоритъм",
+      "decision": "custom",
+      "customProposal": "преценката как  да влияе тази информация  е на ai модела. има отношение към психопрофил, здравен статус, завишена консумация на енергия в даден период от деня. това няма как да е с фиксирана логика от бекенда. просто трябва да се вземе предвид от ai модела и той ще прецени как това се отразява и необходими ли са адаптации",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 16,
+      "title": "Error Recovery Не Е Спецификиран",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 17,
+      "title": "Chat Modification Команди Непълни",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 18,
+      "title": "Липсва База за Supplement Interactions",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 19,
+      "title": "Липсва Формула за Sleep Adjustment",
+      "decision": "accept",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 20,
+      "title": "Success Chance Calculation Липсва",
+      "decision": "custom",
+      "customProposal": "нека се определя от ai модела",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 21,
+      "title": "Chat History с Чувствителни Данни",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 22,
+      "title": "Липсва Data Deletion Спецификация",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 23,
+      "title": "XSS Защита Недостатъчна",
+      "decision": "custom",
+      "customProposal": "създай елементарен базов вариант",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 24,
+      "title": "Дублирани Схеми",
+      "decision": "accept",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.929Z"
+    },
+    {
+      "issueId": 25,
+      "title": "Activity Factors 3 Пъти",
+      "decision": "accept",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 26,
+      "title": "Некоректна TOC Нумерация",
+      "decision": "accept",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 27,
+      "title": "Липсва Индекс по Теми",
+      "decision": "accept",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 28,
+      "title": "Circular Logic в Макронутриенти",
+      "decision": "custom",
+      "customProposal": "да се използва формула със съотношения между трите",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 29,
+      "title": "Supplement Без Drug Check",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 30,
+      "title": "Meal Timing Еднакво",
+      "decision": "custom",
+      "customProposal": "точни часове и времена няма. работим с понятия като : закуска, обяд, следобедна закуска, вечеря, късно хранене, които са според предполагаем час за клиента",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 31,
+      "title": "Липсват Ranges за Числа",
+      "decision": "accept",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 32,
+      "title": "Email Валидация Липсва",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 33,
+      "title": "Text Field Length Limits Липсват",
+      "decision": "custom",
+      "customProposal": "лимит до 200 символа",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 34,
+      "title": "Array Validation Неясна",
+      "decision": "accept",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 35,
+      "title": "localStorage Size Limit Risk",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    },
+    {
+      "issueId": 36,
+      "title": "Worker Timeout Risk",
+      "decision": "skip",
+      "customProposal": "",
+      "timestamp": "2026-02-05T23:59:53.930Z"
+    }
+  ]
+}
