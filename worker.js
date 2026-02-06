@@ -2915,17 +2915,25 @@ async function getCustomPrompt(env, promptKey) {
  * 
  * Examples:
  * - {name} - replaced with variables.name
- * - {userData} - replaced with JSON.stringify(variables.userData)
- * - {userData.name} - replaced with variables.userData.name (if nested access is enabled)
+ * - {userData} - replaced with JSON.stringify(variables.userData) - entire object
+ * - {userData.name} - replaced with variables.userData.name - specific field
  * 
  * Security: Limits nesting depth to 10 levels to prevent DoS attacks
  */
 function replacePromptVariables(template, variables) {
   const MAX_NESTING_DEPTH = 10; // Prevent DoS through deeply nested property access
   
+  // Helper function to format value (handles null, objects, primitives)
+  const formatValue = (value) => {
+    if (value === null) {
+      return ''; // Return empty string for null instead of 'null'
+    }
+    return typeof value === 'object' ? JSON.stringify(value) : String(value);
+  };
+  
   // Replace variables with support for nested properties (e.g., {userData.name})
-  // Regex ensures dots only appear between valid identifiers (no consecutive dots)
-  return template.replace(/\{([\w]+(?:\.[\w]+)*)\}/g, (match, key) => {
+  // Regex ensures: word chars, optionally followed by dot and more word chars (no trailing/leading dots)
+  return template.replace(/\{(\w+(?:\.\w+)*)\}/g, (match, key) => {
     // Handle nested properties (e.g., userData.name)
     if (key.includes('.')) {
       const parts = key.split('.');
@@ -2946,26 +2954,12 @@ function replacePromptVariables(template, variables) {
         }
       }
       
-      // Handle null values explicitly (return empty string instead of 'null')
-      if (value === null) {
-        return '';
-      }
-      
-      // For production: use compact JSON for performance
-      return typeof value === 'object' ? JSON.stringify(value) : String(value);
+      return formatValue(value);
     }
     
     // Handle simple variables (e.g., {name})
     if (key in variables) {
-      const value = variables[key];
-      
-      // Handle null values explicitly (return empty string instead of 'null')
-      if (value === null) {
-        return '';
-      }
-      
-      // For production: use compact JSON for performance
-      return typeof value === 'object' ? JSON.stringify(value) : String(value);
+      return formatValue(variables[key]);
     }
     
     return match; // Variable not found, return original
