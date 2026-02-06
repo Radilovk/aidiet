@@ -2935,7 +2935,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   if (customPrompt) {
     return replacePromptVariables(customPrompt, {
       userData: data,
-      strategyData: strategyCompact,
+      strategyData: strategy,
       bmr: bmr,
       recommendedCalories: recommendedCalories,
       startDay: startDay,
