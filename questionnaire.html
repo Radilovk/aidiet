@@ -79,6 +79,7 @@
         /* --- PROGRESS BAR --- */
         .progress-container {
             padding: calc(20px + var(--safe-area-inset-top)) calc(20px + var(--safe-area-inset-right)) 0 calc(20px + var(--safe-area-inset-left));
+            min-height: calc(50px + var(--safe-area-inset-top));
             background: var(--bg-color);
             z-index: 10;
         }
@@ -766,6 +767,14 @@
             width: 20px;
             height: 20px;
             vertical-align: middle;
+        }
+
+        /* PWA Standalone mode enhancements */
+        @media all and (display-mode: standalone) {
+            .progress-container {
+                /* Additional styling for installed PWA if needed */
+                background: var(--bg-color);
+            }
         }
 
     </style>

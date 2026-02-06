@@ -60,6 +60,13 @@
       .row, .row3 { grid-template-columns: 1fr; }
       .checks { grid-template-columns: 1fr; }
     }
+    /* PWA Standalone mode enhancements */
+    @media all and (display-mode: standalone) {
+      header {
+        /* Additional styling for installed PWA if needed */
+        background: linear-gradient(180deg, #0f1220, #0b0c10);
+      }
+    }
   </style>
 </head>
 <body>
