@@ -1593,6 +1593,9 @@
         let progressInterval = null; // Store interval reference for cleanup
         let tipsInterval = null; // Store tips rotation interval reference
         
+        // API Configuration
+        const API_BASE_URL = 'https://aidiet.radilov-k.workers.dev';
+        
         // Helpful tips to display during loading (constant to avoid recreation)
         const LOADING_TIPS = [
             '💡 Вашият план се базира на над 30 фактора от въпросника',
@@ -1701,7 +1704,7 @@
             // Poll function
             async function checkProgress() {
                 try {
-                    const response = await fetch(`https://aidiet.radilov-k.workers.dev/api/get-progress?jobId=${encodeURIComponent(jobId)}`);
+                    const response = await fetch(`${API_BASE_URL}/api/get-progress?jobId=${encodeURIComponent(jobId)}`);
                     
                     if (!response.ok) {
                         console.error('Progress check failed:', response.status);
@@ -1818,7 +1821,7 @@
         
         async function fetchCompletedPlan(jobId, userId) {
             try {
-                const response = await fetch(`https://aidiet.radilov-k.workers.dev/api/get-plan?jobId=${encodeURIComponent(jobId)}`);
+                const response = await fetch(`${API_BASE_URL}/api/get-plan?jobId=${encodeURIComponent(jobId)}`);
                 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch plan: ${response.status}`);
@@ -1963,7 +1966,7 @@
             try {
                 console.log('Sending request to backend...');
                 // Submit data to backend - this now returns immediately with a jobId
-                const response = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan', {
+                const response = await fetch(`${API_BASE_URL}/api/generate-plan`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
