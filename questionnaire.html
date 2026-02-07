@@ -1634,6 +1634,8 @@
             
             let currentTipIndex = 0;
             let currentStage = '';
+            let consecutiveErrors = 0;
+            const MAX_CONSECUTIVE_ERRORS = 5;
             
             // Rotate tips every 8 seconds
             function rotateTips() {
@@ -1699,10 +1701,28 @@
             // Poll function
             async function checkProgress() {
                 try {
-                    const response = await fetch(`https://aidiet.radilov-k.workers.dev/api/get-progress?jobId=${jobId}`);
+                    const response = await fetch(`https://aidiet.radilov-k.workers.dev/api/get-progress?jobId=${encodeURIComponent(jobId)}`);
                     
                     if (!response.ok) {
                         console.error('Progress check failed:', response.status);
+                        consecutiveErrors++;
+                        
+                        // Stop polling after too many errors or 404 (job not found)
+                        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS || response.status === 404) {
+                            if (progressInterval) clearInterval(progressInterval);
+                            if (tipsInterval) clearInterval(tipsInterval);
+                            
+                            container.innerHTML = `
+                                <div style="text-align:center; animation: fadeIn 0.5s;">
+                                    <div class="section-icon" style="background:#d1fae5; color:#10b981;">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </div>
+                                    <h2 class="q-text">Грешка</h2>
+                                    <p style="color:#7f8c8d; margin-bottom:20px;">Неуспешно проследяване на прогреса. Моля, опитайте отново.</p>
+                                    <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
+                                </div>
+                            `;
+                        }
                         return;
                     }
                     
@@ -1710,8 +1730,28 @@
                     
                     if (!result.success || !result.progress) {
                         console.error('Invalid progress response:', result);
+                        consecutiveErrors++;
+                        
+                        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                            if (progressInterval) clearInterval(progressInterval);
+                            if (tipsInterval) clearInterval(tipsInterval);
+                            
+                            container.innerHTML = `
+                                <div style="text-align:center; animation: fadeIn 0.5s;">
+                                    <div class="section-icon" style="background:#d1fae5; color:#10b981;">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </div>
+                                    <h2 class="q-text">Грешка</h2>
+                                    <p style="color:#7f8c8d; margin-bottom:20px;">Неуспешно проследяване на прогреса. Моля, опитайте отново.</p>
+                                    <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
+                                </div>
+                            `;
+                        }
                         return;
                     }
+                    
+                    // Reset error counter on successful response
+                    consecutiveErrors = 0;
                     
                     const { progress, stage, message } = result.progress;
                     
@@ -1746,13 +1786,26 @@
                         }
                     }
                     
-                    // Update message if provided
-                    if (message && subtitle && !stageConfig[stage]) {
-                        subtitle.textContent = message;
-                    }
-                    
                 } catch (error) {
                     console.error('Error polling progress:', error);
+                    consecutiveErrors++;
+                    
+                    // Stop polling after too many consecutive errors
+                    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                        if (progressInterval) clearInterval(progressInterval);
+                        if (tipsInterval) clearInterval(tipsInterval);
+                        
+                        container.innerHTML = `
+                            <div style="text-align:center; animation: fadeIn 0.5s;">
+                                <div class="section-icon" style="background:#d1fae5; color:#10b981;">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </div>
+                                <h2 class="q-text">Грешка</h2>
+                                <p style="color:#7f8c8d; margin-bottom:20px;">Неуспешно проследяване на прогреса. Моля, опитайте отново.</p>
+                                <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
+                            </div>
+                        `;
+                    }
                 }
             }
             
@@ -1765,7 +1818,7 @@
         
         async function fetchCompletedPlan(jobId, userId) {
             try {
-                const response = await fetch(`https://aidiet.radilov-k.workers.dev/api/get-plan?jobId=${jobId}`);
+                const response = await fetch(`https://aidiet.radilov-k.workers.dev/api/get-plan?jobId=${encodeURIComponent(jobId)}`);
                 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch plan: ${response.status}`);
