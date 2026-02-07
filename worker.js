@@ -2863,9 +2863,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   // Return complete meal plan with week plan and summary data
   return {
     weekPlan: weekPlan,
-    psychologicalSupport: summaryData?.psychologicalSupport || [],
-    supplementRecommendations: summaryData?.supplementRecommendations || [],
-    hydrationStrategy: summaryData?.hydrationStrategy || 'Минимум 2-2.5л вода дневно'
+    psychologicalSupport: summaryData?.psychology || [],
+    supplementRecommendations: summaryData?.supplements || [],
+    hydrationStrategy: summaryData?.waterIntake || 'Минимум 2-2.5л вода дневно'
   };
 }
 
