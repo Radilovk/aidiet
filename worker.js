@@ -1722,7 +1722,9 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
         dietPreference: userData.dietPreference,
         dietDislike: userData.dietDislike,
         dietLove: userData.dietLove
-      }, null, 2)
+      }, null, 2),
+      MEAL_NAME_FORMAT_INSTRUCTIONS: MEAL_NAME_FORMAT_INSTRUCTIONS,
+      MIN_DAILY_CALORIES: MIN_DAILY_CALORIES
     });
   }
   
