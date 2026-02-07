@@ -1699,7 +1699,7 @@ function checkADLEv8Rules(meal) {
  * @param {Object} plan - The generated plan that failed validation
  * @param {string[]} validationErrors - Array of specific validation error messages
  * @param {Object} userData - User profile data for context
- * @returns {string} Prompt instructing AI to correct specific errors in the plan
+ * @returns {Promise<string>} Prompt instructing AI to correct specific errors in the plan
  */
 async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
   // Check if there's a custom prompt in KV storage
