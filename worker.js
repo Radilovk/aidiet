@@ -1997,12 +1997,13 @@ async function getCustomPrompt(env, promptKey) {
  */
 function hasJsonFormatInstructions(prompt) {
   // Check for common JSON format instruction markers in Bulgarian
+  // Note: Includes both generic markers and prompt-specific ones for comprehensive detection
   const jsonMarkers = [
-    'JSON формат',           // "JSON format"
-    'ФОРМАТ НА ОТГОВОР',     // "RESPONSE FORMAT"
-    'Върни САМО JSON',       // "Return ONLY JSON"
-    'Върни JSON',            // "Return JSON"
-    'Върни ПЪЛНИЯ КОРИГИРАН план' // "Return FULL CORRECTED plan" (specific to correction prompt, but harmless for others)
+    'JSON формат',           // "JSON format" - generic
+    'ФОРМАТ НА ОТГОВОР',     // "RESPONSE FORMAT" - generic
+    'Върни САМО JSON',       // "Return ONLY JSON" - generic
+    'Върни JSON',            // "Return JSON" - generic
+    'Върни ПЪЛНИЯ КОРИГИРАН план' // "Return FULL CORRECTED plan" - correction prompt specific
   ];
   
   return jsonMarkers.some(marker => prompt.includes(marker));
@@ -3244,7 +3245,7 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
 
 Структурата ТРЯБВА да е:
 {
-  "day${startDay}": {
+  "dayN": {
     "meals": [
       {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
     ],
