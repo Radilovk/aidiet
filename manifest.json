@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "NutriPlan",
+  "name": "NutriPlan - Интелигентна Хранителна Платформа",
   "short_name": "NutriPlan",
-  "description": "Твоят персонален хранителен режим",
+  "description": "Твоят персонален хранителен режим - Интелигентна хранителна платформа за генериране на персонализирани хранителни планове чрез изкуствен интелект",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -38,5 +38,6 @@
   ],
   "categories": ["health", "lifestyle", "food"],
   "lang": "bg-BG",
-  "dir": "ltr"
+  "dir": "ltr",
+  "screenshots": []
 }

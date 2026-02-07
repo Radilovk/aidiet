@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://biocode.website/sitemap.xml
