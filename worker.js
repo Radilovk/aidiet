@@ -4886,7 +4886,8 @@ function getDefaultPromptTemplates() {
     analysis: `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
-{JSON.stringify(userData)} - Пълен JSON обект с всички данни: name, age, gender, height, weight, goal, lossKg, sleepHours, sleepInterrupt, chronotype, sportActivity, dailyActivityLevel, stressLevel, waterIntake, drinksSweet, drinksAlcohol, overeatingFrequency, eatingHabits, foodCravings, foodTriggers, compensationMethods, socialComparison, medicalConditions, medications, medicationsDetails, weightChange, weightChangeDetails, dietHistory, dietType, dietResult, dietPreference, dietDislike, dietLove
+{userData}
+(Note: This is replaced with a JSON object containing all client data: name, age, gender, height, weight, goal, lossKg, sleepHours, sleepInterrupt, chronotype, sportActivity, dailyActivityLevel, stressLevel, waterIntake, drinksSweet, drinksAlcohol, overeatingFrequency, eatingHabits, foodCravings, foodTriggers, compensationMethods, socialComparison, medicalConditions, medications, medicationsDetails, weightChange, weightChangeDetails, dietHistory, dietType, dietResult, dietPreference, dietDislike, dietLove)
 
 ═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
 Основни физически параметри (за референция):
@@ -4895,16 +4896,17 @@ function getDefaultPromptTemplates() {
 - Възраст: {age} години
 - Пол: {gender}
 - Цел: {goal}
-{lossKg ? "- Желано отслабване: " + lossKg + " кг" : ""}
+- Желано отслабване: {lossKg} кг (if applicable)
 
-═══ BACKEND РЕФЕРЕНТНИ ИЗЧИСЛЕНИЯ (Issues #2, #7, #9, #10, #28 - Feb 2026) ═══
-{Automatically calculated backend reference values including:
-- Unified Activity Score (1-10 scale)
+═══ BACKEND РЕФЕРЕНТНИ ИЗЧИСЛЕНИЯ ═══
+{backendReferenceValues}
+(Note: Automatically calculated backend reference values including:
+- Unified Activity Score (1-10 scale based on daily activity and sport days)
 - BMR (Mifflin-St Jeor formula)
 - TDEE (BMR × activity factor)
 - Safe Deficit calculations
 - Baseline Macronutrient ratios
-These are shown as REFERENCE POINTS for the AI to consider}
+These are shown as REFERENCE POINTS for the AI to consider and adjust)
 
 ВАЖНО: Използвай горните РЕФЕРЕНТНИ изчисления като ОТПРАВНА ТОЧКА, но АНАЛИЗИРАЙ ХОЛИСТИЧНО:
 - Качество на сън и стрес
