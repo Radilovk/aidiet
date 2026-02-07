@@ -593,11 +593,7 @@ export default {
     try {
       // Route handling
       if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
-        return await handleGeneratePlan(request, env, ctx);
-      } else if (url.pathname === '/api/get-progress' && request.method === 'GET') {
-        return await handleGetProgress(request, env);
-      } else if (url.pathname === '/api/get-plan' && request.method === 'GET') {
-        return await handleGetPlan(request, env);
+        return await handleGeneratePlan(request, env);
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
         return await handleChat(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
@@ -645,125 +641,6 @@ export default {
 };
 
 /**
- * Progress tracking for plan generation
- * Stores progress in KV with TTL of 1 hour (enough for generation process)
- * Optimized to skip duplicate progress writes to reduce KV operations
- */
-async function updateProgress(env, jobId, progress, stage, message) {
-  if (!env.page_content) return;
-  
-  // Check if this is the same as last progress to avoid unnecessary writes
-  try {
-    const existingData = await env.page_content.get(`progress:${jobId}`);
-    if (existingData) {
-      const existing = JSON.parse(existingData);
-      // Skip write if progress and stage haven't changed
-      if (existing.progress === progress && existing.stage === stage) {
-        console.log(`Skipping duplicate progress write: ${progress}% ${stage}`);
-        return;
-      }
-    }
-  } catch (error) {
-    // Continue with write if check fails
-  }
-  
-  const progressData = {
-    progress, // 0-100
-    stage, // 'analysis', 'strategy', 'meals', 'summary', 'complete', 'error'
-    message,
-    timestamp: Date.now()
-  };
-  
-  try {
-    // Store with 1 hour expiration (3600 seconds)
-    await env.page_content.put(
-      `progress:${jobId}`,
-      JSON.stringify(progressData),
-      { expirationTtl: 3600 }
-    );
-  } catch (error) {
-    console.error('Error updating progress:', error);
-  }
-}
-
-async function getProgress(env, jobId) {
-  if (!env.page_content) return null;
-  
-  try {
-    const data = await env.page_content.get(`progress:${jobId}`);
-    return data ? JSON.parse(data) : null;
-  } catch (error) {
-    console.error('Error getting progress:', error);
-    return null;
-  }
-}
-
-/**
- * Handle getting completed plan by jobId
- */
-async function handleGetPlan(request, env) {
-  try {
-    const url = new URL(request.url);
-    const jobId = url.searchParams.get('jobId');
-    
-    if (!jobId) {
-      return jsonResponse({ error: 'Missing jobId' }, 400);
-    }
-    
-    if (!env.page_content) {
-      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    }
-    
-    const planData = await env.page_content.get(`plan:${jobId}`);
-    
-    if (!planData) {
-      return jsonResponse({ error: 'Plan not found' }, 404);
-    }
-    
-    const plan = JSON.parse(planData);
-    return jsonResponse(plan);
-  } catch (error) {
-    console.error('Error in handleGetPlan:', error);
-    return jsonResponse({ error: error.message }, 500);
-  }
-}
-
-/**
- * Handle progress polling endpoint
- * Optimized with cache headers to reduce load
- */
-async function handleGetProgress(request, env) {
-  try {
-    const url = new URL(request.url);
-    const jobId = url.searchParams.get('jobId');
-    
-    if (!jobId) {
-      return jsonResponse({ error: 'Missing jobId' }, 400);
-    }
-    
-    const progress = await getProgress(env, jobId);
-    
-    if (!progress) {
-      return jsonResponse({ error: 'Progress not found' }, 404);
-    }
-    
-    // Add cache headers to allow client-side caching for 2 seconds
-    // This prevents duplicate requests if client polls multiple times quickly
-    return jsonResponse({ success: true, progress }, 200, {
-      'Cache-Control': 'public, max-age=2',
-      'Vary': 'Accept-Encoding'
-    });
-  } catch (error) {
-    console.error('Error in handleGetProgress:', error);
-    return jsonResponse({ error: error.message }, 500);
-  }
-}
-    console.error('Error in handleGetProgress:', error);
-    return jsonResponse({ error: error.message }, 500);
-  }
-}
-
-/**
  * Remove internal justification fields from plan before returning to client
  * These fields are only for the validator and should not be visible to the end user
  */
@@ -788,9 +665,8 @@ function removeInternalJustifications(plan) {
 
 /**
  * Generate nutrition plan from questionnaire data using multi-step approach
- * Now supports background processing - returns immediately with jobId and continues processing
  */
-async function handleGeneratePlan(request, env, ctx) {
+async function handleGeneratePlan(request, env) {
   try {
     console.log('handleGeneratePlan: Starting');
     const data = await request.json();
@@ -805,9 +681,6 @@ async function handleGeneratePlan(request, env, ctx) {
     const userId = data.email || generateUserId(data);
     console.log('handleGeneratePlan: Request received for userId:', userId);
     
-    // Generate a unique job ID for tracking progress
-    const jobId = `job_${userId}_${Date.now()}`;
-    
     // Check for goal contradictions before generating plan
     const { hasContradiction, warningData } = detectGoalContradiction(data);
     
@@ -821,163 +694,109 @@ async function handleGeneratePlan(request, env, ctx) {
       });
     }
     
-    // Initialize progress
-    await updateProgress(env, jobId, 0, 'starting', 'Започваме генериране на план...');
+    console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
     
-    // Start background processing using ctx.waitUntil
-    // This allows the worker to continue processing after returning the response
-    const backgroundProcessing = (async () => {
+    // Use multi-step approach for better individualization
+    // No caching - client stores plan locally
+    let structuredPlan = await generatePlanMultiStep(env, data);
+    console.log('handleGeneratePlan: Plan structured for userId:', userId);
+    
+    // REQUIREMENT 4: Validate plan before displaying
+    // NEW: Implement correction loop - instead of failing, request AI to fix issues
+    let validation = validatePlan(structuredPlan, data);
+    let correctionAttempts = 0;
+    
+    // Safety check: ensure MAX_CORRECTION_ATTEMPTS is valid
+    const maxAttempts = Math.max(0, MAX_CORRECTION_ATTEMPTS);
+    
+    while (!validation.isValid && correctionAttempts < maxAttempts) {
+      correctionAttempts++;
+      console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${maxAttempts}):`, validation.errors);
+      
+      // Generate correction prompt with specific errors
+      const correctionPrompt = generateCorrectionPrompt(structuredPlan, validation.errors, data);
+      
       try {
-        console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
+        console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
+        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT, 'plan_correction');
+        const correctedPlan = parseAIResponse(correctionResponse);
         
-        // Use multi-step approach for better individualization
-        // No caching - client stores plan locally
-        let structuredPlan = await generatePlanMultiStep(env, data, jobId);
-        console.log('handleGeneratePlan: Plan structured for userId:', userId);
-        
-        // REQUIREMENT 4: Validate plan before displaying
-        // NEW: Implement correction loop - instead of failing, request AI to fix issues
-        await updateProgress(env, jobId, 90, 'validating', 'Валидиране на плана...');
-        let validation = validatePlan(structuredPlan, data);
-        let correctionAttempts = 0;
-        
-        // Safety check: ensure MAX_CORRECTION_ATTEMPTS is valid
-        const maxAttempts = Math.max(0, MAX_CORRECTION_ATTEMPTS);
-        
-        while (!validation.isValid && correctionAttempts < maxAttempts) {
-          correctionAttempts++;
-          console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${maxAttempts}):`, validation.errors);
-          
-          await updateProgress(env, jobId, 92 + correctionAttempts, 'correcting', `Корекция ${correctionAttempts}/${maxAttempts}...`);
-          
-          // Generate correction prompt with specific errors
-          const correctionPrompt = generateCorrectionPrompt(structuredPlan, validation.errors, data);
-          
-          try {
-            console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
-            const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT, 'plan_correction');
-            const correctedPlan = parseAIResponse(correctionResponse);
-            
-            if (!correctedPlan || correctedPlan.error) {
-              const errorMsg = correctedPlan?.error || 'Невалиден формат на отговор';
-              console.error(`handleGeneratePlan: Correction parsing failed (attempt ${correctionAttempts}):`, errorMsg);
-              // Continue with next attempt or exit loop
-              if (correctionAttempts >= maxAttempts) {
-                break;
-              }
-              continue;
-            }
-            
-            // Use corrected plan
-            structuredPlan = correctedPlan;
-            console.log(`handleGeneratePlan: AI correction applied (attempt ${correctionAttempts})`);
-            
-            // Re-validate the corrected plan
-            validation = validatePlan(structuredPlan, data);
-            
-            if (validation.isValid) {
-              console.log(`handleGeneratePlan: Plan validated successfully after ${correctionAttempts} correction(s)`);
-            }
-          } catch (error) {
-            console.error(`handleGeneratePlan: Correction attempt ${correctionAttempts} failed:`, error);
-            // Continue with next attempt or exit loop
-            if (correctionAttempts >= maxAttempts) {
-              break;
-            }
-          }
-        }
-        
-        // Final validation check - if still invalid after max attempts, try fallback strategy
-        if (!validation.isValid) {
-          console.error(`handleGeneratePlan: Plan validation failed after ${correctionAttempts} correction attempts:`, validation.errors);
-          
-          // Fallback strategy: Try to generate a simplified plan as last resort
+        if (!correctedPlan || correctedPlan.error) {
+          const errorMsg = correctedPlan?.error || 'Невалиден формат на отговор';
+          console.error(`handleGeneratePlan: Correction parsing failed (attempt ${correctionAttempts}):`, errorMsg);
+          // Continue with next attempt or exit loop
           if (correctionAttempts >= maxAttempts) {
-            console.log('handleGeneratePlan: Attempting simplified fallback plan generation');
-            await updateProgress(env, jobId, 95, 'fallback', 'Генериране на опростен план...');
-            try {
-              // Generate simplified plan with reduced requirements
-              const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
-              const fallbackValidation = validatePlan(simplifiedPlan, data);
-              
-              if (fallbackValidation.isValid) {
-                console.log('handleGeneratePlan: Simplified fallback plan validated successfully');
-                const cleanPlan = removeInternalJustifications(simplifiedPlan);
-                
-                // Store the completed plan
-                await env.page_content.put(
-                  `plan:${jobId}`,
-                  JSON.stringify({
-                    success: true,
-                    plan: cleanPlan,
-                    userId: userId,
-                    correctionAttempts: correctionAttempts,
-                    fallbackUsed: true,
-                    note: "Използван опростен план поради технически проблеми с основния алгоритъм"
-                  }),
-                  { expirationTtl: 3600 }
-                );
-                
-                await updateProgress(env, jobId, 100, 'complete', 'Планът е готов!');
-                return;
-              }
-            } catch (fallbackError) {
-              console.error('handleGeneratePlan: Simplified fallback also failed:', fallbackError);
-            }
+            break;
           }
-          
-          // If all strategies failed, store error
-          await updateProgress(
-            env,
-            jobId,
-            100,
-            'error',
-            `Планът не премина качествен тест: ${validation.errors.join('; ')}`
-          );
-          return;
+          continue;
         }
         
-        console.log('handleGeneratePlan: Plan validated successfully');
+        // Use corrected plan
+        structuredPlan = correctedPlan;
+        console.log(`handleGeneratePlan: AI correction applied (attempt ${correctionAttempts})`);
         
-        // Remove internal justification fields before returning to client
-        const cleanPlan = removeInternalJustifications(structuredPlan);
+        // Re-validate the corrected plan
+        validation = validatePlan(structuredPlan, data);
         
-        // Store the completed plan
-        await env.page_content.put(
-          `plan:${jobId}`,
-          JSON.stringify({
-            success: true,
-            plan: cleanPlan,
-            userId: userId,
-            correctionAttempts: correctionAttempts
-          }),
-          { expirationTtl: 3600 }
-        );
-        
-        await updateProgress(env, jobId, 100, 'complete', 'Планът е готов!');
+        if (validation.isValid) {
+          console.log(`handleGeneratePlan: Plan validated successfully after ${correctionAttempts} correction(s)`);
+        }
       } catch (error) {
-        console.error('Error in background plan generation:', error);
-        await updateProgress(
-          env,
-          jobId,
-          100,
-          'error',
-          `${ERROR_MESSAGES.PLAN_GENERATION_FAILED}: ${error.message}`
-        );
+        console.error(`handleGeneratePlan: Correction attempt ${correctionAttempts} failed:`, error);
+        // Continue with next attempt or exit loop
+        if (correctionAttempts >= maxAttempts) {
+          break;
+        }
       }
-    })();
-    
-    // Use waitUntil to continue processing after response is sent
-    if (ctx && ctx.waitUntil) {
-      ctx.waitUntil(backgroundProcessing);
     }
     
-    // Return immediately with jobId for tracking
+    // Final validation check - if still invalid after max attempts, try fallback strategy
+    if (!validation.isValid) {
+      console.error(`handleGeneratePlan: Plan validation failed after ${correctionAttempts} correction attempts:`, validation.errors);
+      
+      // Fallback strategy: Try to generate a simplified plan as last resort
+      if (correctionAttempts >= maxAttempts) {
+        console.log('handleGeneratePlan: Attempting simplified fallback plan generation');
+        try {
+          // Generate simplified plan with reduced requirements
+          const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
+          const fallbackValidation = validatePlan(simplifiedPlan, data);
+          
+          if (fallbackValidation.isValid) {
+            console.log('handleGeneratePlan: Simplified fallback plan validated successfully');
+            const cleanPlan = removeInternalJustifications(simplifiedPlan);
+            return jsonResponse({ 
+              success: true, 
+              plan: cleanPlan,
+              userId: userId,
+              correctionAttempts: correctionAttempts,
+              fallbackUsed: true,
+              note: "Използван опростен план поради технически проблеми с основния алгоритъм"
+            });
+          }
+        } catch (fallbackError) {
+          console.error('handleGeneratePlan: Simplified fallback also failed:', fallbackError);
+        }
+      }
+      
+      // If all strategies failed, return detailed error
+      return jsonResponse({ 
+        error: `Планът не премина качествен тест след ${correctionAttempts} опити за корекция: ${validation.errors.join('; ')}`,
+        validationErrors: validation.errors,
+        suggestion: "Моля, опитайте отново или свържете се с поддръжката"
+      }, 400);
+    }
+    
+    console.log('handleGeneratePlan: Plan validated successfully');
+    
+    // Remove internal justification fields before returning to client
+    const cleanPlan = removeInternalJustifications(structuredPlan);
+    
     return jsonResponse({ 
-      success: true,
-      jobId: jobId,
+      success: true, 
+      plan: cleanPlan,
       userId: userId,
-      message: 'План се генерира във фонов режим'
+      correctionAttempts: correctionAttempts // Inform client how many corrections were needed
     });
   } catch (error) {
     console.error('Error generating plan:', error);
@@ -1966,7 +1785,7 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 ВАЖНО: Върни САМО JSON без допълнителни обяснения!`;
 }
 
-async function generatePlanMultiStep(env, data, jobId = null) {
+async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
   // Token tracking for multi-step generation
@@ -1979,8 +1798,6 @@ async function generatePlanMultiStep(env, data, jobId = null) {
   try {
     // Step 1: Analyze user profile (1st AI request)
     // Focus: Deep health analysis, metabolic profile, correlations
-    if (jobId) await updateProgress(env, jobId, 5, 'analysis', 'Анализиране на здравния профил...');
-    
     const analysisPrompt = await generateAnalysisPrompt(data, env);
     const analysisInputTokens = estimateTokenCount(analysisPrompt);
     cumulativeTokens.input += analysisInputTokens;
@@ -2021,12 +1838,9 @@ async function generatePlanMultiStep(env, data, jobId = null) {
     }
     
     console.log('Multi-step generation: Analysis complete (1/3)');
-    if (jobId) await updateProgress(env, jobId, 25, 'analysis', 'Анализ завършен');
     
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
-    if (jobId) await updateProgress(env, jobId, 30, 'strategy', 'Генериране на стратегия...');
-    
     const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
     const strategyInputTokens = estimateTokenCount(strategyPrompt);
     cumulativeTokens.input += strategyInputTokens;
@@ -2055,7 +1869,6 @@ async function generatePlanMultiStep(env, data, jobId = null) {
     }
     
     console.log('Multi-step generation: Strategy complete (2/3)');
-    if (jobId) await updateProgress(env, jobId, 40, 'strategy', 'Стратегия завършена');
     
     // Step 3: Generate detailed meal plan
     // Use progressive generation if enabled (multiple smaller requests)
@@ -2064,7 +1877,7 @@ async function generatePlanMultiStep(env, data, jobId = null) {
     if (ENABLE_PROGRESSIVE_GENERATION) {
       console.log('Multi-step generation: Using progressive meal plan generation');
       try {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, jobId);
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy);
       } catch (error) {
         console.error('Progressive meal plan generation failed:', error);
         throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
@@ -2072,8 +1885,6 @@ async function generatePlanMultiStep(env, data, jobId = null) {
     } else {
       // Fallback to single-request generation
       console.log('Multi-step generation: Using single-request meal plan generation');
-      if (jobId) await updateProgress(env, jobId, 45, 'meals', 'Генериране на хранителен план...');
-      
       const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env);
       let mealPlanResponse;
       
@@ -2094,7 +1905,6 @@ async function generatePlanMultiStep(env, data, jobId = null) {
     }
     
     console.log('Multi-step generation: Meal plan complete (3/3)');
-    if (jobId) await updateProgress(env, jobId, 85, 'meals', 'Хранителен план завършен');
     
     // Final token usage summary
     console.log(`=== CUMULATIVE TOKEN USAGE ===`);
@@ -2770,7 +2580,7 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
  */
-async function generateMealPlanProgressive(env, data, analysis, strategy, jobId = null) {
+async function generateMealPlanProgressive(env, data, analysis, strategy) {
   console.log('Progressive generation: Starting meal plan generation in chunks');
   
   const totalDays = 7;
@@ -2822,10 +2632,6 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, jobId 
     const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
     const daysInChunk = endDay - startDay + 1;
     
-    // Progress: 40% (strategy done) + 45% for meals = 40 + (chunkIndex / chunks * 45)
-    const progressPercent = 40 + Math.round((chunkIndex / chunks) * 45);
-    if (jobId) await updateProgress(env, jobId, progressPercent, 'meals', `Генериране дни ${startDay}-${endDay}...`);
-    
     console.log(`Progressive generation: Generating days ${startDay}-${endDay} (chunk ${chunkIndex + 1}/${chunks})`);
     
     try {
@@ -2872,7 +2678,6 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, jobId 
   }
   
   // Generate summary, recommendations, etc. in final request
-  if (jobId) await updateProgress(env, jobId, 85, 'summary', 'Генериране на обобщение...');
   console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
@@ -6234,9 +6039,9 @@ async function handlePushSend(request, env) {
 /**
  * Helper to create JSON response
  */
-function jsonResponse(data, status = 200, additionalHeaders = {}) {
+function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, ...additionalHeaders }
+    headers: CORS_HEADERS
   });
 }

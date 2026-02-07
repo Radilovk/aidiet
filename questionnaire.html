@@ -1593,9 +1593,6 @@
         let progressInterval = null; // Store interval reference for cleanup
         let tipsInterval = null; // Store tips rotation interval reference
         
-        // API Configuration
-        const API_BASE_URL = 'https://aidiet.radilov-k.workers.dev';
-        
         // Helpful tips to display during loading (constant to avoid recreation)
         const LOADING_TIPS = [
             '💡 Вашият план се базира на над 30 фактора от въпросника',
@@ -1606,7 +1603,7 @@
             '💪 Подготвяме стратегия за постигане на вашите цели'
         ];
         
-        async function pollProgress(jobId, userId) {
+        function simulateProgress() {
             // Clear any existing intervals
             if (progressInterval) {
                 clearInterval(progressInterval);
@@ -1635,19 +1632,9 @@
                 return;
             }
             
+            let progress = 0;
             let currentTipIndex = 0;
-            let currentStage = '';
-            let consecutiveErrors = 0;
-            const MAX_CONSECUTIVE_ERRORS = 5;
-            
-            // Adaptive polling to reduce backend load
-            let lastProgress = -1;
-            let lastStage = '';
-            let unchangedCount = 0;
-            let currentPollInterval = 2000; // Start with 2 seconds for responsive initial feedback
-            const MIN_POLL_INTERVAL = 2000; // Minimum 2 seconds
-            const MAX_POLL_INTERVAL = 5000; // Maximum 5 seconds
-            let pollCount = 0;
+            const startTime = Date.now();
             
             // Rotate tips every 8 seconds
             function rotateTips() {
@@ -1667,40 +1654,59 @@
                 tipsInterval = setInterval(rotateTips, 8000);
             }
             
-            // Stage configuration
-            const stageConfig = {
-                'analysis': {
-                    title: 'Анализиране на данните...',
+            // Define stages with more realistic timing
+            // Total expected time: ~360 seconds (6 minutes)
+            // Note: We have 3 visual stage indicators but 4 progress stages
+            // Stages 2 and 3 share the same visual indicator (stage3)
+            const stages = [
+                { 
+                    percent: 25, 
+                    title: 'Анализиране на данните...', 
                     subtitle: 'Обработваме вашия здравен профил',
-                    indicator: 0
+                    minTime: 0,
+                    maxTime: 60000, // 0-60 seconds (1 minute)
+                    indicatorIndex: 0 // stage1
                 },
-                'strategy': {
-                    title: 'Генериране на препоръки...',
+                { 
+                    percent: 50, 
+                    title: 'Генериране на препоръки...', 
                     subtitle: 'AI създава персонализирани стратегии',
-                    indicator: 1
+                    minTime: 60000,
+                    maxTime: 150000, // 60-150 seconds (1-2.5 minutes)
+                    indicatorIndex: 1 // stage2
                 },
-                'meals': {
-                    title: 'Изграждане на плана...',
+                { 
+                    percent: 75, 
+                    title: 'Изграждане на плана...', 
                     subtitle: 'Съставяме вашето 7-дневно меню',
-                    indicator: 2
+                    minTime: 150000,
+                    maxTime: 240000, // 150-240 seconds (2.5-4 minutes)
+                    indicatorIndex: 2 // stage3
                 },
-                'summary': {
-                    title: 'Финализиране...',
+                { 
+                    percent: 92, 
+                    title: 'Финализиране...', 
                     subtitle: 'Последни детайли и проверки',
-                    indicator: 2
+                    minTime: 240000,
+                    maxTime: 360000, // 240-360 seconds (4-6 minutes)
+                    indicatorIndex: 2 // stage3 (shares with previous stage)
                 }
-            };
+            ];
             
+            let currentStage = -1; // Start at -1 so first stage (0) triggers activation
+            const MAX_PROGRESS_INCREMENT = 2; // Maximum progress change per update for smoothness
+            
+            // Stage UI elements mapping
             const stageElements = [
                 { element: stage1, text: stage1Text },
                 { element: stage2, text: stage2Text },
                 { element: stage3, text: stage3Text }
             ];
             
-            // Helper function to activate a stage indicator
-            function activateStageIndicator(indicatorIndex) {
-                if (indicatorIndex >= 0 && indicatorIndex < stageElements.length) {
-                    const stage = stageElements[indicatorIndex];
+            // Helper function to activate a stage indicator if valid
+            function activateStageIfValid(stageIndex) {
+                if (stageIndex >= 0 && stageIndex < stageElements.length) {
+                    const stage = stageElements[stageIndex];
                     if (stage.element && stage.text) {
                         stage.element.style.background = 'var(--primary-red)';
                         stage.element.style.boxShadow = '0 2px 8px var(--soft-red)';
@@ -1710,230 +1716,91 @@
                 }
             }
             
-            // Poll function with adaptive interval
-            async function checkProgress() {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/get-progress?jobId=${encodeURIComponent(jobId)}`);
-                    
-                    if (!response.ok) {
-                        console.error('Progress check failed:', response.status);
-                        consecutiveErrors++;
-                        
-                        // Stop polling after too many errors or 404 (job not found)
-                        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS || response.status === 404) {
-                            if (progressInterval) clearInterval(progressInterval);
-                            if (tipsInterval) clearInterval(tipsInterval);
-                            
-                            container.innerHTML = `
-                                <div style="text-align:center; animation: fadeIn 0.5s;">
-                                    <div class="section-icon" style="background:#d1fae5; color:#10b981;">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                    </div>
-                                    <h2 class="q-text">Грешка</h2>
-                                    <p style="color:#7f8c8d; margin-bottom:20px;">Неуспешно проследяване на прогреса. Моля, опитайте отново.</p>
-                                    <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
-                                </div>
-                            `;
-                        }
-                        return;
-                    }
-                    
-                    const result = await response.json();
-                    
-                    if (!result.success || !result.progress) {
-                        console.error('Invalid progress response:', result);
-                        consecutiveErrors++;
-                        
-                        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-                            if (progressInterval) clearInterval(progressInterval);
-                            if (tipsInterval) clearInterval(tipsInterval);
-                            
-                            container.innerHTML = `
-                                <div style="text-align:center; animation: fadeIn 0.5s;">
-                                    <div class="section-icon" style="background:#d1fae5; color:#10b981;">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                    </div>
-                                    <h2 class="q-text">Грешка</h2>
-                                    <p style="color:#7f8c8d; margin-bottom:20px;">Неуспешно проследяване на прогреса. Моля, опитайте отново.</p>
-                                    <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
-                                </div>
-                            `;
-                        }
-                        return;
-                    }
-                    
-                    // Reset error counter on successful response
-                    consecutiveErrors = 0;
-                    pollCount++;
-                    
-                    const { progress, stage, message } = result.progress;
-                    
-                    // Adaptive polling: Check if progress/stage changed
-                    const hasChanged = progress !== lastProgress || stage !== lastStage;
-                    
-                    if (hasChanged) {
-                        // Progress changed - keep responsive polling
-                        unchangedCount = 0;
-                        
-                        // After first successful update, can slow down a bit
-                        if (pollCount > 1 && currentPollInterval < 3000) {
-                            currentPollInterval = 3000; // Increase to 3 seconds after initial update
-                            reschedulePolling();
-                        }
-                        
-                        lastProgress = progress;
-                        lastStage = stage;
-                    } else {
-                        // No change - can slow down polling
-                        unchangedCount++;
-                        
-                        // After 3 unchanged responses, increase interval to max
-                        if (unchangedCount >= 3 && currentPollInterval < MAX_POLL_INTERVAL) {
-                            currentPollInterval = MAX_POLL_INTERVAL;
-                            console.log(`Progress unchanged ${unchangedCount} times, reducing polling frequency to ${currentPollInterval/1000}s`);
-                            reschedulePolling();
-                        }
-                    }
-                    
-                    // Update progress bar
-                    if (progressBar && percentageText) {
-                        progressBar.style.width = progress + '%';
-                        percentageText.textContent = progress + '%';
-                    }
-                    
-                    // Update stage if changed
-                    if (stage && stage !== currentStage) {
-                        currentStage = stage;
-                        
-                        if (stage === 'complete') {
-                            // Clear intervals
-                            if (progressInterval) clearInterval(progressInterval);
-                            if (tipsInterval) clearInterval(tipsInterval);
-                            
-                            // Set to 100%
-                            if (progressBar && percentageText) {
-                                progressBar.style.width = '100%';
-                                percentageText.textContent = '100%';
-                            }
-                            
-                            // Fetch the completed plan
-                            await fetchCompletedPlan(jobId, userId);
-                        } else if (stageConfig[stage]) {
-                            const config = stageConfig[stage];
-                            if (title) title.textContent = config.title;
-                            if (subtitle) subtitle.textContent = config.subtitle;
-                            activateStageIndicator(config.indicator);
-                        }
-                    }
-                    
-                } catch (error) {
-                    console.error('Error polling progress:', error);
-                    consecutiveErrors++;
-                    
-                    // Stop polling after too many consecutive errors
-                    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-                        if (progressInterval) clearInterval(progressInterval);
-                        if (tipsInterval) clearInterval(tipsInterval);
-                        
-                        container.innerHTML = `
-                            <div style="text-align:center; animation: fadeIn 0.5s;">
-                                <div class="section-icon" style="background:#d1fae5; color:#10b981;">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                </div>
-                                <h2 class="q-text">Грешка</h2>
-                                <p style="color:#7f8c8d; margin-bottom:20px;">Неуспешно проследяване на прогреса. Моля, опитайте отново.</p>
-                                <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
-                            </div>
-                        `;
-                    }
-                }
+            // Exponential easing function for smooth progress
+            // Progress slows down naturally as it approaches target
+            function easeOutExpo(t) {
+                return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
             }
             
-            // Helper function to reschedule polling with new interval
-            function reschedulePolling() {
-                if (progressInterval) {
-                    clearInterval(progressInterval);
-                    progressInterval = setInterval(checkProgress, currentPollInterval);
-                }
-            }
-            
-            // Start polling with adaptive interval (2s initially, increases to 3-5s)
-            progressInterval = setInterval(checkProgress, currentPollInterval);
-            
-            // Initial check
-            checkProgress();
-        }
-        
-        async function fetchCompletedPlan(jobId, userId) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/get-plan?jobId=${encodeURIComponent(jobId)}`);
+            function updateProgress() {
+                const currentProgressBar = document.getElementById('aiProgressBar');
+                const currentPercentageText = document.getElementById('progressPercentage');
+                const currentTitle = document.getElementById('loadingTitle');
+                const currentSubtitle = document.getElementById('loadingSubtitle');
                 
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch plan: ${response.status}`);
+                // Safety check
+                if (!currentProgressBar || !currentPercentageText) {
+                    if (progressInterval) clearInterval(progressInterval);
+                    if (tipsInterval) clearInterval(tipsInterval);
+                    return;
                 }
                 
-                const result = await response.json();
-                console.log('Plan received:', result);
+                const elapsed = Date.now() - startTime;
                 
-                if (result.success) {
-                    // Check if there's a goal contradiction
-                    if (result.hasContradiction && result.warningData) {
-                        // Store warning data and redirect to warning page
-                        localStorage.setItem('warningData', JSON.stringify(result.warningData));
-                        localStorage.setItem('userId', userId);
-                        localStorage.setItem('userData', JSON.stringify(answers));
+                // Find which stage we're in
+                let stageIndex = -1;
+                let newProgress = progress;
+                
+                for (let i = 0; i < stages.length; i++) {
+                    const stage = stages[i];
+                    
+                    if (elapsed >= stage.minTime && elapsed < stage.maxTime) {
+                        // We're in this stage
+                        stageIndex = i;
                         
-                        // Clear the saved questionnaire answers
-                        localStorage.removeItem('questionnaireAnswers');
-                        localStorage.removeItem('jobId');
+                        // Check if we entered a new stage
+                        if (i !== currentStage) {
+                            currentStage = i;
+                            
+                            // Update title and subtitle
+                            if (currentTitle) currentTitle.textContent = stage.title;
+                            if (currentSubtitle) currentSubtitle.textContent = stage.subtitle;
+                            
+                            // Activate stage indicator
+                            activateStageIfValid(stage.indicatorIndex);
+                        }
                         
-                        // Redirect to warning page
-                        window.location.href = 'warning.html';
-                        return;
+                        // Calculate progress within current stage using easing
+                        const stageProgress = (elapsed - stage.minTime) / (stage.maxTime - stage.minTime);
+                        const easedProgress = easeOutExpo(Math.min(stageProgress, 1));
+                        
+                        // Interpolate between previous and current stage
+                        const prevPercent = i > 0 ? stages[i - 1].percent : 0;
+                        newProgress = prevPercent + (stage.percent - prevPercent) * easedProgress;
+                        
+                        break;
+                    } else if (elapsed >= stage.maxTime) {
+                        // We've completed this stage, ensure we're at least at its target
+                        newProgress = Math.max(newProgress, stage.percent);
+                        
+                        // Activate stage indicator if we haven't already
+                        if (i !== currentStage) {
+                            activateStageIfValid(stage.indicatorIndex);
+                            currentStage = i;
+                        }
                     }
-                    
-                    // Store plan and userId in localStorage for use in plan.html
-                    localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-                    localStorage.setItem('userId', userId);
-                    localStorage.setItem('userData', JSON.stringify(answers));
-                    
-                    // Clear the saved questionnaire answers and jobId since plan was generated successfully
-                    localStorage.removeItem('questionnaireAnswers');
-                    localStorage.removeItem('jobId');
-                    
-                    // Show success message and redirect to analysis page
-                    container.innerHTML = `
-                        <div style="text-align:center; animation: fadeIn 0.5s;">
-                            <div class="section-icon" style="background:#e8f8f5; color:#27ae60;">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            <h2 class="q-text">Успешно!</h2>
-                            <p style="color:#7f8c8d; margin-bottom:20px;">Вашият анализ е готов. Сега ще видите ключовите области за подобрение.</p>
-                            <button class="btn btn-next" onclick="window.location.href='analysis.html'" style="margin:0 auto;">Виж анализа</button>
-                        </div>
-                    `;
+                }
+                
+                // Smooth out the progress - never jump more than MAX_PROGRESS_INCREMENT at a time
+                const progressDiff = newProgress - progress;
+                if (Math.abs(progressDiff) > MAX_PROGRESS_INCREMENT) {
+                    // Limit the jump
+                    progress += progressDiff > 0 ? MAX_PROGRESS_INCREMENT : -MAX_PROGRESS_INCREMENT;
                 } else {
-                    throw new Error(result.error || 'Failed to retrieve plan');
+                    progress = newProgress;
                 }
-            } catch (error) {
-                console.error('Error fetching completed plan:', error);
                 
-                // Clear intervals
-                if (progressInterval) clearInterval(progressInterval);
-                if (tipsInterval) clearInterval(tipsInterval);
-                
-                // Show error
-                container.innerHTML = `
-                    <div style="text-align:center; animation: fadeIn 0.5s;">
-                        <div class="section-icon" style="background:#d1fae5; color:#10b981;">
-                            <i class="fas fa-exclamation-circle"></i>
-                        </div>
-                        <h2 class="q-text">Грешка</h2>
-                        <p style="color:#7f8c8d; margin-bottom:20px;">Неуспешно изтегляне на плана. Моля, опитайте отново.</p>
-                        <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
-                    </div>
-                `;
+                // Update UI
+                currentProgressBar.style.width = Math.floor(progress) + '%';
+                currentPercentageText.textContent = Math.floor(progress) + '%';
             }
+            
+            // Start smooth progress animation with 100ms intervals
+            // This creates 10 updates per second for smooth animation
+            progressInterval = setInterval(updateProgress, 100);
+            
+            // Initial update
+            setTimeout(updateProgress, 500);
         }
 
         async function finishQuiz() {
@@ -2008,17 +1875,31 @@
             document.querySelector('.nav-footer').style.display = 'none';
             document.querySelector('.progress-container').style.display = 'none';
 
+            // Start progress animation
+            simulateProgress();
+
             try {
+                // Increase HTTP request timeout to 360 seconds (6 minutes) to allow for AI model processing time
+                // This provides a buffer beyond the user's expectation (2-5 minutes) for complex plans
+                // This is needed because the archprompt integration requires multiple AI calls (analysis, strategy, meal plan)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    console.error('Request timeout after 360 seconds');
+                    controller.abort();
+                }, 360000);
+
                 console.log('Sending request to backend...');
-                // Submit data to backend - this now returns immediately with a jobId
-                const response = await fetch(`${API_BASE_URL}/api/generate-plan`, {
+                // Submit data to backend
+                const response = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(answers)
+                    body: JSON.stringify(answers),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
                 console.log('Response status:', response.status);
 
                 if (!response.ok) {
@@ -2029,15 +1910,61 @@
                 const result = await response.json();
                 console.log('Result received:', result);
                 
-                if (result.success && result.jobId && result.userId) {
-                    // Save jobId to localStorage for potential resume
-                    localStorage.setItem('jobId', result.jobId);
-                    localStorage.setItem('userId', result.userId);
+                // Clear any running intervals
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                if (tipsInterval) {
+                    clearInterval(tipsInterval);
+                    tipsInterval = null;
+                }
+                
+                // Complete the progress bar
+                const progressBar = document.getElementById('aiProgressBar');
+                const percentageText = document.getElementById('progressPercentage');
+                if (progressBar && percentageText) {
+                    progressBar.style.width = '100%';
+                    percentageText.textContent = '100%';
+                }
+                
+                if (result.success) {
+                    // Check if there's a goal contradiction
+                    if (result.hasContradiction && result.warningData) {
+                        // Store warning data and redirect to warning page
+                        localStorage.setItem('warningData', JSON.stringify(result.warningData));
+                        localStorage.setItem('userId', result.userId);
+                        localStorage.setItem('userData', JSON.stringify(answers));
+                        
+                        // Clear the saved questionnaire answers
+                        localStorage.removeItem('questionnaireAnswers');
+                        
+                        // Redirect to warning page
+                        window.location.href = 'warning.html';
+                        return;
+                    }
                     
-                    // Start polling for progress
-                    await pollProgress(result.jobId, result.userId);
+                    // Store plan and userId in localStorage for use in plan.html
+                    localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+                    localStorage.setItem('userId', result.userId);
+                    localStorage.setItem('userData', JSON.stringify(answers));
+                    
+                    // Clear the saved questionnaire answers since plan was generated successfully
+                    localStorage.removeItem('questionnaireAnswers');
+                    
+                    // Show success message and redirect to analysis page
+                    container.innerHTML = `
+                        <div style="text-align:center; animation: fadeIn 0.5s;">
+                            <div class="section-icon" style="background:#e8f8f5; color:#27ae60;">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h2 class="q-text">Успешно!</h2>
+                            <p style="color:#7f8c8d; margin-bottom:20px;">Вашият анализ е готов. Сега ще видите ключовите области за подобрение.</p>
+                            <button class="btn btn-next" onclick="window.location.href='analysis.html'" style="margin:0 auto;">Виж анализа</button>
+                        </div>
+                    `;
                 } else {
-                    throw new Error(result.error || 'Failed to start plan generation');
+                    throw new Error(result.error || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Error submitting data:', error);
@@ -2053,7 +1980,9 @@
                 }
                 
                 let errorMessage = error.message;
-                if (error.message.includes('Failed to fetch')) {
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Заявката отне твърде дълго време. Моля, проверете интернет връзката и опитайте отново.';
+                } else if (error.message.includes('Failed to fetch')) {
                     errorMessage = 'Неуспешна връзка със сървъра. Моля, проверете интернет връзката и опитайте отново.';
                 }
                 
