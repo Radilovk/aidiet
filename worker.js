@@ -1728,7 +1728,7 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!prompt.includes('Върни ПЪЛНИЯ КОРИГИРАН план') && !prompt.includes('JSON формат') && !prompt.includes('ФОРМАТ НА ОТГОВОР')) {
+    if (!hasJsonFormatInstructions(prompt)) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
@@ -1991,6 +1991,30 @@ async function getCustomPrompt(env, promptKey) {
 /**
  * Helper function to replace variables in custom prompts
  */
+/**
+ * Check if a prompt already includes JSON format instructions
+ * Used to avoid adding duplicate JSON format instructions to custom prompts
+ * 
+ * @param {string} prompt - The prompt text to check
+ * @returns {boolean} - True if JSON instructions are detected, false otherwise
+ */
+function hasJsonFormatInstructions(prompt) {
+  // Check for common JSON format instruction markers in Bulgarian
+  const jsonMarkers = [
+    'JSON формат',           // "JSON format"
+    'ФОРМАТ НА ОТГОВОР',     // "RESPONSE FORMAT"
+    'Върни САМО JSON',       // "Return ONLY JSON"
+    'Върни JSON',            // "Return JSON"
+    'Върни ПЪЛНИЯ КОРИГИРАН план' // "Return FULL CORRECTED plan" (specific to correction)
+  ];
+  
+  return jsonMarkers.some(marker => prompt.includes(marker));
+}
+
+/**
+ * Replace variables in prompt template
+ * Variables are marked with {variableName} syntax
+ */
 function replacePromptVariables(template, variables) {
   // Use replace with regex and replacer function for efficient variable substitution
   return template.replace(/\{(\w+)\}/g, (match, key) => {
@@ -2024,7 +2048,7 @@ async function generateAnalysisPrompt(data, env) {
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     // This prevents AI from responding with natural language instead of structured JSON
-    if (!prompt.includes('═══ ФОРМАТ НА ОТГОВОР ═══') && !prompt.includes('JSON формат') && !prompt.includes('Върни САМО JSON')) {
+    if (!hasJsonFormatInstructions(prompt)) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
@@ -2498,7 +2522,7 @@ async function generateStrategyPrompt(data, analysis, env) {
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!prompt.includes('Върни JSON') && !prompt.includes('JSON формат') && !prompt.includes('ФОРМАТ НА ОТГОВОР')) {
+    if (!hasJsonFormatInstructions(prompt)) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
@@ -3215,7 +3239,7 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!prompt.includes('JSON формат') && !prompt.includes('ФОРМАТ НА ОТГОВОР') && !prompt.includes('Върни САМО JSON')) {
+    if (!hasJsonFormatInstructions(prompt)) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
@@ -3325,7 +3349,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!prompt.includes('JSON формат') && !prompt.includes('ФОРМАТ НА ОТГОВОР') && !prompt.includes('Върни САМО JSON')) {
+    if (!hasJsonFormatInstructions(prompt)) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
