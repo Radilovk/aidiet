@@ -875,6 +875,9 @@
                 <div class="info-box">
                     <strong>Променливи:</strong> Използвайте {userData} за всички данни на клиента в JSON формат, или отделни променливи като {name}, {age}, {goal} и др.
                 </div>
+                <div class="info-box" style="background: #ffe6e6; border-left: 4px solid #e74c3c;">
+                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Ако създавате персонализиран промпт, <strong>задължително</strong> добавете в края инструкции за JSON формат (напр. "Отговори САМО с валиден JSON обект"). Ако промптът не съдържа JSON инструкции, системата автоматично ще добави базови такива. За пример, вижте стандартния промпт като референция.
+                </div>
                 <button class="btn" onclick="saveAnalysisPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Анализ
                 </button>
@@ -904,6 +907,9 @@
                 </div>
                 <div class="info-box">
                     <strong>Променливи:</strong> Използвайте {userData} за данни на клиента, {analysisData} за резултатите от анализа, {name}, {age}, {goal} и др.
+                </div>
+                <div class="info-box" style="background: #ffe6e6; border-left: 4px solid #e74c3c;">
+                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Ако създавате персонализиран промпт, <strong>задължително</strong> добавете в края инструкции за JSON формат (напр. "Върни JSON със стратегия"). Ако промптът не съдържа JSON инструкции, системата автоматично ще добави базови такива. За пример, вижте стандартния промпт като референция.
                 </div>
                 <button class="btn" onclick="saveStrategyPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Стратегия
@@ -935,6 +941,9 @@
                 <div class="info-box">
                     <strong>Променливи:</strong> {userData}, {analysisData}, {strategyData}, {bmr}, {recommendedCalories}, {startDay}, {endDay}, {previousDays}
                 </div>
+                <div class="info-box" style="background: #ffe6e6; border-left: 4px solid #e74c3c;">
+                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Ако създавате персонализиран промпт, <strong>задължително</strong> добавете в края инструкции за JSON формат. Ако промптът не съдържа JSON инструкции, системата автоматично ще добави базови такива. За пример, вижте стандартния промпт като референция.
+                </div>
                 <button class="btn" onclick="saveMealPlanPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Хранителен План
                 </button>
@@ -961,6 +970,9 @@
                 </div>
                 <div class="info-box">
                     <strong>Променливи:</strong> {userData}, {strategyData}, {weekPlan}, {bmr}, {recommendedCalories}, {avgCalories}, {avgProtein}, {avgCarbs}, {avgFats}
+                </div>
+                <div class="info-box" style="background: #ffe6e6; border-left: 4px solid #e74c3c;">
+                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Ако създавате персонализиран промпт, <strong>задължително</strong> добавете в края инструкции за JSON формат. Ако промптът не съдържа JSON инструкции, системата автоматично ще добави базови такива. За пример, вижте стандартния промпт като референция.
                 </div>
                 <button class="btn" onclick="saveSummaryPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Обобщение
@@ -1033,6 +1045,9 @@
                 </div>
                 <div class="info-box">
                     <strong>Променливи:</strong> {errorsFormatted} (списък с грешки), {planJSON} (план с грешки), {userDataJSON} (клиентски данни), {MEAL_NAME_FORMAT_INSTRUCTIONS} (правила за формат)
+                </div>
+                <div class="info-box" style="background: #ffe6e6; border-left: 4px solid #e74c3c;">
+                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Ако създавате персонализиран промпт, <strong>задължително</strong> добавете в края инструкция "Върни ПЪЛНИЯ КОРИГИРАН план в JSON формат". Ако промптът не съдържа JSON инструкции, системата автоматично ще добави базови такива. За пример, вижте стандартния промпт като референция.
                 </div>
                 <button class="btn" onclick="saveCorrectionPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Корекция
