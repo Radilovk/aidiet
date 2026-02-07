@@ -2832,40 +2832,25 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
   
   // Generate summary (optional step - can include psychological support, hydration, etc.)
   console.log('Progressive generation: Generating summary');
-  let summaryData = null;
+  const summaryPrompt = await generateMealPlanSummaryPrompt(
+    data, 
+    analysis, 
+    strategy, 
+    bmr, 
+    recommendedCalories, 
+    weekPlan, 
+    env
+  );
   
-  try {
-    const summaryPrompt = await generateMealPlanSummaryPrompt(
-      data, 
-      analysis, 
-      strategy, 
-      bmr, 
-      recommendedCalories, 
-      weekPlan, 
-      env
-    );
-    
-    const summaryResponse = await callAIModel(env, summaryPrompt, MEAL_PLAN_SUMMARY_TOKEN_LIMIT, 'step3_meal_plan_summary');
-    summaryData = parseAIResponse(summaryResponse);
-    
-    if (!summaryData || summaryData.error) {
-      const errorMsg = summaryData?.error || 'Невалиден формат на отговор';
-      console.error('Progressive generation: Summary parsing failed:', errorMsg);
-      throw new Error(`Обобщение: ${errorMsg}`);
-    }
-    
-    console.log('Progressive generation: Summary complete');
-  } catch (error) {
-    console.error('Progressive generation: Summary generation failed:', error);
-    throw new Error(`Обобщение (след завършване на всички дни): ${error.message}`);
-  }
+  const summaryResponse = await callAIModel(env, summaryPrompt, MEAL_PLAN_SUMMARY_TOKEN_LIMIT, 'step3_meal_plan_summary');
+  const summaryData = parseAIResponse(summaryResponse);
   
   // Return complete meal plan with week plan and summary data
   return {
     weekPlan: weekPlan,
-    psychologicalSupport: summaryData?.psychology || [],
-    supplementRecommendations: summaryData?.supplements || [],
-    hydrationStrategy: summaryData?.waterIntake || 'Минимум 2-2.5л вода дневно'
+    psychologicalSupport: summaryData?.psychologicalSupport || [],
+    supplementRecommendations: summaryData?.supplementRecommendations || [],
+    hydrationStrategy: summaryData?.hydrationStrategy || 'Минимум 2-2.5л вода дневно'
   };
 }
 
