@@ -2911,58 +2911,15 @@ async function getCustomPrompt(env, promptKey) {
 
 /**
  * Helper function to replace variables in custom prompts
- * Supports both simple variables ({name}) and nested properties ({userData.name})
- * 
- * Examples:
- * - {name} - replaced with variables.name
- * - {userData} - replaced with JSON.stringify(variables.userData) - entire object
- * - {userData.name} - replaced with variables.userData.name - specific field
- * 
- * Security: Limits nesting depth to 10 levels to prevent DoS attacks
  */
 function replacePromptVariables(template, variables) {
-  const MAX_NESTING_DEPTH = 10; // Prevent DoS through deeply nested property access
-  
-  // Helper function to format value (handles null, objects, primitives)
-  const formatValue = (value) => {
-    if (value === null) {
-      return ''; // Return empty string for null instead of 'null'
-    }
-    return typeof value === 'object' ? JSON.stringify(value) : String(value);
-  };
-  
-  // Replace variables with support for nested properties (e.g., {userData.name})
-  // Regex ensures: word chars, optionally followed by dot and more word chars (no trailing/leading dots)
-  return template.replace(/\{(\w+(?:\.\w+)*)\}/g, (match, key) => {
-    // Handle nested properties (e.g., userData.name)
-    if (key.includes('.')) {
-      const parts = key.split('.');
-      
-      // Security check: prevent excessive nesting
-      if (parts.length > MAX_NESTING_DEPTH) {
-        console.warn(`Variable ${key} exceeds maximum nesting depth of ${MAX_NESTING_DEPTH}`);
-        return match; // Return original to avoid potential DoS
-      }
-      
-      let value = variables;
-      
-      for (const part of parts) {
-        if (value && typeof value === 'object' && part in value) {
-          value = value[part];
-        } else {
-          return match; // Property not found, return original
-        }
-      }
-      
-      return formatValue(value);
-    }
-    
-    // Handle simple variables (e.g., {name})
+  // Use replace with regex and replacer function for efficient variable substitution
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
     if (key in variables) {
-      return formatValue(variables[key]);
+      const value = variables[key];
+      return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
     }
-    
-    return match; // Variable not found, return original
+    return match; // Return original if variable not found
   });
 }
 
@@ -4828,154 +4785,20 @@ async function handleGetDefaultPrompt(request, env) {
       return jsonResponse({ success: true, prompt: DEFAULT_PROMPTS.modification });
     }
     
-    // For analysis, strategy, meal_plan, and summary - generate actual prompts with sample data
-    // This allows admins to see the real prompts being used
-    
-    // Base sample data used across multiple prompt types
-    const baseSampleData = {
-      name: 'Иван',
-      age: 35,
-      gender: 'Мъж',
-      goal: 'Отслабване',
-      dietPreference: ['Балансирано'],
-      dietDislike: 'Лук',
-      dietLove: 'Пилешко месо, ориз'
+    // For analysis, strategy, meal_plan, and summary - these are dynamically generated functions
+    // Return a note explaining they are generated based on user data
+    const dynamicPromptNote = {
+      analysis: 'This prompt is dynamically generated based on user data, including BMR/TDEE calculations, medical conditions, and psychological profile. It cannot be displayed as a static template because it includes real-time calculations and data processing.',
+      strategy: 'This prompt is dynamically generated based on the analysis results and user preferences. It includes calculated calories, macros, and personalized recommendations.',
+      meal_plan: 'This prompt is dynamically generated for each meal plan chunk, including weekly blueprints, previous days context, and dynamic food lists from KV storage.',
+      summary: 'This prompt is dynamically generated based on the completed meal plan, including calculated averages and strategy recommendations.'
     };
     
-    if (type === 'analysis') {
-      // Generate sample data for analysis prompt with extended fields
-      const sampleData = {
-        ...baseSampleData,
-        height: 180,
-        weight: 85,
-        lossKg: 10,
-        sleepHours: 7,
-        sleepInterrupt: 'Рядко',
-        chronotype: 'Ранобуден',
-        sportActivity: '3-4 пъти седмично',
-        dailyActivityLevel: 'Умерено активен',
-        stressLevel: 'Среден',
-        waterIntake: '2 литра',
-        drinksSweet: 'Рядко',
-        drinksAlcohol: 'Рядко',
-        overeatingFrequency: 'Понякога',
-        eatingHabits: ['Закусвам редовно', 'Обядвам навън'],
-        foodCravings: ['Сладко', 'Солено'],
-        foodTriggers: ['Стрес', 'Скука'],
-        compensationMethods: ['Спорт', 'Прогулка'],
-        socialComparison: 'Понякога',
-        medicalConditions: [],
-        medications: 'Не',
-        medicationsDetails: '',
-        weightChange: 'Увеличило се',
-        weightChangeDetails: '+5 кг за последната година',
-        dietHistory: 'Да',
-        dietType: 'Нисковъглехидратна',
-        dietResult: 'Частично успешна'
-      };
-      
-      const prompt = DEFAULT_PROMPTS.analysis(sampleData);
+    if (dynamicPromptNote[type]) {
       return jsonResponse({ 
         success: true, 
-        prompt: prompt,
-        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично с реалните данни на клиента.',
-        variables: 'При редактиране можете да използвате променливи: {userData} (целият обект с данни) или {userData.name}, {userData.age}, {userData.weight}, {userData.goal}, и т.н. за конкретни полета.'
-      });
-    }
-    
-    if (type === 'strategy') {
-      const sampleAnalysisCompact = {
-        bmr: 1800,
-        tdee: 2500,
-        recommendedCalories: 2000,
-        macroRatios: 'Protein: 30%, Carbs: 40%, Fats: 30%',
-        macroGrams: 'Protein: 150g, Carbs: 200g, Fats: 67g',
-        weeklyBlueprint: {
-          dailyMealCount: 3,
-          skipBreakfast: false
-        },
-        metabolicProfile: 'Нормален метаболизъм с добра активност',
-        healthRisks: 'Леко наднормено тегло',
-        nutritionalNeeds: 'Повече протеин; Повече фибри',
-        psychologicalProfile: 'Емоционално хранене при стрес',
-        successChance: 70,
-        keyProblems: 'Емоционално хранене (Risky); Нисък сън (Borderline)'
-      };
-      
-      const prompt = DEFAULT_PROMPTS.strategy(baseSampleData, sampleAnalysisCompact);
-      return jsonResponse({ 
-        success: true, 
-        prompt: prompt,
-        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично с реалните данни на клиента и анализа.',
-        variables: 'Налични променливи: {userData}, {analysisData}, {name}, {age}, {goal}, {userData.weight}, {analysisData.bmr}, и т.н.'
-      });
-    }
-    
-    if (type === 'meal_plan') {
-      const sampleData = {
-        ...baseSampleData,
-        eatingHabits: ['Закусвам редовно'],
-        stressLevel: 'Среден',
-        sleepHours: 7,
-        chronotype: 'Ранобуден',
-        sportActivity: '3-4 пъти седмично',
-        dailyActivityLevel: 'Умерено активен'
-      };
-      
-      const sampleStrategyCompact = {
-        dietType: 'Балансирана',
-        weeklyMealPattern: 'Традиционна',
-        mealTiming: '3 хранения дневно',
-        keyPrinciples: ['Балансирани макроси', 'Качествени протеини'],
-        foodsToInclude: ['Пилешко месо', 'Ориз', 'Зеленчуци'],
-        foodsToAvoid: ['Лук', 'Преработени храни']
-      };
-      
-      const prompt = DEFAULT_PROMPTS.mealPlan(
-        sampleData,
-        sampleStrategyCompact,
-        1800, // bmr
-        2000, // recommendedCalories
-        1, // startDay
-        2, // endDay
-        '', // previousDaysContext
-        'Седмична структура: 3 хранения/ден', // blueprintSection
-        '', // modificationsSection
-        '', // dynamicWhitelistSection
-        '' // dynamicBlacklistSection
-      );
-      
-      return jsonResponse({ 
-        success: true, 
-        prompt: prompt,
-        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично за всяко парче (chunk) от седмичния план.'
-      });
-    }
-    
-    if (type === 'summary') {
-      const sampleStrategyCompact = {
-        psychologicalSupport: ['Мотивация', 'Управление на стреса'],
-        supplementRecommendations: ['Витамин D 2000 IU', 'Омега-3 1000mg'],
-        hydrationStrategy: 'Минимум 2-2.5л вода дневно',
-        foodsToInclude: ['Пилешко месо', 'Ориз', 'Зеленчуци'],
-        foodsToAvoid: ['Лук', 'Преработени храни']
-      };
-      
-      const prompt = DEFAULT_PROMPTS.summary(
-        baseSampleData,
-        1800, // bmr
-        2000, // recommendedCalories
-        1950, // avgCalories
-        145, // avgProtein
-        195, // avgCarbs
-        65, // avgFats
-        sampleStrategyCompact
-      );
-      
-      return jsonResponse({ 
-        success: true, 
-        prompt: prompt,
-        note: 'Това е примерен промпт, генериран с примерни данни. Реалният промпт се генерира динамично след завършване на седмичния план.'
+        prompt: dynamicPromptNote[type],
+        note: 'This prompt is generated dynamically by a function. To customize it, use the custom prompt feature in the admin panel.'
       });
     }
     
