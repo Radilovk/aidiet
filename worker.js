@@ -1707,7 +1707,7 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
   
   // If custom prompt exists, use it with variable replacement
   if (customPrompt) {
-    return replacePromptVariables(customPrompt, {
+    let prompt = replacePromptVariables(customPrompt, {
       validationErrors: validationErrors,
       plan: plan,
       userData: userData,
@@ -1726,6 +1726,17 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
       MEAL_NAME_FORMAT_INSTRUCTIONS: MEAL_NAME_FORMAT_INSTRUCTIONS,
       MIN_DAILY_CALORIES: MIN_DAILY_CALORIES
     });
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект - ПЪЛНИЯ КОРИГИРАН план БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+    }
+    return prompt;
   }
   
   return `Ти си експертен диетолог и трябва да КОРИГИРАШ хранителен план, който има следните проблеми:
@@ -1978,7 +1989,29 @@ async function getCustomPrompt(env, promptKey) {
 }
 
 /**
- * Helper function to replace variables in custom prompts
+ * Check if a prompt already includes JSON format instructions
+ * Used to avoid adding duplicate JSON format instructions to custom prompts
+ * 
+ * @param {string} prompt - The prompt text to check
+ * @returns {boolean} - True if JSON instructions are detected, false otherwise
+ */
+function hasJsonFormatInstructions(prompt) {
+  // Check for common JSON format instruction markers in Bulgarian
+  // Note: Includes both generic markers and prompt-specific ones for comprehensive detection
+  const jsonMarkers = [
+    'JSON формат',           // "JSON format" - generic
+    'ФОРМАТ НА ОТГОВОР',     // "RESPONSE FORMAT" - generic
+    'Върни САМО JSON',       // "Return ONLY JSON" - generic
+    'Върни JSON',            // "Return JSON" - generic
+    'Върни ПЪЛНИЯ КОРИГИРАН план' // "Return FULL CORRECTED plan" - correction prompt specific
+  ];
+  
+  return jsonMarkers.some(marker => prompt.includes(marker));
+}
+
+/**
+ * Replace variables in prompt template
+ * Variables are marked with {variableName} syntax
  */
 function replacePromptVariables(template, variables) {
   // Use replace with regex and replacer function for efficient variable substitution
@@ -2007,9 +2040,68 @@ async function generateAnalysisPrompt(data, env) {
   if (customPrompt) {
     // Replace variables in custom prompt with actual data
     // Pass the entire data object as userData
-    return replacePromptVariables(customPrompt, {
+    let prompt = replacePromptVariables(customPrompt, {
       userData: data
     });
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    // This prevents AI from responding with natural language instead of structured JSON
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да включва:
+{
+  "bmr": число,
+  "bmrReasoning": "текст",
+  "tdee": число,
+  "tdeeReasoning": "текст",
+  "recommendedCalories": число,
+  "caloriesReasoning": "текст",
+  "macroRatios": {
+    "protein": число,
+    "carbs": число,
+    "fats": число
+  },
+  "macroRatiosReasoning": {
+    "protein": "текст",
+    "carbs": "текст",
+    "fats": "текст"
+  },
+  "macroGrams": {
+    "protein": число,
+    "carbs": число,
+    "fats": число
+  },
+  "weeklyBlueprint": {
+    "skipBreakfast": boolean,
+    "dailyMealCount": число,
+    "mealCountReasoning": "текст",
+    "dailyStructure": [...]
+  },
+  "metabolicProfile": "текст",
+  "healthRisks": ["текст"],
+  "nutritionalNeeds": ["текст"],
+  "psychologicalProfile": "текст",
+  "successChance": число,
+  "successChanceReasoning": "текст",
+  "keyProblems": [
+    {
+      "title": "текст",
+      "description": "текст",
+      "severity": "Borderline/Risky/Critical",
+      "severityValue": число,
+      "category": "текст",
+      "impact": "текст"
+    }
+  ]
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+    }
+    return prompt;
   }
   
   return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
@@ -2419,13 +2511,49 @@ async function generateStrategyPrompt(data, analysis, env) {
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt
-    return replacePromptVariables(customPrompt, {
+    let prompt = replacePromptVariables(customPrompt, {
       userData: data,
       analysisData: analysisCompact,
       name: data.name,
       age: data.age,
       goal: data.goal
     });
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да включва:
+{
+  "dietaryModifier": "текст",
+  "modifierReasoning": "текст",
+  "welcomeMessage": "текст",
+  "planJustification": "текст",
+  "longTermStrategy": "текст",
+  "mealCountJustification": "текст",
+  "afterDinnerMealJustification": "текст",
+  "dietType": "текст",
+  "weeklyMealPattern": "текст",
+  "mealTiming": {
+    "pattern": "текст",
+    "fastingWindows": "текст",
+    "flexibility": "текст",
+    "chronotypeGuidance": "текст"
+  },
+  "keyPrinciples": ["текст"],
+  "foodsToInclude": ["текст"],
+  "foodsToAvoid": ["текст"],
+  "supplementRecommendations": ["текст"],
+  "hydrationStrategy": "текст",
+  "psychologicalSupport": ["текст"]
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+    }
+    return prompt;
   }
   
   return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
@@ -3097,7 +3225,7 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt
-    return replacePromptVariables(customPrompt, {
+    let prompt = replacePromptVariables(customPrompt, {
       userData: data,
       analysisData: analysis,
       strategyData: strategy,
@@ -3107,6 +3235,27 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
       endDay: endDay,
       previousDays: previousDays
     });
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да е:
+{
+  "dayN": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+    ],
+    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
+  }
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+    }
+    return prompt;
   }
   
   return defaultPrompt;
@@ -3185,7 +3334,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt
-    return replacePromptVariables(customPrompt, {
+    let prompt = replacePromptVariables(customPrompt, {
       userData: data,
       strategyData: strategy,
       weekPlan: weekPlan,
@@ -3196,6 +3345,31 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
       avgCarbs: avgCarbs,
       avgFats: avgFats
     });
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да е:
+{
+  "summary": {
+    "bmr": число,
+    "dailyCalories": число,
+    "macros": {"protein": число, "carbs": число, "fats": число}
+  },
+  "recommendations": ["текст"],
+  "forbidden": ["текст"],
+  "psychology": ["текст"],
+  "waterIntake": "текст",
+  "supplements": ["текст"]
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+    }
+    return prompt;
   }
   
   return defaultPrompt;
