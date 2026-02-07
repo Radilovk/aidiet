@@ -647,9 +647,25 @@ export default {
 /**
  * Progress tracking for plan generation
  * Stores progress in KV with TTL of 1 hour (enough for generation process)
+ * Optimized to skip duplicate progress writes to reduce KV operations
  */
 async function updateProgress(env, jobId, progress, stage, message) {
   if (!env.page_content) return;
+  
+  // Check if this is the same as last progress to avoid unnecessary writes
+  try {
+    const existingData = await env.page_content.get(`progress:${jobId}`);
+    if (existingData) {
+      const existing = JSON.parse(existingData);
+      // Skip write if progress and stage haven't changed
+      if (existing.progress === progress && existing.stage === stage) {
+        console.log(`Skipping duplicate progress write: ${progress}% ${stage}`);
+        return;
+      }
+    }
+  } catch (error) {
+    // Continue with write if check fails
+  }
   
   const progressData = {
     progress, // 0-100
@@ -714,6 +730,7 @@ async function handleGetPlan(request, env) {
 
 /**
  * Handle progress polling endpoint
+ * Optimized with cache headers to reduce load
  */
 async function handleGetProgress(request, env) {
   try {
@@ -730,8 +747,17 @@ async function handleGetProgress(request, env) {
       return jsonResponse({ error: 'Progress not found' }, 404);
     }
     
-    return jsonResponse({ success: true, progress });
+    // Add cache headers to allow client-side caching for 2 seconds
+    // This prevents duplicate requests if client polls multiple times quickly
+    return jsonResponse({ success: true, progress }, 200, {
+      'Cache-Control': 'public, max-age=2',
+      'Vary': 'Accept-Encoding'
+    });
   } catch (error) {
+    console.error('Error in handleGetProgress:', error);
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
     console.error('Error in handleGetProgress:', error);
     return jsonResponse({ error: error.message }, 500);
   }
@@ -6208,9 +6234,9 @@ async function handlePushSend(request, env) {
 /**
  * Helper to create JSON response
  */
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, additionalHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: CORS_HEADERS
+    headers: { ...CORS_HEADERS, ...additionalHeaders }
   });
 }

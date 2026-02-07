@@ -1640,6 +1640,15 @@
             let consecutiveErrors = 0;
             const MAX_CONSECUTIVE_ERRORS = 5;
             
+            // Adaptive polling to reduce backend load
+            let lastProgress = -1;
+            let lastStage = '';
+            let unchangedCount = 0;
+            let currentPollInterval = 2000; // Start with 2 seconds for responsive initial feedback
+            const MIN_POLL_INTERVAL = 2000; // Minimum 2 seconds
+            const MAX_POLL_INTERVAL = 5000; // Maximum 5 seconds
+            let pollCount = 0;
+            
             // Rotate tips every 8 seconds
             function rotateTips() {
                 if (tipsElement) {
@@ -1701,7 +1710,7 @@
                 }
             }
             
-            // Poll function
+            // Poll function with adaptive interval
             async function checkProgress() {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/get-progress?jobId=${encodeURIComponent(jobId)}`);
@@ -1755,8 +1764,36 @@
                     
                     // Reset error counter on successful response
                     consecutiveErrors = 0;
+                    pollCount++;
                     
                     const { progress, stage, message } = result.progress;
+                    
+                    // Adaptive polling: Check if progress/stage changed
+                    const hasChanged = progress !== lastProgress || stage !== lastStage;
+                    
+                    if (hasChanged) {
+                        // Progress changed - keep responsive polling
+                        unchangedCount = 0;
+                        
+                        // After first successful update, can slow down a bit
+                        if (pollCount > 1 && currentPollInterval < 3000) {
+                            currentPollInterval = 3000; // Increase to 3 seconds after initial update
+                            reschedulePolling();
+                        }
+                        
+                        lastProgress = progress;
+                        lastStage = stage;
+                    } else {
+                        // No change - can slow down polling
+                        unchangedCount++;
+                        
+                        // After 3 unchanged responses, increase interval to max
+                        if (unchangedCount >= 3 && currentPollInterval < MAX_POLL_INTERVAL) {
+                            currentPollInterval = MAX_POLL_INTERVAL;
+                            console.log(`Progress unchanged ${unchangedCount} times, reducing polling frequency to ${currentPollInterval/1000}s`);
+                            reschedulePolling();
+                        }
+                    }
                     
                     // Update progress bar
                     if (progressBar && percentageText) {
@@ -1812,8 +1849,16 @@
                 }
             }
             
-            // Start polling every 2 seconds
-            progressInterval = setInterval(checkProgress, 2000);
+            // Helper function to reschedule polling with new interval
+            function reschedulePolling() {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = setInterval(checkProgress, currentPollInterval);
+                }
+            }
+            
+            // Start polling with adaptive interval (2s initially, increases to 3-5s)
+            progressInterval = setInterval(checkProgress, currentPollInterval);
             
             // Initial check
             checkProgress();
