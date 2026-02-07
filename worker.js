@@ -4882,12 +4882,16 @@ function getDefaultPromptTemplates() {
   // NOTE: This function returns the COMPLETE template strings with {placeholders} for display in admin panel.
   // The actual generation functions use the same prompts but with ${data.field} syntax for JavaScript interpolation.
   // These are the REAL prompts used in production - copied directly from the generation functions.
+  // 
+  // MAINTENANCE: When updating prompts in generation functions, update these templates too!
+  // - Keep the logic and structure identical
+  // - Only change variable syntax from ${variable} to {variable}
   
   return {
     analysis: `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
-{JSON.stringify with all user data fields}
+{userData: JSON object with name, age, gender, height, weight, goal, lossKg, sleepHours, sleepInterrupt, chronotype, sportActivity, dailyActivityLevel, stressLevel, waterIntake, drinksSweet, drinksAlcohol, overeatingFrequency, eatingHabits, foodCravings, foodTriggers, compensationMethods, socialComparison, medicalConditions, medications, medicationsDetails, weightChange, weightChangeDetails, dietHistory, dietType, dietResult, dietPreference, dietDislike, dietLove}
 
 ═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
 Основни физически параметри (за референция):
@@ -4896,10 +4900,10 @@ function getDefaultPromptTemplates() {
 - Възраст: {age} години
 - Пол: {gender}
 - Цел: {goal}
-{if lossKg: "- Желано отслабване: {lossKg} кг"}
+{Conditionally shown if lossKg exists: "- Желано отслабване: {lossKg} кг"}
 
 ═══ BACKEND РЕФЕРЕНТНИ ИЗЧИСЛЕНИЯ (Issues #2, #7, #9, #10, #28 - Feb 2026) ═══
-{Dynamically calculated section including:}
+{Backend auto-calculated values: Unified Activity Score, BMR via Mifflin-St Jeor, TDEE, Safe Deficit, Baseline Macros}
 
 УНИФИЦИРАН АКТИВНОСТ СКОР (Issue #7):
 - Дневна активност: {dailyActivityLevel} → {dailyScore}/3
@@ -5522,10 +5526,10 @@ WHITELIST FAT (избери 0-1):
 • [Хляб: количество и вид] (ако има, напр. "1 филия пълнозърнест")
 
 Примери за ПРАВИЛЕН формат на name:
-✓ "• Шопска салата\\n• Пилешки гърди на скара с картофено пюре"
+✓ "• Шопска салата\n• Пилешки гърди на скара с картофено пюре"
 ✓ "• Бяла риба печена с киноа"
-✓ "• Зелена салата\\n• Леща яхния\\n• Хляб: 1 филия пълнозърнест"
-✓ "• Салата от пресни зеленчуци\\n• Пилешко филе с киноа"
+✓ "• Зелена салата\n• Леща яхния\n• Хляб: 1 филия пълнозърнест"
+✓ "• Салата от пресни зеленчуци\n• Пилешко филе с киноа"
 ✓ "• Овесена каша с боровинки" (за закуска без салата/хляб)
 
 ЗАБРАНЕНИ формати за name (НЕ пиши така):
@@ -5545,8 +5549,8 @@ WHITELIST FAT (избери 0-1):
   * Количества и пропорции
 
 Пример за ПРАВИЛНА комбинация name + description:
-name: "• Зелена салата\\n• Пилешки гърди с киноа\\n• Хляб: 1 филия пълнозърнест"
-description: "• Зелена салата от листа, краставици и чери домати с лимонов дресинг.\\n• Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган.\\n• Киноата се готви според инструкциите.\\n• 1 филия пълнозърнест хляб."
+name: "• Зелена салата\n• Пилешки гърди с киноа\n• Хляб: 1 филия пълнозърнест"
+description: "• Зелена салата от листа, краставици и чери домати с лимонов дресинг.\n• Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган.\n• Киноата се готви според инструкциите.\n• 1 филия пълнозърнест хляб."
 
 JSON ФОРМАТ (върни САМО дните {startDay}-{endDay}):
 {
@@ -5557,7 +5561,7 @@ JSON ФОРМАТ (върни САМО дните {startDay}-{endDay}):
       {"type": "Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }{if daysInChunk > 1: `,\n  "day{startDay + 1}": {...}`}
+  }{When generating multiple days: ",\n  \"day{startDay+1}\": {...}, \"day{startDay+2}\": {...}"}
 }
 
 Генерирай дни {startDay}-{endDay} с балансирани ястия в правилен хронологичен ред. ЗАДЪЛЖИТЕЛНО включи dailyTotals за проверка!`,
@@ -5570,11 +5574,11 @@ BMR: {bmr}, Целеви калории: {recommendedCalories} kcal/ден
 Реални средни макроси: Protein {avgProtein}g, Carbs {avgCarbs}g, Fats {avgFats}g
 
 СТРАТЕГИЯ (КОМПАКТНА):
-- Психологическа подкрепа: {psychologicalSupport slice 0-3 items joined}
-- Добавки: {supplementRecommendations slice 0-3 items joined}
+- Психологическа подкрепа: {First 3 psychologicalSupport items}
+- Добавки: {First 3 supplementRecommendations items}
 - Хидратация: {hydrationStrategy}
-- Включвай: {foodsToInclude slice 0-5 items joined}
-- Избягвай: {foodsToAvoid slice 0-5 items joined}
+- Включвай: {First 5 foodsToInclude items}
+- Избягвай: {First 5 foodsToAvoid items}
 
 JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
 {
@@ -5585,9 +5589,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
   },
   "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
-  "psychology": {strategy.psychologicalSupport ? JSON.stringify strategy.psychologicalSupport : '["съвет 1", "съвет 2", "съвет 3"]'},
-  "waterIntake": "{strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
-  "supplements": {strategy.supplementRecommendations ? JSON.stringify strategy.supplementRecommendations : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
+  "psychology": {Full psychologicalSupport array from strategy},
+  "waterIntake": "{hydrationStrategy or default 'Минимум 2-2.5л вода дневно'}",
+  "supplements": {Full supplementRecommendations array from strategy}
 }
 
 ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел {goal}, НЕ общи съвети.`,
