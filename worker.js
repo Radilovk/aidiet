@@ -1728,7 +1728,7 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!prompt.includes('Върни ПЪЛНИЯ КОРИГИРАН план') && !prompt.includes('JSON')) {
+    if (!prompt.includes('Върни ПЪЛНИЯ КОРИГИРАН план') && !prompt.includes('JSON формат') && !prompt.includes('ФОРМАТ НА ОТГОВОР')) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
@@ -2024,7 +2024,7 @@ async function generateAnalysisPrompt(data, env) {
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     // This prevents AI from responding with natural language instead of structured JSON
-    if (!prompt.includes('═══ ФОРМАТ НА ОТГОВОР ═══') && !prompt.includes('JSON')) {
+    if (!prompt.includes('═══ ФОРМАТ НА ОТГОВОР ═══') && !prompt.includes('JSON формат') && !prompt.includes('Върни САМО JSON')) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
@@ -2498,7 +2498,7 @@ async function generateStrategyPrompt(data, analysis, env) {
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!prompt.includes('Върни JSON') && !prompt.includes('JSON')) {
+    if (!prompt.includes('Върни JSON') && !prompt.includes('JSON формат') && !prompt.includes('ФОРМАТ НА ОТГОВОР')) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
@@ -3215,7 +3215,7 @@ JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!prompt.includes('JSON') && !prompt.includes('day1')) {
+    if (!prompt.includes('JSON формат') && !prompt.includes('ФОРМАТ НА ОТГОВОР') && !prompt.includes('Върни САМО JSON')) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
@@ -3325,7 +3325,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!prompt.includes('JSON') && !prompt.includes('summary')) {
+    if (!prompt.includes('JSON формат') && !prompt.includes('ФОРМАТ НА ОТГОВОР') && !prompt.includes('Върни САМО JSON')) {
       prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
