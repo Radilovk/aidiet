@@ -1989,9 +1989,6 @@ async function getCustomPrompt(env, promptKey) {
 }
 
 /**
- * Helper function to replace variables in custom prompts
- */
-/**
  * Check if a prompt already includes JSON format instructions
  * Used to avoid adding duplicate JSON format instructions to custom prompts
  * 
@@ -2005,7 +2002,7 @@ function hasJsonFormatInstructions(prompt) {
     'ФОРМАТ НА ОТГОВОР',     // "RESPONSE FORMAT"
     'Върни САМО JSON',       // "Return ONLY JSON"
     'Върни JSON',            // "Return JSON"
-    'Върни ПЪЛНИЯ КОРИГИРАН план' // "Return FULL CORRECTED plan" (specific to correction)
+    'Върни ПЪЛНИЯ КОРИГИРАН план' // "Return FULL CORRECTED plan" (specific to correction prompt, but harmless for others)
   ];
   
   return jsonMarkers.some(marker => prompt.includes(marker));
