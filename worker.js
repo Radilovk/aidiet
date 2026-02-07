@@ -714,7 +714,7 @@ async function handleGeneratePlan(request, env) {
       console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${maxAttempts}):`, validation.errors);
       
       // Generate correction prompt with specific errors
-      const correctionPrompt = generateCorrectionPrompt(structuredPlan, validation.errors, data);
+      const correctionPrompt = await generateCorrectionPrompt(structuredPlan, validation.errors, data, env);
       
       try {
         console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
@@ -1701,7 +1701,31 @@ function checkADLEv8Rules(meal) {
  * @param {Object} userData - User profile data for context
  * @returns {string} Prompt instructing AI to correct specific errors in the plan
  */
-function generateCorrectionPrompt(plan, validationErrors, userData) {
+async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_correction_prompt');
+  
+  // If custom prompt exists, use it with variable replacement
+  if (customPrompt) {
+    return replacePromptVariables(customPrompt, {
+      validationErrors: validationErrors,
+      plan: plan,
+      userData: userData,
+      errorsFormatted: validationErrors.map((error, idx) => `${idx + 1}. ${error}`).join('\n'),
+      planJSON: JSON.stringify(plan, null, 2),
+      userDataJSON: JSON.stringify({
+        name: userData.name,
+        age: userData.age,
+        gender: userData.gender,
+        goal: userData.goal,
+        medicalConditions: userData.medicalConditions,
+        dietPreference: userData.dietPreference,
+        dietDislike: userData.dietDislike,
+        dietLove: userData.dietLove
+      }, null, 2)
+    });
+  }
+  
   return `Ти си експертен диетолог и трябва да КОРИГИРАШ хранителен план, който има следните проблеми:
 
 ═══ ГРЕШКИ ЗА КОРИГИРАНЕ ═══
@@ -4799,6 +4823,7 @@ function getPromptKVKey(type) {
   const keyMap = {
     'consultation': 'admin_consultation_prompt',
     'modification': 'admin_modification_prompt',
+    'correction': 'admin_correction_prompt',
     'chat': 'admin_chat_prompt',
     'analysis': 'admin_analysis_prompt',
     'strategy': 'admin_strategy_prompt',
@@ -5677,7 +5702,84 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 - Форматирай ясно с нови редове и изброяване
 - Максимум 3-4 изречения
 - Максимум 1 въпрос
-- АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`
+- АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`,
+
+    correction: `Ти си експертен диетолог и трябва да КОРИГИРАШ хранителен план, който има следните проблеми:
+
+═══ ГРЕШКИ ЗА КОРИГИРАНЕ ═══
+{errorsFormatted}
+(Note: This will be replaced with a formatted list of validation errors, e.g. "1. Missing calories in meal", "2. Invalid macros", etc.)
+
+═══ ТЕКУЩ ПЛАН (С ГРЕШКИ) ═══
+{planJSON}
+(Note: This will be replaced with the full plan JSON that failed validation)
+
+═══ КЛИЕНТСКИ ДАННИ ═══
+{userDataJSON}
+(Note: This will be replaced with essential client data: name, age, gender, goal, medicalConditions, dietPreference, dietDislike, dietLove)
+
+═══ ПРАВИЛА ЗА КОРИГИРАНЕ ═══
+
+{MEAL_NAME_FORMAT_INSTRUCTIONS}
+(Note: This will be replaced with meal formatting instructions)
+
+ВАЖНО - СТРАТЕГИЯ И ОБОСНОВКА:
+1. ВСЯКА корекция ТРЯБВА да бъде обоснована
+2. Ако добавяш/променяш хранения, обясни ЗАЩО в strategy.planJustification
+3. Ако добавяш хранения след вечеря, обясни причината в strategy.afterDinnerMealJustification
+4. Ако променяш броя хранения, обясни в strategy.mealCountJustification
+5. При многодневно планиране, обясни подхода в strategy.longTermStrategy
+
+ТИПОВЕ ХРАНЕНИЯ И РЕД:
+1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
+   - "Закуска" (сутрин)
+   - "Обяд" (обед)
+   - "Следобедна закуска" (опционално, след обяд)
+   - "Вечеря" (вечер)
+   - "Късна закуска" (опционално, след вечеря - С ОБОСНОВКА!)
+
+2. БРОЙ ХРАНЕНИЯ: 1-5 на ден
+   - ЗАДЪЛЖИТЕЛНО обоснови избора в strategy.mealCountJustification
+
+3. ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ - разрешени С ОБОСНОВКА:
+   - Физиологична причина (диабет, дълъг период до сън, проблеми със съня)
+   - Психологическа причина (управление на стрес)
+   - Стратегическа причина (спортни тренировки вечер, работа на смени)
+   - ДОБАВИ обосновката в strategy.afterDinnerMealJustification!
+   - Предпочитай ниско-гликемични храни (кисело мляко, ядки, ягоди, семена)
+
+4. МНОГОДНЕВЕН ХОРИЗОНТ:
+   - Може да планираш 2-3 дни като цяло при обоснована стратегия
+   - Циклично разпределение на калории/макроси е позволено
+   - ОБЯСНИ в strategy.longTermStrategy
+
+5. МЕДИЦИНСКИ ИЗИСКВАНИЯ:
+   - При диабет: НЕ високовъглехидратни храни
+   - При анемия + вегетарианство: добавка с желязо ЗАДЪЛЖИТЕЛНА
+   - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
+   - Спазвай медицинските условия от клиентските данни
+
+6. КАЛОРИИ И МАКРОСИ:
+   - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats, fiber)
+   - Дневни калории минимум {MIN_DAILY_CALORIES} kcal (може да варират между дни)
+   - Прецизни изчисления: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
+
+7. СТРУКТУРА:
+   - Всички 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО
+   - 1-5 хранения на ден (ОБОСНОВАНИ в strategy)
+   - Избягвай храни които клиентът не обича
+   - Включвай любими храни където е подходящо
+
+═══ ТВОЯТА ЗАДАЧА ═══
+Коригирай проблемните части и ДОБАВИ ОБОСНОВКИ в strategy полетата:
+- strategy.planJustification - обща обосновка на плана
+- strategy.mealCountJustification - защо този брой хранения
+- strategy.afterDinnerMealJustification - защо хранения след вечеря (ако има)
+- strategy.longTermStrategy - многодневна стратегия (ако има)
+
+Върни ПЪЛНИЯ КОРИГИРАН план в същия JSON формат като оригиналния.
+
+ВАЖНО: Върни САМО JSON без допълнителни обяснения!`
   };
 }
 
@@ -5699,7 +5801,7 @@ async function handleGetDefaultPrompt(request, env) {
     
     if (!prompt) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction` 
       }, 400);
     }
     
@@ -5766,7 +5868,8 @@ async function handleGetConfig(request, env) {
       analysisPrompt,
       strategyPrompt,
       mealPlanPrompt,
-      summaryPrompt
+      summaryPrompt,
+      correctionPrompt
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -5777,7 +5880,8 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_analysis_prompt'),
       env.page_content.get('admin_strategy_prompt'),
       env.page_content.get('admin_meal_plan_prompt'),
-      env.page_content.get('admin_summary_prompt')
+      env.page_content.get('admin_summary_prompt'),
+      env.page_content.get('admin_correction_prompt')
     ]);
     
     return jsonResponse({ 
@@ -5791,7 +5895,8 @@ async function handleGetConfig(request, env) {
       analysisPrompt,
       strategyPrompt,
       mealPlanPrompt,
-      summaryPrompt
+      summaryPrompt,
+      correctionPrompt
     });
   } catch (error) {
     console.error('Error getting config:', error);
