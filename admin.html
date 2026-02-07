@@ -1015,6 +1015,36 @@
                 </button>
             </div>
 
+            <!-- Correction Prompt Editor -->
+            <div class="card">
+                <h2><i class="fas fa-tools"></i> AI Промпт за Корекция на План (Автоматична)</h2>
+                <div class="info-box" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                    <strong>🔧 Автоматична Корекция:</strong> Този промпт се използва когато генерираният план не преминава валидацията. AI се извиква автоматично да коригира грешките вместо да се провали генерирането.
+                </div>
+                <div class="info-box">
+                    <strong>Информация:</strong> Промптът получава списък с конкретни грешки (напр. "липсват калории", "невалидни макроси") и текущия план с проблеми, след което AI коригира само проблемните части.
+                </div>
+                <div class="info-box" style="background: #d1f2eb; border-left: 4px solid #1abc9c;">
+                    <strong>🔄 Синхронизация:</strong> Промените се запазват <strong>веднага</strong> в бекенда и се използват при <strong>следващата автоматична корекция</strong>. Няма кеширане.
+                </div>
+                <div class="form-group">
+                    <label for="correctionPrompt">Промпт за Корекция:</label>
+                    <textarea id="correctionPrompt" placeholder="Въведете промпт за автоматична корекция на план..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Променливи:</strong> {errorsFormatted} (списък с грешки), {planJSON} (план с грешки), {userDataJSON} (клиентски данни), {MEAL_NAME_FORMAT_INSTRUCTIONS} (правила за формат)
+                </div>
+                <button class="btn" onclick="saveCorrectionPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Корекция
+                </button>
+                <button class="btn" onclick="viewDefaultPrompt('correction', 'correctionPrompt')" style="background: #3498db; margin-left: 10px;">
+                    <i class="fas fa-eye"></i> Виж Стандартен Промпт
+                </button>
+                <button class="btn" onclick="resetCorrectionPrompt()" style="background: #7f8c8d; margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Възстанови по подразбиране
+                </button>
+            </div>
+
             <!-- Problem Reports Section -->
             <div class="card">
                 <h2><i class="fas fa-exclamation-triangle"></i> Доклади за Проблеми</h2>
@@ -1972,6 +2002,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 document.getElementById('summaryPrompt').value = config.summaryPrompt;
                                 localStorage.setItem('adminSummaryPrompt', config.summaryPrompt);
                             }
+                            if (config.correctionPrompt) {
+                                document.getElementById('correctionPrompt').value = config.correctionPrompt;
+                                localStorage.setItem('adminCorrectionPrompt', config.correctionPrompt);
+                            }
                             return; // Successfully loaded from server
                         }
                     }
@@ -2007,6 +2041,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const savedSummaryPrompt = localStorage.getItem('adminSummaryPrompt') || '';
                 document.getElementById('summaryPrompt').value = savedSummaryPrompt;
+
+                const savedCorrectionPrompt = localStorage.getItem('adminCorrectionPrompt') || '';
+                document.getElementById('correctionPrompt').value = savedCorrectionPrompt;
 
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -2143,6 +2180,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
+        // Save Correction Prompt
+        async function saveCorrectionPrompt() {
+            await savePromptGeneric('correction', 'correctionPrompt', 'adminCorrectionPrompt', 
+                'Промпт за корекция запазен успешно!', 'Промптът за корекция не може да бъде празен!');
+        }
+
         // Save Analysis Prompt
         async function saveAnalysisPrompt() {
             await savePromptGeneric('analysis', 'analysisPrompt', 'adminAnalysisPrompt', 
@@ -2189,6 +2232,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         async function resetSummaryPrompt() {
             await resetPromptGeneric('summary', 'summaryPrompt', 'adminSummaryPrompt', 
                 'Промпт за обобщение изтрит. Ще се използва стандартният промпт.');
+        }
+
+        // Reset Correction Prompt
+        async function resetCorrectionPrompt() {
+            await resetPromptGeneric('correction', 'correctionPrompt', 'adminCorrectionPrompt', 
+                'Промпт за корекция изтрит. Ще се използва стандартният промпт.');
         }
 
         // Reset Prompt
