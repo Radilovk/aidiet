@@ -6507,9 +6507,7 @@ async function handleCleanupAILogs(request, env) {
       return jsonResponse({ error: 'Invalid log index format' }, 500);
     }
     
-    const totalLogs = logIds.length;
-    
-    if (totalLogs === 0) {
+    if (logIds.length === 0) {
       return jsonResponse({ success: true, message: 'No logs to cleanup', deletedCount: 0 });
     }
     

@@ -2974,7 +2974,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         console.log(`Cleaned up ${cleanupResult.deletedCount} old log entries`);
                     }
                 } else {
-                    console.warn('Failed to cleanup logs:', await cleanupResponse.text());
+                    console.warn(`Failed to cleanup logs (status ${cleanupResponse.status}):`, await cleanupResponse.text());
                 }
                 
                 // Then load the logs
