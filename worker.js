@@ -575,6 +575,10 @@ let chatPromptsCache = null;
 let chatPromptsCacheTime = 0;
 const CHAT_PROMPTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
+// Validation constants (moved here to be available early in code)
+const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
+const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
+
 
 /**
  * Remove internal justification fields from plan before returning to client
@@ -1169,6 +1173,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 - Адаптирай времето и размера на храненията според хронотипа
 - Ако има интермитентно гладуване, спазвай прозорците на хранене
 `;
+  }
   
   const defaultPrompt = `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
@@ -2201,10 +2206,9 @@ const MEAL_PLAN_TOKEN_LIMIT = 8000;
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
 const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's clear reasoning and strategy)
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
-const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
+// Note: DAILY_CALORIE_TOLERANCE and MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
 const MAX_CORRECTION_ATTEMPTS = 4; // Maximum number of AI correction attempts before failing (must be >= 0)
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
-const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 
@@ -4501,6 +4505,63 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
   
   // This line is technically unreachable due to the logic above, but kept for type safety
   throw lastError;
+}
+
+/**
+ * Call Anthropic Claude API with automatic retry logic for transient errors
+ */
+async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022', maxTokens = null) {
+  try {
+    return await retryWithBackoff(async () => {
+      const requestBody = {
+        model: modelName,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: maxTokens || 8000
+      };
+      
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Check for errors in response
+      if (data.error) {
+        throw new Error(`Claude API грешка: ${data.error.message || JSON.stringify(data.error)}`);
+      }
+      
+      if (!data.content || !data.content[0] || !data.content[0].text) {
+        throw new Error('Claude API върна невалиден формат на отговор');
+      }
+      
+      // Check stop_reason for content filtering or other issues
+      if (data.stop_reason && data.stop_reason !== 'end_turn') {
+        const reason = data.stop_reason;
+        let errorMessage = `Claude API завърши с причина: ${reason}`;
+        
+        if (reason === 'max_tokens') {
+          errorMessage = 'Claude AI достигна лимита на дължина. Опитайте да опростите въпроса.';
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      return data.content[0].text;
+    });
+  } catch (error) {
+    console.error('Claude API call failed:', error);
+    throw new Error(`Claude API failed: ${error.message}`);
+  }
 }
 
 /**
