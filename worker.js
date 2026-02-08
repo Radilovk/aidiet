@@ -1927,6 +1927,12 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, stepErrors, correctionAttempt) {
   console.log(`Regenerating from ${earliestErrorStep}, attempt ${correctionAttempt}`);
   
+  // Generate a unique session ID for this regeneration
+  const sessionId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? `regen_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
+    : `regen_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  console.log(`Regeneration session ID: ${sessionId}`);
+  
   // Create high-priority error prevention comment for the step
   const errorPreventionComment = generateErrorPreventionComment(stepErrors[earliestErrorStep], earliestErrorStep, correctionAttempt);
   
@@ -1947,7 +1953,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const analysisInputTokens = estimateTokenCount(analysisPrompt);
       cumulativeTokens.input += analysisInputTokens;
       
-      const analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis_regen');
+      const analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis_regen', sessionId);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1977,7 +1983,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const strategyInputTokens = estimateTokenCount(strategyPrompt);
       cumulativeTokens.input += strategyInputTokens;
       
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen');
+      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId);
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -1999,10 +2005,10 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       console.log(`Regenerating Step 3 (Meal Plan)${stepErrorComment ? ' with error prevention' : ''}`);
       
       if (ENABLE_PROGRESSIVE_GENERATION) {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment);
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
       } else {
         const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env, stepErrorComment);
-        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen');
+        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId);
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -2080,6 +2086,12 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
+  // Generate a unique session ID for this plan generation
+  const sessionId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? `session_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
+    : `session_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  console.log(`Plan generation session ID: ${sessionId}`);
+  
   // Token tracking for multi-step generation
   let cumulativeTokens = {
     input: 0,
@@ -2097,7 +2109,7 @@ async function generatePlanMultiStep(env, data) {
     let analysisResponse, analysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis');
+      analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis', sessionId);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -2140,7 +2152,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy');
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId);
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -2169,7 +2181,7 @@ async function generatePlanMultiStep(env, data) {
     if (ENABLE_PROGRESSIVE_GENERATION) {
       console.log('Multi-step generation: Using progressive meal plan generation');
       try {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy);
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, null, sessionId);
       } catch (error) {
         console.error('Progressive meal plan generation failed:', error);
         throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
@@ -2181,7 +2193,7 @@ async function generatePlanMultiStep(env, data) {
       let mealPlanResponse;
       
       try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full');
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId);
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -3054,7 +3066,7 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
  */
-async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null) {
+async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null) {
   console.log('Progressive generation: Starting meal plan generation in chunks');
   
   const totalDays = 7;
@@ -3117,7 +3129,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
       console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
       
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`);
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId);
       const chunkOutputTokens = estimateTokenCount(chunkResponse);
       console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
       
@@ -3155,7 +3167,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
-    const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'step4_summary');
+    const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'step4_summary', sessionId);
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
@@ -4512,7 +4524,7 @@ function estimateTokenCount(text) {
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
  */
-async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown') {
+async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null) {
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(prompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
@@ -4539,7 +4551,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown') 
     estimatedInputTokens: estimatedInputTokens,
     maxTokens: maxTokens,
     provider: preferredProvider,
-    modelName: modelName
+    modelName: modelName,
+    sessionId: sessionId
   });
 
   const startTime = Date.now();
@@ -5224,8 +5237,12 @@ async function logAIRequest(env, stepName, requestData) {
       : `ai_log_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     const timestamp = new Date().toISOString();
     
+    // Get sessionId from requestData, or generate one if not provided (for backward compatibility)
+    const sessionId = requestData.sessionId || logId;
+    
     const logEntry = {
       id: logId,
+      sessionId: sessionId,
       timestamp: timestamp,
       stepName: stepName,
       type: 'request',
@@ -5240,20 +5257,29 @@ async function logAIRequest(env, stepName, requestData) {
     // Store individual log entry
     await env.page_content.put(`ai_communication_log:${logId}`, JSON.stringify(logEntry));
     
-    // Add to log index
-    let logIndex = await env.page_content.get('ai_communication_log_index');
-    logIndex = logIndex ? JSON.parse(logIndex) : [];
-    logIndex.unshift(logId); // Add to beginning (most recent first)
+    // Get or create session index
+    let sessionIndex = await env.page_content.get('ai_communication_session_index');
+    sessionIndex = sessionIndex ? JSON.parse(sessionIndex) : [];
     
-    // Keep only the last log entry in the index (MAX_LOG_ENTRIES = 1)
-    // Note: Old log entries are kept in KV storage and not automatically deleted
-    if (logIndex.length > MAX_LOG_ENTRIES) {
-      logIndex = logIndex.slice(0, MAX_LOG_ENTRIES);
+    // Add sessionId to index if not already present
+    if (!sessionIndex.includes(sessionId)) {
+      sessionIndex.unshift(sessionId); // Add to beginning (most recent first)
+      
+      // Keep only the last MAX_LOG_ENTRIES sessions
+      if (sessionIndex.length > MAX_LOG_ENTRIES) {
+        sessionIndex = sessionIndex.slice(0, MAX_LOG_ENTRIES);
+      }
+      
+      await env.page_content.put('ai_communication_session_index', JSON.stringify(sessionIndex));
     }
     
-    await env.page_content.put('ai_communication_log_index', JSON.stringify(logIndex));
+    // Add log to session's log list
+    let sessionLogs = await env.page_content.get(`ai_session_logs:${sessionId}`);
+    sessionLogs = sessionLogs ? JSON.parse(sessionLogs) : [];
+    sessionLogs.push(logId);
+    await env.page_content.put(`ai_session_logs:${sessionId}`, JSON.stringify(sessionLogs));
     
-    console.log(`AI request logged: ${stepName} (${logId})`);
+    console.log(`AI request logged: ${stepName} (${logId}, session: ${sessionId})`);
     return logId;
   } catch (error) {
     console.error('Failed to log AI request:', error);
@@ -6570,91 +6596,214 @@ async function handleExportAILogs(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    // Get log index
-    const logIndex = await env.page_content.get('ai_communication_log_index');
-    if (!logIndex) {
-      return new Response('Няма налични логове за експорт.', {
+    // Try to get session index first (new format)
+    let sessionIndex = await env.page_content.get('ai_communication_session_index');
+    
+    if (sessionIndex) {
+      // New session-based format
+      const sessionIds = JSON.parse(sessionIndex);
+      
+      if (sessionIds.length === 0) {
+        return new Response('Няма налични логове за експорт.', {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+          }
+        });
+      }
+      
+      // Get the most recent session
+      const latestSessionId = sessionIds[0];
+      
+      // Get all log IDs for this session
+      const sessionLogsData = await env.page_content.get(`ai_session_logs:${latestSessionId}`);
+      if (!sessionLogsData) {
+        return new Response('Няма налични логове за експорт.', {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+          }
+        });
+      }
+      
+      const logIds = JSON.parse(sessionLogsData);
+      
+      // Fetch all logs from this session
+      const logPromises = logIds.flatMap(logId => [
+        env.page_content.get(`ai_communication_log:${logId}`),
+        env.page_content.get(`ai_communication_log:${logId}_response`)
+      ]);
+      
+      const logData = await Promise.all(logPromises);
+      
+      // Build text content
+      let textContent = '='.repeat(80) + '\n';
+      textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
+      textContent += '='.repeat(80) + '\n\n';
+      textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
+      textContent += `ID на сесия: ${latestSessionId}\n`;
+      textContent += `Общо стъпки: ${logIds.length}\n\n`;
+      
+      for (let i = 0; i < logIds.length; i++) {
+        const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
+        const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
+        
+        if (requestLog) {
+          textContent += '='.repeat(80) + '\n';
+          textContent += `СТЪПКА ${i + 1}: ${requestLog.stepName}\n`;
+          textContent += '='.repeat(80) + '\n\n';
+          
+          // Request information
+          textContent += '--- ИЗПРАТЕНИ ДАННИ ---\n';
+          textContent += `Времева марка: ${requestLog.timestamp}\n`;
+          textContent += `Провайдър: ${requestLog.provider}\n`;
+          textContent += `Модел: ${requestLog.modelName}\n`;
+          textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
+          textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
+          textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
+          
+          textContent += '--- ПРОМПТ ---\n';
+          textContent += requestLog.prompt || '(Няма съхранен промпт)';
+          textContent += '\n\n';
+          
+          // Response information
+          if (responseLog) {
+            textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
+            textContent += `Времева марка: ${responseLog.timestamp}\n`;
+            textContent += `Успех: ${responseLog.success ? 'Да' : 'Не'}\n`;
+            textContent += `Време за отговор: ${responseLog.duration} ms\n`;
+            textContent += `Дължина на отговор: ${responseLog.responseLength} символа\n`;
+            textContent += `Приблизителни изходни токени: ${responseLog.estimatedOutputTokens}\n`;
+            
+            if (responseLog.error) {
+              textContent += `Грешка: ${responseLog.error}\n`;
+            }
+            
+            textContent += '\n--- AI ОТГОВОР ---\n';
+            textContent += responseLog.response || '(Няма съхранен отговор)';
+            textContent += '\n\n';
+          } else {
+            textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
+            textContent += '(Няма получен отговор)\n\n';
+          }
+        }
+      }
+      
+      textContent += '='.repeat(80) + '\n';
+      textContent += 'КРАЙ НА ЕКСПОРТА\n';
+      textContent += '='.repeat(80) + '\n';
+      
+      return new Response(textContent, {
         status: 200,
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"'
+          'Content-Disposition': `attachment; filename="ai_communication_logs_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19)}.txt"`,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      });
+    } else {
+      // Fallback to old log index format for backward compatibility
+      const logIndex = await env.page_content.get('ai_communication_log_index');
+      if (!logIndex) {
+        return new Response('Няма налични логове за експорт.', {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+          }
+        });
+      }
+      
+      const logIds = JSON.parse(logIndex);
+      
+      // Fetch all logs (old format - only one entry)
+      const logPromises = logIds.flatMap(logId => [
+        env.page_content.get(`ai_communication_log:${logId}`),
+        env.page_content.get(`ai_communication_log:${logId}_response`)
+      ]);
+      
+      const logData = await Promise.all(logPromises);
+      
+      // Build text content (same as before for old format)
+      let textContent = '='.repeat(80) + '\n';
+      textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
+      textContent += '='.repeat(80) + '\n\n';
+      textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
+      textContent += `Общо стъпки: ${logIds.length}\n\n`;
+      
+      for (let i = 0; i < logIds.length; i++) {
+        const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
+        const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
+        
+        if (requestLog) {
+          textContent += '='.repeat(80) + '\n';
+          textContent += `СТЪПКА ${i + 1}: ${requestLog.stepName}\n`;
+          textContent += '='.repeat(80) + '\n\n';
+          
+          // Request information
+          textContent += '--- ИЗПРАТЕНИ ДАННИ ---\n';
+          textContent += `Времева марка: ${requestLog.timestamp}\n`;
+          textContent += `Провайдър: ${requestLog.provider}\n`;
+          textContent += `Модел: ${requestLog.modelName}\n`;
+          textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
+          textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
+          textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
+          
+          textContent += '--- ПРОМПТ ---\n';
+          textContent += requestLog.prompt || '(Няма съхранен промпт)';
+          textContent += '\n\n';
+          
+          // Response information
+          if (responseLog) {
+            textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
+            textContent += `Времева марка: ${responseLog.timestamp}\n`;
+            textContent += `Успех: ${responseLog.success ? 'Да' : 'Не'}\n`;
+            textContent += `Време за отговор: ${responseLog.duration} ms\n`;
+            textContent += `Дължина на отговор: ${responseLog.responseLength} символа\n`;
+            textContent += `Приблизителни изходни токени: ${responseLog.estimatedOutputTokens}\n`;
+            
+            if (responseLog.error) {
+              textContent += `Грешка: ${responseLog.error}\n`;
+            }
+            
+            textContent += '\n--- AI ОТГОВОР ---\n';
+            textContent += responseLog.response || '(Няма съхранен отговор)';
+            textContent += '\n\n';
+          } else {
+            textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
+            textContent += '(Няма получен отговор)\n\n';
+          }
+        }
+      }
+      
+      textContent += '='.repeat(80) + '\n';
+      textContent += 'КРАЙ НА ЕКСПОРТА\n';
+      textContent += '='.repeat(80) + '\n';
+      
+      return new Response(textContent, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Content-Disposition': `attachment; filename="ai_communication_logs_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19)}.txt"`,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
         }
       });
     }
-    
-    const logIds = JSON.parse(logIndex);
-    
-    // Fetch all logs (should be only one since MAX_LOG_ENTRIES = 1)
-    const logPromises = logIds.flatMap(logId => [
-      env.page_content.get(`ai_communication_log:${logId}`),
-      env.page_content.get(`ai_communication_log:${logId}_response`)
-    ]);
-    
-    const logData = await Promise.all(logPromises);
-    
-    // Build text content
-    let textContent = '='.repeat(80) + '\n';
-    textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
-    textContent += '='.repeat(80) + '\n\n';
-    textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
-    textContent += `Общо стъпки: ${logIds.length}\n\n`;
-    
-    for (let i = 0; i < logIds.length; i++) {
-      const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
-      const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
-      
-      if (requestLog) {
-        textContent += '='.repeat(80) + '\n';
-        textContent += `СТЪПКА ${i + 1}: ${requestLog.stepName}\n`;
-        textContent += '='.repeat(80) + '\n\n';
-        
-        // Request information
-        textContent += '--- ИЗПРАТЕНИ ДАННИ ---\n';
-        textContent += `Времева марка: ${requestLog.timestamp}\n`;
-        textContent += `Провайдър: ${requestLog.provider}\n`;
-        textContent += `Модел: ${requestLog.modelName}\n`;
-        textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
-        textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
-        textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
-        
-        textContent += '--- ПРОМПТ ---\n';
-        textContent += requestLog.prompt || '(Няма съхранен промпт)';
-        textContent += '\n\n';
-        
-        // Response information
-        if (responseLog) {
-          textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
-          textContent += `Времева марка: ${responseLog.timestamp}\n`;
-          textContent += `Успех: ${responseLog.success ? 'Да' : 'Не'}\n`;
-          textContent += `Време за отговор: ${responseLog.duration} ms\n`;
-          textContent += `Дължина на отговор: ${responseLog.responseLength} символа\n`;
-          textContent += `Приблизителни изходни токени: ${responseLog.estimatedOutputTokens}\n`;
-          
-          if (responseLog.error) {
-            textContent += `Грешка: ${responseLog.error}\n`;
-          }
-          
-          textContent += '\n--- AI ОТГОВОР ---\n';
-          textContent += responseLog.response || '(Няма съхранен отговор)';
-          textContent += '\n\n';
-        } else {
-          textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
-          textContent += '(Няма получен отговор)\n\n';
-        }
-      }
-    }
-    
-    textContent += '='.repeat(80) + '\n';
-    textContent += 'КРАЙ НА ЕКСПОРТА\n';
-    textContent += '='.repeat(80) + '\n';
-    
-    return new Response(textContent, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': `attachment; filename="ai_communication_logs_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19)}.txt"`
-      }
-    });
   } catch (error) {
     console.error('Error exporting AI logs:', error);
     return jsonResponse({ error: 'Failed to export AI logs: ' + error.message }, 500);
