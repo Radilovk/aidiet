@@ -3055,47 +3055,28 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   // Fetch dynamic whitelist and blacklist from KV storage
   const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
   
-  // Extract weekly blueprint if available
-  let blueprintSection = '';
-  if (analysis.weeklyBlueprint) {
-    const blueprint = analysis.weeklyBlueprint;
-    blueprintSection = `
-=== СЕДМИЧНА СТРУКТУРА (BLUEPRINT) ===
-КРИТИЧНО: Този план определя ТОЧНАТА структура и калории за всеки ден. СПАЗВАЙ ГО СТРИКТНО!
+  // Extract meal pattern from strategy
+  let mealPlanGuidance = '';
+  if (strategy && strategy.mealTiming) {
+    const timing = strategy.mealTiming;
+    mealPlanGuidance = `
+=== СЕДМИЧНА СТРУКТУРА НА ХРАНЕНЕ ===
+ВАЖНО: Създай хранения според стратегията и хронотипа на клиента.
 
-Общи правила:
-- Пропусни закуска: ${blueprint.skipBreakfast ? 'ДА - БЕЗ закуски през седмицата' : 'НЕ - включи закуски'}
-- Брой хранения на ден: ${blueprint.dailyMealCount || '2-3'}
-- Причина: ${blueprint.mealCountReasoning || 'Според профила на клиента'}
+Седмичен модел: ${strategy.weeklyMealPattern || 'Стандартен модел'}
+Структура: ${timing.pattern || 'Консистентна структура'}
+Прозорци на гладуване: ${timing.fastingWindows || 'няма'}
+Гъвкавост: ${timing.flexibility || 'Модерирана'}
+Насоки за хронотип (${data.chronotype}): ${timing.chronotypeGuidance || 'Адаптирай според енергийните пикове'}
 
-Дневна структура (ДНИ ${startDay}-${endDay}):`;
+Брой хранения: ${strategy.mealCountJustification || 'Определи според профила (обикновено 2-4 хранения)'}
 
-    // Add structure for each day in the chunk
-    if (blueprint.dailyStructure && Array.isArray(blueprint.dailyStructure)) {
-      for (let day = startDay; day <= endDay; day++) {
-        const dayStructure = blueprint.dailyStructure.find(d => d.dayIndex === day);
-        if (dayStructure && dayStructure.meals) {
-          blueprintSection += `\n\nДЕН ${day}:`;
-          dayStructure.meals.forEach(meal => {
-            if (meal.active) {
-              blueprintSection += `\n  - ${meal.type}: ${meal.calorieTarget} kcal (Предложен протеин: ${meal.proteinSource || 'избери подходящ'}, Въглехидрати: ${meal.carbSource || 'избери подходящ'})`;
-            } else {
-              blueprintSection += `\n  - ${meal.type}: ПРОПУСНИ (не е активно)`;
-            }
-          });
-        }
-      }
-    }
-    
-    blueprintSection += `
-
-ВАЖНО: 
-- Спазвай ТОЧНИТЕ калорийни цели за всяко хранене
-- Използвай предложените протеинови източници и въглехидрати като насоки
-- Сборът на калориите за деня ТРЯБВА да отговаря на сумата от активните хранения
-- НЕ добавяй хранения които са маркирани като неактивни (active: false)
+ВАЖНО:
+- Генерирай хранения според горната структура и целевите калории (${recommendedCalories} kcal/ден)
+- Сборът на калориите за деня ТРЯБВА да е приблизително ${recommendedCalories} kcal
+- Адаптирай времето и размера на храненията според хронотипа
+- Ако има интермитентно гладуване, спазвай прозорците на хранене
 `;
-  }
   
   const defaultPrompt = `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
@@ -3106,7 +3087,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
 BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
 Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
-${blueprintSection}
+${mealPlanGuidance}
 === СТРАТЕГИЯ (КОМПАКТНА) ===
 Диета: ${strategyCompact.dietType}
 Схема: ${strategyCompact.weeklyMealPattern}
