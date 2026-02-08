@@ -2971,7 +2971,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
          */
         async function loadLoggingStatus() {
             try {
-                const response = await fetch('/api/admin/get-logging-status');
+                const response = await fetch(`${WORKER_URL}/api/admin/get-logging-status`);
                 const result = await response.json();
                 
                 if (result.success) {
@@ -3008,7 +3008,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
          */
         async function toggleLogging(enable) {
             try {
-                const response = await fetch('/api/admin/set-logging-status', {
+                const response = await fetch(`${WORKER_URL}/api/admin/set-logging-status`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -3063,21 +3063,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             statsDiv.style.display = 'none';
             
             try {
-                // First, cleanup old logs and keep only the most recent one
-                const cleanupResponse = await fetch(`${WORKER_URL}/api/admin/cleanup-ai-logs`, {
-                    method: 'POST'
-                });
-                
-                if (cleanupResponse.ok) {
-                    const cleanupResult = await cleanupResponse.json();
-                    if (cleanupResult.success && cleanupResult.deletedCount > 0) {
-                        console.log(`Cleaned up ${cleanupResult.deletedCount} old log entries`);
-                    }
-                } else {
-                    console.warn(`Failed to cleanup logs (status ${cleanupResponse.status}):`, await cleanupResponse.text());
-                }
-                
-                // Then load the logs
+                // Load the logs (automatic cleanup removed per user request)
                 const result = await cachedFetch(
                     `${WORKER_URL}/api/admin/get-ai-logs?limit=${limit}&offset=${offset}`,
                     `admin:aiLogs:${limit}:${offset}`,
