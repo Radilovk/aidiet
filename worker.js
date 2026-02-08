@@ -3046,7 +3046,7 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
  */
-async function generateMealPlanProgressive(env, data, analysis, strategy) {
+async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null) {
   console.log('Progressive generation: Starting meal plan generation in chunks');
   
   const totalDays = 7;
@@ -3103,7 +3103,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy) {
     try {
       const chunkPrompt = await generateMealPlanChunkPrompt(
         data, analysis, strategy, bmr, recommendedCalories,
-        startDay, endDay, previousDays, env
+        startDay, endDay, previousDays, env, errorPreventionComment
       );
       
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
