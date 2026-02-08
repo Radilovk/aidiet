@@ -6477,49 +6477,109 @@ async function handleGetAILogs(request, env) {
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
     
-    // Get log index
-    const logIndex = await env.page_content.get('ai_communication_log_index');
-    if (!logIndex) {
-      return jsonResponse({ success: true, logs: [], total: 0 });
-    }
+    // Try to get session index first (new format)
+    let sessionIndex = await env.page_content.get('ai_communication_session_index');
     
-    const logIds = JSON.parse(logIndex);
-    const total = logIds.length;
-    
-    // Apply pagination
-    const paginatedIds = logIds.slice(offset, offset + limit);
-    
-    // Fetch logs in parallel
-    const logPromises = paginatedIds.flatMap(logId => [
-      env.page_content.get(`ai_communication_log:${logId}`),
-      env.page_content.get(`ai_communication_log:${logId}_response`)
-    ]);
-    
-    const logData = await Promise.all(logPromises);
-    
-    // Combine request and response logs
-    const logs = [];
-    for (let i = 0; i < paginatedIds.length; i++) {
-      const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
-      const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
+    if (sessionIndex) {
+      // New session-based format
+      const sessionIds = JSON.parse(sessionIndex);
       
-      if (requestLog) {
-        logs.push({
-          ...requestLog,
-          response: responseLog
-        });
+      if (sessionIds.length === 0) {
+        return jsonResponse({ success: true, logs: [], total: 0 });
       }
+      
+      // Get the most recent session
+      const latestSessionId = sessionIds[0];
+      
+      // Get all log IDs for this session
+      const sessionLogsData = await env.page_content.get(`ai_session_logs:${latestSessionId}`);
+      if (!sessionLogsData) {
+        return jsonResponse({ success: true, logs: [], total: 0 });
+      }
+      
+      const logIds = JSON.parse(sessionLogsData);
+      const total = logIds.length;
+      
+      // Apply pagination
+      const paginatedIds = logIds.slice(offset, offset + limit);
+      
+      // Fetch logs in parallel
+      const logPromises = paginatedIds.flatMap(logId => [
+        env.page_content.get(`ai_communication_log:${logId}`),
+        env.page_content.get(`ai_communication_log:${logId}_response`)
+      ]);
+      
+      const logData = await Promise.all(logPromises);
+      
+      // Combine request and response logs
+      const logs = [];
+      for (let i = 0; i < paginatedIds.length; i++) {
+        const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
+        const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
+        
+        if (requestLog) {
+          logs.push({
+            ...requestLog,
+            response: responseLog
+          });
+        }
+      }
+      
+      return jsonResponse({ 
+        success: true, 
+        logs: logs,
+        total: total,
+        limit: limit,
+        offset: offset,
+        sessionId: latestSessionId
+      }, 200, {
+        cacheControl: 'public, max-age=60' // Cache for 1 minute - logs are frequently updated
+      });
+    } else {
+      // Fallback to old log index format for backward compatibility
+      const logIndex = await env.page_content.get('ai_communication_log_index');
+      if (!logIndex) {
+        return jsonResponse({ success: true, logs: [], total: 0 });
+      }
+      
+      const logIds = JSON.parse(logIndex);
+      const total = logIds.length;
+      
+      // Apply pagination
+      const paginatedIds = logIds.slice(offset, offset + limit);
+      
+      // Fetch logs in parallel
+      const logPromises = paginatedIds.flatMap(logId => [
+        env.page_content.get(`ai_communication_log:${logId}`),
+        env.page_content.get(`ai_communication_log:${logId}_response`)
+      ]);
+      
+      const logData = await Promise.all(logPromises);
+      
+      // Combine request and response logs
+      const logs = [];
+      for (let i = 0; i < paginatedIds.length; i++) {
+        const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
+        const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
+        
+        if (requestLog) {
+          logs.push({
+            ...requestLog,
+            response: responseLog
+          });
+        }
+      }
+      
+      return jsonResponse({ 
+        success: true, 
+        logs: logs,
+        total: total,
+        limit: limit,
+        offset: offset
+      }, 200, {
+        cacheControl: 'public, max-age=60' // Cache for 1 minute - logs are frequently updated
+      });
     }
-    
-    return jsonResponse({ 
-      success: true, 
-      logs: logs,
-      total: total,
-      limit: limit,
-      offset: offset
-    }, 200, {
-      cacheControl: 'public, max-age=60' // Cache for 1 minute - logs are frequently updated
-    });
   } catch (error) {
     console.error('Error getting AI logs:', error);
     return jsonResponse({ error: 'Failed to get AI logs: ' + error.message }, 500);
