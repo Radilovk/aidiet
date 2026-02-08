@@ -612,6 +612,8 @@ export default {
         return await handleGetConfig(request, env);
       } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
         return await handleGetAILogs(request, env);
+      } else if (url.pathname === '/api/admin/cleanup-ai-logs' && request.method === 'POST') {
+        return await handleCleanupAILogs(request, env);
       } else if (url.pathname === '/api/admin/export-ai-logs' && request.method === 'GET') {
         return await handleExportAILogs(request, env);
       } else if (url.pathname === '/api/admin/get-blacklist' && request.method === 'GET') {
@@ -6479,6 +6481,59 @@ async function handleGetAILogs(request, env) {
   } catch (error) {
     console.error('Error getting AI logs:', error);
     return jsonResponse({ error: 'Failed to get AI logs: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Cleanup AI logs - delete all previous logs and keep only the most recent one
+ */
+async function handleCleanupAILogs(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    // Get log index
+    const logIndex = await env.page_content.get('ai_communication_log_index');
+    if (!logIndex) {
+      return jsonResponse({ success: true, message: 'No logs to cleanup', deletedCount: 0 });
+    }
+    
+    const logIds = JSON.parse(logIndex);
+    const totalLogs = logIds.length;
+    
+    if (totalLogs === 0) {
+      return jsonResponse({ success: true, message: 'No logs to cleanup', deletedCount: 0 });
+    }
+    
+    // Keep only the most recent log (first in the array)
+    const recentLogId = logIds[0];
+    const logsToDelete = logIds.slice(1);
+    
+    // Delete old log entries
+    if (logsToDelete.length > 0) {
+      const deletePromises = logsToDelete.flatMap(id => [
+        env.page_content.delete(`ai_communication_log:${id}`),
+        env.page_content.delete(`ai_communication_log:${id}_response`)
+      ]);
+      
+      await Promise.all(deletePromises);
+    }
+    
+    // Update log index to contain only the most recent log
+    await env.page_content.put('ai_communication_log_index', JSON.stringify([recentLogId]));
+    
+    console.log(`Cleaned up ${logsToDelete.length} old log entries, kept ${recentLogId}`);
+    
+    return jsonResponse({ 
+      success: true, 
+      message: `Successfully cleaned up ${logsToDelete.length} old log entries`,
+      deletedCount: logsToDelete.length,
+      keptLogId: recentLogId
+    }, 200);
+  } catch (error) {
+    console.error('Error cleaning up AI logs:', error);
+    return jsonResponse({ error: 'Failed to cleanup AI logs: ' + error.message }, 500);
   }
 }
 
