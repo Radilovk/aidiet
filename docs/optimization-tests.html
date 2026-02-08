@@ -108,7 +108,9 @@
             },
             
             clearPattern(pattern) {
-                const regex = new RegExp(pattern.replace('*', '.*'));
+                // Escape regex special characters and replace * with .*
+                const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
+                const regex = new RegExp(escapedPattern);
                 Object.keys(this.data).forEach(key => {
                     if (regex.test(key)) {
                         delete this.data[key];
