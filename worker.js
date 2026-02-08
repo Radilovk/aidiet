@@ -5243,22 +5243,10 @@ async function logAIRequest(env, stepName, requestData) {
     logIndex = logIndex ? JSON.parse(logIndex) : [];
     logIndex.unshift(logId); // Add to beginning (most recent first)
     
-    // Keep only the last log entry (MAX_LOG_ENTRIES = 1)
-    // Delete all old log entries to ensure we only store the most recent one
+    // Keep only the last log entry in the index (MAX_LOG_ENTRIES = 1)
+    // Note: Old log entries are kept in KV storage and not automatically deleted
     if (logIndex.length > MAX_LOG_ENTRIES) {
-      const removedLogIds = logIndex.slice(MAX_LOG_ENTRIES);
       logIndex = logIndex.slice(0, MAX_LOG_ENTRIES);
-      
-      // Cleanup old log entries asynchronously (doesn't block current request)
-      if (removedLogIds.length > 0) {
-        // Use Promise.allSettled to avoid blocking if some deletes fail
-        Promise.allSettled(
-          removedLogIds.flatMap(id => [
-            env.page_content.delete(`ai_communication_log:${id}`),
-            env.page_content.delete(`ai_communication_log:${id}_response`)
-          ])
-        ).catch(err => console.error('Background log cleanup error:', err));
-      }
     }
     
     await env.page_content.put('ai_communication_log_index', JSON.stringify(logIndex));
