@@ -575,78 +575,6 @@ let chatPromptsCache = null;
 let chatPromptsCacheTime = 0;
 const CHAT_PROMPTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    
-    console.log(`${request.method} ${url.pathname}`);
-
-    // Handle CORS preflight
-    if (request.method === 'OPTIONS') {
-      console.log('CORS preflight request');
-      return new Response(null, { 
-        status: 204,
-        headers: CORS_HEADERS 
-      });
-    }
-
-    try {
-      // Route handling
-      if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
-        return await handleGeneratePlan(request, env);
-      } else if (url.pathname === '/api/chat' && request.method === 'POST') {
-        return await handleChat(request, env);
-      } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
-        return await handleReportProblem(request, env);
-      } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
-        return await handleGetReports(request, env);
-      } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
-        return await handleSavePrompt(request, env);
-      } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
-        return await handleGetPrompt(request, env);
-      } else if (url.pathname === '/api/admin/get-default-prompt' && request.method === 'GET') {
-        return await handleGetDefaultPrompt(request, env);
-      } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
-        return await handleSaveModel(request, env);
-      } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
-        return await handleGetConfig(request, env);
-      } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
-        return await handleGetAILogs(request, env);
-      } else if (url.pathname === '/api/admin/cleanup-ai-logs' && request.method === 'POST') {
-        return await handleCleanupAILogs(request, env);
-      } else if (url.pathname === '/api/admin/export-ai-logs' && request.method === 'GET') {
-        return await handleExportAILogs(request, env);
-      } else if (url.pathname === '/api/admin/get-blacklist' && request.method === 'GET') {
-        return await handleGetBlacklist(request, env);
-      } else if (url.pathname === '/api/admin/add-to-blacklist' && request.method === 'POST') {
-        return await handleAddToBlacklist(request, env);
-      } else if (url.pathname === '/api/admin/remove-from-blacklist' && request.method === 'POST') {
-        return await handleRemoveFromBlacklist(request, env);
-      } else if (url.pathname === '/api/admin/get-whitelist' && request.method === 'GET') {
-        return await handleGetWhitelist(request, env);
-      } else if (url.pathname === '/api/admin/add-to-whitelist' && request.method === 'POST') {
-        return await handleAddToWhitelist(request, env);
-      } else if (url.pathname === '/api/admin/remove-from-whitelist' && request.method === 'POST') {
-        return await handleRemoveFromWhitelist(request, env);
-      } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
-        return await handlePushSubscribe(request, env);
-      } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
-        return await handlePushSend(request, env);
-      } else if (url.pathname === '/api/push/vapid-public-key' && request.method === 'GET') {
-        return await handleGetVapidPublicKey(request, env);
-      } else if (url.pathname === '/api/admin/get-logging-status' && request.method === 'GET') {
-        return await handleGetLoggingStatus(request, env);
-      } else if (url.pathname === '/api/admin/set-logging-status' && request.method === 'POST') {
-        return await handleSetLoggingStatus(request, env);
-      } else {
-        return jsonResponse({ error: 'Not found' }, 404);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      return jsonResponse({ error: error.message }, 500);
-    }
-  }
-};
 
 /**
  * Remove internal justification fields from plan before returning to client
@@ -7046,3 +6974,75 @@ function jsonResponse(data, status = 200, options = {}) {
     headers
   });
 }
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    
+    console.log(`${request.method} ${url.pathname}`);
+
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+      console.log('CORS preflight request');
+      return new Response(null, { 
+        status: 204,
+        headers: CORS_HEADERS 
+      });
+    }
+
+    try {
+      // Route handling
+      if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
+        return await handleGeneratePlan(request, env);
+      } else if (url.pathname === '/api/chat' && request.method === 'POST') {
+        return await handleChat(request, env);
+      } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
+        return await handleReportProblem(request, env);
+      } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
+        return await handleGetReports(request, env);
+      } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
+        return await handleSavePrompt(request, env);
+      } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
+        return await handleGetPrompt(request, env);
+      } else if (url.pathname === '/api/admin/get-default-prompt' && request.method === 'GET') {
+        return await handleGetDefaultPrompt(request, env);
+      } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
+        return await handleSaveModel(request, env);
+      } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
+        return await handleGetConfig(request, env);
+      } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
+        return await handleGetAILogs(request, env);
+      } else if (url.pathname === '/api/admin/cleanup-ai-logs' && request.method === 'POST') {
+        return await handleCleanupAILogs(request, env);
+      } else if (url.pathname === '/api/admin/export-ai-logs' && request.method === 'GET') {
+        return await handleExportAILogs(request, env);
+      } else if (url.pathname === '/api/admin/get-blacklist' && request.method === 'GET') {
+        return await handleGetBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/add-to-blacklist' && request.method === 'POST') {
+        return await handleAddToBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/remove-from-blacklist' && request.method === 'POST') {
+        return await handleRemoveFromBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/get-whitelist' && request.method === 'GET') {
+        return await handleGetWhitelist(request, env);
+      } else if (url.pathname === '/api/admin/add-to-whitelist' && request.method === 'POST') {
+        return await handleAddToWhitelist(request, env);
+      } else if (url.pathname === '/api/admin/remove-from-whitelist' && request.method === 'POST') {
+        return await handleRemoveFromWhitelist(request, env);
+      } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
+        return await handlePushSubscribe(request, env);
+      } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
+        return await handlePushSend(request, env);
+      } else if (url.pathname === '/api/push/vapid-public-key' && request.method === 'GET') {
+        return await handleGetVapidPublicKey(request, env);
+      } else if (url.pathname === '/api/admin/get-logging-status' && request.method === 'GET') {
+        return await handleGetLoggingStatus(request, env);
+      } else if (url.pathname === '/api/admin/set-logging-status' && request.method === 'POST') {
+        return await handleSetLoggingStatus(request, env);
+      } else {
+        return jsonResponse({ error: 'Not found' }, 404);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      return jsonResponse({ error: error.message }, 500);
+    }
+  }
+};
