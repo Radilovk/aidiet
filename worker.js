@@ -6499,7 +6499,14 @@ async function handleCleanupAILogs(request, env) {
       return jsonResponse({ success: true, message: 'No logs to cleanup', deletedCount: 0 });
     }
     
-    const logIds = JSON.parse(logIndex);
+    let logIds;
+    try {
+      logIds = JSON.parse(logIndex);
+    } catch (parseError) {
+      console.error('Failed to parse log index:', parseError);
+      return jsonResponse({ error: 'Invalid log index format' }, 500);
+    }
+    
     const totalLogs = logIds.length;
     
     if (totalLogs === 0) {
@@ -6511,6 +6518,8 @@ async function handleCleanupAILogs(request, env) {
     const logsToDelete = logIds.slice(1);
     
     // Delete old log entries
+    // Note: This operation is not atomic and may have race conditions if called concurrently
+    // However, this is an admin-only function and concurrent calls are unlikely
     if (logsToDelete.length > 0) {
       const deletePromises = logsToDelete.flatMap(id => [
         env.page_content.delete(`ai_communication_log:${id}`),
