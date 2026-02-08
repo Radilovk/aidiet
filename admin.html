@@ -1236,6 +1236,128 @@
         const ADMIN_PASSWORD = 'nutriplan2024'; // TODO: Move to server-side auth
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
+        // ============================================================================
+        // CLIENT-SIDE CACHE SYSTEM FOR REDUCING BACKEND REQUESTS
+        // ============================================================================
+        // Cache Configuration
+        const CACHE_CONFIG = {
+            // Cache TTL (Time To Live) in milliseconds
+            config: 5 * 60 * 1000,        // 5 minutes for config data
+            blacklist: 5 * 60 * 1000,     // 5 minutes for blacklist
+            whitelist: 5 * 60 * 1000,     // 5 minutes for whitelist
+            reports: 2 * 60 * 1000,       // 2 minutes for reports (more dynamic)
+            defaultPrompts: 30 * 60 * 1000, // 30 minutes for default prompts (rarely change)
+            aiLogs: 1 * 60 * 1000         // 1 minute for AI logs (frequently updated)
+        };
+
+        // In-memory cache object
+        const apiCache = {
+            data: {},
+            
+            // Set cache entry with TTL
+            set(key, value, ttl) {
+                this.data[key] = {
+                    value: value,
+                    expiry: Date.now() + ttl
+                };
+            },
+            
+            // Get cache entry if not expired
+            get(key) {
+                const entry = this.data[key];
+                if (!entry) return null;
+                
+                // Check if expired
+                if (Date.now() > entry.expiry) {
+                    delete this.data[key];
+                    return null;
+                }
+                
+                return entry.value;
+            },
+            
+            // Clear specific cache entry
+            clear(key) {
+                delete this.data[key];
+            },
+            
+            // Clear all cache entries
+            clearAll() {
+                this.data = {};
+            },
+            
+            // Clear cache entries by pattern (e.g., 'defaultPrompt:*')
+            clearPattern(pattern) {
+                // Escape regex special characters and replace * with .*
+                const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
+                const regex = new RegExp(escapedPattern);
+                Object.keys(this.data).forEach(key => {
+                    if (regex.test(key)) {
+                        delete this.data[key];
+                    }
+                });
+            }
+        };
+
+        // Cached fetch wrapper
+        async function cachedFetch(url, cacheKey, ttl, options = {}) {
+            // Check cache first
+            const cached = apiCache.get(cacheKey);
+            if (cached !== null) {
+                console.log(`[Cache HIT] ${cacheKey}`);
+                return cached;
+            }
+            
+            console.log(`[Cache MISS] ${cacheKey} - Fetching from server...`);
+            
+            // Fetch from server
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Store in cache
+            apiCache.set(cacheKey, data, ttl);
+            
+            return data;
+        }
+
+        // Cache invalidation helpers - call these after data modifications
+        function invalidateConfigCache() {
+            apiCache.clear('admin:config');
+            console.log('[Cache] Invalidated config cache');
+        }
+
+        function invalidateBlacklistCache() {
+            apiCache.clear('admin:blacklist');
+            console.log('[Cache] Invalidated blacklist cache');
+        }
+
+        function invalidateWhitelistCache() {
+            apiCache.clear('admin:whitelist');
+            console.log('[Cache] Invalidated whitelist cache');
+        }
+
+        function invalidateReportsCache() {
+            apiCache.clear('admin:reports');
+            console.log('[Cache] Invalidated reports cache');
+        }
+
+        function invalidateDefaultPromptsCache() {
+            apiCache.clearPattern('admin:defaultPrompt:*');
+            console.log('[Cache] Invalidated all default prompts cache');
+        }
+
+        function invalidateAILogsCache() {
+            apiCache.clearPattern('admin:aiLogs:*');
+            console.log('[Cache] Invalidated AI logs cache');
+        }
+        // ============================================================================
+        // END OF CACHE SYSTEM
+        // ============================================================================
+
         // Default prompts
         const DEFAULT_PLAN_PROMPT = `Ти си професионален диетолог и здравен консултант. Създай подробен 7-дневен хранителен план за клиент със следните характеристики:
 
@@ -1982,22 +2104,25 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Load Settings
         async function loadSettings() {
             try {
-                // Try to load from server (KV storage) first
+                // Try to load from server (KV storage) first with caching
                 try {
-                    const response = await fetch(WORKER_URL + '/api/admin/get-config');
-                    if (response.ok) {
-                        const config = await response.json();
-                        if (config.success) {
-                            // Use server data if available
-                            if (config.provider) {
-                                document.getElementById('aiProvider').value = config.provider;
-                                localStorage.setItem('adminAIProvider', config.provider);
-                            }
-                            if (config.modelName) {
-                                document.getElementById('aiModelName').value = config.modelName;
-                                document.getElementById('currentModel').textContent = config.modelName.toUpperCase();
-                                localStorage.setItem('adminAIModelName', config.modelName);
-                            }
+                    const config = await cachedFetch(
+                        WORKER_URL + '/api/admin/get-config',
+                        'admin:config',
+                        CACHE_CONFIG.config
+                    );
+                    
+                    if (config.success) {
+                        // Use server data if available
+                        if (config.provider) {
+                            document.getElementById('aiProvider').value = config.provider;
+                            localStorage.setItem('adminAIProvider', config.provider);
+                        }
+                        if (config.modelName) {
+                            document.getElementById('aiModelName').value = config.modelName;
+                            document.getElementById('currentModel').textContent = config.modelName.toUpperCase();
+                            localStorage.setItem('adminAIModelName', config.modelName);
+                        }
                             if (config.planPrompt) {
                                 document.getElementById('aiPrompt').value = config.planPrompt;
                                 localStorage.setItem('adminAIPrompt', config.planPrompt);
@@ -2105,6 +2230,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (!response.ok) {
                     throw new Error('Failed to save to server');
                 }
+                
+                // Invalidate config cache after successful save
+                invalidateConfigCache();
                 
                 showSuccess('AI модел запазен успешно!');
                 document.getElementById('currentModel').textContent = modelName.toUpperCase();
@@ -2275,14 +2403,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // View Default Prompt - Load default prompt from worker.js via API
         async function viewDefaultPrompt(promptType, elementId) {
             try {
-                // Fetch the actual default prompt from worker.js
-                const response = await fetch(`${WORKER_URL}/api/admin/get-default-prompt?type=${promptType}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
+                // Fetch the actual default prompt from worker.js with caching
+                const data = await cachedFetch(
+                    `${WORKER_URL}/api/admin/get-default-prompt?type=${promptType}`,
+                    `admin:defaultPrompt:${promptType}`,
+                    CACHE_CONFIG.defaultPrompts
+                );
                 
                 if (data.success && data.prompt) {
                     document.getElementById(elementId).value = data.prompt;
@@ -2465,11 +2591,15 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
         // Clear Cache
         function clearCache() {
-            if (confirm('Сигурни ли сте, че искате да изчистите целия кеш? Това ще премахне всички запазени планове и данни.')) {
-                // In production, call worker API to clear KV
+            if (confirm('Сигурни ли сте, че искате да изчистите целия кеш? Това ще премахне всички запазени планове и данни от браузъра, както и кеша на админ панела.')) {
+                // Clear in-memory API cache
+                apiCache.clearAll();
+                
+                // Clear browser storage
                 localStorage.clear();
                 sessionStorage.setItem('adminLoggedIn', 'true'); // Keep logged in
-                showSuccess('Кешът е изчистен успешно!');
+                
+                showSuccess('Кешът е изчистен успешно! API кешът е премахнат и браузърът е изчистен.');
             }
         }
 
@@ -2485,12 +2615,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         async function loadBlacklist() {
             const container = document.getElementById('blacklistDisplay');
             try {
-                const response = await fetch(WORKER_URL + '/api/admin/get-blacklist');
-                if (!response.ok) {
-                    throw new Error('Failed to load blacklist');
-                }
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-blacklist',
+                    'admin:blacklist',
+                    CACHE_CONFIG.blacklist
+                );
                 
-                const result = await response.json();
                 currentBlacklist = result.blacklist || [];
                 displayBlacklist();
                 showSuccess('Черният списък е зареден успешно!');
@@ -2553,6 +2683,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const result = await response.json();
                 currentBlacklist = result.blacklist || [...currentBlacklist, item];
+                
+                // Invalidate blacklist cache after successful modification
+                invalidateBlacklistCache();
+                
                 displayBlacklist();
                 input.value = '';
                 showSuccess(`"${item}" е добавена в черния списък!`);
@@ -2588,6 +2722,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const result = await response.json();
                 currentBlacklist = result.blacklist || currentBlacklist.filter((_, i) => i !== index);
+                
+                // Invalidate blacklist cache after successful modification
+                invalidateBlacklistCache();
+                
                 displayBlacklist();
                 showSuccess(`"${item}" е премахната от черния списък!`);
             } catch (error) {
@@ -2606,12 +2744,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         async function loadWhitelist() {
             const container = document.getElementById('whitelistDisplay');
             try {
-                const response = await fetch(WORKER_URL + '/api/admin/get-whitelist');
-                if (!response.ok) {
-                    throw new Error('Failed to load whitelist');
-                }
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-whitelist',
+                    'admin:whitelist',
+                    CACHE_CONFIG.whitelist
+                );
                 
-                const result = await response.json();
                 currentWhitelist = result.whitelist || [];
                 displayWhitelist();
                 showSuccess('Белият списък е зареден успешно!');
@@ -2674,6 +2812,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const result = await response.json();
                 currentWhitelist = result.whitelist || [...currentWhitelist, item];
+                
+                // Invalidate whitelist cache after successful modification
+                invalidateWhitelistCache();
+                
                 displayWhitelist();
                 input.value = '';
                 showSuccess(`"${item}" е добавена в белия списък!`);
@@ -2709,6 +2851,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const result = await response.json();
                 currentWhitelist = result.whitelist || currentWhitelist.filter((_, i) => i !== index);
+                
+                // Invalidate whitelist cache after successful modification
+                invalidateWhitelistCache();
+                
                 displayWhitelist();
                 showSuccess(`"${item}" е премахната от белия списък!`);
             } catch (error) {
@@ -2733,12 +2879,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
             
             try {
-                const response = await fetch(WORKER_URL + '/api/admin/get-reports');
-                if (!response.ok) {
-                    throw new Error('Failed to load reports');
-                }
-                
-                const result = await response.json();
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-reports',
+                    'admin:reports',
+                    CACHE_CONFIG.reports
+                );
                 
                 if (result.success && result.reports) {
                     if (result.reports.length === 0) {
@@ -2816,12 +2961,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             statsDiv.style.display = 'none';
             
             try {
-                const response = await fetch(`${WORKER_URL}/api/admin/get-ai-logs?limit=${limit}&offset=${offset}`);
-                if (!response.ok) {
-                    throw new Error('Failed to load AI logs');
-                }
-                
-                const result = await response.json();
+                const result = await cachedFetch(
+                    `${WORKER_URL}/api/admin/get-ai-logs?limit=${limit}&offset=${offset}`,
+                    `admin:aiLogs:${limit}:${offset}`,
+                    CACHE_CONFIG.aiLogs
+                );
                 
                 if (result.success && result.logs) {
                     if (result.logs.length === 0) {

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache System Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .pass {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .fail {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #console {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Cache System Tests</h1>
+    <p>Testing the client-side caching implementation</p>
+    
+    <div id="test-results"></div>
+    
+    <h2>Manual Tests</h2>
+    <button onclick="testBasicCache()">Test Basic Cache</button>
+    <button onclick="testCacheExpiration()">Test Cache Expiration</button>
+    <button onclick="testCacheInvalidation()">Test Cache Invalidation</button>
+    <button onclick="testMessageDeduplication()">Test Message Dedup</button>
+    <button onclick="runAllTests()">Run All Tests</button>
+    
+    <h2>Console Output</h2>
+    <div id="console"></div>
+
+    <script>
+        // Import the cache system from admin.html (inline for testing)
+        const CACHE_CONFIG = {
+            config: 5 * 60 * 1000,
+            blacklist: 5 * 60 * 1000,
+            whitelist: 5 * 60 * 1000,
+            reports: 2 * 60 * 1000,
+            defaultPrompts: 30 * 60 * 1000,
+            aiLogs: 1 * 60 * 1000
+        };
+
+        const apiCache = {
+            data: {},
+            
+            set(key, value, ttl) {
+                this.data[key] = {
+                    value: value,
+                    expiry: Date.now() + ttl
+                };
+            },
+            
+            get(key) {
+                const entry = this.data[key];
+                if (!entry) return null;
+                
+                if (Date.now() > entry.expiry) {
+                    delete this.data[key];
+                    return null;
+                }
+                
+                return entry.value;
+            },
+            
+            clear(key) {
+                delete this.data[key];
+            },
+            
+            clearAll() {
+                this.data = {};
+            },
+            
+            clearPattern(pattern) {
+                // Escape regex special characters and replace * with .*
+                const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
+                const regex = new RegExp(escapedPattern);
+                Object.keys(this.data).forEach(key => {
+                    if (regex.test(key)) {
+                        delete this.data[key];
+                    }
+                });
+            }
+        };
+
+        // Message deduplication system (from plan.html)
+        let recentMessageCache = new Map();
+        const MESSAGE_DEDUP_WINDOW = 3000;
+        
+        function isDuplicateMessage(message) {
+            const now = Date.now();
+            const normalizedMessage = message.toLowerCase().trim();
+            
+            for (const [msg, timestamp] of recentMessageCache.entries()) {
+                if (now - timestamp > MESSAGE_DEDUP_WINDOW) {
+                    recentMessageCache.delete(msg);
+                }
+            }
+            
+            if (recentMessageCache.has(normalizedMessage)) {
+                const lastSent = recentMessageCache.get(normalizedMessage);
+                if (now - lastSent < MESSAGE_DEDUP_WINDOW) {
+                    return true;
+                }
+            }
+            
+            recentMessageCache.set(normalizedMessage, now);
+            return false;
+        }
+
+        // Test utilities
+        const results = document.getElementById('test-results');
+        const consoleDiv = document.getElementById('console');
+        
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+            consoleDiv.innerHTML += `<div style="color: ${color}">[${time}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        function addResult(testName, passed, message) {
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `<strong>${passed ? '✅' : '❌'} ${testName}</strong><br>${message}`;
+            results.appendChild(div);
+            log(`${testName}: ${passed ? 'PASS' : 'FAIL'} - ${message}`, passed ? 'success' : 'error');
+        }
+        
+        // Tests
+        async function testBasicCache() {
+            results.innerHTML = '';
+            log('Starting basic cache test...');
+            
+            // Test 1: Set and get
+            apiCache.set('test:key1', { data: 'value1' }, 5000);
+            const result1 = apiCache.get('test:key1');
+            addResult(
+                'Test 1: Set and Get',
+                result1 !== null && result1.data === 'value1',
+                result1 ? 'Cache stored and retrieved correctly' : 'Failed to retrieve cached value'
+            );
+            
+            // Test 2: Non-existent key
+            const result2 = apiCache.get('test:nonexistent');
+            addResult(
+                'Test 2: Non-existent Key',
+                result2 === null,
+                result2 === null ? 'Correctly returned null for non-existent key' : 'Should return null'
+            );
+            
+            // Test 3: Multiple values
+            apiCache.set('test:key2', { data: 'value2' }, 5000);
+            apiCache.set('test:key3', { data: 'value3' }, 5000);
+            const result3 = apiCache.get('test:key2');
+            const result4 = apiCache.get('test:key3');
+            addResult(
+                'Test 3: Multiple Values',
+                result3 && result4 && result3.data === 'value2' && result4.data === 'value3',
+                'Multiple cache entries work correctly'
+            );
+            
+            log('Basic cache test completed');
+        }
+        
+        async function testCacheExpiration() {
+            results.innerHTML = '';
+            log('Starting cache expiration test...');
+            
+            // Test with short TTL
+            apiCache.set('test:expiry', { data: 'expires soon' }, 1000); // 1 second
+            
+            // Immediate get should work
+            const result1 = apiCache.get('test:expiry');
+            addResult(
+                'Test 1: Immediate Get',
+                result1 !== null,
+                'Value available immediately after setting'
+            );
+            
+            // Wait for expiration
+            log('Waiting 1.5 seconds for cache expiration...');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            const result2 = apiCache.get('test:expiry');
+            addResult(
+                'Test 2: After Expiration',
+                result2 === null,
+                result2 === null ? 'Cache correctly expired after TTL' : 'Cache should have expired'
+            );
+            
+            log('Cache expiration test completed');
+        }
+        
+        async function testCacheInvalidation() {
+            results.innerHTML = '';
+            log('Starting cache invalidation test...');
+            
+            // Set multiple values
+            apiCache.set('admin:config', { setting: 1 }, 5000);
+            apiCache.set('admin:blacklist', ['item1'], 5000);
+            apiCache.set('admin:defaultPrompt:plan', 'prompt1', 5000);
+            apiCache.set('admin:defaultPrompt:chat', 'prompt2', 5000);
+            
+            // Test 1: Clear specific key
+            apiCache.clear('admin:config');
+            const result1 = apiCache.get('admin:config');
+            const result2 = apiCache.get('admin:blacklist');
+            addResult(
+                'Test 1: Clear Specific Key',
+                result1 === null && result2 !== null,
+                'Single key cleared, others remain'
+            );
+            
+            // Test 2: Clear by pattern
+            apiCache.clearPattern('admin:defaultPrompt:*');
+            const result3 = apiCache.get('admin:defaultPrompt:plan');
+            const result4 = apiCache.get('admin:defaultPrompt:chat');
+            const result5 = apiCache.get('admin:blacklist');
+            addResult(
+                'Test 2: Clear by Pattern',
+                result3 === null && result4 === null && result5 !== null,
+                'Pattern matching correctly cleared matching keys only'
+            );
+            
+            // Test 3: Clear all
+            apiCache.set('test:1', 'data', 5000);
+            apiCache.set('test:2', 'data', 5000);
+            apiCache.clearAll();
+            const result6 = apiCache.get('test:1');
+            const result7 = apiCache.get('test:2');
+            addResult(
+                'Test 3: Clear All',
+                result6 === null && result7 === null,
+                'All cache entries cleared'
+            );
+            
+            log('Cache invalidation test completed');
+        }
+        
+        async function testMessageDeduplication() {
+            results.innerHTML = '';
+            log('Starting message deduplication test...');
+            
+            // Clear message cache
+            recentMessageCache.clear();
+            
+            // Test 1: First message should not be duplicate
+            const msg1 = 'Hello World';
+            const isDup1 = isDuplicateMessage(msg1);
+            addResult(
+                'Test 1: First Message',
+                !isDup1,
+                'First message correctly not flagged as duplicate'
+            );
+            
+            // Test 2: Immediate duplicate should be blocked
+            const isDup2 = isDuplicateMessage(msg1);
+            addResult(
+                'Test 2: Immediate Duplicate',
+                isDup2,
+                isDup2 ? 'Duplicate correctly detected within 3s window' : 'Should detect duplicate'
+            );
+            
+            // Test 3: Case insensitive
+            const isDup3 = isDuplicateMessage('HELLO WORLD');
+            addResult(
+                'Test 3: Case Insensitive',
+                isDup3,
+                'Case-insensitive matching works'
+            );
+            
+            // Test 4: Different message
+            const msg2 = 'Different message';
+            const isDup4 = isDuplicateMessage(msg2);
+            addResult(
+                'Test 4: Different Message',
+                !isDup4,
+                'Different message correctly allowed'
+            );
+            
+            // Test 5: After expiration
+            log('Waiting 3.5 seconds for dedup window to expire...');
+            await new Promise(resolve => setTimeout(resolve, 3500));
+            const isDup5 = isDuplicateMessage(msg1);
+            addResult(
+                'Test 5: After Window Expires',
+                !isDup5,
+                'Same message allowed after 3s window'
+            );
+            
+            log('Message deduplication test completed');
+        }
+        
+        async function runAllTests() {
+            results.innerHTML = '';
+            consoleDiv.innerHTML = '';
+            log('=== Running All Tests ===', 'info');
+            
+            await testBasicCache();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testCacheExpiration();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testCacheInvalidation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testMessageDeduplication();
+            
+            log('=== All Tests Completed ===', 'success');
+        }
+        
+        // Run tests on load
+        log('Test page loaded. Click "Run All Tests" to start.', 'info');
+    </script>
+</body>
+</html>

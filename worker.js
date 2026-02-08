@@ -1107,7 +1107,9 @@ async function handleGetReports(request, env) {
       .filter(data => data !== null)
       .map(data => JSON.parse(data));
     
-    return jsonResponse({ success: true, reports: reports });
+    return jsonResponse({ success: true, reports: reports }, 200, {
+      cacheControl: 'public, max-age=120' // Cache for 2 minutes - reports can be somewhat dynamic
+    });
   } catch (error) {
     console.error('Error getting problem reports:', error);
     return jsonResponse({ error: `Failed to get reports: ${error.message}` }, 500);
@@ -6315,7 +6317,9 @@ async function handleGetDefaultPrompt(request, env) {
       }, 400);
     }
     
-    return jsonResponse({ success: true, prompt: prompt });
+    return jsonResponse({ success: true, prompt: prompt }, 200, {
+      cacheControl: 'public, max-age=1800' // Cache for 30 minutes - default prompts rarely change
+    });
   } catch (error) {
     console.error('Error getting default prompt:', error);
     return jsonResponse({ error: 'Failed to get default prompt: ' + error.message }, 500);
@@ -6407,6 +6411,8 @@ async function handleGetConfig(request, env) {
       mealPlanPrompt,
       summaryPrompt,
       correctionPrompt
+    }, 200, {
+      cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
   } catch (error) {
     console.error('Error getting config:', error);
@@ -6468,6 +6474,8 @@ async function handleGetAILogs(request, env) {
       total: total,
       limit: limit,
       offset: offset
+    }, 200, {
+      cacheControl: 'public, max-age=60' // Cache for 1 minute - logs are frequently updated
     });
   } catch (error) {
     console.error('Error getting AI logs:', error);
@@ -6489,7 +6497,9 @@ async function handleGetBlacklist(request, env) {
     const blacklistData = await env.page_content.get('food_blacklist');
     const blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
     
-    return jsonResponse({ success: true, blacklist: blacklist });
+    return jsonResponse({ success: true, blacklist: blacklist }, 200, {
+      cacheControl: 'public, max-age=300' // Cache for 5 minutes - blacklist changes infrequently
+    });
   } catch (error) {
     console.error('Error getting blacklist:', error);
     return jsonResponse({ error: `Failed to get blacklist: ${error.message}` }, 500);
@@ -6574,7 +6584,9 @@ async function handleGetWhitelist(request, env) {
     const whitelistData = await env.page_content.get('food_whitelist');
     const whitelist = whitelistData ? JSON.parse(whitelistData) : DEFAULT_FOOD_WHITELIST;
     
-    return jsonResponse({ success: true, whitelist: whitelist });
+    return jsonResponse({ success: true, whitelist: whitelist }, 200, {
+      cacheControl: 'public, max-age=300' // Cache for 5 minutes - whitelist changes infrequently
+    });
   } catch (error) {
     console.error('Error getting whitelist:', error);
     return jsonResponse({ error: `Failed to get whitelist: ${error.message}` }, 500);
@@ -6823,11 +6835,28 @@ async function handlePushSend(request, env) {
 }
 
 /**
- * Helper to create JSON response
+ * Helper to create JSON response with optional cache control
+ * @param {Object} data - Response data
+ * @param {number} status - HTTP status code
+ * @param {Object} options - Optional settings { cacheControl: string }
  */
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, options = {}) {
+  const headers = { ...CORS_HEADERS };
+  
+  // Add cache-control header if specified
+  // Examples:
+  //   - 'no-cache' - don't cache (default for dynamic data)
+  //   - 'public, max-age=300' - cache for 5 minutes
+  //   - 'public, max-age=1800' - cache for 30 minutes
+  if (options.cacheControl) {
+    headers['Cache-Control'] = options.cacheControl;
+  } else {
+    // Default: no-cache for dynamic API responses
+    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+  }
+  
   return new Response(JSON.stringify(data), {
     status,
-    headers: CORS_HEADERS
+    headers
   });
 }

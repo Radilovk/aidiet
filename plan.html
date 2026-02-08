@@ -2103,6 +2103,40 @@
         let messageIdCounter = 0;
         let isOnline = navigator.onLine;
         
+        // Enhancement #9: Message deduplication cache
+        // Prevents duplicate messages from being sent within a time window
+        let recentMessageCache = new Map(); // Map<messageText, timestamp>
+        const MESSAGE_DEDUP_WINDOW = 3000; // 3 seconds - if same message sent within this window, it's ignored
+        
+        /**
+         * Check if a message is a duplicate of a recent message
+         * Returns true if message should be blocked (is duplicate)
+         */
+        function isDuplicateMessage(message) {
+            const now = Date.now();
+            const normalizedMessage = message.toLowerCase().trim();
+            
+            // Clean up old entries from cache
+            for (const [msg, timestamp] of recentMessageCache.entries()) {
+                if (now - timestamp > MESSAGE_DEDUP_WINDOW) {
+                    recentMessageCache.delete(msg);
+                }
+            }
+            
+            // Check if message exists in recent cache
+            if (recentMessageCache.has(normalizedMessage)) {
+                const lastSent = recentMessageCache.get(normalizedMessage);
+                if (now - lastSent < MESSAGE_DEDUP_WINDOW) {
+                    console.log('[Dedup] Blocking duplicate message within 3s window:', message);
+                    return true; // Duplicate detected
+                }
+            }
+            
+            // Add message to cache
+            recentMessageCache.set(normalizedMessage, now);
+            return false; // Not a duplicate
+        }
+        
         // UI strings for chat modes
         const CHAT_MODE_STRINGS = {
             consultation: {
@@ -3050,6 +3084,13 @@
             
             if (!message) return;
             
+            // Enhancement #9: Check for duplicate messages
+            if (isDuplicateMessage(message)) {
+                addMessageToChat('⚠️ Това съобщение току-що бе изпратено. Моля, изчакайте отговора.', 'assistant');
+                input.value = ''; // Clear input
+                return;
+            }
+            
             // Enhancement #2: Debouncing - Clear any pending send
             if (sendMessageTimeout) {
                 clearTimeout(sendMessageTimeout);
@@ -3157,10 +3198,19 @@
                 const timeoutId = setTimeout(() => controller.abort('Request timeout after 60 seconds'), 60000);
 
                 // Transform chatHistory to API format {role, content}
-                const apiHistory = chatHistory.map(msg => ({
+                // Enhancement #10: Limit conversation history to last 10 messages to reduce payload
+                // Keep most recent context while avoiding excessive data transfer
+                const MAX_HISTORY_MESSAGES = 10;
+                const recentHistory = chatHistory.slice(-MAX_HISTORY_MESSAGES);
+                
+                const apiHistory = recentHistory.map(msg => ({
                     role: msg.role === 'user' ? 'user' : 'assistant',
                     content: msg.text || msg.content || ''
                 }));
+                
+                if (chatHistory.length > MAX_HISTORY_MESSAGES) {
+                    console.log(`[Optimization] Trimmed conversation history from ${chatHistory.length} to ${MAX_HISTORY_MESSAGES} messages`);
+                }
                 
                 // OPTIMIZATION: Reduce payload size for chat requests
                 // Consultation mode: Send compact data (meal names, times only)
