@@ -6494,20 +6494,24 @@ async function handleGetAILogs(request, env) {
         return jsonResponse({ success: true, logs: [], total: 0 });
       }
       
-      // Get the most recent session
-      const latestSessionId = sessionIds[0];
+      // Get all log IDs from ALL sessions (not just the latest one)
+      const allLogIds = [];
+      for (const sessionId of sessionIds) {
+        const sessionLogsData = await env.page_content.get(`ai_session_logs:${sessionId}`);
+        if (sessionLogsData) {
+          const sessionLogIds = JSON.parse(sessionLogsData);
+          allLogIds.push(...sessionLogIds);
+        }
+      }
       
-      // Get all log IDs for this session
-      const sessionLogsData = await env.page_content.get(`ai_session_logs:${latestSessionId}`);
-      if (!sessionLogsData) {
+      if (allLogIds.length === 0) {
         return jsonResponse({ success: true, logs: [], total: 0 });
       }
       
-      const logIds = JSON.parse(sessionLogsData);
-      const total = logIds.length;
+      const total = allLogIds.length;
       
       // Apply pagination
-      const paginatedIds = logIds.slice(offset, offset + limit);
+      const paginatedIds = allLogIds.slice(offset, offset + limit);
       
       // Fetch logs in parallel
       const logPromises = paginatedIds.flatMap(logId => [
@@ -6537,7 +6541,7 @@ async function handleGetAILogs(request, env) {
         total: total,
         limit: limit,
         offset: offset,
-        sessionId: latestSessionId
+        sessionCount: sessionIds.length
       }, 200, {
         cacheControl: 'public, max-age=60' // Cache for 1 minute - logs are frequently updated
       });
@@ -6682,12 +6686,19 @@ async function handleExportAILogs(request, env) {
         });
       }
       
-      // Get the most recent session
-      const latestSessionId = sessionIds[0];
+      // Get all log IDs from ALL sessions (not just the latest one)
+      const allLogIds = [];
+      const sessionLogCounts = [];
+      for (const sessionId of sessionIds) {
+        const sessionLogsData = await env.page_content.get(`ai_session_logs:${sessionId}`);
+        if (sessionLogsData) {
+          const sessionLogIds = JSON.parse(sessionLogsData);
+          sessionLogCounts.push({ sessionId, count: sessionLogIds.length });
+          allLogIds.push(...sessionLogIds);
+        }
+      }
       
-      // Get all log IDs for this session
-      const sessionLogsData = await env.page_content.get(`ai_session_logs:${latestSessionId}`);
-      if (!sessionLogsData) {
+      if (allLogIds.length === 0) {
         return new Response('Няма налични логове за експорт.', {
           status: 200,
           headers: {
@@ -6700,10 +6711,8 @@ async function handleExportAILogs(request, env) {
         });
       }
       
-      const logIds = JSON.parse(sessionLogsData);
-      
-      // Fetch all logs from this session
-      const logPromises = logIds.flatMap(logId => [
+      // Fetch all logs from ALL sessions
+      const logPromises = allLogIds.flatMap(logId => [
         env.page_content.get(`ai_communication_log:${logId}`),
         env.page_content.get(`ai_communication_log:${logId}_response`)
       ]);
@@ -6715,16 +6724,21 @@ async function handleExportAILogs(request, env) {
       textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
       textContent += '='.repeat(80) + '\n\n';
       textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
-      textContent += `ID на сесия: ${latestSessionId}\n`;
-      textContent += `Общо стъпки: ${logIds.length}\n\n`;
+      textContent += `Общо сесии: ${sessionIds.length}\n`;
+      textContent += `Общо стъпки: ${allLogIds.length}\n`;
+      for (let j = 0; j < sessionLogCounts.length; j++) {
+        textContent += `  Сесия ${j + 1} (${sessionLogCounts[j].sessionId}): ${sessionLogCounts[j].count} стъпки\n`;
+      }
+      textContent += '\n';
       
-      for (let i = 0; i < logIds.length; i++) {
+      for (let i = 0; i < allLogIds.length; i++) {
         const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
         const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
         
         if (requestLog) {
           textContent += '='.repeat(80) + '\n';
           textContent += `СТЪПКА ${i + 1}: ${requestLog.stepName}\n`;
+          textContent += `ID на сесия: ${requestLog.sessionId || 'N/A'}\n`;
           textContent += '='.repeat(80) + '\n\n';
           
           // Request information
