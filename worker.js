@@ -600,6 +600,272 @@ function removeInternalJustifications(plan) {
 }
 
 /**
+ * JSON response helper with CORS headers
+ */
+function jsonResponse(data, status = 200, options = {}) {
+  const headers = { ...CORS_HEADERS };
+  
+  // Add cache-control header if specified
+  // Examples:
+  //   - 'no-cache' - don't cache (default for dynamic data)
+  //   - 'public, max-age=300' - cache for 5 minutes
+  //   - 'public, max-age=1800' - cache for 30 minutes
+  if (options.cacheControl) {
+    headers['Cache-Control'] = options.cacheControl;
+  } else {
+    // Default: no-cache for dynamic API responses
+    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+  }
+  
+  return new Response(JSON.stringify(data), {
+    status,
+    headers
+  });
+}
+
+/**
+ * Sanitize JSON string to fix common AI formatting issues
+ * - Remove trailing commas before } or ]
+ * - Fix missing commas between array/object elements
+ * - Remove duplicate commas
+ */
+function sanitizeJSON(jsonStr) {
+  let result = jsonStr;
+  
+  // 1. Remove trailing commas before } or ]
+  result = result.replace(/,(\s*[}\]])/g, '$1');
+  
+  // 2. Remove duplicate commas (,,)
+  result = result.replace(/,\s*,+/g, ',');
+  
+  // 3. Fix missing comma between consecutive objects in arrays
+  // Pattern: }\s*{ -> },{
+  result = result.replace(/}(\s*){/g, '},$1{');
+  
+  // 4. Fix missing comma between consecutive arrays
+  // Pattern: ]\s*[ -> ],[
+  result = result.replace(/](\s*)\[/g, '],$1[');
+  
+  // 5. Fix missing comma between object and array
+  // Pattern: }\s*[ -> },[
+  result = result.replace(/}(\s*)\[/g, '},$1[');
+  
+  // 6. Fix missing comma between array and object
+  // Pattern: ]\s*{ -> ],{
+  result = result.replace(/](\s*){/g, '],$1{');
+  
+  return result;
+}
+
+/**
+ * Extract JSON object or array from response using balanced brace/bracket matching
+ * This prevents greedy regex from capturing non-JSON text after the object/array
+ */
+function extractBalancedJSON(text) {
+  // Look for either { or [ as the start of JSON
+  let firstBrace = text.indexOf('{');
+  let firstBracket = text.indexOf('[');
+  
+  // Determine which comes first (or if only one exists)
+  let startIndex = -1;
+  let startChar = null;
+  
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIndex = firstBrace;
+    startChar = '{';
+  } else if (firstBracket !== -1) {
+    startIndex = firstBracket;
+    startChar = '[';
+  } else {
+    return null; // No JSON structure found
+  }
+  
+  let braceCount = 0;
+  let bracketCount = 0;
+  let inString = false;
+  let escapeNext = false;
+  
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+    
+    // Handle escape sequences
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escapeNext = true;
+      continue;
+    }
+    
+    // Track string boundaries to ignore braces/brackets in strings
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    
+    // Only count braces/brackets outside of strings
+    if (!inString) {
+      if (char === '{') {
+        braceCount++;
+      } else if (char === '}') {
+        braceCount--;
+      } else if (char === '[') {
+        bracketCount++;
+      } else if (char === ']') {
+        bracketCount--;
+      }
+      
+      // When we close all braces/brackets, we have a complete JSON structure
+      if (startChar === '{' && braceCount === 0) {
+        return text.substring(startIndex, i + 1);
+      } else if (startChar === '[' && bracketCount === 0) {
+        return text.substring(startIndex, i + 1);
+      }
+    }
+  }
+  
+  return null; // No balanced JSON found
+}
+
+/**
+ * Parse AI response and extract JSON
+ */
+function parseAIResponse(response) {
+  try {
+    // Step 1: Try to extract JSON from markdown code blocks first
+    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
+    if (markdownJsonMatch) {
+      try {
+        const cleaned = sanitizeJSON(markdownJsonMatch[1]);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
+      }
+    }
+    
+    // Step 2: Try to find JSON using balanced brace matching (non-greedy)
+    const jsonObject = extractBalancedJSON(response);
+    if (jsonObject) {
+      try {
+        const cleaned = sanitizeJSON(jsonObject);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.warn('Failed to parse extracted JSON object, trying fallback:', e.message);
+      }
+    }
+    
+    // Step 3: Fallback to greedy match but with sanitization
+    const jsonMatch = response.match(/[\[{][\s\S]*[}\]]/);
+    if (jsonMatch) {
+      try {
+        const cleaned = sanitizeJSON(jsonMatch[0]);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.error('All JSON parsing attempts failed:', e.message);
+        
+        // Extract position from error message if available
+        const posMatch = e.message.match(/position (\d+)/);
+        if (posMatch) {
+          const errorPos = parseInt(posMatch[1]);
+          const contextStart = Math.max(0, errorPos - 100);
+          const contextEnd = Math.min(jsonMatch[0].length, errorPos + 100);
+          console.error('Context around error position:', jsonMatch[0].substring(contextStart, contextEnd));
+        }
+        
+        console.error('Response excerpt (first 500 chars):', response.substring(0, 500));
+        console.error('Response excerpt (last 500 chars):', response.substring(Math.max(0, response.length - 500)));
+        
+        // Return a user-friendly error without exposing the raw response
+        return { error: `All JSON parsing attempts failed: ${e.message}` };
+      }
+    }
+    
+    // If no JSON found, return the response as-is wrapped in a structure
+    console.error('No JSON structure found in AI response');
+    console.error('Response excerpt (first 1000 chars):', response.substring(0, 1000));
+    return { error: 'Could not parse AI response - no JSON found' };
+  } catch (error) {
+    console.error('Error parsing AI response:', error);
+    console.error('Response length:', response?.length || 0);
+    return { error: `Failed to parse response: ${error.message}` };
+  }
+}
+
+// Enhancement #3: Estimate tokens for a message
+// Note: This is a rough approximation (~4 chars per token for mixed content).
+// Actual GPT tokenization varies by language and content. This is sufficient
+// for conversation history management where approximate limits are acceptable.
+function estimateTokens(text) {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * More accurate token count estimation for AI prompts (supports Cyrillic)
+ */
+function estimateTokenCount(text) {
+  if (!text) return 0;
+  
+  // Count Cyrillic vs Latin characters
+  const cyrillicChars = (text.match(/[\u0400-\u04FF]/g) || []).length;
+  const totalChars = text.length;
+  const cyrillicRatio = cyrillicChars / totalChars;
+  
+  // Cyrillic-heavy text: ~3 chars per token
+  // Latin-heavy text: ~4 chars per token
+  // Mixed text: interpolate between them
+  const charsPerToken = 4 - (cyrillicRatio * 1); // 3-4 range
+  
+  return Math.ceil(totalChars / charsPerToken);
+}
+
+/**
+ * Generate a unique session or log ID
+ * @param {string} prefix - Prefix for the ID (e.g., 'session', 'regen', 'ai_log')
+ * @returns {string} Unique ID with timestamp and random component
+ */
+function generateUniqueId(prefix = 'id') {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+}
+
+/**
+ * Generate user ID from user data
+ */
+function generateUserId(data) {
+  const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
+  return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+}
+
+// Enhancement #4: Check if a food item exists in the meal plan (case-insensitive, partial match)
+function checkFoodExistsInPlan(plan, foodName) {
+  if (!plan || !plan.weekPlan) return false;
+  
+  const searchTerm = foodName.toLowerCase();
+  
+  // Search through all days and meals
+  for (const dayKey in plan.weekPlan) {
+    const day = plan.weekPlan[dayKey];
+    if (day && Array.isArray(day.meals)) {
+      for (const meal of day.meals) {
+        // Check meal name and description
+        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (meal.description && meal.description.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Generate nutrition plan from questionnaire data using multi-step approach
  */
 async function handleGeneratePlan(request, env) {
@@ -4150,26 +4416,6 @@ async function getChatPrompts(env) {
 }
 
 /**
- * Improved token estimation for mixed Cyrillic/Latin text
- * Cyrillic characters typically use 2-3 bytes in UTF-8, so tokens/char ratio is higher
- */
-function estimateTokenCount(text) {
-  if (!text) return 0;
-  
-  // Count Cyrillic vs Latin characters
-  const cyrillicChars = (text.match(/[\u0400-\u04FF]/g) || []).length;
-  const totalChars = text.length;
-  const cyrillicRatio = cyrillicChars / totalChars;
-  
-  // Cyrillic-heavy text: ~3 chars per token
-  // Latin-heavy text: ~4 chars per token
-  // Mixed text: interpolate between them
-  const charsPerToken = 4 - (cyrillicRatio * 1); // 3-4 range
-  
-  return Math.ceil(totalChars / charsPerToken);
-}
-
-/**
  * Call AI model with load monitoring
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
@@ -4683,192 +4929,6 @@ function generateMockResponse(prompt) {
  * Parse AI response to structured format
  * Handles markdown code blocks, greedy regex issues, and common JSON formatting errors
  */
-function parseAIResponse(response) {
-  try {
-    // Step 1: Try to extract JSON from markdown code blocks first
-    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
-    if (markdownJsonMatch) {
-      try {
-        const cleaned = sanitizeJSON(markdownJsonMatch[1]);
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
-      }
-    }
-    
-    // Step 2: Try to find JSON using balanced brace matching (non-greedy)
-    const jsonObject = extractBalancedJSON(response);
-    if (jsonObject) {
-      try {
-        const cleaned = sanitizeJSON(jsonObject);
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.warn('Failed to parse extracted JSON object, trying fallback:', e.message);
-      }
-    }
-    
-    // Step 3: Fallback to greedy match but with sanitization
-    const jsonMatch = response.match(/[\[{][\s\S]*[}\]]/);
-    if (jsonMatch) {
-      try {
-        const cleaned = sanitizeJSON(jsonMatch[0]);
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.error('All JSON parsing attempts failed:', e.message);
-        
-        // Extract position from error message if available
-        const posMatch = e.message.match(/position (\d+)/);
-        if (posMatch) {
-          const errorPos = parseInt(posMatch[1]);
-          const contextStart = Math.max(0, errorPos - 100);
-          const contextEnd = Math.min(jsonMatch[0].length, errorPos + 100);
-          console.error('Context around error position:', jsonMatch[0].substring(contextStart, contextEnd));
-        }
-        
-        console.error('Response excerpt (first 500 chars):', response.substring(0, 500));
-        console.error('Response excerpt (last 500 chars):', response.substring(Math.max(0, response.length - 500)));
-        
-        // Return a user-friendly error without exposing the raw response
-        return { error: `All JSON parsing attempts failed: ${e.message}` };
-      }
-    }
-    
-    // If no JSON found, return the response as-is wrapped in a structure
-    console.error('No JSON structure found in AI response');
-    console.error('Response excerpt (first 1000 chars):', response.substring(0, 1000));
-    return { error: 'Could not parse AI response - no JSON found' };
-  } catch (error) {
-    console.error('Error parsing AI response:', error);
-    console.error('Response length:', response?.length || 0);
-    return { error: `Failed to parse response: ${error.message}` };
-  }
-}
-
-/**
- * Extract JSON object or array from response using balanced brace/bracket matching
- * This prevents greedy regex from capturing non-JSON text after the object/array
- */
-function extractBalancedJSON(text) {
-  // Look for either { or [ as the start of JSON
-  let firstBrace = text.indexOf('{');
-  let firstBracket = text.indexOf('[');
-  
-  // Determine which comes first (or if only one exists)
-  let startIndex = -1;
-  let startChar = null;
-  
-  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-    startIndex = firstBrace;
-    startChar = '{';
-  } else if (firstBracket !== -1) {
-    startIndex = firstBracket;
-    startChar = '[';
-  } else {
-    return null; // No JSON structure found
-  }
-  
-  let braceCount = 0;
-  let bracketCount = 0;
-  let inString = false;
-  let escapeNext = false;
-  
-  for (let i = startIndex; i < text.length; i++) {
-    const char = text[i];
-    
-    // Handle escape sequences
-    if (escapeNext) {
-      escapeNext = false;
-      continue;
-    }
-    
-    if (char === '\\') {
-      escapeNext = true;
-      continue;
-    }
-    
-    // Track string boundaries to ignore braces/brackets in strings
-    if (char === '"') {
-      inString = !inString;
-      continue;
-    }
-    
-    // Only count braces/brackets outside of strings
-    if (!inString) {
-      if (char === '{') {
-        braceCount++;
-      } else if (char === '}') {
-        braceCount--;
-      } else if (char === '[') {
-        bracketCount++;
-      } else if (char === ']') {
-        bracketCount--;
-      }
-      
-      // When we close all braces/brackets, we have a complete JSON structure
-      if (startChar === '{' && braceCount === 0) {
-        return text.substring(startIndex, i + 1);
-      } else if (startChar === '[' && bracketCount === 0) {
-        return text.substring(startIndex, i + 1);
-      }
-    }
-  }
-  
-  return null; // No balanced JSON found
-}
-
-/**
- * Sanitize JSON string to fix common AI formatting issues
- * - Remove trailing commas before } or ]
- * - Fix missing commas between array/object elements
- * - Remove duplicate commas
- */
-function sanitizeJSON(jsonStr) {
-  let result = jsonStr;
-  
-  // 1. Remove trailing commas before } or ]
-  result = result.replace(/,(\s*[}\]])/g, '$1');
-  
-  // 2. Remove duplicate commas (,,)
-  result = result.replace(/,\s*,+/g, ',');
-  
-  // 3. Fix missing comma between consecutive objects in arrays
-  // Pattern: }\s*{ -> },{
-  result = result.replace(/}(\s*){/g, '},$1{');
-  
-  // 4. Fix missing comma between consecutive arrays
-  // Pattern: ]\s*[ -> ],[
-  result = result.replace(/](\s*)\[/g, '],$1[');
-  
-  // 5. Fix missing comma between object and array
-  // Pattern: }\s*[ -> },[
-  result = result.replace(/}(\s*)\[/g, '},$1[');
-  
-  // 6. Fix missing comma between array and object
-  // Pattern: ]\s*{ -> ],{
-  result = result.replace(/](\s*){/g, '],$1{');
-  
-  return result;
-}
-
-// Enhancement #3: Estimate tokens for a message
-// Note: This is a rough approximation (~4 chars per token for mixed content).
-// Actual GPT tokenization varies by language and content. This is sufficient
-// for conversation history management where approximate limits are acceptable.
-function estimateTokens(text) {
-  return Math.ceil(text.length / 4);
-}
-
-/**
- * Generate a unique session or log ID
- * @param {string} prefix - Prefix for the ID (e.g., 'session', 'regen', 'ai_log')
- * @returns {string} Unique ID with timestamp and random component
- */
-function generateUniqueId(prefix = 'id') {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${prefix}_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
-  }
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-}
 
 /**
  * Log AI communication to KV storage
@@ -4993,35 +5053,6 @@ async function logAIResponse(env, logId, stepName, responseData) {
 /**
  * Generate user ID from data
  */
-function generateUserId(data) {
-  const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
-  return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
-}
-
-// Enhancement #4: Check if a food item exists in the meal plan (case-insensitive, partial match)
-function checkFoodExistsInPlan(plan, foodName) {
-  if (!plan || !plan.weekPlan) return false;
-  
-  const searchTerm = foodName.toLowerCase();
-  
-  // Search through all days and meals
-  for (const dayKey in plan.weekPlan) {
-    const day = plan.weekPlan[dayKey];
-    if (day && Array.isArray(day.meals)) {
-      for (const meal of day.meals) {
-        // Check meal name and description
-        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (meal.description && meal.description.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-  }
-  
-  return false;
-}
 
 /**
  * Helper function to get KV key for prompt type
@@ -6954,26 +6985,6 @@ async function handlePushSend(request, env) {
  * @param {number} status - HTTP status code
  * @param {Object} options - Optional settings { cacheControl: string }
  */
-function jsonResponse(data, status = 200, options = {}) {
-  const headers = { ...CORS_HEADERS };
-  
-  // Add cache-control header if specified
-  // Examples:
-  //   - 'no-cache' - don't cache (default for dynamic data)
-  //   - 'public, max-age=300' - cache for 5 minutes
-  //   - 'public, max-age=1800' - cache for 30 minutes
-  if (options.cacheControl) {
-    headers['Cache-Control'] = options.cacheControl;
-  } else {
-    // Default: no-cache for dynamic API responses
-    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-  }
-  
-  return new Response(JSON.stringify(data), {
-    status,
-    headers
-  });
-}
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
