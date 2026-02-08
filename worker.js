@@ -1288,31 +1288,46 @@ const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (optimal: 4 chunks total 
 function validatePlan(plan, userData) {
   const errors = [];
   const warnings = [];
+  const stepErrors = {
+    step1_analysis: [],
+    step2_strategy: [],
+    step3_mealplan: [],
+    step4_final: []
+  };
   
   // 1. Check for basic plan structure
   if (!plan || typeof plan !== 'object') {
     errors.push('План липсва или е в невалиден формат');
-    return { isValid: false, errors };
+    stepErrors.step4_final.push('План липсва или е в невалиден формат');
+    return { isValid: false, errors, stepErrors };
   }
   
-  // 2. Check for required analysis
+  // 2. Check for required analysis (Step 1)
   if (!plan.analysis || !plan.analysis.keyProblems) {
-    errors.push('Липсва задълбочен анализ');
+    const error = 'Липсва задълбочен анализ';
+    errors.push(error);
+    stepErrors.step1_analysis.push(error);
   }
   
-  // 3. Check for strategy
+  // 3. Check for strategy (Step 2)
   if (!plan.strategy || !plan.strategy.dietaryModifier) {
-    errors.push('Липсва диетична стратегия');
+    const error = 'Липсва диетична стратегия';
+    errors.push(error);
+    stepErrors.step2_strategy.push(error);
   }
   
-  // 4. Check for week plan
+  // 4. Check for week plan (Step 3)
   if (!plan.weekPlan) {
-    errors.push('Липсва седмичен план');
+    const error = 'Липсва седмичен план';
+    errors.push(error);
+    stepErrors.step3_mealplan.push(error);
   } else {
     // Verify all 7 days exist
     const daysCount = Object.keys(plan.weekPlan).filter(key => key.startsWith('day')).length;
     if (daysCount < 7) {
-      errors.push(`Липсват дни от седмицата (генерирани само ${daysCount} от 7)`);
+      const error = `Липсват дни от седмицата (генерирани само ${daysCount} от 7)`;
+      errors.push(error);
+      stepErrors.step3_mealplan.push(error);
     }
     
     // Verify each day has meals
@@ -1320,11 +1335,15 @@ function validatePlan(plan, userData) {
       const dayKey = `day${i}`;
       const day = plan.weekPlan[dayKey];
       if (!day || !day.meals || !Array.isArray(day.meals) || day.meals.length === 0) {
-        errors.push(`Ден ${i} няма хранения`);
+        const error = `Ден ${i} няма хранения`;
+        errors.push(error);
+        stepErrors.step3_mealplan.push(error);
       } else {
         // Check that each day has meals within acceptable range (1-5)
         if (day.meals.length < MIN_MEALS_PER_DAY || day.meals.length > MAX_MEALS_PER_DAY) {
-          errors.push(`Ден ${i} има ${day.meals.length} хранения - трябва да е между ${MIN_MEALS_PER_DAY} и ${MAX_MEALS_PER_DAY}`);
+          const error = `Ден ${i} има ${day.meals.length} хранения - трябва да е между ${MIN_MEALS_PER_DAY} и ${MAX_MEALS_PER_DAY}`;
+          errors.push(error);
+          stepErrors.step3_mealplan.push(error);
         }
         
         // Validate that meals have macros
@@ -1363,13 +1382,17 @@ function validatePlan(plan, userData) {
           }
         });
         if (mealsWithoutMacros > 0) {
-          errors.push(`Ден ${i} има ${mealsWithoutMacros} хранения без макронутриенти`);
+          const error = `Ден ${i} има ${mealsWithoutMacros} хранения без макронутриенти`;
+          errors.push(error);
+          stepErrors.step3_mealplan.push(error);
         }
         
         // Validate daily calorie totals
         const dayCalories = day.meals.reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
         if (dayCalories < MIN_DAILY_CALORIES) {
-          errors.push(`Ден ${i} има само ${dayCalories} калории - твърде малко`);
+          const error = `Ден ${i} има само ${dayCalories} калории - твърде малко`;
+          errors.push(error);
+          stepErrors.step3_mealplan.push(error);
         }
         
         // Validate meal ordering (UPDATED: allow meals after dinner when justified by strategy)
@@ -1392,7 +1415,9 @@ function validatePlan(plan, userData) {
             // No justification - apply strict rules for late-night snack only
             if (mealsAfterDinner.length > 1 || 
                 (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] !== 'Късна закуска')) {
-              errors.push(`Ден ${i}: Има хранения след вечеря (${mealsAfterDinnerTypes.join(', ')}) без обосновка в strategy.afterDinnerMealJustification. Моля, добави обосновка или премахни храненията след вечеря.`);
+              const error = `Ден ${i}: Има хранения след вечеря (${mealsAfterDinnerTypes.join(', ')}) без обосновка в strategy.afterDinnerMealJustification. Моля, добави обосновка или премахни храненията след вечеря.`;
+              errors.push(error);
+              stepErrors.step2_strategy.push(error); // This is a strategy issue
             } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Късна закуска') {
               // Validate that late-night snack contains low GI foods
               const lateSnack = mealsAfterDinner[0];
@@ -1403,7 +1428,9 @@ function validatePlan(plan, userData) {
               const hasLowGIFood = LOW_GI_FOODS.some(food => snackText.includes(food));
               
               if (!hasLowGIFood) {
-                errors.push(`Ден ${i}: Късната закуска трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.) или да има ясна обосновка в strategy.afterDinnerMealJustification`);
+                const error = `Ден ${i}: Късната закуска трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.) или да има ясна обосновка в strategy.afterDinnerMealJustification`;
+                errors.push(error);
+                stepErrors.step3_mealplan.push(error);
               }
               
               // Validate that late-night snack is not too high in calories (warning only if no justification)
@@ -1419,7 +1446,9 @@ function validatePlan(plan, userData) {
         // Check for invalid meal types
         day.meals.forEach((meal, idx) => {
           if (!ALLOWED_MEAL_TYPES.includes(meal.type)) {
-            errors.push(`Ден ${i}, хранене ${idx + 1}: Невалиден тип "${meal.type}" - разрешени са само: ${ALLOWED_MEAL_TYPES.join(', ')}`);
+            const error = `Ден ${i}, хранене ${idx + 1}: Невалиден тип "${meal.type}" - разрешени са само: ${ALLOWED_MEAL_TYPES.join(', ')}`;
+            errors.push(error);
+            stepErrors.step3_mealplan.push(error);
           }
         });
         
@@ -1429,7 +1458,9 @@ function validatePlan(plan, userData) {
           const currentIndex = MEAL_ORDER_MAP[meal.type];
           if (currentIndex !== undefined) {
             if (currentIndex < lastValidIndex) {
-              errors.push(`Ден ${i}: Неправилен хронологичен ред - "${meal.type}" след по-късно хранене`);
+              const error = `Ден ${i}: Неправилен хронологичен ред - "${meal.type}" след по-късно хранене`;
+              errors.push(error);
+              stepErrors.step3_mealplan.push(error);
             }
             lastValidIndex = currentIndex;
           }
@@ -1438,29 +1469,37 @@ function validatePlan(plan, userData) {
         // Check for multiple afternoon snacks
         const afternoonSnackCount = mealTypes.filter(type => type === 'Следобедна закуска').length;
         if (afternoonSnackCount > 1) {
-          errors.push(`Ден ${i}: Повече от 1 следобедна закуска (${afternoonSnackCount}) - разрешена е максимум 1`);
+          const error = `Ден ${i}: Повече от 1 следобедна закуска (${afternoonSnackCount}) - разрешена е максимум 1`;
+          errors.push(error);
+          stepErrors.step3_mealplan.push(error);
         }
         
         // Check for multiple late-night snacks
         const lateNightSnackCount = mealTypes.filter(type => type === 'Късна закуска').length;
         if (lateNightSnackCount > 1) {
-          errors.push(`Ден ${i}: Повече от 1 късна закуска (${lateNightSnackCount}) - разрешена е максимум 1`);
+          const error = `Ден ${i}: Повече от 1 късна закуска (${lateNightSnackCount}) - разрешена е максимум 1`;
+          errors.push(error);
+          stepErrors.step3_mealplan.push(error);
         }
       }
     }
   }
   
-  // 5. Check for required recommendations
+  // 5. Check for required recommendations (Step 4 - Final validation)
   if (!plan.recommendations || !Array.isArray(plan.recommendations) || plan.recommendations.length < 3) {
-    errors.push('Липсват препоръчителни храни');
+    const error = 'Липсват препоръчителни храни';
+    errors.push(error);
+    stepErrors.step4_final.push(error);
   }
   
-  // 6. Check for forbidden foods
+  // 6. Check for forbidden foods (Step 4 - Final validation)
   if (!plan.forbidden || !Array.isArray(plan.forbidden) || plan.forbidden.length < 3) {
-    errors.push('Липсват забранени храни');
+    const error = 'Липсват забранени храни';
+    errors.push(error);
+    stepErrors.step4_final.push(error);
   }
   
-  // 7. Check for goal-plan alignment
+  // 7. Check for goal-plan alignment (Step 2 - Strategy issue)
   if (userData.goal === 'Отслабване' && plan.summary && plan.summary.dailyCalories) {
     // Extract numeric calories
     const caloriesMatch = String(plan.summary.dailyCalories).match(/\d+/);
@@ -1468,18 +1507,22 @@ function validatePlan(plan, userData) {
       const calories = parseInt(caloriesMatch[0]);
       // For weight loss, calories should be reasonable (not too high)
       if (calories > 3000) {
-        errors.push('Калориите са твърде високи за цел отслабване');
+        const error = 'Калориите са твърде високи за цел отслабване';
+        errors.push(error);
+        stepErrors.step2_strategy.push(error);
       }
     }
   }
   
-  // 8. Check for medical conditions alignment
+  // 8. Check for medical conditions alignment (Step 2 - Strategy issue)
   if (userData.medicalConditions && Array.isArray(userData.medicalConditions)) {
     // Check for diabetes + high carb plan
     if (userData.medicalConditions.includes('Диабет')) {
       const modifier = plan.strategy?.dietaryModifier || '';
       if (modifier.toLowerCase().includes('високовъглехидратно')) {
-        errors.push('Планът съдържа високовъглехидратна диета, неподходяща при диабет');
+        const error = 'Планът съдържа високовъглехидратна диета, неподходяща при диабет';
+        errors.push(error);
+        stepErrors.step2_strategy.push(error);
       }
     }
     
@@ -1500,26 +1543,30 @@ function validatePlan(plan, userData) {
       }
     }
     
-    // Check for anemia + vegetarian diet without iron supplementation
+    // Check for anemia + vegetarian diet without iron supplementation (Step 4 - Final validation)
     if (userData.medicalConditions.includes('Анемия') && 
         userData.dietPreference && 
         (userData.dietPreference.includes('Вегетарианска') || userData.dietPreference.includes('Веган'))) {
       const supplements = plan.supplements || [];
       const hasIronSupplement = supplements.some(s => /желязо|iron/i.test(s));
       if (!hasIronSupplement) {
-        errors.push('При анемия и вегетарианска/веган диета е задължителна добавка с желязо');
+        const error = 'При анемия и вегетарианска/веган диета е задължителна добавка с желязо';
+        errors.push(error);
+        stepErrors.step4_final.push(error);
       }
     }
   }
   
-  // 8a. Check for medication-supplement interactions
+  // 8a. Check for medication-supplement interactions (Step 4 - Final validation)
   if (userData.medications === 'Да' && userData.medicationsDetails && plan.supplements) {
     const medications = userData.medicationsDetails.toLowerCase();
     const supplements = plan.supplements.join(' ').toLowerCase();
     
     // Check for dangerous interactions
     if (medications.includes('варфарин') && supplements.includes('витамин к')) {
-      errors.push('ОПАСНО: Витамин K взаимодейства с варфарин (антикоагулант) - може да намали ефективността');
+      const error = 'ОПАСНО: Витамин K взаимодейства с варфарин (антикоагулант) - може да намали ефективността';
+      errors.push(error);
+      stepErrors.step4_final.push(error);
     }
     
     if ((medications.includes('антибиотик') || medications.includes('антибиотици')) && 
@@ -1532,7 +1579,7 @@ function validatePlan(plan, userData) {
     }
   }
   
-  // 9. Check for dietary preferences alignment
+  // 9. Check for dietary preferences alignment (Step 4 - Final validation)
   if (userData.dietPreference && Array.isArray(userData.dietPreference)) {
     if (userData.dietPreference.includes('Вегетарианска') || userData.dietPreference.includes('Веган')) {
       // Check if plan contains meat (would be in forbidden)
@@ -1541,13 +1588,15 @@ function validatePlan(plan, userData) {
           /месо|пиле|риба|говеждо|свинско/i.test(item)
         );
         if (containsMeat && userData.dietPreference.includes('Веган')) {
-          errors.push('Планът съдържа животински продукти, неподходящи за веган диета');
+          const error = 'Планът съдържа животински продукти, неподходящи за веган диета';
+          errors.push(error);
+          stepErrors.step4_final.push(error);
         }
       }
     }
   }
   
-  // 10. Check for food repetition across days (Issue #11 - ФАЗА 4: ЕДНА проста метрика)
+  // 10. Check for food repetition across days (Step 3 - Meal plan issue)
   // SIMPLIFIED REPETITION METRIC: Максимум 5 повтарящи се ястия в седмичния план
   if (plan.weekPlan) {
     const mealNames = new Set();
@@ -1575,30 +1624,38 @@ function validatePlan(plan, userData) {
     }
   }
   
-  // 11. Check for plan justification (REQUIREMENT 3) - updated to require 100+ characters
+  // 11. Check for plan justification (Step 2 - Strategy issue)
   if (!plan.strategy || !plan.strategy.planJustification || plan.strategy.planJustification.length < 100) {
-    errors.push('Липсва детайлна обосновка защо планът е индивидуален (минимум 100 символа)');
+    const error = 'Липсва детайлна обосновка защо планът е индивидуален (минимум 100 символа)';
+    errors.push(error);
+    stepErrors.step2_strategy.push(error);
   }
   
-  // 11a. Check for welcome message (NEW REQUIREMENT)
+  // 11a. Check for welcome message (Step 2 - Strategy issue)
   if (!plan.strategy || !plan.strategy.welcomeMessage || plan.strategy.welcomeMessage.length < 100) {
-    errors.push('Липсва персонализирано приветствие за клиента (strategy.welcomeMessage, минимум 100 символа)');
+    const error = 'Липсва персонализирано приветствие за клиента (strategy.welcomeMessage, минимум 100 символа)';
+    errors.push(error);
+    stepErrors.step2_strategy.push(error);
   }
   
-  // 10a. Check for meal count justification (NEW REQUIREMENT)
+  // 10a. Check for meal count justification (Step 2 - Strategy issue)
   if (!plan.strategy || !plan.strategy.mealCountJustification || plan.strategy.mealCountJustification.length < 20) {
-    errors.push('Липсва обосновка за избора на брой хранения (strategy.mealCountJustification)');
+    const error = 'Липсва обосновка за избора на брой хранения (strategy.mealCountJustification)';
+    errors.push(error);
+    stepErrors.step2_strategy.push(error);
   }
   
-  // 11. Check that analysis doesn't contain "Normal" severity problems (REQUIREMENT 2)
+  // 11. Check that analysis doesn't contain "Normal" severity problems (Step 1 - Analysis issue)
   if (plan.analysis && plan.analysis.keyProblems && Array.isArray(plan.analysis.keyProblems)) {
     const normalProblems = plan.analysis.keyProblems.filter(p => p.severity === 'Normal');
     if (normalProblems.length > 0) {
-      errors.push(`Анализът съдържа ${normalProblems.length} "Normal" проблеми, които не трябва да се показват`);
+      const error = `Анализът съдържа ${normalProblems.length} "Normal" проблеми, които не трябва да се показват`;
+      errors.push(error);
+      stepErrors.step1_analysis.push(error);
     }
   }
   
-  // 12. Check for ADLE v8 hard bans in meal descriptions
+  // 12. Check for ADLE v8 hard bans in meal descriptions (Step 3 - Meal plan issue)
   if (plan.weekPlan) {
     Object.keys(plan.weekPlan).forEach(dayKey => {
       const day = plan.weekPlan[dayKey];
@@ -1608,27 +1665,37 @@ function validatePlan(plan, userData) {
           
           // Check for hard bans (onion, turkey meat, artificial sweeteners, honey/sugar, ketchup/mayo)
           if (/\b(лук|onion)\b/.test(mealText)) {
-            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ЛУК (hard ban от ADLE v8)`);
+            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ЛУК (hard ban от ADLE v8)`;
+            errors.push(error);
+            stepErrors.step3_mealplan.push(error);
           }
           // Check for turkey meat but not turkey ham
           if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
-            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ПУЕШКО МЕСО (hard ban от ADLE v8)`);
+            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ПУЕШКО МЕСО (hard ban от ADLE v8)`;
+            errors.push(error);
+            stepErrors.step3_mealplan.push(error);
           }
           // Check for Greek yogurt (blacklisted)
           if (/\bгръцко\s+кисело\s+мляко\b/.test(mealText) || /\bgreek\s+yogurt\b/.test(mealText)) {
-            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ГРЪЦКО КИСЕЛО МЛЯКО (в черния списък - използвай само обикновено кисело мляко)`);
+            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ГРЪЦКО КИСЕЛО МЛЯКО (в черния списък - използвай само обикновено кисело мляко)`;
+            errors.push(error);
+            stepErrors.step3_mealplan.push(error);
           }
           // Check for honey/sugar/syrup in specific contexts (as ingredients, not in compound words)
           if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(mealText) && !/медицин|междин|сиропен/.test(mealText)) {
             warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Може да съдържа МЕД/ЗАХАР/СИРОП (hard ban от ADLE v8) - проверете`);
           }
           if (/\b(кетчуп|майонеза|ketchup|mayonnaise)\b/.test(mealText)) {
-            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа КЕТЧУП/МАЙОНЕЗА (hard ban от ADLE v8)`);
+            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа КЕТЧУП/МАЙОНЕЗА (hard ban от ADLE v8)`;
+            errors.push(error);
+            stepErrors.step3_mealplan.push(error);
           }
           
           // Check for peas + fish forbidden combination
           if (/\b(грах|peas)\b/.test(mealText) && /\b(риба|fish)\b/.test(mealText)) {
-            errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: ГРАХ + РИБА забранена комбинация (ADLE v8 R0)`);
+            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: ГРАХ + РИБА забранена комбинация (ADLE v8 R0)`;
+            errors.push(error);
+            stepErrors.step3_mealplan.push(error);
           }
           
           // Check for non-whitelist proteins (R12 enforcement)
@@ -1647,7 +1714,9 @@ function validatePlan(plan, userData) {
               const actualWord = mealText.match(matchedWordRegex)?.[0] || protein;
               
               if (!hasReasonJustification(meal)) {
-                errors.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord.toUpperCase()}" което НЕ е в whitelist (ADLE v8 R12). Изисква се Reason: ... ако е обективно необходимо.`);
+                const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord.toUpperCase()}" което НЕ е в whitelist (ADLE v8 R12). Изисква се Reason: ... ако е обективно необходимо.`;
+                errors.push(error);
+                stepErrors.step3_mealplan.push(error);
                 foundNonWhitelistProtein = true;
               } else {
                 warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord}" с обосновка - проверете дали е валидна`);
@@ -1659,10 +1728,24 @@ function validatePlan(plan, userData) {
     });
   }
   
+  // Determine which step to restart from (earliest step with errors)
+  let earliestErrorStep = null;
+  if (stepErrors.step1_analysis.length > 0) {
+    earliestErrorStep = 'step1_analysis';
+  } else if (stepErrors.step2_strategy.length > 0) {
+    earliestErrorStep = 'step2_strategy';
+  } else if (stepErrors.step3_mealplan.length > 0) {
+    earliestErrorStep = 'step3_mealplan';
+  } else if (stepErrors.step4_final.length > 0) {
+    earliestErrorStep = 'step4_final';
+  }
+  
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
+    warnings,
+    stepErrors,
+    earliestErrorStep
   };
 }
 
@@ -1756,8 +1839,20 @@ ${JSON.stringify({
   medicalConditions: userData.medicalConditions,
   dietPreference: userData.dietPreference,
   dietDislike: userData.dietDislike,
-  dietLove: userData.dietLove
+  dietLove: userData.dietLove,
+  additionalNotes: userData.additionalNotes
 }, null, 2)}
+
+${userData.additionalNotes ? `
+═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корекциите!
+
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${userData.name}:
+${userData.additionalNotes}
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Всички корекции трябва да уважават тази информация!
+═══════════════════════════════════════════════════════════════
+` : ''}
 
 ═══ ПРАВИЛА ЗА КОРИГИРАНЕ ═══
 
@@ -2152,8 +2247,28 @@ ${JSON.stringify({
   // Preferences
   dietPreference: data.dietPreference,
   dietDislike: data.dietDislike,
-  dietLove: data.dietLove
+  dietLove: data.dietLove,
+  
+  // Additional notes from user (CRITICAL INFORMATION)
+  additionalNotes: data.additionalNotes
 }, null, 2)}
+
+${data.additionalNotes ? `
+═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+⚠️ МАКСИМАЛЕН ПРИОРИТЕТ: Следната информация е предоставена директно от потребителя и ТРЯБВА да бъде взета предвид при ЦЕЛИЯ анализ, изчисления и препоръки.
+Това може да променя критично анализа, стратегията и плана!
+
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${data.name}:
+${data.additionalNotes}
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Анализирай как тази информация влияе на:
+1. Изчисленията на BMR/TDEE/Калории
+2. Избора на диетична стратегия
+3. Психологическия профил
+4. Медицинските противопоказания
+5. Храните и храненията в плана
+═══════════════════════════════════════════════════════════════
+` : ''}
 
 ═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
 Основни физически параметри (за референция):
@@ -2577,6 +2692,23 @@ ${analysisCompact.weeklyBlueprint ? `- Седмична структура: ${an
 ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : ''}
 - Не обича/непоносимост: ${data.dietDislike || 'Няма'}
 - Любими храни: ${data.dietLove || 'Няма'}
+
+${data.additionalNotes ? `
+═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+⚠️ МАКСИМАЛЕН ПРИОРИТЕТ: Следната информация е предоставена директно от потребителя и ТРЯБВА да се взема предвид при създаването на стратегията!
+Това може да променя критично избора на модификатор, брой хранения, време на хранене и цялостния подход!
+
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${data.name}:
+${data.additionalNotes}
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Адаптирай стратегията на база тази информация, особено:
+1. Избора на dietaryModifier и modifierReasoning
+2. Времето на хранене (mealTiming)
+3. Броя хранения (mealCountJustification)
+4. Психологическата подкрепа и дългосрочна стратегия
+5. Специфични хранителни препоръки
+═══════════════════════════════════════════════════════════════
+` : ''}
 
 ВАЖНО: Вземи предвид ВСИЧКИ параметри холистично и създай КОРЕЛАЦИИ между тях:
 1. Медицинските състояния и лекарства - как влияят на хранителните нужди
@@ -3041,6 +3173,22 @@ ${blueprintSection}
 Принципи: ${strategyCompact.keyPrinciples}
 Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
 Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
+
+${data.additionalNotes ? `
+═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+⚠️ МАКСИМАЛЕН ПРИОРИТЕТ: Следната информация е предоставена директно от потребителя и ТРЯБВА да се взема предвид при създаването на хранителния план!
+
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${data.name}:
+${data.additionalNotes}
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Адаптирай ястията и хранителния план на база тази информация:
+1. Специфични хранителни ограничения или предпочитания
+2. Времеви ограничения или навици
+3. Специални обстоятелства (работа, семейство, спорт и др.)
+4. Здравословни фактори които не са споменати другаде
+5. Всякакви други изисквания които могат да повлияят плана
+═══════════════════════════════════════════════════════════════
+` : ''}
 
 === КОРЕЛАЦИОННА АДАПТАЦИЯ ===
 СТРЕС И ХРАНЕНЕ:
@@ -5092,7 +5240,17 @@ function getDefaultPromptTemplates() {
     analysis: `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
-{userData: JSON object with name, age, gender, height, weight, goal, lossKg, sleepHours, sleepInterrupt, chronotype, sportActivity, dailyActivityLevel, stressLevel, waterIntake, drinksSweet, drinksAlcohol, overeatingFrequency, eatingHabits, foodCravings, foodTriggers, compensationMethods, socialComparison, medicalConditions, medications, medicationsDetails, weightChange, weightChangeDetails, dietHistory, dietType, dietResult, dietPreference, dietDislike, dietLove}
+{userData: JSON object with name, age, gender, height, weight, goal, lossKg, sleepHours, sleepInterrupt, chronotype, sportActivity, dailyActivityLevel, stressLevel, waterIntake, drinksSweet, drinksAlcohol, overeatingFrequency, eatingHabits, foodCravings, foodTriggers, compensationMethods, socialComparison, medicalConditions, medications, medicationsDetails, weightChange, weightChangeDetails, dietHistory, dietType, dietResult, dietPreference, dietDislike, dietLove, additionalNotes}
+
+{Conditionally shown if additionalNotes exists:
+"═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+⚠️ МАКСИМАЛЕН ПРИОРИТЕТ: Следната информация е предоставена директно от потребителя и ТРЯБВА да бъде взета предвид при ЦЕЛИЯ анализ, изчисления и препоръки.
+
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ {name}:
+{additionalNotes}
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Анализирай как тази информация влияе на всички аспекти!
+═══════════════════════════════════════════════════════════════"}
 
 ═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
 Основни физически параметри (за референция):
