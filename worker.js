@@ -600,6 +600,1125 @@ function removeInternalJustifications(plan) {
 }
 
 /**
+ * JSON response helper with CORS headers
+ */
+function jsonResponse(data, status = 200, options = {}) {
+  const headers = { ...CORS_HEADERS };
+  
+  // Add cache-control header if specified
+  // Examples:
+  //   - 'no-cache' - don't cache (default for dynamic data)
+  //   - 'public, max-age=300' - cache for 5 minutes
+  //   - 'public, max-age=1800' - cache for 30 minutes
+  if (options.cacheControl) {
+    headers['Cache-Control'] = options.cacheControl;
+  } else {
+    // Default: no-cache for dynamic API responses
+    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+  }
+  
+  return new Response(JSON.stringify(data), {
+    status,
+    headers
+  });
+}
+
+/**
+ * Sanitize JSON string to fix common AI formatting issues
+ * - Remove trailing commas before } or ]
+ * - Fix missing commas between array/object elements
+ * - Remove duplicate commas
+ */
+function sanitizeJSON(jsonStr) {
+  let result = jsonStr;
+  
+  // 1. Remove trailing commas before } or ]
+  result = result.replace(/,(\s*[}\]])/g, '$1');
+  
+  // 2. Remove duplicate commas (,,)
+  result = result.replace(/,\s*,+/g, ',');
+  
+  // 3. Fix missing comma between consecutive objects in arrays
+  // Pattern: }\s*{ -> },{
+  result = result.replace(/}(\s*){/g, '},$1{');
+  
+  // 4. Fix missing comma between consecutive arrays
+  // Pattern: ]\s*[ -> ],[
+  result = result.replace(/](\s*)\[/g, '],$1[');
+  
+  // 5. Fix missing comma between object and array
+  // Pattern: }\s*[ -> },[
+  result = result.replace(/}(\s*)\[/g, '},$1[');
+  
+  // 6. Fix missing comma between array and object
+  // Pattern: ]\s*{ -> ],{
+  result = result.replace(/](\s*){/g, '],$1{');
+  
+  return result;
+}
+
+/**
+ * Extract JSON object or array from response using balanced brace/bracket matching
+ * This prevents greedy regex from capturing non-JSON text after the object/array
+ */
+function extractBalancedJSON(text) {
+  // Look for either { or [ as the start of JSON
+  let firstBrace = text.indexOf('{');
+  let firstBracket = text.indexOf('[');
+  
+  // Determine which comes first (or if only one exists)
+  let startIndex = -1;
+  let startChar = null;
+  
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIndex = firstBrace;
+    startChar = '{';
+  } else if (firstBracket !== -1) {
+    startIndex = firstBracket;
+    startChar = '[';
+  } else {
+    return null; // No JSON structure found
+  }
+  
+  let braceCount = 0;
+  let bracketCount = 0;
+  let inString = false;
+  let escapeNext = false;
+  
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+    
+    // Handle escape sequences
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escapeNext = true;
+      continue;
+    }
+    
+    // Track string boundaries to ignore braces/brackets in strings
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    
+    // Only count braces/brackets outside of strings
+    if (!inString) {
+      if (char === '{') {
+        braceCount++;
+      } else if (char === '}') {
+        braceCount--;
+      } else if (char === '[') {
+        bracketCount++;
+      } else if (char === ']') {
+        bracketCount--;
+      }
+      
+      // When we close all braces/brackets, we have a complete JSON structure
+      if (startChar === '{' && braceCount === 0) {
+        return text.substring(startIndex, i + 1);
+      } else if (startChar === '[' && bracketCount === 0) {
+        return text.substring(startIndex, i + 1);
+      }
+    }
+  }
+  
+  return null; // No balanced JSON found
+}
+
+/**
+ * Parse AI response and extract JSON
+ */
+function parseAIResponse(response) {
+  try {
+    // Step 1: Try to extract JSON from markdown code blocks first
+    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
+    if (markdownJsonMatch) {
+      try {
+        const cleaned = sanitizeJSON(markdownJsonMatch[1]);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
+      }
+    }
+    
+    // Step 2: Try to find JSON using balanced brace matching (non-greedy)
+    const jsonObject = extractBalancedJSON(response);
+    if (jsonObject) {
+      try {
+        const cleaned = sanitizeJSON(jsonObject);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.warn('Failed to parse extracted JSON object, trying fallback:', e.message);
+      }
+    }
+    
+    // Step 3: Fallback to greedy match but with sanitization
+    const jsonMatch = response.match(/[\[{][\s\S]*[}\]]/);
+    if (jsonMatch) {
+      try {
+        const cleaned = sanitizeJSON(jsonMatch[0]);
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.error('All JSON parsing attempts failed:', e.message);
+        
+        // Extract position from error message if available
+        const posMatch = e.message.match(/position (\d+)/);
+        if (posMatch) {
+          const errorPos = parseInt(posMatch[1]);
+          const contextStart = Math.max(0, errorPos - 100);
+          const contextEnd = Math.min(jsonMatch[0].length, errorPos + 100);
+          console.error('Context around error position:', jsonMatch[0].substring(contextStart, contextEnd));
+        }
+        
+        console.error('Response excerpt (first 500 chars):', response.substring(0, 500));
+        console.error('Response excerpt (last 500 chars):', response.substring(Math.max(0, response.length - 500)));
+        
+        // Return a user-friendly error without exposing the raw response
+        return { error: `All JSON parsing attempts failed: ${e.message}` };
+      }
+    }
+    
+    // If no JSON found, return the response as-is wrapped in a structure
+    console.error('No JSON structure found in AI response');
+    console.error('Response excerpt (first 1000 chars):', response.substring(0, 1000));
+    return { error: 'Could not parse AI response - no JSON found' };
+  } catch (error) {
+    console.error('Error parsing AI response:', error);
+    console.error('Response length:', response?.length || 0);
+    return { error: `Failed to parse response: ${error.message}` };
+  }
+}
+
+// Enhancement #3: Estimate tokens for a message
+// Note: This is a rough approximation (~4 chars per token for mixed content).
+// Actual GPT tokenization varies by language and content. This is sufficient
+// for conversation history management where approximate limits are acceptable.
+function estimateTokens(text) {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * More accurate token count estimation for AI prompts (supports Cyrillic)
+ */
+function estimateTokenCount(text) {
+  if (!text) return 0;
+  
+  // Count Cyrillic vs Latin characters
+  const cyrillicChars = (text.match(/[\u0400-\u04FF]/g) || []).length;
+  const totalChars = text.length;
+  const cyrillicRatio = cyrillicChars / totalChars;
+  
+  // Cyrillic-heavy text: ~3 chars per token
+  // Latin-heavy text: ~4 chars per token
+  // Mixed text: interpolate between them
+  const charsPerToken = 4 - (cyrillicRatio * 1); // 3-4 range
+  
+  return Math.ceil(totalChars / charsPerToken);
+}
+
+/**
+ * Generate a unique session or log ID
+ * @param {string} prefix - Prefix for the ID (e.g., 'session', 'regen', 'ai_log')
+ * @returns {string} Unique ID with timestamp and random component
+ */
+function generateUniqueId(prefix = 'id') {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+}
+
+/**
+ * Generate user ID from user data
+ */
+function generateUserId(data) {
+  const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
+  return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+}
+
+// Enhancement #4: Check if a food item exists in the meal plan (case-insensitive, partial match)
+function checkFoodExistsInPlan(plan, foodName) {
+  if (!plan || !plan.weekPlan) return false;
+  
+  const searchTerm = foodName.toLowerCase();
+  
+  // Search through all days and meals
+  for (const dayKey in plan.weekPlan) {
+    const day = plan.weekPlan[dayKey];
+    if (day && Array.isArray(day.meals)) {
+      for (const meal of day.meals) {
+        // Check meal name and description
+        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (meal.description && meal.description.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Call AI model with load monitoring
+ * Goal: Monitor request sizes to ensure no single request is overloaded
+ * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
+ */
+async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null) {
+  // Improved token estimation for Cyrillic text
+  const estimatedInputTokens = estimateTokenCount(prompt);
+  console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
+  
+  // Monitor for large prompts - informational only
+  // Note: Progressive generation already distributes meal plan across multiple requests
+  if (estimatedInputTokens > 8000) {
+    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context. Progressive generation is already enabled for meal plans.`);
+  }
+  
+  // Alert if prompt is very large - may indicate issue
+  if (estimatedInputTokens > 12000) {
+    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function to ensure this is intentional.`);
+  }
+  
+  // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
+  const config = await getAdminConfig(env);
+  const preferredProvider = config.provider;
+  const modelName = config.modelName;
+
+  // Log AI request
+  const logId = await logAIRequest(env, stepName, {
+    prompt: prompt,
+    estimatedInputTokens: estimatedInputTokens,
+    maxTokens: maxTokens,
+    provider: preferredProvider,
+    modelName: modelName,
+    sessionId: sessionId
+  });
+
+  const startTime = Date.now();
+  let response;
+  let success = false;
+  let error = null;
+
+  try {
+    // If mock is selected, return mock response
+    if (preferredProvider === 'mock') {
+      console.warn('Mock mode selected. Returning mock response.');
+      response = generateMockResponse(prompt);
+      success = true;
+    } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
+      // Try preferred provider first
+      response = await callOpenAI(env, prompt, modelName, maxTokens);
+      success = true;
+    } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
+      response = await callClaude(env, prompt, modelName, maxTokens);
+      success = true;
+    } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
+      response = await callGemini(env, prompt, modelName, maxTokens);
+      success = true;
+    } else {
+      // Fallback hierarchy if preferred not available
+      if (env.OPENAI_API_KEY) {
+        console.warn('Preferred provider not available. Falling back to OpenAI.');
+        response = await callOpenAI(env, prompt, modelName, maxTokens);
+        success = true;
+      } else if (env.ANTHROPIC_API_KEY) {
+        console.warn('Preferred provider not available. Falling back to Anthropic.');
+        response = await callClaude(env, prompt, modelName, maxTokens);
+        success = true;
+      } else if (env.GEMINI_API_KEY) {
+        console.warn('Preferred provider not available. Falling back to Google Gemini.');
+        response = await callGemini(env, prompt, modelName, maxTokens);
+        success = true;
+      } else {
+        throw new Error('No AI provider configured. Please configure at least one provider.');
+      }
+    }
+  } catch (err) {
+    console.error('Error calling AI model:', err);
+    error = err.message || 'Unknown error';
+    throw err;
+  } finally {
+    // Log AI response
+    await logAIResponse(env, logId, {
+      response: response,
+      success: success,
+      error: error,
+      duration: Date.now() - startTime
+    });
+  }
+
+  return response;
+}
+
+/**
+ * Generate chat prompt with full context for precise analysis
+ * NOTE: Uses full data in both modes to ensure comprehensive understanding of user context
+ */
+async function generateChatPrompt(env, userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
+  // Use FULL data for both modes to ensure precise, comprehensive analysis
+  // No compromise on data completeness for individualization and quality
+  
+  // Base context with complete data
+  const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
+
+КЛИЕНТСКИ ПРОФИЛ:
+${JSON.stringify(userData, null, 2)}
+
+ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
+${JSON.stringify(userPlan, null, 2)}
+
+${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
+`;
+
+  // Get mode-specific instructions from KV (with caching)
+  const chatPrompts = await getChatPrompts(env);
+  let modeInstructions = '';
+  
+  if (mode === 'consultation') {
+    modeInstructions = chatPrompts.consultation;
+  } else if (mode === 'modification') {
+    // Replace {goal} placeholder with actual user goal
+    modeInstructions = chatPrompts.modification.replace(/{goal}/g, userData.goal || 'твоята цел');
+  }
+
+  const fullPrompt = `${baseContext}
+${modeInstructions}
+
+ВЪПРОС: ${userMessage}
+
+АСИСТЕНТ (отговори КРАТКО):`;
+
+  return fullPrompt;
+}
+
+/**
+ * Generate simplified fallback plan when main generation fails
+ * Uses conservative approach with basic meals and minimal complexity
+ * Last resort to provide user with something useful rather than complete failure
+ */
+async function generateSimplifiedFallbackPlan(env, data) {
+  console.log('Generating simplified fallback plan');
+  
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, data.sportActivity);
+  let recommendedCalories = tdee;
+  
+  // Adjust for goal
+  if (data.goal && data.goal.toLowerCase().includes('отслабване')) {
+    recommendedCalories = Math.round(tdee * 0.85);
+  } else if (data.goal && data.goal.toLowerCase().includes('мускулна маса')) {
+    recommendedCalories = Math.round(tdee * 1.1);
+  }
+  
+  // Simplified prompt with basic requirements
+  const simplifiedPrompt = `Създай ОПРОСТЕН 7-дневен хранителен план за ${data.name}.
+
+ОСНОВНИ ДАННИ:
+- BMR: ${bmr} kcal, TDEE: ${tdee} kcal
+- Целеви калории: ${recommendedCalories} kcal/ден
+- Цел: ${data.goal}
+- Възраст: ${data.age}, Пол: ${data.gender}
+- Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+- Алергии/Непоносимости: ${data.dietDislike || 'няма'}
+
+ИЗИСКВАНИЯ (ОПРОСТЕНИ):
+- 3 хранения на ден: Закуска, Обяд, Вечеря
+- Всяко ястие с calories и macros (protein, carbs, fats, fiber)
+- Общо около ${recommendedCalories} kcal/ден
+- Балансирани макроси: 30% протеини, 40% въглехидрати, 30% мазнини
+
+ФОРМАТ (JSON):
+{
+  "day1": {"meals": [...]},
+  "day2": {"meals": [...]},
+  ...
+  "day7": {"meals": [...]}
+}
+
+Създай прост, практичен план.`;
+
+  // Call AI with simplified prompt
+  const response = await callAIModel(env, simplifiedPrompt, 2000, 'fallback_plan');
+  
+  const plan = {
+    analysis: { bmr, recommendedCalories, goal: data.goal },
+    weekPlan: JSON.parse(response),
+    summary: {
+      bmr,
+      dailyCalories: recommendedCalories,
+      macros: { protein: 150, carbs: 200, fats: 65 }
+    },
+    recommendations: ['Пийте достатъчно вода', 'Спазвайте хранителните часове'],
+    forbidden: [],
+    psychology: ['Бъдете постоянни'],
+    waterIntake: '2-3 литра дневно',
+    supplements: []
+  };
+  
+  return plan;
+}
+
+/**
+ * Helper function to fetch and build dynamic whitelist/blacklist sections for prompts
+ */
+async function getDynamicFoodListsSections(env) {
+  let dynamicWhitelist = [];
+  let dynamicBlacklist = [];
+  
+  try {
+    if (env && env.page_content) {
+      const whitelistData = await env.page_content.get('food_whitelist');
+      if (whitelistData) {
+        dynamicWhitelist = JSON.parse(whitelistData);
+      }
+      
+      const blacklistData = await env.page_content.get('food_blacklist');
+      if (blacklistData) {
+        dynamicBlacklist = JSON.parse(blacklistData);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading whitelist/blacklist from KV:', error);
+  }
+  
+  // Build dynamic whitelist section if there are custom items
+  let dynamicWhitelistSection = '';
+  if (dynamicWhitelist.length > 0) {
+    dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
+  }
+  
+  // Build dynamic blacklist section if there are custom items
+  let dynamicBlacklistSection = '';
+  if (dynamicBlacklist.length > 0) {
+    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
+  }
+  
+  return { dynamicWhitelistSection, dynamicBlacklistSection };
+}
+
+/**
+ * Generate prompt for a chunk of days (progressive generation)
+ */
+async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env, errorPreventionComment = null) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
+  
+  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
+  const daysInChunk = endDay - startDay + 1;
+  
+  // Build modifications section
+  let modificationsSection = '';
+  if (data.planModifications && data.planModifications.length > 0) {
+    const modLines = data.planModifications
+      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
+      .filter(desc => desc !== undefined);
+    if (modLines.length > 0) {
+      modificationsSection = `\nМОДИФИКАЦИИ: ${modLines.join('; ')}`;
+    }
+  }
+  
+  // Build previous days context for variety (compact - only meal names)
+  let previousDaysContext = '';
+  if (previousDays.length > 0) {
+    const prevMeals = previousDays.map(d => {
+      const mealNames = d.meals.map(m => m.name).join(', ');
+      return `Ден ${d.day}: ${mealNames}`;
+    }).join('; ');
+    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\n\nПОВТОРЕНИЕ (Issue #11 - ФАЗА 4): Максимум 5 ястия могат да се повторят в цялата седмица. ИЗБЯГВАЙ повтаряне на горните ястия, освен ако не е абсолютно необходимо!`;
+  }
+  
+  // Extract only essential strategy fields (COMPACT - no full JSON)
+  const strategyCompact = {
+    dietType: strategy.dietType || 'Балансирана',
+    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
+    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
+    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '), // Only top 3
+    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '), // Only top 5
+    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
+  };
+  
+  // Fetch dynamic whitelist and blacklist from KV storage
+  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
+  
+  // Extract meal pattern from strategy
+  let mealPlanGuidance = '';
+  if (strategy && strategy.mealTiming) {
+    const timing = strategy.mealTiming;
+    mealPlanGuidance = `
+=== СЕДМИЧНА СТРУКТУРА НА ХРАНЕНЕ ===
+ВАЖНО: Създай хранения според стратегията и хронотипа на клиента.
+
+Седмичен модел: ${strategy.weeklyMealPattern || 'Стандартен модел'}
+Структура: ${timing.pattern || 'Консистентна структура'}
+Прозорци на гладуване: ${timing.fastingWindows || 'няма'}
+Гъвкавост: ${timing.flexibility || 'Модерирана'}
+Насоки за хронотип (${data.chronotype}): ${timing.chronotypeGuidance || 'Адаптирай според енергийните пикове'}
+
+Брой хранения: ${strategy.mealCountJustification || 'Определи според профила (обикновено 2-4 хранения)'}
+
+ВАЖНО:
+- Генерирай хранения според горната структура и целевите калории (${recommendedCalories} kcal/ден)
+- Сборът на калориите за деня ТРЯБВА да е приблизително ${recommendedCalories} kcal
+- Адаптирай времето и размера на храненията според хронотипа
+- Ако има интермитентно гладуване, спазвай прозорците на хранене
+`;
+  
+  const defaultPrompt = `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+
+=== ЗАДАЧА ===
+Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
+
+=== КЛИЕНТ ===
+Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
+BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
+Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
+${mealPlanGuidance}
+=== СТРАТЕГИЯ (КОМПАКТНА) ===
+Диета: ${strategyCompact.dietType}
+Схема: ${strategyCompact.weeklyMealPattern}
+Хранения: ${strategyCompact.mealTiming}
+Принципи: ${strategyCompact.keyPrinciples}
+Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
+Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
+
+${data.additionalNotes ? `
+═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+⚠️ МАКСИМАЛЕН ПРИОРИТЕТ: Следната информация е предоставена директно от потребителя и ТРЯБВА да се взема предвид при създаването на хранителния план!
+
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${data.name}:
+${data.additionalNotes}
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Адаптирай ястията и хранителния план на база тази информация:
+1. Специфични хранителни ограничения или предпочитания
+2. Времеви ограничения или навици
+3. Специални обстоятелства (работа, семейство, спорт и др.)
+4. Здравословни фактори които не са споменати другаде
+5. Всякакви други изисквания които могат да повлияят плана
+═══════════════════════════════════════════════════════════════
+` : ''}
+
+=== КОРЕЛАЦИОННА АДАПТАЦИЯ ===
+СТРЕС И ХРАНЕНЕ:
+- Стрес: ${data.stressLevel}
+- При висок стрес, включи храни богати на:
+  * Магнезий (тъмно зелени листни зеленчуци, ядки, семена, пълнозърнести храни)
+  * Витамин C (цитруси, чушки, зеле)
+  * Омега-3 (мазна риба, ленено семе, орехи)
+  * Комплекс B витамини (яйца, месо, бобови)
+- Избягвай стимуланти (кафе, енергийни напитки) при висок стрес
+
+ХРОНОТИП И КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ:
+- Хронотип: ${data.chronotype}
+- "Ранобуден" / "Сова на сутринта" → По-обилна закуска (30-35% калории), умерена вечеря (25%)
+- "Вечерен тип" / "Нощна сова" → Лека закуска (20%), по-обилна вечеря (35% калории)
+- "Смесен тип" → Балансирано разпределение (25-30-25-20%)
+
+СЪН И ХРАНЕНЕ:
+- Сън: ${data.sleepHours}ч
+- При малко сън (< 6ч): Включи храни с триптофан (яйца, кисело мляко, банани, сирене) за подобряване на съня
+- Избягвай тежки храни вечер ако съня е прекъсван
+
+=== АРХИТЕКТУРА ===
+Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
+Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
+Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
+
+=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
+ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
+
+0) HARD BANS (0% ВИНАГИ):
+- лук (всякаква форма), пуешко месо, изкуствени подсладители
+- мед, захар, конфитюр, сиропи
+- кетчуп, майонеза, BBQ/сладки сосове
+- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
+- грах + риба (забранена комбинация)
+
+0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
+
+HARD RULES (R1-R12):
+R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
+R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
+R3: Енергия = 0-1 (никога 2).
+R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
+R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
+R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
+R7: Правило за бекон: Ако бекон → Мазнини=0.
+R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
+R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
+R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
+R11: Template C (сандвич): Само за закуски; бобови забранени; без забранени сосове/подсладители.
+R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
+
+=== WHITELISTS (РАЗРЕШЕНИ ХРАНИ) - ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ ===
+КРИТИЧНО: Използвай САМО храни от тези списъци! Извън-whitelist САМО с Reason: ...
+
+WHITELIST PROTEIN (избери точно 1 главен белтък):
+- яйца (eggs)
+- пилешко (chicken)
+- говеждо (beef)
+- постна свинска (lean pork)
+- риба (white fish, скумрия/mackerel, риба тон/canned tuna)
+- кисело мляко (yogurt - plain, несладко)
+- извара (cottage cheese - plain)
+- сирене (cheese - умерено)
+- боб (beans)
+- леща (lentils)
+- нахут (chickpeas)
+- грах (peas - виж 3.5)
+
+ЗАБРАНЕНИ БЕЛТЪЦИ (НЕ използвай без Reason):
+- пуешко месо (turkey meat) - HARD BAN
+- заешко (rabbit) - ИЗВЪН whitelist
+- патица (duck) - ИЗВЪН whitelist
+- гъска (goose) - ИЗВЪН whitelist
+- агне (lamb) - ИЗВЪН whitelist
+- дивеч (game meat) - ИЗВЪН whitelist
+- всички екзотични меса - ИЗВЪН whitelist
+
+WHITELIST VEGETABLES (избери 1-2):
+- домати, краставици, чушки, зеле, моркови
+- салата/листни зеленчуци (lettuce/greens), спанак
+- тиквички, гъби, броколи, карфиол
+- пресни нарязани: домати/краставици/чушки (БЕЗ дресинг)
+
+WHITELIST ENERGY (избери 0-1):
+- овесени ядки (oats)
+- ориз (rice)
+- картофи (potatoes)
+- паста (pasta)
+- булгур (bulgur)
+ЗАБЕЛЕЖКА: Царевица НЕ е енергия!
+
+WHITELIST FAT (избери 0-1):
+- зехтин (olive oil)
+- масло (butter - умерено)
+- ядки/семена (nuts/seeds - умерено)
+${dynamicWhitelistSection}${dynamicBlacklistSection}
+
+СПЕЦИАЛНИ ПРАВИЛА:
+- Грах + риба = СТРОГО ЗАБРАНЕНО
+- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
+- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
+- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
+- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
+
+=== КРИТИЧНИ ИЗИСКВАНИЯ ===
+1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
+2. ПРЕЦИЗНИ КАЛОРИИ: Изчислени като protein×4 + carbs×4 + fats×9 за ВСЯКО ястие
+3. ЦЕЛЕВА ДНЕВНА СУМА: Около ${recommendedCalories} kcal на ден (±${DAILY_CALORIE_TOLERANCE} kcal е приемливо)
+   - Целта е ОРИЕНТИР, НЕ строго изискване
+   - По-важно е да спазиш правилния брой и ред на хранения, отколкото да достигнеш точно калориите
+4. БРОЙ ХРАНЕНИЯ: 1-6 хранения на ден според диетичната стратегия и целта
+   - 1 хранене (OMAD): само при ясна стратегия за интермитентно гладуване
+   - 2 хранения: при стратегия за интермитентно гладуване (16:8, 18:6)
+   - 3 хранения: Закуска, Обяд, Вечеря (стандартен вариант)
+   - 4 хранения: Закуска, Обяд, Следобедна закуска, Вечеря (при нужда от по-честа хранене)
+   - 5 хранения: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска (при специфични случаи)
+   - 6 хранения: рядко, само при специфична медицинска/спортна стратегия
+   - КРИТИЧНО: Броят хранения се определя от СТРАТЕГИЯТА, НЕ от нуждата да се достигнат калории!
+   - НИКОГА не добавяй хранения САМО за достигане на калории!
+5. РАЗНООБРАЗИЕ: Всеки ден различен от предишните
+6. Реалистични български/средиземноморски ястия
+
+=== МЕДИЦИНСКИ И ДИЕТЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
+КРИТИЧНО ВАЖНО: Следвай СТРОГО медицинските и диететични принципи за ред на храненията:
+
+1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
+   - "Закуска" (сутрин) - САМО като първо хранене на деня
+   - "Обяд" (обед) - САМО след закуската или като първо хранене (ако няма закуска)
+   - "Следобедна закуска" (опционално, между обяд и вечеря)
+   - "Вечеря" (вечер) - обикновено последно хранене
+   - "Късна закуска" (опционално, САМО след вечеря, специални случаи)
+
+2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
+   - НЕ може да има закуска след обяд
+   - НЕ може да има обяд след вечеря
+   - НЕ може да има вечеря преди обяд
+
+3. КЪСНА ЗАКУСКА - строги изисквания:
+   КОГАТО Е ДОПУСТИМА:
+   - Дълъг период между вечеря и сън (> 4 часа)
+   - Проблеми със съня заради глад
+   - Диабет тип 2 (стабилизиране на кръвната захар)
+   - Интензивни тренировки вечер
+   - Работа на смени (нощни смени)
+   
+   ЗАДЪЛЖИТЕЛНИ УСЛОВИЯ:
+   - САМО след "Вечеря" (никога преди)
+   - МАКСИМУМ 1 на ден
+   - САМО храни с НИСЪК ГЛИКЕМИЧЕН ИНДЕКС (ГИ < 55):
+     * Кисело мляко (150ml), кефир
+     * Ядки: 30-40g бадеми/орехи/лешници/кашу
+     * Ягоди/боровинки/малини (50-100g)
+     * Авокадо (половин)
+     * Семена: чиа/ленено/тиквени (1-2 с.л.)
+   - МАКСИМУМ ${MAX_LATE_SNACK_CALORIES} калории
+   - НЕ използвай ако не е оправдано от профила на клиента!
+
+4. КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ: 
+   - Разпредели калориите в избраните хранения според стратегията (1-6 хранения)
+   - Ако порциите стават твърде големи, това е приемливо - по-добре от добавяне на хранения след вечеря
+   - Допустимо е да имаш 1800 kcal вместо 2000 kcal - това НЕ е проблем
+   - АБСОЛЮТНО ЗАБРАНЕНО е да добавяш хранения след вечеря без оправдание!
+
+${MEAL_NAME_FORMAT_INSTRUCTIONS}
+
+JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
+{
+  "day${startDay}": {
+    "meals": [
+      {"type": "Закуска", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
+      {"type": "Обяд", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
+      {"type": "Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+    ],
+    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
+  }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
+}
+
+Генерирай дни ${startDay}-${endDay} с балансирани ястия в правилен хронологичен ред. ЗАДЪЛЖИТЕЛНО включи dailyTotals за проверка!`;
+  
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt
+    let prompt = replacePromptVariables(customPrompt, {
+      userData: data,
+      analysisData: analysis,
+      strategyData: strategy,
+      bmr: bmr,
+      recommendedCalories: recommendedCalories,
+      startDay: startDay,
+      endDay: endDay,
+      previousDays: previousDays
+    });
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да е:
+{
+  "dayN": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+    ],
+    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
+  }
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+    }
+    return prompt;
+  }
+  
+  return defaultPrompt;
+}
+
+/**
+ * Step 3: Generate prompt for detailed meal plan (LEGACY - used when progressive generation is disabled)
+ * 
+ * ARCHPROMPT INTEGRATION:
+ * This function integrates the sophisticated dietary logic system from archprompt.txt
+ * The system uses a MODIFIER (dietary profile) determined by the AI in Step 2 to:
+ * - Filter food categories based on dietary restrictions
+ * - Select appropriate meal templates (Шаблон A, B, C, D)
+ * - Apply logical rules for food combinations
+ * - Generate balanced, natural-sounding meals
+ * 
+ * The MODIFIER acts as a filter applied to the universal food architecture:
+ * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
+ */
+async function generateMealPlanPrompt(data, analysis, strategy, env, errorPreventionComment = null) {
+  // Parse BMR from analysis (may be a number or string) or calculate from user data
+  let bmr;
+  if (analysis.bmr) {
+    // If bmr is already a number, use it directly
+    if (typeof analysis.bmr === 'number') {
+      bmr = Math.round(analysis.bmr);
+    } else {
+      // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ІНДИВІДУАЛНО изчислен)")
+      const bmrMatch = String(analysis.bmr).match(/\d+/);
+      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+    }
+  }
+  
+  // If no valid BMR from analysis, calculate it
+  if (!bmr) {
+    bmr = calculateBMR(data);
+  }
+  
+  // Parse recommended calories from analysis or calculate from TDEE
+  let recommendedCalories;
+  if (analysis.recommendedCalories) {
+    // If recommendedCalories is already a number, use it directly
+    if (typeof analysis.recommendedCalories === 'number') {
+      recommendedCalories = Math.round(analysis.recommendedCalories);
+    } else {
+      // Try to extract numeric value from analysis.recommendedCalories
+      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+    }
+  }
+  
+  // If no recommended calories from analysis, calculate TDEE
+  if (!recommendedCalories) {
+    const tdee = calculateTDEE(bmr, data.sportActivity);
+    // Adjust based on goal
+    if (data.goal === 'Отслабване') {
+      recommendedCalories = Math.round(tdee * 0.85); // 15% deficit
+    } else if (data.goal === 'Покачване на мускулна маса') {
+      recommendedCalories = Math.round(tdee * 1.1); // 10% surplus
+    } else {
+      recommendedCalories = tdee; // Maintenance
+    }
+  }
+  
+  // Build modifications section if any
+  let modificationsSection = '';
+  if (data.planModifications && data.planModifications.length > 0) {
+    const modLines = data.planModifications
+      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
+      .filter(desc => desc !== undefined); // Skip unknown modifications
+    
+    if (modLines.length > 0) {
+      modificationsSection = `
+СПЕЦИАЛНИ МОДИФИКАЦИИ НА ПЛАНА:
+${modLines.join('\n')}
+
+ВАЖНО: Спазвай СТРИКТНО тези модификации при генерирането на плана!
+`;
+    }
+  }
+  
+  // Extract dietary modifier from strategy
+  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
+  
+  // Fetch dynamic whitelist and blacklist from KV storage
+  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
+  
+  // Create compact strategy (no full JSON)
+  const strategyCompact = {
+    dietType: strategy.dietType || 'Балансирана',
+    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
+    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
+    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '),
+    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '),
+    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', '),
+    psychologicalSupport: (strategy.psychologicalSupport || []).slice(0, 3),
+    supplementRecommendations: (strategy.supplementRecommendations || []).slice(0, 3),
+    hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
+  };
+  
+  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+
+=== КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ ===
+- Този план е САМО и ЕДИНСТВЕНО за ${data.name}
+- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
+- ВСИЧКИ калории, макронутриенти и препоръки са ИНДИВИДУАЛНО изчислени
+- Хранителните добавки са ПЕРСОНАЛНО подбрани според анализа и нуждите
+- Психологическите съвети са базирани на КОНКРЕТНИЯ емоционален профил на ${data.name}
+
+=== МОДИФИКАТОР (Потребителски профил) ===
+ОПРЕДЕЛЕН МОДИФИКАТОР ЗА КЛИЕНТА: "${dietaryModifier}"
+${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning}` : ''}
+
+=== КЛИЕНТ И ЦЕЛИ ===
+Име: ${data.name}, Възраст: ${data.age}, Пол: ${data.gender}
+Цел: ${data.goal}
+BMR (изчислен): ${bmr} kcal
+Препоръчан калориен прием: ${recommendedCalories} kcal/ден
+
+=== СТРАТЕГИЯ (КОМПАКТНА) ===
+Тип: ${strategyCompact.dietType}
+Хранене: ${strategyCompact.mealTiming}
+Принципи: ${strategyCompact.keyPrinciples}
+Включвай: ${strategyCompact.foodsToInclude}
+Избягвай: ${strategyCompact.foodsToAvoid}
+
+${modificationsSection}
+
+${dynamicWhitelistSection}
+${dynamicBlacklistSection}
+
+=== АРХИТЕКТУРА НА ХРАНИТЕ (AFAM) ===
+Базови категории (от които се избират храни според модификатора):
+- [PRO]: Протеинови източници (месо, риба, яйца, протеин на прах)
+- [ENG]: Енергийни източници (зърнени, ориз, паста, картофи, тестени)
+- [VOL]: Обемни/фибърни (зеленчуци, салати, зелени храни)
+- [FAT]: Мазнини (масло, олио, ядки, семки, авокадо)
+- [CMPX]: Комплексни ястия (пълни готови ястия, супи, гозби)
+
+=== ЛОГИКА ЗА КОМБИНИРАНЕ ===
+ШАБЛОНИ ЗА ХРАНЕНИЯ:
+A) PRO + ENG + VOL + FAT (класическо пълно хранене, напр. пиле с ориз и салата)
+B) PRO + VOL + FAT (ниско въглехидратно, напр. риба със зеленчуци)
+C) CMPX (цяло готово ястие, напр. яхния, супа)
+D) ENG + FAT (бърза закуска, напр. овесена каша с ядки)
+
+ОГРАНИЧЕНИЯ:
+- Един топъл обяд (CMPX) дневно е ДОСТАТЪЧЕН
+- Не са нужни комплексни готвени ястия за ВСЯКО хранене
+- Разнообразие = различни КОМПОНЕНТИ, не различно готвене
+- След обяд с пълна гозба → вечеря по-лека
+- Никога обяд И вечеря тежки/сложни същия ден
+
+=== ЗАДАЧА ===
+Генерирай 7-дневен хранителен план (day1-day7) като използваш модификатора за филтриране на позволени храни.
+За ВСЕКИ ДЕН:
+- ${strategy.mealCount || 3} хранения ПО РЕДА НА ХРАНЕНЕ (Закуска първо, после Обяд, след това Вечеря...)
+- Прилагай правилата за комбиниране
+- Всяко ястие с name, time, calories, macros (protein, carbs, fats, fiber)
+- Седмично мислене: РАЗНООБРАЗИЕ между дните
+
+${errorPreventionComment ? `\n=== КОРЕКЦИИ НА ГРЕШКИ ===\n${errorPreventionComment}\n` : ''}
+
+JSON ФОРМАТ:
+{
+  "day1": {
+    "meals": [
+      {"name": "...", "time": "...", "calories": число, "macros": {...}},
+      ...
+    ]
+  },
+  ...
+  "day7": {...}
+}
+
+=== ИНДИВИДУАЛНИ ИЗИСКВАНИЯ ===
+- Медицински: ${JSON.stringify(data.medicalConditions || [])}
+- Предпочитания: ${JSON.stringify(data.dietPreference || [])}
+- Избягвай: ${data.dietDislike || 'няма'}
+- Включвай: ${data.dietLove || 'няма'}
+
+ВАЖНО: Използвай strategy.planJustification, strategy.longTermStrategy, strategy.mealCountJustification и strategy.afterDinnerMealJustification за обосновка на всички нестандартни решения. "recommendations"/"forbidden"=САМО конкретни храни. Всички 7 дни (day1-day7) с 1-5 хранения В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (може да варира при многодневно планиране). Седмичен подход: МИСЛИ СЕДМИЧНО/МНОГОДНЕВНО - ЦЯЛОСТНА схема като система. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
+
+Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}, следвайки стратегията.`;
+}
+
+/**
+ * Generate prompt for summary and recommendations (final step of progressive generation)
+ */
+async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_summary_prompt');
+  
+  // Calculate total calories and macros across the week for validation
+  let totalCalories = 0;
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFats = 0;
+  let dayCount = 0;
+  
+  Object.keys(weekPlan).forEach(dayKey => {
+    if (weekPlan[dayKey] && weekPlan[dayKey].meals) {
+      weekPlan[dayKey].meals.forEach(meal => {
+        totalCalories += (parseInt(meal.calories) || 0);
+        if (meal.macros) {
+          totalProtein += (parseInt(meal.macros.protein) || 0);
+          totalCarbs += (parseInt(meal.macros.carbs) || 0);
+          totalFats += (parseInt(meal.macros.fats) || 0);
+        }
+      });
+      dayCount++;
+    }
+  });
+  
+  const avgCalories = dayCount > 0 ? Math.round(totalCalories / dayCount) : recommendedCalories;
+  const avgProtein = dayCount > 0 ? Math.round(totalProtein / dayCount) : 0;
+  const avgCarbs = dayCount > 0 ? Math.round(totalCarbs / dayCount) : 0;
+  const avgFats = dayCount > 0 ? Math.round(totalFats / dayCount) : 0;
+  
+  // Extract compact strategy info (no full JSON)
+  const psychologicalSupport = strategy.psychologicalSupport || ['Бъди мотивиран', 'Следвай плана', 'Постоянство е ключово'];
+  const supplementRecommendations = strategy.supplementRecommendations || ['Според нуждите'];
+  const hydrationStrategy = strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно';
+  const foodsToInclude = strategy.foodsToInclude || [];
+  const foodsToAvoid = strategy.foodsToAvoid || [];
+  
+  const defaultPrompt = `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+
+КЛИЕНТ: ${data.name}, Цел: ${data.goal}
+BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
+Реален среден прием: ${avgCalories} kcal/ден
+Реални средни макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
+
+СТРАТЕГИЯ (КОМПАКТНА):
+- Психологическа подкрепа: ${psychologicalSupport.slice(0, 3).join('; ')}
+- Добавки: ${supplementRecommendations.slice(0, 3).join('; ')}
+- Хидратация: ${hydrationStrategy}
+- Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
+- Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
+
+JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
+{
+  "summary": {
+    "bmr": ${bmr},
+    "dailyCalories": ${avgCalories},
+    "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}
+  },
+  "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
+  "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
+  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
+  "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
+  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
+}
+
+ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+
+  // If custom prompt exists, use it; otherwise use default
+  if (customPrompt) {
+    // Replace variables in custom prompt
+    let prompt = replacePromptVariables(customPrompt, {
+      userData: data,
+      strategyData: strategy,
+      weekPlan: weekPlan,
+      bmr: bmr,
+      recommendedCalories: recommendedCalories,
+      avgCalories: avgCalories,
+      avgProtein: avgProtein,
+      avgCarbs: avgCarbs,
+      avgFats: avgFats
+    });
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да е:
+{
+  "summary": {
+    "bmr": число,
+    "dailyCalories": число,
+    "macros": {"protein": число, "carbs": число, "fats": число}
+  },
+  "recommendations": ["текст"],
+  "forbidden": ["текст"],
+  "psychology": ["текст"],
+  "waterIntake": "текст",
+  "supplements": ["текст"]
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+    }
+    return prompt;
+  }
+  
+  return defaultPrompt;
+}
+
+/**
  * Generate nutrition plan from questionnaire data using multi-step approach
  */
 async function handleGeneratePlan(request, env) {
@@ -2902,848 +4021,6 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 }
 
 /**
- * Helper function to fetch and build dynamic whitelist/blacklist sections for prompts
- */
-async function getDynamicFoodListsSections(env) {
-  let dynamicWhitelist = [];
-  let dynamicBlacklist = [];
-  
-  try {
-    if (env && env.page_content) {
-      const whitelistData = await env.page_content.get('food_whitelist');
-      if (whitelistData) {
-        dynamicWhitelist = JSON.parse(whitelistData);
-      }
-      
-      const blacklistData = await env.page_content.get('food_blacklist');
-      if (blacklistData) {
-        dynamicBlacklist = JSON.parse(blacklistData);
-      }
-    }
-  } catch (error) {
-    console.error('Error loading whitelist/blacklist from KV:', error);
-  }
-  
-  // Build dynamic whitelist section if there are custom items
-  let dynamicWhitelistSection = '';
-  if (dynamicWhitelist.length > 0) {
-    dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
-  }
-  
-  // Build dynamic blacklist section if there are custom items
-  let dynamicBlacklistSection = '';
-  if (dynamicBlacklist.length > 0) {
-    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
-  }
-  
-  return { dynamicWhitelistSection, dynamicBlacklistSection };
-}
-
-/**
- * Generate prompt for a chunk of days (progressive generation)
- */
-async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env, errorPreventionComment = null) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
-  
-  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
-  const daysInChunk = endDay - startDay + 1;
-  
-  // Build modifications section
-  let modificationsSection = '';
-  if (data.planModifications && data.planModifications.length > 0) {
-    const modLines = data.planModifications
-      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
-      .filter(desc => desc !== undefined);
-    if (modLines.length > 0) {
-      modificationsSection = `\nМОДИФИКАЦИИ: ${modLines.join('; ')}`;
-    }
-  }
-  
-  // Build previous days context for variety (compact - only meal names)
-  let previousDaysContext = '';
-  if (previousDays.length > 0) {
-    const prevMeals = previousDays.map(d => {
-      const mealNames = d.meals.map(m => m.name).join(', ');
-      return `Ден ${d.day}: ${mealNames}`;
-    }).join('; ');
-    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\n\nПОВТОРЕНИЕ (Issue #11 - ФАЗА 4): Максимум 5 ястия могат да се повторят в цялата седмица. ИЗБЯГВАЙ повтаряне на горните ястия, освен ако не е абсолютно необходимо!`;
-  }
-  
-  // Extract only essential strategy fields (COMPACT - no full JSON)
-  const strategyCompact = {
-    dietType: strategy.dietType || 'Балансирана',
-    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
-    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
-    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '), // Only top 3
-    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '), // Only top 5
-    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
-  };
-  
-  // Fetch dynamic whitelist and blacklist from KV storage
-  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
-  
-  // Extract meal pattern from strategy
-  let mealPlanGuidance = '';
-  if (strategy && strategy.mealTiming) {
-    const timing = strategy.mealTiming;
-    mealPlanGuidance = `
-=== СЕДМИЧНА СТРУКТУРА НА ХРАНЕНЕ ===
-ВАЖНО: Създай хранения според стратегията и хронотипа на клиента.
-
-Седмичен модел: ${strategy.weeklyMealPattern || 'Стандартен модел'}
-Структура: ${timing.pattern || 'Консистентна структура'}
-Прозорци на гладуване: ${timing.fastingWindows || 'няма'}
-Гъвкавост: ${timing.flexibility || 'Модерирана'}
-Насоки за хронотип (${data.chronotype}): ${timing.chronotypeGuidance || 'Адаптирай според енергийните пикове'}
-
-Брой хранения: ${strategy.mealCountJustification || 'Определи според профила (обикновено 2-4 хранения)'}
-
-ВАЖНО:
-- Генерирай хранения според горната структура и целевите калории (${recommendedCalories} kcal/ден)
-- Сборът на калориите за деня ТРЯБВА да е приблизително ${recommendedCalories} kcal
-- Адаптирай времето и размера на храненията според хронотипа
-- Ако има интермитентно гладуване, спазвай прозорците на хранене
-`;
-  
-  const defaultPrompt = `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
-
-=== ЗАДАЧА ===
-Генерирай ДНИ ${startDay}-${endDay} от 7-дневен хранителен план за ${data.name}.
-
-=== КЛИЕНТ ===
-Име: ${data.name}, Цел: ${data.goal}, Калории: ${recommendedCalories} kcal/ден
-BMR: ${bmr}, Модификатор: "${dietaryModifier}"${modificationsSection}
-Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч, Хронотип: ${data.chronotype}
-${mealPlanGuidance}
-=== СТРАТЕГИЯ (КОМПАКТНА) ===
-Диета: ${strategyCompact.dietType}
-Схема: ${strategyCompact.weeklyMealPattern}
-Хранения: ${strategyCompact.mealTiming}
-Принципи: ${strategyCompact.keyPrinciples}
-Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
-Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${previousDaysContext}
-
-${data.additionalNotes ? `
-═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
-⚠️ МАКСИМАЛЕН ПРИОРИТЕТ: Следната информация е предоставена директно от потребителя и ТРЯБВА да се взема предвид при създаването на хранителния план!
-
-ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${data.name}:
-${data.additionalNotes}
-
-⚠️ ЗАДЪЛЖИТЕЛНО: Адаптирай ястията и хранителния план на база тази информация:
-1. Специфични хранителни ограничения или предпочитания
-2. Времеви ограничения или навици
-3. Специални обстоятелства (работа, семейство, спорт и др.)
-4. Здравословни фактори които не са споменати другаде
-5. Всякакви други изисквания които могат да повлияят плана
-═══════════════════════════════════════════════════════════════
-` : ''}
-
-=== КОРЕЛАЦИОННА АДАПТАЦИЯ ===
-СТРЕС И ХРАНЕНЕ:
-- Стрес: ${data.stressLevel}
-- При висок стрес, включи храни богати на:
-  * Магнезий (тъмно зелени листни зеленчуци, ядки, семена, пълнозърнести храни)
-  * Витамин C (цитруси, чушки, зеле)
-  * Омега-3 (мазна риба, ленено семе, орехи)
-  * Комплекс B витамини (яйца, месо, бобови)
-- Избягвай стимуланти (кафе, енергийни напитки) при висок стрес
-
-ХРОНОТИП И КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ:
-- Хронотип: ${data.chronotype}
-- "Ранобуден" / "Сова на сутринта" → По-обилна закуска (30-35% калории), умерена вечеря (25%)
-- "Вечерен тип" / "Нощна сова" → Лека закуска (20%), по-обилна вечеря (35% калории)
-- "Смесен тип" → Балансирано разпределение (25-30-25-20%)
-
-СЪН И ХРАНЕНЕ:
-- Сън: ${data.sleepHours}ч
-- При малко сън (< 6ч): Включи храни с триптофан (яйца, кисело мляко, банани, сирене) за подобряване на съня
-- Избягвай тежки храни вечер ако съня е прекъсван
-
-=== АРХИТЕКТУРА ===
-Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
-Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
-Филтриране според "${dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? `\nЗАКУСКА: Клиентът НЕ ЗАКУСВА - без закуска или само напитка ако критично` : ''}
-
-=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
-ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
-
-0) HARD BANS (0% ВИНАГИ):
-- лук (всякаква форма), пуешко месо, изкуствени подсладители
-- мед, захар, конфитюр, сиропи
-- кетчуп, майонеза, BBQ/сладки сосове
-- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
-- грах + риба (забранена комбинация)
-
-0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
-
-HARD RULES (R1-R12):
-R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
-R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
-R3: Енергия = 0-1 (никога 2).
-R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
-R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
-R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
-R7: Правило за бекон: Ако бекон → Мазнини=0.
-R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
-R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
-R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
-R11: Template C (сандвич): Само за закуски; бобови забранени; без забранени сосове/подсладители.
-R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
-
-=== WHITELISTS (РАЗРЕШЕНИ ХРАНИ) - ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ ===
-КРИТИЧНО: Използвай САМО храни от тези списъци! Извън-whitelist САМО с Reason: ...
-
-WHITELIST PROTEIN (избери точно 1 главен белтък):
-- яйца (eggs)
-- пилешко (chicken)
-- говеждо (beef)
-- постна свинска (lean pork)
-- риба (white fish, скумрия/mackerel, риба тон/canned tuna)
-- кисело мляко (yogurt - plain, несладко)
-- извара (cottage cheese - plain)
-- сирене (cheese - умерено)
-- боб (beans)
-- леща (lentils)
-- нахут (chickpeas)
-- грах (peas - виж 3.5)
-
-ЗАБРАНЕНИ БЕЛТЪЦИ (НЕ използвай без Reason):
-- пуешко месо (turkey meat) - HARD BAN
-- заешко (rabbit) - ИЗВЪН whitelist
-- патица (duck) - ИЗВЪН whitelist
-- гъска (goose) - ИЗВЪН whitelist
-- агне (lamb) - ИЗВЪН whitelist
-- дивеч (game meat) - ИЗВЪН whitelist
-- всички екзотични меса - ИЗВЪН whitelist
-
-WHITELIST VEGETABLES (избери 1-2):
-- домати, краставици, чушки, зеле, моркови
-- салата/листни зеленчуци (lettuce/greens), спанак
-- тиквички, гъби, броколи, карфиол
-- пресни нарязани: домати/краставици/чушки (БЕЗ дресинг)
-
-WHITELIST ENERGY (избери 0-1):
-- овесени ядки (oats)
-- ориз (rice)
-- картофи (potatoes)
-- паста (pasta)
-- булгур (bulgur)
-ЗАБЕЛЕЖКА: Царевица НЕ е енергия!
-
-WHITELIST FAT (избери 0-1):
-- зехтин (olive oil)
-- масло (butter - умерено)
-- ядки/семена (nuts/seeds - умерено)
-${dynamicWhitelistSection}${dynamicBlacklistSection}
-
-СПЕЦИАЛНИ ПРАВИЛА:
-- Грах + риба = СТРОГО ЗАБРАНЕНО
-- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
-- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
-- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
-- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
-
-=== КРИТИЧНИ ИЗИСКВАНИЯ ===
-1. ЗАДЪЛЖИТЕЛНИ МАКРОСИ: Всяко ястие ТРЯБВА да има точни macros (protein, carbs, fats, fiber в грамове)
-2. ПРЕЦИЗНИ КАЛОРИИ: Изчислени като protein×4 + carbs×4 + fats×9 за ВСЯКО ястие
-3. ЦЕЛЕВА ДНЕВНА СУМА: Около ${recommendedCalories} kcal на ден (±${DAILY_CALORIE_TOLERANCE} kcal е приемливо)
-   - Целта е ОРИЕНТИР, НЕ строго изискване
-   - По-важно е да спазиш правилния брой и ред на хранения, отколкото да достигнеш точно калориите
-4. БРОЙ ХРАНЕНИЯ: 1-6 хранения на ден според диетичната стратегия и целта
-   - 1 хранене (OMAD): само при ясна стратегия за интермитентно гладуване
-   - 2 хранения: при стратегия за интермитентно гладуване (16:8, 18:6)
-   - 3 хранения: Закуска, Обяд, Вечеря (стандартен вариант)
-   - 4 хранения: Закуска, Обяд, Следобедна закуска, Вечеря (при нужда от по-честа хранене)
-   - 5 хранения: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска (при специфични случаи)
-   - 6 хранения: рядко, само при специфична медицинска/спортна стратегия
-   - КРИТИЧНО: Броят хранения се определя от СТРАТЕГИЯТА, НЕ от нуждата да се достигнат калории!
-   - НИКОГА не добавяй хранения САМО за достигане на калории!
-5. РАЗНООБРАЗИЕ: Всеки ден различен от предишните
-6. Реалистични български/средиземноморски ястия
-
-=== МЕДИЦИНСКИ И ДИЕТЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
-КРИТИЧНО ВАЖНО: Следвай СТРОГО медицинските и диететични принципи за ред на храненията:
-
-1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
-   - "Закуска" (сутрин) - САМО като първо хранене на деня
-   - "Обяд" (обед) - САМО след закуската или като първо хранене (ако няма закуска)
-   - "Следобедна закуска" (опционално, между обяд и вечеря)
-   - "Вечеря" (вечер) - обикновено последно хранене
-   - "Късна закуска" (опционално, САМО след вечеря, специални случаи)
-
-2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
-   - НЕ може да има закуска след обяд
-   - НЕ може да има обяд след вечеря
-   - НЕ може да има вечеря преди обяд
-
-3. КЪСНА ЗАКУСКА - строги изисквания:
-   КОГАТО Е ДОПУСТИМА:
-   - Дълъг период между вечеря и сън (> 4 часа)
-   - Проблеми със съня заради глад
-   - Диабет тип 2 (стабилизиране на кръвната захар)
-   - Интензивни тренировки вечер
-   - Работа на смени (нощни смени)
-   
-   ЗАДЪЛЖИТЕЛНИ УСЛОВИЯ:
-   - САМО след "Вечеря" (никога преди)
-   - МАКСИМУМ 1 на ден
-   - САМО храни с НИСЪК ГЛИКЕМИЧЕН ИНДЕКС (ГИ < 55):
-     * Кисело мляко (150ml), кефир
-     * Ядки: 30-40g бадеми/орехи/лешници/кашу
-     * Ягоди/боровинки/малини (50-100g)
-     * Авокадо (половин)
-     * Семена: чиа/ленено/тиквени (1-2 с.л.)
-   - МАКСИМУМ ${MAX_LATE_SNACK_CALORIES} калории
-   - НЕ използвай ако не е оправдано от профила на клиента!
-
-4. КАЛОРИЙНО РАЗПРЕДЕЛЕНИЕ: 
-   - Разпредели калориите в избраните хранения според стратегията (1-6 хранения)
-   - Ако порциите стават твърде големи, това е приемливо - по-добре от добавяне на хранения след вечеря
-   - Допустимо е да имаш 1800 kcal вместо 2000 kcal - това НЕ е проблем
-   - АБСОЛЮТНО ЗАБРАНЕНО е да добавяш хранения след вечеря без оправдание!
-
-${MEAL_NAME_FORMAT_INSTRUCTIONS}
-
-JSON ФОРМАТ (върни САМО дните ${startDay}-${endDay}):
-{
-  "day${startDay}": {
-    "meals": [
-      {"type": "Закуска", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
-      {"type": "Обяд", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
-      {"type": "Вечеря", "name": "име ястие", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
-    ],
-    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
-}
-
-Генерирай дни ${startDay}-${endDay} с балансирани ястия в правилен хронологичен ред. ЗАДЪЛЖИТЕЛНО включи dailyTotals за проверка!`;
-  
-  // If custom prompt exists, use it; otherwise use default
-  if (customPrompt) {
-    // Replace variables in custom prompt
-    let prompt = replacePromptVariables(customPrompt, {
-      userData: data,
-      analysisData: analysis,
-      strategyData: strategy,
-      bmr: bmr,
-      recommendedCalories: recommendedCalories,
-      startDay: startDay,
-      endDay: endDay,
-      previousDays: previousDays
-    });
-    
-    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
-
-═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
-
-Структурата ТРЯБВА да е:
-{
-  "dayN": {
-    "meals": [
-      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
-    ],
-    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
-  }
-}
-
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-    }
-    return prompt;
-  }
-  
-  return defaultPrompt;
-}
-
-/**
- * Generate prompt for summary and recommendations (final step of progressive generation)
- */
-async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_summary_prompt');
-  
-  // Calculate total calories and macros across the week for validation
-  let totalCalories = 0;
-  let totalProtein = 0;
-  let totalCarbs = 0;
-  let totalFats = 0;
-  let dayCount = 0;
-  
-  Object.keys(weekPlan).forEach(dayKey => {
-    if (weekPlan[dayKey] && weekPlan[dayKey].meals) {
-      weekPlan[dayKey].meals.forEach(meal => {
-        totalCalories += (parseInt(meal.calories) || 0);
-        if (meal.macros) {
-          totalProtein += (parseInt(meal.macros.protein) || 0);
-          totalCarbs += (parseInt(meal.macros.carbs) || 0);
-          totalFats += (parseInt(meal.macros.fats) || 0);
-        }
-      });
-      dayCount++;
-    }
-  });
-  
-  const avgCalories = dayCount > 0 ? Math.round(totalCalories / dayCount) : recommendedCalories;
-  const avgProtein = dayCount > 0 ? Math.round(totalProtein / dayCount) : 0;
-  const avgCarbs = dayCount > 0 ? Math.round(totalCarbs / dayCount) : 0;
-  const avgFats = dayCount > 0 ? Math.round(totalFats / dayCount) : 0;
-  
-  // Extract compact strategy info (no full JSON)
-  const psychologicalSupport = strategy.psychologicalSupport || ['Бъди мотивиран', 'Следвай плана', 'Постоянство е ключово'];
-  const supplementRecommendations = strategy.supplementRecommendations || ['Според нуждите'];
-  const hydrationStrategy = strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно';
-  const foodsToInclude = strategy.foodsToInclude || [];
-  const foodsToAvoid = strategy.foodsToAvoid || [];
-  
-  const defaultPrompt = `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
-
-КЛИЕНТ: ${data.name}, Цел: ${data.goal}
-BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
-Реален среден прием: ${avgCalories} kcal/ден
-Реални средни макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
-
-СТРАТЕГИЯ (КОМПАКТНА):
-- Психологическа подкрепа: ${psychologicalSupport.slice(0, 3).join('; ')}
-- Добавки: ${supplementRecommendations.slice(0, 3).join('; ')}
-- Хидратация: ${hydrationStrategy}
-- Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
-- Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
-
-JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
-{
-  "summary": {
-    "bmr": ${bmr},
-    "dailyCalories": ${avgCalories},
-    "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}
-  },
-  "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
-  "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
-  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
-  "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
-  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
-}
-
-ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
-
-  // If custom prompt exists, use it; otherwise use default
-  if (customPrompt) {
-    // Replace variables in custom prompt
-    let prompt = replacePromptVariables(customPrompt, {
-      userData: data,
-      strategyData: strategy,
-      weekPlan: weekPlan,
-      bmr: bmr,
-      recommendedCalories: recommendedCalories,
-      avgCalories: avgCalories,
-      avgProtein: avgProtein,
-      avgCarbs: avgCarbs,
-      avgFats: avgFats
-    });
-    
-    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
-
-═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
-
-Структурата ТРЯБВА да е:
-{
-  "summary": {
-    "bmr": число,
-    "dailyCalories": число,
-    "macros": {"protein": число, "carbs": число, "fats": число}
-  },
-  "recommendations": ["текст"],
-  "forbidden": ["текст"],
-  "psychology": ["текст"],
-  "waterIntake": "текст",
-  "supplements": ["текст"]
-}
-
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-    }
-    return prompt;
-  }
-  
-  return defaultPrompt;
-}
-
-/**
- * Step 3: Generate prompt for detailed meal plan (LEGACY - used when progressive generation is disabled)
- * 
- * ARCHPROMPT INTEGRATION:
- * This function integrates the sophisticated dietary logic system from archprompt.txt
- * The system uses a MODIFIER (dietary profile) determined by the AI in Step 2 to:
- * - Filter food categories based on dietary restrictions
- * - Select appropriate meal templates (Шаблон A, B, C, D)
- * - Apply logical rules for food combinations
- * - Generate balanced, natural-sounding meals
- * 
- * The MODIFIER acts as a filter applied to the universal food architecture:
- * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
- */
-async function generateMealPlanPrompt(data, analysis, strategy, env, errorPreventionComment = null) {
-  // Parse BMR from analysis (may be a number or string) or calculate from user data
-  let bmr;
-  if (analysis.bmr) {
-    // If bmr is already a number, use it directly
-    if (typeof analysis.bmr === 'number') {
-      bmr = Math.round(analysis.bmr);
-    } else {
-      // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ІНДИВІДУАЛНО изчислен)")
-      const bmrMatch = String(analysis.bmr).match(/\d+/);
-      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
-    }
-  }
-  
-  // If no valid BMR from analysis, calculate it
-  if (!bmr) {
-    bmr = calculateBMR(data);
-  }
-  
-  // Parse recommended calories from analysis or calculate from TDEE
-  let recommendedCalories;
-  if (analysis.recommendedCalories) {
-    // If recommendedCalories is already a number, use it directly
-    if (typeof analysis.recommendedCalories === 'number') {
-      recommendedCalories = Math.round(analysis.recommendedCalories);
-    } else {
-      // Try to extract numeric value from analysis.recommendedCalories
-      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
-    }
-  }
-  
-  // If no recommended calories from analysis, calculate TDEE
-  if (!recommendedCalories) {
-    const tdee = calculateTDEE(bmr, data.sportActivity);
-    // Adjust based on goal
-    if (data.goal === 'Отслабване') {
-      recommendedCalories = Math.round(tdee * 0.85); // 15% deficit
-    } else if (data.goal === 'Покачване на мускулна маса') {
-      recommendedCalories = Math.round(tdee * 1.1); // 10% surplus
-    } else {
-      recommendedCalories = tdee; // Maintenance
-    }
-  }
-  
-  // Build modifications section if any
-  let modificationsSection = '';
-  if (data.planModifications && data.planModifications.length > 0) {
-    const modLines = data.planModifications
-      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
-      .filter(desc => desc !== undefined); // Skip unknown modifications
-    
-    if (modLines.length > 0) {
-      modificationsSection = `
-СПЕЦИАЛНИ МОДИФИКАЦИИ НА ПЛАНА:
-${modLines.join('\n')}
-
-ВАЖНО: Спазвай СТРИКТНО тези модификации при генерирането на плана!
-`;
-    }
-  }
-  
-  // Extract dietary modifier from strategy
-  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
-  
-  // Fetch dynamic whitelist and blacklist from KV storage
-  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
-  
-  // Create compact strategy (no full JSON)
-  const strategyCompact = {
-    dietType: strategy.dietType || 'Балансирана',
-    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
-    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
-    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '),
-    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '),
-    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', '),
-    psychologicalSupport: (strategy.psychologicalSupport || []).slice(0, 3),
-    supplementRecommendations: (strategy.supplementRecommendations || []).slice(0, 3),
-    hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
-  };
-  
-  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
-
-=== КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ ===
-- Този план е САМО и ЕДИНСТВЕНО за ${data.name}
-- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
-- ВСИЧКИ калории, макронутриенти и препоръки са ИНДИВИДУАЛНО изчислени
-- Хранителните добавки са ПЕРСОНАЛНО подбрани според анализа и нуждите
-- Психологическите съвети са базирани на КОНКРЕТНИЯ емоционален профил на ${data.name}
-
-=== МОДИФИКАТОР (Потребителски профил) ===
-ОПРЕДЕЛЕН МОДИФИКАТОР ЗА КЛИЕНТА: "${dietaryModifier}"
-${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning}` : ''}
-
-=== КЛИЕНТ И ЦЕЛИ ===
-- Име: ${data.name}
-- Цел: ${data.goal}
-- Калории: ${recommendedCalories} kcal/ден (ИНДИВИДУАЛНО изчислени според BMR=${bmr}, активност и цел)
-
-=== СТРАТЕГИЯ (КОМПАКТНА) ===
-Диета: ${strategyCompact.dietType}
-Схема: ${strategyCompact.weeklyMealPattern}
-Хранения: ${strategyCompact.mealTiming}
-Принципи: ${strategyCompact.keyPrinciples}
-Храни включвай: ${strategyCompact.foodsToInclude}
-Храни избягвай: ${strategyCompact.foodsToAvoid}
-${modificationsSection}
-
-=== АРХИТЕКТУРА НА ХРАНЕНЕТО ===
-Категории: [PRO]=Белтък (животински: месо, риба, яйца, млечни; растителен: тофу, темпе; бобови: леща, боб, нахут), [ENG]=Енергия/въглехидрати (зърнени: ориз, киноа, елда, овес, паста, хляб; кореноплодни: картофи; плодове), [VOL]=Зеленчуци/фибри (листни салати, краставици, домати, броколи, тиквички, чушки, гъби, карфиол, патладжан), [FAT]=Мазнини (зехтин, масло, авокадо, ядки, семена, тахан, маслини), [CMPX]=Сложни ястия (пица, лазаня, мусака, баница, бургер, врап, ризото, паеля).
-
-Шаблони за ястия: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL] (печено пиле+картофи+салата), B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс (яхнии, купи), C) ЛЕКО/САНДВИЧ=[ENG-хляб]+[PRO]+[FAT]+[VOL] (сандвич, тост), D) ЕДИНЕН БЛОК=[CMPX]+[VOL] (лазаня+салата). 
-
-Филтриране според МОДИФИКАТОР "${dietaryModifier}": Веган=без животински [PRO]; Кето/Нисковъглехидратно=минимум [ENG], повече [PRO]+[FAT]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни; Щадящ стомах=готвени [VOL], без сурови влакнини. Избор на шаблон: закуска=C или A, обяд=A или B, вечеря=A/B/D. Слотове с продукти от филтриран списък. Избягвай: ${data.dietDislike || 'няма'}. Включвай: ${data.dietLove || 'няма'}. Естествен български език БЕЗ кодове в изхода.
-
-=== ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
-ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
-
-0) HARD BANS (0% ВИНАГИ):
-- лук (всякаква форма), пуешко месо, изкуствени подсладители
-- мед, захар, конфитюр, сиропи
-- кетчуп, майонеза, BBQ/сладки сосове
-- гръцко кисело мляко (използвай САМО обикновено кисело мляко)
-- грах + риба (забранена комбинация)
-
-0.1) РЯДКО (≤2 пъти/седмично): пуешка шунка, бекон
-
-HARD RULES (R1-R12):
-R1: Белтък главен = точно 1. Вторичен белтък САМО ако (закуска AND яйца), 0-1.
-R2: Зеленчуци = 1-2. Избери ТОЧНО ЕДНА форма: Салата ИЛИ Пресни (НЕ и двете едновременно). Картофите НЕ СА зеленчуци.
-R3: Енергия = 0-1 (никога 2).
-R4: Млечни макс = 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене), включително като сос/дресинг.
-R5: Мазнини = 0-1. Ако ядки/семена → без зехтин/масло.
-R6: Правило за сирене: Ако сирене → без зехтин/масло. Маслини разрешени със сирене.
-R7: Правило за бекон: Ако бекон → Мазнини=0.
-R8: Бобови-като-основно (боб/леща/нахут/гювеч от грах): Енергия=0 (без ориз/картофи/паста/булгур/овесени). Хляб може да е опционален: +1 филия пълнозърнест.
-R9: Правило за хляб (извън Template C): Разрешен САМО ако Енергия=0. Изключение: с бобови-като-основно (R8), хляб може да е опционален (1 филия). Ако има Енергия → Хляб=0.
-R10: Грах като добавка към месо: Грахът НЕ Е енергия, но БЛОКИРА слота Енергия → Енергия=0. Хляб може да е опционален (+1 филия).
-R11: Template C (сандвич): Само за закуски; бобови забранени; без забранени сосове/подсладители.
-R12: Извън-whitelist добавяне: По подразбиране=само whitelist. Извън-whitelist САМО ако обективно нужно (MODE/медицинско/наличност), mainstream/универсално, налично в България. Добави ред: Reason: ...
-
-=== WHITELISTS (РАЗРЕШЕНИ ХРАНИ) - ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ ===
-КРИТИЧНО: Използвай САМО храни от тези списъци! Извън-whitelist САМО с Reason: ...
-
-WHITELIST PROTEIN (избери точно 1 главен белтък):
-- яйца (eggs)
-- пилешко (chicken)
-- говеждо (beef)
-- постна свинска (lean pork)
-- риба (white fish, скумрия/mackerel, риба тон/canned tuna)
-- кисело мляко (yogurt - plain, несладко)
-- извара (cottage cheese - plain)
-- сирене (cheese - умерено)
-- боб (beans)
-- леща (lentils)
-- нахут (chickpeas)
-- грах (peas - виж 3.5)
-
-ЗАБРАНЕНИ БЕЛТЪЦИ (НЕ използвай без Reason):
-- пуешко месо (turkey meat) - HARD BAN
-- заешко (rabbit) - ИЗВЪН whitelist
-- патица (duck) - ИЗВЪН whitelist
-- гъска (goose) - ИЗВЪН whitelist
-- агне (lamb) - ИЗВЪН whitelist
-- дивеч (game meat) - ИЗВЪН whitelist
-- всички екзотични меса - ИЗВЪН whitelist
-
-WHITELIST VEGETABLES (избери 1-2):
-- домати, краставици, чушки, зеле, моркови
-- салата/листни зеленчуци (lettuce/greens), спанак
-- тиквички, гъби, броколи, карфиол
-- пресни нарязани: домати/краставици/чушки (БЕЗ дресинг)
-
-WHITELIST ENERGY (избери 0-1):
-- овесени ядки (oats)
-- ориз (rice)
-- картофи (potatoes)
-- паста (pasta)
-- булгур (bulgur)
-ЗАБЕЛЕЖКА: Царевица НЕ е енергия!
-
-WHITELIST FAT (избери 0-1):
-- зехтин (olive oil)
-- масло (butter - умерено)
-- ядки/семена (nuts/seeds - умерено)
-${dynamicWhitelistSection}${dynamicBlacklistSection}
-
-СПЕЦИАЛНИ ПРАВИЛА:
-- Грах + риба = СТРОГО ЗАБРАНЕНО
-- Зеленчуци: ЕДНА форма на хранене (Салата ИЛИ Пресни нарязани, не и двете)
-- Маслини = добавка към салата (НЕ Мазнини слот). Ако маслини → БЕЗ зехтин/масло
-- Царевица = НЕ е енергия. Малко царевица само в салати като добавка
-- Template C (сандвич) = САМО за закуски, НЕ за основни хранения
-
-=== ВАЖНИ ОГРАНИЧЕНИЯ ===
-
-СТРОГО ИЗБЯГВАЙ:
-- Прекалено конкретни имена (позволи избор на клиента)
-  ДА: "плодове с кисело мляко", "риба със зеленчуци", "месо със салата"
-  НЕ: "боровинки с кисело мляко", "пастърва с броколи"
-- Странни комбинации (чийзкейк със салата, пица с тофу)
-- Екзотични продукти (труднодостъпни в България)
-- Повтаряне на същите храни в различни дни
-- Нетрадиционни комбинации за българската/средиземноморска кухня
-
-ОГРАНИЧЕНИЯ: Избягвай странни комбинации, екзотични продукти, повтаряне на храни, нетрадиционни комбинации. Медицински: ${JSON.stringify(data.medicalConditions || [])}. РАЗНООБРАЗИЕ всеки ден. Реалистични български/средиземноморски ястия.${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? ` ЗАКУСКА: Клиентът НЕ ЗАКУСВА - уважи предпочитанието. Допустима САМО напитка ако критично важно.` : ''}
-
-${MEAL_NAME_FORMAT_INSTRUCTIONS}
-
-JSON ФОРМАТ:
-{
-  "summary": {"bmr": "${bmr}", "dailyCalories": "${recommendedCalories}", "macros": {"protein": "Xg", "carbs": "Xg", "fats": "Xg"}},
-  "weekPlan": {"day1": {"meals": [{"type": "Закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи за ${data.name}", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}, {"type": "Обяд", "name": "...", ...}, {"type": "Вечеря", "name": "...", ...}]}, ... "day7": {...}},
-  "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5+"],
-  "forbidden": ["храна 1", "храна 2", "храна 3", "храна 4+"],
-  "psychology": ${JSON.stringify(strategyCompact.psychologicalSupport)},
-  "waterIntake": "${strategyCompact.hydrationStrategy}",
-  "supplements": ${JSON.stringify(strategyCompact.supplementRecommendations)}
-}
-
-=== МЕДИЦИНСКИ И ДИЕТЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
-КРИТИЧНО ВАЖНО: Следвай медицинските и диететични принципи, но ПРИОРИТИЗИРАЙ СТРАТЕГИЯТА:
-
-1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
-   - "Закуска" (сутрин) - ВИНАГИ първо ако има закуска
-   - "Обяд" (обед) - след закуската или първо хранене ако няма закуска
-   - "Следобедна закуска" (опционално, между обяд и вечеря)
-   - "Вечеря" (вечер) - обикновено последно хранене
-   - "Късна закуска" (опционално, след вечеря)
-
-2. БРОЙ ХРАНЕНИЯ: 1-5 хранения на ден
-   - ЗАДЪЛЖИТЕЛНО обоснови избора на брой хранения в стратегията
-   - 1 хранене (OMAD): само при ясна стратегия за интермитентно гладуване
-   - 2 хранения: при стратегия за интермитентно гладуване (16:8, 18:6)
-   - 3 хранения: Закуска, Обяд, Вечеря (стандартен вариант)
-   - 4 хранения: добави Следобедна закуска когато е обосновано
-   - 5 хранения: добави Късна закуска САМО когато е обосновано от стратегията
-
-3. ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ - разрешени при обосновка:
-   ОБОСНОВКА Е НЕОБХОДИМА за всяко хранене след вечеря:
-   - Физиологична причина (диабет, дълъг период до сън >4ч, проблеми със съня от глад)
-   - Психологическа причина (управление на стрес, емоционално хранене)
-   - Стратегическа причина (спортни тренировки вечер, работа на смени)
-   
-   ДОБАВИ ОБОСНОВКАТА В strategy.afterDinnerMealJustification!
-   
-   Ако добавяш хранене след вечеря:
-   - Предпочитай "Късна закуска" с ниско-гликемични храни
-   - Калории: препоръчват се до ${MAX_LATE_SNACK_CALORIES} kcal (може повече ако е обосновано)
-   - ЗАДЪЛЖИТЕЛНО обясни ЗАЩО е необходимо в planJustification
-
-4. МНОГОДНЕВЕН ХОРИЗОНТ:
-   - При обоснована физиологична/психологическа/стратегическа идея можеш да планираш 2-3 дни като цяло
-   - Хоризонтът на макроси и калории НЕ е задължително 24 часа
-   - Може да използваш циклично разпределение (напр. ниски-високи калорийни дни)
-   - ОБЯСНИ подхода в strategy.longTermStrategy
-
-5. МАКРОНУТРИЕНТИ:
-   - Всяко хранене ЗАДЪЛЖИТЕЛНО има: "type", "name", "weight", "description", "benefits", "calories"
-   - Всяко хранене ЗАДЪЛЖИТЕЛНО има "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}
-   - Прецизни калории: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
-   - Дневни калории минимум ${MIN_DAILY_CALORIES} kcal (може да варират между дни при циклично планиране)
-
-6. МЕДИЦИНСКИ ОГРАНИЧЕНИЯ:
-   - При диабет: НЕ високовъглехидратни храни
-   - При анемия + вегетарианство: желязо ЗАДЪЛЖИТЕЛНО в supplements
-   - При IBS/IBD: щадящи храни, готвени зеленчуци
-   - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
-   - Спазвай: ${JSON.stringify(data.medicalConditions || [])}
-
-7. СТРУКТУРА И РАЗНООБРАЗИЕ:
-   - ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО
-   - 1-5 хранения на ден според стратегията (ОБОСНОВАНИ в strategy.mealCountJustification)
-   - Избягвай повторения на храни в различни дни
-   - Избягвай: ${data.dietDislike || 'няма'}
-   - Включвай: ${data.dietLove || 'няма'}
-
-ВАЖНО: Използвай strategy.planJustification, strategy.longTermStrategy, strategy.mealCountJustification и strategy.afterDinnerMealJustification за обосновка на всички нестандартни решения. "recommendations"/"forbidden"=САМО конкретни храни. Всички 7 дни (day1-day7) с 1-5 хранения В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (може да варира при многодневно планиране). Седмичен подход: МИСЛИ СЕДМИЧНО/МНОГОДНЕВНО - ЦЯЛОСТНА схема като система. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
-
-Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}, следвайки стратегията.`;
-}
-
-/**
- * Generate simplified fallback plan when main generation fails
- * Uses conservative approach with basic meals and minimal complexity
- * Last resort to provide user with something useful rather than complete failure
- */
-async function generateSimplifiedFallbackPlan(env, data) {
-  console.log('Generating simplified fallback plan');
-  
-  const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, data.sportActivity);
-  let recommendedCalories = tdee;
-  
-  // Adjust for goal
-  if (data.goal && data.goal.toLowerCase().includes('отслабване')) {
-    recommendedCalories = Math.round(tdee * 0.85);
-  } else if (data.goal && data.goal.toLowerCase().includes('мускулна маса')) {
-    recommendedCalories = Math.round(tdee * 1.1);
-  }
-  
-  // Simplified prompt with basic requirements
-  const simplifiedPrompt = `Създай ОПРОСТЕН 7-дневен хранителен план за ${data.name}.
-
-ОСНОВНИ ДАННИ:
-- BMR: ${bmr} kcal, TDEE: ${tdee} kcal
-- Целеви калории: ${recommendedCalories} kcal/ден
-- Цел: ${data.goal}
-- Възраст: ${data.age}, Пол: ${data.gender}
-- Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
-- Алергии/Непоносимости: ${data.dietDislike || 'няма'}
-
-ИЗИСКВАНИЯ (ОПРОСТЕНИ):
-- 3 хранения на ден: Закуска, Обяд, Вечеря
-- Всяко ястие с calories и macros (protein, carbs, fats, fiber)
-- Балансирани български ястия
-- СПАЗВАЙ медицинските ограничения
-- Избягвай: ${data.dietDislike || 'няма'}
-- Включвай: ${data.dietLove || 'няма'}
-
-JSON ФОРМАТ:
-{
-  "summary": {"bmr": "${bmr}", "dailyCalories": "${recommendedCalories}", "macros": {"protein": "Xg", "carbs": "Xg", "fats": "Xg"}},
-  "weekPlan": {"day1": {"meals": [...]}, ... "day7": {...}},
-  "recommendations": ["храна 1", "храна 2", "храна 3"],
-  "forbidden": ["храна 1", "храна 2", "храна 3"],
-  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
-  "waterIntake": "2-2.5л дневно",
-  "supplements": ["добавка 1", "добавка 2", "добавка 3"]
-}
-
-ВАЖНО: Върни САМО JSON, без допълнителни обяснения!`;
-
-  const response = await callAIModel(env, simplifiedPrompt, MEAL_PLAN_TOKEN_LIMIT, 'fallback_plan_generation');
-  const plan = parseAIResponse(response);
-  
-  if (!plan || plan.error) {
-    throw new Error('Simplified fallback plan generation failed');
-  }
-  
-  // Add basic strategy and analysis for compatibility
-  plan.strategy = {
-    planJustification: `Опростен план създаден автоматично за ${data.name} с цел ${data.goal}. Този план използва основни принципи на здравословното хранене.`,
-    dietaryModifier: "Балансирано",
-    dietType: "Балансирана"
-  };
-  
-  plan.analysis = {
-    bmr: bmr,
-    recommendedCalories: recommendedCalories,
-    keyProblems: []
-  };
-  
-  return plan;
-}
-
-/**
  * Generate nutrition plan prompt for AI (legacy single-step approach, kept for backward compatibility)
  */
 async function generateNutritionPrompt(data, env) {
@@ -3948,46 +4225,6 @@ async function generateNutritionPrompt(data, env) {
     .replace(/{medications}/g, data.medications === 'Да' ? data.medicationsDetails : 'Не приема');
 }
 
-/**
- * Generate chat prompt with full context for precise analysis
- * NOTE: Uses full data in both modes to ensure comprehensive understanding of user context
- */
-async function generateChatPrompt(env, userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
-  // Use FULL data for both modes to ensure precise, comprehensive analysis
-  // No compromise on data completeness for individualization and quality
-  
-  // Base context with complete data
-  const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
-
-КЛИЕНТСКИ ПРОФИЛ:
-${JSON.stringify(userData, null, 2)}
-
-ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
-${JSON.stringify(userPlan, null, 2)}
-
-${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
-`;
-
-  // Get mode-specific instructions from KV (with caching)
-  const chatPrompts = await getChatPrompts(env);
-  let modeInstructions = '';
-  
-  if (mode === 'consultation') {
-    modeInstructions = chatPrompts.consultation;
-  } else if (mode === 'modification') {
-    // Replace {goal} placeholder with actual user goal
-    modeInstructions = chatPrompts.modification.replace(/{goal}/g, userData.goal || 'твоята цел');
-  }
-
-  const fullPrompt = `${baseContext}
-${modeInstructions}
-
-КЛИЕНТ: ${userMessage}
-
-АСИСТЕНТ (отговори КРАТКО):`;
-
-  return fullPrompt;
-}
 
 /**
  * Get admin configuration with caching to reduce KV reads
@@ -4149,112 +4386,6 @@ async function getChatPrompts(env) {
   return prompts;
 }
 
-/**
- * Improved token estimation for mixed Cyrillic/Latin text
- * Cyrillic characters typically use 2-3 bytes in UTF-8, so tokens/char ratio is higher
- */
-function estimateTokenCount(text) {
-  if (!text) return 0;
-  
-  // Count Cyrillic vs Latin characters
-  const cyrillicChars = (text.match(/[\u0400-\u04FF]/g) || []).length;
-  const totalChars = text.length;
-  const cyrillicRatio = cyrillicChars / totalChars;
-  
-  // Cyrillic-heavy text: ~3 chars per token
-  // Latin-heavy text: ~4 chars per token
-  // Mixed text: interpolate between them
-  const charsPerToken = 4 - (cyrillicRatio * 1); // 3-4 range
-  
-  return Math.ceil(totalChars / charsPerToken);
-}
-
-/**
- * Call AI model with load monitoring
- * Goal: Monitor request sizes to ensure no single request is overloaded
- * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
- */
-async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null) {
-  // Improved token estimation for Cyrillic text
-  const estimatedInputTokens = estimateTokenCount(prompt);
-  console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
-  
-  // Monitor for large prompts - informational only
-  // Note: Progressive generation already distributes meal plan across multiple requests
-  if (estimatedInputTokens > 8000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context. Progressive generation is already enabled for meal plans.`);
-  }
-  
-  // Alert if prompt is very large - may indicate issue
-  if (estimatedInputTokens > 12000) {
-    console.error(`🚨 Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function to ensure this is intentional.`);
-  }
-  
-  // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
-  const config = await getAdminConfig(env);
-  const preferredProvider = config.provider;
-  const modelName = config.modelName;
-
-  // Log AI request
-  const logId = await logAIRequest(env, stepName, {
-    prompt: prompt,
-    estimatedInputTokens: estimatedInputTokens,
-    maxTokens: maxTokens,
-    provider: preferredProvider,
-    modelName: modelName,
-    sessionId: sessionId
-  });
-
-  const startTime = Date.now();
-  let response;
-  let success = false;
-  let error = null;
-
-  try {
-    // If mock is selected, return mock response
-    if (preferredProvider === 'mock') {
-      console.warn('Mock mode selected. Returning mock response.');
-      response = generateMockResponse(prompt);
-      success = true;
-    } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
-      // Try preferred provider first
-      response = await callOpenAI(env, prompt, modelName, maxTokens);
-      success = true;
-    } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, prompt, modelName, maxTokens);
-      success = true;
-    } else if (env.OPENAI_API_KEY) {
-      // Fallback to any available API key
-      response = await callOpenAI(env, prompt, modelName, maxTokens);
-      success = true;
-    } else if (env.GEMINI_API_KEY) {
-      response = await callGemini(env, prompt, modelName, maxTokens);
-      success = true;
-    } else {
-      // Return mock response for development
-      console.warn('No AI API key configured. Returning mock response.');
-      response = generateMockResponse(prompt);
-      success = true;
-    }
-  } catch (e) {
-    error = e.message;
-    throw e;
-  } finally {
-    // Log AI response
-    const duration = Date.now() - startTime;
-    const estimatedOutputTokens = response ? estimateTokenCount(response) : 0;
-    
-    await logAIResponse(env, logId, stepName, {
-      response: response,
-      estimatedOutputTokens: estimatedOutputTokens,
-      duration: duration,
-      success: success,
-      error: error
-    });
-  }
-
-  return response;
-}
 
 /**
  * Call OpenAI API with automatic retry logic for transient errors
@@ -4683,192 +4814,6 @@ function generateMockResponse(prompt) {
  * Parse AI response to structured format
  * Handles markdown code blocks, greedy regex issues, and common JSON formatting errors
  */
-function parseAIResponse(response) {
-  try {
-    // Step 1: Try to extract JSON from markdown code blocks first
-    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
-    if (markdownJsonMatch) {
-      try {
-        const cleaned = sanitizeJSON(markdownJsonMatch[1]);
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
-      }
-    }
-    
-    // Step 2: Try to find JSON using balanced brace matching (non-greedy)
-    const jsonObject = extractBalancedJSON(response);
-    if (jsonObject) {
-      try {
-        const cleaned = sanitizeJSON(jsonObject);
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.warn('Failed to parse extracted JSON object, trying fallback:', e.message);
-      }
-    }
-    
-    // Step 3: Fallback to greedy match but with sanitization
-    const jsonMatch = response.match(/[\[{][\s\S]*[}\]]/);
-    if (jsonMatch) {
-      try {
-        const cleaned = sanitizeJSON(jsonMatch[0]);
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.error('All JSON parsing attempts failed:', e.message);
-        
-        // Extract position from error message if available
-        const posMatch = e.message.match(/position (\d+)/);
-        if (posMatch) {
-          const errorPos = parseInt(posMatch[1]);
-          const contextStart = Math.max(0, errorPos - 100);
-          const contextEnd = Math.min(jsonMatch[0].length, errorPos + 100);
-          console.error('Context around error position:', jsonMatch[0].substring(contextStart, contextEnd));
-        }
-        
-        console.error('Response excerpt (first 500 chars):', response.substring(0, 500));
-        console.error('Response excerpt (last 500 chars):', response.substring(Math.max(0, response.length - 500)));
-        
-        // Return a user-friendly error without exposing the raw response
-        return { error: `All JSON parsing attempts failed: ${e.message}` };
-      }
-    }
-    
-    // If no JSON found, return the response as-is wrapped in a structure
-    console.error('No JSON structure found in AI response');
-    console.error('Response excerpt (first 1000 chars):', response.substring(0, 1000));
-    return { error: 'Could not parse AI response - no JSON found' };
-  } catch (error) {
-    console.error('Error parsing AI response:', error);
-    console.error('Response length:', response?.length || 0);
-    return { error: `Failed to parse response: ${error.message}` };
-  }
-}
-
-/**
- * Extract JSON object or array from response using balanced brace/bracket matching
- * This prevents greedy regex from capturing non-JSON text after the object/array
- */
-function extractBalancedJSON(text) {
-  // Look for either { or [ as the start of JSON
-  let firstBrace = text.indexOf('{');
-  let firstBracket = text.indexOf('[');
-  
-  // Determine which comes first (or if only one exists)
-  let startIndex = -1;
-  let startChar = null;
-  
-  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-    startIndex = firstBrace;
-    startChar = '{';
-  } else if (firstBracket !== -1) {
-    startIndex = firstBracket;
-    startChar = '[';
-  } else {
-    return null; // No JSON structure found
-  }
-  
-  let braceCount = 0;
-  let bracketCount = 0;
-  let inString = false;
-  let escapeNext = false;
-  
-  for (let i = startIndex; i < text.length; i++) {
-    const char = text[i];
-    
-    // Handle escape sequences
-    if (escapeNext) {
-      escapeNext = false;
-      continue;
-    }
-    
-    if (char === '\\') {
-      escapeNext = true;
-      continue;
-    }
-    
-    // Track string boundaries to ignore braces/brackets in strings
-    if (char === '"') {
-      inString = !inString;
-      continue;
-    }
-    
-    // Only count braces/brackets outside of strings
-    if (!inString) {
-      if (char === '{') {
-        braceCount++;
-      } else if (char === '}') {
-        braceCount--;
-      } else if (char === '[') {
-        bracketCount++;
-      } else if (char === ']') {
-        bracketCount--;
-      }
-      
-      // When we close all braces/brackets, we have a complete JSON structure
-      if (startChar === '{' && braceCount === 0) {
-        return text.substring(startIndex, i + 1);
-      } else if (startChar === '[' && bracketCount === 0) {
-        return text.substring(startIndex, i + 1);
-      }
-    }
-  }
-  
-  return null; // No balanced JSON found
-}
-
-/**
- * Sanitize JSON string to fix common AI formatting issues
- * - Remove trailing commas before } or ]
- * - Fix missing commas between array/object elements
- * - Remove duplicate commas
- */
-function sanitizeJSON(jsonStr) {
-  let result = jsonStr;
-  
-  // 1. Remove trailing commas before } or ]
-  result = result.replace(/,(\s*[}\]])/g, '$1');
-  
-  // 2. Remove duplicate commas (,,)
-  result = result.replace(/,\s*,+/g, ',');
-  
-  // 3. Fix missing comma between consecutive objects in arrays
-  // Pattern: }\s*{ -> },{
-  result = result.replace(/}(\s*){/g, '},$1{');
-  
-  // 4. Fix missing comma between consecutive arrays
-  // Pattern: ]\s*[ -> ],[
-  result = result.replace(/](\s*)\[/g, '],$1[');
-  
-  // 5. Fix missing comma between object and array
-  // Pattern: }\s*[ -> },[
-  result = result.replace(/}(\s*)\[/g, '},$1[');
-  
-  // 6. Fix missing comma between array and object
-  // Pattern: ]\s*{ -> ],{
-  result = result.replace(/](\s*){/g, '],$1{');
-  
-  return result;
-}
-
-// Enhancement #3: Estimate tokens for a message
-// Note: This is a rough approximation (~4 chars per token for mixed content).
-// Actual GPT tokenization varies by language and content. This is sufficient
-// for conversation history management where approximate limits are acceptable.
-function estimateTokens(text) {
-  return Math.ceil(text.length / 4);
-}
-
-/**
- * Generate a unique session or log ID
- * @param {string} prefix - Prefix for the ID (e.g., 'session', 'regen', 'ai_log')
- * @returns {string} Unique ID with timestamp and random component
- */
-function generateUniqueId(prefix = 'id') {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${prefix}_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
-  }
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-}
 
 /**
  * Log AI communication to KV storage
@@ -4993,35 +4938,6 @@ async function logAIResponse(env, logId, stepName, responseData) {
 /**
  * Generate user ID from data
  */
-function generateUserId(data) {
-  const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
-  return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
-}
-
-// Enhancement #4: Check if a food item exists in the meal plan (case-insensitive, partial match)
-function checkFoodExistsInPlan(plan, foodName) {
-  if (!plan || !plan.weekPlan) return false;
-  
-  const searchTerm = foodName.toLowerCase();
-  
-  // Search through all days and meals
-  for (const dayKey in plan.weekPlan) {
-    const day = plan.weekPlan[dayKey];
-    if (day && Array.isArray(day.meals)) {
-      for (const meal of day.meals) {
-        // Check meal name and description
-        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (meal.description && meal.description.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-  }
-  
-  return false;
-}
 
 /**
  * Helper function to get KV key for prompt type
@@ -6954,26 +6870,6 @@ async function handlePushSend(request, env) {
  * @param {number} status - HTTP status code
  * @param {Object} options - Optional settings { cacheControl: string }
  */
-function jsonResponse(data, status = 200, options = {}) {
-  const headers = { ...CORS_HEADERS };
-  
-  // Add cache-control header if specified
-  // Examples:
-  //   - 'no-cache' - don't cache (default for dynamic data)
-  //   - 'public, max-age=300' - cache for 5 minutes
-  //   - 'public, max-age=1800' - cache for 30 minutes
-  if (options.cacheControl) {
-    headers['Cache-Control'] = options.cacheControl;
-  } else {
-    // Default: no-cache for dynamic API responses
-    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-  }
-  
-  return new Response(JSON.stringify(data), {
-    status,
-    headers
-  });
-}
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
