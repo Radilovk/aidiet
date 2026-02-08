@@ -1089,7 +1089,7 @@
             <div class="card">
                 <h2><i class="fas fa-network-wired"></i> AI Комуникационни Логове</h2>
                 <div class="info-box">
-                    <strong>Информация:</strong> Преглед на цялата комуникация между бекенда и AI модела. Вижте какво изисква всяка стъпка и каква натовареност има.
+                    <strong>Информация:</strong> Преглед на последната комуникация между бекенда и AI модела. Съхранява се само последният лог, предишните се изтриват автоматично. Използвайте бутона "Експорт на Логове" за да запазите текущия лог като текстов файл с всички стъпки, данни и отговори.
                 </div>
                 <div class="form-group">
                     <label>Филтриране и Опции:</label>
@@ -1100,6 +1100,9 @@
                 </div>
                 <button class="btn" onclick="loadAILogs()" style="margin-bottom: 20px;">
                     <i class="fas fa-sync"></i> Зареди Логове
+                </button>
+                <button class="btn" onclick="exportAILogs()" style="margin-bottom: 20px; margin-left: 10px; background: var(--accent-blue);" aria-label="Експорт на AI комуникационни логове като текстов файл">
+                    <i class="fas fa-download"></i> Експорт на Логове
                 </button>
                 <div id="aiLogsStats" style="display: none; margin-bottom: 20px; padding: 15px; background: var(--soft-red); border-radius: 8px;">
                     <h3 style="margin-bottom: 10px;">Статистика:</h3>
@@ -3145,6 +3148,44 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 console.error('Error loading AI logs:', error);
                 container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на логове</p>';
                 showError('Грешка при зареждане на логове: ' + error.message);
+            }
+        }
+
+        /**
+         * Export AI logs to a text file
+         */
+        async function exportAILogs() {
+            try {
+                // Show loading message
+                showSuccess('Експортиране на логове...');
+                
+                // Fetch export from API
+                const response = await fetch(`${WORKER_URL}/api/admin/export-ai-logs`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                // Get the text content
+                const blob = await response.blob();
+                
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19);
+                a.download = `ai_communication_logs_${timestamp}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showSuccess('Логовете са успешно експортирани!');
+            } catch (error) {
+                console.error('Error exporting AI logs:', error);
+                showError('Грешка при експорт на логове: ' + error.message);
             }
         }
 
