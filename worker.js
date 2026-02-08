@@ -1928,9 +1928,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
   console.log(`Regenerating from ${earliestErrorStep}, attempt ${correctionAttempt}`);
   
   // Generate a unique session ID for this regeneration
-  const sessionId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? `regen_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
-    : `regen_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  const sessionId = generateUniqueId('regen');
   console.log(`Regeneration session ID: ${sessionId}`);
   
   // Create high-priority error prevention comment for the step
@@ -2087,9 +2085,7 @@ async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
   // Generate a unique session ID for this plan generation
-  const sessionId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? `session_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
-    : `session_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  const sessionId = generateUniqueId('session');
   console.log(`Plan generation session ID: ${sessionId}`);
   
   // Token tracking for multi-step generation
@@ -5209,6 +5205,18 @@ function estimateTokens(text) {
 }
 
 /**
+ * Generate a unique session or log ID
+ * @param {string} prefix - Prefix for the ID (e.g., 'session', 'regen', 'ai_log')
+ * @returns {string} Unique ID with timestamp and random component
+ */
+function generateUniqueId(prefix = 'id') {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+}
+
+/**
  * Log AI communication to KV storage
  * Tracks all communication between backend and AI model
  */
@@ -5231,14 +5239,12 @@ async function logAIRequest(env, stepName, requestData) {
       console.warn('Error checking logging status, defaulting to enabled:', error);
     }
 
-    // Generate unique log ID using crypto.randomUUID() if available, fallback to timestamp+random
-    const logId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-      ? `ai_log_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
-      : `ai_log_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    // Generate unique log ID
+    const logId = generateUniqueId('ai_log');
     const timestamp = new Date().toISOString();
     
-    // Get sessionId from requestData, or generate one if not provided (for backward compatibility)
-    const sessionId = requestData.sessionId || logId;
+    // Get sessionId from requestData, or generate one if not provided (for backward compatibility with non-session calls)
+    const sessionId = requestData.sessionId || generateUniqueId('session_auto');
     
     const logEntry = {
       id: logId,
@@ -6799,10 +6805,11 @@ async function handleExportAILogs(request, env) {
       
       // Build text content (same as before for old format)
       let textContent = '='.repeat(80) + '\n';
-      textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
+      textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ (СТАР ФОРМАТ)\n';
       textContent += '='.repeat(80) + '\n\n';
       textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
-      textContent += `Общо стъпки: ${logIds.length}\n\n`;
+      textContent += `Общо стъпки: ${logIds.length}\n`;
+      textContent += `Забележка: Това е стар формат на логове без групиране по сесии.\n\n`;
       
       for (let i = 0; i < logIds.length; i++) {
         const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
