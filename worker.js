@@ -71,9 +71,9 @@ import {
   ADLE_V8_PROTEIN_WHITELIST,
   ADLE_V8_NON_WHITELIST_PROTEINS,
   LOW_GI_FOODS
-} from './config/adle-rules.js';
+} from './config/adle-rules';
 
-import { MEAL_NAME_FORMAT_INSTRUCTIONS } from './config/meal-formats.js';
+import { MEAL_NAME_FORMAT_INSTRUCTIONS } from './config/meal-formats';
 
 import {
   estimateTokenCount,
@@ -82,7 +82,7 @@ import {
   buildModificationsSection,
   buildPreviousDaysContext,
   generateUniqueId
-} from './utils/helpers.js';
+} from './utils/helpers';
 
 // No default values - all calculations must be individualized based on user data
 
