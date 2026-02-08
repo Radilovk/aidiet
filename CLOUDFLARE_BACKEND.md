@@ -17,7 +17,7 @@
 Worker.js използва **ES6 модулна система** с import/export:
 
 ```javascript
-// Правилен начин за import (със .js extension):
+// Правилен начин за import (С .js extension):
 import { function1, function2 } from './path/to/module.js';
 
 // Правилен начин за export:
@@ -38,17 +38,19 @@ worker.js                    # Главен Worker файл
 
 ## Често срещани грешки и как да ги избегнем
 
-### 1. Import с .js extension е ЗАДЪЛЖИТЕЛЕН
+### 1. Import С .js extension е ЗАДЪЛЖИТЕЛЕН
+
+✅ **Правилно:**
+```javascript
+import { something } from './config/module.js';
+```
 
 ❌ **Грешно:**
 ```javascript
 import { something } from './config/module';
 ```
 
-✅ **Правилно:**
-```javascript
-import { something } from './config/module.js';
-```
+**Обяснение:** Cloudflare Workers използват стандартни ES modules, които изискват експлицитно посочване на файловото разширение при относителни imports.
 
 ### 2. Имената на функциите трябва да съвпадат
 
@@ -121,19 +123,24 @@ Cloudflare използва TypeScript за проверка на типовет
 
 ### Причина за грешките:
 
-1. **Import statements са правилни** - използват `.js` extension
-2. **Export statements са правилни** - функциите са правилно експортирани
-3. **Единственият проблем**: На ред 1984 се използва `estimateTokens()` вместо `estimateTokenCount()`
+TypeScript TS2792 errors при deploy заради липсващи `.js` extensions в import statements.
 
 ### Поправката:
 
-```javascript
-// Преди (грешно):
-const messageTokens = estimateTokens(msg.content);
+Всички imports на локални модули трябва да включват `.js` extension:
 
-// След (правилно):
-const messageTokens = estimateTokenCount(msg.content);
+```javascript
+// Правилно:
+import { ADLE_V8_HARD_BANS } from './config/adle-rules.js';
+import { MEAL_NAME_FORMAT_INSTRUCTIONS } from './config/meal-formats.js';
+import { estimateTokenCount } from './utils/helpers.js';
 ```
+
+**Засегнати редове в worker.js:** 74, 76, 85
+
+### История на проблеми:
+1. **По-ранна грешка (2026-02-08):** Използване на `estimateTokens()` вместо `estimateTokenCount()` на ред 1984
+2. **Текуща грешка (2026-02-08):** Липсващи `.js` extensions в imports
 
 ## Проверка преди commit
 
