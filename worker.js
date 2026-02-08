@@ -4014,7 +4014,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       recommendations: strategy.foodsToInclude || [],
       forbidden: strategy.foodsToAvoid || [],
       psychology: strategy.psychologicalSupport || [],
-      waterIntake: strategy.hydrationStrategy || "2-2.5л дневno",
+      waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: strategy.supplementRecommendations || []
     };
   }
