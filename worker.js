@@ -6726,11 +6726,13 @@ async function handleExportAILogs(request, env) {
       textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
       textContent += `Общо сесии: ${sessionIds.length}\n`;
       textContent += `Общо стъпки: ${allLogIds.length}\n`;
-      for (let j = 0; j < sessionLogCounts.length; j++) {
-        textContent += `  Сесия ${j + 1} (${sessionLogCounts[j].sessionId}): ${sessionLogCounts[j].count} стъпки\n`;
-      }
+      sessionLogCounts.forEach((session, index) => {
+        textContent += `  Сесия ${index + 1} (${session.sessionId}): ${session.count} стъпки\n`;
+      });
       textContent += '\n';
       
+      // Note: logData contains paired entries (request, response) for each log ID
+      // Each log ID maps to 2 entries in logData: [request at i*2, response at i*2+1]
       for (let i = 0; i < allLogIds.length; i++) {
         const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
         const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
