@@ -63,7 +63,7 @@
 // No default values - all calculations must be individualized based on user data
 
 // AI Communication Logging Configuration
-const MAX_LOG_ENTRIES = 1000; // Maximum number of log entries to keep in index
+const MAX_LOG_ENTRIES = 1; // Maximum number of log entries to keep in index (only keep the latest)
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -612,6 +612,8 @@ export default {
         return await handleGetConfig(request, env);
       } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
         return await handleGetAILogs(request, env);
+      } else if (url.pathname === '/api/admin/export-ai-logs' && request.method === 'GET') {
+        return await handleExportAILogs(request, env);
       } else if (url.pathname === '/api/admin/get-blacklist' && request.method === 'GET') {
         return await handleGetBlacklist(request, env);
       } else if (url.pathname === '/api/admin/add-to-blacklist' && request.method === 'POST') {
@@ -5225,16 +5227,13 @@ async function logAIRequest(env, stepName, requestData) {
     logIndex = logIndex ? JSON.parse(logIndex) : [];
     logIndex.unshift(logId); // Add to beginning (most recent first)
     
-    // Keep only last MAX_LOG_ENTRIES log entries in index
-    // Note: Old log entries will remain in KV until their TTL expires or manual cleanup
-    // For now, we accept this trade-off to avoid expensive delete operations on every log write
-    // Future improvement: Implement periodic cleanup job or add expiration time when writing logs
+    // Keep only the last log entry (MAX_LOG_ENTRIES = 1)
+    // Delete all old log entries to ensure we only store the most recent one
     if (logIndex.length > MAX_LOG_ENTRIES) {
       const removedLogIds = logIndex.slice(MAX_LOG_ENTRIES);
       logIndex = logIndex.slice(0, MAX_LOG_ENTRIES);
       
-      // Optional: Cleanup old log entries asynchronously (doesn't block current request)
-      // This helps prevent storage bloat over time
+      // Cleanup old log entries asynchronously (doesn't block current request)
       if (removedLogIds.length > 0) {
         // Use Promise.allSettled to avoid blocking if some deletes fail
         Promise.allSettled(
@@ -6480,6 +6479,107 @@ async function handleGetAILogs(request, env) {
   } catch (error) {
     console.error('Error getting AI logs:', error);
     return jsonResponse({ error: 'Failed to get AI logs: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Export AI communication logs to a text file
+ * Returns all steps with sent data, prompts, and AI responses
+ */
+async function handleExportAILogs(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    // Get log index
+    const logIndex = await env.page_content.get('ai_communication_log_index');
+    if (!logIndex) {
+      return new Response('Няма налични логове за експорт.', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"'
+        }
+      });
+    }
+    
+    const logIds = JSON.parse(logIndex);
+    
+    // Fetch all logs (should be only one since MAX_LOG_ENTRIES = 1)
+    const logPromises = logIds.flatMap(logId => [
+      env.page_content.get(`ai_communication_log:${logId}`),
+      env.page_content.get(`ai_communication_log:${logId}_response`)
+    ]);
+    
+    const logData = await Promise.all(logPromises);
+    
+    // Build text content
+    let textContent = '='.repeat(80) + '\n';
+    textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
+    textContent += '='.repeat(80) + '\n\n';
+    textContent += `Дата на експорт: ${new Date().toLocaleString('bg-BG')}\n`;
+    textContent += `Общо стъпки: ${logIds.length}\n\n`;
+    
+    for (let i = 0; i < logIds.length; i++) {
+      const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
+      const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
+      
+      if (requestLog) {
+        textContent += '='.repeat(80) + '\n';
+        textContent += `СТЪПКА ${i + 1}: ${requestLog.stepName}\n`;
+        textContent += '='.repeat(80) + '\n\n';
+        
+        // Request information
+        textContent += '--- ИЗПРАТЕНИ ДАННИ ---\n';
+        textContent += `Времева марка: ${new Date(requestLog.timestamp).toLocaleString('bg-BG')}\n`;
+        textContent += `Провайдър: ${requestLog.provider}\n`;
+        textContent += `Модел: ${requestLog.modelName}\n`;
+        textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
+        textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
+        textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
+        
+        textContent += '--- ПРОМПТ ---\n';
+        textContent += requestLog.prompt || '(Няма съхранен промпт)';
+        textContent += '\n\n';
+        
+        // Response information
+        if (responseLog) {
+          textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
+          textContent += `Времева марка: ${new Date(responseLog.timestamp).toLocaleString('bg-BG')}\n`;
+          textContent += `Успех: ${responseLog.success ? 'Да' : 'Не'}\n`;
+          textContent += `Време за отговор: ${responseLog.duration} ms\n`;
+          textContent += `Дължина на отговор: ${responseLog.responseLength} символа\n`;
+          textContent += `Приблизителни изходни токени: ${responseLog.estimatedOutputTokens}\n`;
+          
+          if (responseLog.error) {
+            textContent += `Грешка: ${responseLog.error}\n`;
+          }
+          
+          textContent += '\n--- AI ОТГОВОР ---\n';
+          textContent += responseLog.response || '(Няма съхранен отговор)';
+          textContent += '\n\n';
+        } else {
+          textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
+          textContent += '(Няма получен отговор)\n\n';
+        }
+      }
+    }
+    
+    textContent += '='.repeat(80) + '\n';
+    textContent += 'КРАЙ НА ЕКСПОРТА\n';
+    textContent += '='.repeat(80) + '\n';
+    
+    return new Response(textContent, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"'
+      }
+    });
+  } catch (error) {
+    console.error('Error exporting AI logs:', error);
+    return jsonResponse({ error: 'Failed to export AI logs: ' + error.message }, 500);
   }
 }
 
