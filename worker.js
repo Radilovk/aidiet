@@ -6518,7 +6518,7 @@ async function handleExportAILogs(request, env) {
     let textContent = '='.repeat(80) + '\n';
     textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
     textContent += '='.repeat(80) + '\n\n';
-    textContent += `Дата на експорт: ${new Date().toLocaleString('bg-BG')}\n`;
+    textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
     textContent += `Общо стъпки: ${logIds.length}\n\n`;
     
     for (let i = 0; i < logIds.length; i++) {
@@ -6532,7 +6532,7 @@ async function handleExportAILogs(request, env) {
         
         // Request information
         textContent += '--- ИЗПРАТЕНИ ДАННИ ---\n';
-        textContent += `Времева марка: ${new Date(requestLog.timestamp).toLocaleString('bg-BG')}\n`;
+        textContent += `Времева марка: ${requestLog.timestamp}\n`;
         textContent += `Провайдър: ${requestLog.provider}\n`;
         textContent += `Модел: ${requestLog.modelName}\n`;
         textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
@@ -6546,7 +6546,7 @@ async function handleExportAILogs(request, env) {
         // Response information
         if (responseLog) {
           textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
-          textContent += `Времева марка: ${new Date(responseLog.timestamp).toLocaleString('bg-BG')}\n`;
+          textContent += `Времева марка: ${responseLog.timestamp}\n`;
           textContent += `Успех: ${responseLog.success ? 'Да' : 'Не'}\n`;
           textContent += `Време за отговор: ${responseLog.duration} ms\n`;
           textContent += `Дължина на отговор: ${responseLog.responseLength} символа\n`;
@@ -6574,7 +6574,7 @@ async function handleExportAILogs(request, env) {
       status: 200,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"'
+        'Content-Disposition': `attachment; filename="ai_communication_logs_${Date.now()}.txt"`
       }
     });
   } catch (error) {
