@@ -5244,7 +5244,7 @@ async function logAIRequest(env, stepName, requestData) {
     const timestamp = new Date().toISOString();
     
     // Get sessionId from requestData, or generate one if not provided (for backward compatibility with non-session calls)
-    const sessionId = requestData.sessionId || generateUniqueId('session_auto');
+    const sessionId = requestData.sessionId || generateUniqueId('auto_session');
     
     const logEntry = {
       id: logId,
