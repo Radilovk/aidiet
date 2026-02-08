@@ -1981,7 +1981,7 @@ async function handleChat(request, env) {
     // Process history in reverse to keep most recent messages
     for (let i = updatedHistory.length - 1; i >= 0; i--) {
       const msg = updatedHistory[i];
-      const messageTokens = estimateTokenCount(msg.content);
+      const messageTokens = estimateTokens(msg.content);
       
       if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
         trimmedHistory.unshift(msg);
