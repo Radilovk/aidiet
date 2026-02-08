@@ -5204,11 +5204,16 @@ async function logAIRequest(env, stepName, requestData) {
       return null;
     }
 
-    // Check if logging is enabled
-    const loggingEnabled = await env.page_content.get('ai_logging_enabled');
-    if (loggingEnabled === 'false') {
-      console.log('AI logging is disabled, skipping');
-      return null;
+    // Check if logging is enabled (default to enabled if key doesn't exist or on error)
+    try {
+      const loggingEnabled = await env.page_content.get('ai_logging_enabled');
+      if (loggingEnabled === 'false') {
+        console.log('AI logging is disabled, skipping');
+        return null;
+      }
+    } catch (error) {
+      // On error reading KV, default to enabled (preserve original functionality)
+      console.warn('Error checking logging status, defaulting to enabled:', error);
     }
 
     // Generate unique log ID using crypto.randomUUID() if available, fallback to timestamp+random
@@ -5273,11 +5278,16 @@ async function logAIResponse(env, logId, stepName, responseData) {
       return;
     }
 
-    // Check if logging is enabled
-    const loggingEnabled = await env.page_content.get('ai_logging_enabled');
-    if (loggingEnabled === 'false') {
-      console.log('AI logging is disabled, skipping');
-      return;
+    // Check if logging is enabled (default to enabled if key doesn't exist or on error)
+    try {
+      const loggingEnabled = await env.page_content.get('ai_logging_enabled');
+      if (loggingEnabled === 'false') {
+        console.log('AI logging is disabled, skipping');
+        return;
+      }
+    } catch (error) {
+      // On error reading KV, default to enabled (preserve original functionality)
+      console.warn('Error checking logging status, defaulting to enabled:', error);
     }
 
     const timestamp = new Date().toISOString();

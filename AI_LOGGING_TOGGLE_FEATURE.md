@@ -5,6 +5,29 @@
 
 ---
 
+## ⚠️ IMPORTANT: Default Behavior & Functionality Preservation
+
+**🎯 The changes DO NOT alter existing system functionality:**
+
+1. **Default State: ENABLED** ✅
+   - When `ai_logging_enabled` key doesn't exist in KV, logging is **enabled**
+   - This preserves the original behavior before this feature was added
+   - Existing deployments continue working without changes
+
+2. **Error Resilience** ✅
+   - If KV read fails, system defaults to logging **enabled**
+   - No breaking changes - system continues working normally
+   - Graceful degradation on errors
+
+3. **Backward Compatibility** ✅
+   - Can deploy without setting the key first
+   - Fresh deployments work exactly as before
+   - No migration required
+
+**See:** `FUNCTIONALITY_PRESERVATION_TEST.md` for detailed test plan.
+
+---
+
 ## 📋 Overview
 
 This feature adds a toggle button in the admin panel that allows administrators to enable/disable AI communication logging dynamically, without code changes or redeployment.
@@ -159,7 +182,33 @@ Toggle section added after the info-box in AI Logs section (~line 1094):
 ### KV Storage Key
 **Key:** `ai_logging_enabled`  
 **Values:** `'true'` or `'false'` (stored as string)  
-**Default:** `true` (if key doesn't exist)
+**Default:** `true` (if key doesn't exist) ⚠️ **IMPORTANT**
+
+### Default Behavior - Preserves Original Functionality
+
+**🎯 Critical:** The system defaults to **logging ENABLED** when the key doesn't exist.
+
+This ensures:
+- ✅ **Backward compatibility**: Existing deployments continue working
+- ✅ **No breaking changes**: Fresh deployments work as before
+- ✅ **Safe deployment**: Can deploy without setting the key first
+- ✅ **Original behavior preserved**: Logging works by default
+
+**Implementation:**
+```javascript
+// In logAIRequest() and logAIResponse()
+try {
+  const loggingEnabled = await env.page_content.get('ai_logging_enabled');
+  if (loggingEnabled === 'false') {
+    // Only skip if EXPLICITLY set to 'false'
+    return null;
+  }
+  // If null (key missing) or 'true': Continue logging
+} catch (error) {
+  // On error: Default to enabled (preserve functionality)
+  console.warn('Error checking logging status, defaulting to enabled:', error);
+}
+```
 
 ### Behavior
 - Setting is persistent across worker restarts
