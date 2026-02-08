@@ -1,22 +1,22 @@
 # Worker.js Module Import Guidelines
 
 ## Проблем (Problem)
-След последните промени в worker.js се появиха TypeScript грешки при деплой заради неправилни module imports:
-- `Cannot find module './config/adle-rules.js'`
-- `Cannot find module './config/meal-formats.js'`
-- `Cannot find module './utils/helpers.js'`
+След последните промени в worker.js се появиха TypeScript грешки при деплой заради липсващи `.js` разширения в module imports:
+- `Cannot find module './config/adle-rules'. Did you mean to set the 'moduleResolution' option to 'nodenext'?`
+- `Cannot find module './config/meal-formats'. Did you mean to set the 'moduleResolution' option to 'nodenext'?`
+- `Cannot find module './utils/helpers'. Did you mean to set the 'moduleResolution' option to 'nodenext'?`
 
 ## Решение (Solution)
-**ВАЖНО:** При import на локални модули в worker.js, **НЕ използвай** `.js` разширение!
+**ВАЖНО:** При import на локални модули в worker.js, **ВИНАГИ използвай** `.js` разширение!
 
-### ❌ ГРЕШНО (WRONG):
+### ✅ ПРАВИЛНО (CORRECT):
 ```javascript
 import { ADLE_V8_HARD_BANS } from './config/adle-rules.js';
 import { MEAL_NAME_FORMAT_INSTRUCTIONS } from './config/meal-formats.js';
 import { estimateTokenCount } from './utils/helpers.js';
 ```
 
-### ✅ ПРАВИЛНО (CORRECT):
+### ❌ ГРЕШНО (WRONG):
 ```javascript
 import { ADLE_V8_HARD_BANS } from './config/adle-rules';
 import { MEAL_NAME_FORMAT_INSTRUCTIONS } from './config/meal-formats';
@@ -25,10 +25,11 @@ import { estimateTokenCount } from './utils/helpers';
 
 ## Обяснение (Explanation)
 
-### Защо без `.js`? (Why without `.js`?)
-1. **TypeScript Type Checking**: По време на deploy, TypeScript проверява кода и не може да резолве модулите с `.js` extension без специална конфигурация
-2. **Cloudflare Workers ES Modules**: Cloudflare Workers поддържа ES modules и автоматично резолва правилните файлове без нужда от extension
-3. **Standard Practice**: За JavaScript модули в Node.js и Cloudflare Workers, стандартната практика е да се пропуска file extension при относителни imports
+### Защо С `.js`? (Why WITH `.js`?)
+1. **ES Modules Standard**: Cloudflare Workers използват стандартни ES modules, които изискват пълно име на файла включително разширението
+2. **TypeScript Type Checking**: TypeScript проверява кода и очаква `.js` extension за да резолве модулите правилно
+3. **Browser-Compatible ES Modules**: Cloudflare Workers следват browser стандарта за ES modules, където трябва да се посочва разширението
+4. **Modern JavaScript Practice**: Съвременният JavaScript (ES2015+) изисква експлицитно посочване на файловото разширение при относителни imports
 
 ### Структура на модулите (Module Structure)
 ```
@@ -43,10 +44,10 @@ import { estimateTokenCount } from './utils/helpers';
 
 ## Правила за Import в worker.js (Import Rules for worker.js)
 
-1. **Локални модули** (Local modules): БЕЗ `.js` extension
+1. **Локални модули** (Local modules): С `.js` extension
    ```javascript
-   import { something } from './config/module';
-   import { helper } from './utils/helper';
+   import { something } from './config/module.js';
+   import { helper } from './utils/helper.js';
    ```
 
 2. **NPM packages**: Използвай package name директно
@@ -67,7 +68,7 @@ import { estimateTokenCount } from './utils/helpers';
 ## Checklist за бъдещи промени (Future Changes Checklist)
 
 Преди да commit промени в worker.js:
-- [ ] Провери че всички imports са БЕЗ `.js` extension
+- [ ] Провери че всички imports имат `.js` extension
 - [ ] Провери syntax с: `node --check worker.js`
 - [ ] Провери че модулите съществуват в config/ или utils/
 - [ ] Test локално с `wrangler dev` ако е възможно
@@ -91,7 +92,7 @@ export {
 
 ### Забранени практики (Forbidden Practices)
 - ❌ НЕ използвай CommonJS (`require()`, `module.exports`)
-- ❌ НЕ добавяй `.js` extension в относителни imports
+- ❌ НЕ пропускай `.js` extension в относителни imports
 - ❌ НЕ създавай циклични dependencies между модулите
 - ❌ НЕ импортвай worker.js в други модули (той е entry point)
 
@@ -99,9 +100,13 @@ export {
 
 **Дата:** 2026-02-08  
 **Проблем:** TypeScript TS2792 errors при deploy  
-**Причина:** Import statements с `.js` extensions  
-**Решение:** Премахване на `.js` extensions от всички imports  
+**Причина:** Import statements БЕЗ `.js` extensions  
+**Решение:** Добавяне на `.js` extensions към всички imports  
 **Засегнати редове:** 74, 76, 85 в worker.js  
+
+**Предишна грешка (2026-02-08 по-рано):**
+- Проблем: Използване на `estimateTokens()` вместо `estimateTokenCount()`
+- Решение: Коригиране на името на функцията  
 
 ## Свързани документи (Related Documents)
 - `CLOUDFLARE_BACKEND.md` - Архитектура на Cloudflare Worker
