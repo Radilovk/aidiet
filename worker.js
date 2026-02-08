@@ -60,6 +60,30 @@
  *   ✓ ФАЗА 2: Enhanced AI instructions for medications, chronotype, success chance
  */
 
+// Import configuration and utility modules
+import {
+  ADLE_V8_HARD_BANS,
+  DEFAULT_FOOD_WHITELIST,
+  DEFAULT_FOOD_BLACKLIST,
+  ADLE_V8_RARE_ITEMS,
+  ADLE_V8_HARD_RULES,
+  ADLE_V8_SPECIAL_RULES,
+  ADLE_V8_PROTEIN_WHITELIST,
+  ADLE_V8_NON_WHITELIST_PROTEINS,
+  LOW_GI_FOODS
+} from './config/adle-rules.js';
+
+import { MEAL_NAME_FORMAT_INSTRUCTIONS } from './config/meal-formats.js';
+
+import {
+  estimateTokenCount,
+  buildStrategyCompact,
+  buildAnalysisCompact,
+  buildModificationsSection,
+  buildPreviousDaysContext,
+  generateUniqueId
+} from './utils/helpers.js';
+
 // No default values - all calculations must be individualized based on user data
 
 // AI Communication Logging Configuration
@@ -112,50 +136,7 @@ const PLAN_MODIFICATION_DESCRIPTIONS = {
   [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: '- Повишен прием на протеини'
 };
 
-// Meal name and description formatting instructions for AI prompts
-const MEAL_NAME_FORMAT_INSTRUCTIONS = `
-=== ФОРМАТ НА MEAL NAME И DESCRIPTION ===
-КРИТИЧНО ВАЖНО: Спазвай СТРОГО следния формат за структуриране на name и description:
-
-ФОРМАТ НА "name" (структуриран със СИМВОЛИ):
-- Използвай символи (•, -, *) за структура, НЕ пиши изречения
-- Разделяй компонентите на отделни редове със символи
-- Формат: компонент след компонент (без смесване)
-- НЕ използвай етикети като "Салата:", "Основно:" - пиши директно названията на ястията
-
-Структура (по ред, само ако е налично):
-• [Вид салата в естествена форма] (ако има - напр. "Шопска салата", "салата Цезар", "салата от пресни зеленчуци")
-• [Основно ястие] (ако има гарнитура: "с гарнитура / гарнитура от [име на гарнитура]")
-• [Хляб: количество и вид] (ако има, напр. "1 филия пълнозърнест")
-
-Примери за ПРАВИЛЕН формат на name:
-✓ "• Шопска салата\\n• Пилешки гърди на скара с картофено пюре"
-✓ "• Бяла риба печена с киноа"
-✓ "• Зелена салата\\n• Леща яхния\\n• Хляб: 1 филия пълнозърнест"
-✓ "• Салата от пресни зеленчуци\\n• Пилешко филе с киноа"
-✓ "• Овесена каша с боровинки" (за закуска без салата/хляб)
-
-ЗАБРАНЕНИ формати за name (НЕ пиши така):
-✗ "• Салата: Шопска" (твърдо кодирани етикети)
-✗ "• Основно: Пилешки гърди" (твърдо кодирани етикети)
-✗ "Пилешки гърди на скара с картофено пюре и салата Шопска" (смесено описание)
-✗ "Печена бяла риба, приготвена с киноа и подправки" (изречение)
-
-ФОРМАТ НА "description":
-- Структурирай description с булет пойнти (•) за разделяне на компонентите
-- Всеки компонент на хранене (салата, основно ястие, гарнитура, хляб) започва на нов ред с •
-- В description пиши ВСИЧКИ уточнения за:
-  * Начин на приготвяне (печено, задушено, на скара, пресно и т.н.)
-  * Препоръки за приготвяне
-  * Конкретни подправки (сол, черен пипер, риган, магданоз и т.н.)
-  * Допълнителни продукти (зехтин, лимон, чесън и т.н.)
-  * Количества и пропорции
-
-Пример за ПРАВИЛНА комбинация name + description:
-name: "• Зелена салата\\n• Пилешки гърди с киноа\\n• Хляб: 1 филия пълнозърнест"
-description: "• Зелена салата от листа, краставици и чери домати с лимонов дресинг.\\n• Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган.\\n• Киноата се готви според инструкциите.\\n• 1 филия пълнозърнест хляб."
-`;
-
+// MEAL_NAME_FORMAT_INSTRUCTIONS is now imported from config/meal-formats.js
 
 /**
  * Calculate BMR using Mifflin-St Jeor Equation
@@ -801,40 +782,9 @@ function parseAIResponse(response) {
 // Note: This is a rough approximation (~4 chars per token for mixed content).
 // Actual GPT tokenization varies by language and content. This is sufficient
 // for conversation history management where approximate limits are acceptable.
-function estimateTokens(text) {
-  return Math.ceil(text.length / 4);
-}
+// estimateTokenCount is now imported from utils/helpers.js
 
-/**
- * More accurate token count estimation for AI prompts (supports Cyrillic)
- */
-function estimateTokenCount(text) {
-  if (!text) return 0;
-  
-  // Count Cyrillic vs Latin characters
-  const cyrillicChars = (text.match(/[\u0400-\u04FF]/g) || []).length;
-  const totalChars = text.length;
-  const cyrillicRatio = cyrillicChars / totalChars;
-  
-  // Cyrillic-heavy text: ~3 chars per token
-  // Latin-heavy text: ~4 chars per token
-  // Mixed text: interpolate between them
-  const charsPerToken = 4 - (cyrillicRatio * 1); // 3-4 range
-  
-  return Math.ceil(totalChars / charsPerToken);
-}
-
-/**
- * Generate a unique session or log ID
- * @param {string} prefix - Prefix for the ID (e.g., 'session', 'regen', 'ai_log')
- * @returns {string} Unique ID with timestamp and random component
- */
-function generateUniqueId(prefix = 'id') {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${prefix}_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
-  }
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-}
+// generateUniqueId is now imported from utils/helpers.js
 
 /**
  * Generate user ID from user data
@@ -1138,15 +1088,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\n\nПОВТОРЕНИЕ (Issue #11 - ФАЗА 4): Максимум 5 ястия могат да се повторят в цялата седмица. ИЗБЯГВАЙ повтаряне на горните ястия, освен ако не е абсолютно необходимо!`;
   }
   
-  // Extract only essential strategy fields (COMPACT - no full JSON)
-  const strategyCompact = {
-    dietType: strategy.dietType || 'Балансирана',
-    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
-    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
-    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '), // Only top 3
-    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '), // Only top 5
-    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
-  };
+  // Extract only essential strategy fields using helper function
+  const strategyCompact = buildStrategyCompact(strategy);
   
   // Fetch dynamic whitelist and blacklist from KV storage
   const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
@@ -1510,18 +1453,8 @@ ${modLines.join('\n')}
   // Fetch dynamic whitelist and blacklist from KV storage
   const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
   
-  // Create compact strategy (no full JSON)
-  const strategyCompact = {
-    dietType: strategy.dietType || 'Балансирана',
-    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
-    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
-    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '),
-    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '),
-    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', '),
-    psychologicalSupport: (strategy.psychologicalSupport || []).slice(0, 3),
-    supplementRecommendations: (strategy.supplementRecommendations || []).slice(0, 3),
-    hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
-  };
+  // Create compact strategy using helper function
+  const strategyCompact = buildStrategyCompact(strategy);
   
   return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
@@ -2212,105 +2145,13 @@ const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests -
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 
-// Low glycemic index foods allowed in late-night snacks (GI < 55)
-const LOW_GI_FOODS = [
-  'кисело мляко', 'кефир', 'ядки', 'бадеми', 'орехи', 'кашу', 'лешници',
-  'ябълка', 'круша', 'ягоди', 'боровинки', 'малини', 'черници',
-  'авокадо', 'краставица', 'домат', 'зелени листни зеленчуци',
-  'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки'
-];
+// LOW_GI_FOODS is now imported from config/adle-rules.js
 
-// ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
-// Based on meallogic.txt - slot-based constructor with strict validation
-// This will be merged with dynamic blacklist from KV storage
-const ADLE_V8_HARD_BANS = [
-  'лук', 'onion', 'пуешко месо', 'turkey meat',
-  'изкуствени подсладители', 'artificial sweeteners',
-  'мед', 'захар', 'конфитюр', 'сиропи', 'honey', 'sugar', 'jam', 'syrups',
-  'кетчуп', 'майонеза', 'BBQ сос', 'ketchup', 'mayonnaise', 'BBQ sauce',
-  'гръцко кисело мляко', 'greek yogurt'
-];
+// ADLE v8 rules and whitelists are now imported from config/adle-rules.js
+// Including: ADLE_V8_HARD_BANS, DEFAULT_FOOD_WHITELIST, DEFAULT_FOOD_BLACKLIST,
+// ADLE_V8_RARE_ITEMS, ADLE_V8_HARD_RULES, ADLE_V8_SPECIAL_RULES,
+// ADLE_V8_PROTEIN_WHITELIST, ADLE_V8_NON_WHITELIST_PROTEINS, LOW_GI_FOODS
 
-// Default whitelist - approved foods for admin panel
-const DEFAULT_FOOD_WHITELIST = [
-  'яйца', 'eggs',
-  'пилешко', 'chicken',
-  'говеждо', 'beef',
-  'свинско', 'свинска', 'pork',
-  'риба', 'fish', 'скумрия', 'тон', 'сьомга',
-  'кисело мляко', 'yogurt',
-  'извара', 'cottage cheese',
-  'сирене', 'cheese',
-  'боб', 'beans',
-  'леща', 'lentils',
-  'нахут', 'chickpeas',
-  'грах', 'peas'
-];
-
-// Default blacklist - hard banned foods for admin panel
-const DEFAULT_FOOD_BLACKLIST = [
-  'лук', 'onion',
-  'пуешко месо', 'turkey meat',
-  'изкуствени подсладители', 'artificial sweeteners',
-  'мед', 'захар', 'конфитюр', 'сиропи',
-  'honey', 'sugar', 'jam', 'syrups',
-  'кетчуп', 'майонеза', 'BBQ сос',
-  'ketchup', 'mayonnaise', 'BBQ sauce',
-  'гръцко кисело мляко', 'greek yogurt'
-];
-
-const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
-
-const ADLE_V8_HARD_RULES = {
-  R1: 'Protein main = exactly 1. Secondary protein only if (breakfast AND eggs), 0-1.',
-  R2: 'Vegetables = 1-2. Choose exactly ONE form: Salad OR Fresh side (not both). Potatoes ≠ vegetables.',
-  R3: 'Energy = 0-1 (never 2).',
-  R4: 'Dairy max = 1 per meal (yogurt OR cottage cheese OR cheese), including as sauce/dressing.',
-  R5: 'Fat = 0-1. If nuts/seeds present → no olive oil/butter.',
-  R6: 'Cheese rule: If cheese present → no olive oil/butter. Olives allowed with cheese.',
-  R7: 'Bacon rule: If bacon present → Fat=0.',
-  R8: 'Legumes-as-main (beans/lentils/chickpeas/peas stew): Energy=0 (no rice/potatoes/pasta/bulgur/oats). Bread may be optional: +1 slice wholegrain.',
-  R9: 'Bread optional rule (outside Template C): Allowed only if Energy=0. Exception: with legumes-as-main (R8), bread may still be optional (1 slice). If any Energy item present → Bread=0.',
-  R10: 'Peas as meat-side add-on: Peas are NOT energy, but they BLOCK the Energy slot → Energy=0. Bread may be optional (+1 slice) if carbs needed.',
-  R11: 'Template C (sandwich): Only snack; legumes forbidden; no banned sauces/sweeteners.',
-  R12: 'Outside-whitelist additions: Default=use whitelists only. Outside-whitelist ONLY if objectively required (MODE/medical/availability), mainstream/universal, available in Bulgaria. Add line: Reason: ...'
-};
-
-const ADLE_V8_SPECIAL_RULES = {
-  PEAS_FISH_BAN: 'Peas + fish combination is strictly forbidden.',
-  VEGETABLE_FORM_RULE: 'Choose exactly ONE vegetable form per meal: Salad (with dressing) OR Fresh side (sliced, no dressing). Never both.',
-  DAIRY_INCLUDES_SAUCE: 'Dairy count includes yogurt/cheese used in sauces, dressings, or cooking.',
-  OLIVES_NOT_FAT: 'Olives are salad add-on (NOT Fat slot). If olives present → do NOT add olive oil/butter.',
-  CORN_NOT_ENERGY: 'Corn is NOT an energy source. Small corn only in salads as add-on.',
-  TEMPLATE_C_RESTRICTION: 'Template C (sandwich) allowed ONLY for snacks, NOT for main meals.'
-};
-
-// ADLE v8 Whitelists - Allowed foods (from meallogic.txt)
-const ADLE_V8_PROTEIN_WHITELIST = [
-  'яйца', 'eggs', 'egg', 'яйце',
-  'пилешко', 'chicken', 'пиле', 'пилешк',
-  'говеждо', 'beef', 'говежд',
-  'свинско', 'свинска', 'pork', 'свин',
-  'риба', 'fish', 'скумрия', 'mackerel', 'тон', 'tuna', 'сьомга', 'salmon',
-  'кисело мляко', 'yogurt', 'йогурт', 'кефир',
-  'извара', 'cottage cheese', 'извар',
-  'сирене', 'cheese', 'сирен',
-  'боб', 'beans', 'бобови',
-  'леща', 'lentils', 'лещ',
-  'нахут', 'chickpeas', 'нахут',
-  'грах', 'peas', 'гра'
-];
-
-// Proteins explicitly NOT on whitelist (should trigger warning)
-// Using word stems to catch variations (e.g., заешко, заешки, заешка)
-// SECURITY NOTE: These strings are static and pre-validated, not user input
-const ADLE_V8_NON_WHITELIST_PROTEINS = [
-  'заеш', 'rabbit', 'зайч',  // заешко, заешки, заешка
-  'патиц', 'патешк', 'duck',  // патица, патешко, патешки
-  'гъс', 'goose',  // гъска, гъсешко
-  'агн', 'lamb',  // агне, агнешко, агнешки
-  'дивеч', 'елен', 'deer', 'wild boar', 'глиган'
-];
 
 /**
  * Helper: Check if meal has "Reason:" justification for non-whitelist items
@@ -6898,21 +6739,10 @@ async function handlePushSend(request, env) {
       url: url || '/'
     };
 
-    // In a production environment, you would:
-    // 1. Use the web-push library or similar to send the actual push notification
-    // 2. Use VAPID keys for authentication
-    // 3. Encrypt the payload according to Web Push protocol
-    
-    // For now, we'll just log that we would send the notification
-    console.log(`Would send push notification to user ${userId}:`, pushMessage);
+    // NOTE: This is a placeholder implementation
+    // Production use requires web-push library and VAPID keys configuration
+    console.log(`Simulated push notification to user ${userId}:`, pushMessage);
     console.log('Subscription endpoint:', subscription.endpoint);
-    
-    // TODO: Implement actual Web Push sending with VAPID
-    // This requires the 'web-push' library or manual implementation of the Web Push protocol
-    // Example with web-push library (needs to be imported):
-    // const webpush = require('web-push');
-    // webpush.setVapidDetails('mailto:example@domain.com', env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
-    // await webpush.sendNotification(subscription, JSON.stringify(pushMessage));
     
     return jsonResponse({ 
       success: true,
