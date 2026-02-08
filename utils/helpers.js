@@ -112,5 +112,8 @@ export function buildPreviousDaysContext(previousDays) {
  * @returns {string} Unique ID with timestamp and random component
  */
 export function generateUniqueId(prefix = 'id') {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 }

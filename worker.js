@@ -784,17 +784,7 @@ function parseAIResponse(response) {
 // for conversation history management where approximate limits are acceptable.
 // estimateTokenCount is now imported from utils/helpers.js
 
-/**
- * Generate a unique session or log ID
- * @param {string} prefix - Prefix for the ID (e.g., 'session', 'regen', 'ai_log')
- * @returns {string} Unique ID with timestamp and random component
- */
-function generateUniqueId(prefix = 'id') {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${prefix}_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
-  }
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-}
+// generateUniqueId is now imported from utils/helpers.js
 
 /**
  * Generate user ID from user data
