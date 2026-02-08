@@ -1,0 +1,2540 @@
+================================================================================
+AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ
+================================================================================
+
+Дата на експорт: 2026-02-08T04:33:55.253Z
+Общо сесии: 1
+Общо стъпки: 7
+  Сесия 1 (session_1770525157438_1ba0840d): 7 стъпки
+
+================================================================================
+СТЪПКА 1: step1_analysis
+ID на сесия: session_1770525157438_1ba0840d
+================================================================================
+
+--- ИЗПРАТЕНИ ДАННИ ---
+Времева марка: 2026-02-08T04:32:37.444Z
+Провайдър: google
+Модел: gemini-2.0-flash
+Дължина на промпт: 9010 символа
+Приблизителни входни токени: 2324
+Максимални изходни токени: 4000
+
+--- ПРОМПТ ---
+### SYSTEM PROMPT: Metabolic & Behavioral Analysis Engine
+
+**ROLE:** Expert Clinical Dietitian, Endocrinologist, and Behavioral Psychologist.
+**MODE:** Objective, Analytical, Systemic ("Holistic"), and Direct. No sugar-coating.
+**LANGUAGE:** Logic in English (for precision). Output text values in **BULGARIAN**.
+
+**OBJECTIVE:**
+Analyze the provided Client Data (`userData`) and Backend Reference Calculations (`ANCHORS`).
+Your task is NOT to blindly follow formulas, but to **VALIDATE and ADJUST** the backend reference numbers based on a deep systemic analysis of the client's reality.
+
+---
+
+### 1. HIERARCHY OF DECISION MAKING (The "Systemic" Filter)
+
+You must process the data through these strict layers:
+
+**LAYER 1: BIOLOGICAL FOUNDATION (Gender, Age, Medical)**
+* **Gender:**
+    * *Male:* Generally higher muscle mass -> Higher TDEE anchor.
+    * *Female:* Account for hormonal fluctuations. If age > 45, assume lower carbohydrate tolerance (insulin sensitivity drops) and slightly lower BMR.
+* **Age:**
+    * *< 30:* Higher metabolic resilience. Can tolerate aggressive deficits.
+    * *30 - 50:* Standard metabolic rate. Focus on stress management.
+    * *> 50:* Sarcopenia risk. Prioritize PROTEIN preservation over aggressive caloric deficits.
+* **Medical:** If conditions exist (e.g., Insulin Resistance, Thyroid), they TRUMP all other logic. (e.g., IR = Lower Carbs, regardless of activity).
+
+**LAYER 2: THE GOAL (Target)**
+* **Weight Loss:** Standard deficit is 15-20%.
+    * *CRITICAL CHECK:* If `stressLevel` is HIGH or `sleepHours` < 6, **DO NOT** assign a high deficit (>20%). High Cortisol + Starvation = Metabolic Crash & Water Retention.
+* **Gain/Maintain:** Ensure surplus comes from clean sources to minimize visceral fat accumulation.
+
+**LAYER 3: BEHAVIORAL CONTEXT (History, Stress, Habits)**
+* **Metabolic Adaptation:** If `dietHistory` shows frequent "Yo-Yo" dieting -> **LOWER** the Backend BMR/TDEE logic (conservative estimation to prevent stalling).
+* **Psychology:** If `overeatingFrequency` is high, do not prescribe rigid fasting; prescribe satiety-focused volume eating.
+
+---
+
+### 2. SECTION GUIDELINES (How to fill the JSON)
+
+**A. METRICS (BMR, TDEE, Calories):**
+* **Output:** Clean Integers/Floats only.
+* **Reasoning Fields (Bulgarian):** MUST be synthesized and information-rich. Explain *WHY* you deviated from the backend formula.
+    * *Bad:* "Calculated based on formula."
+    * *Good:* "Базовият метаболизъм е коригиран надолу заради история на хронични диети и висок кортизол, въпреки активността."
+
+**B. MACRONUTRIENTS:**
+* **Protein:** The anchor metric. Keep high for satiety and muscle protection, especially for deficits.
+* **Carbs/Fats:** Adjust based on Activity (Fuel) and Medical Status (Insulin Sensitivity).
+
+**C. WEEKLY BLUEPRINT & MEAL SEQUENCING:**
+* **STRICT CHRONOLOGICAL ORDER:** The `meals` array MUST follow this exact sequence types:
+  1. `breakfast`
+  2. `lunch`
+  3. `snack`
+  4. `dinner`
+  5. `late_snack` (only if justified)
+* **Active Status:** You can mark meals as `active: false`, but you **MUST NOT** break the sequence order (e.g., do not put `snack` before `lunch`).
+* **Math Rule:** The sum of `calorieTarget` for all ACTIVE meals in a single day **MUST EQUAL** your `recommendedCalories`.
+* **Skip Breakfast Logic:** If `userData` suggests skipping breakfast -> Set `breakfast` to `active: false`, `calorieTarget: 0`.
+
+**D. KEY PROBLEMS:**
+* Identify между 3 и 5 **REAL** obstacles (Borderline/Risky/Critical). Do not invent problems if the client is healthy. завиши важността и опасността им
+
+---
+
+### INPUT DATA
+**Client Profile:** {
+  "name": "kakadu",
+  "gender": "Жена",
+  "age": "35",
+  "height": "165",
+  "weight": "70",
+  "email": "test@example.com",
+  "goal": "Отслабване",
+  "lossKg": "5",
+  "sleepHours": "7–8",
+  "sleepInterrupt": "Не",
+  "chronotype": "Сутрешен",
+  "dailyActivityLevel": "Средно",
+  "stressLevel": "Средно",
+  "sportActivity": "Средна (2–4 дни седмично)",
+  "waterIntake": "1.5–2 л",
+  "drinksSweet": "Рядко",
+  "drinksAlcohol": "Рядко",
+  "weightChange": "Не",
+  "dietHistory": "Не",
+  "overeatingFrequency": "Понякога",
+  "foodCravings": [
+    "Сладко"
+  ],
+  "foodTriggers": [
+    "Стрес"
+  ],
+  "eatingHabits": [
+    "Не закусвам"
+  ],
+  "compensationMethods": [
+    "Не"
+  ],
+  "socialComparison": "Рядко",
+  "dietPreference": [
+    "Средиземноморска"
+  ],
+  "dietDislike": "Няма",
+  "dietLove": "Плодове и зеленчуци",
+  "medicalConditions": [
+    "Нямам"
+  ],
+  "medications": "Не",
+  "additionalNotes": "Тестов режим активиран"
+}
+
+**Backend Reference Calculations (ANCHORS):**
+* **Biological:** Age: {age}, Gender: {gender}, Weight: {weight}kg, Height: {height}cm
+* **Goal:** {goal} (Target Loss: {lossKg} kg)
+* **Activity:** Daily Score {dailyScore} + Sport {sportDays} = {combinedScore}/10
+* **Base Math:** BMR: {bmr}, TDEE: {tdee}
+* **Safety:** Min Cal: {maxDeficitCalories}, Target Deficit Cal: {targetCalories}
+* **Base Macros:** P: {protein}%, C: {carbs}%, F: {fats}%
+
+---
+
+### EXPECTED JSON OUTPUT
+*Return ONLY this JSON structure. No markdown outside. All string values in BULGARIAN.*
+
+```json
+{
+  "bmr": number,
+  "bmrReasoning": "BG: Синтезирано обяснение за корекцията спрямо пол/възраст/история.",
+  "tdee": number,
+  "tdeeReasoning": "BG: Как стресът и реалната (не желаната) активност влияят на разхода.",
+  "recommendedCalories": number,
+  "caloriesReasoning": "BG: Обосновка спрямо ЦЕЛТА и медицинския статус.",
+  "macroRatios": {
+    "protein": number,
+    "carbs": number,
+    "fats": number
+  },
+  "macroRatiosReasoning": {
+    "protein": "BG: Обосновка (напр. 'За ситост/мускули').",
+    "carbs": "BG: Обосновка (напр. 'Спрямо инсулинова чувствителност').",
+    "fats": "BG: Обосновка (напр. 'За хормони')."
+  },
+  "macroGrams": {
+    "protein": number,
+    "carbs": number,
+    "fats": number
+  },
+  "weeklyBlueprint": {
+    "skipBreakfast": boolean,
+    "dailyMealCount": number,
+    "mealCountReasoning": "BG: Защо тази честота е оптимална.",
+    "dailyStructure": [
+      {
+        "dayIndex": 1,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": boolean,
+            "calorieTarget": number,
+            "proteinSource": "BG: Храна",
+            "carbSource": "BG: Храна"
+          },
+          {
+            "type": "lunch",
+            "active": boolean,
+            "calorieTarget": number,
+            "proteinSource": "BG: Храна",
+            "carbSource": "BG: Храна"
+          },
+          {
+            "type": "snack",
+            "active": boolean,
+            "calorieTarget": number,
+            "proteinSource": "BG: Храна",
+            "carbSource": "BG: Храна"
+          },
+          {
+            "type": "dinner",
+            "active": boolean,
+            "calorieTarget": number,
+            "proteinSource": "BG: Храна",
+            "carbSource": "BG: Храна"
+          }
+          // Optional "late_snack" if needed.
+          // STRICT ORDER: breakfast -> lunch -> snack -> dinner -> late_snack
+        ]
+      }
+      // Repeat for all 7 days
+    ]
+  },
+  "metabolicProfile": "BG: Едно изречение за текущия статус (напр. 'Метаболизъм в режим на адаптация/защита').",
+  "healthRisks": [
+    "BG: Риск 1",
+    "BG: Риск 2"
+  ],
+  "nutritionalNeeds": [
+    "BG: Нужда 1",
+    "BG: Нужда 2"
+  ],
+  "psychologicalProfile": "BG: Анализ на дисциплина, тригери и мотивация.",
+  "successChance": number,
+  "successChanceReasoning": "BG: Обективна оценка на факторите.",
+  "keyProblems": [
+    {
+      "title": "BG: Заглавие",
+      "description": "BG: Описание на проблема.",
+      "severity": "Borderline", // or "Risky", "Critical"
+      "severityValue": number, // 0-100
+      "category": "Nutrition", // Sleep / Stress / Activity / Medical
+      "impact": "BG: Влияние"
+    }
+  ]
+}
+
+кура да ми ядеш мама ти даеба
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да включва:
+{
+  "bmr": число,
+  "bmrReasoning": "текст",
+  "tdee": число,
+  "tdeeReasoning": "текст",
+  "recommendedCalories": число,
+  "caloriesReasoning": "текст",
+  "macroRatios": {
+    "protein": число,
+    "carbs": число,
+    "fats": число
+  },
+  "macroRatiosReasoning": {
+    "protein": "текст",
+    "carbs": "текст",
+    "fats": "текст"
+  },
+  "macroGrams": {
+    "protein": число,
+    "carbs": число,
+    "fats": число
+  },
+  "weeklyBlueprint": {
+    "skipBreakfast": boolean,
+    "dailyMealCount": число,
+    "mealCountReasoning": "текст",
+    "dailyStructure": [...]
+  },
+  "metabolicProfile": "текст",
+  "healthRisks": ["текст"],
+  "nutritionalNeeds": ["текст"],
+  "psychologicalProfile": "текст",
+  "successChance": число,
+  "successChanceReasoning": "текст",
+  "keyProblems": [
+    {
+      "title": "текст",
+      "description": "текст",
+      "severity": "Borderline/Risky/Critical",
+      "severityValue": число,
+      "category": "текст",
+      "impact": "текст"
+    }
+  ]
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!
+
+--- ПОЛУЧЕН ОТГОВОР ---
+Времева марка: 2026-02-08T04:32:55.830Z
+Успех: Да
+Време за отговор: 18023 ms
+Дължина на отговор: 9320 символа
+Приблизителни изходни токени: 2478
+
+--- AI ОТГОВОР ---
+```json
+{
+  "bmr": 1375,
+  "bmrReasoning": "Базовият метаболизъм е изчислен според пола, възрастта, височината и теглото. Няма медицински противопоказания или история на екстремни диети, които да налагат корекция.",
+  "tdee": 2063,
+  "tdeeReasoning": "Общият дневен разход на енергия е изчислен на база средна дневна активност и средна спортна активност (2-4 дни седмично). Нивото на стрес е средно, което не налага значителна корекция.",
+  "recommendedCalories": 1650,
+  "caloriesReasoning": "Препоръчителният калориен прием е определен с дефицит от около 20% за постигане на целта - отслабване с 5 кг. Няма медицински противопоказания.",
+  "macroRatios": {
+    "protein": 35,
+    "carbs": 30,
+    "fats": 35
+  },
+  "macroRatiosReasoning": {
+    "protein": "Високо съдържание на протеин за ситост и запазване на мускулната маса по време на калориен дефицит.",
+    "carbs": "Умерено количество въглехидрати, балансирано спрямо физическата активност и липсата на инсулинова резистентност.",
+    "fats": "Съобразено количество мазнини за хормонален баланс и усвояване на мастно-разтворими витамини."
+  },
+  "macroGrams": {
+    "protein": 144,
+    "carbs": 124,
+    "fats": 64
+  },
+  "weeklyBlueprint": {
+    "skipBreakfast": true,
+    "dailyMealCount": 4,
+    "mealCountReasoning": "Четири хранения на ден позволяват по-лесно управление на глада и поддържане на стабилни нива на кръвната захар. Закуската е пропусната, според предпочитанията на клиента.",
+    "dailyStructure": [
+      {
+        "dayIndex": 1,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пилешка салата",
+            "carbSource": "Киноа"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Ядки",
+            "carbSource": "Ябълка"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Сьомга",
+            "carbSource": "Сладък картоф"
+          }
+        ]
+      },
+      {
+        "dayIndex": 2,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Леща",
+            "carbSource": "Кафяв ориз"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Извара",
+            "carbSource": "Боровинки"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Телешко",
+            "carbSource": "Зеленчуци на грил"
+          }
+        ]
+      },
+      {
+        "dayIndex": 3,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пилешка супа",
+            "carbSource": "Пълнозърнест хляб"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Протеинов бар",
+            "carbSource": ""
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Риба тон",
+            "carbSource": "Салата"
+          }
+        ]
+      },
+      {
+        "dayIndex": 4,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пуешко",
+            "carbSource": "Кускус"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Кисело мляко",
+            "carbSource": "Плодове"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Заешко",
+            "carbSource": "Гъби"
+          }
+        ]
+      },
+      {
+        "dayIndex": 5,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Боб",
+            "carbSource": "Пълнозърнест хляб"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Варено яйце",
+            "carbSource": "Морков"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Пилешки гърди",
+            "carbSource": "Броколи"
+          }
+        ]
+      },
+      {
+        "dayIndex": 6,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Риба",
+            "carbSource": "Картофи на фурна"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Скир",
+            "carbSource": "Малини"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Свинско бонфиле",
+            "carbSource": "Салата"
+          }
+        ]
+      },
+      {
+        "dayIndex": 7,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Вегетарианска мусака",
+            "carbSource": ""
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Сирене",
+            "carbSource": "Круша"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Пилешка кавърма",
+            "carbSource": "Салата"
+          }
+        ]
+      }
+    ]
+  },
+  "metabolicProfile": "Метаболизъм в добро състояние, без сериозни отклонения и адаптации към диетични режими.",
+  "healthRisks": [
+    "Повишен риск от консумация на прекалено много сладко при стрес.",
+    "Риск от дефицит на определени хранителни вещества поради пропусната закуска."
+  ],
+  "nutritionalNeeds": [
+    "Увеличен прием на фибри за контрол на апетита и нивата на кръвната захар.",
+    "Осигуряване на достатъчен прием на протеин за поддържане на мускулната маса."
+  ],
+  "psychologicalProfile": "Клиентът има склонност към преяждане при стрес и желание за сладко. Мотивацията е добра, но е нужна стратегия за справяне със стресовите ситуации.",
+  "successChance": 75,
+  "successChanceReasoning": "Шансовете за успех са високи, тъй като няма медицински проблеми, но е важно да се обърне внимание на справянето със стреса и контрола на апетита.",
+  "keyProblems": [
+    {
+      "title": "Преяждане при стрес",
+      "description": "Повишен риск от преяждане със сладко при стресови ситуации, което може да саботира процеса на отслабване.",
+      "severity": "Risky",
+      "severityValue": 65,
+      "category": "Stress",
+      "impact": "Възпрепятства постигането на калориен дефицит и води до емоционално хранене."
+    },
+    {
+      "title": "Пропускане на закуска",
+      "description": "Пропускането на закуска може да доведе до по-голям глад през деня и неконтролируем прием на калории по-късно.",
+      "severity": "Borderline",
+      "severityValue": 40,
+      "category": "Nutrition",
+      "impact": "Нарушава дневния ритъм на хранене и затруднява контрола на апетита."
+    },
+    {
+      "title": "Склонност към сладко",
+      "description": "Наличие на силно желание за сладки храни, което може да доведе до консумация на излишни калории и захари.",
+      "severity": "Borderline",
+      "severityValue": 35,
+      "category": "Nutrition",
+      "impact": "Влияе негативно на инсулиновата чувствителност и води до натрупване на излишни мазнини."
+    }
+  ]
+}
+```
+
+================================================================================
+СТЪПКА 2: step2_strategy
+ID на сесия: session_1770525157438_1ba0840d
+================================================================================
+
+--- ИЗПРАТЕНИ ДАННИ ---
+Времева марка: 2026-02-08T04:32:55.936Z
+Провайдър: google
+Модел: gemini-2.0-flash
+Дължина на промпт: 20962 символа
+Приблизителни входни токени: 5463
+Максимални изходни токени: 4000
+
+--- ПРОМПТ ---
+ROLE: Senior Clinical Nutritionist & Strategist.
+INPUT: Client Profile ({
+  "name": "kakadu",
+  "gender": "Жена",
+  "age": "35",
+  "height": "165",
+  "weight": "70",
+  "email": "test@example.com",
+  "goal": "Отслабване",
+  "lossKg": "5",
+  "sleepHours": "7–8",
+  "sleepInterrupt": "Не",
+  "chronotype": "Сутрешен",
+  "dailyActivityLevel": "Средно",
+  "stressLevel": "Средно",
+  "sportActivity": "Средна (2–4 дни седмично)",
+  "waterIntake": "1.5–2 л",
+  "drinksSweet": "Рядко",
+  "drinksAlcohol": "Рядко",
+  "weightChange": "Не",
+  "dietHistory": "Не",
+  "overeatingFrequency": "Понякога",
+  "foodCravings": [
+    "Сладко"
+  ],
+  "foodTriggers": [
+    "Стрес"
+  ],
+  "eatingHabits": [
+    "Не закусвам"
+  ],
+  "compensationMethods": [
+    "Не"
+  ],
+  "socialComparison": "Рядко",
+  "dietPreference": [
+    "Средиземноморска"
+  ],
+  "dietDislike": "Няма",
+  "dietLove": "Плодове и зеленчуци",
+  "medicalConditions": [
+    "Нямам"
+  ],
+  "medications": "Не",
+  "additionalNotes": "Тестов режим активиран"
+}) + Step 1 Analysis ({
+  "bmr": 1375,
+  "tdee": 2063,
+  "recommendedCalories": 1650,
+  "macroRatios": "Protein: 35%, Carbs: 30%, Fats: 35%",
+  "macroGrams": "Protein: 144g, Carbs: 124g, Fats: 64g",
+  "weeklyBlueprint": {
+    "skipBreakfast": true,
+    "dailyMealCount": 4,
+    "mealCountReasoning": "Четири хранения на ден позволяват по-лесно управление на глада и поддържане на стабилни нива на кръвната захар. Закуската е пропусната, според предпочитанията на клиента.",
+    "dailyStructure": [
+      {
+        "dayIndex": 1,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пилешка салата",
+            "carbSource": "Киноа"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Ядки",
+            "carbSource": "Ябълка"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Сьомга",
+            "carbSource": "Сладък картоф"
+          }
+        ]
+      },
+      {
+        "dayIndex": 2,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Леща",
+            "carbSource": "Кафяв ориз"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Извара",
+            "carbSource": "Боровинки"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Телешко",
+            "carbSource": "Зеленчуци на грил"
+          }
+        ]
+      },
+      {
+        "dayIndex": 3,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пилешка супа",
+            "carbSource": "Пълнозърнест хляб"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Протеинов бар",
+            "carbSource": ""
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Риба тон",
+            "carbSource": "Салата"
+          }
+        ]
+      },
+      {
+        "dayIndex": 4,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пуешко",
+            "carbSource": "Кускус"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Кисело мляко",
+            "carbSource": "Плодове"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Заешко",
+            "carbSource": "Гъби"
+          }
+        ]
+      },
+      {
+        "dayIndex": 5,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Боб",
+            "carbSource": "Пълнозърнест хляб"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Варено яйце",
+            "carbSource": "Морков"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Пилешки гърди",
+            "carbSource": "Броколи"
+          }
+        ]
+      },
+      {
+        "dayIndex": 6,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Риба",
+            "carbSource": "Картофи на фурна"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Скир",
+            "carbSource": "Малини"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Свинско бонфиле",
+            "carbSource": "Салата"
+          }
+        ]
+      },
+      {
+        "dayIndex": 7,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Вегетарианска мусака",
+            "carbSource": ""
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Сирене",
+            "carbSource": "Круша"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Пилешка кавърма",
+            "carbSource": "Салата"
+          }
+        ]
+      }
+    ]
+  },
+  "metabolicProfile": "Метаболизъм в добро състояние, без сериозни отклонения и адаптации към диетични режими.",
+  "healthRisks": "Повишен риск от консумация на прекалено много сладко при стрес.; Риск от дефицит на определени хранителни вещества поради пропусната закуска.",
+  "nutritionalNeeds": "Увеличен прием на фибри за контрол на апетита и нивата на кръвната захар.; Осигуряване на достатъчен прием на протеин за поддържане на мускулната маса.",
+  "psychologicalProfile": "Клиентът има склонност към преяждане при стрес и желание за сладко. Мотивацията е добра, но е нужна стратегия за справяне със стресовите ситуации.",
+  "successChance": 75,
+  "keyProblems": "Преяждане при стрес (Risky); Пропускане на закуска (Borderline); Склонност към сладко (Borderline)"
+}).
+OUTPUT: A highly personalized, medically safe, and strategic Diet Plan in JSON format. Text values in BULGARIAN.
+​1. CORE LOGIC: THE "MODIFIER" SELECTION
+​You must select ONE primary dietary strategy (dietaryModifier) that governs the entire meal plan.
+​Selection Logic:
+​Medical Constraint (Highest Priority): (e.g., IBS -> "Low FODMAP/Gentle", Diabetes -> "Low Glycemic/Balanced").
+​Goal: (e.g., Aggressive Loss -> "Low Carb" or "Calorie Cycling").
+​Preference: (e.g., User likes meat -> "Paleo", User hates meat -> "Plant-Based").
+<!-- end list -->
+​Conflict Resolution: If User requests "Keto" but has No Gallbladder or High LDL, you MUST override with "Moderate Low-Carb" and explain why in modifierReasoning.
+​2. SAFETY PROTOCOL: SUPPLEMENTS & MEDICATIONS
+​CRITICAL: You are the safety gatekeeper.
+​Analyze Medications: Check {medications} & {medicationsDetails} against ALL potential supplements.
+​Rule: If taking Blood Thinners -> NO Vitamin K.
+​Rule: If taking Antibiotics -> Space out Calcium/Magnesium.
+​Rule: If taking Diuretics -> Monitor Potassium.
+​Dosage Customization:
+​Weight: Higher weight ({weight}kg) = Higher dosage for fat-soluble vitamins (D, E).
+​Age: >50y = Higher B12 & Calcium needs.
+​Gender: Menstruating Women = Iron focus; Men = Zinc focus.
+​Sleep: <7h = Magnesium Bisglycinate/Melatonin protocol.
+​3. STRATEGIC PLANNING (The "Long Game")
+​Do not just plan a day; plan a lifestyle system.
+​Chronotype Integration:
+​Larks (Morning): Front-load calories (Big Breakfast/Lunch).
+​Owls (Night): Push first meal later, allow structured late dinner.
+​Cycling: If the Goal is "Weight Loss" and Stress is "High", implement "Calorie Cycling" (Higher carb/cal days on training days, lower on rest days) to prevent metabolic crash.
+​Meal Frequency:
+​If Insulin Resistant/High Glucose -> Frequent small meals (Stable blood sugar).
+​If Healthy/Busy -> Intermittent Fasting (2-3 meals) is acceptable.
+​4. JSON OUTPUT INSTRUCTIONS
+​Language: All string values must be in BULGARIAN.
+​Tone: Professional, Empathetic, Authoritative.
+​Structure: Follow the exact JSON schema below.
+​Specific Field Instructions:
+​welcomeMessage: 150-250 words. Hyper-personalized. Mention their specific name, goal, and a unique struggle from their profile. NO generic fluff.
+​supplementRecommendations: Format: "! [Name] ([Dosage]) - [WHY based on logic]".
+​weeklyMealPattern: Describe the system (e.g., "5 days Deficit + 2 days Maintenance").
+​INPUT DATA
+​Client: kakadu, 35y, {gender}, {weight}kg.
+Goal: Отслабване
+Medical: {medicalConditions} (Meds: {medications})
+Analysis (Step 1): {
+  "bmr": 1375,
+  "tdee": 2063,
+  "recommendedCalories": 1650,
+  "macroRatios": "Protein: 35%, Carbs: 30%, Fats: 35%",
+  "macroGrams": "Protein: 144g, Carbs: 124g, Fats: 64g",
+  "weeklyBlueprint": {
+    "skipBreakfast": true,
+    "dailyMealCount": 4,
+    "mealCountReasoning": "Четири хранения на ден позволяват по-лесно управление на глада и поддържане на стабилни нива на кръвната захар. Закуската е пропусната, според предпочитанията на клиента.",
+    "dailyStructure": [
+      {
+        "dayIndex": 1,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пилешка салата",
+            "carbSource": "Киноа"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Ядки",
+            "carbSource": "Ябълка"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Сьомга",
+            "carbSource": "Сладък картоф"
+          }
+        ]
+      },
+      {
+        "dayIndex": 2,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Леща",
+            "carbSource": "Кафяв ориз"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Извара",
+            "carbSource": "Боровинки"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Телешко",
+            "carbSource": "Зеленчуци на грил"
+          }
+        ]
+      },
+      {
+        "dayIndex": 3,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пилешка супа",
+            "carbSource": "Пълнозърнест хляб"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Протеинов бар",
+            "carbSource": ""
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Риба тон",
+            "carbSource": "Салата"
+          }
+        ]
+      },
+      {
+        "dayIndex": 4,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Пуешко",
+            "carbSource": "Кускус"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Кисело мляко",
+            "carbSource": "Плодове"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Заешко",
+            "carbSource": "Гъби"
+          }
+        ]
+      },
+      {
+        "dayIndex": 5,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Боб",
+            "carbSource": "Пълнозърнест хляб"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Варено яйце",
+            "carbSource": "Морков"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Пилешки гърди",
+            "carbSource": "Броколи"
+          }
+        ]
+      },
+      {
+        "dayIndex": 6,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Риба",
+            "carbSource": "Картофи на фурна"
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Скир",
+            "carbSource": "Малини"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Свинско бонфиле",
+            "carbSource": "Салата"
+          }
+        ]
+      },
+      {
+        "dayIndex": 7,
+        "meals": [
+          {
+            "type": "breakfast",
+            "active": false,
+            "calorieTarget": 0,
+            "proteinSource": "",
+            "carbSource": ""
+          },
+          {
+            "type": "lunch",
+            "active": true,
+            "calorieTarget": 550,
+            "proteinSource": "Вегетарианска мусака",
+            "carbSource": ""
+          },
+          {
+            "type": "snack",
+            "active": true,
+            "calorieTarget": 250,
+            "proteinSource": "Сирене",
+            "carbSource": "Круша"
+          },
+          {
+            "type": "dinner",
+            "active": true,
+            "calorieTarget": 850,
+            "proteinSource": "Пилешка кавърма",
+            "carbSource": "Салата"
+          }
+        ]
+      }
+    ]
+  },
+  "metabolicProfile": "Метаболизъм в добро състояние, без сериозни отклонения и адаптации към диетични режими.",
+  "healthRisks": "Повишен риск от консумация на прекалено много сладко при стрес.; Риск от дефицит на определени хранителни вещества поради пропусната закуска.",
+  "nutritionalNeeds": "Увеличен прием на фибри за контрол на апетита и нивата на кръвната захар.; Осигуряване на достатъчен прием на протеин за поддържане на мускулната маса.",
+  "psychologicalProfile": "Клиентът има склонност към преяждане при стрес и желание за сладко. Мотивацията е добра, но е нужна стратегия за справяне със стресовите ситуации.",
+  "successChance": 75,
+  "keyProblems": "Преяждане при стрес (Risky); Пропускане на закуска (Borderline); Склонност към сладко (Borderline)"
+} (Calories: {recommendedCalories}, Macros: {macroRatios})
+Preferences: {dietPreference}, Dislikes: {dietDislike}
+​EXPECTED JSON OUTPUT
+
+{
+  "dietaryModifier": "String (напр. 'Средиземноморски баланс', 'Кето адаптиран', 'Нисковъглехидратен')",
+  "modifierReasoning": "BG: Детайлно обяснение защо ТОЗИ режим е избран спрямо медицина/цел/предпочитания.",
+  "welcomeMessage": "BG: Персонализирано приветствие (150-250 думи). Използвай името kakadu. Спомени конкретни фактори (възраст, стрес, цел). Мотивирай ги.",
+  "planJustification": "BG: Стратегическа обосновка. Защо този брой хранения? Защо тези часове? Как стратегията бори стреса/инсулина?",
+  "longTermStrategy": "BG: Опиши седмичния ритъм (напр. 'Циклично въртене на въглехидрати: Високи в тренировъчни дни, ниски в почивни').",
+  "mealCountJustification": "BG: Защо kakadu се нуждае точно от този брой хранения дневно (физиология vs навици).",
+  "afterDinnerMealJustification": "BG: Обосновка за късно хранене (или липсата му).",
+  "dietType": "String (тип диета)",
+  "weeklyMealPattern": "BG: Описание на схемата (напр. '16:8 Фастинг' или '3 основни + 1 снак').",
+  "mealTiming": {
+    "pattern": "BG: Седмичен модел (напр. 'Пн-Пт: 2 хранения, Сб-Нд: 3 хранения').",
+    "fastingWindows": "BG: Има ли прозорец на гладуване?",
+    "flexibility": "BG: Колко гъвкав е планът?",
+    "chronotypeGuidance": "BG: Как хронотипът ({chronotype}) определя кога са най-големите хранения."
+  },
+  "keyPrinciples": [
+    "BG: Принцип 1 (персонализиран)",
+    "BG: Принцип 2",
+    "BG: Принцип 3"
+  ],
+  "foodsToInclude": [
+    "BG: Храна 1 (медицински/вкусово обоснована)",
+    "BG: Храна 2",
+    "BG: Храна 3"
+  ],
+  "foodsToAvoid": [
+    "BG: Храна 1 (медицински противопоказана или мразена)",
+    "BG: Храна 2",
+    "BG: Храна 3"
+  ],
+  "supplementRecommendations": [
+    "BG: ! Име на добавка (Доза: X mg) - Обосновка свързана с {medicalConditions} или дефицити.",
+    "BG: ! Име на добавка (Доза: Y mg) - Обосновка свързана със стрес/сън.",
+    "BG: ! Име на добавка (Доза: Z mg) - Обосновка свързана с пол/възраст."
+  ],
+  "hydrationStrategy": "BG: Стратегия за вода според кг и активност.",
+  "psychologicalSupport": [
+    "BG: Съвет за емоционално хранене (ако има)",
+    "BG: Съвет за стрес мениджмънт",
+    "BG: Мотивационен съвет"
+  ]
+}
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да включва:
+{
+  "dietaryModifier": "текст",
+  "modifierReasoning": "текст",
+  "welcomeMessage": "текст",
+  "planJustification": "текст",
+  "longTermStrategy": "текст",
+  "mealCountJustification": "текст",
+  "afterDinnerMealJustification": "текст",
+  "dietType": "текст",
+  "weeklyMealPattern": "текст",
+  "mealTiming": {
+    "pattern": "текст",
+    "fastingWindows": "текст",
+    "flexibility": "текст",
+    "chronotypeGuidance": "текст"
+  },
+  "keyPrinciples": ["текст"],
+  "foodsToInclude": ["текст"],
+  "foodsToAvoid": ["текст"],
+  "supplementRecommendations": ["текст"],
+  "hydrationStrategy": "текст",
+  "psychologicalSupport": ["текст"]
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!
+
+--- ПОЛУЧЕН ОТГОВОР ---
+Времева марка: 2026-02-08T04:33:07.411Z
+Успех: Да
+Време за отговор: 11274 ms
+Дължина на отговор: 4339 символа
+Приблизителни изходни токени: 1309
+
+--- AI ОТГОВОР ---
+```json
+{
+  "dietaryModifier": "Средиземноморски баланс с акцент върху контрол на стреса",
+  "modifierReasoning": "Средиземноморската диета е здравословен и устойчив избор за отслабване, особено подходящ за предпочитанията на kakadu. Допълнителният акцент върху контрола на стреса е ключов, предвид склонността към преяждане при стресови ситуации. Този подход комбинира ползите от диетата с техники за управление на емоционалното хранене.",
+  "welcomeMessage": "Здравей, kakadu! На 35 години си и имаш страхотна цел – да свалиш 5 кг, което е напълно постижимо с правилния подход. Знам, че понякога стресът може да те накара да посегнеш към сладко, но заедно ще изградим стратегия, която да ти помогне да контролираш тези моменти и да постигнеш желаните резултати. Ще се фокусираме върху вкусни и засищащи храни, които ще те поддържат енергична и мотивирана. Готова ли си да започнем това пътешествие към по-здравословно и уверено Аз?",
+  "planJustification": "Планът е структуриран около 4 хранения на ден, за да поддържа стабилни нива на кръвната захар и да предотврати пристъпите на глад, особено следобед и вечер, когато стресът обикновено е най-висок. Пропускането на закуска е взето предвид според предпочитанията, но ще обърнем внимание на правилното разпределение на калориите през деня, за да компенсираме това. За да се борим със стреса, ще включим храни, богати на магнезий и омега-3 мастни киселини, които имат успокояващ ефект.",
+  "longTermStrategy": "В дългосрочен план, ще се стремим към балансирано хранене през цялата седмица, с леки вариации в калориите в зависимост от физическата активност. Целта е да изградим устойчиви навици, които ще ти помогнат да поддържаш постигнатите резултати без да се чувстваш лишена или ограничена.",
+  "mealCountJustification": "Четири хранения на ден са оптимални за kakadu, тъй като осигуряват стабилно снабдяване с енергия и хранителни вещества, предотвратяват преяждането и помагат за контрол на апетита. Този режим е подходящ за средно активен човек и позволява по-лесно вписване в натоварения график.",
+  "afterDinnerMealJustification": "Не се препоръчва хранене след вечеря, освен ако не е абсолютно необходимо поради късна тренировка или продължителен период без храна. В такива случаи, се препоръчва лека закуска, богата на протеини, за да се подпомогне възстановяването и да се избегне покачването на кръвната захар.",
+  "dietType": "Средиземноморска диета",
+  "weeklyMealPattern": "5 дни с калориен дефицит, 2 дни с поддържащи калории",
+  "mealTiming": {
+    "pattern": "Пн-Пт: 4 хранения, Сб-Нд: 4 хранения (гъвкавост в часовете)",
+    "fastingWindows": "Няма строг прозорец на гладуване, но се препоръчва да не се яде 2-3 часа преди лягане.",
+    "flexibility": "Планът е гъвкав и позволява замяна на храните, стига да се запазват калориите и макронутриентите.",
+    "chronotypeGuidance": "Тъй като kakadu е сутрешен тип, най-големите хранения трябва да бъдат обяд и вечеря. По-лека храна, ако все пак присъства, за закуска."
+  },
+  "keyPrinciples": [
+    "Консумирай разнообразни плодове и зеленчуци всеки ден.",
+    "Осигури достатъчен прием на протеини от различни източници.",
+    "Ограничи преработените храни, захарта и наситените мазнини."
+  ],
+  "foodsToInclude": [
+    "Риба и морски дарове (богати на омега-3 мастни киселини)",
+    "Зехтин (здравословна мазнина)",
+    "Ядки и семена (засищащи и богати на хранителни вещества)"
+  ],
+  "foodsToAvoid": [
+    "Захарни изделия и газирани напитки (празни калории)",
+    "Пържени храни (високо съдържание на мазнини)",
+    "Преработени меса (високо съдържание на натрий и консерванти)"
+  ],
+  "supplementRecommendations": [
+    "! Магнезий (Доза: 200 mg) - Подпомага контрола на стреса и подобрява качеството на съня.",
+    "! Омега-3 мастни киселини (Доза: 1000 mg) - Намаляват възпалението и подпомагат когнитивната функция.",
+    "! Витамин D (Доза: 2000 IU) - Важен за имунната система и костното здраве, особено при жени."
+  ],
+  "hydrationStrategy": "Пий поне 2 литра вода на ден, особено преди и след тренировка. Можеш да включиш и билкови чайове без захар.",
+  "psychologicalSupport": [
+    "Води си дневник на хранене, за да идентифицираш емоционалните тригери.",
+    "Практикувай техники за релаксация, като медитация или дихателни упражнения.",
+    "Награждавай се за постиженията си, но не с храна."
+  ]
+}
+```
+
+================================================================================
+СТЪПКА 3: step3_meal_plan_chunk_1
+ID на сесия: session_1770525157438_1ba0840d
+================================================================================
+
+--- ИЗПРАТЕНИ ДАННИ ---
+Времева марка: 2026-02-08T04:33:07.516Z
+Провайдър: google
+Модел: gemini-2.0-flash
+Дължина на промпт: 6392 символа
+Приблизителни входни токени: 1627
+Максимални изходни токени: 8000
+
+--- ПРОМПТ ---
+### SYSTEM PROMPT: ADLE v8 (Full Logic Core)
+
+**ROLE:** Advanced Dietary Logic Engine (ADLE v8).
+**TASK:** Generate Days 1-2 for Client {name}.
+**LANGUAGE:** Logic & Instructions in **ENGLISH**. Output Strings in **BULGARIAN**.
+
+---
+
+### 1. INPUT CONTEXT & SYNCHRONIZATION
+**Client:** {name}, {goal}, 1650 kcal.
+**Profile:** Stress: {stressLevel}, Sleep: {sleepHours}h, Chrono: {chronotype}.
+**Strategy:** Diet: {dietType}, Pattern: {weeklyMealPattern}, Avoid: {dietDislike}, Love: {dietLove}.
+**Blueprint:** {blueprintSection}
+
+**TYPE MAPPING (Input Key → Output Display Name):**
+* `breakfast`  → **"Закуска"**
+* `lunch`      → **"Обяд"**
+* `snack`      → **"Следобедна закуска"** (NEVER use "Снак")
+* `dinner`     → **"Вечеря"**
+* `late_snack` → **"Късна закуска"**
+
+---
+
+### 2. ADLE v8 LOGIC KERNEL (Full Ruleset)
+
+**PRIORITY:** Hard Bans > Mode Filter > Template Constraints > Hard Rules (R1-R12) > Output.
+
+**0. HARD BANS (Global 0% Tolerance):**
+* **Ingredients:** Onions (all forms), Turkey meat (ALL forms), Artificial Sweeteners.
+* **Sugars:** Honey, Table Sugar, Jams, Syrups.
+* **Condiments:** Ketchup, Mayo, BBQ sauces, Sweet sauces.
+* **Dairy:** Greek Yogurt (Forbidden - use ONLY Bulgarian standard yogurt).
+* **Combos:** Peas + Fish (Strictly Forbidden).
+* **Rarely Allowed (≤2 times/week):** Turkey ham, Bacon.
+
+**HARD RULES (R1-R12):**
+* **R1 (Protein):** EXACTLY 1 protein source per meal.
+    * *Exception:* Breakfast may have Eggs + Cheese (0-1).
+* **R2 (Vegetables):** 1-2 types. XOR Logic applies: Choose **Salad** OR **Cooked/Fresh Cuts**. NEVER mix Salad + Cooked in the same meal.
+    * *Note:* Potato is ENERGY, not Vegetable.
+* **R3 (Energy):** 0-1 source (Never 2). Corn is NOT Energy.
+* **R4 (Dairy):** Max 1 source per meal (Yogurt OR Cottage Cheese OR Cheese). This includes sauce/dressing usage.
+* **R5 (Fats):** 0-1 source.
+    * *Logic:* IF (Cheese OR Nuts OR Bacon) are present -> Added Fat (Oil/Butter) = 0.
+* **R6 (Cheese Rule):** IF Cheese is present -> No Olive Oil/Butter. (Olives + Cheese is allowed).
+* **R7 (Bacon Rule):** IF Bacon is present -> Added Fat = 0.
+* **R8 (Legumes as Main):** IF Main = Beans/Lentils/Chickpeas/Pea Stew:
+    * **ENERGY SLOT = 0** (No Rice/Potato/Pasta/Oats).
+    * *Exception:* Bread is allowed (+1 slice Whole Grain).
+* **R9 (Bread Rule):** Bread is allowed ONLY if Energy Slot = 0.
+    * *Exception:* See R8 (Legumes).
+    * *Constraint:* If Rice/Potato exists -> Bread = 0.
+* **R10 (Peas as Side):** Peas are NOT Energy, but they **BLOCK** the Energy slot.
+    * IF Peas side dish -> Energy = 0.
+    * Bread allowed (+1 slice).
+* **R11 (Template C - Sandwich):** Allowed ONLY for **Breakfast** or **Snack**. NEVER for Lunch/Dinner. No legumes in sandwiches.
+* **R12 (Whitelist Protocol):** Use ONLY Whitelisted foods unless medically necessary.
+
+---
+
+### 3. FOOD WHITELISTS (Strict Adherence)
+
+**[PROTEIN] (Choose 1):**
+* Eggs, Chicken (Breast/Thigh), Beef, Lean Pork.
+* Fish (White fish, Mackerel, Tuna/Canned Tuna), Salmon.
+* Yogurt (Plain Bulgarian), Cottage Cheese, White Cheese.
+* Beans, Lentils, Chickpeas.
+* **BANNED:** Turkey meat, Rabbit, Duck, Goose, Lamb, Game meat.
+
+**[VEGETABLES] (Choose 1-2):**
+* Tomato, Cucumber, Pepper, Cabbage, Carrot.
+* Lettuce/Greens, Spinach.
+* Zucchini, Mushrooms, Broccoli, Cauliflower.
+* *Form:* Salad OR Fresh Cuts (No dressing).
+
+**[ENERGY] (Choose 0-1):**
+* Oats, Rice (Brown/Basmati), Potato (Boiled/Baked).
+* Pasta (Whole grain), Bulgur, Quinoa, Buckwheat.
+* *Note:* Corn is NOT energy (Garnish only).
+
+**[FATS] (Choose 0-1):**
+* Olive Oil, Butter (moderate), Raw Nuts/Seeds, Avocado.
+
+---
+
+### 4. MEDICAL & TIMING LOGIC
+
+**STRESS ADAPTATION ({stressLevel}):**
+* **High Stress:** Boost Magnesium (Spinach, Nuts, Seeds) & Vitamin C.
+* **Constraint:** NO stimulants (Coffee/Green Tea) after 14:00.
+
+**SLEEP ADAPTATION ({sleepHours}h):**
+* **< 6h Sleep:** Dinner MUST include Tryptophan sources (Dairy, Eggs, Fish) to aid sleep. Avoid heavy meals.
+
+**CHRONOTYPE TIMING ({chronotype}):**
+* **Lark:** Big Breakfast (30-35%), Lighter Dinner.
+* **Owl:** Light/Late Breakfast, Big Dinner (35%).
+
+**LATE SNACK RULES ("Късна закуска"):**
+* **Eligibility:** Only if explicitly active in blueprint.
+* **Conditions:** Max 200 kcal. Low GI only (Yogurt, Nuts, Berries). NO Carbs/Heavy food.
+
+---
+
+### 5. FORMATTING: DECONSTRUCTION PROTOCOL (CRITICAL)
+**RULE:** You must physically separate food components.
+**FORBIDDEN:** Generic names like "Chicken Risotto" or "Shopska Salad".
+
+**FIELD `name` FORMAT:**
+* List components visually using `•`.
+* NO grammage in title.
+* *Example:* "• Grilled Chicken \n • Brown Rice \n • Fresh Salad"
+
+**FIELD `description` FORMAT:**
+* MUST start every line with **EXACT QUANTITY** (grams/count).
+* Structure: `• [Qty] [Item], [Preparation/Spice].`
+* *Example:*
+    "• 150 г Пилешко филе, печено на скара с риган.
+     • 150 г Кафяв ориз, варен на пара.
+     • 200 г Домати и краставици, нарязани на кубчета.
+     • 10 мл Зехтин."
+
+---
+
+### 6. JSON OUTPUT STRUCTURE
+Return ONLY valid JSON for the requested days.
+
+```json
+{
+  "day1": {
+    "meals": [
+      {
+        "type": "Закуска", // Valid Mapped Types ONLY: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска
+        "name": "STRING: Component list separated by •",
+        "description": "STRING: Deconstructed list (• Qty Item Prep). BG Language.",
+        "weight": "Total grams (e.g. '450g')",
+        "calories": number,
+        "macros": { "protein": number, "carbs": number, "fats": number, "fiber": number },
+        "benefits": "BG: Short benefit sentence."
+      }
+      // ... repeat for all meals in blueprint
+    ],
+    "dailyTotals": { "calories": number, "protein": number, "carbs": number, "fats": number }
+  }
+}
+Generate Days 1-2. Strictly adhere to Type Mapping, Full R1-R12 Logic, and the Deconstruction Protocol.
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да е:
+{
+  "dayN": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+    ],
+    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
+  }
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!
+
+--- ПОЛУЧЕН ОТГОВОР ---
+Времева марка: 2026-02-08T04:33:16.684Z
+Успех: Да
+Време за отговор: 8879 ms
+Дължина на отговор: 4293 символа
+Приблизителни изходни токени: 1162
+
+--- AI ОТГОВОР ---
+```json
+{
+  "day1": {
+    "meals": [
+      {
+        "type": "Закуска",
+        "name": "• Яйца бъркани\n• Хляб пълнозърнест\n• Домати и краставици",
+        "description": "• 2 бр. Яйца, бъркани с щипка сол.\n• 50 г Хляб пълнозърнест.\n• 150 г Домати и краставици, нарязани на кубчета.",
+        "weight": "200g",
+        "calories": 250,
+        "macros": {
+          "protein": 15,
+          "carbs": 20,
+          "fats": 12,
+          "fiber": 5
+        },
+        "benefits": "Закуската е богата на протеини и фибри, осигурява енергия и подпомага храносмилането."
+      },
+      {
+        "type": "Обяд",
+        "name": "• Пилешко филе на скара\n• Кафяв ориз\n• Салата маруля и спанак",
+        "description": "• 150 г Пилешко филе, печено на скара.\n• 150 г Кафяв ориз, варен.\n• 200 г Салата маруля и спанак, с 5 мл зехтин.",
+        "weight": "505g",
+        "calories": 450,
+        "macros": {
+          "protein": 35,
+          "carbs": 50,
+          "fats": 10,
+          "fiber": 8
+        },
+        "benefits": "Обядът е богат на протеини и фибри, подпомага мускулния растеж и поддържа стабилни нива на кръвната захар."
+      },
+      {
+        "type": "Следобедна закуска",
+        "name": "• Извара\n• Сурови ядки",
+        "description": "• 150 г Извара.\n• 30 г Бадеми.",
+        "weight": "180g",
+        "calories": 280,
+        "macros": {
+          "protein": 25,
+          "carbs": 5,
+          "fats": 18,
+          "fiber": 3
+        },
+        "benefits": "Закуската е богата на протеини и полезни мазнини, осигурява чувство на ситост и подпомага възстановяването."
+      },
+      {
+        "type": "Вечеря",
+        "name": "• Печена риба (бяла риба)\n• Броколи на пара",
+        "description": "• 180 г Бяла риба, печена.\n• 200 г Броколи, на пара.",
+        "weight": "380g",
+        "calories": 370,
+        "macros": {
+          "protein": 40,
+          "carbs": 10,
+          "fats": 18,
+          "fiber": 7
+        },
+        "benefits": "Вечерята е богата на протеини и полезни мазнини, подпомага възстановяването и подобрява качеството на съня."
+      }
+    ],
+    "dailyTotals": {
+      "calories": 1350,
+      "protein": 115,
+      "carbs": 85,
+      "fats": 58
+    }
+  },
+  "day2": {
+    "meals": [
+      {
+        "type": "Закуска",
+        "name": "• Овесени ядки\n• Кисело мляко\n• Семена",
+        "description": "• 50 г Овесени ядки.\n• 150 г Кисело мляко.\n• 10 г Семена.",
+        "weight": "210g",
+        "calories": 300,
+        "macros": {
+          "protein": 15,
+          "carbs": 35,
+          "fats": 10,
+          "fiber": 7
+        },
+        "benefits": "Закуската е богата на фибри и протеини, осигурява енергия и подпомага храносмилането."
+      },
+      {
+        "type": "Обяд",
+        "name": "• Свинско филе на скара\n• Печени картофи\n• Салата домати и краставици",
+        "description": "• 150 г Свинско филе, печено на скара.\n• 200 г Картофи, печени.\n• 200 г Салата домати и краставици.",
+        "weight": "550g",
+        "calories": 550,
+        "macros": {
+          "protein": 30,
+          "carbs": 60,
+          "fats": 20,
+          "fiber": 5
+        },
+        "benefits": "Обядът е богат на протеини и въглехидрати, осигурява енергия и подпомага мускулния растеж."
+      },
+      {
+        "type": "Следобедна закуска",
+        "name": "• Ябълка\n• Шепа ядки",
+        "description": "• 1 бр. Ябълка.\n• 30 г Орехи.",
+        "weight": "180g",
+        "calories": 250,
+        "macros": {
+          "protein": 5,
+          "carbs": 25,
+          "fats": 15,
+          "fiber": 5
+        },
+        "benefits": "Закуската е богата на фибри и полезни мазнини, осигурява чувство на ситост и подпомага храносмилането."
+      },
+      {
+        "type": "Вечеря",
+        "name": "• Леща яхния\n• Хляб пълнозърнест",
+        "description": "• 300 г Леща яхния.\n• 30 г Хляб пълнозърнест.",
+        "weight": "330g",
+        "calories": 400,
+        "macros": {
+          "protein": 25,
+          "carbs": 50,
+          "fats": 10,
+          "fiber": 15
+        },
+        "benefits": "Вечерята е богата на протеини и фибри, подпомага храносмилането и подобрява качеството на съня."
+      }
+    ],
+    "dailyTotals": {
+      "calories": 1500,
+      "protein": 75,
+      "carbs": 170,
+      "fats": 55
+    }
+  }
+}
+```
+
+================================================================================
+СТЪПКА 4: step3_meal_plan_chunk_2
+ID на сесия: session_1770525157438_1ba0840d
+================================================================================
+
+--- ИЗПРАТЕНИ ДАННИ ---
+Времева марка: 2026-02-08T04:33:16.779Z
+Провайдър: google
+Модел: gemini-2.0-flash
+Дължина на промпт: 6392 символа
+Приблизителни входни токени: 1627
+Максимални изходни токени: 8000
+
+--- ПРОМПТ ---
+### SYSTEM PROMPT: ADLE v8 (Full Logic Core)
+
+**ROLE:** Advanced Dietary Logic Engine (ADLE v8).
+**TASK:** Generate Days 3-4 for Client {name}.
+**LANGUAGE:** Logic & Instructions in **ENGLISH**. Output Strings in **BULGARIAN**.
+
+---
+
+### 1. INPUT CONTEXT & SYNCHRONIZATION
+**Client:** {name}, {goal}, 1650 kcal.
+**Profile:** Stress: {stressLevel}, Sleep: {sleepHours}h, Chrono: {chronotype}.
+**Strategy:** Diet: {dietType}, Pattern: {weeklyMealPattern}, Avoid: {dietDislike}, Love: {dietLove}.
+**Blueprint:** {blueprintSection}
+
+**TYPE MAPPING (Input Key → Output Display Name):**
+* `breakfast`  → **"Закуска"**
+* `lunch`      → **"Обяд"**
+* `snack`      → **"Следобедна закуска"** (NEVER use "Снак")
+* `dinner`     → **"Вечеря"**
+* `late_snack` → **"Късна закуска"**
+
+---
+
+### 2. ADLE v8 LOGIC KERNEL (Full Ruleset)
+
+**PRIORITY:** Hard Bans > Mode Filter > Template Constraints > Hard Rules (R1-R12) > Output.
+
+**0. HARD BANS (Global 0% Tolerance):**
+* **Ingredients:** Onions (all forms), Turkey meat (ALL forms), Artificial Sweeteners.
+* **Sugars:** Honey, Table Sugar, Jams, Syrups.
+* **Condiments:** Ketchup, Mayo, BBQ sauces, Sweet sauces.
+* **Dairy:** Greek Yogurt (Forbidden - use ONLY Bulgarian standard yogurt).
+* **Combos:** Peas + Fish (Strictly Forbidden).
+* **Rarely Allowed (≤2 times/week):** Turkey ham, Bacon.
+
+**HARD RULES (R1-R12):**
+* **R1 (Protein):** EXACTLY 1 protein source per meal.
+    * *Exception:* Breakfast may have Eggs + Cheese (0-1).
+* **R2 (Vegetables):** 1-2 types. XOR Logic applies: Choose **Salad** OR **Cooked/Fresh Cuts**. NEVER mix Salad + Cooked in the same meal.
+    * *Note:* Potato is ENERGY, not Vegetable.
+* **R3 (Energy):** 0-1 source (Never 2). Corn is NOT Energy.
+* **R4 (Dairy):** Max 1 source per meal (Yogurt OR Cottage Cheese OR Cheese). This includes sauce/dressing usage.
+* **R5 (Fats):** 0-1 source.
+    * *Logic:* IF (Cheese OR Nuts OR Bacon) are present -> Added Fat (Oil/Butter) = 0.
+* **R6 (Cheese Rule):** IF Cheese is present -> No Olive Oil/Butter. (Olives + Cheese is allowed).
+* **R7 (Bacon Rule):** IF Bacon is present -> Added Fat = 0.
+* **R8 (Legumes as Main):** IF Main = Beans/Lentils/Chickpeas/Pea Stew:
+    * **ENERGY SLOT = 0** (No Rice/Potato/Pasta/Oats).
+    * *Exception:* Bread is allowed (+1 slice Whole Grain).
+* **R9 (Bread Rule):** Bread is allowed ONLY if Energy Slot = 0.
+    * *Exception:* See R8 (Legumes).
+    * *Constraint:* If Rice/Potato exists -> Bread = 0.
+* **R10 (Peas as Side):** Peas are NOT Energy, but they **BLOCK** the Energy slot.
+    * IF Peas side dish -> Energy = 0.
+    * Bread allowed (+1 slice).
+* **R11 (Template C - Sandwich):** Allowed ONLY for **Breakfast** or **Snack**. NEVER for Lunch/Dinner. No legumes in sandwiches.
+* **R12 (Whitelist Protocol):** Use ONLY Whitelisted foods unless medically necessary.
+
+---
+
+### 3. FOOD WHITELISTS (Strict Adherence)
+
+**[PROTEIN] (Choose 1):**
+* Eggs, Chicken (Breast/Thigh), Beef, Lean Pork.
+* Fish (White fish, Mackerel, Tuna/Canned Tuna), Salmon.
+* Yogurt (Plain Bulgarian), Cottage Cheese, White Cheese.
+* Beans, Lentils, Chickpeas.
+* **BANNED:** Turkey meat, Rabbit, Duck, Goose, Lamb, Game meat.
+
+**[VEGETABLES] (Choose 1-2):**
+* Tomato, Cucumber, Pepper, Cabbage, Carrot.
+* Lettuce/Greens, Spinach.
+* Zucchini, Mushrooms, Broccoli, Cauliflower.
+* *Form:* Salad OR Fresh Cuts (No dressing).
+
+**[ENERGY] (Choose 0-1):**
+* Oats, Rice (Brown/Basmati), Potato (Boiled/Baked).
+* Pasta (Whole grain), Bulgur, Quinoa, Buckwheat.
+* *Note:* Corn is NOT energy (Garnish only).
+
+**[FATS] (Choose 0-1):**
+* Olive Oil, Butter (moderate), Raw Nuts/Seeds, Avocado.
+
+---
+
+### 4. MEDICAL & TIMING LOGIC
+
+**STRESS ADAPTATION ({stressLevel}):**
+* **High Stress:** Boost Magnesium (Spinach, Nuts, Seeds) & Vitamin C.
+* **Constraint:** NO stimulants (Coffee/Green Tea) after 14:00.
+
+**SLEEP ADAPTATION ({sleepHours}h):**
+* **< 6h Sleep:** Dinner MUST include Tryptophan sources (Dairy, Eggs, Fish) to aid sleep. Avoid heavy meals.
+
+**CHRONOTYPE TIMING ({chronotype}):**
+* **Lark:** Big Breakfast (30-35%), Lighter Dinner.
+* **Owl:** Light/Late Breakfast, Big Dinner (35%).
+
+**LATE SNACK RULES ("Късна закуска"):**
+* **Eligibility:** Only if explicitly active in blueprint.
+* **Conditions:** Max 200 kcal. Low GI only (Yogurt, Nuts, Berries). NO Carbs/Heavy food.
+
+---
+
+### 5. FORMATTING: DECONSTRUCTION PROTOCOL (CRITICAL)
+**RULE:** You must physically separate food components.
+**FORBIDDEN:** Generic names like "Chicken Risotto" or "Shopska Salad".
+
+**FIELD `name` FORMAT:**
+* List components visually using `•`.
+* NO grammage in title.
+* *Example:* "• Grilled Chicken \n • Brown Rice \n • Fresh Salad"
+
+**FIELD `description` FORMAT:**
+* MUST start every line with **EXACT QUANTITY** (grams/count).
+* Structure: `• [Qty] [Item], [Preparation/Spice].`
+* *Example:*
+    "• 150 г Пилешко филе, печено на скара с риган.
+     • 150 г Кафяв ориз, варен на пара.
+     • 200 г Домати и краставици, нарязани на кубчета.
+     • 10 мл Зехтин."
+
+---
+
+### 6. JSON OUTPUT STRUCTURE
+Return ONLY valid JSON for the requested days.
+
+```json
+{
+  "day3": {
+    "meals": [
+      {
+        "type": "Закуска", // Valid Mapped Types ONLY: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска
+        "name": "STRING: Component list separated by •",
+        "description": "STRING: Deconstructed list (• Qty Item Prep). BG Language.",
+        "weight": "Total grams (e.g. '450g')",
+        "calories": number,
+        "macros": { "protein": number, "carbs": number, "fats": number, "fiber": number },
+        "benefits": "BG: Short benefit sentence."
+      }
+      // ... repeat for all meals in blueprint
+    ],
+    "dailyTotals": { "calories": number, "protein": number, "carbs": number, "fats": number }
+  }
+}
+Generate Days 3-4. Strictly adhere to Type Mapping, Full R1-R12 Logic, and the Deconstruction Protocol.
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да е:
+{
+  "dayN": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+    ],
+    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
+  }
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!
+
+--- ПОЛУЧЕН ОТГОВОР ---
+Времева марка: 2026-02-08T04:33:27.196Z
+Успех: Да
+Време за отговор: 10227 ms
+Дължина на отговор: 3868 символа
+Приблизителни изходни токени: 1039
+
+--- AI ОТГОВОР ---
+```json
+{
+  "day3": {
+    "meals": [
+      {
+        "type": "Закуска",
+        "name": "• Яйца бъркани със сирене \n • Домати",
+        "description": "• 2 бр. Яйца, бъркани с 50 г сирене.\n• 200 г Домати, нарязани на кубчета.",
+        "weight": "250g",
+        "calories": 350,
+        "macros": { "protein": 25, "carbs": 5, "fats": 25, "fiber": 2 },
+        "benefits": "Високо съдържание на протеин и витамини за енергичен старт на деня."
+      },
+      {
+        "type": "Обяд",
+        "name": "• Пилешко филе на скара \n • Кафяв ориз \n • Зелена салата",
+        "description": "• 150 г Пилешко филе, печено на скара.\n• 100 г Кафяв ориз, варен.\n• 200 г Зелена салата (маруля, спанак).",
+        "weight": "450g",
+        "calories": 450,
+        "macros": { "protein": 35, "carbs": 50, "fats": 10, "fiber": 5 },
+        "benefits": "Балансирано хранене, осигуряващо енергия и протеини."
+      },
+      {
+        "type": "Следобедна закуска",
+        "name": "• Ябълка \n • Шепа бадеми",
+        "description": "• 1 бр. Ябълка, средна.\n• 30 г Бадеми, сурови.",
+        "weight": "180g",
+        "calories": 250,
+        "macros": { "protein": 7, "carbs": 20, "fats": 18, "fiber": 4 },
+        "benefits": "Здравословна закуска, богата на фибри и полезни мазнини."
+      },
+      {
+        "type": "Вечеря",
+        "name": "• Печена риба (Бяла риба) \n • Броколи на пара",
+        "description": "• 150 г Бяла риба, печена с лимон.\n• 200 г Броколи, приготвени на пара.",
+        "weight": "350g",
+        "calories": 350,
+        "macros": { "protein": 30, "carbs": 10, "fats": 20, "fiber": 6 },
+        "benefits": "Лека и богата на протеини вечеря, подпомагаща съня."
+      }
+    ],
+    "dailyTotals": { "calories": 1400, "protein": 97, "carbs": 85, "fats": 73 }
+  },
+  "day4": {
+    "meals": [
+      {
+        "type": "Закуска",
+        "name": "• Овесена каша с плодове \n • Кисело мляко",
+        "description": "• 50 г Овесени ядки, приготвени с вода.\n• 100 г Ягоди.\n• 200 г Кисело мляко (Българско, 2%).",
+        "weight": "350g",
+        "calories": 400,
+        "macros": { "protein": 20, "carbs": 50, "fats": 10, "fiber": 8 },
+        "benefits": "Балансирана закуска с фибри и пробиотици."
+      },
+      {
+        "type": "Обяд",
+        "name": "• Свинско месо на скара \n • Салата от домати и краставици",
+        "description": "• 150 г Свинско месо (крехко), печено на скара.\n• 250 г Салата от домати и краставици, без дресинг.",
+        "weight": "400g",
+        "calories": 400,
+        "macros": { "protein": 35, "carbs": 15, "fats": 20, "fiber": 3 },
+        "benefits": "Засищащ обяд с протеини и витамини."
+      },
+      {
+        "type": "Следобедна закуска",
+        "name": "• Cottage Cheese \n • Шепа орехи",
+        "description": "• 150 г Cottage Cheese.\n• 30 г Орехи.",
+        "weight": "180g",
+        "calories": 280,
+        "macros": { "protein": 25, "carbs": 5, "fats": 18, "fiber": 2 },
+        "benefits": "Високопротеинова закуска с полезни мазнини."
+      },
+      {
+        "type": "Вечеря",
+        "name": "• Леща \n • Хляб (пълнозърнест)",
+        "description": "• 250 г Леща, приготвена като яхния.\n• 30 г Пълнозърнест хляб (1 филия).",
+        "weight": "280g",
+        "calories": 320,
+        "macros": { "protein": 22, "carbs": 45, "fats": 5, "fiber": 15 },
+        "benefits": "Вечеря богата на фибри и протеини, полезна за храносмилането."
+      },
+      {
+        "type": "Късна закуска",
+        "name": "• Кисело мляко с ядки",
+        "description": "• 150 г Кисело мляко (Българско, 2%).\n• 20 г Бадеми.",
+        "weight": "170g",
+        "calories": 200,
+        "macros": { "protein": 12, "carbs": 8, "fats": 12, "fiber": 2 },
+        "benefits": "Лека закуска, която подпомага съня."
+      }
+    ],
+    "dailyTotals": { "calories": 1600, "protein": 114, "carbs": 123, "fats": 65 }
+  }
+}
+```
+
+================================================================================
+СТЪПКА 5: step3_meal_plan_chunk_3
+ID на сесия: session_1770525157438_1ba0840d
+================================================================================
+
+--- ИЗПРАТЕНИ ДАННИ ---
+Времева марка: 2026-02-08T04:33:27.302Z
+Провайдър: google
+Модел: gemini-2.0-flash
+Дължина на промпт: 6392 символа
+Приблизителни входни токени: 1627
+Максимални изходни токени: 8000
+
+--- ПРОМПТ ---
+### SYSTEM PROMPT: ADLE v8 (Full Logic Core)
+
+**ROLE:** Advanced Dietary Logic Engine (ADLE v8).
+**TASK:** Generate Days 5-6 for Client {name}.
+**LANGUAGE:** Logic & Instructions in **ENGLISH**. Output Strings in **BULGARIAN**.
+
+---
+
+### 1. INPUT CONTEXT & SYNCHRONIZATION
+**Client:** {name}, {goal}, 1650 kcal.
+**Profile:** Stress: {stressLevel}, Sleep: {sleepHours}h, Chrono: {chronotype}.
+**Strategy:** Diet: {dietType}, Pattern: {weeklyMealPattern}, Avoid: {dietDislike}, Love: {dietLove}.
+**Blueprint:** {blueprintSection}
+
+**TYPE MAPPING (Input Key → Output Display Name):**
+* `breakfast`  → **"Закуска"**
+* `lunch`      → **"Обяд"**
+* `snack`      → **"Следобедна закуска"** (NEVER use "Снак")
+* `dinner`     → **"Вечеря"**
+* `late_snack` → **"Късна закуска"**
+
+---
+
+### 2. ADLE v8 LOGIC KERNEL (Full Ruleset)
+
+**PRIORITY:** Hard Bans > Mode Filter > Template Constraints > Hard Rules (R1-R12) > Output.
+
+**0. HARD BANS (Global 0% Tolerance):**
+* **Ingredients:** Onions (all forms), Turkey meat (ALL forms), Artificial Sweeteners.
+* **Sugars:** Honey, Table Sugar, Jams, Syrups.
+* **Condiments:** Ketchup, Mayo, BBQ sauces, Sweet sauces.
+* **Dairy:** Greek Yogurt (Forbidden - use ONLY Bulgarian standard yogurt).
+* **Combos:** Peas + Fish (Strictly Forbidden).
+* **Rarely Allowed (≤2 times/week):** Turkey ham, Bacon.
+
+**HARD RULES (R1-R12):**
+* **R1 (Protein):** EXACTLY 1 protein source per meal.
+    * *Exception:* Breakfast may have Eggs + Cheese (0-1).
+* **R2 (Vegetables):** 1-2 types. XOR Logic applies: Choose **Salad** OR **Cooked/Fresh Cuts**. NEVER mix Salad + Cooked in the same meal.
+    * *Note:* Potato is ENERGY, not Vegetable.
+* **R3 (Energy):** 0-1 source (Never 2). Corn is NOT Energy.
+* **R4 (Dairy):** Max 1 source per meal (Yogurt OR Cottage Cheese OR Cheese). This includes sauce/dressing usage.
+* **R5 (Fats):** 0-1 source.
+    * *Logic:* IF (Cheese OR Nuts OR Bacon) are present -> Added Fat (Oil/Butter) = 0.
+* **R6 (Cheese Rule):** IF Cheese is present -> No Olive Oil/Butter. (Olives + Cheese is allowed).
+* **R7 (Bacon Rule):** IF Bacon is present -> Added Fat = 0.
+* **R8 (Legumes as Main):** IF Main = Beans/Lentils/Chickpeas/Pea Stew:
+    * **ENERGY SLOT = 0** (No Rice/Potato/Pasta/Oats).
+    * *Exception:* Bread is allowed (+1 slice Whole Grain).
+* **R9 (Bread Rule):** Bread is allowed ONLY if Energy Slot = 0.
+    * *Exception:* See R8 (Legumes).
+    * *Constraint:* If Rice/Potato exists -> Bread = 0.
+* **R10 (Peas as Side):** Peas are NOT Energy, but they **BLOCK** the Energy slot.
+    * IF Peas side dish -> Energy = 0.
+    * Bread allowed (+1 slice).
+* **R11 (Template C - Sandwich):** Allowed ONLY for **Breakfast** or **Snack**. NEVER for Lunch/Dinner. No legumes in sandwiches.
+* **R12 (Whitelist Protocol):** Use ONLY Whitelisted foods unless medically necessary.
+
+---
+
+### 3. FOOD WHITELISTS (Strict Adherence)
+
+**[PROTEIN] (Choose 1):**
+* Eggs, Chicken (Breast/Thigh), Beef, Lean Pork.
+* Fish (White fish, Mackerel, Tuna/Canned Tuna), Salmon.
+* Yogurt (Plain Bulgarian), Cottage Cheese, White Cheese.
+* Beans, Lentils, Chickpeas.
+* **BANNED:** Turkey meat, Rabbit, Duck, Goose, Lamb, Game meat.
+
+**[VEGETABLES] (Choose 1-2):**
+* Tomato, Cucumber, Pepper, Cabbage, Carrot.
+* Lettuce/Greens, Spinach.
+* Zucchini, Mushrooms, Broccoli, Cauliflower.
+* *Form:* Salad OR Fresh Cuts (No dressing).
+
+**[ENERGY] (Choose 0-1):**
+* Oats, Rice (Brown/Basmati), Potato (Boiled/Baked).
+* Pasta (Whole grain), Bulgur, Quinoa, Buckwheat.
+* *Note:* Corn is NOT energy (Garnish only).
+
+**[FATS] (Choose 0-1):**
+* Olive Oil, Butter (moderate), Raw Nuts/Seeds, Avocado.
+
+---
+
+### 4. MEDICAL & TIMING LOGIC
+
+**STRESS ADAPTATION ({stressLevel}):**
+* **High Stress:** Boost Magnesium (Spinach, Nuts, Seeds) & Vitamin C.
+* **Constraint:** NO stimulants (Coffee/Green Tea) after 14:00.
+
+**SLEEP ADAPTATION ({sleepHours}h):**
+* **< 6h Sleep:** Dinner MUST include Tryptophan sources (Dairy, Eggs, Fish) to aid sleep. Avoid heavy meals.
+
+**CHRONOTYPE TIMING ({chronotype}):**
+* **Lark:** Big Breakfast (30-35%), Lighter Dinner.
+* **Owl:** Light/Late Breakfast, Big Dinner (35%).
+
+**LATE SNACK RULES ("Късна закуска"):**
+* **Eligibility:** Only if explicitly active in blueprint.
+* **Conditions:** Max 200 kcal. Low GI only (Yogurt, Nuts, Berries). NO Carbs/Heavy food.
+
+---
+
+### 5. FORMATTING: DECONSTRUCTION PROTOCOL (CRITICAL)
+**RULE:** You must physically separate food components.
+**FORBIDDEN:** Generic names like "Chicken Risotto" or "Shopska Salad".
+
+**FIELD `name` FORMAT:**
+* List components visually using `•`.
+* NO grammage in title.
+* *Example:* "• Grilled Chicken \n • Brown Rice \n • Fresh Salad"
+
+**FIELD `description` FORMAT:**
+* MUST start every line with **EXACT QUANTITY** (grams/count).
+* Structure: `• [Qty] [Item], [Preparation/Spice].`
+* *Example:*
+    "• 150 г Пилешко филе, печено на скара с риган.
+     • 150 г Кафяв ориз, варен на пара.
+     • 200 г Домати и краставици, нарязани на кубчета.
+     • 10 мл Зехтин."
+
+---
+
+### 6. JSON OUTPUT STRUCTURE
+Return ONLY valid JSON for the requested days.
+
+```json
+{
+  "day5": {
+    "meals": [
+      {
+        "type": "Закуска", // Valid Mapped Types ONLY: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска
+        "name": "STRING: Component list separated by •",
+        "description": "STRING: Deconstructed list (• Qty Item Prep). BG Language.",
+        "weight": "Total grams (e.g. '450g')",
+        "calories": number,
+        "macros": { "protein": number, "carbs": number, "fats": number, "fiber": number },
+        "benefits": "BG: Short benefit sentence."
+      }
+      // ... repeat for all meals in blueprint
+    ],
+    "dailyTotals": { "calories": number, "protein": number, "carbs": number, "fats": number }
+  }
+}
+Generate Days 5-6. Strictly adhere to Type Mapping, Full R1-R12 Logic, and the Deconstruction Protocol.
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да е:
+{
+  "dayN": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+    ],
+    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
+  }
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!
+
+--- ПОЛУЧЕН ОТГОВОР ---
+Времева марка: 2026-02-08T04:33:35.820Z
+Успех: Да
+Време за отговор: 8206 ms
+Дължина на отговор: 3681 символа
+Приблизителни изходни токени: 1002
+
+--- AI ОТГОВОР ---
+```json
+{
+  "day5": {
+    "meals": [
+      {
+        "type": "Закуска",
+        "name": "• Яйца със сирене\n• Домати и краставици",
+        "description": "• 2 бр. Яйца, бъркани с 50 г сирене.\n• 200 г Домати и краставици, нарязани на кубчета.",
+        "weight": "250g",
+        "calories": 350,
+        "macros": { "protein": 25, "carbs": 5, "fats": 25, "fiber": 2 },
+        "benefits": "Богата на протеини закуска, която осигурява енергия и подпомага мускулния растеж."
+      },
+      {
+        "type": "Обяд",
+        "name": "• Печено пилешко филе\n• Салата от зеле и моркови",
+        "description": "• 150 г Пилешко филе, печено на скара.\n• 200 г Салата от зеле и моркови, настъргани.",
+        "weight": "350g",
+        "calories": 400,
+        "macros": { "protein": 35, "carbs": 15, "fats": 20, "fiber": 5 },
+        "benefits": "Балансиран обяд с протеини и фибри, които поддържат ситост и добро храносмилане."
+      },
+      {
+        "type": "Следобедна закуска",
+        "name": "• Кисело мляко с ядки",
+        "description": "• 200 г Кисело мляко, българско.\n• 30 г Бадеми, сурови.",
+        "weight": "230g",
+        "calories": 250,
+        "macros": { "protein": 15, "carbs": 10, "fats": 15, "fiber": 3 },
+        "benefits": "Протеинова закуска с полезни мазнини, която помага за регулиране на кръвната захар."
+      },
+      {
+        "type": "Вечеря",
+        "name": "• Боб яхния\n• Хляб",
+        "description": "• 300 г Боб яхния, приготвена с лук и домати (БЕЗ лук).\n• 30 г Хляб, пълнозърнест.",
+        "weight": "330g",
+        "calories": 450,
+        "macros": { "protein": 25, "carbs": 50, "fats": 15, "fiber": 15 },
+        "benefits": "Засищаща вечеря с фибри и протеини, която подпомага храносмилането и осигурява енергия за следващия ден."
+      }
+    ],
+    "dailyTotals": { "calories": 1450, "protein": 100, "carbs": 80, "fats": 75 }
+  },
+  "day6": {
+    "meals": [
+      {
+        "type": "Закуска",
+        "name": "• Овесена каша с плодове и ядки",
+        "description": "• 50 г Овесени ядки, приготвени с вода.\n• 100 г Ягоди, пресни.\n• 20 г Орехи, сурови.",
+        "weight": "170g",
+        "calories": 300,
+        "macros": { "protein": 10, "carbs": 40, "fats": 10, "fiber": 8 },
+        "benefits": "Закуска богата на фибри и антиоксиданти, която осигурява дълготрайна енергия."
+      },
+      {
+        "type": "Обяд",
+        "name": "• Риба на скара\n• Картофи",
+        "description": "• 150 г Бяла риба, печена на скара с копър.\n• 200 г Картофи, варени.",
+        "weight": "350g",
+        "calories": 400,
+        "macros": { "protein": 30, "carbs": 40, "fats": 10, "fiber": 5 },
+        "benefits": "Лесен за храносмилане обяд, богат на протеини и витамини."
+      },
+      {
+        "type": "Следобедна закуска",
+        "name": "• Извара с домати",
+        "description": "• 150 г Извара.\n• 100 г Домати, нарязани на кубчета.",
+        "weight": "250g",
+        "calories": 200,
+        "macros": { "protein": 25, "carbs": 5, "fats": 5, "fiber": 2 },
+        "benefits": "Високо протеинова закуска с ниско съдържание на мазнини, която подпомага възстановяването след тренировка."
+      },
+      {
+        "type": "Вечеря",
+        "name": "• Пилешко филе със задушени зеленчуци",
+        "description": "• 150 г Пилешко филе, печено на скара.\n• 200 г Броколи, задушени.",
+        "weight": "350g",
+        "calories": 450,
+        "macros": { "protein": 40, "carbs": 15, "fats": 25, "fiber": 5 },
+        "benefits": "Богата на протеини и фибри вечеря, която насърчава мускулния растеж и доброто храносмилане."
+      }
+    ],
+    "dailyTotals": { "calories": 1350, "protein": 105, "carbs": 100, "fats": 50 }
+  }
+}
+```
+
+================================================================================
+СТЪПКА 6: step3_meal_plan_chunk_4
+ID на сесия: session_1770525157438_1ba0840d
+================================================================================
+
+--- ИЗПРАТЕНИ ДАННИ ---
+Времева марка: 2026-02-08T04:33:35.922Z
+Провайдър: google
+Модел: gemini-2.0-flash
+Дължина на промпт: 6392 символа
+Приблизителни входни токени: 1627
+Максимални изходни токени: 8000
+
+--- ПРОМПТ ---
+### SYSTEM PROMPT: ADLE v8 (Full Logic Core)
+
+**ROLE:** Advanced Dietary Logic Engine (ADLE v8).
+**TASK:** Generate Days 7-7 for Client {name}.
+**LANGUAGE:** Logic & Instructions in **ENGLISH**. Output Strings in **BULGARIAN**.
+
+---
+
+### 1. INPUT CONTEXT & SYNCHRONIZATION
+**Client:** {name}, {goal}, 1650 kcal.
+**Profile:** Stress: {stressLevel}, Sleep: {sleepHours}h, Chrono: {chronotype}.
+**Strategy:** Diet: {dietType}, Pattern: {weeklyMealPattern}, Avoid: {dietDislike}, Love: {dietLove}.
+**Blueprint:** {blueprintSection}
+
+**TYPE MAPPING (Input Key → Output Display Name):**
+* `breakfast`  → **"Закуска"**
+* `lunch`      → **"Обяд"**
+* `snack`      → **"Следобедна закуска"** (NEVER use "Снак")
+* `dinner`     → **"Вечеря"**
+* `late_snack` → **"Късна закуска"**
+
+---
+
+### 2. ADLE v8 LOGIC KERNEL (Full Ruleset)
+
+**PRIORITY:** Hard Bans > Mode Filter > Template Constraints > Hard Rules (R1-R12) > Output.
+
+**0. HARD BANS (Global 0% Tolerance):**
+* **Ingredients:** Onions (all forms), Turkey meat (ALL forms), Artificial Sweeteners.
+* **Sugars:** Honey, Table Sugar, Jams, Syrups.
+* **Condiments:** Ketchup, Mayo, BBQ sauces, Sweet sauces.
+* **Dairy:** Greek Yogurt (Forbidden - use ONLY Bulgarian standard yogurt).
+* **Combos:** Peas + Fish (Strictly Forbidden).
+* **Rarely Allowed (≤2 times/week):** Turkey ham, Bacon.
+
+**HARD RULES (R1-R12):**
+* **R1 (Protein):** EXACTLY 1 protein source per meal.
+    * *Exception:* Breakfast may have Eggs + Cheese (0-1).
+* **R2 (Vegetables):** 1-2 types. XOR Logic applies: Choose **Salad** OR **Cooked/Fresh Cuts**. NEVER mix Salad + Cooked in the same meal.
+    * *Note:* Potato is ENERGY, not Vegetable.
+* **R3 (Energy):** 0-1 source (Never 2). Corn is NOT Energy.
+* **R4 (Dairy):** Max 1 source per meal (Yogurt OR Cottage Cheese OR Cheese). This includes sauce/dressing usage.
+* **R5 (Fats):** 0-1 source.
+    * *Logic:* IF (Cheese OR Nuts OR Bacon) are present -> Added Fat (Oil/Butter) = 0.
+* **R6 (Cheese Rule):** IF Cheese is present -> No Olive Oil/Butter. (Olives + Cheese is allowed).
+* **R7 (Bacon Rule):** IF Bacon is present -> Added Fat = 0.
+* **R8 (Legumes as Main):** IF Main = Beans/Lentils/Chickpeas/Pea Stew:
+    * **ENERGY SLOT = 0** (No Rice/Potato/Pasta/Oats).
+    * *Exception:* Bread is allowed (+1 slice Whole Grain).
+* **R9 (Bread Rule):** Bread is allowed ONLY if Energy Slot = 0.
+    * *Exception:* See R8 (Legumes).
+    * *Constraint:* If Rice/Potato exists -> Bread = 0.
+* **R10 (Peas as Side):** Peas are NOT Energy, but they **BLOCK** the Energy slot.
+    * IF Peas side dish -> Energy = 0.
+    * Bread allowed (+1 slice).
+* **R11 (Template C - Sandwich):** Allowed ONLY for **Breakfast** or **Snack**. NEVER for Lunch/Dinner. No legumes in sandwiches.
+* **R12 (Whitelist Protocol):** Use ONLY Whitelisted foods unless medically necessary.
+
+---
+
+### 3. FOOD WHITELISTS (Strict Adherence)
+
+**[PROTEIN] (Choose 1):**
+* Eggs, Chicken (Breast/Thigh), Beef, Lean Pork.
+* Fish (White fish, Mackerel, Tuna/Canned Tuna), Salmon.
+* Yogurt (Plain Bulgarian), Cottage Cheese, White Cheese.
+* Beans, Lentils, Chickpeas.
+* **BANNED:** Turkey meat, Rabbit, Duck, Goose, Lamb, Game meat.
+
+**[VEGETABLES] (Choose 1-2):**
+* Tomato, Cucumber, Pepper, Cabbage, Carrot.
+* Lettuce/Greens, Spinach.
+* Zucchini, Mushrooms, Broccoli, Cauliflower.
+* *Form:* Salad OR Fresh Cuts (No dressing).
+
+**[ENERGY] (Choose 0-1):**
+* Oats, Rice (Brown/Basmati), Potato (Boiled/Baked).
+* Pasta (Whole grain), Bulgur, Quinoa, Buckwheat.
+* *Note:* Corn is NOT energy (Garnish only).
+
+**[FATS] (Choose 0-1):**
+* Olive Oil, Butter (moderate), Raw Nuts/Seeds, Avocado.
+
+---
+
+### 4. MEDICAL & TIMING LOGIC
+
+**STRESS ADAPTATION ({stressLevel}):**
+* **High Stress:** Boost Magnesium (Spinach, Nuts, Seeds) & Vitamin C.
+* **Constraint:** NO stimulants (Coffee/Green Tea) after 14:00.
+
+**SLEEP ADAPTATION ({sleepHours}h):**
+* **< 6h Sleep:** Dinner MUST include Tryptophan sources (Dairy, Eggs, Fish) to aid sleep. Avoid heavy meals.
+
+**CHRONOTYPE TIMING ({chronotype}):**
+* **Lark:** Big Breakfast (30-35%), Lighter Dinner.
+* **Owl:** Light/Late Breakfast, Big Dinner (35%).
+
+**LATE SNACK RULES ("Късна закуска"):**
+* **Eligibility:** Only if explicitly active in blueprint.
+* **Conditions:** Max 200 kcal. Low GI only (Yogurt, Nuts, Berries). NO Carbs/Heavy food.
+
+---
+
+### 5. FORMATTING: DECONSTRUCTION PROTOCOL (CRITICAL)
+**RULE:** You must physically separate food components.
+**FORBIDDEN:** Generic names like "Chicken Risotto" or "Shopska Salad".
+
+**FIELD `name` FORMAT:**
+* List components visually using `•`.
+* NO grammage in title.
+* *Example:* "• Grilled Chicken \n • Brown Rice \n • Fresh Salad"
+
+**FIELD `description` FORMAT:**
+* MUST start every line with **EXACT QUANTITY** (grams/count).
+* Structure: `• [Qty] [Item], [Preparation/Spice].`
+* *Example:*
+    "• 150 г Пилешко филе, печено на скара с риган.
+     • 150 г Кафяв ориз, варен на пара.
+     • 200 г Домати и краставици, нарязани на кубчета.
+     • 10 мл Зехтин."
+
+---
+
+### 6. JSON OUTPUT STRUCTURE
+Return ONLY valid JSON for the requested days.
+
+```json
+{
+  "day7": {
+    "meals": [
+      {
+        "type": "Закуска", // Valid Mapped Types ONLY: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска
+        "name": "STRING: Component list separated by •",
+        "description": "STRING: Deconstructed list (• Qty Item Prep). BG Language.",
+        "weight": "Total grams (e.g. '450g')",
+        "calories": number,
+        "macros": { "protein": number, "carbs": number, "fats": number, "fiber": number },
+        "benefits": "BG: Short benefit sentence."
+      }
+      // ... repeat for all meals in blueprint
+    ],
+    "dailyTotals": { "calories": number, "protein": number, "carbs": number, "fats": number }
+  }
+}
+Generate Days 7-7. Strictly adhere to Type Mapping, Full R1-R12 Logic, and the Deconstruction Protocol.
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да е:
+{
+  "dayN": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+    ],
+    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
+  }
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!
+
+--- ПОЛУЧЕН ОТГОВОР ---
+Времева марка: 2026-02-08T04:33:42.259Z
+Успех: Да
+Време за отговор: 6139 ms
+Дължина на отговор: 2284 символа
+Приблизителни изходни токени: 620
+
+--- AI ОТГОВОР ---
+```json
+{
+  "day7": {
+    "meals": [
+      {
+        "type": "Закуска",
+        "name": "• Яйца със спанак \n • Хляб от лимец",
+        "description": "• 2 бр. Яйца, приготвени на омлет с малко масло. \n • 150 г Спанак, задушен с малко чесън. \n • 1 филия Хляб от лимец (50г).",
+        "weight": "230g",
+        "calories": 350,
+        "macros": { "protein": 22, "carbs": 25, "fats": 18, "fiber": 6 },
+        "benefits": "Богато на протеини и желязо, осигурява енергия за началото на деня."
+      },
+      {
+        "type": "Обяд",
+        "name": "• Пилешко филе на скара \n • Салата от домати и краставици",
+        "description": "• 150 г Пилешко филе, печено на скара с подправки. \n • 250 г Домати и краставици, нарязани на кубчета, без дресинг.",
+        "weight": "400g",
+        "calories": 320,
+        "macros": { "protein": 35, "carbs": 8, "fats": 16, "fiber": 3 },
+        "benefits": "Лека и засищаща комбинация, богата на протеини и витамини."
+      },
+      {
+        "type": "Следобедна закуска",
+        "name": "• Кисело мляко \n • Сурови ядки",
+        "description": "• 200 г Кисело мляко, българско обикновено. \n • 30 г Бадеми, сурови.",
+        "weight": "230g",
+        "calories": 280,
+        "macros": { "protein": 18, "carbs": 12, "fats": 18, "fiber": 4 },
+        "benefits": "Осигурява протеини и здравословни мазнини за енергия през деня."
+      },
+      {
+        "type": "Вечеря",
+        "name": "• Печена риба (бяла) \n • Броколи на пара",
+        "description": "• 150 г Бяла риба, печена с лимон и копър. \n • 200 г Броколи, приготвени на пара.",
+        "weight": "350g",
+        "calories": 300,
+        "macros": { "protein": 30, "carbs": 10, "fats": 14, "fiber": 5 },
+        "benefits": "Лека вечеря, богата на протеини и омега-3 мастни киселини."
+      },
+      {
+        "type": "Късна закуска",
+        "name": "• Извара \n • Шепа боровинки",
+        "description": "• 100 г Извара, нискомаслена. \n • 50 г Боровинки, пресни.",
+        "weight": "150g",
+        "calories": 200,
+        "macros": { "protein": 20, "carbs": 15, "fats": 5, "fiber": 2 },
+        "benefits": "Спомага за възстановяване на мускулите и подобрява съня."
+      }
+    ],
+    "dailyTotals": { "calories": 1450, "protein": 125, "carbs": 70, "fats": 71 }
+  }
+}
+```
+
+================================================================================
+СТЪПКА 7: step4_summary
+ID на сесия: session_1770525157438_1ba0840d
+================================================================================
+
+--- ИЗПРАТЕНИ ДАННИ ---
+Времева марка: 2026-02-08T04:33:42.414Z
+Провайдър: google
+Модел: gemini-2.0-flash
+Дължина на промпт: 2336 символа
+Приблизителни входни токени: 696
+Максимални изходни токени: 2000
+
+--- ПРОМПТ ---
+Създай summary, препоръки и допълнения за 7-дневен хранителен план.
+
+КЛИЕНТ: kakadu, Цел: Отслабване
+BMR: 1375, Целеви калории: 1650 kcal/ден
+Реален среден прием: 1443 kcal/ден
+Реални средни макроси: Protein 104g, Carbs 102g, Fats 64g
+
+СТРАТЕГИЯ (КОМПАКТНА):
+- Психологическа подкрепа: Води си дневник на хранене, за да идентифицираш емоционалните тригери.; Практикувай техники за релаксация, като медитация или дихателни упражнения.; Награждавай се за постиженията си, но не с храна.
+- Добавки: ! Магнезий (Доза: 200 mg) - Подпомага контрола на стреса и подобрява качеството на съня.; ! Омега-3 мастни киселини (Доза: 1000 mg) - Намаляват възпалението и подпомагат когнитивната функция.; ! Витамин D (Доза: 2000 IU) - Важен за имунната система и костното здраве, особено при жени.
+- Хидратация: Пий поне 2 литра вода на ден, особено преди и след тренировка. Можеш да включиш и билкови чайове без захар.
+- Включвай: Риба и морски дарове (богати на омега-3 мастни киселини), Зехтин (здравословна мазнина), Ядки и семена (засищащи и богати на хранителни вещества)
+- Избягвай: Захарни изделия и газирани напитки (празни калории), Пържени храни (високо съдържание на мазнини), Преработени меса (високо съдържание на натрий и консерванти)
+
+JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
+{
+  "summary": {
+    "bmr": 1375,
+    "dailyCalories": 1443,
+    "macros": {"protein": 104, "carbs": 102, "fats": 64}
+  },
+  "recommendations": ["конкретна храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
+  "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
+  "psychology": ["Води си дневник на хранене, за да идентифицираш емоционалните тригери.","Практикувай техники за релаксация, като медитация или дихателни упражнения.","Награждавай се за постиженията си, но не с храна."],
+  "waterIntake": "Пий поне 2 литра вода на ден, особено преди и след тренировка. Можеш да включиш и билкови чайове без захар.",
+  "supplements": ["! Магнезий (Доза: 200 mg) - Подпомага контрола на стреса и подобрява качеството на съня.","! Омега-3 мастни киселини (Доза: 1000 mg) - Намаляват възпалението и подпомагат когнитивната функция.","! Витамин D (Доза: 2000 IU) - Важен за имунната система и костното здраве, особено при жени."]
+}
+
+ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел Отслабване, НЕ общи съвети.
+
+--- ПОЛУЧЕН ОТГОВОР ---
+Времева марка: 2026-02-08T04:33:44.941Z
+Успех: Да
+Време за отговор: 2345 ms
+Дължина на отговор: 1034 символа
+Приблизителни изходни токени: 295
+
+--- AI ОТГОВОР ---
+```json
+{
+  "summary": {
+    "bmr": 1375,
+    "dailyCalories": 1443,
+    "macros": {
+      "protein": 104,
+      "carbs": 102,
+      "fats": 64
+    }
+  },
+  "recommendations": [
+    "Сьомга",
+    "Броколи",
+    "Яйца",
+    "Авокадо",
+    "Киноа"
+  ],
+  "forbidden": [
+    "Шоколад",
+    "Чипс",
+    "Бяло брашно",
+    "Колбаси"
+  ],
+  "psychology": [
+    "Води си дневник на хранене, за да идентифицираш емоционалните тригери.",
+    "Практикувай техники за релаксация, като медитация или дихателни упражнения.",
+    "Награждавай се за постиженията си, но не с храна."
+  ],
+  "waterIntake": "Пий поне 2 литра вода на ден, особено преди и след тренировка. Можеш да включиш и билкови чайове без захар.",
+  "supplements": [
+    "! Магнезий (Доза: 200 mg) - Подпомага контрола на стреса и подобрява качеството на съня.",
+    "! Омега-3 мастни киселини (Доза: 1000 mg) - Намаляват възпалението и подпомагат когнитивната функция.",
+    "! Витамин D (Доза: 2000 IU) - Важен за имунната система и костното здраве, особено при жени."
+  ]
+}
+```
+
+
+================================================================================
+КРАЙ НА ЕКСПОРТА
+================================================================================
