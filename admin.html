@@ -1091,6 +1091,32 @@
                 <div class="info-box">
                     <strong>Информация:</strong> Преглед на последната комуникация между бекенда и AI модела. Съхранява се само последният лог, предишните се изтриват автоматично. Използвайте бутона "Експорт на Логове" за да запазите текущия лог като текстов файл с всички стъпки, данни и отговори.
                 </div>
+                
+                <!-- Logging Toggle -->
+                <div style="background: var(--soft-red); padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid var(--primary-red);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <h3 style="margin-bottom: 10px; color: var(--text-dark);">
+                                <i class="fas fa-toggle-on"></i> AI Логване
+                            </h3>
+                            <p style="color: var(--text-gray); margin: 0;">
+                                Статус: <strong id="loggingStatusText" style="color: var(--primary-red);">Зареждане...</strong>
+                            </p>
+                            <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                                ⚠️ Изключването спестява ~36 KV операции на план (56% редукция)
+                            </small>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="enableLoggingBtn" class="btn" onclick="toggleLogging(true)" style="background: #28a745;">
+                                <i class="fas fa-check"></i> Включи
+                            </button>
+                            <button id="disableLoggingBtn" class="btn" onclick="toggleLogging(false)" style="background: #dc3545;">
+                                <i class="fas fa-times"></i> Изключи
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>Филтриране и Опции:</label>
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -2102,6 +2128,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             loadStats();
             loadBlacklist(); // Load blacklist on dashboard load
             loadWhitelist(); // Load whitelist on dashboard load
+            loadLoggingStatus(); // Load logging status on dashboard load
         }
 
         // Load Settings
@@ -2935,6 +2962,79 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         // Load AI communication logs
+        // =====================================================
+        // AI Logging Toggle Functions
+        // =====================================================
+        
+        /**
+         * Load and display the current logging status
+         */
+        async function loadLoggingStatus() {
+            try {
+                const response = await fetch('/api/admin/get-logging-status');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const statusText = document.getElementById('loggingStatusText');
+                    const enableBtn = document.getElementById('enableLoggingBtn');
+                    const disableBtn = document.getElementById('disableLoggingBtn');
+                    
+                    if (result.enabled) {
+                        statusText.textContent = 'Включено ✓';
+                        statusText.style.color = '#28a745';
+                        enableBtn.disabled = true;
+                        enableBtn.style.opacity = '0.5';
+                        disableBtn.disabled = false;
+                        disableBtn.style.opacity = '1';
+                    } else {
+                        statusText.textContent = 'Изключено ✗';
+                        statusText.style.color = '#dc3545';
+                        enableBtn.disabled = false;
+                        enableBtn.style.opacity = '1';
+                        disableBtn.disabled = true;
+                        disableBtn.style.opacity = '0.5';
+                    }
+                } else {
+                    console.error('Failed to load logging status:', result.error);
+                }
+            } catch (error) {
+                console.error('Error loading logging status:', error);
+                document.getElementById('loggingStatusText').textContent = 'Грешка при зареждане';
+            }
+        }
+        
+        /**
+         * Toggle AI logging on/off
+         */
+        async function toggleLogging(enable) {
+            try {
+                const response = await fetch('/api/admin/set-logging-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ enabled: enable })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess(result.message);
+                    // Reload the status
+                    await loadLoggingStatus();
+                } else {
+                    showError('Грешка: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error toggling logging:', error);
+                showError('Грешка при промяна на статуса: ' + error.message);
+            }
+        }
+
+        // =====================================================
+        // AI Logs Functions
+        // =====================================================
+        
         async function loadAILogs() {
             const container = document.getElementById('aiLogsContainer');
             const statsDiv = document.getElementById('aiLogsStats');

@@ -632,6 +632,10 @@ export default {
         return await handlePushSend(request, env);
       } else if (url.pathname === '/api/push/vapid-public-key' && request.method === 'GET') {
         return await handleGetVapidPublicKey(request, env);
+      } else if (url.pathname === '/api/admin/get-logging-status' && request.method === 'GET') {
+        return await handleGetLoggingStatus(request, env);
+      } else if (url.pathname === '/api/admin/set-logging-status' && request.method === 'POST') {
+        return await handleSetLoggingStatus(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }
@@ -5200,6 +5204,13 @@ async function logAIRequest(env, stepName, requestData) {
       return null;
     }
 
+    // Check if logging is enabled
+    const loggingEnabled = await env.page_content.get('ai_logging_enabled');
+    if (loggingEnabled === 'false') {
+      console.log('AI logging is disabled, skipping');
+      return null;
+    }
+
     // Generate unique log ID using crypto.randomUUID() if available, fallback to timestamp+random
     const logId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? `ai_log_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`
@@ -5259,6 +5270,13 @@ async function logAIResponse(env, logId, stepName, responseData) {
   try {
     if (!env.page_content || !logId) {
       console.warn('KV storage not configured or missing logId, skipping AI response logging');
+      return;
+    }
+
+    // Check if logging is enabled
+    const loggingEnabled = await env.page_content.get('ai_logging_enabled');
+    if (loggingEnabled === 'false') {
+      console.log('AI logging is disabled, skipping');
       return;
     }
 
@@ -6790,6 +6808,56 @@ async function handleGetVapidPublicKey(request, env) {
   } catch (error) {
     console.error('Error getting VAPID public key:', error);
     return jsonResponse({ error: 'Failed to get VAPID public key: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Get AI logging status
+ */
+async function handleGetLoggingStatus(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const loggingEnabled = await env.page_content.get('ai_logging_enabled');
+    
+    return jsonResponse({ 
+      success: true, 
+      enabled: loggingEnabled === 'true' || loggingEnabled === null // Default to true if not set
+    }, 200, {
+      cacheControl: 'no-cache' // Don't cache this response
+    });
+  } catch (error) {
+    console.error('Error getting logging status:', error);
+    return jsonResponse({ error: 'Failed to get logging status: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Set AI logging status
+ */
+async function handleSetLoggingStatus(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const data = await request.json();
+    const enabled = data.enabled === true || data.enabled === 'true';
+
+    await env.page_content.put('ai_logging_enabled', enabled.toString());
+    
+    console.log(`AI logging ${enabled ? 'enabled' : 'disabled'} by admin`);
+    
+    return jsonResponse({ 
+      success: true,
+      enabled: enabled,
+      message: `AI логването е ${enabled ? 'включено' : 'изключено'}`
+    });
+  } catch (error) {
+    console.error('Error setting logging status:', error);
+    return jsonResponse({ error: 'Failed to set logging status: ' + error.message }, 500);
   }
 }
 
