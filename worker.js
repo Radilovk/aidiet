@@ -6574,7 +6574,7 @@ async function handleExportAILogs(request, env) {
       status: 200,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': `attachment; filename="ai_communication_logs_${Date.now()}.txt"`
+        'Content-Disposition': `attachment; filename="ai_communication_logs_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19)}.txt"`
       }
     });
   } catch (error) {

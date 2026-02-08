@@ -3173,7 +3173,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `ai_communication_logs_${new Date().getTime()}.txt`;
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19);
+                a.download = `ai_communication_logs_${timestamp}.txt`;
                 document.body.appendChild(a);
                 a.click();
                 
