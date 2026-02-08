@@ -701,8 +701,8 @@ async function handleGeneratePlan(request, env) {
     let structuredPlan = await generatePlanMultiStep(env, data);
     console.log('handleGeneratePlan: Plan structured for userId:', userId);
     
-    // REQUIREMENT 4: Validate plan before displaying
-    // NEW: Implement correction loop - instead of failing, request AI to fix issues
+    // ENHANCED: Implement step-specific correction loop
+    // Instead of correcting the whole plan, regenerate from the earliest error step
     let validation = validatePlan(structuredPlan, data);
     let correctionAttempts = 0;
     
@@ -712,37 +712,30 @@ async function handleGeneratePlan(request, env) {
     while (!validation.isValid && correctionAttempts < maxAttempts) {
       correctionAttempts++;
       console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${maxAttempts}):`, validation.errors);
-      
-      // Generate correction prompt with specific errors
-      const correctionPrompt = await generateCorrectionPrompt(structuredPlan, validation.errors, data, env);
+      console.log(`handleGeneratePlan: Earliest error step: ${validation.earliestErrorStep}`);
       
       try {
-        console.log(`handleGeneratePlan: Requesting AI correction (attempt ${correctionAttempts})`);
-        const correctionResponse = await callAIModel(env, correctionPrompt, CORRECTION_TOKEN_LIMIT, 'plan_correction');
-        const correctedPlan = parseAIResponse(correctionResponse);
+        // Regenerate from the earliest error step with targeted error prevention
+        console.log(`handleGeneratePlan: Regenerating from ${validation.earliestErrorStep} (attempt ${correctionAttempts})`);
+        structuredPlan = await regenerateFromStep(
+          env, 
+          data, 
+          structuredPlan, 
+          validation.earliestErrorStep, 
+          validation.stepErrors,
+          correctionAttempts
+        );
         
-        if (!correctedPlan || correctedPlan.error) {
-          const errorMsg = correctedPlan?.error || 'Невалиден формат на отговор';
-          console.error(`handleGeneratePlan: Correction parsing failed (attempt ${correctionAttempts}):`, errorMsg);
-          // Continue with next attempt or exit loop
-          if (correctionAttempts >= maxAttempts) {
-            break;
-          }
-          continue;
-        }
+        console.log(`handleGeneratePlan: Plan regenerated from ${validation.earliestErrorStep} (attempt ${correctionAttempts})`);
         
-        // Use corrected plan
-        structuredPlan = correctedPlan;
-        console.log(`handleGeneratePlan: AI correction applied (attempt ${correctionAttempts})`);
-        
-        // Re-validate the corrected plan
+        // Re-validate the regenerated plan
         validation = validatePlan(structuredPlan, data);
         
         if (validation.isValid) {
           console.log(`handleGeneratePlan: Plan validated successfully after ${correctionAttempts} correction(s)`);
         }
       } catch (error) {
-        console.error(`handleGeneratePlan: Correction attempt ${correctionAttempts} failed:`, error);
+        console.error(`handleGeneratePlan: Regeneration attempt ${correctionAttempts} failed:`, error);
         // Continue with next attempt or exit loop
         if (correctionAttempts >= maxAttempts) {
           break;
@@ -1917,6 +1910,163 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 ВАЖНО: Върни САМО JSON без допълнителни обяснения!`;
 }
 
+/**
+ * Regenerate from a specific step with targeted error prevention
+ * This allows the system to restart from the earliest error step instead of full regeneration
+ */
+async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, stepErrors, correctionAttempt) {
+  console.log(`Regenerating from ${earliestErrorStep}, attempt ${correctionAttempt}`);
+  
+  // Create high-priority error prevention comment for the step
+  const errorPreventionComment = generateErrorPreventionComment(stepErrors[earliestErrorStep], earliestErrorStep, correctionAttempt);
+  
+  // Token tracking
+  let cumulativeTokens = {
+    input: 0,
+    output: 0,
+    total: 0
+  };
+  
+  let analysis, strategy, mealPlan;
+  
+  try {
+    // Step 1: Analysis (regenerate if this step has errors, otherwise reuse)
+    if (earliestErrorStep === 'step1_analysis') {
+      console.log('Regenerating Step 1 (Analysis) with error prevention');
+      const analysisPrompt = await generateAnalysisPrompt(data, env, errorPreventionComment);
+      const analysisInputTokens = estimateTokenCount(analysisPrompt);
+      cumulativeTokens.input += analysisInputTokens;
+      
+      const analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis_regen');
+      const analysisOutputTokens = estimateTokenCount(analysisResponse);
+      cumulativeTokens.output += analysisOutputTokens;
+      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      
+      analysis = parseAIResponse(analysisResponse);
+      
+      if (!analysis || analysis.error) {
+        throw new Error(`Регенерацията на анализа се провали: ${analysis?.error || 'Невалиден формат'}`);
+      }
+      
+      // Filter out "Normal" severity problems
+      if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
+        analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
+      }
+    } else {
+      // Reuse existing analysis
+      analysis = existingPlan.analysis;
+      console.log('Reusing existing analysis');
+    }
+    
+    // Step 2: Strategy (regenerate if this or earlier step has errors)
+    if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy') {
+      const stepErrorComment = earliestErrorStep === 'step2_strategy' ? errorPreventionComment : null;
+      console.log(`Regenerating Step 2 (Strategy)${stepErrorComment ? ' with error prevention' : ''}`);
+      
+      const strategyPrompt = await generateStrategyPrompt(data, analysis, env, stepErrorComment);
+      const strategyInputTokens = estimateTokenCount(strategyPrompt);
+      cumulativeTokens.input += strategyInputTokens;
+      
+      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen');
+      const strategyOutputTokens = estimateTokenCount(strategyResponse);
+      cumulativeTokens.output += strategyOutputTokens;
+      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      
+      strategy = parseAIResponse(strategyResponse);
+      
+      if (!strategy || strategy.error) {
+        throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
+      }
+    } else {
+      // Reuse existing strategy
+      strategy = existingPlan.strategy;
+      console.log('Reusing existing strategy');
+    }
+    
+    // Step 3: Meal Plan (regenerate if any earlier step has errors or this step has errors)
+    if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy' || earliestErrorStep === 'step3_mealplan') {
+      const stepErrorComment = earliestErrorStep === 'step3_mealplan' ? errorPreventionComment : null;
+      console.log(`Regenerating Step 3 (Meal Plan)${stepErrorComment ? ' with error prevention' : ''}`);
+      
+      if (ENABLE_PROGRESSIVE_GENERATION) {
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment);
+      } else {
+        const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env, stepErrorComment);
+        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen');
+        mealPlan = parseAIResponse(mealPlanResponse);
+        
+        if (!mealPlan || mealPlan.error) {
+          throw new Error(`Регенерацията на хранителния план се провали: ${mealPlan?.error || 'Невалиден формат'}`);
+        }
+      }
+    } else {
+      // Reuse existing meal plan parts
+      mealPlan = {
+        weekPlan: existingPlan.weekPlan,
+        summary: existingPlan.summary,
+        recommendations: existingPlan.recommendations,
+        forbidden: existingPlan.forbidden,
+        psychology: existingPlan.psychology,
+        waterIntake: existingPlan.waterIntake,
+        supplements: existingPlan.supplements
+      };
+      console.log('Reusing existing meal plan');
+    }
+    
+    // Combine all parts into final plan
+    return {
+      ...mealPlan,
+      analysis: analysis,
+      strategy: strategy,
+      _meta: {
+        tokenUsage: cumulativeTokens,
+        regeneratedFrom: earliestErrorStep,
+        correctionAttempt: correctionAttempt,
+        generatedAt: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    console.error(`Regeneration from ${earliestErrorStep} failed:`, error);
+    throw new Error(`Регенерацията от ${earliestErrorStep} се провали: ${error.message}`);
+  }
+}
+
+/**
+ * Generate high-priority error prevention comment for a specific step
+ */
+function generateErrorPreventionComment(errors, stepName, attemptNumber) {
+  if (!errors || errors.length === 0) {
+    return null;
+  }
+  
+  const stepNames = {
+    'step1_analysis': 'АНАЛИЗ',
+    'step2_strategy': 'СТРАТЕГИЯ',
+    'step3_mealplan': 'ХРАНИТЕЛЕН ПЛАН',
+    'step4_final': 'ФИНАЛНА ВАЛИДАЦИЯ'
+  };
+  
+  const displayName = stepNames[stepName] || stepName;
+  
+  return `
+═══ 🚨 КРИТИЧНО: ПРЕДОТВРАТЯВАНЕ НА ГРЕШКИ - ОПИТ ${attemptNumber} 🚨 ═══
+⚠️ МАКСИМАЛЕН ПРИОРИТЕТ: При предишния опит бяха открити следните грешки в стъпка "${displayName}":
+
+${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
+
+🔴 ЗАДЪЛЖИТЕЛНО: Избягвай горните грешки! Обърни специално внимание на:
+- Всички задължителни полета трябва да присъстват
+- Спазване на ADLE v8 правила (hard bans, whitelist, meal types, chronological order)
+- Правилни изчисления на калории и макроси
+- Детайлни обосновки (минимум 100 символа където е поискано)
+- Точно 7 дни в седмичния план
+- 1-5 хранения на ден според стратегията
+
+НЕ ПОВТАРЯЙ тези грешки в този опит!
+═══════════════════════════════════════════════════════════════
+`;
+}
+
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
@@ -2124,7 +2274,7 @@ function replacePromptVariables(template, variables) {
  * Simplified - focuses on AI's strengths: correlations, psychology, individualization
  * Backend handles: BMR, TDEE, safety checks
  */
-async function generateAnalysisPrompt(data, env) {
+async function generateAnalysisPrompt(data, env, errorPreventionComment = null) {
   // IMPORTANT: AI calculates BMR, TDEE, and calories based on ALL correlates
   // Backend no longer pre-calculates these values - AI does holistic analysis
   
@@ -2138,6 +2288,11 @@ async function generateAnalysisPrompt(data, env) {
     let prompt = replacePromptVariables(customPrompt, {
       userData: data
     });
+    
+    // Inject error prevention comment if provided
+    if (errorPreventionComment) {
+      prompt = errorPreventionComment + '\n\n' + prompt;
+    }
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     // This prevents AI from responding with natural language instead of structured JSON
@@ -2199,7 +2354,14 @@ async function generateAnalysisPrompt(data, env) {
     return prompt;
   }
   
-  return `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
+  // Build default prompt with optional error prevention comment
+  let defaultPrompt = '';
+  
+  if (errorPreventionComment) {
+    defaultPrompt += errorPreventionComment + '\n\n';
+  }
+  
+  defaultPrompt += `Ти си експертен диетолог, психолог и ендокринолог. Направи ХОЛИСТИЧЕН АНАЛИЗ на клиента и ИЗЧИСЛИ калориите и макросите.
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
 ${JSON.stringify({
@@ -2589,9 +2751,11 @@ AI решава КОГА точно се случват тези хранени�
 5. Използвай dailyMealCount за консистентност през цялата седмица (освен ако няма специфична причина за вариация)
 
 Бъди КОНКРЕТЕН за ${data.name}. Избягвай общи фрази като "добър метаболизъм" - обясни ЗАЩО и КАК!`;
+  
+  return defaultPrompt;
 }
 
-async function generateStrategyPrompt(data, analysis, env) {
+async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
   // Check if there's a custom prompt in KV storage
   const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
   
@@ -2634,6 +2798,11 @@ async function generateStrategyPrompt(data, analysis, env) {
       goal: data.goal
     });
     
+    // Inject error prevention comment if provided
+    if (errorPreventionComment) {
+      prompt = errorPreventionComment + '\n\n' + prompt;
+    }
+    
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
       prompt += `
@@ -2671,7 +2840,14 @@ async function generateStrategyPrompt(data, analysis, env) {
     return prompt;
   }
   
-  return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
+  // Build default prompt with optional error prevention comment
+  let defaultPrompt = '';
+  
+  if (errorPreventionComment) {
+    defaultPrompt += errorPreventionComment + '\n\n';
+  }
+  
+  defaultPrompt += `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
 
 КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
 
@@ -2820,6 +2996,8 @@ ${data.additionalNotes}
 - СТРОГО ЗАБРАНЕНО: Универсални "мултивитамини" без конкретна обосновка
 - Всяка добавка ТРЯБВА да е различна и специфична за конкретния клиент ${data.name}
 - Вземи предвид уникалната комбинация от: ${data.age} год. ${data.gender}, ${data.goal}, ${data.medicalConditions || 'няма мед. състояния'}, ${data.sportActivity}, стрес: ${data.stressLevel}`;
+  
+  return defaultPrompt;
 }
 
 /**
@@ -3073,7 +3251,7 @@ async function getDynamicFoodListsSections(env) {
 /**
  * Generate prompt for a chunk of days (progressive generation)
  */
-async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env) {
+async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env, errorPreventionComment = null) {
   // Check if there's a custom prompt in KV storage
   const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
   
@@ -3537,7 +3715,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
  * The MODIFIER acts as a filter applied to the universal food architecture:
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
-async function generateMealPlanPrompt(data, analysis, strategy, env) {
+async function generateMealPlanPrompt(data, analysis, strategy, env, errorPreventionComment = null) {
   // Parse BMR from analysis (may be a number or string) or calculate from user data
   let bmr;
   if (analysis.bmr) {
