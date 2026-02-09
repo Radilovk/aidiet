@@ -28,22 +28,30 @@
  *      - Output: Personalized dietary strategy and approach
  *      - ФАЗА 2: Medication-aware supplement recommendations
  *   
- *   3. Meal Plan Requests (4 sub-requests, 8k token limit each)
+ *   3. Meal Plan Requests (4 sub-requests, 6k token limit each - OPTIMIZED)
  *      - Progressive generation: 2 days per chunk
- *      - Input: User data + COMPACT strategy + COMPACT analysis + Previous days context
+ *      - Input: User data + COMPACT strategy + COMPACT analysis + Previous days context + CACHED food lists
  *      - Output: Detailed meals with macros and descriptions
  *      - Sub-steps:
  *        3.1: Day 1-2
  *        3.2: Day 3-4
  *        3.3: Day 5-6
  *        3.4: Day 7 (final day)
+ *      - OPTIMIZATION: Food whitelist/blacklist cached once and reused across chunks
  *   
- *   4. Summary Request (2k token limit) - VALIDATION STEP
- *      - Input: COMPACT strategy + Generated week plan
- *      - Output: Summary, recommendations, psychology tips
+ *   4. Summary Request (4k token limit - ENHANCED)
+ *      - Input: User data + Health analysis + COMPACT strategy + Generated week plan + Food lists
+ *      - Output: Summary, recommendations, psychology tips, personalized supplements
+ *      - ENHANCED: Now includes health context, whitelist/blacklist, supplement logic with contraindications
  * 
  * Total: 1 (analysis) + 1 (strategy) + 4 (meal plan sub-steps) + 1 (summary) = 7 steps
  *        But conceptually: 4 main steps (where step 3 has 4 sub-steps) + 1 validation = 8 requests
+ * 
+ * TOKEN OPTIMIZATION (Current):
+ *   - Step 1-2: 4k each (balanced)
+ *   - Step 3: 6k × 4 = 24k total (reduced from 32k, 25% savings)
+ *   - Step 4: 4k (increased from 2k, 2x capacity)
+ *   - Total capacity: 36k (down from 42k, more balanced distribution)
  * 
  * ARCHITECTURE - Chat (1 request per message):
  *   - Input: Full user data + Full plan + Conversation history (2k tokens max)
@@ -58,6 +66,8 @@
  *   ✓ Full analysis quality maintained throughout
  *   ✓ 59% reduction in token usage through compact data format
  *   ✓ ФАЗА 2: Enhanced AI instructions for medications, chronotype, success chance
+ *   ✓ OPTIMIZATION: Cached food lists prevent redundant KV reads (4x → 1x per generation)
+ *   ✓ ENHANCED: Summary step now has full health context for accurate supplement recommendations
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -1110,7 +1120,7 @@ async function getDynamicFoodListsSections(env) {
 /**
  * Generate prompt for a chunk of days (progressive generation)
  */
-async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env, errorPreventionComment = null) {
+async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env, errorPreventionComment = null, cachedFoodLists = null) {
   // Check if there's a custom prompt in KV storage
   const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
   
@@ -1148,8 +1158,16 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
   };
   
-  // Fetch dynamic whitelist and blacklist from KV storage
-  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
+  // Use cached food lists if provided, otherwise fetch (optimization)
+  let dynamicWhitelistSection, dynamicBlacklistSection;
+  if (cachedFoodLists) {
+    dynamicWhitelistSection = cachedFoodLists.dynamicWhitelistSection;
+    dynamicBlacklistSection = cachedFoodLists.dynamicBlacklistSection;
+  } else {
+    const foodLists = await getDynamicFoodListsSections(env);
+    dynamicWhitelistSection = foodLists.dynamicWhitelistSection;
+    dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
+  }
   
   // Extract meal pattern from strategy
   let mealPlanGuidance = '';
@@ -1649,6 +1667,18 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   const foodsToInclude = strategy.foodsToInclude || [];
   const foodsToAvoid = strategy.foodsToAvoid || [];
   
+  // Fetch dynamic whitelist and blacklist from KV storage (FIX: was missing from summary step)
+  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
+  
+  // Extract health analysis context for supplement recommendations
+  const healthContext = {
+    keyProblems: (analysis.keyProblems || []).map(p => `${p.problem} (${p.severity})`).join('; '),
+    allergies: data.allergies || 'няма',
+    medications: data.medications || 'няма',
+    medicalHistory: data.medicalHistory || 'няма',
+    deficiencies: (analysis.nutritionalDeficiencies || []).join(', ') || 'няма установени'
+  };
+  
   const defaultPrompt = `Създай summary, препоръки и допълнения за 7-дневен хранителен план.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}
@@ -1656,12 +1686,47 @@ BMR: ${bmr}, Целеви калории: ${recommendedCalories} kcal/ден
 Реален среден прием: ${avgCalories} kcal/ден
 Реални средни макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
 
+ЗДРАВНИ ДАННИ (за персонализирани добавки):
+- Здравословни проблеми: ${healthContext.keyProblems || 'няма'}
+- Алергии: ${healthContext.allergies}
+- Медикаменти: ${healthContext.medications}
+- Медицинска история: ${healthContext.medicalHistory}
+- Дефицити: ${healthContext.deficiencies}
+
 СТРАТЕГИЯ (КОМПАКТНА):
 - Психологическа подкрепа: ${psychologicalSupport.slice(0, 3).join('; ')}
 - Добавки: ${supplementRecommendations.slice(0, 3).join('; ')}
 - Хидратация: ${hydrationStrategy}
 - Включвай: ${foodsToInclude.slice(0, 5).join(', ')}
-- Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}
+- Избягвай: ${foodsToAvoid.slice(0, 5).join(', ')}${dynamicWhitelistSection}${dynamicBlacklistSection}
+
+=== ПРАВИЛА ЗА ХРАНИТЕЛНИ ДОБАВКИ ===
+ВАЖНО: Генерирай персонализирани препоръки за добавки на база:
+1. Здравословни проблеми и дефицити
+2. Взаимодействия с медикаменти (провери съвместимост)
+3. Алергии (избягвай алергени)
+4. Цел (${data.goal})
+
+НАСОКИ ЗА ДОБАВКИ:
+- При висок стрес: Магнезий (300-400mg), Ашваганда, Витамин B комплекс
+- При лош сън: Магнезий, Мелатонин (0.5-3mg), L-Теанин
+- При умора: Витамин D (2000IU), B12, Желязо (ако има дефицит)
+- При слаб имунитет: Витамин C (1000mg), Цинк (15-30mg), Витамин D
+- При проблеми със ставите: Омега-3 (1000-2000mg EPA+DHA), Куркума
+- При високо кръвно: Калий, Магнезий, Омега-3
+- При диабет: Хром, Магнезий, Алфа липоева киселина
+- При анемия: Желязо + Витамин C (за усвояване)
+
+ПРОТИВОПОКАЗАНИЯ:
+- Желязо: Не при хемохроматоза
+- Витамин K: Противопоказан при антикоагуланти (Warfarin)
+- Омега-3: Внимание при кръворазредители
+- Калций: Не при хиперкалцемия
+- Магнезий: Намалена доза при бъбречни проблеми
+
+=== ПРАВИЛА ЗА WHITELIST/BLACKLIST ===
+recommendations: Препоръчай САМО храни от whitelist (ако има) + foodsToInclude
+forbidden: Включи ВСИЧКИ храни от blacklist + foodsToAvoid + алергени
 
 JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа за числови полета):
 {
@@ -1674,10 +1739,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
   "forbidden": ["забранена храна 1", "храна 2", "храна 3", "храна 4"],
   "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport) : '["съвет 1", "съвет 2", "съвет 3"]'},
   "waterIntake": "${strategy.hydrationStrategy || 'Минимум 2-2.5л вода дневно'}",
-  "supplements": ${strategy.supplementRecommendations ? JSON.stringify(strategy.supplementRecommendations) : '["добавка 1 с дозировка", "добавка 2 с дозировка", "добавка 3 с дозировка"]'}
+  "supplements": ["добавка 1 + дозировка + причина", "добавка 2 + дозировка + причина", "добавка 3 + дозировка + причина"]
 }
 
-ВАЖНО: recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети.`;
+ВАЖНО: 
+- recommendations/forbidden=САМО конкретни храни според цел ${data.goal}, НЕ общи съвети
+- supplements=КОНКРЕТНИ добавки с дозировка и обосновка според здравния статус`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -2198,9 +2265,10 @@ async function handleGetReports(request, env) {
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
 
-// Token limit for meal plan generation - must be high enough for detailed, high-quality responses
-// Note: This is the OUTPUT token limit. Set high to ensure complete, precise meal plans
-const MEAL_PLAN_TOKEN_LIMIT = 8000;
+// Token limits for different generation steps (OUTPUT limits)
+// Optimized distribution: Reduced chunk size, increased summary capacity
+const MEAL_PLAN_TOKEN_LIMIT = 6000; // Reduced from 8000 to balance load (still sufficient for 2 days)
+const SUMMARY_TOKEN_LIMIT = 4000; // Increased from 2000 for better supplement/recommendation logic
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -3866,6 +3934,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   const weekPlan = {};
   const previousDays = []; // Track previous days for variety
   
+  // Cache dynamic food lists once (optimization: was called 4 times per generation)
+  const cachedFoodLists = await getDynamicFoodListsSections(env);
+  console.log('Progressive generation: Cached food lists for reuse across chunks');
+  
   // Parse BMR and calories - handle both numeric and string values
   let bmr;
   if (analysis.bmr) {
@@ -3915,7 +3987,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     try {
       const chunkPrompt = await generateMealPlanChunkPrompt(
         data, analysis, strategy, bmr, recommendedCalories,
-        startDay, endDay, previousDays, env, errorPreventionComment
+        startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
       );
       
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
@@ -3959,7 +4031,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
-    const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'step4_summary', sessionId);
+    const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId);
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
