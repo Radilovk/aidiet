@@ -950,7 +950,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     throw err;
   } finally {
     // Log AI response
-    await logAIResponse(env, logId, {
+    await logAIResponse(env, logId, stepName, {
       response: response,
       success: success,
       error: error,
