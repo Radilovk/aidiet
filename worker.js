@@ -88,9 +88,6 @@ const ERROR_MESSAGES = {
   VAPID_KEY_FAILED: 'Неуспешно получаване на VAPID ключ'
 };
 
-// Bulgarian error message shown when REGENERATE_PLAN parsing fails and no clean response text remains
-const ERROR_MESSAGE_PARSE_FAILURE = ERROR_MESSAGES.PARSE_FAILURE;
-
 // Plan modification descriptions for AI prompts
 const PLAN_MODIFICATIONS = {
   NO_INTERMEDIATE_MEALS: 'no_intermediate_meals',
@@ -797,16 +794,11 @@ function parseAIResponse(response) {
   }
 }
 
-// Enhancement #3: Estimate tokens for a message
-// Note: This is a rough approximation (~4 chars per token for mixed content).
-// Actual GPT tokenization varies by language and content. This is sufficient
-// for conversation history management where approximate limits are acceptable.
-function estimateTokens(text) {
-  return Math.ceil(text.length / 4);
-}
-
 /**
- * More accurate token count estimation for AI prompts (supports Cyrillic)
+ * Token count estimation for AI prompts (supports Cyrillic)
+ * Note: This is a rough approximation. Cyrillic-heavy text: ~3 chars per token,
+ * Latin-heavy text: ~4 chars per token. Actual GPT tokenization varies by language
+ * and content. This is sufficient for conversation history and prompt management.
  */
 function estimateTokenCount(text) {
   if (!text) return 0;
@@ -1863,7 +1855,7 @@ async function handleGeneratePlan(request, env) {
  */
 function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
   const cleanedResponse = aiResponse.substring(0, regenerateIndex).trim();
-  return cleanedResponse || ERROR_MESSAGE_PARSE_FAILURE;
+  return cleanedResponse || ERROR_MESSAGES.PARSE_FAILURE;
 }
 
 /**
@@ -2048,7 +2040,7 @@ async function handleChat(request, env) {
     // Process history in reverse to keep most recent messages
     for (let i = updatedHistory.length - 1; i >= 0; i--) {
       const msg = updatedHistory[i];
-      const messageTokens = estimateTokens(msg.content);
+      const messageTokens = estimateTokenCount(msg.content);
       
       if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
         trimmedHistory.unshift(msg);
@@ -6898,21 +6890,10 @@ async function handlePushSend(request, env) {
       url: url || '/'
     };
 
-    // In a production environment, you would:
-    // 1. Use the web-push library or similar to send the actual push notification
-    // 2. Use VAPID keys for authentication
-    // 3. Encrypt the payload according to Web Push protocol
-    
-    // For now, we'll just log that we would send the notification
+    // TODO: Implement actual Web Push sending with VAPID keys and web-push library
+    // For now, this is a simulated implementation
     console.log(`Would send push notification to user ${userId}:`, pushMessage);
     console.log('Subscription endpoint:', subscription.endpoint);
-    
-    // TODO: Implement actual Web Push sending with VAPID
-    // This requires the 'web-push' library or manual implementation of the Web Push protocol
-    // Example with web-push library (needs to be imported):
-    // const webpush = require('web-push');
-    // webpush.setVapidDetails('mailto:example@domain.com', env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
-    // await webpush.sendNotification(subscription, JSON.stringify(pushMessage));
     
     return jsonResponse({ 
       success: true,
