@@ -1188,7 +1188,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   const defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
 
 === ПРОФИЛ ===
-Цел: ${data.goal} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}${previousDaysContext}
+Цел: ${data.goal} | BMR: ${bmr} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}
+Стрес: ${data.stressLevel} | Сън: ${data.sleepHours}ч | Хронотип: ${data.chronotype}${previousDaysContext}
 
 === СТРАТЕГИЯ ===
 Диета: ${strategyCompact.dietType} | Хранения: ${strategyCompact.mealTiming}
@@ -1198,7 +1199,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 
 ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
 
-=== ОСНОВНИ ПРАВИЛА ===
 === ОСНОВНИ ПРАВИЛА ===
 HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
 WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
@@ -1215,8 +1215,8 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
 3. Калории: protein×4 + carbs×4 + fats×9
 4. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal OK)
-5. Брой хранения: ${strategy.mealCountJustification || '2-4 според стратегията'}
-6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако обосновано)
+5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
+6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
 7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
