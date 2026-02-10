@@ -9,6 +9,10 @@
 - **[FEATURES_GUIDE.md](FEATURES_GUIDE.md)** - Detailed feature documentation
 - **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Deployment guidelines
 
+### API Documentation
+- **[API_JSON_DOCUMENTATION.md](API_JSON_DOCUMENTATION.md)** - Comprehensive API documentation with JSON structures for all 4+1 steps
+- **[API_QUICK_REFERENCE.md](API_QUICK_REFERENCE.md)** - Quick reference guide for developers with code examples
+
 ## Archived Documentation
 
 Historical development notes, implementation summaries, and fix documentation have been moved to **[docs/archive/](docs/archive/)** to keep the root directory clean and focused.
