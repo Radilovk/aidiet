@@ -1073,7 +1073,7 @@
             <div class="card">
                 <h2><i class="fas fa-exchange-alt"></i> Експорт и Импорт на Всички Промпти</h2>
                 <div class="info-box" style="background: #e8f5e9; border-left: 4px solid #4caf50;">
-                    <strong>💾 Комплексен Файл:</strong> Експортирайте всички AI промпти в един JSON файл и импортирайте ги при нужда. Включва всички 8 промпта (анализ, стратегия, хранителен план, обобщение, корекция, генериране, консултация и промяна).
+                    <strong>💾 Комплексен Файл:</strong> Експортирайте всички AI промпти в един JSON файл и импортирайте ги при нужда. Включва всички 8 промптите (анализ, стратегия, хранителен план, обобщение, корекция, генериране, консултация и промяна).
                 </div>
                 <div class="info-box">
                     <strong>Информация:</strong> Експортът включва всички 8 промпта:
@@ -1294,6 +1294,7 @@
         // This password is visible in the browser source code and should not be used for security.
         const ADMIN_PASSWORD = 'nutriplan2024'; // TODO: Move to server-side auth
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+        const PROMPTS_EXPORT_VERSION = '1.0'; // Version for export/import format compatibility
 
         // ============================================================================
         // CLIENT-SIDE CACHE SYSTEM FOR REDUCING BACKEND REQUESTS
@@ -2454,10 +2455,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Export All Prompts
         function exportAllPrompts() {
             try {
+                const now = new Date();
+                const dateString = now.toISOString().split('T')[0];
+                
                 // Collect all prompts from localStorage
                 const allPrompts = {
-                    exportDate: new Date().toISOString(),
-                    version: '1.0',
+                    exportDate: now.toISOString(),
+                    version: PROMPTS_EXPORT_VERSION,
                     prompts: {
                         analysisPrompt: localStorage.getItem('adminAnalysisPrompt') || '',
                         strategyPrompt: localStorage.getItem('adminStrategyPrompt') || '',
@@ -2476,7 +2480,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `nutriplan-prompts-${new Date().toISOString().split('T')[0]}.json`;
+                link.download = `nutriplan-prompts-${dateString}.json`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -2508,8 +2512,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         }
 
                         // Validate version (optional, but warn if different)
-                        if (imported.version && imported.version !== '1.0') {
-                            console.warn(`Warning: Import file version ${imported.version} may not be fully compatible with current version 1.0`);
+                        if (imported.version && imported.version !== PROMPTS_EXPORT_VERSION) {
+                            console.warn(`Warning: Import file version ${imported.version} may not be fully compatible with current version ${PROMPTS_EXPORT_VERSION}`);
                         }
 
                         const prompts = imported.prompts;
@@ -2567,7 +2571,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         }
 
                         // Clear cache to ensure fresh prompts
-                        cache.clear();
+                        if (typeof apiCache !== 'undefined') {
+                            apiCache.clear();
+                        }
 
                         if (importedCount > 0) {
                             showSuccess(`Импортирани успешно ${importedCount} промпт(а)${failedCount > 0 ? `, ${failedCount} неуспешни` : ''}. Промените са запазени в системата.`);
