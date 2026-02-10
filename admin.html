@@ -1069,6 +1069,36 @@
                 </button>
             </div>
 
+            <!-- Export/Import All Prompts Section -->
+            <div class="card">
+                <h2><i class="fas fa-exchange-alt"></i> Експорт и Импорт на Всички Промпти</h2>
+                <div class="info-box" style="background: #e8f5e9; border-left: 4px solid #4caf50;">
+                    <strong>💾 Комплексен Файл:</strong> Експортирайте всички AI промпти в един JSON файл и импортирайте ги при нужда. Включва всички 8 промптите (анализ, стратегия, хранителен план, обобщение, корекция, генериране, консултация и промяна).
+                </div>
+                <div class="info-box">
+                    <strong>Информация:</strong> Експортът включва всички 8 промпта:
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>Промпт за Анализ (Стъпка 1)</li>
+                        <li>Промпт за Стратегия (Стъпка 2)</li>
+                        <li>Промпт за Хранителен План (Стъпка 3)</li>
+                        <li>Промпт за Обобщение (Стъпка 4)</li>
+                        <li>Промпт за Корекция (Автоматична)</li>
+                        <li>Промпт за Генериране на План (Legacy)</li>
+                        <li>Промпт за Консултационен Режим</li>
+                        <li>Промпт за Режим Промяна</li>
+                    </ul>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn" onclick="exportAllPrompts()" style="background: #4caf50;">
+                        <i class="fas fa-download"></i> Експорт на Всички Промпти
+                    </button>
+                    <button class="btn" onclick="document.getElementById('importPromptsFile').click()" style="background: #2196f3;">
+                        <i class="fas fa-upload"></i> Импорт на Промпти
+                    </button>
+                    <input type="file" id="importPromptsFile" accept=".json" style="display: none;" onchange="importAllPrompts(event)">
+                </div>
+            </div>
+
             <!-- Problem Reports Section -->
             <div class="card">
                 <h2><i class="fas fa-exclamation-triangle"></i> Доклади за Проблеми</h2>
@@ -1264,6 +1294,7 @@
         // This password is visible in the browser source code and should not be used for security.
         const ADMIN_PASSWORD = 'nutriplan2024'; // TODO: Move to server-side auth
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+        const PROMPTS_EXPORT_VERSION = '1.0'; // Version for export/import format compatibility
 
         // ============================================================================
         // CLIENT-SIDE CACHE SYSTEM FOR REDUCING BACKEND REQUESTS
@@ -2419,6 +2450,159 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         async function resetCorrectionPrompt() {
             await resetPromptGeneric('correction', 'correctionPrompt', 'adminCorrectionPrompt', 
                 'Промпт за корекция изтрит. Ще се използва стандартният промпт.');
+        }
+
+        // Export All Prompts
+        function exportAllPrompts() {
+            try {
+                const now = new Date();
+                const dateString = now.toISOString().split('T')[0];
+                
+                // Collect all prompts from localStorage
+                const allPrompts = {
+                    exportDate: now.toISOString(),
+                    version: PROMPTS_EXPORT_VERSION,
+                    prompts: {
+                        analysisPrompt: localStorage.getItem('adminAnalysisPrompt') || '',
+                        strategyPrompt: localStorage.getItem('adminStrategyPrompt') || '',
+                        mealPlanPrompt: localStorage.getItem('adminMealPlanPrompt') || '',
+                        summaryPrompt: localStorage.getItem('adminSummaryPrompt') || '',
+                        correctionPrompt: localStorage.getItem('adminCorrectionPrompt') || '',
+                        planPrompt: localStorage.getItem('adminAIPrompt') || '',
+                        consultationPrompt: localStorage.getItem('adminConsultationPrompt') || '',
+                        modificationPrompt: localStorage.getItem('adminModificationPrompt') || ''
+                    }
+                };
+
+                // Create JSON blob and download
+                const jsonString = JSON.stringify(allPrompts, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `nutriplan-prompts-${dateString}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showSuccess('Всички промпти експортирани успешно!');
+            } catch (error) {
+                console.error('Export error:', error);
+                showError('Грешка при експорт на промпти: ' + error.message);
+            }
+        }
+
+        // Import All Prompts
+        async function importAllPrompts(event) {
+            try {
+                const file = event.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        
+                        // Validate format
+                        if (!imported.prompts || typeof imported.prompts !== 'object') {
+                            throw new Error('Невалиден формат на файла. Очаква се обект с "prompts" поле.');
+                        }
+
+                        // Validate version (optional, but warn if different)
+                        if (imported.version && imported.version !== PROMPTS_EXPORT_VERSION) {
+                            console.warn(`Warning: Import file version ${imported.version} may not be fully compatible with current version ${PROMPTS_EXPORT_VERSION}`);
+                        }
+
+                        const prompts = imported.prompts;
+                        let importedCount = 0;
+                        let failedCount = 0;
+
+                        // Import each prompt
+                        const promptMappings = [
+                            { key: 'analysisPrompt', localKey: 'adminAnalysisPrompt', apiType: 'analysis', elementId: 'analysisPrompt' },
+                            { key: 'strategyPrompt', localKey: 'adminStrategyPrompt', apiType: 'strategy', elementId: 'strategyPrompt' },
+                            { key: 'mealPlanPrompt', localKey: 'adminMealPlanPrompt', apiType: 'meal_plan', elementId: 'mealPlanPrompt' },
+                            { key: 'summaryPrompt', localKey: 'adminSummaryPrompt', apiType: 'summary', elementId: 'summaryPrompt' },
+                            { key: 'correctionPrompt', localKey: 'adminCorrectionPrompt', apiType: 'correction', elementId: 'correctionPrompt' },
+                            { key: 'planPrompt', localKey: 'adminAIPrompt', apiType: 'plan', elementId: 'aiPrompt' },
+                            { key: 'consultationPrompt', localKey: 'adminConsultationPrompt', apiType: 'consultation', elementId: 'consultationPrompt' },
+                            { key: 'modificationPrompt', localKey: 'adminModificationPrompt', apiType: 'modification', elementId: 'modificationPrompt' }
+                        ];
+
+                        for (const mapping of promptMappings) {
+                            if (prompts[mapping.key]) {
+                                try {
+                                    // Save to localStorage
+                                    localStorage.setItem(mapping.localKey, prompts[mapping.key]);
+                                    
+                                    // Update UI if element exists
+                                    const element = document.getElementById(mapping.elementId);
+                                    if (element) {
+                                        element.value = prompts[mapping.key];
+                                    }
+
+                                    // Save to backend
+                                    const response = await fetch(`${WORKER_URL}/api/admin/set-prompt`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-Admin-Password': localStorage.getItem('adminPassword')
+                                        },
+                                        body: JSON.stringify({
+                                            type: mapping.apiType,
+                                            prompt: prompts[mapping.key]
+                                        })
+                                    });
+
+                                    if (response.ok) {
+                                        importedCount++;
+                                    } else {
+                                        failedCount++;
+                                        console.error(`Failed to save ${mapping.key} to backend`);
+                                    }
+                                } catch (err) {
+                                    failedCount++;
+                                    console.error(`Error importing ${mapping.key}:`, err);
+                                }
+                            }
+                        }
+
+                        // Clear cache to ensure fresh prompts
+                        if (typeof apiCache !== 'undefined') {
+                            apiCache.clear();
+                        }
+
+                        if (importedCount > 0) {
+                            showSuccess(`Импортирани успешно ${importedCount} промпт(а)${failedCount > 0 ? `, ${failedCount} неуспешни` : ''}. Промените са запазени в системата.`);
+                        } else {
+                            showError('Няма импортирани промпти. Моля проверете файла.');
+                        }
+                    } catch (parseError) {
+                        console.error('Parse error:', parseError);
+                        showError('Грешка при обработка на файла: ' + parseError.message);
+                    } finally {
+                        // Always clear file input to allow re-import of same file if needed
+                        event.target.value = '';
+                    }
+                };
+
+                reader.onerror = function() {
+                    showError('Грешка при четене на файла.');
+                    event.target.value = '';
+                };
+
+                reader.readAsText(file);
+            } catch (error) {
+                console.error('Import error:', error);
+                showError('Грешка при импорт на промпти: ' + error.message);
+                // Clear file input on error
+                if (event.target) {
+                    event.target.value = '';
+                }
+            }
         }
 
         // Reset Prompt
