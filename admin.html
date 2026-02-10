@@ -577,6 +577,21 @@
             }
         }
 
+        @keyframes highlightField {
+            0% {
+                background-color: #fff3cd;
+                border-color: #ffc107;
+            }
+            100% {
+                background-color: #ffffff;
+                border-color: #ddd;
+            }
+        }
+
+        .field-updated {
+            animation: highlightField 2s ease-out;
+        }
+
         .ios-close {
             position: absolute;
             top: 10px;
@@ -2567,6 +2582,15 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                     const element = document.getElementById(mapping.elementId);
                                     if (element) {
                                         element.value = prompts[mapping.key];
+                                        
+                                        // Trigger visual feedback
+                                        element.classList.remove('field-updated');
+                                        // Force reflow to restart animation
+                                        void element.offsetWidth;
+                                        element.classList.add('field-updated');
+                                        
+                                        // Trigger input event to ensure any listeners are notified
+                                        element.dispatchEvent(new Event('input', { bubbles: true }));
                                     }
 
                                     // Save to backend
@@ -2601,7 +2625,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         }
 
                         if (importedCount > 0) {
-                            showSuccess(`Импортирани успешно ${importedCount} промпт(а)${failedCount > 0 ? `, ${failedCount} неуспешни` : ''}. Промените са запазени в системата.`);
+                            showSuccess(`Импортирани успешно ${importedCount} промпт(а)${failedCount > 0 ? `, ${failedCount} неуспешни` : ''}. Полетата в админ панела са обновени и промените са запазени в системата.`);
                         } else {
                             showError('Няма импортирани промпти. Моля проверете файла.');
                         }
