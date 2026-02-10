@@ -2459,28 +2459,47 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const dateString = now.toISOString().split('T')[0];
                 
                 // Collect all prompts from localStorage
-                const allPrompts = {
-                    exportDate: now.toISOString(),
-                    version: PROMPTS_EXPORT_VERSION,
-                    prompts: {
-                        analysisPrompt: localStorage.getItem('adminAnalysisPrompt') || '',
-                        strategyPrompt: localStorage.getItem('adminStrategyPrompt') || '',
-                        mealPlanPrompt: localStorage.getItem('adminMealPlanPrompt') || '',
-                        summaryPrompt: localStorage.getItem('adminSummaryPrompt') || '',
-                        correctionPrompt: localStorage.getItem('adminCorrectionPrompt') || '',
-                        planPrompt: localStorage.getItem('adminAIPrompt') || '',
-                        consultationPrompt: localStorage.getItem('adminConsultationPrompt') || '',
-                        modificationPrompt: localStorage.getItem('adminModificationPrompt') || ''
-                    }
-                };
+                const prompts = [
+                    { name: 'Промпт за Анализ', key: 'adminAnalysisPrompt' },
+                    { name: 'Промпт за Стратегия', key: 'adminStrategyPrompt' },
+                    { name: 'Промпт за План за Хранене', key: 'adminMealPlanPrompt' },
+                    { name: 'Промпт за Обобщение', key: 'adminSummaryPrompt' },
+                    { name: 'Промпт за Корекция', key: 'adminCorrectionPrompt' },
+                    { name: 'Промпт за Генериране на План', key: 'adminAIPrompt' },
+                    { name: 'Промпт за Консултационен Режим', key: 'adminConsultationPrompt' },
+                    { name: 'Промпт за Режим Промяна', key: 'adminModificationPrompt' }
+                ];
 
-                // Create JSON blob and download
-                const jsonString = JSON.stringify(allPrompts, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
+                // Build text content with clear separators
+                let textContent = '='.repeat(80) + '\n';
+                textContent += 'ЕКСПОРТ НА ВСИЧКИ ПРОМПТИ\n';
+                textContent += '='.repeat(80) + '\n\n';
+                textContent += `Дата на експорт: ${now.toISOString()}\n`;
+                textContent += `Версия: ${PROMPTS_EXPORT_VERSION}\n`;
+                textContent += `Общо промпти: ${prompts.length}\n`;
+                textContent += '\n';
+
+                // Add each prompt with clear separation
+                prompts.forEach((prompt, index) => {
+                    const content = localStorage.getItem(prompt.key) || '(Няма зададен промпт)';
+                    
+                    textContent += '='.repeat(80) + '\n';
+                    textContent += `ПРОМПТ ${index + 1}: ${prompt.name}\n`;
+                    textContent += '='.repeat(80) + '\n\n';
+                    textContent += content;
+                    textContent += '\n\n';
+                });
+
+                textContent += '='.repeat(80) + '\n';
+                textContent += 'КРАЙ НА ЕКСПОРТА\n';
+                textContent += '='.repeat(80) + '\n';
+
+                // Create text blob and download
+                const blob = new Blob([textContent], { type: 'text/plain; charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `nutriplan-prompts-${dateString}.json`;
+                link.download = `nutriplan-prompts-${dateString}.txt`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
