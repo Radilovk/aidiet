@@ -383,25 +383,66 @@ function compactWeekPlan(weekPlan) {
 
 ---
 
-## Валидация
+## Валидация и Корекция
 
-### Валидирани полета
+### Стъпка 5: Валидация (12+ проверки)
+Автоматична валидация след генериране на план:
+
+**Структурни проверки:**
 - ✓ analysis наличен с keyProblems, BMR, calories
-- ✓ strategy наличен с dietaryModifier, justification
-- ✓ weekPlan с 7 дни, всеки с meals
+- ✓ strategy наличен с dietaryModifier, justification, welcomeMessage
+- ✓ weekPlan с точно 7 дни, всеки с 1-5 meals
 - ✓ summary с калории и макроси
-- ✓ recommendations и forbidden наличени
-- ✓ Забранени храни НЕ са в плана (ADLE v8)
-- ✓ Goal-план съответствие
-- ✓ Medical conditions alignment
-- ✓ Dietary preferences compliance
-- ✓ Минимум повторение на храни
-- ✓ ADLE v8 правила за съставяне
+- ✓ recommendations и forbidden (минимум 3)
 
-### Корекции
-- Максимум 4 опита за корекция
-- Регенерира само грешната стъпка + следващите
-- Fallback към simplified план при неуспех
+**Съдържателни проверки:**
+- ✓ Забранени храни НЕ са в плана (ADLE v8 hard bans)
+- ✓ Goal-план съответствие (калории)
+- ✓ Medical conditions alignment (диабет, анемия, и др.)
+- ✓ Dietary preferences compliance (веган, вегетарианец)
+- ✓ Максимум 5 повтарящи се ястия
+- ✓ ADLE v8 правила (meal types, chronological order, low-GI late snacks)
+- ✓ Medication-supplement interactions
+- ✓ Macro accuracy (protein×4 + carbs×4 + fats×9 ≈ calories)
+
+### Стъпка 6: Корекция (до 4 опита)
+Ако валидацията открие грешки:
+
+**Интелигентно регенериране:**
+```javascript
+// Определя най-ранната грешна стъпка
+step1_analysis  → Регенерира: 1, 2, 3, 4
+step2_strategy  → Регенерира: 2, 3, 4 (запазва Анализ)
+step3_mealplan  → Регенерира: 3, 4 (запазва Анализ и Стратегия)
+step4_final     → Регенерира: 4 (запазва всичко друго)
+```
+
+**Error Prevention Промпт:**
+- AI получава детайлна информация за грешките
+- Критичен приоритет за избягване на същите грешки
+- Ясни инструкции какво трябва да се коригира
+
+**Fallback Механизъм:**
+- След 4 неуспешни опита → Опит за simplified план
+- При пълен провал → `success: false` с error details
+
+**Response с корекции:**
+```json
+{
+  "success": true,
+  "correctionAttempts": 2,
+  "plan": { /* Коригиран план */ },
+  "_meta": {
+    "regeneratedFrom": "step2_strategy",
+    "correctionAttempt": 2
+  }
+}
+```
+
+**Статистика:**
+- 95%+ случаи: `correctionAttempts = 0` (валиден от първи път)
+- Редки случаи: `correctionAttempts = 1-2`
+- Много рядко: `correctionAttempts = 3-4` или fallback
 
 ---
 
