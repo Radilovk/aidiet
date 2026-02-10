@@ -1073,7 +1073,7 @@
             <div class="card">
                 <h2><i class="fas fa-exchange-alt"></i> Експорт и Импорт на Всички Промпти</h2>
                 <div class="info-box" style="background: #e8f5e9; border-left: 4px solid #4caf50;">
-                    <strong>💾 Комплексен Файл:</strong> Експортирайте всички AI промпти в един JSON файл и импортирайте ги при нужда. Включва всички промпти за анализ, генериране на план и корекция.
+                    <strong>💾 Комплексен Файл:</strong> Експортирайте всички AI промпти в един JSON файл и импортирайте ги при нужда. Включва всички 8 промпта (анализ, стратегия, хранителен план, обобщение, корекция, генериране, консултация и промяна).
                 </div>
                 <div class="info-box">
                     <strong>Информация:</strong> Експортът включва всички 8 промпта:
@@ -2507,6 +2507,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             throw new Error('Невалиден формат на файла. Очаква се обект с "prompts" поле.');
                         }
 
+                        // Validate version (optional, but warn if different)
+                        if (imported.version && imported.version !== '1.0') {
+                            console.warn(`Warning: Import file version ${imported.version} may not be fully compatible with current version 1.0`);
+                        }
+
                         const prompts = imported.prompts;
                         let importedCount = 0;
                         let failedCount = 0;
@@ -2569,19 +2574,28 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         } else {
                             showError('Няма импортирани промпти. Моля проверете файла.');
                         }
-
-                        // Clear file input
-                        event.target.value = '';
                     } catch (parseError) {
                         console.error('Parse error:', parseError);
                         showError('Грешка при обработка на файла: ' + parseError.message);
+                    } finally {
+                        // Always clear file input to allow re-import of same file if needed
+                        event.target.value = '';
                     }
+                };
+
+                reader.onerror = function() {
+                    showError('Грешка при четене на файла.');
+                    event.target.value = '';
                 };
 
                 reader.readAsText(file);
             } catch (error) {
                 console.error('Import error:', error);
                 showError('Грешка при импорт на промпти: ' + error.message);
+                // Clear file input on error
+                if (event.target) {
+                    event.target.value = '';
+                }
             }
         }
 
