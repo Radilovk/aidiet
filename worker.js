@@ -713,8 +713,7 @@ let chatPromptsCacheTime = 0;
 const CHAT_PROMPTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
 // Template for communication guidelines section in chat prompts
-const COMMUNICATION_GUIDELINES_TEMPLATE = (userName, guidelines) => `
-═══ ПЕРСОНАЛИЗИРАНИ КОМУНИКАЦИОННИ НАСОКИ ═══
+const COMMUNICATION_GUIDELINES_TEMPLATE = (userName, guidelines) => `═══ ПЕРСОНАЛИЗИРАНИ КОМУНИКАЦИОННИ НАСОКИ ═══
 Тези насоки за комуникация са определени специално за ${userName} в стъпка 1 от анализа:
 
 ${guidelines}
