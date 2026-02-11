@@ -1288,7 +1288,9 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
   }
   
-  // Note: Strategy object contains detailed meal timing, patterns, and guidance.
+  // Note: Strategy object is generated in Step 2 (generateStrategyPrompt) and contains:
+  // - mealTiming, weeklyMealPattern, chronotypeGuidance, keyPrinciples
+  // - foodsToInclude, foodsToAvoid, supplementRecommendations, etc.
   // We provide a compact summary below - AI applies its expertise to interpret and implement.
   
   const defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
