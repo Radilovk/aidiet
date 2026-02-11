@@ -1284,11 +1284,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   // Extract macro information from Step 1 (analysis)
   const analysisCompact = {
     macroRatios: analysis.macroRatios ? 
-      `Protein: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Carbs: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Fats: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}, Fiber: ${analysis.macroRatios.fiber != null ? analysis.macroRatios.fiber + 'g' : 'N/A'}` : 
+      `Protein: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Carbs: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Fats: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}` : 
       'не изчислени',
     macroGrams: analysis.macroGrams ?
       `Protein: ${analysis.macroGrams.protein != null ? analysis.macroGrams.protein + 'g' : 'N/A'}, Carbs: ${analysis.macroGrams.carbs != null ? analysis.macroGrams.carbs + 'g' : 'N/A'}, Fats: ${analysis.macroGrams.fats != null ? analysis.macroGrams.fats + 'g' : 'N/A'}` :
-      'не изчислени'
+      'не изчислени',
+    fiber: analysis.macroRatios?.fiber != null ? `${analysis.macroRatios.fiber}g` : 'N/A'
   };
   
   // Use cached food lists if provided, otherwise fetch (optimization)
@@ -1335,6 +1336,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 === ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
 Макро съотношения: ${analysisCompact.macroRatios}
 Дневни макро грамове: ${analysisCompact.macroGrams}
+Дневни фибри: ${analysisCompact.fiber}
 
 === ДАННИ ОТ СТЪПКА 2 (СТРАТЕГИЯ) ===
 Диета: ${strategyCompact.dietType} | Хранения: ${strategyCompact.mealTiming}
@@ -1344,14 +1346,17 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 Нежелани храни (от стъпка 2): ${strategyCompact.foodsToAvoid}
 Допълнителни нежелани храни (от потребител): ${data.dietDislike || 'няма'}
 Разпределение на калории (стъпка 2): ${strategyCompact.calorieDistribution}
-Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${strategyCompact.weeklyScheme ? `
+Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${strategyCompact.weeklyScheme ? (() => {
+  const dayNameBg = {monday: 'Понеделник', tuesday: 'Вторник', wednesday: 'Сряда', thursday: 'Четвъртък', friday: 'Петък', saturday: 'Събота', sunday: 'Неделя'};
+  return `
 
 === СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===
 ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   const dayData = strategyCompact.weeklyScheme[day];
-  const dayNameBg = {monday: 'Понеделник', tuesday: 'Вторник', wednesday: 'Сряда', thursday: 'Четвъртък', friday: 'Петък', saturday: 'Събота', sunday: 'Неделя'}[day];
-  return `${dayNameBg}: ${dayData.meals} хранения - ${dayData.description}`;
-}).join('\n')}` : ''}${data.additionalNotes ? `
+  const dayName = dayNameBg[day] || day; // Fallback to English name if not found
+  return `${dayName}: ${dayData.meals} хранения - ${dayData.description}`;
+}).join('\n')}`;
+})() : ''}${data.additionalNotes ? `
 
 ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
 
