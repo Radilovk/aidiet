@@ -1267,14 +1267,28 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\n\nПОВТОРЕНИЕ (Issue #11 - ФАЗА 4): Максимум 5 ястия могат да се повторят в цялата седмица. ИЗБЯГВАЙ повтаряне на горните ястия, освен ако не е абсолютно необходимо!`;
   }
   
-  // Extract only essential strategy fields (COMPACT - no full JSON)
+  // Extract essential data from Steps 1 & 2 for menu generation
+  // Per issue: Step 3 should receive all relevant data from Steps 1 & 2
   const strategyCompact = {
     dietType: strategy.dietType || 'Балансирана',
     weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
     mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
-    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '), // Only top 3
-    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '), // Only top 5
-    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', ') // Only top 5
+    keyPrinciples: (strategy.keyPrinciples || []).join('; '), // All principles from Step 2
+    foodsToInclude: (strategy.foodsToInclude || []).join(', '), // All preferred foods from Step 2
+    foodsToAvoid: (strategy.foodsToAvoid || []).join(', '), // All unwanted foods from Step 2
+    calorieDistribution: strategy.calorieDistribution || 'не е определено', // From Step 2
+    macroDistribution: strategy.macroDistribution || 'не е определено', // From Step 2
+    weeklyScheme: strategy.weeklyScheme || null // Weekly structure from Step 2
+  };
+  
+  // Extract macro information from Step 1 (analysis)
+  const analysisCompact = {
+    macroRatios: analysis.macroRatios ? 
+      `Protein: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Carbs: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Fats: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}, Fiber: ${analysis.macroRatios.fiber != null ? analysis.macroRatios.fiber + 'g' : 'N/A'}` : 
+      'не изчислени',
+    macroGrams: analysis.macroGrams ?
+      `Protein: ${analysis.macroGrams.protein != null ? analysis.macroGrams.protein + 'g' : 'N/A'}, Carbs: ${analysis.macroGrams.carbs != null ? analysis.macroGrams.carbs + 'g' : 'N/A'}, Fats: ${analysis.macroGrams.fats != null ? analysis.macroGrams.fats + 'g' : 'N/A'}` :
+      'не изчислени'
   };
   
   // Use cached food lists if provided, otherwise fetch (optimization)
@@ -1318,11 +1332,26 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 Цел: ${data.goal} | BMR: ${bmr} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}
 Стрес: ${data.stressLevel} | Сън: ${data.sleepHours}ч | Хронотип: ${data.chronotype}${previousDaysContext}
 
-=== СТРАТЕГИЯ ===
+=== ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
+Макро съотношения: ${analysisCompact.macroRatios}
+Дневни макро грамове: ${analysisCompact.macroGrams}
+
+=== ДАННИ ОТ СТЪПКА 2 (СТРАТЕГИЯ) ===
 Диета: ${strategyCompact.dietType} | Хранения: ${strategyCompact.mealTiming}
 Принципи: ${strategyCompact.keyPrinciples}
-Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
-Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${data.additionalNotes ? `
+Предпочитани храни (от стъпка 2): ${strategyCompact.foodsToInclude}
+Допълнителни предпочитани храни (от потребител): ${data.dietLove || 'няма'}
+Нежелани храни (от стъпка 2): ${strategyCompact.foodsToAvoid}
+Допълнителни нежелани храни (от потребител): ${data.dietDislike || 'няма'}
+Разпределение на калории (стъпка 2): ${strategyCompact.calorieDistribution}
+Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${strategyCompact.weeklyScheme ? `
+
+=== СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===
+${Object.keys(strategyCompact.weeklyScheme).map(day => {
+  const dayData = strategyCompact.weeklyScheme[day];
+  const dayNameBg = {monday: 'Понеделник', tuesday: 'Вторник', wednesday: 'Сряда', thursday: 'Четвъртък', friday: 'Петък', saturday: 'Събота', sunday: 'Неделя'}[day];
+  return `${dayNameBg}: ${dayData.meals} хранения - ${dayData.description}`;
+}).join('\n')}` : ''}${data.additionalNotes ? `
 
 ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
 
@@ -1345,7 +1374,7 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 Филтър MODE "${dietaryModifier}": ${dietaryModifier === 'Веган' ? 'без животински PRO' : dietaryModifier === 'Кето' ? 'минимум ENG' : dietaryModifier === 'Без глутен' ? 'ENG само безглутенови' : 'балансирано'}
 
 === ИЗИСКВАНИЯ ===
-1. Хронотип ${data.chronotype}: ${data.chronotype.includes('Ранобуден') ? 'обилна закуска (30-35%), умерена вечеря (25%)' : data.chronotype.includes('Вечерен') ? 'лека закуска (20%), обилна вечеря (35%)' : 'балансирано (25-30-25%)'}
+1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
 3. Калории: protein×4 + carbs×4 + fats×9
 4. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal OK)
