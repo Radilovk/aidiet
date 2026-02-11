@@ -1108,6 +1108,20 @@ async function generateChatPrompt(env, userMessage, userData, userPlan, conversa
   // Use FULL data for both modes to ensure precise, comprehensive analysis
   // No compromise on data completeness for individualization and quality
   
+  // Extract communication style guidelines from strategy (Step 1)
+  let communicationGuidelines = '';
+  if (userPlan?.strategy?.communicationStyle?.chatGuidelines) {
+    communicationGuidelines = `\n═══ ПЕРСОНАЛИЗИРАНИ КОМУНИКАЦИОННИ НАСОКИ ═══
+Тези насоки за комуникация са определени специално за ${userData.name} в стъпка 1 от анализа:
+
+${userPlan.strategy.communicationStyle.chatGuidelines}
+
+ВАЖНО: Следвай тези насоки при комуникацията с клиента. Адаптирай тон, подход и стил според психологическия му профил.
+═══════════════════════════════════════════════
+
+`;
+  }
+  
   // Base context with complete data
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
@@ -1118,7 +1132,7 @@ ${JSON.stringify(userData, null, 2)}
 ${JSON.stringify(userPlan, null, 2)}
 
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
-`;
+${communicationGuidelines}`;
 
   // Get mode-specific instructions from KV (with caching)
   const chatPrompts = await getChatPrompts(env);
@@ -6293,16 +6307,44 @@ async function handleGetDefaultPrompt(request, env) {
       return jsonResponse({ error: 'Missing prompt type parameter' }, 400);
     }
     
-    const defaultPrompts = getDefaultPromptTemplates();
-    const prompt = defaultPrompts[type];
+    // First, try to get the CURRENT/CUSTOM prompt from KV storage
+    const kvKey = getPromptKVKey(type);
+    let currentPrompt = null;
     
-    if (!prompt) {
+    if (env.page_content && kvKey) {
+      try {
+        currentPrompt = await env.page_content.get(kvKey);
+      } catch (error) {
+        console.error(`Error fetching current prompt from KV (${kvKey}):`, error);
+      }
+    }
+    
+    // If custom prompt exists, return it (these are the ACTUAL CURRENT prompts in use)
+    if (currentPrompt) {
+      return jsonResponse({ 
+        success: true, 
+        prompt: currentPrompt,
+        isCustom: true 
+      }, 200, {
+        cacheControl: 'private, max-age=300' // Cache for 5 minutes - custom prompts may change
+      });
+    }
+    
+    // Otherwise, fall back to default template
+    const defaultPrompts = getDefaultPromptTemplates();
+    const defaultPrompt = defaultPrompts[type];
+    
+    if (!defaultPrompt) {
       return jsonResponse({ 
         error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction` 
       }, 400);
     }
     
-    return jsonResponse({ success: true, prompt: prompt }, 200, {
+    return jsonResponse({ 
+      success: true, 
+      prompt: defaultPrompt,
+      isCustom: false 
+    }, 200, {
       cacheControl: 'public, max-age=1800' // Cache for 30 minutes - default prompts rarely change
     });
   } catch (error) {

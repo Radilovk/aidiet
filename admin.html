@@ -2662,25 +2662,31 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
-        // View Default Prompt - Load default prompt from worker.js via API
+        // View Default Prompt - Load current/default prompt from worker.js via API
         async function viewDefaultPrompt(promptType, elementId) {
             try {
-                // Fetch the actual default prompt from worker.js with caching
+                // Fetch the actual CURRENT prompt from worker.js (custom if saved, default otherwise)
                 const data = await cachedFetch(
                     `${WORKER_URL}/api/admin/get-default-prompt?type=${promptType}`,
-                    `admin:defaultPrompt:${promptType}`,
+                    `admin:currentPrompt:${promptType}`,
                     CACHE_CONFIG.defaultPrompts
                 );
                 
                 if (data.success && data.prompt) {
                     document.getElementById(elementId).value = data.prompt;
-                    showSuccess(`Стандартният промпт от worker.js за ${promptType} е зареден в редактора. Можете да го прегледате или редактирате.`);
+                    
+                    // Show different message based on whether it's a custom or default prompt
+                    if (data.isCustom) {
+                        showSuccess(`Текущият персонализиран промпт за ${promptType} е зареден в редактора. Това е актуалният промпт, който се използва в момента.`);
+                    } else {
+                        showSuccess(`Стандартният промпт от worker.js за ${promptType} е зареден в редактора. Няма записан персонализиран промпт - използва се шаблонът по подразбиране.`);
+                    }
                 } else {
-                    showError(`Грешка: Няма наличен стандартен промпт за тип "${promptType}".`);
+                    showError(`Грешка: Няма наличен промпт за тип "${promptType}".`);
                 }
             } catch (error) {
-                console.error('Error fetching default prompt:', error);
-                showError(`Грешка при зареждане на стандартен промпт: ${error.message}`);
+                console.error('Error fetching current prompt:', error);
+                showError(`Грешка при зареждане на промпт: ${error.message}`);
             }
         }
 
