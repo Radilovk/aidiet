@@ -64,6 +64,37 @@
 
 // No default values - all calculations must be individualized based on user data
 
+// Data Validation Configuration
+const MIN_AGE = 10; // Minimum age for diet planning (minors require guardian consent)
+const MAX_AGE = 100;
+const MIN_WEIGHT_KG = 20;
+const MAX_WEIGHT_KG = 300;
+const MIN_HEIGHT_CM = 100;
+const MAX_HEIGHT_CM = 250;
+const MIN_BMI = 10; // Medically possible minimum
+const MAX_BMI = 80; // Medically possible maximum
+const MAX_WEIGHT_LOSS_KG = 50; // Maximum weight loss per plan
+const MAX_WEIGHT_LOSS_PERCENT = 0.5; // Maximum 50% of body weight
+
+// Analysis Configuration
+const WATER_PER_KG_MULTIPLIER = 0.035; // Liters per kg body weight
+const BASE_WATER_NEED_LITERS = 0.5; // Base water need in liters
+const ACTIVITY_WATER_BONUS_LITERS = 0.45; // Additional water for active individuals
+const TEMPERAMENT_CONFIDENCE_THRESHOLD = 80; // Minimum confidence % to report temperament
+const HEALTH_STATUS_UNDERESTIMATE_PERCENT = 10; // Underestimate health status by this %
+const FIBER_MIN_GRAMS = 25; // Minimum fiber recommendation
+const FIBER_MAX_GRAMS = 40; // Maximum fiber recommendation
+
+// Offensive Content Patterns (for data validation)
+const OFFENSIVE_PATTERNS = [
+  // Vulgar words (Cyrillic - no word boundaries, no 'g' flag)
+  /(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])/i,
+  // Spam patterns
+  /(viagra|casino|xxx|porn)/i,
+  // Test/spam data
+  /^(test|тест|asdf|qwerty|12345|aaa|zzz)$/i
+];
+
 // AI Communication Logging Configuration
 const MAX_LOG_ENTRIES = 1; // Maximum number of log entries to keep in index (only keep the latest)
 
@@ -425,31 +456,37 @@ function calculateSafeDeficit(tdee, goal) {
 function validateDataAdequacy(data) {
   const errors = [];
   
-  // Check weight (realistic range: 20-300 kg)
+  // Check weight (realistic range)
   const weight = parseFloat(data.weight);
-  if (isNaN(weight) || weight < 20 || weight > 300) {
-    errors.push('Теглото трябва да бъде между 20 и 300 кг. Моля, въведете реалистична стойност.');
+  if (isNaN(weight) || weight < MIN_WEIGHT_KG || weight > MAX_WEIGHT_KG) {
+    errors.push(`Теглото трябва да бъде между ${MIN_WEIGHT_KG} и ${MAX_WEIGHT_KG} кг. Моля, въведете реалистична стойност.`);
   }
   
-  // Check height (realistic range: 100-250 cm)
+  // Check height (realistic range)
   const height = parseFloat(data.height);
-  if (isNaN(height) || height < 100 || height > 250) {
-    errors.push('Височината трябва да бъде между 100 и 250 см. Моля, въведете реалистична стойност.');
+  if (isNaN(height) || height < MIN_HEIGHT_CM || height > MAX_HEIGHT_CM) {
+    errors.push(`Височината трябва да бъде между ${MIN_HEIGHT_CM} и ${MAX_HEIGHT_CM} см. Моля, въведете реалистична стойност.`);
   }
   
-  // Check age (realistic range: 10-100 years)
+  // Check age (realistic range - minors require special considerations)
   const age = parseInt(data.age);
-  if (isNaN(age) || age < 10 || age > 100) {
-    errors.push('Възрастта трябва да бъде между 10 и 100 години. Моля, въведете реалистична стойност.');
+  if (isNaN(age) || age < MIN_AGE || age > MAX_AGE) {
+    errors.push(`Възрастта трябва да бъде между ${MIN_AGE} и ${MAX_AGE} години. Моля, въведете реалистична стойност.`);
   }
   
-  // Check BMI extremes (below 10 or above 80 is medically unrealistic)
-  if (!isNaN(weight) && !isNaN(height) && weight >= 20 && weight <= 300 && height >= 100 && height <= 250) {
+  // Add note for minors
+  if (age >= MIN_AGE && age < 18) {
+    // Note: In production, this should trigger a guardian consent flow
+    console.log(`Minor user (age ${age}) - guardian consent should be obtained`);
+  }
+  
+  // Check BMI extremes (medically unrealistic BMI values)
+  if (!isNaN(weight) && !isNaN(height) && weight >= MIN_WEIGHT_KG && weight <= MAX_WEIGHT_KG && height >= MIN_HEIGHT_CM && height <= MAX_HEIGHT_CM) {
     const heightM = height / 100;
     const bmi = weight / (heightM * heightM);
-    if (bmi < 10) {
+    if (bmi < MIN_BMI) {
       errors.push('Въведените данни водят до медицински невъзможно ниско BMI. Моля, проверете теглото и височината.');
-    } else if (bmi > 80) {
+    } else if (bmi > MAX_BMI) {
       errors.push('Въведените данни водят до медицински невъзможно високо BMI. Моля, проверете теглото и височината.');
     }
   }
@@ -458,25 +495,16 @@ function validateDataAdequacy(data) {
   if (data.goal && data.goal.includes('Отслабване') && data.lossKg) {
     const lossKg = parseFloat(data.lossKg);
     if (!isNaN(lossKg) && !isNaN(weight)) {
-      if (lossKg > weight * 0.5) {
-        errors.push('Целевото отслабване е твърде голямо (повече от 50% от телесното тегло). Моля, задайте по-реалистична цел.');
+      if (lossKg > weight * MAX_WEIGHT_LOSS_PERCENT) {
+        errors.push(`Целевото отслабване е твърде голямо (повече от ${MAX_WEIGHT_LOSS_PERCENT * 100}% от телесното тегло). Моля, задайте по-реалистична цел.`);
       }
-      if (lossKg > 50) {
-        errors.push('Целевото отслабване не може да надвишава 50 кг в рамките на един план. Моля, задайте по-умерена начална цел.');
+      if (lossKg > MAX_WEIGHT_LOSS_KG) {
+        errors.push(`Целевото отслабване не може да надвишава ${MAX_WEIGHT_LOSS_KG} кг в рамките на един план. Моля, задайте по-умерена начална цел.`);
       }
     }
   }
   
   // Check for offensive or vulgar content in text fields
-  const offensivePatterns = [
-    // Vulgar words (without word boundaries for Cyrillic compatibility, no 'g' flag to avoid state issues)
-    /(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])/i,
-    // Spam patterns
-    /(viagra|casino|xxx|porn)/i,
-    // Obvious test/spam data
-    /^(test|тест|asdf|qwerty|12345|aaa|zzz)$/i
-  ];
-  
   const textFields = [
     { field: 'name', value: data.name },
     { field: 'dietDislike', value: data.dietDislike },
@@ -488,21 +516,19 @@ function validateDataAdequacy(data) {
   
   for (const { field, value } of textFields) {
     if (value && typeof value === 'string') {
-      for (const pattern of offensivePatterns) {
+      for (const pattern of OFFENSIVE_PATTERNS) {
         if (pattern.test(value)) {
-          errors.push(`Полето "${field}" съдържа неподходящо съдържание. Моля, въведете коректна информация.`);
-          break;
+          // Generic error message for security (don't reveal which field)
+          errors.push('Въведената информация съдържа неподходящо съдържание. Моля, проверете всички полета и въведете коректна информация.');
+          // Log specific field server-side for monitoring
+          console.warn(`Offensive content detected in field: ${field}`);
+          break; // Only report once per validation
         }
       }
-    }
-  }
-  
-  // Check for conflicting medical information
-  if (data.medicalConditions && Array.isArray(data.medicalConditions)) {
-    const hasMedicalConditions = data.medicalConditions.some(c => c && c !== 'Нямам' && c.trim().length > 0);
-    if (hasMedicalConditions && data.medications === 'Не') {
-      // This is just a warning, not an error - user might not be taking meds yet
-      // We'll let AI handle this in the analysis
+      // If we found offensive content, stop checking other fields
+      if (errors.some(e => e.includes('неподходящо съдържание'))) {
+        break;
+      }
     }
   }
   
@@ -3589,7 +3615,7 @@ ${(() => {
    - Протеини: базирай на активност, цел и пол
    - Мазнини: необходими за хормонален баланс
    - Въглехидрати: според активност и метаболитен тип
-   - Фибри: изчисли според пол, възраст и цел (обикновено 25-40г дневно, но персонализирай)
+   - Фибри: изчисли според пол, възраст и цел (обикновено ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г дневно, но персонализирай)
 
 4. НИВО НА АКТИВНОСТ (скала 1-10):
    - Вече изчислено: ${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10 (${(() => { const ad = calculateUnifiedActivityScore(data); return ad.activityLevel; })()})
@@ -3601,8 +3627,8 @@ ${(() => {
    - Влияние на метаболизъм и хормонален профил
 
 6. ДНЕВЕН ВОДЕН ДЕФИЦИТ (Water Gap):
-   - Формула: (Тегло × 0.035) + 0.5Л (базиран на активност)
-   - Нужда: (${data.weight} × 0.035) + 0.5 = ${(parseFloat(data.weight) * 0.035 + 0.5).toFixed(2)} до ${(parseFloat(data.weight) * 0.035 + 0.95).toFixed(2)} литра
+   - Формула: (Тегло × ${WATER_PER_KG_MULTIPLIER}) + ${BASE_WATER_NEED_LITERS}Л (базиран на активност)
+   - Нужда: (${data.weight} × ${WATER_PER_KG_MULTIPLIER}) + ${BASE_WATER_NEED_LITERS} = ${(parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2)} до ${(parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2)} литра
    - Текущ прием: ${data.waterIntake || 'неизвестен'}
    - Изчисли дефицит и влияние върху липолизата
 
@@ -3628,7 +3654,7 @@ ${(() => {
       * Тригери: ${JSON.stringify(data.foodTriggers || [])}
       * Копинг механизми: ${JSON.stringify(data.compensationMethods || [])}
       * Социално сравнение: ${data.socialComparison}
-    - Определи вероятен темперамент с процент вероятност (само ако >80%)
+    - Определи вероятен темперамент с процент вероятност (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%)
     - Възможни типове: Холерик, Сангвиник, Флегматик, Меланхолик
 
 11a. РЕАКТИВНОСТ НА МЕТАБОЛИЗМА:
@@ -3732,7 +3758,7 @@ ${(() => {
   ],
   "cumulativeRiskScore": "сума на припокриващи се фактори",
   "psychoProfile": {
-    "temperament": "тип (само ако >80% вероятност)",
+    "temperament": "тип (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност)",
     "probability": число процент,
     "reasoning": "обосновка"
   },
@@ -3754,7 +3780,7 @@ ${(() => {
   "successChance": число (-100 до 100),
   "successChanceReasoning": "обосновка",
   "currentHealthStatus": {
-    "score": число 0-100 (ЗАНИЖЕНО с 10%),
+    "score": число 0-100 (ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}%),
     "description": "текущо състояние",
     "keyIssues": ["проблем 1", "проблем 2"]
   },
