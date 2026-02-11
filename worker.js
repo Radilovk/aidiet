@@ -712,6 +712,18 @@ let chatPromptsCache = null;
 let chatPromptsCacheTime = 0;
 const CHAT_PROMPTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
+// Template for communication guidelines section in chat prompts
+const COMMUNICATION_GUIDELINES_TEMPLATE = (userName, guidelines) => `
+═══ ПЕРСОНАЛИЗИРАНИ КОМУНИКАЦИОННИ НАСОКИ ═══
+Тези насоки за комуникация са определени специално за ${userName} в стъпка 1 от анализа:
+
+${guidelines}
+
+ВАЖНО: Следвай тези насоки при комуникацията с клиента. Адаптирай тон, подход и стил според психологическия му профил.
+═══════════════════════════════════════════════
+
+`;
+
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
@@ -1111,15 +1123,10 @@ async function generateChatPrompt(env, userMessage, userData, userPlan, conversa
   // Extract communication style guidelines from strategy (Step 1)
   let communicationGuidelines = '';
   if (userPlan?.strategy?.communicationStyle?.chatGuidelines) {
-    communicationGuidelines = `\n═══ ПЕРСОНАЛИЗИРАНИ КОМУНИКАЦИОННИ НАСОКИ ═══
-Тези насоки за комуникация са определени специално за ${userData.name} в стъпка 1 от анализа:
-
-${userPlan.strategy.communicationStyle.chatGuidelines}
-
-ВАЖНО: Следвай тези насоки при комуникацията с клиента. Адаптирай тон, подход и стил според психологическия му профил.
-═══════════════════════════════════════════════
-
-`;
+    communicationGuidelines = COMMUNICATION_GUIDELINES_TEMPLATE(
+      userData.name,
+      userPlan.strategy.communicationStyle.chatGuidelines
+    );
   }
   
   // Base context with complete data
