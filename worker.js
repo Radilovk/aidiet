@@ -721,7 +721,6 @@ ${guidelines}
 
 ВАЖНО: Следвай тези насоки при комуникацията с клиента. Адаптирай тон, подход и стил според психологическия му профил.
 ═══════════════════════════════════════════════
-
 `;
 
 // Validation constants (moved here to be available early in code)
@@ -1123,7 +1122,7 @@ async function generateChatPrompt(env, userMessage, userData, userPlan, conversa
   // Extract communication style guidelines from strategy (Step 1)
   let communicationGuidelines = '';
   if (userPlan?.strategy?.communicationStyle?.chatGuidelines) {
-    communicationGuidelines = COMMUNICATION_GUIDELINES_TEMPLATE(
+    communicationGuidelines = '\n' + COMMUNICATION_GUIDELINES_TEMPLATE(
       userData.name,
       userPlan.strategy.communicationStyle.chatGuidelines
     );
@@ -1138,8 +1137,7 @@ ${JSON.stringify(userData, null, 2)}
 ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
 ${JSON.stringify(userPlan, null, 2)}
 
-${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
-${communicationGuidelines}`;
+${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}${communicationGuidelines}`;
 
   // Get mode-specific instructions from KV (with caching)
   const chatPrompts = await getChatPrompts(env);
