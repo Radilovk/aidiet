@@ -469,8 +469,8 @@ function validateDataAdequacy(data) {
   
   // Check for offensive or vulgar content in text fields
   const offensivePatterns = [
-    // Vulgar words (abbreviated to avoid false positives)
-    /\b(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])\b/gi,
+    // Vulgar words (without word boundaries for Cyrillic compatibility)
+    /(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])/gi,
     // Spam patterns
     /(viagra|casino|xxx|porn)/gi,
     // Obvious test/spam data
