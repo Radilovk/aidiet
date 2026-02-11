@@ -1288,7 +1288,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
   }
   
-  // Note: Strategy already contains meal timing guidance - no need to repeat it here
+  // Note: Strategy object contains detailed meal timing, patterns, and guidance.
+  // We provide a compact summary below - AI applies its expertise to interpret and implement.
   
   const defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
 
@@ -1296,8 +1297,9 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 Цел: ${data.goal} | BMR: ${bmr} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}
 Стрес: ${data.stressLevel} | Сън: ${data.sleepHours}ч | Хронотип: ${data.chronotype}${previousDaysContext}
 
-=== СТРАТЕГИЯ ===
-Диета: ${strategyCompact.dietType} | Хранения: ${strategyCompact.mealTiming}
+=== СТРАТЕГИЯ (от Step 2) ===
+Диета: ${strategyCompact.dietType} | Седмичен модел: ${strategyCompact.weeklyMealPattern}
+Хранения: ${strategyCompact.mealTiming}
 Принципи: ${strategyCompact.keyPrinciples}
 Избягвай: ${data.dietDislike || 'няма'}, ${strategyCompact.foodsToAvoid}
 Включвай: ${data.dietLove || 'няма'}, ${strategyCompact.foodsToInclude}${data.additionalNotes ? `
@@ -1312,7 +1314,7 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 === ИЗИСКВАНИЯ ===
 1. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal)
 2. Брой хранения: ${strategy.mealCountJustification || '2-4 според стратегия'}
-3. Адаптирай към хронотип ${data.chronotype}
+3. Адаптирай към хронотип ${data.chronotype} и седмичния модел от стратегията
 4. Разнообразие: избягвай повторение от предишни дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n5. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
@@ -1327,7 +1329,7 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
   }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
 }
 
-Генерирай балансирани, персонализирани български ястия според стратегията и здравния профил. ЗАДЪЛЖИТЕЛНО включи dailyTotals!`;
+Приложи експертните си знания за да създадеш балансирани, персонализирани български ястия според стратегията и здравния профил. ЗАДЪЛЖИТЕЛНО включи dailyTotals!`;
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
