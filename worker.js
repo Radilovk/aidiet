@@ -469,12 +469,12 @@ function validateDataAdequacy(data) {
   
   // Check for offensive or vulgar content in text fields
   const offensivePatterns = [
-    // Vulgar words (without word boundaries for Cyrillic compatibility)
-    /(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])/gi,
+    // Vulgar words (without word boundaries for Cyrillic compatibility, no 'g' flag to avoid state issues)
+    /(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])/i,
     // Spam patterns
-    /(viagra|casino|xxx|porn)/gi,
+    /(viagra|casino|xxx|porn)/i,
     // Obvious test/spam data
-    /^(test|тест|asdf|qwerty|12345|aaa|zzz)$/gi
+    /^(test|тест|asdf|qwerty|12345|aaa|zzz)$/i
   ];
   
   const textFields = [
@@ -3350,7 +3350,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
     "protein": число,
     "carbs": число,
     "fats": число,
-    "fiber": "текст"
+    "fiber": число
   },
   "macroRatiosReasoning": {
     "protein": "текст",
@@ -3589,7 +3589,7 @@ ${(() => {
    - Протеини: базирай на активност, цел и пол
    - Мазнини: необходими за хормонален баланс
    - Въглехидрати: според активност и метаболитен тип
-   - Фибри: минимум 25-35г дневно
+   - Фибри: изчисли според пол, възраст и цел (обикновено 25-40г дневно, но персонализирай)
 
 4. НИВО НА АКТИВНОСТ (скала 1-10):
    - Вече изчислено: ${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10 (${(() => { const ad = calculateUnifiedActivityScore(data); return ad.activityLevel; })()})
@@ -3696,7 +3696,7 @@ ${(() => {
     "protein": число процент,
     "carbs": число процент,
     "fats": число процент,
-    "fiber": "25-35г дневно"
+    "fiber": число грамове дневно
   },
   "macroRatiosReasoning": {
     "protein": "обосновка",
