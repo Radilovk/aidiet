@@ -1288,29 +1288,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
   }
   
-  // Extract meal pattern from strategy
-  let mealPlanGuidance = '';
-  if (strategy && strategy.mealTiming) {
-    const timing = strategy.mealTiming;
-    mealPlanGuidance = `
-=== СЕДМИЧНА СТРУКТУРА НА ХРАНЕНЕ ===
-ВАЖНО: Създай хранения според стратегията и хронотипа на клиента.
-
-Седмичен модел: ${strategy.weeklyMealPattern || 'Стандартен модел'}
-Структура: ${timing.pattern || 'Консистентна структура'}
-Прозорци на гладуване: ${timing.fastingWindows || 'няма'}
-Гъвкавост: ${timing.flexibility || 'Модерирана'}
-Насоки за хронотип (${data.chronotype}): ${timing.chronotypeGuidance || 'Адаптирай според енергийните пикове'}
-
-Брой хранения: ${strategy.mealCountJustification || 'Определи според профила (обикновено 2-4 хранения)'}
-
-ВАЖНО:
-- Генерирай хранения според горната структура и целевите калории (${recommendedCalories} kcal/ден)
-- Сборът на калориите за деня ТРЯБВА да е приблизително ${recommendedCalories} kcal
-- Адаптирай времето и размера на храненията според хронотипа
-- Ако има интермитентно гладуване, спазвай прозорците на хранене
-`;
-  }
+  // Note: Strategy already contains meal timing guidance - no need to repeat it here
   
   const defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
 
@@ -1326,33 +1304,16 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 
 ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
 
-=== ОСНОВНИ ПРАВИЛА ===
+=== ЗАБРАНИ И ПРЕДПОЧИТАНИЯ ===
 HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
 РЯДКО (≤2x/седмица): бекон, пуешка шунка
 WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
-Композиция ястие (ADLE): [PRO (1x)] + [ENG (0-1x)] + [VOL (1-2x)] + [FAT (0-1x)]
-- PRO (точно 1): яйца, пилешко, риба, говеждо, кисело мляко, извара, сирене, боб, леща
-- ENG (0-1, НЕ 2): овес, ориз, картофи, паста, булгур
-- VOL (1-2, ЕДНА форма: салата ИЛИ пресни): домати, краставици, чушки, салата, спанак, броколи
-- FAT (0-1): зехтин, масло, ядки (ако ядки → без зехтин/масло)
-
-Специални правила:
-- Сирене → без зехтин/масло (маслини OK)
-- Бекон → FAT=0
-- Боб/леща като основно → ENG=0 (хляб опционално 1 филия)
-- Млечни макс 1 на хранене (кисело мляко ИЛИ извара ИЛИ сирене)
-Филтър MODE "${dietaryModifier}": ${dietaryModifier === 'Веган' ? 'без животински PRO' : dietaryModifier === 'Кето' ? 'минимум ENG' : dietaryModifier === 'Без глутен' ? 'ENG само безглутенови' : 'балансирано'}
-
 === ИЗИСКВАНИЯ ===
-1. Хронотип ${data.chronotype}: ${data.chronotype.includes('Ранобуден') ? 'обилна закуска (30-35%), умерена вечеря (25%)' : data.chronotype.includes('Вечерен') ? 'лека закуска (20%), обилна вечеря (35%)' : 'балансирано (25-30-25%)'}
-2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
-3. Калории: protein×4 + carbs×4 + fats×9
-4. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal OK)
-5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
-6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
-   Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
+1. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal)
+2. Брой хранения: ${strategy.mealCountJustification || '2-4 според стратегия'}
+3. Адаптирай към хронотип ${data.chronotype}
+4. Разнообразие: избягвай повторение от предишни дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n5. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
@@ -1366,7 +1327,7 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
   }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
 }
 
-Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals!`;
+Генерирай балансирани, персонализирани български ястия според стратегията и здравния профил. ЗАДЪЛЖИТЕЛНО включи dailyTotals!`;
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -1502,26 +1463,21 @@ ${modLines.join('\n')}
     hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
   };
   
-  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+  return `Ти си експертен диетолог и здравен консултант. Създай 7-дневен хранителен план за ${data.name}.
 
-=== КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ ===
-- Този план е САМО и ЕДИНСТВЕНО за ${data.name}
-- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
-- ВСИЧКИ калории, макронутриенти и препоръки са ИНДИВИДУАЛНО изчислени
-- Хранителните добавки са ПЕРСОНАЛНО подбрани според анализа и нуждите
-- Психологическите съвети са базирани на КОНКРЕТНИЯ емоционален профил на ${data.name}
+=== КРИТИЧНО ВАЖНО - ИНДИВИДУАЛИЗАЦИЯ ===
+Този план е САМО за ${data.name} - без универсални, общи или стандартни стойности.
+Всички калории, макронутриенти и препоръки са ИНДИВИДУАЛНО изчислени.
 
-=== МОДИФИКАТОР (Потребителски профил) ===
-ОПРЕДЕЛЕН МОДИФИКАТОР ЗА КЛИЕНТА: "${dietaryModifier}"
+=== МОДИФИКАТОР И ПРОФИЛ ===
+ОПРЕДЕЛЕН МОДИФИКАТОР: "${dietaryModifier}"
 ${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning}` : ''}
 
-=== КЛИЕНТ И ЦЕЛИ ===
-Име: ${data.name}, Възраст: ${data.age}, Пол: ${data.gender}
+Клиент: ${data.name}, ${data.age} г., ${data.gender}
 Цел: ${data.goal}
-BMR (изчислен): ${bmr} kcal
-Препоръчан калориен прием: ${recommendedCalories} kcal/ден
+BMR: ${bmr} kcal | Препоръчан прием: ${recommendedCalories} kcal/ден
 
-=== СТРАТЕГИЯ (КОМПАКТНА) ===
+=== СТРАТЕГИЯ ===
 Тип: ${strategyCompact.dietType}
 Хранене: ${strategyCompact.mealTiming}
 Принципи: ${strategyCompact.keyPrinciples}
@@ -1533,35 +1489,10 @@ ${modificationsSection}
 ${dynamicWhitelistSection}
 ${dynamicBlacklistSection}
 
-=== АРХИТЕКТУРА НА ХРАНИТЕ (AFAM) ===
-Базови категории (от които се избират храни според модификатора):
-- [PRO]: Протеинови източници (месо, риба, яйца, протеин на прах)
-- [ENG]: Енергийни източници (зърнени, ориз, паста, картофи, тестени)
-- [VOL]: Обемни/фибърни (зеленчуци, салати, зелени храни)
-- [FAT]: Мазнини (масло, олио, ядки, семки, авокадо)
-- [CMPX]: Комплексни ястия (пълни готови ястия, супи, гозби)
-
-=== ЛОГИКА ЗА КОМБИНИРАНЕ ===
-ШАБЛОНИ ЗА ХРАНЕНИЯ:
-A) PRO + ENG + VOL + FAT (класическо пълно хранене, напр. пиле с ориз и салата)
-B) PRO + VOL + FAT (ниско въглехидратно, напр. риба със зеленчуци)
-C) CMPX (цяло готово ястие, напр. яхния, супа)
-D) ENG + FAT (бърза закуска, напр. овесена каша с ядки)
-
-ОГРАНИЧЕНИЯ:
-- Един топъл обяд (CMPX) дневно е ДОСТАТЪЧЕН
-- Не са нужни комплексни готвени ястия за ВСЯКО хранене
-- Разнообразие = различни КОМПОНЕНТИ, не различно готвене
-- След обяд с пълна гозба → вечеря по-лека
-- Никога обяд И вечеря тежки/сложни същия ден
-
 === ЗАДАЧА ===
-Генерирай 7-дневен хранителен план (day1-day7) като използваш модификатора за филтриране на позволени храни.
-За ВСЕКИ ДЕН:
-- ${strategy.mealCount || 3} хранения ПО РЕДА НА ХРАНЕНЕ (Закуска първо, после Обяд, след това Вечеря...)
-- Прилагай правилата за комбиниране
-- Всяко ястие с name, time, calories, macros (protein, carbs, fats, fiber)
-- Седмично мислене: РАЗНООБРАЗИЕ между дните
+Генерирай 7-дневен план (day1-day7) според стратегията и модификатора.
+За всеки ден: ${strategy.mealCount || 3} хранения по ред (Закуска → Обяд → Вечеря...)
+Разнообразие между дните, балансирани макроси, около ${recommendedCalories} kcal/ден.
 
 ${errorPreventionComment ? `\n=== КОРЕКЦИИ НА ГРЕШКИ ===\n${errorPreventionComment}\n` : ''}
 
@@ -1569,7 +1500,7 @@ JSON ФОРМАТ:
 {
   "day1": {
     "meals": [
-      {"name": "...", "time": "...", "calories": число, "macros": {...}},
+      {"name": "...", "time": "...", "calories": число, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}},
       ...
     ]
   },
@@ -1578,14 +1509,12 @@ JSON ФОРМАТ:
 }
 
 === ИНДИВИДУАЛНИ ИЗИСКВАНИЯ ===
-- Медицински: ${JSON.stringify(data.medicalConditions || [])}
-- Предпочитания: ${JSON.stringify(data.dietPreference || [])}
-- Избягвай: ${data.dietDislike || 'няма'}
-- Включвай: ${data.dietLove || 'няма'}
+Медицински: ${JSON.stringify(data.medicalConditions || [])}
+Предпочитания: ${JSON.stringify(data.dietPreference || [])}
+Избягвай: ${data.dietDislike || 'няма'}
+Включвай: ${data.dietLove || 'няма'}
 
-ВАЖНО: Използвай strategy.planJustification, strategy.longTermStrategy, strategy.mealCountJustification и strategy.afterDinnerMealJustification за обосновка на всички нестандартни решения. "recommendations"/"forbidden"=САМО конкретни храни. Всички 7 дни (day1-day7) с 1-5 хранения В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (може да варира при многодневно планиране). Седмичен подход: МИСЛИ СЕДМИЧНО/МНОГОДНЕВНО - ЦЯЛОСТНА схема като система. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
-
-Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}, следвайки стратегията.`;
+Създай пълния 7-дневен план с балансирани, персонализирани ястия за ${data.name}.`;
 }
 
 /**
@@ -1640,13 +1569,13 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
     deficiencies: (analysis.nutritionalDeficiencies || []).join(', ') || 'няма установени'
   };
   
-  const defaultPrompt = `Summary за 7-дневен план.
+  const defaultPrompt = `Генерирай обобщение и препоръки за 7-дневен план.
 
-КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
-Целеви: ${recommendedCalories} kcal/ден | Реален: ${avgCalories} kcal/ден
-Макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
+КЛИЕНТ: ${data.name}, ${data.goal}
+BMR: ${bmr} | Целеви: ${recommendedCalories} kcal/ден | Реален: ${avgCalories} kcal/ден
+Реални макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
 
-ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Алергии: ${healthContext.allergies} | Медикаменти: ${healthContext.medications}${dynamicWhitelistSection}${dynamicBlacklistSection}
+ЗДРАВЕ: ${healthContext.keyProblems || 'няма проблеми'} | Алергии: ${healthContext.allergies} | Медикаменти: ${healthContext.medications}${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 JSON:
 {
@@ -1658,7 +1587,7 @@ JSON:
   "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
 }
 
-ВАЖНО: recommendations/forbidden=конкретни храни; supplements=според здравен статус и медикаменти с дозировка`;
+Генерирай персонализирани препоръки според здравния профил и стратегията.`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
