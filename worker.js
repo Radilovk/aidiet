@@ -121,6 +121,17 @@ const ERROR_MESSAGES = {
   VAPID_KEY_FAILED: 'Неуспешно получаване на VAPID ключ'
 };
 
+// Day name translations for weekly scheme display
+const DAY_NAMES_BG = {
+  monday: 'Понеделник',
+  tuesday: 'Вторник',
+  wednesday: 'Сряда',
+  thursday: 'Четвъртък',
+  friday: 'Петък',
+  saturday: 'Събота',
+  sunday: 'Неделя'
+};
+
 // Bulgarian error message shown when REGENERATE_PLAN parsing fails and no clean response text remains
 const ERROR_MESSAGE_PARSE_FAILURE = ERROR_MESSAGES.PARSE_FAILURE;
 
@@ -1282,6 +1293,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   };
   
   // Extract macro information from Step 1 (analysis)
+  // Note: fiber is in macroRatios.fiber (grams) per the system's schema design
   const analysisCompact = {
     macroRatios: analysis.macroRatios ? 
       `Protein: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Carbs: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Fats: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}` : 
@@ -1289,7 +1301,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     macroGrams: analysis.macroGrams ?
       `Protein: ${analysis.macroGrams.protein != null ? analysis.macroGrams.protein + 'g' : 'N/A'}, Carbs: ${analysis.macroGrams.carbs != null ? analysis.macroGrams.carbs + 'g' : 'N/A'}, Fats: ${analysis.macroGrams.fats != null ? analysis.macroGrams.fats + 'g' : 'N/A'}` :
       'не изчислени',
-    fiber: analysis.macroRatios?.fiber != null ? `${analysis.macroRatios.fiber}g` : 'N/A'
+    fiber: analysis.macroRatios?.fiber != null ? `${analysis.macroRatios.fiber}g` : 'N/A' // Fiber is stored in macroRatios but measured in grams
   };
   
   // Use cached food lists if provided, otherwise fetch (optimization)
@@ -1346,17 +1358,14 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 Нежелани храни (от стъпка 2): ${strategyCompact.foodsToAvoid}
 Допълнителни нежелани храни (от потребител): ${data.dietDislike || 'няма'}
 Разпределение на калории (стъпка 2): ${strategyCompact.calorieDistribution}
-Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${strategyCompact.weeklyScheme ? (() => {
-  const dayNameBg = {monday: 'Понеделник', tuesday: 'Вторник', wednesday: 'Сряда', thursday: 'Четвъртък', friday: 'Петък', saturday: 'Събота', sunday: 'Неделя'};
-  return `
+Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${strategyCompact.weeklyScheme ? `
 
 === СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===
 ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   const dayData = strategyCompact.weeklyScheme[day];
-  const dayName = dayNameBg[day] || day; // Fallback to English name if not found
+  const dayName = DAY_NAMES_BG[day] || day; // Fallback to English name if not found
   return `${dayName}: ${dayData.meals} хранения - ${dayData.description}`;
-}).join('\n')}`;
-})() : ''}${data.additionalNotes ? `
+}).join('\n')}` : ''}${data.additionalNotes ? `
 
 ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
 
