@@ -876,7 +876,7 @@ function checkFoodExistsInPlan(plan, foodName) {
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
  */
-async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null) {
+async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null, userData = null, calculatedData = null) {
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(prompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
@@ -904,7 +904,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     maxTokens: maxTokens,
     provider: preferredProvider,
     modelName: modelName,
-    sessionId: sessionId
+    sessionId: sessionId,
+    userData: userData,
+    calculatedData: calculatedData
   });
 
   const startTime = Date.now();
@@ -1051,7 +1053,8 @@ async function generateSimplifiedFallbackPlan(env, data) {
 Създай прост, практичен план.`;
 
   // Call AI with simplified prompt
-  const response = await callAIModel(env, simplifiedPrompt, 2000, 'fallback_plan');
+  const calculatedData = { bmr, tdee, recommendedCalories };
+  const response = await callAIModel(env, simplifiedPrompt, 2000, 'fallback_plan', null, data, calculatedData);
   
   const plan = {
     analysis: { bmr, recommendedCalories, goal: data.goal },
@@ -1749,7 +1752,7 @@ async function handleChat(request, env) {
     const chatPrompt = await generateChatPrompt(env, message, userData, userPlan, chatHistory, chatMode);
     
     // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
-    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation');
+    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, userData, null);
     
     // Check if the response contains a plan regeneration instruction
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
@@ -2856,7 +2859,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const analysisInputTokens = estimateTokenCount(analysisPrompt);
       cumulativeTokens.input += analysisInputTokens;
       
-      const analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis_regen', sessionId);
+      const analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis_regen', sessionId, data, null);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -2886,7 +2889,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const strategyInputTokens = estimateTokenCount(strategyPrompt);
       cumulativeTokens.input += strategyInputTokens;
       
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId);
+      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, analysis);
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -2911,7 +2914,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
       } else {
         const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env, stepErrorComment);
-        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId);
+        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId, data, analysis);
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -3010,7 +3013,7 @@ async function generatePlanMultiStep(env, data) {
     let analysisResponse, analysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis', sessionId);
+      analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis', sessionId, data, null);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -3053,7 +3056,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId);
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, analysis);
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -3094,7 +3097,7 @@ async function generatePlanMultiStep(env, data) {
       let mealPlanResponse;
       
       try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId);
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId, data, analysis);
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -3779,7 +3782,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       const chunkInputTokens = estimateTokenCount(chunkPrompt);
       console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
       
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId);
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, analysis);
       const chunkOutputTokens = estimateTokenCount(chunkResponse);
       console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
       
@@ -3817,7 +3820,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
-    const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId);
+    const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, analysis);
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
@@ -4775,7 +4778,10 @@ async function logAIRequest(env, stepName, requestData) {
       estimatedInputTokens: requestData.estimatedInputTokens || 0,
       maxOutputTokens: requestData.maxTokens || null,
       provider: requestData.provider || 'unknown',
-      modelName: requestData.modelName || 'unknown'
+      modelName: requestData.modelName || 'unknown',
+      // Include structured user data and calculations for export
+      userData: requestData.userData || null,
+      calculatedData: requestData.calculatedData || null
     };
 
     // Store individual log entry
@@ -6241,6 +6247,20 @@ async function handleExportAILogs(request, env) {
           textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
           textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
           
+          // User data (client data)
+          if (requestLog.userData) {
+            textContent += '--- КЛИЕНТСКИ ДАННИ ---\n';
+            textContent += JSON.stringify(requestLog.userData, null, 2);
+            textContent += '\n\n';
+          }
+          
+          // Calculated data (backend calculations)
+          if (requestLog.calculatedData) {
+            textContent += '--- БЕКЕНД КАЛКУЛАЦИИ ---\n';
+            textContent += JSON.stringify(requestLog.calculatedData, null, 2);
+            textContent += '\n\n';
+          }
+          
           textContent += '--- ПРОМПТ ---\n';
           textContent += requestLog.prompt || '(Няма съхранен промпт)';
           textContent += '\n\n';
@@ -6333,6 +6353,20 @@ async function handleExportAILogs(request, env) {
           textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
           textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
           textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
+          
+          // User data (client data)
+          if (requestLog.userData) {
+            textContent += '--- КЛИЕНТСКИ ДАННИ ---\n';
+            textContent += JSON.stringify(requestLog.userData, null, 2);
+            textContent += '\n\n';
+          }
+          
+          // Calculated data (backend calculations)
+          if (requestLog.calculatedData) {
+            textContent += '--- БЕКЕНД КАЛКУЛАЦИИ ---\n';
+            textContent += JSON.stringify(requestLog.calculatedData, null, 2);
+            textContent += '\n\n';
+          }
           
           textContent += '--- ПРОМПТ ---\n';
           textContent += requestLog.prompt || '(Няма съхранен промпт)';
