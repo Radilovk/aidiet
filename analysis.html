@@ -177,10 +177,24 @@
 
         .problem-card.severity-risky {
             border-left-color: var(--severity-risky);
+            border-left-width: 8px;
+            box-shadow: 0 10px 30px rgba(249,115,22,0.2);
         }
 
         .problem-card.severity-critical {
             border-left-color: var(--severity-critical);
+            border-left-width: 8px;
+            box-shadow: 0 10px 30px rgba(239,68,68,0.25);
+            animation: slideUp 0.5s ease, pulse-border 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% {
+                box-shadow: 0 10px 30px rgba(239,68,68,0.25);
+            }
+            50% {
+                box-shadow: 0 15px 40px rgba(239,68,68,0.4);
+            }
         }
 
         .problem-header {
@@ -249,11 +263,25 @@
         .severity-badge.risky {
             background: var(--severity-risky);
             color: white;
+            font-weight: 800;
+            box-shadow: 0 4px 15px rgba(249,115,22,0.3);
         }
 
         .severity-badge.critical {
             background: var(--severity-critical);
             color: white;
+            font-weight: 800;
+            box-shadow: 0 4px 15px rgba(239,68,68,0.4);
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
         }
 
         .problem-description {
@@ -458,6 +486,38 @@
             grid-template-columns: 1fr 1fr;
             gap: 0;
             padding: 28px 16px 24px;
+        }
+
+        .single-score-container {
+            padding: 28px 16px 24px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .single-score-container .score-value-container {
+            margin-bottom: 24px;
+        }
+
+        .single-score-container .score-value {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .single-score-container .vertical-bar-chart {
+            height: 150px;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .single-score-container .bar-column {
+            width: 100%;
         }
 
         .comparison-side {
@@ -717,6 +777,173 @@
             }
         }
 
+        /* Forecast Section Styles */
+        .forecast-section {
+            margin-top: 50px;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .forecast-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 0;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .forecast-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(16,185,129,0.2);
+        }
+
+        .forecast-card.pessimistic {
+            border-top: 4px solid var(--severity-risky);
+        }
+
+        .forecast-card.optimistic {
+            border-top: 4px solid var(--primary-red);
+        }
+
+        .forecast-card-header {
+            padding: 24px 24px 16px;
+            border-bottom: 1px solid rgba(107,114,128,0.1);
+        }
+
+        .forecast-icon-wrapper {
+            margin-bottom: 12px;
+        }
+
+        .forecast-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .forecast-icon.warning {
+            background: linear-gradient(135deg, rgba(249,115,22,0.1) 0%, rgba(249,115,22,0.2) 100%);
+            color: var(--severity-risky);
+        }
+
+        .forecast-icon.success {
+            background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.2) 100%);
+            color: var(--primary-red);
+        }
+
+        .forecast-card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .forecast-card-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .forecast-content {
+            padding: 24px;
+        }
+
+        .forecast-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: var(--input-bg);
+            border-radius: 12px;
+            transition: var(--transition);
+        }
+
+        .forecast-metric:hover {
+            background: rgba(16,185,129,0.05);
+            transform: translateX(5px);
+        }
+
+        .forecast-metric-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-gray);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .forecast-metric-label i {
+            color: var(--primary-red);
+        }
+
+        .forecast-metric-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .forecast-risks, .forecast-improvements {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(107,114,128,0.1);
+        }
+
+        .forecast-risks h4, .forecast-improvements h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            color: var(--text-gray);
+        }
+
+        .forecast-risks ul, .forecast-improvements ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .forecast-risks li {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: rgba(239,68,68,0.05);
+            border-left: 3px solid var(--severity-risky);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+
+        .forecast-improvements li {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: rgba(16,185,129,0.05);
+            border-left: 3px solid var(--primary-red);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .forecast-improvements li i {
+            color: var(--primary-red);
+            margin-top: 2px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -808,6 +1035,27 @@
 
             .score-delta {
                 font-size: 0.7rem;
+            }
+
+            .forecast-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .forecast-card-title {
+                font-size: 1.1rem;
+            }
+
+            .forecast-metric {
+                padding: 12px;
+            }
+
+            .forecast-metric-label {
+                font-size: 0.85rem;
+            }
+
+            .forecast-metric-value {
+                font-size: 1rem;
             }
         }
 
@@ -941,8 +1189,8 @@
         <!-- Overall Health Score Section -->
         <div class="overall-score-section" id="overallScoreSection" style="display: none;">
             <div class="overall-score-header">
-                <h2>Обща Оценка на Здравето</h2>
-                <p>Базирана на всички идентифицирани показатели</p>
+                <h2>Текущ Здравословен Статус</h2>
+                <p>С 10% занижение за по-консервативна оценка</p>
             </div>
 
             <div class="score-grid">
@@ -954,66 +1202,87 @@
                             </div>
                         </div>
                         <div class="score-card-title">Здравословен Статус</div>
-                        <div class="score-card-subtitle">Текущо срещу Прогноза</div>
+                        <div class="score-card-subtitle">Текущо състояние</div>
                     </div>
-                    <div class="comparison-container">
-                        <div class="comparison-side current">
-                            <div class="comparison-label">СЕГА</div>
-                            <div class="score-value-container">
-                                <div class="score-value" id="healthScoreValue">--</div>
-                            </div>
-                            <div class="vertical-bar-chart">
-                                <div class="bar-column" id="healthScoreBarCurrent" style="height: 0%"></div>
+                    <div class="single-score-container">
+                        <div class="score-value-container">
+                            <div class="score-value" id="healthScoreValue">--</div>
+                        </div>
+                        <div class="vertical-bar-chart">
+                            <div class="bar-column" id="healthScoreBarCurrent" style="height: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1-Year Forecast Section -->
+        <div class="forecast-section" id="forecastSection" style="display: none;">
+            <div class="overall-score-header">
+                <h2>
+                    <i class="fas fa-calendar-alt" style="margin-right: 12px; color: var(--primary-red);"></i>
+                    Прогноза за Една Година
+                </h2>
+                <p>Два възможни сценария според вашите бъдещи действия</p>
+            </div>
+
+            <div class="forecast-grid">
+                <!-- Without Lifestyle Change Forecast -->
+                <div class="forecast-card pessimistic">
+                    <div class="forecast-card-header">
+                        <div class="forecast-icon-wrapper">
+                            <div class="forecast-icon warning">
+                                <i class="fas fa-exclamation-triangle"></i>
                             </div>
                         </div>
-                        <div class="comparison-side future">
-                            <div class="comparison-label">СЛЕД 3 МЕС</div>
-                            <div class="score-value-container">
-                                <div class="score-value" id="healthScoreValueFuture">--</div>
-                                <div class="score-delta" id="healthScoreDelta">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>--</span>
-                                </div>
+                        <div class="forecast-card-title">Без промяна в начина на живот</div>
+                        <div class="forecast-card-subtitle">Ако продължите по същия начин</div>
+                    </div>
+                    <div class="forecast-content">
+                        <div class="forecast-metric">
+                            <div class="forecast-metric-label">
+                                <i class="fas fa-weight"></i> Тегло
                             </div>
-                            <div class="vertical-bar-chart">
-                                <div class="bar-column" id="healthScoreBarFuture" style="height: 0%"></div>
+                            <div class="forecast-metric-value" id="pessimisticWeight">--</div>
+                        </div>
+                        <div class="forecast-metric">
+                            <div class="forecast-metric-label">
+                                <i class="fas fa-heartbeat"></i> Здраве
                             </div>
+                            <div class="forecast-metric-value" id="pessimisticHealth">--</div>
+                        </div>
+                        <div class="forecast-risks" id="pessimisticRisks">
+                            <!-- Risks will be inserted here -->
                         </div>
                     </div>
                 </div>
 
-                <div class="score-card">
-                    <div class="score-card-header">
-                        <div class="score-icon-wrapper">
-                            <div class="score-icon success">
-                                <i class="fas fa-trophy"></i>
+                <!-- With Lifestyle Change Forecast -->
+                <div class="forecast-card optimistic">
+                    <div class="forecast-card-header">
+                        <div class="forecast-icon-wrapper">
+                            <div class="forecast-icon success">
+                                <i class="fas fa-star"></i>
                             </div>
                         </div>
-                        <div class="score-card-title">Постигане на Целта</div>
-                        <div class="score-card-subtitle">Шанс за Успех</div>
+                        <div class="forecast-card-title">При промяна в начина на живот</div>
+                        <div class="forecast-card-subtitle">След подобряване на всички параметри</div>
                     </div>
-                    <div class="comparison-container">
-                        <div class="comparison-side current">
-                            <div class="comparison-label">СЕГА</div>
-                            <div class="score-value-container">
-                                <div class="score-value" id="successChanceValue">--</div>
+                    <div class="forecast-content">
+                        <div class="forecast-metric">
+                            <div class="forecast-metric-label">
+                                <i class="fas fa-weight"></i> Тегло
                             </div>
-                            <div class="vertical-bar-chart">
-                                <div class="bar-column" id="successChanceBarCurrent" style="height: 0%"></div>
-                            </div>
+                            <div class="forecast-metric-value" id="optimisticWeight">--</div>
                         </div>
-                        <div class="comparison-side future">
-                            <div class="comparison-label">СЛЕД 3 МЕС</div>
-                            <div class="score-value-container">
-                                <div class="score-value" id="successChanceValueFuture">--</div>
-                                <div class="score-delta" id="successChanceDelta">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>--</span>
-                                </div>
+                        <div class="forecast-metric">
+                            <div class="forecast-metric-label">
+                                <i class="fas fa-heartbeat"></i> Здраве
                             </div>
-                            <div class="vertical-bar-chart">
-                                <div class="bar-column" id="successChanceBarFuture" style="height: 0%"></div>
-                            </div>
+                            <div class="forecast-metric-value" id="optimisticHealth">--</div>
+                        </div>
+                        <div class="forecast-improvements" id="optimisticImprovements">
+                            <!-- Improvements will be inserted here -->
                         </div>
                     </div>
                 </div>
@@ -1180,132 +1449,109 @@
             // for even critical health cases to indicate that the person is alive but in poor health.
             const MIN_HEALTH_SCORE = 15;
             const MAX_HEALTH_SCORE = 100;
-            
-            // Success chance constants for fallback calculation
-            // These match the AI model's range to ensure consistency
-            // MIN_SUCCESS_CHANCE: Negative values indicate contradictory goals
-            const MIN_SUCCESS_CHANCE = -100;
-            const MAX_SUCCESS_CHANCE = 100;
 
-            // Calculate average severity value
-            let totalSeverity = 0;
-            let criticalCount = 0;
-            let riskyCount = 0;
-            let borderlineCount = 0;
-            
-            problems.forEach(problem => {
-                totalSeverity += (problem.severityValue || 50);
-                const severity = (problem.severity || 'Normal').toLowerCase();
-                if (severity === 'critical') criticalCount++;
-                else if (severity === 'risky') riskyCount++;
-                else if (severity === 'borderline') borderlineCount++;
-            });
-
-            const avgSeverity = totalSeverity / problems.length;
-            
-            // ===== CURRENT SCORES (strategically slightly lower) =====
-            // Note: As per product requirements, current scores are strategically adjusted
-            // to show a more conservative baseline, making the improvement more impactful
-            // for marketing/motivational purposes while maintaining realistic ranges.
-            
-            // Calculate base health score
-            const cappedSeverity = Math.min(avgSeverity, MAX_HEALTH_SCORE);
-            const rawHealthScore = MAX_HEALTH_SCORE - cappedSeverity;
-            let healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(rawHealthScore)));
-            
-            // Strategic adjustment: Slightly lower current health score (5-10% reduction)
-            const healthReduction = Math.floor(healthScore * 0.08); // 8% reduction
-            healthScore = Math.max(MIN_HEALTH_SCORE, healthScore - healthReduction);
-            
-            // Calculate base success chance
-            let successChance;
-            
-            if (analysis && typeof analysis.successChance === 'number') {
-                successChance = Math.max(MIN_SUCCESS_CHANCE, Math.min(MAX_SUCCESS_CHANCE, analysis.successChance));
+            // ===== CURRENT HEALTH SCORE =====
+            // Check if we have the new currentHealthStatus field from enhanced analysis
+            let healthScore;
+            if (analysis && analysis.currentHealthStatus && typeof analysis.currentHealthStatus.score === 'number') {
+                // Use the AI-provided current health status (already includes 10% underestimate)
+                healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(analysis.currentHealthStatus.score)));
+                console.log('Using AI-provided currentHealthStatus.score:', healthScore);
             } else {
-                // Fallback calculation
-                successChance = 100;
-                successChance -= problems.length * 5;
-                successChance -= criticalCount * 20;
-                successChance -= riskyCount * 12;
-                successChance -= borderlineCount * 6;
-                successChance = Math.max(MIN_SUCCESS_CHANCE, Math.min(MAX_SUCCESS_CHANCE, successChance));
+                // Fallback: Calculate from problems (legacy behavior)
+                let totalSeverity = 0;
+                problems.forEach(problem => {
+                    totalSeverity += (problem.severityValue || 50);
+                });
+                const avgSeverity = totalSeverity / problems.length;
+                const cappedSeverity = Math.min(avgSeverity, MAX_HEALTH_SCORE);
+                const rawHealthScore = MAX_HEALTH_SCORE - cappedSeverity;
+                healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(rawHealthScore)));
+                
+                // Strategic adjustment: Slightly lower current health score (10% reduction)
+                const healthReduction = Math.floor(healthScore * 0.10);
+                healthScore = Math.max(MIN_HEALTH_SCORE, healthScore - healthReduction);
+                console.log('Using fallback health score calculation:', healthScore);
             }
             
-            // Strategic adjustment: Slightly lower current success chance (8-12% reduction)
-            const successReduction = Math.floor(Math.abs(successChance) * 0.10); // 10% reduction
-            successChance = successChance >= 0 
-                ? Math.max(0, successChance - successReduction)
-                : successChance; // Keep negative values as-is
-            
-            // ===== FUTURE SCORES (after 3 months with plan, optimistic) =====
-            // Note: Future projections assume strict adherence to the personalized plan
-            // and represent achievable improvements with dedication and consistency.
-            
-            // Assume significant improvement with plan adherence
-            // Health improvement: ensure 80-100% range
-            const healthImprovement = Math.floor((MAX_HEALTH_SCORE - healthScore) * 0.50); // 50% of gap to perfect
-            let futureHealthScore = Math.min(MAX_HEALTH_SCORE, healthScore + healthImprovement);
-            // Ensure minimum 80% for future health score
-            futureHealthScore = Math.max(80, futureHealthScore);
-            
-            // Success chance improvement: ensure 80-100% range
-            let futureSuccessChance;
-            if (successChance < 0) {
-                // For negative values, move towards positive territory
-                futureSuccessChance = Math.min(MAX_SUCCESS_CHANCE, successChance + 85);
-            } else {
-                const successImprovement = Math.floor((MAX_SUCCESS_CHANCE - successChance) * 0.50); // 50% of gap to perfect
-                futureSuccessChance = Math.min(MAX_SUCCESS_CHANCE, successChance + successImprovement);
-            }
-            // Ensure minimum 80% for future success chance
-            futureSuccessChance = Math.max(80, futureSuccessChance);
-            
-            // Calculate deltas
-            const healthDelta = futureHealthScore - healthScore;
-            const successDelta = futureSuccessChance - successChance;
-            
-            // Update UI - Current scores
+            // Update UI - Current health score only (no comparison, no success chance)
             document.getElementById('healthScoreValue').textContent = healthScore + '%';
-            document.getElementById('successChanceValue').textContent = successChance + '%';
             
-            // Update UI - Future scores
-            document.getElementById('healthScoreValueFuture').textContent = futureHealthScore + '%';
-            document.getElementById('successChanceValueFuture').textContent = futureSuccessChance + '%';
-            
-            // Update UI - Deltas
-            const healthDeltaEl = document.getElementById('healthScoreDelta');
-            healthDeltaEl.innerHTML = `
-                <i class="fas fa-arrow-up"></i>
-                <span>+${healthDelta}%</span>
-            `;
-            
-            const successDeltaEl = document.getElementById('successChanceDelta');
-            successDeltaEl.innerHTML = `
-                <i class="fas fa-arrow-up"></i>
-                <span>+${successDelta}%</span>
-            `;
-            
-            // Store bar heights as percentages (0-100 for visual representation)
+            // Store bar height as percentage for animation
             document.getElementById('healthScoreBarCurrent').setAttribute('data-height', healthScore + '%');
-            document.getElementById('healthScoreBarFuture').setAttribute('data-height', futureHealthScore + '%');
-            
-            const successBarWidthCurrent = successChance < 0 ? 0 : successChance;
-            const successBarWidthFuture = futureSuccessChance < 0 ? 0 : futureSuccessChance;
-            
-            document.getElementById('successChanceBarCurrent').setAttribute('data-height', successBarWidthCurrent + '%');
-            document.getElementById('successChanceBarFuture').setAttribute('data-height', successBarWidthFuture + '%');
             
             // Show the overall score section
             document.getElementById('overallScoreSection').style.display = 'block';
             
-            // Animate bars after a short delay
+            // Animate bar after a short delay
             setTimeout(() => {
                 document.getElementById('healthScoreBarCurrent').style.height = healthScore + '%';
-                document.getElementById('healthScoreBarFuture').style.height = futureHealthScore + '%';
-                document.getElementById('successChanceBarCurrent').style.height = successBarWidthCurrent + '%';
-                document.getElementById('successChanceBarFuture').style.height = successBarWidthFuture + '%';
             }, 300);
+
+            // ===== DISPLAY 1-YEAR FORECASTS =====
+            displayForecasts(analysis);
+        }
+
+        function displayForecasts(analysis) {
+            // Check if we have the new forecast fields from enhanced analysis
+            if (!analysis || (!analysis.forecastPessimistic && !analysis.forecastOptimistic)) {
+                console.log('No forecast data available, hiding forecast section');
+                document.getElementById('forecastSection').style.display = 'none';
+                return;
+            }
+
+            // Display pessimistic forecast
+            if (analysis.forecastPessimistic) {
+                const pessimistic = analysis.forecastPessimistic;
+                
+                // Update weight
+                document.getElementById('pessimisticWeight').textContent = pessimistic.weight || 'Няма данни';
+                
+                // Update health
+                document.getElementById('pessimisticHealth').textContent = pessimistic.health || 'Няма данни';
+                
+                // Update risks
+                const risksContainer = document.getElementById('pessimisticRisks');
+                if (pessimistic.risks && Array.isArray(pessimistic.risks) && pessimistic.risks.length > 0) {
+                    risksContainer.innerHTML = `
+                        <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
+                        <ul>
+                            ${pessimistic.risks.map(risk => `<li>${risk}</li>`).join('')}
+                        </ul>
+                    `;
+                } else {
+                    risksContainer.innerHTML = '';
+                }
+            }
+
+            // Display optimistic forecast
+            if (analysis.forecastOptimistic) {
+                const optimistic = analysis.forecastOptimistic;
+                
+                // Update weight
+                document.getElementById('optimisticWeight').textContent = optimistic.weight || 'Няма данни';
+                
+                // Update health
+                document.getElementById('optimisticHealth').textContent = optimistic.health || 'Няма данни';
+                
+                // Update improvements
+                const improvementsContainer = document.getElementById('optimisticImprovements');
+                if (optimistic.improvements && Array.isArray(optimistic.improvements) && optimistic.improvements.length > 0) {
+                    improvementsContainer.innerHTML = `
+                        <h4><i class="fas fa-check-circle"></i> Възможни Подобрения</h4>
+                        <ul>
+                            ${optimistic.improvements.map(improvement => `
+                                <li><i class="fas fa-check"></i> ${improvement}</li>
+                            `).join('')}
+                        </ul>
+                    `;
+                } else {
+                    improvementsContainer.innerHTML = '';
+                }
+            }
+
+            // Show the forecast section
+            document.getElementById('forecastSection').style.display = 'block';
         }
 
         function createProblemCard(problem, index) {

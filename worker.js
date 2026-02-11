@@ -64,6 +64,37 @@
 
 // No default values - all calculations must be individualized based on user data
 
+// Data Validation Configuration
+const MIN_AGE = 10; // Minimum age for diet planning (minors require guardian consent)
+const MAX_AGE = 100;
+const MIN_WEIGHT_KG = 20;
+const MAX_WEIGHT_KG = 300;
+const MIN_HEIGHT_CM = 100;
+const MAX_HEIGHT_CM = 250;
+const MIN_BMI = 10; // Medically possible minimum
+const MAX_BMI = 80; // Medically possible maximum
+const MAX_WEIGHT_LOSS_KG = 50; // Maximum weight loss per plan
+const MAX_WEIGHT_LOSS_PERCENT = 0.5; // Maximum 50% of body weight
+
+// Analysis Configuration
+const WATER_PER_KG_MULTIPLIER = 0.035; // Liters per kg body weight
+const BASE_WATER_NEED_LITERS = 0.5; // Base water need in liters
+const ACTIVITY_WATER_BONUS_LITERS = 0.45; // Additional water for active individuals
+const TEMPERAMENT_CONFIDENCE_THRESHOLD = 80; // Minimum confidence % to report temperament
+const HEALTH_STATUS_UNDERESTIMATE_PERCENT = 10; // Underestimate health status by this %
+const FIBER_MIN_GRAMS = 25; // Minimum fiber recommendation
+const FIBER_MAX_GRAMS = 40; // Maximum fiber recommendation
+
+// Offensive Content Patterns (for data validation)
+const OFFENSIVE_PATTERNS = [
+  // Vulgar words (Cyrillic - no word boundaries, no 'g' flag)
+  /(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])/i,
+  // Spam patterns
+  /(viagra|casino|xxx|porn)/i,
+  // Test/spam data
+  /^(test|тест|asdf|qwerty|12345|aaa|zzz)$/i
+];
+
 // AI Communication Logging Configuration
 const MAX_LOG_ENTRIES = 1; // Maximum number of log entries to keep in index (only keep the latest)
 
@@ -416,6 +447,99 @@ function calculateSafeDeficit(tdee, goal) {
     maxDeficitCalories,
     note: 'AI може да коригира при специални стратегии (напр. интермитентно гладуване)'
   };
+}
+
+/**
+ * Validate data adequacy - check for unrealistic, inappropriate, or invalid data
+ * Returns an object with { isValid: boolean, errorMessage: string }
+ */
+function validateDataAdequacy(data) {
+  const errors = [];
+  
+  // Check weight (realistic range)
+  const weight = parseFloat(data.weight);
+  if (isNaN(weight) || weight < MIN_WEIGHT_KG || weight > MAX_WEIGHT_KG) {
+    errors.push(`Теглото трябва да бъде между ${MIN_WEIGHT_KG} и ${MAX_WEIGHT_KG} кг. Моля, въведете реалистична стойност.`);
+  }
+  
+  // Check height (realistic range)
+  const height = parseFloat(data.height);
+  if (isNaN(height) || height < MIN_HEIGHT_CM || height > MAX_HEIGHT_CM) {
+    errors.push(`Височината трябва да бъде между ${MIN_HEIGHT_CM} и ${MAX_HEIGHT_CM} см. Моля, въведете реалистична стойност.`);
+  }
+  
+  // Check age (realistic range - minors require special considerations)
+  const age = parseInt(data.age);
+  if (isNaN(age) || age < MIN_AGE || age > MAX_AGE) {
+    errors.push(`Възрастта трябва да бъде между ${MIN_AGE} и ${MAX_AGE} години. Моля, въведете реалистична стойност.`);
+  }
+  
+  // Add note for minors
+  if (age >= MIN_AGE && age < 18) {
+    // Note: In production, this should trigger a guardian consent flow
+    console.log(`Minor user (age ${age}) - guardian consent should be obtained`);
+  }
+  
+  // Check BMI extremes (medically unrealistic BMI values)
+  if (!isNaN(weight) && !isNaN(height) && weight >= MIN_WEIGHT_KG && weight <= MAX_WEIGHT_KG && height >= MIN_HEIGHT_CM && height <= MAX_HEIGHT_CM) {
+    const heightM = height / 100;
+    const bmi = weight / (heightM * heightM);
+    if (bmi < MIN_BMI) {
+      errors.push('Въведените данни водят до медицински невъзможно ниско BMI. Моля, проверете теглото и височината.');
+    } else if (bmi > MAX_BMI) {
+      errors.push('Въведените данни водят до медицински невъзможно високо BMI. Моля, проверете теглото и височината.');
+    }
+  }
+  
+  // Check weight loss goal reasonableness
+  if (data.goal && data.goal.includes('Отслабване') && data.lossKg) {
+    const lossKg = parseFloat(data.lossKg);
+    if (!isNaN(lossKg) && !isNaN(weight)) {
+      if (lossKg > weight * MAX_WEIGHT_LOSS_PERCENT) {
+        errors.push(`Целевото отслабване е твърде голямо (повече от ${MAX_WEIGHT_LOSS_PERCENT * 100}% от телесното тегло). Моля, задайте по-реалистична цел.`);
+      }
+      if (lossKg > MAX_WEIGHT_LOSS_KG) {
+        errors.push(`Целевото отслабване не може да надвишава ${MAX_WEIGHT_LOSS_KG} кг в рамките на един план. Моля, задайте по-умерена начална цел.`);
+      }
+    }
+  }
+  
+  // Check for offensive or vulgar content in text fields
+  const textFields = [
+    { field: 'name', value: data.name },
+    { field: 'dietDislike', value: data.dietDislike },
+    { field: 'dietLove', value: data.dietLove },
+    { field: 'additionalNotes', value: data.additionalNotes },
+    { field: 'medicationsDetails', value: data.medicationsDetails },
+    { field: 'weightChangeDetails', value: data.weightChangeDetails }
+  ];
+  
+  for (const { field, value } of textFields) {
+    if (value && typeof value === 'string') {
+      for (const pattern of OFFENSIVE_PATTERNS) {
+        if (pattern.test(value)) {
+          // Generic error message for security (don't reveal which field)
+          errors.push('Въведената информация съдържа неподходящо съдържание. Моля, проверете всички полета и въведете коректна информация.');
+          // Log specific field server-side for monitoring
+          console.warn(`Offensive content detected in field: ${field}`);
+          break; // Only report once per validation
+        }
+      }
+      // If we found offensive content, stop checking other fields
+      if (errors.some(e => e.includes('неподходящо съдържание'))) {
+        break;
+      }
+    }
+  }
+  
+  if (errors.length > 0) {
+    return {
+      isValid: false,
+      errorMessage: 'Моля, проверете въведените данни:\n\n' + errors.join('\n\n')
+    };
+  }
+  
+  return { isValid: true };
 }
 
 /**
@@ -1592,6 +1716,16 @@ async function handleGeneratePlan(request, env) {
     if (!data.name || !data.age || !data.weight || !data.height) {
       console.error('handleGeneratePlan: Missing required fields');
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+    
+    // Step 0: Validate data adequacy (unrealistic, offensive, inappropriate data)
+    const dataValidation = validateDataAdequacy(data);
+    if (!dataValidation.isValid) {
+      console.error('handleGeneratePlan: Data adequacy validation failed:', dataValidation.errorMessage);
+      return jsonResponse({ 
+        error: dataValidation.errorMessage,
+        validationFailed: true 
+      }, 400);
     }
 
     // Generate unique user ID (could be email or session-based)
@@ -3230,6 +3364,8 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
 
 Структурата ТРЯБВА да включва:
 {
+  "bmi": число,
+  "bmiCategory": "текст",
   "bmr": число,
   "bmrReasoning": "текст",
   "tdee": число,
@@ -3239,7 +3375,8 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   "macroRatios": {
     "protein": число,
     "carbs": число,
-    "fats": число
+    "fats": число,
+    "fiber": число
   },
   "macroRatiosReasoning": {
     "protein": "текст",
@@ -3251,12 +3388,56 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
     "carbs": число,
     "fats": число
   },
+  "activityLevel": "текст",
+  "physiologicalPhase": "текст",
+  "waterDeficit": {
+    "dailyNeed": "текст",
+    "currentIntake": "текст",
+    "deficit": "текст",
+    "impactOnLipolysis": "текст"
+  },
+  "negativeHealthFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
+  "hinderingFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
+  "cumulativeRiskScore": "текст",
+  "psychoProfile": {
+    "temperament": "текст",
+    "probability": число,
+    "reasoning": "текст"
+  },
+  "metabolicReactivity": {
+    "speed": "текст",
+    "adaptability": "текст",
+    "reasoning": "текст"
+  },
+  "correctedMetabolism": {
+    "realBMR": число,
+    "realTDEE": число,
+    "correction": "текст",
+    "correctionPercent": "текст"
+  },
   "metabolicProfile": "текст",
   "healthRisks": ["текст"],
   "nutritionalNeeds": ["текст"],
   "psychologicalProfile": "текст",
   "successChance": число,
   "successChanceReasoning": "текст",
+  "currentHealthStatus": {
+    "score": число,
+    "description": "текст",
+    "keyIssues": ["текст"]
+  },
+  "forecastPessimistic": {
+    "timeframe": "текст",
+    "weight": "текст",
+    "health": "текст",
+    "risks": ["текст"]
+  },
+  "forecastOptimistic": {
+    "timeframe": "текст",
+    "weight": "текст",
+    "health": "текст",
+    "improvements": ["текст"]
+  },
   "keyProblems": [
     {
       "title": "текст",
@@ -3416,47 +3597,121 @@ ${(() => {
 
 РЕФЕРЕНТНИТЕ изчисления са само ОТПРАВНА ТОЧКА за валидация. ТИ определяш финалните стойности според холистичния анализ.
 
-═══ ТВОЯТА ЗАДАЧА ═══
+═══ ТВОЯТА ЗАДАЧА - РАЗШИРЕН АНАЛИЗ ═══
 
-1. МЕТАБОЛИТЕН И ЗДРАВОСЛОВЕН АНАЛИЗ:
-   Анализирай корелациите между:
-   - Сън (${data.sleepHours}ч, ${data.sleepInterrupt}) ↔ Хормонален баланс
-   - Стрес (${data.stressLevel}) ↔ Кортизол и метаболизъм
-   - История на диети (${data.dietHistory}) ↔ Метаболитна адаптация
-   - Медицински фактори ↔ Хранителни потребности
-   - Хронотип (${data.chronotype}) ↔ Оптимални енергийни периоди
+Направи ХОЛИСТИЧЕН АНАЛИЗ, включващ следните стъпки:
 
-2. ПСИХОЛОГИЧЕСКИ ПРОФИЛ:
-   Анализирай поведенческите модели:
+1. BMI АНАЛИЗ:
+   - Изчисли BMI = тегло(kg) / (височина(m))²
+   - Категоризирай: Поднормено (<18.5), Нормално (18.5-25), Наднормено (25-30), Затлъстяване (>30)
+   - Анализирай съответствие с целта
+
+2. БАЗОВ МЕТАБОЛИЗЪМ (BMR) И TDEE:
+   - Използвай Mifflin-St Jeor формулата (виж референтните изчисления)
+   - Коригирай според активност скор 1-10 (${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10)
+   - TDEE = BMR × активност фактор
+
+3. СТАНДАРТ ЗА РАЗПРЕДЕЛЯНЕ НА МАКРОСИ:
+   - Протеини: базирай на активност, цел и пол
+   - Мазнини: необходими за хормонален баланс
+   - Въглехидрати: според активност и метаболитен тип
+   - Фибри: изчисли според пол, възраст и цел (обикновено ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г дневно, но персонализирай)
+
+4. НИВО НА АКТИВНОСТ (скала 1-10):
+   - Вече изчислено: ${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10 (${(() => { const ad = calculateUnifiedActivityScore(data); return ad.activityLevel; })()})
+   - Анализирай как това влияе на калорийни нужди
+
+5. ФИЗИОЛОГИЧНА ФАЗА В ЖИВОТА:
+   - Възраст: ${data.age} години
+   - Определи фаза: Млад възрастен (18-30), Зряла възраст (31-50), Средна възраст (51-65), Напреднала възраст (65+)
+   - Влияние на метаболизъм и хормонален профил
+
+6. ДНЕВЕН ВОДЕН ДЕФИЦИТ (Water Gap):
+   - Формула: (Тегло × ${WATER_PER_KG_MULTIPLIER}) + ${BASE_WATER_NEED_LITERS}Л (базиран на активност)
+   - Нужда: (${data.weight} × ${WATER_PER_KG_MULTIPLIER}) + ${BASE_WATER_NEED_LITERS} = ${(parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2)} до ${(parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2)} литра
+   - Текущ прием: ${data.waterIntake || 'неизвестен'}
+   - Изчисли дефицит и влияние върху липолизата
+
+8. ОТРИЦАТЕЛНИ ЗДРАВОСЛОВНИ ФАКТОРИ (тежест 1-3):
+   - Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+   - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
+   - Оцени всеки фактор по скала 1 (леко) до 3 (тежко)
+
+9. ПРЕЧЕЩИ ФАКТОРИ ЗА ПОСТИГАНЕ НА ЦЕЛТА (тежест 1-3):
+   - Стрес: ${data.stressLevel}
+   - Качество на съня: ${data.sleepHours}ч, прекъсвания: ${data.sleepInterrupt}
+   - Навици: ${JSON.stringify(data.eatingHabits || [])}
    - Емоционални тригери: ${JSON.stringify(data.foodTriggers || [])}
-   - Копинг механизми: ${JSON.stringify(data.compensationMethods || [])}
-   - Прекомерно хранене: ${data.overeatingFrequency}
-   - Хранителни желания: ${JSON.stringify(data.foodCravings || [])}
-   
-3. ОПРЕДЕЛИ ОПТИМАЛНИТЕ КАЛОРИЙНИ И МАКРОНУТРИЕНТНИ НУЖДИ:
-   Базирани на професионалната ти преценка като експерт
-   
-${data.medications === 'Да' && data.medicationsDetails ? `
-4. АНАЛИЗ НА ЛЕКАРСТВЕНИ ВЗАИМОДЕЙСТВИЯ:
-   Клиентът приема: ${data.medicationsDetails}
-   Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
-   
-   Анализирай взаимодействията храна-лекарство и влиянието върху хранителните нужди.
-` : `
-4. МЕДИЦИНСКИ ФАКТОРИ:
-   Състояния: ${JSON.stringify(data.medicalConditions || [])}
-   Анализирай специфичните хранителни потребности.
-`}
+   - Оцени всеки по скала 1-3
 
-5. ОЦЕНКА НА ШАНС ЗА УСПЕХ:
-   Определи реалистичен успех базиран на холистичен анализ на всички фактори.
+10. СУМАРНИ ФАКТОРИ:
+    - Където има припокриващи се фактори (напр. стрес + емоционално хранене), СУМИРАЙ числата
+    - Създай сумарен риск профил
 
-6. КЛЮЧОВИ ПРОБЛЕМИ:
-   Идентифицирай 3-6 проблемни области които активно влияят на постигането на целта.
+11. ХИПОТЕЗА ЗА ПСИХОПРОФИЛ И ТЕМПЕРАМЕНТ:
+    - Анализирай данните за:
+      * Хранителни желания: ${JSON.stringify(data.foodCravings || [])}
+      * Тригери: ${JSON.stringify(data.foodTriggers || [])}
+      * Копинг механизми: ${JSON.stringify(data.compensationMethods || [])}
+      * Социално сравнение: ${data.socialComparison}
+    - Определи вероятен темперамент с процент вероятност (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%)
+    - Възможни типове: Холерик, Сангвиник, Флегматик, Меланхолик
+
+11a. РЕАКТИВНОСТ НА МЕТАБОЛИЗМА:
+    - Анализирай спрямо:
+      * Активност скор: ${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10
+      * Физиологична фаза: ${data.age} год.
+      * Психопрофил (от т.11)
+      * История на диети: ${data.dietHistory}, ${data.dietType || 'N/A'}, ${data.dietResult || 'N/A'}
+      * Хронотип: ${data.chronotype}
+      * Стрес: ${data.stressLevel}
+    - Определи: Бавен/Среден/Бърз метаболизъм
+    - Адаптивност към промени: Ниска/Средна/Висока
+
+12. КОРЕКЦИЯ НА РЕАЛЕН МЕТАБОЛИЗЪМ:
+    - Коригирай BMR/TDEE според:
+      * Точки 4, 5, 11, 11a
+      * Качество на сън: ${data.sleepHours}ч, ${data.sleepInterrupt}
+      * Хронотип: ${data.chronotype}
+      * Стрес: ${data.stressLevel}
+      * Здравен статус и медикаменти
+    - Определи РЕАЛЕН метаболизъм (може да е ±10-20% от изчисления)
+
+13. ИЗЧИСЛЯВАНЕ НА ПРЕПОРЪЧИТЕЛНИ КАЛОРИИ И МАКРОСИ:
+    - Базирай на:
+      * Коригиран метаболизъм (т.12)
+      * Реактивност (т.11a)
+      * Активност, възраст, психопрофил
+      * Хронотип и оптимални енергийни прозорци
+      * Здравен статус и медикаменти
+    - Определи ФИНАЛНИ препоръки
+
+14. КРИТИЧНИ ПРОБЛЕМИ (3-6 бр.):
+    - Започни от сумарния риск (т.10)
+    - Включи най-тежките от т.9 и т.8
+    - Представи ги по КРИТИЧЕН И ПЛАШЕЩ начин
+    - САМО Borderline/Risky/Critical severity
+
+15. ЗДРАВОСЛОВНО СЪСТОЯНИЕ В МОМЕНТА:
+    - Базирано на целия анализ
+    - Изведи с 10% ЗАНИЖЕНО (по-песимистична оценка за мотивация)
+    - Скала: 0-100
+
+16. ПРОГНОЗА - ПЕСИМИСТИЧНА (1 година):
+    - Ако клиентът ПРОДЪЛЖИ по същия начин
+    - Какви здравни рискове ще се развият
+    - Къде ще бъде след 12 месеца (тегло, здраве, енергия)
+
+17. ПРОГНОЗА - ОПТИМИСТИЧНА (1 година):
+    - След подобряване на ВСИЧКИ проблемни параметри
+    - Какви подобрения са възможни
+    - Къде може да бъде след 12 месеца (тегло, здраве, енергия)
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
 
 {
+  "bmi": число,
+  "bmiCategory": "текст категория",
   "bmr": число,
   "bmrReasoning": "обяснение на изчислението",
   "tdee": число,
@@ -3466,7 +3721,8 @@ ${data.medications === 'Да' && data.medicationsDetails ? `
   "macroRatios": {
     "protein": число процент,
     "carbs": число процент,
-    "fats": число процент
+    "fats": число процент,
+    "fiber": число грамове дневно
   },
   "macroRatiosReasoning": {
     "protein": "обосновка",
@@ -3478,25 +3734,82 @@ ${data.medications === 'Да' && data.medicationsDetails ? `
     "carbs": число грамове,
     "fats": число грамове
   },
+  "activityLevel": "ниво 1-10 и описание",
+  "physiologicalPhase": "фаза според възраст и влияние",
+  "waterDeficit": {
+    "dailyNeed": "литри дневно (формула)",
+    "currentIntake": "текущ прием",
+    "deficit": "дефицит в литри",
+    "impactOnLipolysis": "влияние върху отслабването"
+  },
+  "negativeHealthFactors": [
+    {
+      "factor": "фактор",
+      "severity": число 1-3,
+      "description": "описание"
+    }
+  ],
+  "hinderingFactors": [
+    {
+      "factor": "фактор",
+      "severity": число 1-3,
+      "description": "описание"
+    }
+  ],
+  "cumulativeRiskScore": "сума на припокриващи се фактори",
+  "psychoProfile": {
+    "temperament": "тип (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност)",
+    "probability": число процент,
+    "reasoning": "обосновка"
+  },
+  "metabolicReactivity": {
+    "speed": "Бавен/Среден/Бърз",
+    "adaptability": "Ниска/Средна/Висока",
+    "reasoning": "обосновка базирана на всички фактори"
+  },
+  "correctedMetabolism": {
+    "realBMR": число,
+    "realTDEE": число,
+    "correction": "описание на корекцията",
+    "correctionPercent": "+/-X%"
+  },
   "metabolicProfile": "анализ на метаболитния профил",
   "healthRisks": ["риск 1", "риск 2", "риск 3"],
   "nutritionalNeeds": ["нужда 1", "нужда 2", "нужда 3"],
-  "psychologicalProfile": "анализ на психологическия профил",
+  "psychologicalProfile": "детайлен анализ на психологическия профил",
   "successChance": число (-100 до 100),
   "successChanceReasoning": "обосновка",
+  "currentHealthStatus": {
+    "score": число 0-100 (ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}%),
+    "description": "текущо състояние",
+    "keyIssues": ["проблем 1", "проблем 2"]
+  },
+  "forecastPessimistic": {
+    "timeframe": "12 месеца",
+    "weight": "прогнозно тегло",
+    "health": "прогнозно здраве",
+    "risks": ["риск 1", "риск 2"]
+  },
+  "forecastOptimistic": {
+    "timeframe": "12 месеца",
+    "weight": "прогнозно тегло",
+    "health": "прогнозно здраве",
+    "improvements": ["подобрение 1", "подобрение 2"]
+  },
   "keyProblems": [
     {
-      "title": "заглавие",
-      "description": "описание",
+      "title": "заглавие (кратко)",
+      "description": "КРИТИЧНО и ПЛАШЕЩО описание защо е проблем",
       "severity": "Borderline/Risky/Critical",
       "severityValue": число 0-100,
-      "category": "Sleep/Nutrition/Stress/Activity/Medical",
-      "impact": "въздействие"
+      "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical",
+      "impact": "въздействие върху здравето и целта"
     }
   ]
 }
 
-Бъди КОНКРЕТЕН за ${data.name}. Обяснявай ЗАЩО и КАК, не просто "добър" или "лош".`;
+Бъди КОНКРЕТЕН за ${data.name}. Обяснявай ЗАЩО и КАК, не просто "добър" или "лош".
+ВАЖНО: Направи анализ, който е индивидуализиран и базиран на ВСИЧКИ предоставени данни.`;
   
   return defaultPrompt;
 }
@@ -3566,6 +3879,18 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   "afterDinnerMealJustification": "текст",
   "dietType": "текст",
   "weeklyMealPattern": "текст",
+  "weeklyScheme": {
+    "monday": {"meals": число, "description": "текст"},
+    "tuesday": {"meals": число, "description": "текст"},
+    "wednesday": {"meals": число, "description": "текст"},
+    "thursday": {"meals": число, "description": "текст"},
+    "friday": {"meals": число, "description": "текст"},
+    "saturday": {"meals": число, "description": "текст"},
+    "sunday": {"meals": число, "description": "текст"}
+  },
+  "breakfastStrategy": "текст",
+  "calorieDistribution": "текст",
+  "macroDistribution": "текст",
   "mealTiming": {
     "pattern": "текст",
     "fastingWindows": "текст",
@@ -3577,6 +3902,12 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   "foodsToAvoid": ["текст"],
   "supplementRecommendations": ["текст"],
   "hydrationStrategy": "текст",
+  "communicationStyle": {
+    "temperament": "текст",
+    "tone": "текст",
+    "approach": "текст",
+    "chatGuidelines": "текст"
+  },
   "psychologicalSupport": ["текст"]
 }
 
@@ -3633,6 +3964,55 @@ ${data.additionalNotes}
 ВАЖНО: Анализирай холистично всички фактори и създай индивидуализирана стратегия за ${data.name}.
 Фокусирай се на постигането на здравословните цели и запазването на здравето на клиента.
 
+═══ СПЕЦИАЛНИ ИЗИСКВАНИЯ ЗА СЕДМИЧНА СХЕМА ═══
+
+1. ОПРЕДЕЛЯНЕ НА СЕДМИЧНА СХЕМА:
+   - Определи за всеки ден: колко хранения и кога
+   - Адаптирай според:
+     * Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
+     * Хронотип: ${data.chronotype}
+     * Психопрофил от анализа
+     * Цел: ${data.goal}
+
+2. СПЕЦИАЛНИ СЛУЧАИ:
+   a) Ако клиентът НЕ ЗАКУСВА:
+      - Закуската ОТПАДА
+      - ПРЕПОРЪЧАЙ вместо нея: вода с лимон, зелен чай, айран, или друга подходяща напитка
+      - Обясни в mealTiming защо това е подходящо
+   
+   b) СВОБОДНО ХРАНЕНЕ/ЛЮБИМА ХРАНА:
+      - Ако е подходящо според психопрофил, ВКЛЮЧИ свободно хранене
+      - Препоръчително: НЕДЕЛЯ ЗА ОБЯД
+      - След свободното хранене: ЛЕКА ВЕЧЕРЯ
+      - Обясни стратегическата стойност на това
+   
+   c) ФАСТИНГ И ЦИКЛИЧНИ СХЕМИ:
+      - Ако е подходящо: интермитентно гладуване (16:8, 18:6)
+      - Ако е подходящо: carb cycling (високо/ниско въглехидрати)
+      - Ако е подходящо: зареждащи и разреждащи дни
+      - Обясни физиологичната логика
+
+3. РАЗПРЕДЕЛЯНЕ НА КАЛОРИИ И МАКРОСИ:
+   - Определи за ВСЕКИ ДЕН: препоръчителни калории
+   - Определи за ВСЯКО ХРАНЕНЕ: калории и макрос баланс
+   - Варирай според:
+     * Ден от седмицата (работни/почивни дни)
+     * Хронотип (сутрешни/вечерни енергийни пикове)
+     * Физическа активност
+
+4. НАЧИН НА КОМУНИКАЦИЯ:
+   - Адаптирай комуникацията според психопрофил от анализа
+   - Ако темперамент е определен (>80% вероятност):
+     * Холерик: Директен, фокусиран на резултати, кратки обяснения
+     * Сангвиник: Позитивен, вдъхновяващ, разнообразие
+     * Флегматик: Спокоен, постепенен, без натиск
+     * Меланхолик: Детайлен, научно обоснован, емпатичен
+   - Това ще влияе на:
+     * Тон на welcomeMessage
+     * Стил на обосновки
+     * Психологическа подкрепа
+     * Бъдеща комуникация с AI асистента
+
 Върни JSON със стратегия:
 {
   "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
@@ -3644,6 +4024,18 @@ ${data.additionalNotes}
   "afterDinnerMealJustification": "ОБОСНОВКА ЗА ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ: Ако има хранения след вечеря, обясни ЗАЩО са необходими, каква е целта, и как подпомагат общата стратегия. Ако няма - напиши 'Не са необходими'.",
   "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
   "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
+  "weeklyScheme": {
+    "monday": {"meals": число, "description": "текст за ден"},
+    "tuesday": {"meals": число, "description": "текст за ден"},
+    "wednesday": {"meals": число, "description": "текст за ден"},
+    "thursday": {"meals": число, "description": "текст за ден"},
+    "friday": {"meals": число, "description": "текст за ден"},
+    "saturday": {"meals": число, "description": "текст за ден"},
+    "sunday": {"meals": число, "description": "текст за ден (включи свободно хранене ако е подходящо)"}
+  },
+  "breakfastStrategy": "текст - ако не закусва, какво се препоръчва вместо закуска",
+  "calorieDistribution": "текст - как се разпределят калориите по дни и хранения",
+  "macroDistribution": "текст - как се разпределят макросите според дни/хранения",
   "mealTiming": {
     "pattern": "седмичен модел на хранене БЕЗ точни часове - използвай концепции като 'закуска', 'обяд', 'вечеря' според профила. Напр. 'Понеделник-Петък: 2 хранения (обяд, вечеря), Събота-Неделя: 3 хранения с закуска'",
     "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
@@ -3659,6 +4051,12 @@ ${data.additionalNotes}
     "Индивидуална добавка 3 (с дозировка и обосновка специфична за ${data.name})"
   ],
   "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name} според активност и климат",
+  "communicationStyle": {
+    "temperament": "определен темперамент от анализа (ако >80%)",
+    "tone": "тон на комуникация според психопрофил",
+    "approach": "подход към комуникация с клиента",
+    "chatGuidelines": "насоки как AI асистентът трябва да общува с ${data.name}"
+  },
   "psychologicalSupport": [
     "Психологически съвет 1 базиран на емоционалното хранене на ${data.name}",
     "Психологически съвет 2 базиран на стреса и поведението на ${data.name}",
