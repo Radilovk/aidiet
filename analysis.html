@@ -1444,7 +1444,7 @@
             if (analysis.forecastPessimistic) {
                 const pessimistic = analysis.forecastPessimistic;
                 
-                // Update risks (limit to top 5 most severe)
+                // Update risks (limit to first 5 - assumes AI returns sorted by severity)
                 const risksContainer = document.getElementById('pessimisticRisks');
                 if (pessimistic.risks && Array.isArray(pessimistic.risks) && pessimistic.risks.length > 0) {
                     risksContainer.innerHTML = `
@@ -1462,7 +1462,7 @@
             if (analysis.forecastOptimistic) {
                 const optimistic = analysis.forecastOptimistic;
                 
-                // Update improvements (limit to top 5 most desirable)
+                // Update improvements (limit to first 5 - assumes AI returns sorted by desirability)
                 const improvementsContainer = document.getElementById('optimisticImprovements');
                 if (optimistic.improvements && Array.isArray(optimistic.improvements) && optimistic.improvements.length > 0) {
                     improvementsContainer.innerHTML = `
