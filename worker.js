@@ -113,7 +113,10 @@ const OFFENSIVE_PATTERNS = [
 ];
 
 // AI Communication Logging Configuration
-const MAX_LOG_ENTRIES = 1; // Maximum number of log entries to keep in index (only keep the latest)
+// AI Communication Logging Configuration
+// AI logging is ALWAYS ENABLED to maintain last complete communication for debugging
+// MAX_LOG_ENTRIES controls how many sessions to keep (1 = only the most recent session)
+const MAX_LOG_ENTRIES = 1; // Keep only the latest session to balance functionality with KV usage
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -5313,17 +5316,9 @@ async function logAIRequest(env, stepName, requestData) {
       return null;
     }
 
-    // Check if logging is enabled (default to enabled if key doesn't exist or on error)
-    try {
-      const loggingEnabled = await env.page_content.get('ai_logging_enabled');
-      if (loggingEnabled === 'false') {
-        console.log('AI logging is disabled, skipping');
-        return null;
-      }
-    } catch (error) {
-      // On error reading KV, default to enabled (preserve original functionality)
-      console.warn('Error checking logging status, defaulting to enabled:', error);
-    }
+    // AI logging is always enabled to maintain last complete communication log
+    // This is required for debugging and monitoring purposes
+    // The system keeps only the last MAX_LOG_ENTRIES sessions to manage KV usage
 
     // Generate unique log ID
     const logId = generateUniqueId('ai_log');
@@ -5389,17 +5384,9 @@ async function logAIResponse(env, logId, stepName, responseData) {
       return;
     }
 
-    // Check if logging is enabled (default to enabled if key doesn't exist or on error)
-    try {
-      const loggingEnabled = await env.page_content.get('ai_logging_enabled');
-      if (loggingEnabled === 'false') {
-        console.log('AI logging is disabled, skipping');
-        return;
-      }
-    } catch (error) {
-      // On error reading KV, default to enabled (preserve original functionality)
-      console.warn('Error checking logging status, defaulting to enabled:', error);
-    }
+    // AI logging is always enabled to maintain last complete communication log
+    // This is required for debugging and monitoring purposes
+    // The system keeps only the last MAX_LOG_ENTRIES sessions to manage KV usage
 
     const timestamp = new Date().toISOString();
     
@@ -7048,6 +7035,7 @@ async function handleGetVapidPublicKey(request, env) {
 
 /**
  * Admin: Get AI logging status
+ * Note: AI logging is always enabled to maintain last complete communication log
  */
 async function handleGetLoggingStatus(request, env) {
   try {
@@ -7055,13 +7043,14 @@ async function handleGetLoggingStatus(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const loggingEnabled = await env.page_content.get('ai_logging_enabled');
-    
+    // AI logging is always enabled (required for debugging and monitoring)
+    // The system automatically keeps only the last session (MAX_LOG_ENTRIES = 1)
     return jsonResponse({ 
       success: true, 
-      enabled: loggingEnabled === 'true' || loggingEnabled === null // Default to true if not set
+      enabled: true, // Always enabled
+      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация'
     }, 200, {
-      cacheControl: 'no-cache' // Don't cache this response
+      cacheControl: 'no-cache'
     });
   } catch (error) {
     console.error('Error getting logging status:', error);
@@ -7071,6 +7060,8 @@ async function handleGetLoggingStatus(request, env) {
 
 /**
  * Admin: Set AI logging status
+ * Note: AI logging is always enabled and cannot be disabled
+ * This endpoint is kept for backward compatibility but will not change the status
  */
 async function handleSetLoggingStatus(request, env) {
   try {
@@ -7079,16 +7070,16 @@ async function handleSetLoggingStatus(request, env) {
     }
 
     const data = await request.json();
-    const enabled = data.enabled === true || data.enabled === 'true';
+    const requestedState = data.enabled === true || data.enabled === 'true';
 
-    await env.page_content.put('ai_logging_enabled', enabled.toString());
-    
-    console.log(`AI logging ${enabled ? 'enabled' : 'disabled'} by admin`);
+    // AI logging is always enabled to maintain last complete communication
+    // We don't actually change the state, but acknowledge the request
+    console.log(`AI logging toggle requested: ${requestedState ? 'enable' : 'disable'}, but logging is always enabled`);
     
     return jsonResponse({ 
       success: true,
-      enabled: enabled,
-      message: `AI логването е ${enabled ? 'включено' : 'изключено'}`
+      enabled: true, // Always enabled
+      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация. Системата автоматично пази само последната сесия.'
     });
   } catch (error) {
     console.error('Error setting logging status:', error);
