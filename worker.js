@@ -60,6 +60,23 @@
  *   ✓ Full analysis quality maintained
  *   ✓ Cached food lists prevent redundant KV reads (4x → 1x per generation)
  *   ✓ AI has flexibility without over-prescription
+ * 
+ * AI PROMPTS ORGANIZATION (Feb 2026):
+ *   All AI prompts are extracted to separate files for easier management:
+ *   - Location: KV/prompts/ directory
+ *   - Files: admin_analysis_prompt.txt, admin_strategy_prompt.txt, 
+ *            admin_meal_plan_prompt.txt, admin_summary_prompt.txt,
+ *            admin_consultation_prompt.txt, admin_modification_prompt.txt,
+ *            admin_correction_prompt.txt
+ *   - Upload: ./KV/upload-kv-keys.sh script uploads to Cloudflare KV
+ *   - Fallback: getDefaultPromptTemplates() in worker.js contains same prompts
+ *   - Runtime: Worker checks KV first, falls back to embedded prompts
+ *   
+ *   Benefits:
+ *   ✓ Prompts are version controlled separately
+ *   ✓ Easy to review and update without touching code
+ *   ✓ Can be customized via admin panel or KV files
+ *   ✓ Maintained in both repository and KV storage
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -5423,6 +5440,17 @@ async function handleGetPrompt(request, env) {
  * These are the prompts that will be used if no custom prompt is set in KV
  * This ensures the "View Standard Prompt" button shows the ACTUAL prompts from worker.js
  * 
+ * PROMPT FILES LOCATION: All prompts are also maintained in separate files:
+ * - KV/prompts/admin_analysis_prompt.txt
+ * - KV/prompts/admin_strategy_prompt.txt
+ * - KV/prompts/admin_meal_plan_prompt.txt
+ * - KV/prompts/admin_summary_prompt.txt
+ * - KV/prompts/admin_consultation_prompt.txt
+ * - KV/prompts/admin_modification_prompt.txt
+ * - KV/prompts/admin_correction_prompt.txt
+ * 
+ * These files are uploaded to Cloudflare KV using: ./KV/upload-kv-keys.sh
+ * 
  * IMPORTANT: These templates use {variable} placeholders that will be shown to admins in the UI.
  * The actual generation functions in generateAnalysisPrompt, generateStrategyPrompt, etc. 
  * use these same prompts but with ${data.field} JavaScript template literal syntax.
@@ -5435,7 +5463,10 @@ function getDefaultPromptTemplates() {
   // The actual generation functions use the same prompts but with ${data.field} syntax for JavaScript interpolation.
   // These are the REAL prompts used in production - copied directly from the generation functions.
   // 
-  // MAINTENANCE: When updating prompts in generation functions, update these templates too!
+  // MAINTENANCE: When updating prompts:
+  // 1. Update the corresponding file in KV/prompts/
+  // 2. Update this function to match
+  // 3. Run ./KV/upload-kv-keys.sh to upload to Cloudflare KV
   // - Keep the logic and structure identical
   // - Only change variable syntax from ${variable} to {variable}
   
