@@ -729,6 +729,20 @@ let chatPromptsCache = null;
 let chatPromptsCacheTime = 0;
 const CHAT_PROMPTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
+// Cache for food lists (whitelist/blacklist) to reduce KV reads
+// These are read 9 times per plan generation (analysis + strategy + 7 meal plan chunks)
+// Caching reduces KV operations from 18 to 2 per plan (89% reduction)
+let foodListsCache = null;
+let foodListsCacheTime = 0;
+const FOOD_LISTS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache
+
+// Cache for custom prompts to reduce KV reads
+// Custom prompts are read 10 times per plan generation
+// Caching reduces KV operations from 10 to 3-4 per plan (70% reduction)
+let customPromptsCache = {};
+let customPromptsCacheTime = {};
+const CUSTOM_PROMPTS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache (prompts rarely change)
+
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
@@ -1230,6 +1244,14 @@ async function generateSimplifiedFallbackPlan(env, data) {
  * Helper function to fetch and build dynamic whitelist/blacklist sections for prompts
  */
 async function getDynamicFoodListsSections(env) {
+  // Check cache first
+  const now = Date.now();
+  if (foodListsCache && (now - foodListsCacheTime) < FOOD_LISTS_CACHE_TTL) {
+    console.log('[Cache HIT] Food lists from cache');
+    return foodListsCache;
+  }
+  
+  console.log('[Cache MISS] Loading food lists from KV');
   let dynamicWhitelist = [];
   let dynamicBlacklist = [];
   
@@ -1261,7 +1283,38 @@ async function getDynamicFoodListsSections(env) {
     dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
   }
   
-  return { dynamicWhitelistSection, dynamicBlacklistSection };
+  // Cache the result
+  const result = { dynamicWhitelistSection, dynamicBlacklistSection };
+  foodListsCache = result;
+  foodListsCacheTime = now;
+  
+  return result;
+}
+
+/**
+ * Invalidate food lists cache
+ * Should be called after updating whitelist or blacklist
+ */
+function invalidateFoodListsCache() {
+  foodListsCache = null;
+  foodListsCacheTime = 0;
+  console.log('[Cache INVALIDATED] Food lists cache cleared');
+}
+
+/**
+ * Invalidate custom prompts cache
+ * @param {string|null} key - Specific prompt key to invalidate, or null to clear all
+ */
+function invalidateCustomPromptsCache(key = null) {
+  if (key) {
+    delete customPromptsCache[key];
+    delete customPromptsCacheTime[key];
+    console.log(`[Cache INVALIDATED] Custom prompt '${key}' cleared`);
+  } else {
+    customPromptsCache = {};
+    customPromptsCacheTime = {};
+    console.log('[Cache INVALIDATED] All custom prompts cleared');
+  }
 }
 
 /**
@@ -3404,8 +3457,24 @@ async function getCustomPrompt(env, promptKey) {
     return null;
   }
   
+  // Check cache first
+  const now = Date.now();
+  if (customPromptsCache[promptKey] && 
+      customPromptsCacheTime[promptKey] && 
+      (now - customPromptsCacheTime[promptKey]) < CUSTOM_PROMPTS_CACHE_TTL) {
+    console.log(`[Cache HIT] Custom prompt '${promptKey}' from cache`);
+    return customPromptsCache[promptKey];
+  }
+  
+  console.log(`[Cache MISS] Loading custom prompt '${promptKey}' from KV`);
   try {
-    return await env.page_content.get(promptKey);
+    const prompt = await env.page_content.get(promptKey);
+    
+    // Cache the result (even if null, to avoid repeated KV reads for non-existent keys)
+    customPromptsCache[promptKey] = prompt;
+    customPromptsCacheTime[promptKey] = now;
+    
+    return prompt;
   } catch (error) {
     console.error(`Error fetching custom prompt ${promptKey}:`, error);
     return null;
@@ -5406,6 +5475,9 @@ async function handleSavePrompt(request, env) {
       chatPromptsCacheTime = 0;
     }
     
+    // Invalidate custom prompts cache for this specific prompt key
+    invalidateCustomPromptsCache(key);
+    
     return jsonResponse({ success: true, message: 'Prompt saved successfully' });
   } catch (error) {
     console.error('Error saving prompt:', error);
@@ -6799,6 +6871,9 @@ async function handleAddToBlacklist(request, env) {
     if (!blacklist.includes(item)) {
       blacklist.push(item);
       await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+      
+      // Invalidate food lists cache
+      invalidateFoodListsCache();
     }
     
     return jsonResponse({ success: true, blacklist: blacklist });
@@ -6831,6 +6906,9 @@ async function handleRemoveFromBlacklist(request, env) {
     // Remove item
     blacklist = blacklist.filter(i => i !== item);
     await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    
+    // Invalidate food lists cache
+    invalidateFoodListsCache();
     
     return jsonResponse({ success: true, blacklist: blacklist });
   } catch (error) {
@@ -6886,6 +6964,9 @@ async function handleAddToWhitelist(request, env) {
     if (!whitelist.includes(item)) {
       whitelist.push(item);
       await env.page_content.put('food_whitelist', JSON.stringify(whitelist));
+      
+      // Invalidate food lists cache
+      invalidateFoodListsCache();
     }
     
     return jsonResponse({ success: true, whitelist: whitelist });
@@ -6918,6 +6999,9 @@ async function handleRemoveFromWhitelist(request, env) {
     // Remove item
     whitelist = whitelist.filter(i => i !== item);
     await env.page_content.put('food_whitelist', JSON.stringify(whitelist));
+    
+    // Invalidate food lists cache
+    invalidateFoodListsCache();
     
     return jsonResponse({ success: true, whitelist: whitelist });
   } catch (error) {
