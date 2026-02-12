@@ -113,7 +113,6 @@ const OFFENSIVE_PATTERNS = [
 ];
 
 // AI Communication Logging Configuration
-// AI Communication Logging Configuration
 // AI logging is ALWAYS ENABLED to maintain last complete communication for debugging
 // MAX_LOG_ENTRIES controls how many sessions to keep (1 = only the most recent session)
 const MAX_LOG_ENTRIES = 1; // Keep only the latest session to balance functionality with KV usage
@@ -7045,10 +7044,11 @@ async function handleGetLoggingStatus(request, env) {
 
     // AI logging is always enabled (required for debugging and monitoring)
     // The system automatically keeps only the last session (MAX_LOG_ENTRIES = 1)
+    // Bulgarian: "AI логването е винаги включено за поддържане на последната пълна комуникация"
     return jsonResponse({ 
       success: true, 
       enabled: true, // Always enabled
-      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация'
+      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация' // AI logging is always enabled to maintain last complete communication
     }, 200, {
       cacheControl: 'no-cache'
     });
@@ -7076,10 +7076,11 @@ async function handleSetLoggingStatus(request, env) {
     // We don't actually change the state, but acknowledge the request
     console.log(`AI logging toggle requested: ${requestedState ? 'enable' : 'disable'}, but logging is always enabled`);
     
+    // Bulgarian: "AI логването е винаги включено за поддържане на последната пълна комуникация. Системата автоматично пази само последната сесия."
     return jsonResponse({ 
       success: true,
       enabled: true, // Always enabled
-      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация. Системата автоматично пази само последната сесия.'
+      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация. Системата автоматично пази само последната сесия.' // AI logging is always enabled to maintain last complete communication. System automatically keeps only the last session.
     });
   } catch (error) {
     console.error('Error setting logging status:', error);
