@@ -858,45 +858,9 @@
             padding: 24px;
         }
 
-        .forecast-metric {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px;
-            margin-bottom: 12px;
-            background: var(--input-bg);
-            border-radius: 12px;
-            transition: var(--transition);
-        }
-
-        .forecast-metric:hover {
-            background: rgba(16,185,129,0.05);
-            transform: translateX(5px);
-        }
-
-        .forecast-metric-label {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-gray);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .forecast-metric-label i {
-            color: var(--primary-red);
-        }
-
-        .forecast-metric-value {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-
         .forecast-risks, .forecast-improvements {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(107,114,128,0.1);
+            margin-top: 0;
+            padding-top: 0;
         }
 
         .forecast-risks h4, .forecast-improvements h4 {
@@ -1239,18 +1203,6 @@
                         <div class="forecast-card-subtitle">Ако продължите по същия начин</div>
                     </div>
                     <div class="forecast-content">
-                        <div class="forecast-metric">
-                            <div class="forecast-metric-label">
-                                <i class="fas fa-weight"></i> Тегло
-                            </div>
-                            <div class="forecast-metric-value" id="pessimisticWeight">--</div>
-                        </div>
-                        <div class="forecast-metric">
-                            <div class="forecast-metric-label">
-                                <i class="fas fa-heartbeat"></i> Здраве
-                            </div>
-                            <div class="forecast-metric-value" id="pessimisticHealth">--</div>
-                        </div>
                         <div class="forecast-risks" id="pessimisticRisks">
                             <!-- Risks will be inserted here -->
                         </div>
@@ -1269,18 +1221,6 @@
                         <div class="forecast-card-subtitle">След подобряване на всички параметри</div>
                     </div>
                     <div class="forecast-content">
-                        <div class="forecast-metric">
-                            <div class="forecast-metric-label">
-                                <i class="fas fa-weight"></i> Тегло
-                            </div>
-                            <div class="forecast-metric-value" id="optimisticWeight">--</div>
-                        </div>
-                        <div class="forecast-metric">
-                            <div class="forecast-metric-label">
-                                <i class="fas fa-heartbeat"></i> Здраве
-                            </div>
-                            <div class="forecast-metric-value" id="optimisticHealth">--</div>
-                        </div>
                         <div class="forecast-improvements" id="optimisticImprovements">
                             <!-- Improvements will be inserted here -->
                         </div>
@@ -1504,19 +1444,13 @@
             if (analysis.forecastPessimistic) {
                 const pessimistic = analysis.forecastPessimistic;
                 
-                // Update weight
-                document.getElementById('pessimisticWeight').textContent = pessimistic.weight || 'Няма данни';
-                
-                // Update health
-                document.getElementById('pessimisticHealth').textContent = pessimistic.health || 'Няма данни';
-                
-                // Update risks
+                // Update risks (limit to top 5 most severe)
                 const risksContainer = document.getElementById('pessimisticRisks');
                 if (pessimistic.risks && Array.isArray(pessimistic.risks) && pessimistic.risks.length > 0) {
                     risksContainer.innerHTML = `
                         <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
                         <ul>
-                            ${pessimistic.risks.map(risk => `<li>${risk}</li>`).join('')}
+                            ${pessimistic.risks.slice(0, 5).map(risk => `<li>${risk}</li>`).join('')}
                         </ul>
                     `;
                 } else {
@@ -1528,19 +1462,13 @@
             if (analysis.forecastOptimistic) {
                 const optimistic = analysis.forecastOptimistic;
                 
-                // Update weight
-                document.getElementById('optimisticWeight').textContent = optimistic.weight || 'Няма данни';
-                
-                // Update health
-                document.getElementById('optimisticHealth').textContent = optimistic.health || 'Няма данни';
-                
-                // Update improvements
+                // Update improvements (limit to top 5 most desirable)
                 const improvementsContainer = document.getElementById('optimisticImprovements');
                 if (optimistic.improvements && Array.isArray(optimistic.improvements) && optimistic.improvements.length > 0) {
                     improvementsContainer.innerHTML = `
                         <h4><i class="fas fa-check-circle"></i> Възможни Подобрения</h4>
                         <ul>
-                            ${optimistic.improvements.map(improvement => `
+                            ${optimistic.improvements.slice(0, 5).map(improvement => `
                                 <li><i class="fas fa-check"></i> ${improvement}</li>
                             `).join('')}
                         </ul>
