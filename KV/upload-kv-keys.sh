@@ -35,7 +35,7 @@ echo ""
 echo "Качване на KV ключове..."
 echo ""
 
-# admin_plan_prompt
+# admin_plan_prompt (legacy - still supported)
 echo "📤 Качване на admin_plan_prompt..."
 if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
     "admin_plan_prompt" --path="$KV_DIR/admin_plan_prompt.txt"; then
@@ -45,13 +45,83 @@ else
 fi
 echo ""
 
-# admin_chat_prompt
+# admin_chat_prompt (legacy - still supported)
 echo "📤 Качване на admin_chat_prompt..."
 if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
     "admin_chat_prompt" --path="$KV_DIR/admin_chat_prompt.txt"; then
     echo "✅ admin_chat_prompt качен успешно"
 else
     echo "❌ Грешка при качване на admin_chat_prompt"
+fi
+echo ""
+
+# admin_analysis_prompt (new separate prompt)
+echo "📤 Качване на admin_analysis_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_analysis_prompt" --path="$KV_DIR/prompts/admin_analysis_prompt.txt"; then
+    echo "✅ admin_analysis_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_analysis_prompt"
+fi
+echo ""
+
+# admin_strategy_prompt (new separate prompt)
+echo "📤 Качване на admin_strategy_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_strategy_prompt" --path="$KV_DIR/prompts/admin_strategy_prompt.txt"; then
+    echo "✅ admin_strategy_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_strategy_prompt"
+fi
+echo ""
+
+# admin_meal_plan_prompt (new separate prompt)
+echo "📤 Качване на admin_meal_plan_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_meal_plan_prompt" --path="$KV_DIR/prompts/admin_meal_plan_prompt.txt"; then
+    echo "✅ admin_meal_plan_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_meal_plan_prompt"
+fi
+echo ""
+
+# admin_summary_prompt (new separate prompt)
+echo "📤 Качване на admin_summary_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_summary_prompt" --path="$KV_DIR/prompts/admin_summary_prompt.txt"; then
+    echo "✅ admin_summary_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_summary_prompt"
+fi
+echo ""
+
+# admin_consultation_prompt (new separate prompt)
+echo "📤 Качване на admin_consultation_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_consultation_prompt" --path="$KV_DIR/prompts/admin_consultation_prompt.txt"; then
+    echo "✅ admin_consultation_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_consultation_prompt"
+fi
+echo ""
+
+# admin_modification_prompt (new separate prompt)
+echo "📤 Качване на admin_modification_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_modification_prompt" --path="$KV_DIR/prompts/admin_modification_prompt.txt"; then
+    echo "✅ admin_modification_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_modification_prompt"
+fi
+echo ""
+
+# admin_correction_prompt (new separate prompt)
+echo "📤 Качване на admin_correction_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_correction_prompt" --path="$KV_DIR/prompts/admin_correction_prompt.txt"; then
+    echo "✅ admin_correction_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_correction_prompt"
 fi
 echo ""
 
@@ -71,13 +141,38 @@ echo "=========================================="
 echo ""
 
 # Проверка на ключовете
-echo "Проверка на admin_plan_prompt:"
-wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_plan_prompt" | head -5
+echo "Проверка на admin_analysis_prompt:"
+wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_analysis_prompt" | head -5
 echo "..."
 echo ""
 
-echo "Проверка на admin_chat_prompt:"
-wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_chat_prompt"
+echo "Проверка на admin_strategy_prompt:"
+wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_strategy_prompt" | head -5
+echo "..."
+echo ""
+
+echo "Проверка на admin_meal_plan_prompt:"
+wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_meal_plan_prompt" | head -5
+echo "..."
+echo ""
+
+echo "Проверка на admin_summary_prompt:"
+wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_summary_prompt" | head -5
+echo "..."
+echo ""
+
+echo "Проверка на admin_consultation_prompt:"
+wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_consultation_prompt"
+echo ""
+
+echo "Проверка на admin_modification_prompt:"
+wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_modification_prompt" | head -5
+echo "..."
+echo ""
+
+echo "Проверка на admin_correction_prompt:"
+wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_correction_prompt" | head -5
+echo "..."
 echo ""
 
 echo "Проверка на admin_ai_model:"

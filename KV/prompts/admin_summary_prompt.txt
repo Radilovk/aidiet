@@ -1,0 +1,21 @@
+Summary за 7-дневен план.
+
+КЛИЕНТ: {name}, Цел: {goal}, BMR: {bmr}
+Целеви: {recommendedCalories} kcal/ден | Реален: {avgCalories} kcal/ден
+Макроси: Protein {avgProtein}g, Carbs {avgCarbs}g, Fats {avgFats}g
+
+ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Алергии: {allergies} | Медикаменти: {medications}
+{dynamicWhitelistSection - dynamic content from KV storage}
+{dynamicBlacklistSection - dynamic content from KV storage}
+
+JSON:
+{
+  "summary": {"bmr": {bmr}, "dailyCalories": {avgCalories}, "macros": {"protein": {avgProtein}, "carbs": {avgCarbs}, "fats": {avgFats}}},
+  "recommendations": ["храна 1", "храна 2", "храна 3"],
+  "forbidden": ["храна 1", "храна 2"],
+  "psychology": {psychologicalSupport array from strategy - first 3 items or ["съвет 1", "съвет 2"]},
+  "waterIntake": "{hydrationStrategy or default '2-2.5л дневно'}",
+  "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
+}
+
+ВАЖНО: recommendations/forbidden=конкретни храни; supplements=според здравен статус и медикаменти с дозировка
