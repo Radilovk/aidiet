@@ -1364,7 +1364,7 @@ MacroDist (step2): ${strategyCompact.macroDistribution}${strategyCompact.weeklyS
 ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   const dayData = strategyCompact.weeklyScheme[day];
   const dayName = DAY_NAMES_BG[day] || day;
-  return `${dayName}: ${dayData.meals}meals - ${dayData.description}`;
+  return `${dayName}: ${dayData.meals} meals - ${dayData.description}`;
 }).join('\n')}` : ''}${data.additionalNotes ? `
 
 ⚠️ USER NOTES: ${data.additionalNotes}` : ''}
@@ -1398,7 +1398,7 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 6. Order: Breakfast → Lunch → (Afternoon) → Dinner → (Late only if: >4h between dinner-sleep + justified)
    Late snack ONLY low GI: yogurt, nuts, berries, avocado, seeds (max ${MAX_LATE_SNACK_CALORIES} kcal)
 7. Variety: Different meals from previous days${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. MANDATORY: Client NO BREAKFAST - skip or drinks only!' : ''}
-8. ⚠️ FREE MEAL: If strategy includes free meal (Sunday lunch recommended), record meal name as "свободно хранене" exactly - let user decide what to eat
+9. ⚠️ FREE MEAL: If strategy includes free meal (Sunday lunch recommended), record meal name as "свободно хранене" exactly - let user decide what to eat
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
@@ -3989,13 +3989,13 @@ ${data.additionalNotes ? `
 4. COMMUNICATION STYLE:
    - Adapt to psycho profile temperament
    - Choleric: Direct, results-focused
-     * Сангвиник: Позитивен, вдъхновяващ, разнообразие
-     * Флегматик: Спокоен, постепенен, без натиск
-     * Меланхолик: Детайлен, научно обоснован, емпатичен
-   - Това ще влияе на:
-     * Тон на welcomeMessage
-     * Стил на обосновки
-     * Психологическа подкрепа
+   - Sanguine: Positive, varied
+   - Phlegmatic: Patient, gradual, no pressure
+   - Melancholic: Detailed, scientifically sound, empathetic
+   - Affects:
+     * welcomeMessage tone
+     * Communication style
+     * Psycho support
      * Бъдеща комуникация с AI асистента
 
 Return JSON strategy:
@@ -5751,10 +5751,9 @@ Create personalized strategy for {name} based on unique profile.`,
 - Psycho tips are based on SPECIFIC emotional profile of {name}
 
 === DIET MODIFIER (User profile) ===
-ОПРЕДЕЛЕН МОДИФИКАТОР ЗА КЛИЕНТА: "{dietaryModifier}"
-{Conditionally shown if modifierReasoning exists: "ОБОСНОВКА: {modifierReasoning}"}
+MODIFIER: "{dietaryModifier}"
 
-=== КЛИЕНТ И ЦЕЛИ ===
+=== CLIENT & GOALS ===
 Име: {name}, Възраст: {age}, Пол: {gender}
 Цел: {goal}
 BMR (изчислен): {bmr} kcal
