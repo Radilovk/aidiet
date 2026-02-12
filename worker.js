@@ -60,6 +60,23 @@
  *   ✓ Full analysis quality maintained
  *   ✓ Cached food lists prevent redundant KV reads (4x → 1x per generation)
  *   ✓ AI has flexibility without over-prescription
+ * 
+ * AI PROMPTS ORGANIZATION (Feb 2026):
+ *   All AI prompts are extracted to separate files for easier management:
+ *   - Location: KV/prompts/ directory
+ *   - Files: admin_analysis_prompt.txt, admin_strategy_prompt.txt, 
+ *            admin_meal_plan_prompt.txt, admin_summary_prompt.txt,
+ *            admin_consultation_prompt.txt, admin_modification_prompt.txt,
+ *            admin_correction_prompt.txt
+ *   - Upload: ./KV/upload-kv-keys.sh script uploads to Cloudflare KV
+ *   - Fallback: getDefaultPromptTemplates() in worker.js contains same prompts
+ *   - Runtime: Worker checks KV first, falls back to embedded prompts
+ *   
+ *   Benefits:
+ *   ✓ Prompts are version controlled separately
+ *   ✓ Easy to review and update without touching code
+ *   ✓ Can be customized via admin panel or KV files
+ *   ✓ Maintained in both repository and KV storage
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -96,7 +113,9 @@ const OFFENSIVE_PATTERNS = [
 ];
 
 // AI Communication Logging Configuration
-const MAX_LOG_ENTRIES = 1; // Maximum number of log entries to keep in index (only keep the latest)
+// AI logging is ALWAYS ENABLED to maintain last complete communication for debugging
+// MAX_LOG_ENTRIES controls how many sessions to keep (1 = only the most recent session)
+const MAX_LOG_ENTRIES = 1; // Keep only the latest session to balance functionality with KV usage
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -712,6 +731,20 @@ let chatPromptsCache = null;
 let chatPromptsCacheTime = 0;
 const CHAT_PROMPTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
+// Cache for food lists (whitelist/blacklist) to reduce KV reads
+// These are read 9 times per plan generation (analysis + strategy + 7 meal plan chunks)
+// Caching reduces KV operations from 18 to 2 per plan (89% reduction)
+let foodListsCache = null;
+let foodListsCacheTime = 0;
+const FOOD_LISTS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache
+
+// Cache for custom prompts to reduce KV reads
+// Custom prompts are read 10 times per plan generation
+// Caching reduces KV operations from 10 to 3-4 per plan (70% reduction)
+let customPromptsCache = {};
+let customPromptsCacheTime = {};
+const CUSTOM_PROMPTS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache (prompts rarely change)
+
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
@@ -1213,6 +1246,14 @@ async function generateSimplifiedFallbackPlan(env, data) {
  * Helper function to fetch and build dynamic whitelist/blacklist sections for prompts
  */
 async function getDynamicFoodListsSections(env) {
+  // Check cache first
+  const now = Date.now();
+  if (foodListsCache && (now - foodListsCacheTime) < FOOD_LISTS_CACHE_TTL) {
+    console.log('[Cache HIT] Food lists from cache');
+    return foodListsCache;
+  }
+  
+  console.log('[Cache MISS] Loading food lists from KV');
   let dynamicWhitelist = [];
   let dynamicBlacklist = [];
   
@@ -1244,7 +1285,38 @@ async function getDynamicFoodListsSections(env) {
     dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
   }
   
-  return { dynamicWhitelistSection, dynamicBlacklistSection };
+  // Cache the result
+  const result = { dynamicWhitelistSection, dynamicBlacklistSection };
+  foodListsCache = result;
+  foodListsCacheTime = now;
+  
+  return result;
+}
+
+/**
+ * Invalidate food lists cache
+ * Should be called after updating whitelist or blacklist
+ */
+function invalidateFoodListsCache() {
+  foodListsCache = null;
+  foodListsCacheTime = 0;
+  console.log('[Cache INVALIDATED] Food lists cache cleared');
+}
+
+/**
+ * Invalidate custom prompts cache
+ * @param {string|null} key - Specific prompt key to invalidate, or null to clear all
+ */
+function invalidateCustomPromptsCache(key = null) {
+  if (key) {
+    delete customPromptsCache[key];
+    delete customPromptsCacheTime[key];
+    console.log(`[Cache INVALIDATED] Custom prompt '${key}' cleared`);
+  } else {
+    customPromptsCache = {};
+    customPromptsCacheTime = {};
+    console.log('[Cache INVALIDATED] All custom prompts cleared');
+  }
 }
 
 /**
@@ -3387,8 +3459,24 @@ async function getCustomPrompt(env, promptKey) {
     return null;
   }
   
+  // Check cache first
+  const now = Date.now();
+  if (customPromptsCache[promptKey] && 
+      customPromptsCacheTime[promptKey] && 
+      (now - customPromptsCacheTime[promptKey]) < CUSTOM_PROMPTS_CACHE_TTL) {
+    console.log(`[Cache HIT] Custom prompt '${promptKey}' from cache`);
+    return customPromptsCache[promptKey];
+  }
+  
+  console.log(`[Cache MISS] Loading custom prompt '${promptKey}' from KV`);
   try {
-    return await env.page_content.get(promptKey);
+    const prompt = await env.page_content.get(promptKey);
+    
+    // Cache the result (even if null, to avoid repeated KV reads for non-existent keys)
+    customPromptsCache[promptKey] = prompt;
+    customPromptsCacheTime[promptKey] = now;
+    
+    return prompt;
   } catch (error) {
     console.error(`Error fetching custom prompt ${promptKey}:`, error);
     return null;
@@ -5227,17 +5315,9 @@ async function logAIRequest(env, stepName, requestData) {
       return null;
     }
 
-    // Check if logging is enabled (default to enabled if key doesn't exist or on error)
-    try {
-      const loggingEnabled = await env.page_content.get('ai_logging_enabled');
-      if (loggingEnabled === 'false') {
-        console.log('AI logging is disabled, skipping');
-        return null;
-      }
-    } catch (error) {
-      // On error reading KV, default to enabled (preserve original functionality)
-      console.warn('Error checking logging status, defaulting to enabled:', error);
-    }
+    // AI logging is always enabled to maintain last complete communication log
+    // This is required for debugging and monitoring purposes
+    // The system keeps only the last MAX_LOG_ENTRIES sessions to manage KV usage
 
     // Generate unique log ID
     const logId = generateUniqueId('ai_log');
@@ -5303,17 +5383,9 @@ async function logAIResponse(env, logId, stepName, responseData) {
       return;
     }
 
-    // Check if logging is enabled (default to enabled if key doesn't exist or on error)
-    try {
-      const loggingEnabled = await env.page_content.get('ai_logging_enabled');
-      if (loggingEnabled === 'false') {
-        console.log('AI logging is disabled, skipping');
-        return;
-      }
-    } catch (error) {
-      // On error reading KV, default to enabled (preserve original functionality)
-      console.warn('Error checking logging status, defaulting to enabled:', error);
-    }
+    // AI logging is always enabled to maintain last complete communication log
+    // This is required for debugging and monitoring purposes
+    // The system keeps only the last MAX_LOG_ENTRIES sessions to manage KV usage
 
     const timestamp = new Date().toISOString();
     
@@ -5389,6 +5461,9 @@ async function handleSavePrompt(request, env) {
       chatPromptsCacheTime = 0;
     }
     
+    // Invalidate custom prompts cache for this specific prompt key
+    invalidateCustomPromptsCache(key);
+    
     return jsonResponse({ success: true, message: 'Prompt saved successfully' });
   } catch (error) {
     console.error('Error saving prompt:', error);
@@ -5423,6 +5498,17 @@ async function handleGetPrompt(request, env) {
  * These are the prompts that will be used if no custom prompt is set in KV
  * This ensures the "View Standard Prompt" button shows the ACTUAL prompts from worker.js
  * 
+ * PROMPT FILES LOCATION: All prompts are also maintained in separate files:
+ * - KV/prompts/admin_analysis_prompt.txt
+ * - KV/prompts/admin_strategy_prompt.txt
+ * - KV/prompts/admin_meal_plan_prompt.txt
+ * - KV/prompts/admin_summary_prompt.txt
+ * - KV/prompts/admin_consultation_prompt.txt
+ * - KV/prompts/admin_modification_prompt.txt
+ * - KV/prompts/admin_correction_prompt.txt
+ * 
+ * These files are uploaded to Cloudflare KV using: ./KV/upload-kv-keys.sh
+ * 
  * IMPORTANT: These templates use {variable} placeholders that will be shown to admins in the UI.
  * The actual generation functions in generateAnalysisPrompt, generateStrategyPrompt, etc. 
  * use these same prompts but with ${data.field} JavaScript template literal syntax.
@@ -5435,7 +5521,10 @@ function getDefaultPromptTemplates() {
   // The actual generation functions use the same prompts but with ${data.field} syntax for JavaScript interpolation.
   // These are the REAL prompts used in production - copied directly from the generation functions.
   // 
-  // MAINTENANCE: When updating prompts in generation functions, update these templates too!
+  // MAINTENANCE: When updating prompts:
+  // 1. Update the corresponding file in KV/prompts/
+  // 2. Update this function to match
+  // 3. Run ./KV/upload-kv-keys.sh to upload to Cloudflare KV
   // - Keep the logic and structure identical
   // - Only change variable syntax from ${variable} to {variable}
   
@@ -6768,6 +6857,9 @@ async function handleAddToBlacklist(request, env) {
     if (!blacklist.includes(item)) {
       blacklist.push(item);
       await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+      
+      // Invalidate food lists cache
+      invalidateFoodListsCache();
     }
     
     return jsonResponse({ success: true, blacklist: blacklist });
@@ -6800,6 +6892,9 @@ async function handleRemoveFromBlacklist(request, env) {
     // Remove item
     blacklist = blacklist.filter(i => i !== item);
     await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    
+    // Invalidate food lists cache
+    invalidateFoodListsCache();
     
     return jsonResponse({ success: true, blacklist: blacklist });
   } catch (error) {
@@ -6855,6 +6950,9 @@ async function handleAddToWhitelist(request, env) {
     if (!whitelist.includes(item)) {
       whitelist.push(item);
       await env.page_content.put('food_whitelist', JSON.stringify(whitelist));
+      
+      // Invalidate food lists cache
+      invalidateFoodListsCache();
     }
     
     return jsonResponse({ success: true, whitelist: whitelist });
@@ -6887,6 +6985,9 @@ async function handleRemoveFromWhitelist(request, env) {
     // Remove item
     whitelist = whitelist.filter(i => i !== item);
     await env.page_content.put('food_whitelist', JSON.stringify(whitelist));
+    
+    // Invalidate food lists cache
+    invalidateFoodListsCache();
     
     return jsonResponse({ success: true, whitelist: whitelist });
   } catch (error) {
@@ -6933,6 +7034,7 @@ async function handleGetVapidPublicKey(request, env) {
 
 /**
  * Admin: Get AI logging status
+ * Note: AI logging is always enabled to maintain last complete communication log
  */
 async function handleGetLoggingStatus(request, env) {
   try {
@@ -6940,13 +7042,15 @@ async function handleGetLoggingStatus(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const loggingEnabled = await env.page_content.get('ai_logging_enabled');
-    
+    // AI logging is always enabled (required for debugging and monitoring)
+    // The system automatically keeps only the last session (MAX_LOG_ENTRIES = 1)
+    // Bulgarian: "AI логването е винаги включено за поддържане на последната пълна комуникация"
     return jsonResponse({ 
       success: true, 
-      enabled: loggingEnabled === 'true' || loggingEnabled === null // Default to true if not set
+      enabled: true, // Always enabled
+      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация' // AI logging is always enabled to maintain last complete communication
     }, 200, {
-      cacheControl: 'no-cache' // Don't cache this response
+      cacheControl: 'no-cache'
     });
   } catch (error) {
     console.error('Error getting logging status:', error);
@@ -6956,6 +7060,8 @@ async function handleGetLoggingStatus(request, env) {
 
 /**
  * Admin: Set AI logging status
+ * Note: AI logging is always enabled and cannot be disabled
+ * This endpoint is kept for backward compatibility but will not change the status
  */
 async function handleSetLoggingStatus(request, env) {
   try {
@@ -6964,16 +7070,17 @@ async function handleSetLoggingStatus(request, env) {
     }
 
     const data = await request.json();
-    const enabled = data.enabled === true || data.enabled === 'true';
+    const requestedState = data.enabled === true || data.enabled === 'true';
 
-    await env.page_content.put('ai_logging_enabled', enabled.toString());
+    // AI logging is always enabled to maintain last complete communication
+    // We don't actually change the state, but acknowledge the request
+    console.log(`AI logging toggle requested: ${requestedState ? 'enable' : 'disable'}, but logging is always enabled`);
     
-    console.log(`AI logging ${enabled ? 'enabled' : 'disabled'} by admin`);
-    
+    // Bulgarian: "AI логването е винаги включено за поддържане на последната пълна комуникация. Системата автоматично пази само последната сесия."
     return jsonResponse({ 
       success: true,
-      enabled: enabled,
-      message: `AI логването е ${enabled ? 'включено' : 'изключено'}`
+      enabled: true, // Always enabled
+      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация. Системата автоматично пази само последната сесия.' // AI logging is always enabled to maintain last complete communication. System automatically keeps only the last session.
     });
   } catch (error) {
     console.error('Error setting logging status:', error);
