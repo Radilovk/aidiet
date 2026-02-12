@@ -712,16 +712,6 @@ let chatPromptsCache = null;
 let chatPromptsCacheTime = 0;
 const CHAT_PROMPTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
-// Template for communication guidelines section in chat prompts
-const COMMUNICATION_GUIDELINES_TEMPLATE = (userName, guidelines) => `═══ ПЕРСОНАЛИЗИРАНИ КОМУНИКАЦИОННИ НАСОКИ ═══
-Тези насоки за комуникация са определени специално за ${userName} в стъпка 1 от анализа:
-
-${guidelines}
-
-ВАЖНО: Следвай тези насоки при комуникацията с клиента. Адаптирай тон, подход и стил според психологическия му профил.
-═══════════════════════════════════════════════
-`;
-
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
@@ -1118,15 +1108,6 @@ async function generateChatPrompt(env, userMessage, userData, userPlan, conversa
   // Use FULL data for both modes to ensure precise, comprehensive analysis
   // No compromise on data completeness for individualization and quality
   
-  // Extract communication style guidelines from strategy (Step 1)
-  let communicationGuidelines = '';
-  if (userPlan?.strategy?.communicationStyle?.chatGuidelines) {
-    communicationGuidelines = '\n' + COMMUNICATION_GUIDELINES_TEMPLATE(
-      userData.name,
-      userPlan.strategy.communicationStyle.chatGuidelines
-    );
-  }
-  
   // Base context with complete data
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
@@ -1136,7 +1117,8 @@ ${JSON.stringify(userData, null, 2)}
 ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
 ${JSON.stringify(userPlan, null, 2)}
 
-${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}${communicationGuidelines}`;
+${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
+`;
 
   // Get mode-specific instructions from KV (with caching)
   const chatPrompts = await getChatPrompts(env);
@@ -1411,9 +1393,9 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 3. Калории: protein×4 + carbs×4 + fats×9
 4. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal OK)
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
-6. Ред: Закуска → Обяд → (Следобедна закуска) → Вечеря → (Късна закуска само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
+6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - може напитка вместо твърда храна (според данните)' : ''}
+7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
@@ -1421,7 +1403,7 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
 {
   "day${startDay}": {
     "meals": [
-      {"type": "Закуска/Обяд/Следобедна закуска/Вечеря/Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
@@ -1454,7 +1436,7 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
 {
   "dayN": {
     "meals": [
-      {"type": "Закуска/Обяд/Следобедна закуска/Вечеря/Късна закуска", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
     ],
     "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
   }
@@ -4038,8 +4020,8 @@ ${data.additionalNotes}
 2. СПЕЦИАЛНИ СЛУЧАИ:
    a) Ако клиентът НЕ ЗАКУСВА:
       - Закуската ОТПАДА
-      - ПРЕПОРЪЧАЙ подходяща напитка вместо нея (според данните)
-      - Обясни в breakfastStrategy защо това е подходящо
+      - ПРЕПОРЪЧАЙ вместо нея: вода с лимон, зелен чай, айран, или друга подходяща напитка
+      - Обясни в mealTiming защо това е подходящо
    
    b) СВОБОДНО ХРАНЕНЕ/ЛЮБИМА ХРАНА:
       - Ако е подходящо според психопрофил, ВКЛЮЧИ свободно хранене
@@ -5911,7 +5893,7 @@ BMR: {bmr}, Модификатор: "{dietaryModifier}"{modificationsSection}
 Категории: [PRO]=Белтък, [ENG]=Енергия/въглехидрати, [VOL]=Зеленчуци/фибри, [FAT]=Мазнини, [CMPX]=Сложни ястия
 Шаблони: A) РАЗДЕЛЕНА ЧИНИЯ=[PRO]+[ENG]+[VOL], B) СМЕСЕНО=[PRO]+[ENG]+[VOL] микс, C) ЛЕКО/САНДВИЧ, D) ЕДИНЕН БЛОК=[CMPX]+[VOL]
 Филтриране според "{dietaryModifier}": Веган=без животински [PRO]; Кето=минимум [ENG]; Без глутен=[ENG] само ориз/картофи/киноа/елда; Палео=без зърнени/бобови/млечни
-{eatingHabits} - Ако клиентът не закусва: може напитка вместо твърда храна
+{eatingHabits} - Ако клиентът не закусва: ЗАКУСКА: без закуска или само напитка ако критично
 
 === ADLE v8 STRICT RULES (ЗАДЪЛЖИТЕЛНО СПАЗВАНЕ) ===
 ПРИОРИТЕТ (винаги): 1) Hard bans → 2) Mode filter (MODE има приоритет над базови правила) → 3) Template constraints → 4) Hard rules (R1-R12) → 5) Repair → 6) Output
@@ -6014,10 +5996,10 @@ WHITELIST FAT (избери 0-1):
 КРИТИЧНО ВАЖНО: Следвай СТРОГО медицинските и диететични принципи за ред на храненията:
 
 1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
-   - "Закуска" (сутрин), САМО като първо хранене на деня
-   - "Обяд" (обед), САМО след закуската или като първо хранене (ако няма закуска)
+   - "Закуска" (сутрин) - САМО като първо хранене на деня
+   - "Обяд" (обед) - САМО след закуската или като първо хранене (ако няма закуска)
    - "Следобедна закуска" (опционално, между обяд и вечеря)
-   - "Вечеря" (вечер), обикновено последно хранене
+   - "Вечеря" (вечер) - обикновено последно хранене
    - "Късна закуска" (опционално, САМО след вечеря, специални случаи)
 
 2. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
@@ -6311,44 +6293,16 @@ async function handleGetDefaultPrompt(request, env) {
       return jsonResponse({ error: 'Missing prompt type parameter' }, 400);
     }
     
-    // First, try to get the CURRENT/CUSTOM prompt from KV storage
-    const kvKey = getPromptKVKey(type);
-    let currentPrompt = null;
-    
-    if (env.page_content && kvKey) {
-      try {
-        currentPrompt = await env.page_content.get(kvKey);
-      } catch (error) {
-        console.error(`Error fetching current prompt from KV (${kvKey}):`, error);
-      }
-    }
-    
-    // If custom prompt exists, return it (these are the ACTUAL CURRENT prompts in use)
-    if (currentPrompt) {
-      return jsonResponse({ 
-        success: true, 
-        prompt: currentPrompt,
-        isCustom: true 
-      }, 200, {
-        cacheControl: 'private, max-age=300' // Cache for 5 minutes - custom prompts may change
-      });
-    }
-    
-    // Otherwise, fall back to default template
     const defaultPrompts = getDefaultPromptTemplates();
-    const defaultPrompt = defaultPrompts[type];
+    const prompt = defaultPrompts[type];
     
-    if (!defaultPrompt) {
+    if (!prompt) {
       return jsonResponse({ 
         error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction` 
       }, 400);
     }
     
-    return jsonResponse({ 
-      success: true, 
-      prompt: defaultPrompt,
-      isCustom: false 
-    }, 200, {
+    return jsonResponse({ success: true, prompt: prompt }, 200, {
       cacheControl: 'public, max-age=1800' // Cache for 30 minutes - default prompts rarely change
     });
   } catch (error) {
