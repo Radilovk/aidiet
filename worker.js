@@ -1592,6 +1592,9 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
  * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
  */
 async function generateMealPlanPrompt(data, analysis, strategy, env, errorPreventionComment = null) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
+  
   // Parse BMR from analysis (may be a number or string) or calculate from user data
   let bmr;
   if (analysis.bmr) {
@@ -1672,6 +1675,58 @@ ${modLines.join('\n')}
     hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
   };
   
+  // If custom prompt exists, use it with variable replacement
+  if (customPrompt) {
+    let prompt = replacePromptVariables(customPrompt, {
+      name: data.name,
+      age: data.age,
+      gender: data.gender,
+      goal: data.goal,
+      bmr: bmr,
+      recommendedCalories: recommendedCalories,
+      dietaryModifier: dietaryModifier,
+      modifierReasoning: strategy.modifierReasoning || '',
+      dietType: strategyCompact.dietType,
+      mealTiming: strategyCompact.mealTiming,
+      keyPrinciples: strategyCompact.keyPrinciples,
+      foodsToInclude: strategyCompact.foodsToInclude,
+      foodsToAvoid: strategyCompact.foodsToAvoid,
+      modificationsSection: modificationsSection,
+      dynamicWhitelistSection: dynamicWhitelistSection,
+      dynamicBlacklistSection: dynamicBlacklistSection,
+      errorPreventionComment: errorPreventionComment || '',
+      mealCount: strategy.mealCount || 3,
+      medicalConditions: JSON.stringify(data.medicalConditions || []),
+      dietPreference: JSON.stringify(data.dietPreference || []),
+      dietDislike: data.dietDislike || 'няма',
+      dietLove: data.dietLove || 'няма'
+    });
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+JSON ФОРМАТ:
+{
+  "day1": {
+    "meals": [
+      {"name": "...", "time": "...", "calories": число, "macros": {...}},
+      ...
+    ]
+  },
+  ...
+  "day7": {...}
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+    }
+    return prompt;
+  }
+  
+  // Otherwise use default embedded prompt
   return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
 === КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ ===
@@ -1847,7 +1902,16 @@ JSON:
       avgCalories: avgCalories,
       avgProtein: avgProtein,
       avgCarbs: avgCarbs,
-      avgFats: avgFats
+      avgFats: avgFats,
+      dynamicWhitelistSection: dynamicWhitelistSection,
+      dynamicBlacklistSection: dynamicBlacklistSection,
+      name: data.name,
+      goal: data.goal,
+      keyProblems: healthContext.keyProblems || 'няма',
+      allergies: healthContext.allergies,
+      medications: healthContext.medications,
+      psychologicalSupport: JSON.stringify(psychologicalSupport.slice(0, 3)),
+      hydrationStrategy: hydrationStrategy
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
@@ -4023,7 +4087,25 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       analysisData: analysisCompact,
       name: data.name,
       age: data.age,
-      goal: data.goal
+      goal: data.goal,
+      bmr: analysisCompact.bmr,
+      tdee: analysisCompact.tdee,
+      recommendedCalories: analysisCompact.recommendedCalories,
+      macroRatios: analysisCompact.macroRatios,
+      macroGrams: analysisCompact.macroGrams,
+      metabolicProfile: analysisCompact.metabolicProfile,
+      healthRisks: analysisCompact.healthRisks,
+      nutritionalNeeds: analysisCompact.nutritionalNeeds,
+      psychologicalProfile: analysisCompact.psychologicalProfile,
+      successChance: analysisCompact.successChance,
+      keyProblems: analysisCompact.keyProblems,
+      dietPreference: JSON.stringify(data.dietPreference || []),
+      dietPreference_other: data.dietPreference_other || '',
+      dietDislike: data.dietDislike || '',
+      dietLove: data.dietLove || '',
+      additionalNotes: data.additionalNotes || '',
+      eatingHabits: JSON.stringify(data.eatingHabits || []),
+      chronotype: data.chronotype || 'Среден тип'
     });
     
     // Inject error prevention comment if provided
@@ -5969,10 +6051,8 @@ BMR (изчислен): {bmr} kcal
 Включвай: {foodsToInclude}
 Избягвай: {foodsToAvoid}
 
-{modificationsSection - dynamic content from modifications}
-
-{dynamicWhitelistSection - dynamic content from KV storage}
-{dynamicBlacklistSection - dynamic content from KV storage}
+{modificationsSection}
+{dynamicWhitelistSection}{dynamicBlacklistSection}
 
 === АРХИТЕКТУРА НА ХРАНИТЕ (AFAM) ===
 Базови категории (от които се избират храни според модификатора):
@@ -6037,9 +6117,7 @@ JSON ФОРМАТ:
 Целеви: {recommendedCalories} kcal/ден | Реален: {avgCalories} kcal/ден
 Макроси: Protein {avgProtein}g, Carbs {avgCarbs}g, Fats {avgFats}g
 
-ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Алергии: {allergies} | Медикаменти: {medications}
-{dynamicWhitelistSection - dynamic content from KV storage}
-{dynamicBlacklistSection - dynamic content from KV storage}
+ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Алергии: {allergies} | Медикаменти: {medications}{dynamicWhitelistSection}{dynamicBlacklistSection}
 
 JSON:
 {

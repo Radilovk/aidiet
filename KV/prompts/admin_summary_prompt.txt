@@ -4,9 +4,7 @@ Summary за 7-дневен план.
 Целеви: {recommendedCalories} kcal/ден | Реален: {avgCalories} kcal/ден
 Макроси: Protein {avgProtein}g, Carbs {avgCarbs}g, Fats {avgFats}g
 
-ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Алергии: {allergies} | Медикаменти: {medications}
-{dynamicWhitelistSection - dynamic content from KV storage}
-{dynamicBlacklistSection - dynamic content from KV storage}
+ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Алергии: {allergies} | Медикаменти: {medications}{dynamicWhitelistSection}{dynamicBlacklistSection}
 
 JSON:
 {
