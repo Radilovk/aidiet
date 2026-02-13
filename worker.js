@@ -1175,6 +1175,8 @@ ${modeInstructions}
  * Generate simplified fallback plan when main generation fails
  * Uses conservative approach with basic meals and minimal complexity
  * Last resort to provide user with something useful rather than complete failure
+ * 
+ * SIMPLIFIED: Reuses existing generateMealPlanSummaryPrompt() with KV support
  */
 async function generateSimplifiedFallbackPlan(env, data) {
   console.log('Generating simplified fallback plan');
@@ -1190,8 +1192,8 @@ async function generateSimplifiedFallbackPlan(env, data) {
     recommendedCalories = Math.round(tdee * 1.1);
   }
   
-  // Simplified prompt with basic requirements
-  const simplifiedPrompt = `Създай ОПРОСТЕН 7-дневен хранителен план за ${data.name}.
+  // Generate simplified week plan with 1 AI call
+  const mealPlanPrompt = `Създай ОПРОСТЕН 7-дневен хранителен план за ${data.name}.
 
 ОСНОВНИ ДАННИ:
 - BMR: ${bmr} kcal, TDEE: ${tdee} kcal
@@ -1200,6 +1202,7 @@ async function generateSimplifiedFallbackPlan(env, data) {
 - Възраст: ${data.age}, Пол: ${data.gender}
 - Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
 - Алергии/Непоносимости: ${data.dietDislike || 'няма'}
+- Предпочитания: ${data.dietLove || 'няма'}
 
 ИЗИСКВАНИЯ (ОПРОСТЕНИ):
 - 3 хранения на ден: Закуска, Обяд, Вечеря
@@ -1209,7 +1212,7 @@ async function generateSimplifiedFallbackPlan(env, data) {
 
 ФОРМАТ (JSON):
 {
-  "day1": {"meals": [...]},
+  "day1": {"meals": [{"name": "...", "time": "...", "type": "Закуска", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}]},
   "day2": {"meals": [...]},
   ...
   "day7": {"meals": [...]}
@@ -1217,23 +1220,65 @@ async function generateSimplifiedFallbackPlan(env, data) {
 
 Създай прост, практичен план.`;
 
-  // Call AI with simplified prompt
   const calculatedData = { bmr, tdee, recommendedCalories };
-  const response = await callAIModel(env, simplifiedPrompt, 2000, 'fallback_plan', null, data, calculatedData);
+  const mealPlanResponse = await callAIModel(env, mealPlanPrompt, 3000, 'fallback_plan', null, data, calculatedData);
+  const weekPlan = JSON.parse(mealPlanResponse);
+  
+  // Create minimal analysis and strategy for generateMealPlanSummaryPrompt()
+  const analysis = {
+    bmr,
+    recommendedCalories,
+    keyProblems: [{
+      problem: 'Използван опростен план поради технически ограничения',
+      severity: 'Info'
+    }]
+  };
+  
+  const strategy = {
+    dietaryModifier: 'Балансиран',
+    planJustification: 'Опростен план с базови хранителни принципи, създаден като резервна опция.',
+    welcomeMessage: `Здравейте ${data.name}! Този план е създаден да ви помогне да постигнете целта си чрез балансирано хранене.`,
+    mealCountJustification: '3 основни хранения за лесно следване',
+    afterDinnerMealJustification: 'Не са необходими',
+    psychologicalSupport: ['Бъдете последователни', 'Планирайте предварително', 'Не се отказвайте при грешка'],
+    supplementRecommendations: [],
+    hydrationStrategy: '2-2.5л вода дневно'
+  };
+  
+  // REUSE existing generateMealPlanSummaryPrompt() - it uses KV key 'admin_summary_prompt'
+  // This generates recommendations, forbidden, psychology, supplements via AI
+  const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
+  const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'fallback_summary', null, data, analysis);
+  const summaryData = parseAIResponse(summaryResponse);
+  
+  // Use AI-generated data or fallback to strategy values
+  const recommendations = summaryData.recommendations || strategy.foodsToInclude || ['Варено пилешко месо', 'Киноа', 'Авокадо'];
+  const forbidden = summaryData.forbidden || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'];
+  const psychology = summaryData.psychology || strategy.psychologicalSupport;
+  const waterIntake = summaryData.waterIntake || strategy.hydrationStrategy;
+  const supplements = summaryData.supplements || strategy.supplementRecommendations;
+  
+  // Update strategy with AI-generated values
+  strategy.foodsToInclude = recommendations;
+  strategy.foodsToAvoid = forbidden;
+  strategy.psychologicalSupport = psychology;
+  strategy.supplementRecommendations = supplements;
+  strategy.hydrationStrategy = waterIntake;
   
   const plan = {
-    analysis: { bmr, recommendedCalories, goal: data.goal },
-    weekPlan: JSON.parse(response),
-    summary: {
+    analysis,
+    strategy,
+    weekPlan,
+    summary: summaryData.summary || {
       bmr,
       dailyCalories: recommendedCalories,
       macros: { protein: 150, carbs: 200, fats: 65 }
     },
-    recommendations: ['Пийте достатъчно вода', 'Спазвайте хранителните часове'],
-    forbidden: [],
-    psychology: ['Бъдете постоянни'],
-    waterIntake: '2-3 литра дневно',
-    supplements: []
+    recommendations,
+    forbidden,
+    psychology,
+    waterIntake,
+    supplements
   };
   
   return plan;
@@ -2004,6 +2049,21 @@ async function handleGeneratePlan(request, env) {
       console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${maxAttempts}):`, validation.errors);
       console.log(`handleGeneratePlan: Earliest error step: ${validation.earliestErrorStep}`);
       
+      // Enhanced logging: Show errors per step for debugging
+      console.log('=== DETAILED ERROR BREAKDOWN BY STEP ===');
+      if (validation.stepErrors) {
+        Object.keys(validation.stepErrors).forEach(stepKey => {
+          const stepErrs = validation.stepErrors[stepKey];
+          if (stepErrs && stepErrs.length > 0) {
+            console.log(`  ${stepKey}: ${stepErrs.length} error(s)`);
+            stepErrs.forEach((err, idx) => {
+              console.log(`    ${idx + 1}. ${err}`);
+            });
+          }
+        });
+      }
+      console.log('========================================');
+      
       try {
         // Regenerate from the earliest error step with targeted error prevention
         console.log(`handleGeneratePlan: Regenerating from ${validation.earliestErrorStep} (attempt ${correctionAttempts})`);
@@ -2040,6 +2100,11 @@ async function handleGeneratePlan(request, env) {
       // Fallback strategy: Try to generate a simplified plan as last resort
       if (correctionAttempts >= maxAttempts) {
         console.log('handleGeneratePlan: Attempting simplified fallback plan generation');
+        console.log(`handleGeneratePlan: Last validation errors before fallback:`);
+        console.log(`  - Total errors: ${validation.errors.length}`);
+        console.log(`  - Earliest error step: ${validation.earliestErrorStep}`);
+        console.log(`  - Step errors:`, JSON.stringify(validation.stepErrors, null, 2));
+        
         try {
           // Generate simplified plan with reduced requirements
           const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
@@ -2056,9 +2121,13 @@ async function handleGeneratePlan(request, env) {
               fallbackUsed: true,
               note: "Използван опростен план поради технически проблеми с основния алгоритъм"
             });
+          } else {
+            console.error('handleGeneratePlan: Fallback plan failed validation:', fallbackValidation.errors);
+            console.error('handleGeneratePlan: Fallback step errors:', JSON.stringify(fallbackValidation.stepErrors, null, 2));
           }
         } catch (fallbackError) {
           console.error('handleGeneratePlan: Simplified fallback also failed:', fallbackError);
+          console.error('handleGeneratePlan: Fallback error stack:', fallbackError.stack);
         }
       }
       
@@ -3294,6 +3363,107 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
           throw new Error(`Регенерацията на хранителния план се провали: ${mealPlan?.error || 'Невалиден формат'}`);
         }
       }
+    } else if (earliestErrorStep === 'step4_final') {
+      // Step 4: Final validation errors (summary, recommendations, forbidden, supplements, etc.)
+      // Reuse weekPlan but regenerate the summary and final fields
+      console.log('Regenerating Step 4 (Summary and Recommendations) with error prevention');
+      
+      // Parse BMR and calories from existing analysis
+      let bmr;
+      if (analysis.bmr) {
+        if (typeof analysis.bmr === 'number') {
+          bmr = Math.round(analysis.bmr);
+        } else {
+          const bmrMatch = String(analysis.bmr).match(/\d+/);
+          bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
+        }
+      }
+      if (!bmr) {
+        bmr = calculateBMR(data);
+      }
+      
+      let recommendedCalories;
+      if (analysis.recommendedCalories) {
+        if (typeof analysis.recommendedCalories === 'number') {
+          recommendedCalories = Math.round(analysis.recommendedCalories);
+        } else {
+          const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+          recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
+        }
+      }
+      if (!recommendedCalories) {
+        const tdee = calculateTDEE(bmr, data.sportActivity);
+        if (data.goal === 'Отслабване') {
+          recommendedCalories = Math.round(tdee * 0.85);
+        } else if (data.goal === 'Покачване на мускулна маса') {
+          recommendedCalories = Math.round(tdee * 1.1);
+        } else {
+          recommendedCalories = tdee;
+        }
+      }
+      
+      // Regenerate summary with error prevention
+      const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, existingPlan.weekPlan, env);
+      
+      // Add error prevention comment to the prompt
+      const summaryPromptWithErrors = errorPreventionComment + '\n\n' + summaryPrompt;
+      
+      const summaryInputTokens = estimateTokenCount(summaryPromptWithErrors);
+      cumulativeTokens.input += summaryInputTokens;
+      
+      const summaryResponse = await callAIModel(env, summaryPromptWithErrors, SUMMARY_TOKEN_LIMIT, 'step4_summary_regen', sessionId, data, analysis);
+      const summaryOutputTokens = estimateTokenCount(summaryResponse);
+      cumulativeTokens.output += summaryOutputTokens;
+      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      
+      const summaryData = parseAIResponse(summaryResponse);
+      
+      if (!summaryData || summaryData.error) {
+        console.warn('Step 4 regeneration failed, using fallback values from strategy');
+        // Use strategy fallback values
+        const calculatedMacros = calculateAverageMacrosFromPlan(existingPlan.weekPlan);
+        
+        // Validate calculated macros and log warnings
+        if (!calculatedMacros.protein || !calculatedMacros.carbs || !calculatedMacros.fats) {
+          console.warn('Step 4 regeneration: calculateAverageMacrosFromPlan returned incomplete data:', calculatedMacros);
+          console.warn('Step 4 regeneration: Using generic fallback macros instead');
+        }
+        
+        mealPlan = {
+          weekPlan: existingPlan.weekPlan,
+          summary: {
+            bmr: bmr,
+            dailyCalories: recommendedCalories,
+            macros: {
+              protein: calculatedMacros.protein || 150,
+              carbs: calculatedMacros.carbs || 200,
+              fats: calculatedMacros.fats || 65
+            }
+          },
+          recommendations: strategy.foodsToInclude || ['Варено пилешко месо', 'Киноа', 'Авокадо'],
+          forbidden: strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
+          psychology: strategy.psychologicalSupport || ['Бъдете последователни'],
+          waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
+          supplements: strategy.supplementRecommendations || []
+        };
+      } else {
+        // Use regenerated summary data
+        mealPlan = {
+          weekPlan: existingPlan.weekPlan,
+          summary: summaryData.summary || {
+            bmr: bmr,
+            dailyCalories: recommendedCalories,
+            macros: summaryData.macros || {}
+          },
+          recommendations: summaryData.recommendations || strategy.foodsToInclude || ['Варено пилешко месо', 'Киноа', 'Авокадо'],
+          forbidden: summaryData.forbidden || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
+          psychology: summaryData.psychology || strategy.psychologicalSupport || ['Бъдете последователни'],
+          waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
+          supplements: summaryData.supplements || strategy.supplementRecommendations || []
+        };
+      }
+      
+      console.log('Step 4 regeneration complete');
     } else {
       // Reuse existing meal plan parts
       mealPlan = {
