@@ -1878,17 +1878,21 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
 
 ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Алергии: ${healthContext.allergies} | Медикаменти: ${healthContext.medications}${dynamicWhitelistSection}${dynamicBlacklistSection}
 
-JSON:
+JSON (ТОЧЕН ФОРМАТ):
 {
   "summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}},
-  "recommendations": ["храна 1", "храна 2", "храна 3"],
-  "forbidden": ["храна 1", "храна 2"],
+  "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
+  "forbidden": ["храна 1", "храна 2", "храна 3"],
   "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport.slice(0, 3)) : '["съвет 1", "съвет 2"]'},
   "waterIntake": "${strategy.hydrationStrategy || '2-2.5л дневно'}",
   "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
 }
 
-ВАЖНО: recommendations/forbidden=конкретни храни; supplements=според здравен статус и медикаменти с дозировка`;
+ЗАДЪЛЖИТЕЛНО:
+- recommendations: МИН 3 конкретни храни подходящи за ${data.goal}
+- forbidden: МИН 3 храни неподходящи за ${healthContext.keyProblems || 'общи рискове'}
+- supplements: според медикаменти ${healthContext.medications} БЕЗ опасни взаимодействия
+- psychology: от стратегия, максимум 3 съвета`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -6119,17 +6123,21 @@ JSON ФОРМАТ:
 
 ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Алергии: {allergies} | Медикаменти: {medications}{dynamicWhitelistSection}{dynamicBlacklistSection}
 
-JSON:
+JSON (ТОЧЕН ФОРМАТ):
 {
   "summary": {"bmr": {bmr}, "dailyCalories": {avgCalories}, "macros": {"protein": {avgProtein}, "carbs": {avgCarbs}, "fats": {avgFats}}},
-  "recommendations": ["храна 1", "храна 2", "храна 3"],
-  "forbidden": ["храна 1", "храна 2"],
-  "psychology": {psychologicalSupport array from strategy - first 3 items or ["съвет 1", "съвет 2"]},
-  "waterIntake": "{hydrationStrategy or default '2-2.5л дневно'}",
+  "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
+  "forbidden": ["храна 1", "храна 2", "храна 3"],
+  "psychology": {psychologicalSupport},
+  "waterIntake": "{hydrationStrategy}",
   "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
 }
 
-ВАЖНО: recommendations/forbidden=конкретни храни; supplements=според здравен статус и медикаменти с дозировка`,
+ЗАДЪЛЖИТЕЛНО:
+- recommendations: МИН 3 конкретни храни подходящи за {goal}
+- forbidden: МИН 3 храни неподходящи за {keyProblems}
+- supplements: според медикаменти {medications} БЕЗ опасни взаимодействия
+- psychology: от стратегия, максимум 3 съвета`,
 
     consultation: `ТЕКУЩ РЕЖИМ: КОНСУЛТАЦИЯ
 
