@@ -1,0 +1,2441 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Въпросник 2.0 - Попълнете детайлен въпросник за персонален здравен план. Информацията ще бъде обработена от нашия екип.">
+    <meta name="theme-color" content="#10b981">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriPlan 2.0">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://biocode.website/questionnaire2.html">
+    <meta property="og:title" content="Въпросник 2.0 - Детайлна Консултация">
+    <meta property="og:description" content="Въпросник 2.0 - Попълнете детайлен въпросник за персонален здравен план.">
+    <meta property="og:image" content="https://biocode.website/icon-512x512.png">
+    <meta property="og:locale" content="bg_BG">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:url" content="https://biocode.website/questionnaire2.html">
+    <meta name="twitter:title" content="Въпросник 2.0 - Детайлна Консултация">
+    <meta name="twitter:description" content="Въпросник 2.0 - Попълнете детайлен въпросник за персонален здравен план.">
+    <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
+    
+    <link rel="canonical" href="https://biocode.website/questionnaire2.html">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    <title>Въпросник 2.0 - Детайлна Консултация</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-red: #10b981;
+            --primary-red-hover: #059669;
+            --soft-red: #d1fae5;
+            --accent-yellow: #fbbf24;
+            --accent-blue: #3b82f6;
+            --accent-light-red: #f87171;
+            --text-dark: #1e3a20;
+            --text-gray: #6b7280;
+            --bg-color: #fefce8;
+            --card-bg: #ffffff;
+            --input-bg: #f3f4f6;
+            --shadow: 0 10px 30px rgba(16,185,129,0.12);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            /* Footer spacing variables */
+            --footer-padding-v: 12px;
+            --footer-padding-h: 20px;
+            --footer-input-gap: 8px;
+            --footer-button-min-height: 44px;
+            --wrapper-padding-default: 140px;
+            --wrapper-padding-compact: 120px;
+            --footer-position-delay-ms: 50; /* Delay in milliseconds for DOM rendering before positioning */
+            
+            /* Safe area insets for mobile devices with notches/dynamic island */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --primary-red: #34d399;
+            --primary-red-hover: #10b981;
+            --soft-red: #064e3b;
+            --accent-yellow: #fcd34d;
+            --accent-blue: #60a5fa;
+            --accent-light-red: #fca5a5;
+            --text-dark: #e5f3e8;
+            --text-gray: #9ca3af;
+            --bg-color: #0f1419;
+            --card-bg: #1a2028;
+            --input-bg: #252b35;
+            --shadow: 0 10px 30px rgba(52,211,153,0.25);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent scrolling, we handle it internally */
+            padding-bottom: 0; /* Fixed footer handles spacing */
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* --- PROGRESS BAR --- */
+        .progress-container {
+            padding: calc(20px + var(--safe-area-inset-top)) calc(20px + var(--safe-area-inset-right)) 0 calc(20px + var(--safe-area-inset-left));
+            min-height: calc(60px + var(--safe-area-inset-top));
+            background: var(--bg-color);
+            z-index: 10;
+        }
+        .progress-track {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-red);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .step-indicator {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            margin-top: 8px;
+            font-weight: 600;
+        }
+
+        /* --- MAIN CONTAINER --- */
+        .question-wrapper {
+            flex: 1;
+            position: relative;
+            padding: 20px;
+            padding-bottom: var(--wrapper-padding-default); /* Default padding for footer */
+            display: flex;
+            align-items: flex-start; /* Changed from center to allow scrolling from top */
+            justify-content: center;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            scroll-padding-bottom: var(--wrapper-padding-default); /* Ensure scroll area accounts for fixed footer */
+        }
+        
+        /* Compact layout for input-only questions - footer positioned 8px below input */
+        .question-wrapper.compact {
+            /* When modern-input is present, position footer closer */
+            padding-bottom: var(--wrapper-padding-compact); /* Space for footer positioned below input */
+        }
+
+        .question-card {
+            width: 100%;
+            max-width: 500px;
+            background: transparent; 
+            /* On desktop we might want a white card, but for mobile full width feels better */
+            animation: fadeIn 0.5s forwards;
+        }
+
+        /* --- TYPOGRAPHY & INPUTS --- */
+        h2.q-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            line-height: 1.3;
+            color: var(--text-dark);
+        }
+
+        .section-title-screen {
+            text-align: center;
+        }
+        .section-icon {
+            font-size: 3rem;
+            color: var(--primary-red);
+            margin-bottom: 20px;
+            display: inline-block;
+            background: var(--soft-red);
+            padding: 20px;
+            border-radius: 50%;
+        }
+        .section-title-text {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+            font-weight: 800;
+        }
+
+        /* Input Groups */
+        .input-group { margin-bottom: 15px; position: relative; }
+
+        /* Text/Number/Email Inputs */
+        .modern-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            border: 2px solid #d1d5db;
+            background: var(--card-bg);
+            color: var(--text-dark);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            transition: var(--transition);
+            outline: none;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+            margin-bottom: 20px; /* Add spacing below text inputs */
+        }
+        .modern-input:focus {
+            border-color: var(--primary-red);
+            background: #fff;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+        }
+        .modern-input::placeholder {
+            color: var(--text-gray);
+            opacity: 0.7;
+        }
+        
+        [data-theme="dark"] .modern-input {
+            border-color: #374151;
+        }
+        [data-theme="dark"] .modern-input:focus {
+            background: var(--card-bg);
+        }
+
+        /* Radio & Checkbox Tiles */
+        .options-grid {
+            display: grid;
+            gap: 14px;
+        }
+        .option-label {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            background: var(--card-bg);
+            border: 2px solid #e5e7eb;
+            border-radius: var(--radius);
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: var(--transition);
+            position: relative;
+            font-weight: 500;
+            min-height: 56px;
+            color: var(--text-dark);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        [data-theme="dark"] .option-label {
+            border-color: #374151;
+        }
+        .option-label:active { 
+            transform: scale(0.98); 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .option-input { display: none; } /* Hide default radio/checkbox */
+
+        /* Checkmark/Radio Circle visual */
+        .custom-check {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #9ca3af;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .option-input[type="checkbox"] + .custom-check { border-radius: 6px; }
+        
+        [data-theme="dark"] .custom-check {
+            border-color: #6b7280;
+        }
+
+        .custom-check::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%; /* or 2px for checkbox */
+            opacity: 0;
+            transform: scale(0);
+            transition: var(--transition);
+        }
+        .option-input[type="checkbox"] + .custom-check::after { border-radius: 2px; }
+
+        /* Selected State */
+        .option-input:checked + .custom-check {
+            background-color: var(--primary-red);
+            border-color: var(--primary-red);
+        }
+        .option-input:checked + .custom-check::after {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .option-label.selected {
+            border-color: var(--primary-red);
+            background-color: var(--soft-red);
+            color: var(--primary-red);
+            font-weight: 700;
+        }
+
+        /* Textarea */
+        textarea.modern-input {
+            min-height: 120px;
+            resize: none;
+        }
+
+        /* Other Input (Hidden by default) */
+        .other-input-container {
+            margin-top: 10px;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        .other-input-container.active { display: block; }
+
+        /* --- FOOTER NAVIGATION --- */
+        .nav-footer {
+            padding: var(--footer-padding-v) var(--footer-padding-h);
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+            z-index: 100;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            transition: var(--transition);
+        }
+
+        .btn {
+            border: none;
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-prev {
+            background: transparent;
+            color: var(--text-gray);
+            min-width: 100px;
+        }
+        .btn-prev:active { 
+            color: var(--text-dark); 
+            transform: scale(0.95);
+        }
+
+        .btn-next {
+            background-color: var(--primary-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            min-width: 140px;
+        }
+        .btn-next:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.5);
+        }
+
+
+        .btn-next:disabled {
+            background-color: #e0e0e0;
+            box-shadow: none;
+            cursor: not-allowed;
+            color: #a0a0a0;
+        }
+        .btn-next i { margin-left: 8px; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Helper for hiding */
+        .hidden { display: none !important; }
+
+        /* Quick Complete Button */
+        .quick-complete-banner {
+            position: fixed;
+            top: calc(80px + var(--safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-hover));
+            color: white;
+            padding: 16px 24px;
+            border-radius: 50px;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 999;
+            animation: slideDownBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .quick-complete-banner.show {
+            display: flex;
+        }
+        
+        .quick-complete-banner:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+        }
+        
+        .quick-complete-banner:active {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        @keyframes slideDownBounce {
+            0% {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            60% {
+                transform: translateX(-50%) translateY(10px);
+                opacity: 1;
+            }
+            80% {
+                transform: translateX(-50%) translateY(-5px);
+            }
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .quick-complete-icon {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .quick-complete-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .quick-complete-title {
+            font-weight: 700;
+            font-size: 1rem;
+            line-height: 1.2;
+        }
+        
+        .quick-complete-subtitle {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+        
+        .quick-complete-close {
+            margin-left: 8px;
+            padding: 4px 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+        
+        .quick-complete-close:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .quick-complete-banner {
+                top: 70px;
+                left: 10px;
+                right: 10px;
+                transform: translateX(0);
+                max-width: calc(100% - 20px);
+            }
+            
+            .quick-complete-banner:hover {
+                transform: translateX(0) translateY(-2px);
+            }
+            
+            .quick-complete-banner:active {
+                transform: translateX(0) translateY(0);
+            }
+            
+            @keyframes slideDownBounce {
+                0% {
+                    transform: translateX(0) translateY(-100px);
+                    opacity: 0;
+                }
+                60% {
+                    transform: translateX(0) translateY(10px);
+                    opacity: 1;
+                }
+                80% {
+                    transform: translateX(0) translateY(-5px);
+                }
+                100% {
+                    transform: translateX(0) translateY(0);
+                }
+            }
+        }
+
+        /* PWA Install Banner */
+        .install-banner {
+            position: fixed;
+            bottom: calc(20px + var(--safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            color: var(--text-dark);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            display: none;
+            align-items: center;
+            gap: 16px;
+            z-index: 1001;
+            max-width: 90%;
+            animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .install-banner.show {
+            display: flex;
+        }
+
+        @keyframes slideUpBanner {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .install-banner-icon {
+            font-size: 2.5rem;
+            color: var(--primary-red);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(220, 38, 38, 0.05));
+            border-radius: 12px;
+        }
+
+        .install-banner-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .install-banner-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            font-size: 1rem;
+            line-height: 1.3;
+            color: var(--text-dark);
+        }
+
+        .install-banner-text {
+            font-size: 0.875rem;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .install-banner-browser {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            color: var(--primary-red);
+            font-weight: 600;
+            margin-top: 4px;
+            padding: 4px 8px;
+            background: rgba(220, 38, 38, 0.08);
+            border-radius: 6px;
+        }
+
+        .install-banner-actions {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .install-banner-btn {
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .install-banner-btn:hover {
+            background: var(--primary-red-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+        }
+
+        .install-banner-btn:active {
+            transform: translateY(0);
+        }
+
+        .install-banner-btn.dismiss {
+            background: transparent;
+            color: var(--text-gray);
+            padding: 12px 16px;
+        }
+
+        .install-banner-btn.dismiss:hover {
+            background: var(--soft-red);
+            color: var(--text-dark);
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 768px) {
+            .install-banner {
+                flex-direction: column;
+                padding: 20px 16px;
+                bottom: 12px;
+                max-width: calc(100% - 24px);
+                gap: 16px;
+            }
+
+            .install-banner-icon {
+                width: 56px;
+                height: 56px;
+                font-size: 2.75rem;
+            }
+
+            .install-banner-content {
+                text-align: center;
+                width: 100%;
+            }
+
+            .install-banner-title {
+                font-size: 1.05rem;
+                margin-bottom: 8px;
+            }
+
+            .install-banner-text {
+                font-size: 0.875rem;
+                line-height: 1.5;
+            }
+
+            .install-banner-browser {
+                display: inline-flex;
+                margin-top: 8px;
+            }
+
+            .install-banner-actions {
+                width: 100%;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .install-banner-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 14px 24px;
+                font-size: 0.95rem;
+            }
+
+            .install-banner-btn.dismiss {
+                padding: 12px 24px;
+            }
+        }
+
+        .ios-prompt {
+            position: fixed;
+            bottom: calc(20px + var(--safe-area-inset-bottom));
+            width: 90%;
+            left: 5%;
+            background: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            padding: 15px;
+            font-family: 'Poppins', sans-serif;
+            animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUpIOS {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .ios-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+
+        .ios-close:hover {
+            color: var(--text-dark);
+            transform: scale(1.1);
+        }
+
+        .ios-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .ios-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .ios-title-group h4 {
+            margin: 0;
+            color: var(--text-dark);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .ios-title-group p {
+            margin: 5px 0 0;
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .ios-instructions {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            font-size: 14px;
+            text-align: center;
+            color: var(--text-dark);
+        }
+
+        .ios-instructions p {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .ios-share-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+        }
+
+    </style>
+    <script>
+        // Apply color scheme from admin settings
+        (function() {
+            const colorSchemes = {
+                'purple-pink': {
+                    light: {
+                        '--primary-red': '#10b981',
+                        '--primary-red-hover': '#059669',
+                        '--soft-red': '#d1fae5'
+                    },
+                    dark: {
+                        '--primary-red': '#34d399',
+                        '--primary-red-hover': '#10b981',
+                        '--soft-red': '#064e3b'
+                    }
+                },
+                'green-blue': {
+                    light: {
+                        '--primary-red': '#4CAF50',
+                        '--primary-red-hover': '#388E3C',
+                        '--soft-red': '#E8F5E9'
+                    },
+                    dark: {
+                        '--primary-red': '#66BB6A',
+                        '--primary-red-hover': '#4CAF50',
+                        '--soft-red': '#1B5E20'
+                    }
+                },
+                'blue-indigo': {
+                    light: {
+                        '--primary-red': '#3B82F6',
+                        '--primary-red-hover': '#2563EB',
+                        '--soft-red': '#EFF6FF'
+                    },
+                    dark: {
+                        '--primary-red': '#60A5FA',
+                        '--primary-red-hover': '#3B82F6',
+                        '--soft-red': '#1E3A8A'
+                    }
+                },
+                'orange-red': {
+                    light: {
+                        '--primary-red': '#F97316',
+                        '--primary-red-hover': '#EA580C',
+                        '--soft-red': '#FFF7ED'
+                    },
+                    dark: {
+                        '--primary-red': '#FB923C',
+                        '--primary-red-hover': '#F97316',
+                        '--soft-red': '#7C2D12'
+                    }
+                }
+            };
+
+            function applyColorScheme() {
+                const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const colors = colorSchemes[savedScheme]?.[currentTheme];
+                
+                if (colors) {
+                    const root = document.documentElement;
+                    Object.keys(colors).forEach(key => {
+                        root.style.setProperty(key, colors[key]);
+                    });
+                }
+            }
+
+            // Apply on load
+            applyColorScheme();
+
+            // Listen for theme changes
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                        applyColorScheme();
+                    }
+                });
+            });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme']
+            });
+        })();
+    </script>
+</head>
+<body>
+
+    <!-- PWA Install Banner -->
+    <div class="install-banner" id="installBanner">
+        <div class="install-banner-icon" id="installBannerIcon">
+            <i class="fas fa-mobile-alt"></i>
+        </div>
+        <div class="install-banner-content">
+            <div class="install-banner-title" id="installBannerTitle">Инсталирай NutriPlan</div>
+            <div class="install-banner-text" id="installBannerText">Добави приложението към началния екран</div>
+            <div class="install-banner-browser" id="installBannerBrowser" style="display: none;">
+                <i class="fas fa-info-circle"></i>
+                <span id="installBannerBrowserText"></span>
+            </div>
+        </div>
+        <div class="install-banner-actions">
+            <button class="install-banner-btn" id="installBtn">
+                <i class="fas fa-download"></i>
+                <span>Инсталирай</span>
+            </button>
+            <button class="install-banner-btn dismiss" id="dismissInstallBtn">
+                <i class="fas fa-times"></i>
+                <span>По-късно</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- iOS Install Banner -->
+    <div id="ios-banner" class="ios-prompt" style="display:none;">
+        <button onclick="dismissIosBanner()" class="ios-close">✕</button>
+        <div class="ios-header">
+            <img src="./icon-192x192.png" class="ios-icon" alt="NutriPlan Icon">
+            <div class="ios-title-group">
+                <h4>Инсталирай NutriPlan</h4>
+                <p>Добави на екрана за бърз достъп и известия</p>
+            </div>
+        </div>
+        <div class="ios-instructions">
+            <p>Натисни бутона <img id="ios-share-icon-img" class="ios-share-icon" alt="Share"> и избери <strong>"Add to Home Screen" (Добави към начален екран)</strong></p>
+        </div>
+    </div>
+
+    <!-- Quick Complete Banner -->
+    <div class="quick-complete-banner" id="quickCompleteBanner" onclick="jumpToLastStep()">
+        <div class="quick-complete-icon">
+            <i class="fas fa-bolt"></i>
+        </div>
+        <div class="quick-complete-text">
+            <div class="quick-complete-title">Към последната стъпка</div>
+            <div class="quick-complete-subtitle">Вече сте попълнили въпросника</div>
+        </div>
+        <div class="quick-complete-close" onclick="hideQuickCompleteBanner(event)">
+            <i class="fas fa-times"></i>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-container">
+        <div class="progress-track">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <div class="step-indicator" id="stepIndicator">Въпрос 1</div>
+    </div>
+
+    <!-- Dynamic Content Area -->
+    <div class="question-wrapper" id="questionContainer">
+        <!-- Content injected by JS -->
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-footer">
+        <button class="btn btn-prev" id="prevBtn" onclick="prevStep()">
+            <i class="fas fa-arrow-left"></i> &nbsp;Назад
+        </button>
+        <button class="btn btn-next" id="nextBtn" onclick="nextStep()" disabled>
+            Напред <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <script>
+        // --- Theme Management ---
+        // Use system theme preference (matching index page behavior)
+        function initializeTheme() {
+            // Check if user has a saved preference in localStorage (from other pages)
+            const savedTheme = localStorage.getItem('theme');
+            
+            if (savedTheme) {
+                // Use saved preference if available
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } else {
+                // Otherwise, use system preference
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const systemTheme = prefersDark ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', systemTheme);
+            }
+        }
+
+        // Initialize theme on load
+        initializeTheme();
+
+        // --- JSON DATA (Inserted directly from your file) ---
+        const rawQuestions = [
+            { "id": "secBasics", "type": "section", "sectionTitle": "Основни данни" },
+            { "id": "name", "text": "Въведете вашето име:", "type": "text", "options": [] },
+            { "id": "gender", "text": "Моля, изберете вашия пол:", "type": "radio", "options": ["Мъж", "Жена"] },
+            { "id": "age", "text": "Въведете вашата възраст:", "type": "number", "options": [] },
+            { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
+            { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
+            { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
+            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] } },
+            { "id": "secLifestyle", "type": "section", "sectionTitle": "Сън, ритъм и активност" },
+            { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
+            { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
+            { "id": "chronotype", "text": "Вашият хронотип:", "type": "radio", "options": ["Сутрешен", "Вечерен", "Неутрален"] },
+            { "id": "dailyActivityLevel", "text": "Ниво на активност през деня:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
+            { "id": "stressLevel", "text": "Ниво на стрес:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
+            { "id": "sportActivity", "text": "Ниво на спортна активност:", "type": "radio", "options": ["Висока (5–7 дни седмично)", "Средна (2–4 дни седмично)", "Ниска (1–2 дни седмично)", "Никаква (0 дни седмично)"] },
+            { "id": "secHydration", "type": "section", "sectionTitle": "Прием на течности" },
+            { "id": "waterIntake", "text": "Колко вода пиете дневно?", "type": "radio", "options": ["под 1 л", "1–1.5 л", "1.5–2 л", "над 2 л"] },
+            { "id": "drinksSweet", "text": "Сокове, газирани напитки, фрешове:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
+            { "id": "drinksAlcohol", "text": "Напитки с алкохолно съдържание:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
+            { "id": "secEating", "type": "section", "sectionTitle": "Хранене и поведение" },
+            { "id": "weightChange", "text": "Имали ли сте рязко покачване на теглото или отслабване в последната една година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и как се справихте с промяната?", "type": "textarea", "options": [] }] } },
+            { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
+            { "id": "overeatingFrequency", "text": "Колко често ядете повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
+            { "id": "foodCravings", "text": "Често изпитвате нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / междинни хранения", "Друго", "Не изпитвам такава"], "hasOtherInput": true, "negativeOption": "Не изпитвам такава" },
+            { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за храна?", "type": "checkbox", "options": ["Напрежение", "Скука", "Тъга", "Социални събития", "Друго", "Нито едно"], "hasOtherInput": true, "negativeOption": "Нито едно" },
+            { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна", "Нито една"], "negativeOption": "Нито една" },
+            { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true, "negativeOption": "Не" },
+            { "id": "socialComparison", "text": "Колко често се сравнявате с други хора (вкл. социални мрежи)?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
+            { "id": "secPreferences", "type": "section", "sectionTitle": "Хранителни предпочитания" },
+            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго", "Нямам предпочитания"], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
+            { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [], "optional": true },
+            { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
+            { "id": "secMedical", "type": "section", "sectionTitle": "Медицинско състояние" },
+            { "id": "medicalConditions", "text": "Имате ли някое от следните медицински състояния?", "type": "checkbox", "options": ["Инсулинова резистентност", "Диабет", "Хашимото", "Депресия", "Тревожност", "IBS", "IBD", "Алергии", "Автоимунно", "Рефлукс", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам", "specialDetailOptions": ["Алергии", "Автоимунно"] },
+            { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
+            { "id": "secExtra", "type": "section", "sectionTitle": "Допълнителна информация" },
+            { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [] },
+            { "id": "medicalFiles", "text": "Прикачете файлове или снимки с изследвания (по желание):", "type": "file", "options": [] }
+        ];
+
+        // --- CONFIGURATION ---
+        // Question types that should use compact footer layout (closer to input field)
+        const INPUT_ONLY_TYPES = ['text', 'number', 'email', 'textarea'];
+
+        // --- STATE MANAGEMENT ---
+        let currentQueue = [...rawQuestions]; // Queue that expands dynamically
+        let currentIndex = 0;
+        let answers = {};
+        
+        // Load saved answers from localStorage if available
+        const savedAnswers = localStorage.getItem('questionnaireAnswers');
+        if (savedAnswers) {
+            try {
+                answers = JSON.parse(savedAnswers);
+                console.log('Restored saved answers from localStorage');
+            } catch (e) {
+                console.error('Error loading saved answers:', e);
+            }
+        }
+        
+        // --- DOM ELEMENTS ---
+        const container = document.getElementById('questionContainer');
+        const nextBtn = document.getElementById('nextBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const progressBar = document.getElementById('progressBar');
+        const stepIndicator = document.getElementById('stepIndicator');
+
+        // --- INITIALIZATION ---
+        function init() {
+            // Show quick complete banner if user has saved answers and is on first question
+            checkAndShowQuickCompleteBanner();
+            renderStep();
+        }
+
+        // --- QUICK COMPLETE FUNCTIONALITY ---
+        function checkAndShowQuickCompleteBanner() {
+            // Only show on first question/step
+            if (currentIndex === 0) {
+                const savedAnswers = localStorage.getItem('questionnaireAnswers');
+                if (savedAnswers) {
+                    try {
+                        const parsedAnswers = JSON.parse(savedAnswers);
+                        // Check if there are meaningful answers (more than just a couple fields)
+                        const answerCount = Object.keys(parsedAnswers).length;
+                        if (answerCount > 3) {
+                            const banner = document.getElementById('quickCompleteBanner');
+                            if (banner) {
+                                banner.classList.add('show');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error checking saved answers:', e);
+                    }
+                }
+            }
+        }
+
+        function hideQuickCompleteBanner(event) {
+            if (event) {
+                event.stopPropagation(); // Prevent triggering the jump function
+            }
+            const banner = document.getElementById('quickCompleteBanner');
+            if (banner) {
+                banner.classList.remove('show');
+            }
+        }
+
+        function jumpToLastStep() {
+            hideQuickCompleteBanner();
+            
+            // Find the last non-section question
+            let lastQuestionIndex = currentQueue.length - 1;
+            while (lastQuestionIndex >= 0 && currentQueue[lastQuestionIndex].type === 'section') {
+                lastQuestionIndex--;
+            }
+            
+            if (lastQuestionIndex >= 0) {
+                // Process all branching logic to build the full queue
+                // by simulating going through each question
+                for (let i = 0; i < lastQuestionIndex; i++) {
+                    const q = currentQueue[i];
+                    if (q.children && answers[q.id]) {
+                        const answerVal = answers[q.id];
+                        if (q.children[answerVal]) {
+                            const childrenToAdd = q.children[answerVal];
+                            // Check if children are not already in queue
+                            const nextQ = currentQueue[i + 1];
+                            if (!nextQ || nextQ.id !== childrenToAdd[0].id) {
+                                currentQueue.splice(i + 1, 0, ...childrenToAdd);
+                            }
+                        }
+                    }
+                }
+                
+                // Jump to the last question
+                currentIndex = currentQueue.length - 1;
+                
+                // If the last item is a section, go to the one before it
+                if (currentQueue[currentIndex].type === 'section' && currentIndex > 0) {
+                    currentIndex--;
+                }
+                
+                renderStep();
+            }
+        }
+
+        // --- CORE RENDER FUNCTION ---
+        function renderStep() {
+            const step = currentQueue[currentIndex];
+            
+            // Hide quick complete banner when navigating away from first question
+            if (currentIndex !== 0) {
+                hideQuickCompleteBanner();
+            }
+            
+            // Update Progress
+            const percent = ((currentIndex + 1) / currentQueue.length) * 100;
+            progressBar.style.width = `${percent}%`;
+            stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${currentQueue.length}`;
+            
+            // Animation out
+            container.innerHTML = ''; 
+
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            
+            // Determine if this is an input-only question and toggle compact layout
+            const isInputOnly = INPUT_ONLY_TYPES.includes(step.type);
+            container.classList.toggle('compact', isInputOnly);
+
+            if (step.type === 'section') {
+                renderSectionTitle(card, step);
+                nextBtn.textContent = 'Продължи';
+                nextBtn.removeAttribute('disabled');
+                // Auto-advance logic could go here, but manual is safer UX
+            } else {
+                renderQuestion(card, step);
+                nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
+                validateInput(); // Check if already answered (when going back)
+            }
+
+            container.appendChild(card);
+            
+            // Position footer for compact layout (modern-input screens)
+            if (isInputOnly) {
+                positionFooterBelowInput();
+            } else {
+                resetFooterPosition();
+            }
+            
+            // Manage Buttons
+            prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
+            
+            if(currentIndex === currentQueue.length - 1 && step.type !== 'section') {
+                nextBtn.innerHTML = 'Завърши <i class="fas fa-check"></i>';
+            }
+        }
+        
+        // --- FOOTER POSITIONING HELPERS ---
+        function positionFooterBelowInput() {
+            // Wait for DOM to render - using CSS variable for delay
+            const delay = parseInt(getComputedStyle(document.documentElement)
+                .getPropertyValue('--footer-position-delay-ms')) || 50;
+            
+            setTimeout(() => {
+                const input = document.querySelector('.modern-input');
+                const footer = document.querySelector('.nav-footer');
+                
+                if (input && footer) {
+                    // Get input position relative to viewport
+                    const inputRect = input.getBoundingClientRect();
+                    
+                    // Get gap from CSS variable
+                    const gap = parseInt(getComputedStyle(document.documentElement)
+                        .getPropertyValue('--footer-input-gap')) || 8;
+                    
+                    // Calculate position: input bottom + gap
+                    const footerTop = inputRect.bottom + gap;
+                    
+                    // Position footer below input
+                    footer.style.position = 'fixed';
+                    footer.style.top = footerTop + 'px';
+                    footer.style.bottom = 'auto';
+                }
+            }, delay);
+        }
+        
+        function resetFooterPosition() {
+            const footer = document.querySelector('.nav-footer');
+            if (footer) {
+                footer.style.position = 'fixed';
+                footer.style.top = 'auto';
+                footer.style.bottom = '0';
+            }
+        }
+
+        // --- RENDER HELPERS ---
+        function renderSectionTitle(card, step) {
+            let icon = 'fa-list-ul';
+            if(step.id.includes('Basics')) icon = 'fa-user';
+            if(step.id.includes('Lifestyle')) icon = 'fa-bed';
+            if(step.id.includes('Hydration')) icon = 'fa-tint';
+            if(step.id.includes('Eating')) icon = 'fa-utensils';
+            if(step.id.includes('Medical')) icon = 'fa-heartbeat';
+
+            card.innerHTML = `
+                <div class="section-title-screen">
+                    <div class="section-icon"><i class="fas ${icon}"></i></div>
+                    <h2 class="section-title-text">${step.sectionTitle}</h2>
+                </div>
+            `;
+        }
+
+        function renderQuestion(card, step) {
+            const h2 = document.createElement('h2');
+            h2.className = 'q-text';
+            h2.textContent = step.text;
+            card.appendChild(h2);
+
+            // Determine input type
+            if (['text', 'number', 'email'].includes(step.type)) {
+                const input = document.createElement('input');
+                input.type = step.type;
+                input.className = 'modern-input';
+                input.placeholder = 'Вашият отговор...';
+                input.value = answers[step.id] || '';
+                
+                // PHASE 3 - Issue #33: Add maxlength for text fields (200 char limit)
+                if (step.type === 'text') {
+                    input.setAttribute('maxlength', '200');
+                }
+                
+                input.oninput = (e) => {
+                    saveAnswer(step.id, e.target.value);
+                    // Test mode activation: when name is "kakadu" or "какаду"
+                    if (step.id === 'name') {
+                        const lowerValue = e.target.value.toLowerCase();
+                        if (lowerValue === 'kakadu' || lowerValue === 'какаду') {
+                            activateTestMode();
+                        }
+                    }
+                };
+                card.appendChild(input);
+            } 
+            else if (step.type === 'textarea') {
+                const input = document.createElement('textarea');
+                input.className = 'modern-input';
+                input.placeholder = 'Напишете тук...';
+                input.value = answers[step.id] || '';
+                
+                // PHASE 3 - Issue #33: Add maxlength for textareas (200 char limit)
+                input.setAttribute('maxlength', '200');
+                
+                input.oninput = (e) => saveAnswer(step.id, e.target.value);
+                card.appendChild(input);
+            }
+            else if (step.type === 'file') {
+                const fileContainer = document.createElement('div');
+                fileContainer.className = 'file-upload-container';
+                fileContainer.style.cssText = 'margin-top: 15px; padding: 20px; border: 2px dashed var(--primary-red); border-radius: 12px; text-align: center; cursor: pointer; transition: var(--transition);';
+                
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.id = `file_${step.id}`;
+                fileInput.accept = 'image/*,application/pdf,.doc,.docx';
+                fileInput.multiple = true;
+                fileInput.style.display = 'none';
+                
+                const fileLabel = document.createElement('label');
+                fileLabel.htmlFor = `file_${step.id}`;
+                fileLabel.style.cursor = 'pointer';
+                fileLabel.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 2.5rem; color: var(--primary-red);"></i>
+                        <div style="color: var(--text-dark); font-weight: 500;">Изберете файлове</div>
+                        <div style="color: var(--text-gray); font-size: 0.85rem;">Снимки, PDF, Word документи</div>
+                    </div>
+                `;
+                
+                const fileList = document.createElement('div');
+                fileList.className = 'file-list';
+                fileList.style.cssText = 'margin-top: 15px; text-align: left;';
+                
+                fileInput.onchange = (e) => {
+                    const files = Array.from(e.target.files);
+                    if (files.length > 0) {
+                        answers[step.id] = files;
+                        fileList.innerHTML = '';
+                        files.forEach((file, index) => {
+                            const fileItem = document.createElement('div');
+                            fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;';
+                            fileItem.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-file" style="color: var(--primary-red);"></i>
+                                    <span style="color: var(--text-dark); font-size: 0.9rem;">${file.name}</span>
+                                    <span style="color: var(--text-gray); font-size: 0.8rem;">(${(file.size / 1024).toFixed(1)} KB)</span>
+                                </div>
+                            `;
+                            fileList.appendChild(fileItem);
+                        });
+                        fileLabel.querySelector('div > div').textContent = `${files.length} файл(а) избрани`;
+                    }
+                };
+                
+                fileContainer.appendChild(fileInput);
+                fileContainer.appendChild(fileLabel);
+                card.appendChild(fileContainer);
+                card.appendChild(fileList);
+                
+                // Restore previous files if any
+                if (answers[step.id]) {
+                    const files = answers[step.id];
+                    fileList.innerHTML = '';
+                    files.forEach((file) => {
+                        const fileItem = document.createElement('div');
+                        fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;';
+                        fileItem.innerHTML = `
+                            <i class="fas fa-file" style="color: var(--primary-red);"></i>
+                            <span style="color: var(--text-dark); font-size: 0.9rem;">${file.name}</span>
+                        `;
+                        fileList.appendChild(fileItem);
+                    });
+                    if (files.length > 0) {
+                        fileLabel.querySelector('div > div').textContent = `${files.length} файл(а) избрани`;
+                    }
+                }
+            }
+            else if (['radio', 'checkbox'].includes(step.type)) {
+                const grid = document.createElement('div');
+                grid.className = 'options-grid';
+                
+                step.options.forEach(opt => {
+                    const label = document.createElement('label');
+                    label.className = 'option-label';
+                    
+                    const input = document.createElement('input');
+                    input.type = step.type;
+                    input.name = step.id; // Group for radios
+                    input.value = opt;
+                    input.className = 'option-input';
+                    
+                    // Check if selected previously
+                    if(answers[step.id]) {
+                        if(step.type === 'radio' && answers[step.id] === opt) {
+                            input.checked = true;
+                            label.classList.add('selected');
+                        }
+                        if(step.type === 'checkbox' && Array.isArray(answers[step.id]) && answers[step.id].includes(opt)) {
+                            input.checked = true;
+                            label.classList.add('selected');
+                        }
+                    }
+
+                    // Event Listener
+                    input.onchange = (e) => handleSelection(e, step.id, step.type, label);
+
+                    const checkmark = document.createElement('div');
+                    checkmark.className = 'custom-check';
+
+                    label.appendChild(input);
+                    label.appendChild(checkmark);
+                    label.appendChild(document.createTextNode(opt));
+                    grid.appendChild(label);
+                    
+                    // Insert detail field immediately after specific options (like Allergies, Autoimmune)
+                    if(step.specialDetailOptions && step.specialDetailOptions.includes(opt)) {
+                        const detailContainer = document.createElement('div');
+                        detailContainer.className = 'other-input-container';
+                        detailContainer.id = `detail_${step.id}_${opt}`;
+                        
+                        const detailInput = document.createElement('input');
+                        detailInput.type = 'text';
+                        detailInput.className = 'modern-input';
+                        detailInput.placeholder = `Моля уточнете ${opt.toLowerCase()}...`;
+                        detailInput.style.marginTop = '10px';
+                        // PHASE 3 - Issue #33: Add maxlength
+                        detailInput.setAttribute('maxlength', '200');
+                        detailInput.oninput = (e) => saveOther(`${step.id}_${opt}`, e.target.value);
+
+                        detailContainer.appendChild(detailInput);
+                        grid.appendChild(detailContainer);
+
+                        // Check if we need to show it initially (if user went back)
+                        if(answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes(opt)) {
+                            detailContainer.classList.add('active');
+                            if(answers[`${step.id}_${opt}`]) detailInput.value = answers[`${step.id}_${opt}`];
+                        }
+                    }
+                });
+                
+                card.appendChild(grid);
+
+                // Handle "Other" field if needed (at the end)
+                if(step.hasOtherInput) {
+                    const otherContainer = document.createElement('div');
+                    otherContainer.className = 'other-input-container';
+                    otherContainer.id = `other_${step.id}`;
+                    
+                    const otherInput = document.createElement('input');
+                    otherInput.type = 'text';
+                    otherInput.className = 'modern-input';
+                    otherInput.placeholder = 'Моля уточнете...';
+                    otherInput.style.marginTop = '10px';
+                    // PHASE 3 - Issue #33: Add maxlength
+                    otherInput.setAttribute('maxlength', '200');
+                    otherInput.oninput = (e) => saveOther(`${step.id}_other`, e.target.value);
+
+                    otherContainer.appendChild(otherInput);
+                    card.appendChild(otherContainer);
+
+                    // Check if we need to show it initially (if user went back)
+                    if(step.type === 'radio' && answers[step.id] === 'Друго') {
+                        // For radio buttons, check if the answer is 'Друго'
+                        otherContainer.classList.add('active');
+                        if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
+                    } else if(step.type === 'checkbox' && answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes('Друго')) {
+                        // For checkboxes, check if the array includes 'Друго'
+                        otherContainer.classList.add('active');
+                        if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
+                    }
+                }
+            }
+        }
+
+        // --- LOGIC HANDLERS ---
+
+        function handleSelection(e, qId, type, labelElem) {
+            const val = e.target.value;
+            const currentStep = currentQueue[currentIndex];
+            
+            if (type === 'radio') {
+                // Remove selected class from others
+                document.querySelectorAll(`input[name="${qId}"]`).forEach(inp => {
+                    inp.parentElement.classList.remove('selected');
+                });
+                labelElem.classList.add('selected');
+                saveAnswer(qId, val);
+                
+                // Handle "Other" display for radio buttons
+                const otherContainer = document.getElementById(`other_${qId}`);
+                if(otherContainer) {
+                    if(val === 'Друго') {
+                        otherContainer.classList.add('active');
+                    } else {
+                        otherContainer.classList.remove('active');
+                    }
+                }
+            } 
+            else if (type === 'checkbox') {
+                // Handle mutual exclusion for negative options
+                const negativeOption = currentStep.negativeOption;
+                if (negativeOption) {
+                    if (val === negativeOption) {
+                        // If negative option is selected, uncheck all others
+                        if (e.target.checked) {
+                            document.querySelectorAll(`input[name="${qId}"]`).forEach(inp => {
+                                if (inp.value !== negativeOption) {
+                                    inp.checked = false;
+                                    inp.parentElement.classList.remove('selected');
+                                }
+                            });
+                        }
+                    } else {
+                        // If any other option is selected, uncheck negative option
+                        if (e.target.checked) {
+                            const negativeInput = document.querySelector(`input[name="${qId}"][value="${negativeOption}"]`);
+                            if (negativeInput && negativeInput.checked) {
+                                negativeInput.checked = false;
+                                negativeInput.parentElement.classList.remove('selected');
+                            }
+                        }
+                    }
+                }
+                
+                labelElem.classList.toggle('selected', e.target.checked);
+                
+                // Collect all checked
+                const checked = Array.from(document.querySelectorAll(`input[name="${qId}"]:checked`)).map(cb => cb.value);
+                saveAnswer(qId, checked);
+
+                // Handle "Other" display
+                const otherContainer = document.getElementById(`other_${qId}`);
+                if(otherContainer) {
+                    if(checked.includes('Друго')) {
+                        otherContainer.classList.add('active');
+                    } else {
+                        otherContainer.classList.remove('active');
+                    }
+                }
+                
+                // Handle special detail fields for specific options
+                if (currentStep.specialDetailOptions) {
+                    currentStep.specialDetailOptions.forEach(specialOpt => {
+                        const detailContainer = document.getElementById(`detail_${qId}_${specialOpt}`);
+                        if (detailContainer) {
+                            if (checked.includes(specialOpt)) {
+                                detailContainer.classList.add('active');
+                            } else {
+                                detailContainer.classList.remove('active');
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function saveAnswer(id, value) {
+            answers[id] = value;
+            // Persist to localStorage
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            validateInput();
+        }
+
+        function saveOther(key, value) {
+            answers[key] = value;
+            // Persist to localStorage
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+        }
+
+        // --- TEST MODE: AUTO-FILL WITH "kakadu" ---
+        function activateTestMode() {
+            // Sample test data for all questionnaire fields
+            const testData = {
+                name: "kakadu",  // Using Latin for consistency with trigger
+                gender: "Жена",
+                age: "35",
+                height: "165",
+                weight: "70",
+                email: "test@example.com",
+                goal: "Отслабване",
+                lossKg: "5",
+                sleepHours: "7–8",
+                sleepInterrupt: "Не",
+                chronotype: "Сутрешен",
+                dailyActivityLevel: "Средно",
+                stressLevel: "Средно",
+                sportActivity: "Средна (2–4 дни седмично)",
+                waterIntake: "1.5–2 л",
+                drinksSweet: "Рядко",
+                drinksAlcohol: "Рядко",
+                weightChange: "Не",
+                dietHistory: "Не",
+                overeatingFrequency: "Понякога",
+                foodCravings: ["Сладко"],
+                foodTriggers: ["Стрес"],
+                eatingHabits: ["Не закусвам"],
+                compensationMethods: ["Не"],
+                socialComparison: "Рядко",
+                dietPreference: ["Средиземноморска"],
+                dietDislike: "Няма",
+                dietLove: "Плодове и зеленчуци",
+                medicalConditions: ["Нямам"],
+                medications: "Не",
+                additionalNotes: "Тестов режим активиран"
+            };
+
+            // Fill all answers
+            Object.keys(testData).forEach(key => {
+                answers[key] = testData[key];
+            });
+            
+            // Persist to localStorage
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            
+            // Navigate to the last question (before finish) with bounds check
+            // This allows the user to review the final question before submitting
+            if (currentQueue && currentQueue.length > 0) {
+                currentIndex = currentQueue.length - 1;
+                renderStep();
+            }
+        }
+
+        function validateInput() {
+            const step = currentQueue[currentIndex];
+            if(step.type === 'section') {
+                nextBtn.disabled = false;
+                return;
+            }
+
+            const val = answers[step.id];
+            
+            // Check if field is optional
+            if (step.optional === true) {
+                // Optional fields are always valid
+                nextBtn.disabled = false;
+                return;
+            }
+            
+            // Simple validation: not empty, not null, if array not empty
+            let isValid = false;
+            if (val) {
+                if(Array.isArray(val)) {
+                    isValid = val.length > 0;
+                } else {
+                    isValid = String(val).trim().length > 0;
+                }
+            }
+            
+            // For optional "notes" fields, you might want to always allow true
+            if(step.id === 'additionalNotes' || step.id === 'medicalFiles') isValid = true;
+
+            nextBtn.disabled = !isValid;
+        }
+
+        // --- NAVIGATION & BRANCHING ---
+
+        function nextStep() {
+            const currentQ = currentQueue[currentIndex];
+            
+            // BRANCHING LOGIC: Check if current answer triggers children
+            if (currentQ.children && answers[currentQ.id]) {
+                const answerVal = answers[currentQ.id];
+                // Check if the specific answer has children in the JSON
+                if(currentQ.children[answerVal]) {
+                    const childrenToAdd = currentQ.children[answerVal];
+                    
+                    // Insert children into queue immediately after current index
+                    // But first check if they are already there to avoid duplicates if user goes back/forth
+                    const nextQ = currentQueue[currentIndex + 1];
+                    if(!nextQ || nextQ.id !== childrenToAdd[0].id) {
+                         currentQueue.splice(currentIndex + 1, 0, ...childrenToAdd);
+                    }
+                }
+            }
+
+            if (currentIndex < currentQueue.length - 1) {
+                currentIndex++;
+                renderStep();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function prevStep() {
+            if (currentIndex > 0) {
+                // Here we might want to logic to "remove" injected children if answer changed, 
+                // but for simplicity in this demo, we just go back. 
+                // The forward logic handles re-injection.
+                currentIndex--;
+                renderStep();
+            }
+        }
+
+        // Simulate AI processing progress with visual feedback
+        let progressInterval = null; // Store interval reference for cleanup
+        let tipsInterval = null; // Store tips rotation interval reference
+        
+        // Helpful tips to display during loading (constant to avoid recreation)
+        const LOADING_TIPS = [
+            '💡 Вашият план се базира на над 30 фактора от въпросника',
+            '🎯 AI анализира вашия метаболизъм и хранителни навици',
+            '🔬 Създаваме персонализирани препоръки само за вас',
+            '⏱️ Качественият анализ отнема време - но си струва!',
+            '🌟 Скоро ще получите детайлен 7-дневен план',
+            '💪 Подготвяме стратегия за постигане на вашите цели'
+        ];
+        
+        function simulateProgress() {
+            // Clear any existing intervals
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+            if (tipsInterval) {
+                clearInterval(tipsInterval);
+                tipsInterval = null;
+            }
+            
+            const progressBar = document.getElementById('aiProgressBar');
+            const percentageText = document.getElementById('progressPercentage');
+            const title = document.getElementById('loadingTitle');
+            const subtitle = document.getElementById('loadingSubtitle');
+            const stage1 = document.getElementById('stage1');
+            const stage1Text = document.getElementById('stage1Text');
+            const stage2 = document.getElementById('stage2');
+            const stage2Text = document.getElementById('stage2Text');
+            const stage3 = document.getElementById('stage3');
+            const stage3Text = document.getElementById('stage3Text');
+            const tipsElement = document.getElementById('loadingTips');
+            
+            // Validate all required elements exist
+            if (!progressBar || !percentageText || !title || !subtitle) {
+                console.error('Loading animation elements not found');
+                return;
+            }
+            
+            let progress = 0;
+            let currentTipIndex = 0;
+            const startTime = Date.now();
+            
+            // Rotate tips every 8 seconds
+            function rotateTips() {
+                if (tipsElement) {
+                    currentTipIndex = (currentTipIndex + 1) % LOADING_TIPS.length;
+                    tipsElement.style.opacity = '0';
+                    setTimeout(() => {
+                        tipsElement.textContent = LOADING_TIPS[currentTipIndex];
+                        tipsElement.style.opacity = '1';
+                    }, 300);
+                }
+            }
+            
+            // Start tip rotation
+            if (tipsElement) {
+                tipsElement.textContent = LOADING_TIPS[0];
+                tipsInterval = setInterval(rotateTips, 8000);
+            }
+            
+            // Define stages with more realistic timing
+            // Total expected time: ~360 seconds (6 minutes)
+            // Note: We have 3 visual stage indicators but 4 progress stages
+            // Stages 2 and 3 share the same visual indicator (stage3)
+            const stages = [
+                { 
+                    percent: 25, 
+                    title: 'Анализиране на данните...', 
+                    subtitle: 'Обработваме вашия здравен профил',
+                    minTime: 0,
+                    maxTime: 60000, // 0-60 seconds (1 minute)
+                    indicatorIndex: 0 // stage1
+                },
+                { 
+                    percent: 50, 
+                    title: 'Генериране на препоръки...', 
+                    subtitle: 'AI създава персонализирани стратегии',
+                    minTime: 60000,
+                    maxTime: 150000, // 60-150 seconds (1-2.5 minutes)
+                    indicatorIndex: 1 // stage2
+                },
+                { 
+                    percent: 75, 
+                    title: 'Изграждане на плана...', 
+                    subtitle: 'Съставяме вашето 7-дневно меню',
+                    minTime: 150000,
+                    maxTime: 240000, // 150-240 seconds (2.5-4 minutes)
+                    indicatorIndex: 2 // stage3
+                },
+                { 
+                    percent: 92, 
+                    title: 'Финализиране...', 
+                    subtitle: 'Последни детайли и проверки',
+                    minTime: 240000,
+                    maxTime: 360000, // 240-360 seconds (4-6 minutes)
+                    indicatorIndex: 2 // stage3 (shares with previous stage)
+                }
+            ];
+            
+            let currentStage = -1; // Start at -1 so first stage (0) triggers activation
+            const MAX_PROGRESS_INCREMENT = 2; // Maximum progress change per update for smoothness
+            
+            // Stage UI elements mapping
+            const stageElements = [
+                { element: stage1, text: stage1Text },
+                { element: stage2, text: stage2Text },
+                { element: stage3, text: stage3Text }
+            ];
+            
+            // Helper function to activate a stage indicator if valid
+            function activateStageIfValid(stageIndex) {
+                if (stageIndex >= 0 && stageIndex < stageElements.length) {
+                    const stage = stageElements[stageIndex];
+                    if (stage.element && stage.text) {
+                        stage.element.style.background = 'var(--primary-red)';
+                        stage.element.style.boxShadow = '0 2px 8px var(--soft-red)';
+                        stage.text.style.color = 'var(--primary-red)';
+                        stage.text.style.fontWeight = '600';
+                    }
+                }
+            }
+            
+            // Exponential easing function for smooth progress
+            // Progress slows down naturally as it approaches target
+            function easeOutExpo(t) {
+                return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+            }
+            
+            function updateProgress() {
+                const currentProgressBar = document.getElementById('aiProgressBar');
+                const currentPercentageText = document.getElementById('progressPercentage');
+                const currentTitle = document.getElementById('loadingTitle');
+                const currentSubtitle = document.getElementById('loadingSubtitle');
+                
+                // Safety check
+                if (!currentProgressBar || !currentPercentageText) {
+                    if (progressInterval) clearInterval(progressInterval);
+                    if (tipsInterval) clearInterval(tipsInterval);
+                    return;
+                }
+                
+                const elapsed = Date.now() - startTime;
+                
+                // Find which stage we're in
+                let stageIndex = -1;
+                let newProgress = progress;
+                
+                for (let i = 0; i < stages.length; i++) {
+                    const stage = stages[i];
+                    
+                    if (elapsed >= stage.minTime && elapsed < stage.maxTime) {
+                        // We're in this stage
+                        stageIndex = i;
+                        
+                        // Check if we entered a new stage
+                        if (i !== currentStage) {
+                            currentStage = i;
+                            
+                            // Update title and subtitle
+                            if (currentTitle) currentTitle.textContent = stage.title;
+                            if (currentSubtitle) currentSubtitle.textContent = stage.subtitle;
+                            
+                            // Activate stage indicator
+                            activateStageIfValid(stage.indicatorIndex);
+                        }
+                        
+                        // Calculate progress within current stage using easing
+                        const stageProgress = (elapsed - stage.minTime) / (stage.maxTime - stage.minTime);
+                        const easedProgress = easeOutExpo(Math.min(stageProgress, 1));
+                        
+                        // Interpolate between previous and current stage
+                        const prevPercent = i > 0 ? stages[i - 1].percent : 0;
+                        newProgress = prevPercent + (stage.percent - prevPercent) * easedProgress;
+                        
+                        break;
+                    } else if (elapsed >= stage.maxTime) {
+                        // We've completed this stage, ensure we're at least at its target
+                        newProgress = Math.max(newProgress, stage.percent);
+                        
+                        // Activate stage indicator if we haven't already
+                        if (i !== currentStage) {
+                            activateStageIfValid(stage.indicatorIndex);
+                            currentStage = i;
+                        }
+                    }
+                }
+                
+                // Smooth out the progress - never jump more than MAX_PROGRESS_INCREMENT at a time
+                const progressDiff = newProgress - progress;
+                if (Math.abs(progressDiff) > MAX_PROGRESS_INCREMENT) {
+                    // Limit the jump
+                    progress += progressDiff > 0 ? MAX_PROGRESS_INCREMENT : -MAX_PROGRESS_INCREMENT;
+                } else {
+                    progress = newProgress;
+                }
+                
+                // Update UI
+                currentProgressBar.style.width = Math.floor(progress) + '%';
+                currentPercentageText.textContent = Math.floor(progress) + '%';
+            }
+            
+            // Start smooth progress animation with 100ms intervals
+            // This creates 10 updates per second for smooth animation
+            progressInterval = setInterval(updateProgress, 100);
+            
+            // Initial update
+            setTimeout(updateProgress, 500);
+        }
+
+        async function finishQuiz() {
+            console.log("Final JSON:", JSON.stringify(answers, null, 2));
+            
+            // Show loading state with simpler message
+            container.innerHTML = `
+                <div style="text-align:center; animation: fadeIn 0.5s; max-width: 500px; margin: 0 auto;">
+                    <!-- Animated Icon with Pulse -->
+                    <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 30px; animation: pulse 2s ease-in-out infinite;">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    
+                    <h2 class="q-text" id="loadingTitle" style="transition: all 0.3s ease;">Изпращане на данните...</h2>
+                    <p style="color:var(--text-gray); margin-bottom:30px; font-size: 0.95rem; transition: all 0.3s ease;" id="loadingSubtitle">
+                        Моля, изчакайте...
+                    </p>
+                </div>
+                
+                <style>
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.05); opacity: 0.9; }
+                    }
+                </style>
+            `;
+            document.querySelector('.nav-footer').style.display = 'none';
+            document.querySelector('.progress-container').style.display = 'none';
+
+            try {
+                // Generate a unique client ID based on timestamp and random number
+                const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+                
+                // Prepare data for saving
+                const clientData = {
+                    id: clientId,
+                    timestamp: new Date().toISOString(),
+                    answers: answers
+                };
+                
+                // Convert files to base64 if present
+                if (answers.medicalFiles && answers.medicalFiles.length > 0) {
+                    const filePromises = Array.from(answers.medicalFiles).map(file => {
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => resolve({
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                data: e.target.result
+                            });
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                        });
+                    });
+                    
+                    clientData.files = await Promise.all(filePromises);
+                    // Remove File objects from answers as they can't be stringified
+                    delete clientData.answers.medicalFiles;
+                }
+                
+                // Save to localStorage (as a backup and for demonstration)
+                localStorage.setItem(`questionnaire2_${clientId}`, JSON.stringify(clientData));
+                
+                // Simulate short delay for better UX
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Clear the saved questionnaire answers
+                localStorage.removeItem('questionnaireAnswers');
+                
+                // Show success message
+                container.innerHTML = `
+                    <div style="text-align:center; animation: fadeIn 0.5s; max-width: 600px; margin: 0 auto;">
+                        <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 20px;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h2 class="q-text" style="margin-bottom: 20px;">Благодарим Ви!</h2>
+                        <div style="background: var(--soft-red); padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: left;">
+                            <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
+                                <i class="fas fa-info-circle" style="color: var(--primary-red); margin-right: 8px;"></i>
+                                Вашата информация беше получена успешно и ще бъде изпратена на нашия екип.
+                            </p>
+                            <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
+                                <i class="fas fa-clock" style="color: var(--primary-red); margin-right: 8px;"></i>
+                                Скоро вашият персонален план за постигане на целта ще бъде готов.
+                            </p>
+                            <p style="color: var(--text-dark); line-height: 1.8;">
+                                <i class="fas fa-envelope" style="color: var(--primary-red); margin-right: 8px;"></i>
+                                При необходимост от допълнителни въпроси, ще се свържем с вас на посочения имейл: <strong>${answers.email || 'N/A'}</strong>
+                            </p>
+                        </div>
+                        <button class="btn" onclick="window.location.href='index.html'" style="margin: 10px auto; display: block; background: var(--text-gray);">
+                            <i class="fas fa-home" style="margin-right: 8px;"></i>Към началната страница
+                        </button>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error saving data:', error);
+                
+                container.innerHTML = `
+                    <div style="text-align:center; animation: fadeIn 0.5s;">
+                        <div class="section-icon" style="background:#d1fae5; color:#10b981;">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <h2 class="q-text">Грешка</h2>
+                        <p style="color:#7f8c8d; margin-bottom:20px;">Възникна проблем при съхраняването на данните. Моля, опитайте отново.</p>
+                        <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Start
+        init();
+
+
+        // --- PWA Install Banner Functionality ---
+        let deferredPrompt;
+        
+        // Constants
+        const INSTALL_BANNER_DISMISS_DAYS = 7; // Number of days before showing banner again
+        const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+        const PWA_DEBUG = false; // Set to true for debugging PWA installation issues
+        
+        // Helper function to check if banner was recently dismissed
+        function wasBannerRecentlyDismissed() {
+            const dismissedTime = localStorage.getItem('installBannerDismissed');
+            if (dismissedTime) {
+                const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / MILLISECONDS_PER_DAY;
+                // Show again after configured number of days
+                if (daysSinceDismissed < INSTALL_BANNER_DISMISS_DAYS) {
+                    if (PWA_DEBUG) console.log('Install banner was recently dismissed');
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // Detect device type
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
+        const isEdge = /Edg/i.test(navigator.userAgent);
+        const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+        const isFirefox = /Firefox/i.test(navigator.userAgent);
+        const isOpera = /OPR|Opera/i.test(navigator.userAgent);
+        const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
+        
+        // Get browser name and icon for display
+        function getBrowserInfo() {
+            if (isChrome && isAndroid) return { name: 'Chrome', icon: 'fab fa-chrome' };
+            if (isChrome && !isAndroid) return { name: 'Chrome', icon: 'fab fa-chrome' };
+            if (isEdge) return { name: 'Edge', icon: 'fab fa-edge' };
+            if (isSafari && isIOS) return { name: 'Safari', icon: 'fab fa-safari' };
+            if (isSafari) return { name: 'Safari', icon: 'fab fa-safari' };
+            if (isFirefox) return { name: 'Firefox', icon: 'fab fa-firefox' };
+            if (isOpera) return { name: 'Opera', icon: 'fab fa-opera' };
+            if (isSamsung) return { name: 'Samsung Internet', icon: 'fas fa-mobile-alt' };
+            return { name: 'Browser', icon: 'fas fa-globe' };
+        }
+        
+        // Update banner icon based on platform
+        function updateBannerIcon() {
+            const iconEl = document.getElementById('installBannerIcon');
+            if (!iconEl) return;
+            
+            let iconClass = 'fas fa-mobile-alt';
+            
+            if (isAndroid) {
+                iconClass = 'fab fa-android';
+            } else if (isIOS) {
+                iconClass = 'fab fa-apple';
+            } else if (!isMobile) {
+                iconClass = 'fas fa-desktop';
+            }
+            
+            iconEl.innerHTML = `<i class="${iconClass}"></i>`;
+        }
+        
+        // Update browser badge
+        function updateBrowserBadge(showBrowser = true) {
+            const browserBadge = document.getElementById('installBannerBrowser');
+            const browserText = document.getElementById('installBannerBrowserText');
+            
+            if (browserBadge && browserText && showBrowser) {
+                const browserInfo = getBrowserInfo();
+                browserText.textContent = browserInfo.name;
+                const iconEl = browserBadge.querySelector('i');
+                if (iconEl) {
+                    iconEl.className = browserInfo.icon;
+                }
+                browserBadge.style.display = 'inline-flex';
+            } else if (browserBadge) {
+                browserBadge.style.display = 'none';
+            }
+        }
+        
+        // Capture the beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            if (PWA_DEBUG) console.log('beforeinstallprompt fired');
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show the install banner only if not recently dismissed
+            if (!wasBannerRecentlyDismissed()) {
+                showInstallBanner();
+                
+                // Auto-trigger installation prompt after 3 seconds for better automatic experience
+                // This ensures users don't miss the installation opportunity
+                setTimeout(() => {
+                    if (deferredPrompt && !isInStandaloneMode()) {
+                        if (PWA_DEBUG) console.log('Auto-triggering install prompt after 3 seconds');
+                        triggerInstallPrompt();
+                    }
+                }, 3000);
+            }
+        });
+
+        // Show install banner
+        function showInstallBanner() {
+            if (PWA_DEBUG) console.log('Showing install banner');
+            const installBanner = document.getElementById('installBanner');
+            if (installBanner) {
+                // Update banner text for automatic installation
+                const titleEl = installBanner.querySelector('.install-banner-title');
+                const textEl = installBanner.querySelector('.install-banner-text');
+                
+                if (titleEl) titleEl.textContent = '🎉 Готово за инсталация!';
+                if (textEl) textEl.textContent = 'Приложението ще се инсталира автоматично след 3 секунди';
+                
+                installBanner.classList.add('show');
+                if (PWA_DEBUG) console.log('Install banner displayed successfully');
+            } else {
+                if (PWA_DEBUG) console.error('Install banner element not found');
+            }
+        }
+        
+        // Show platform-specific install guidance if beforeinstallprompt doesn't fire
+        function showPlatformInstallGuidance() {
+            // Don't show if already dismissed recently
+            if (wasBannerRecentlyDismissed()) return;
+            
+            // Don't show if already installed
+            if (isInStandaloneMode()) return;
+            
+            const installBanner = document.getElementById('installBanner');
+            if (!installBanner) return;
+            
+            // Update banner content based on platform
+            const titleEl = document.getElementById('installBannerTitle');
+            const textEl = document.getElementById('installBannerText');
+            const installBtn = document.getElementById('installBtn');
+            
+            // Update icon and browser badge
+            updateBannerIcon();
+            updateBrowserBadge(true);
+            
+            if (!isMobile && (isChrome || isEdge)) {
+                // Desktop Chrome/Edge - guide to address bar
+                const browserName = isChrome ? 'Chrome' : 'Edge';
+                if (titleEl) titleEl.textContent = `💻 Инсталирай в ${browserName}`;
+                if (textEl) textEl.textContent = 'Потърси иконата за инсталация (⊕) в адресната лента';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
+                    installBtn.onclick = () => {
+                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isIOS && isSafari) {
+                // iOS Safari - guide to Share button
+                if (titleEl) titleEl.textContent = '📱 Добави към iPhone/iPad';
+                if (textEl) textEl.textContent = 'Натисни бутона Share (⬆️) и избери "Add to Home Screen" (Добави към начален екран)';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-share"></i><span>Виж как</span>';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран) (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isAndroid && (isChrome || isEdge)) {
+                // Android Chrome/Edge - fallback when beforeinstallprompt doesn't fire
+                const browserName = isChrome ? 'Chrome' : 'Edge';
+                if (titleEl) titleEl.textContent = `📱 Инсталирай в ${browserName}`;
+                if (textEl) textEl.textContent = 'Натисни менюто (⋮) и избери "Инсталирай приложение"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
+                    installBtn.onclick = () => {
+                        alert('📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Натиснете "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърсете иконата (⊕) в адресната лента\n• Кликнете и изберете "Инсталирай"\n\n💡 ВАЖНО: Ако не виждате опцията веднага:\n• Презаредете страницата (F5)\n• Изчакайте 2-3 секунди\n• Кликнете на някой бутон на страницата');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isSamsung && isAndroid) {
+                // Samsung Internet on Android
+                if (titleEl) titleEl.textContent = '📱 Инсталирай в Samsung Internet';
+                if (textEl) textEl.textContent = 'Натисни менюто и избери "Добави към начален екран"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isFirefox && isAndroid) {
+                // Firefox on Android
+                if (titleEl) titleEl.textContent = '📱 Инсталирай в Firefox';
+                if (textEl) textEl.textContent = 'Натисни менюто (⋮) и избери "Инсталирай"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                    };
+                }
+                installBanner.classList.add('show');
+            } else if (isMobile) {
+                // Other mobile browsers - generic guidance
+                if (titleEl) titleEl.textContent = '📱 Добави към начален екран';
+                if (textEl) textEl.textContent = 'Отвори менюто на браузъра и избери "Добави към начален екран"';
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
+                    installBtn.onclick = () => {
+                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                    };
+                }
+                installBanner.classList.add('show');
+            }
+        }
+
+        // Hide install banner
+        function hideInstallBanner() {
+            const installBanner = document.getElementById('installBanner');
+            if (installBanner) {
+                installBanner.classList.remove('show');
+            }
+        }
+        
+        // Trigger install prompt (reusable function)
+        async function triggerInstallPrompt() {
+            if (!deferredPrompt) {
+                if (PWA_DEBUG) console.log('No deferred prompt available');
+                return false;
+            }
+            
+            try {
+                // Show the install prompt
+                if (PWA_DEBUG) console.log('Triggering install prompt');
+                deferredPrompt.prompt();
+                
+                // Wait for the user to respond to the prompt
+                const { outcome } = await deferredPrompt.userChoice;
+                if (PWA_DEBUG) console.log(`User response to the install prompt: ${outcome}`);
+                
+                // Hide the banner
+                hideInstallBanner();
+                
+                // Clear the deferred prompt
+                deferredPrompt = null;
+                
+                return outcome === 'accepted';
+            } catch (error) {
+                if (PWA_DEBUG) console.error('Error triggering install prompt:', error);
+                return false;
+            }
+        }
+
+        // iOS Install Banner Functions
+        function showIosInstallBanner() {
+            const hasDismissed = localStorage.getItem('ios_install_dismissed');
+
+            if (isIOS && !isInStandaloneMode() && !hasDismissed) {
+                const iosBanner = document.getElementById('ios-banner');
+                const shareIconImg = document.getElementById('ios-share-icon-img');
+                
+                if (iosBanner) {
+                    // Set the share icon SVG
+                    if (shareIconImg) {
+                        shareIconImg.src = getShareIconSvg();
+                    }
+                    iosBanner.style.display = 'block';
+                    if (PWA_DEBUG) console.log('iOS install banner shown');
+                }
+            }
+        }
+
+        // Function to dismiss iOS banner
+        function dismissIosBanner() {
+            localStorage.setItem('ios_install_dismissed', 'true');
+            const iosBanner = document.getElementById('ios-banner');
+            if (iosBanner) {
+                iosBanner.style.display = 'none';
+            }
+            if (PWA_DEBUG) console.log('iOS install banner dismissed');
+        }
+
+        // Initialize iOS banner after a delay
+        if (isIOS && isSafari) {
+            setTimeout(() => {
+                showIosInstallBanner();
+            }, 3000); // Show after 3 seconds on iOS
+        }
+
+        // Handle install button click
+        const installBtn = document.getElementById('installBtn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                await triggerInstallPrompt();
+            });
+        }
+
+        // Handle dismiss button click
+        const dismissInstallBtn = document.getElementById('dismissInstallBtn');
+        if (dismissInstallBtn) {
+            dismissInstallBtn.addEventListener('click', () => {
+                hideInstallBanner();
+                
+                // Store dismissal in localStorage (to not show again for 7 days)
+                localStorage.setItem('installBannerDismissed', Date.now().toString());
+            });
+        }
+
+        // Listen for app installed event
+        window.addEventListener('appinstalled', () => {
+            if (PWA_DEBUG) console.log('PWA was installed');
+            hideInstallBanner();
+            deferredPrompt = null;
+        });
+        
+        // Don't show fallback guidance - only show banner when beforeinstallprompt fires
+        // This ensures automatic installation prompt instead of manual instructions
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                // Only log for debugging - don't show manual instructions
+                if (!deferredPrompt && !isInStandaloneMode()) {
+                    if (PWA_DEBUG) {
+                        console.log('beforeinstallprompt has not fired after 2 seconds');
+                        console.log('Waiting for automatic prompt - no manual instructions shown');
+                    }
+                }
+            }, 2000);
+            
+            // For Android Chrome/Edge: Re-check after user engagement
+            if (isAndroid && (isChrome || isEdge)) {
+                let engagementStartTime = Date.now();
+                let hasInteracted = false;
+                
+                // Track user interaction
+                const interactionEvents = ['click', 'touchstart', 'scroll', 'keydown'];
+                const markInteraction = () => {
+                    if (!hasInteracted) {
+                        hasInteracted = true;
+                        if (PWA_DEBUG) console.log('User interaction detected, starting engagement timer');
+                    }
+                };
+                
+                interactionEvents.forEach(event => {
+                    document.addEventListener(event, markInteraction, { once: true, passive: true });
+                });
+                
+                // Check again after 32 seconds if user has interacted
+                setTimeout(() => {
+                    if (hasInteracted && !deferredPrompt && !isInStandaloneMode()) {
+                        const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
+                        if (PWA_DEBUG) {
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                            console.log('%c🔄 Re-checking PWA Installability', 'color: #3b82f6; font-weight: bold');
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                            console.log(`User has been engaged for ${elapsedTime} seconds`);
+                            console.log(`beforeinstallprompt still has not fired`);
+                            console.log('Waiting for automatic prompt - app may already be installed or PWA criteria not met');
+                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
+                        }
+                        // Don't show manual instructions - wait for automatic prompt only
+                    }
+                }, 32000); // Check after 32 seconds (30s requirement + 2s buffer)
+            }
+        });
+
+        // Debug: Check PWA installability after page load
+        if (PWA_DEBUG) {
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    // Detect device type
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    const isAndroid = /Android/i.test(navigator.userAgent);
+                    const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
+                    const isEdge = /Edg/i.test(navigator.userAgent);
+                    
+                    if (!deferredPrompt) {
+                        console.log('PWA Debug: beforeinstallprompt has not fired yet');
+                        console.log('PWA Debug: Checking installability criteria:');
+                        console.log('- Service Worker:', 'serviceWorker' in navigator ? 'Supported' : 'Not supported');
+                        console.log('- HTTPS:', location.protocol === 'https:' ? 'Yes' : 'No');
+                        console.log('- Manifest link:', document.querySelector('link[rel="manifest"]') ? 'Found' : 'Missing');
+                        console.log('- Platform:', isMobile ? 'Mobile' : 'Desktop');
+                        console.log('- Browser:', isChrome ? 'Chrome' : (isEdge ? 'Edge' : 'Other'));
+                        
+                        // Check if already installed
+                        if (isInStandaloneMode()) {
+                            console.log('- Already installed: Yes (running as standalone app)');
+                        } else {
+                            console.log('- Already installed: No');
+                            
+                            // Different explanations for desktop vs mobile
+                            if (!isMobile && (isChrome || isEdge)) {
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #10b981; font-weight: bold; font-size: 14px');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                                console.log('%cINFO: On Desktop Chrome/Edge, the beforeinstallprompt event often does NOT fire.', 'color: #3b82f6; font-weight: bold');
+                                console.log('%cInstead, Chrome shows an INSTALL ICON in the address bar (omnibox).', 'color: #3b82f6; font-weight: bold');
+                                console.log('');
+                                console.log('%cTo install this app:', 'font-weight: bold');
+                                console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
+                                console.log('  2. Click the icon to install the app');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan..."');
+                                console.log('');
+                                console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                            } else if (isAndroid && (isChrome || isEdge)) {
+                                console.log('- Possible reasons why event has not fired:');
+                                console.log('  1. User engagement criteria not met (needs 30+ seconds + interaction)');
+                                console.log('  2. Manifest.json not valid or not accessible');
+                                console.log('  3. Icons not loading properly');
+                                console.log('  4. Service worker not registered successfully');
+                                console.log('  5. PWA criteria not fully met');
+                            } else {
+                                console.log('- Note: beforeinstallprompt is only supported on Chrome/Edge (mainly Android)');
+                                console.log('- For other browsers, users can install manually via browser menu');
+                            }
+                        }
+                    } else {
+                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #10b981; font-weight: bold');
+                        console.log('PWA is ready for installation with custom install prompt.');
+                    }
+                }, 3000);
+            });
+        }
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // --- PWA Helper Functions ---
+        // Check if app is running in standalone mode
+        function isInStandaloneMode() {
+            return window.matchMedia('(display-mode: standalone)').matches || 
+                   (('standalone' in window.navigator) && (window.navigator.standalone));
+        }
+
+        // Get SVG data URL for iOS share icon
+        function getShareIconSvg() {
+            return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E";
+        }
+    </script>
+</body>
+</html>
