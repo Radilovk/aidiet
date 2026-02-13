@@ -1248,7 +1248,11 @@ async function generateSimplifiedFallbackPlan(env, data) {
       bmr, 
       recommendedCalories, 
       goal: data.goal,
-      keyProblems: [] // Empty but present for validation
+      keyProblems: [{
+        problem: 'Използван опростен план поради технически ограничения',
+        severity: 'Info',
+        explanation: 'Този план е генериран с опростен алгоритъм като резервна опция'
+      }] // Fallback info message
     },
     strategy: {
       dietaryModifier: 'Балансиран',
@@ -3416,15 +3420,22 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         console.warn('Step 4 regeneration failed, using fallback values from strategy');
         // Use strategy fallback values
         const calculatedMacros = calculateAverageMacrosFromPlan(existingPlan.weekPlan);
+        
+        // Validate calculated macros and log warnings
+        if (!calculatedMacros.protein || !calculatedMacros.carbs || !calculatedMacros.fats) {
+          console.warn('Step 4 regeneration: calculateAverageMacrosFromPlan returned incomplete data:', calculatedMacros);
+          console.warn('Step 4 regeneration: Using generic fallback macros instead');
+        }
+        
         mealPlan = {
           weekPlan: existingPlan.weekPlan,
           summary: {
             bmr: bmr,
             dailyCalories: recommendedCalories,
             macros: {
-              protein: calculatedMacros.protein || 0,
-              carbs: calculatedMacros.carbs || 0,
-              fats: calculatedMacros.fats || 0
+              protein: calculatedMacros.protein || 150,
+              carbs: calculatedMacros.carbs || 200,
+              fats: calculatedMacros.fats || 65
             }
           },
           recommendations: strategy.foodsToInclude || ['Варено пилешко месо', 'Киноа', 'Авокадо'],
