@@ -1190,8 +1190,8 @@ async function generateSimplifiedFallbackPlan(env, data) {
     recommendedCalories = Math.round(tdee * 1.1);
   }
   
-  // Simplified prompt with basic requirements
-  const simplifiedPrompt = `Създай ОПРОСТЕН 7-дневен хранителен план за ${data.name}.
+  // Step 1: Generate week plan (meals only)
+  const mealPlanPrompt = `Създай ОПРОСТЕН 7-дневен хранителен план за ${data.name}.
 
 ОСНОВНИ ДАННИ:
 - BMR: ${bmr} kcal, TDEE: ${tdee} kcal
@@ -1200,6 +1200,7 @@ async function generateSimplifiedFallbackPlan(env, data) {
 - Възраст: ${data.age}, Пол: ${data.gender}
 - Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
 - Алергии/Непоносимости: ${data.dietDislike || 'няма'}
+- Предпочитания: ${data.dietLove || 'няма'}
 
 ИЗИСКВАНИЯ (ОПРОСТЕНИ):
 - 3 хранения на ден: Закуска, Обяд, Вечеря
@@ -1209,7 +1210,7 @@ async function generateSimplifiedFallbackPlan(env, data) {
 
 ФОРМАТ (JSON):
 {
-  "day1": {"meals": [...]},
+  "day1": {"meals": [{"name": "...", "time": "...", "type": "Закуска", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}]},
   "day2": {"meals": [...]},
   ...
   "day7": {"meals": [...]}
@@ -1217,31 +1218,67 @@ async function generateSimplifiedFallbackPlan(env, data) {
 
 Създай прост, практичен план.`;
 
-  // Call AI with simplified prompt
+  // Call AI for meal plan
   const calculatedData = { bmr, tdee, recommendedCalories };
-  const response = await callAIModel(env, simplifiedPrompt, 2000, 'fallback_plan', null, data, calculatedData);
+  const mealPlanResponse = await callAIModel(env, mealPlanPrompt, 3000, 'fallback_meals', null, data, calculatedData);
+  const weekPlan = JSON.parse(mealPlanResponse);
   
-  // Generate proper recommendations and forbidden lists to meet validation requirements (min 3 items each)
-  const recommendations = [
-    'Варено пилешко месо - лесно смилаемо, високопротеиново',
-    'Овесени ядки - бавни въглехидрати за трайна енергия',
-    'Киселото мляко - пробиотици за храносмилане',
-    'Яйца - пълноценен протеин и витамини',
-    'Зелени листни зеленчуци - фибри и минерали'
+  // Step 2: Generate recommendations, forbidden, psychology, supplements based on user data
+  // This should be AI-generated, not hardcoded
+  const recommendationsPrompt = `На база профила на ${data.name}, генерирай препоръки за опростен план.
+
+ПРОФИЛ:
+- Цел: ${data.goal}
+- Възраст: ${data.age}, Пол: ${data.gender}
+- Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+- Алергии: ${data.dietDislike || 'няма'}
+- Любими храни: ${data.dietLove || 'няма'}
+- Лекарства: ${data.medications === 'Да' ? data.medicationsDetails || 'неуточнени' : 'не приема'}
+- BMR: ${bmr}, Целеви калории: ${recommendedCalories}
+
+JSON ФОРМАТ (ТОЧЕН):
+{
+  "recommendations": ["храна 1 - защо е подходяща", "храна 2 - защо е подходяща", "храна 3 - защо е подходяща", "храна 4 - защо е подходяща", "храна 5 - защо е подходяща"],
+  "forbidden": ["храна 1 - защо е неподходяща", "храна 2 - защо е неподходяща", "храна 3 - защо е неподходяща", "храна 4 - защо е неподходяща"],
+  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
+  "waterIntake": "препоръка за вода",
+  "supplements": ["добавка 1 (доза) - защо", "добавка 2 (доза) - защо"]
+}
+
+ИЗИСКВАНИЯ:
+- recommendations: МИН 5 конкретни храни подходящи за ${data.goal}, медицински безопасни за ${JSON.stringify(data.medicalConditions || [])}
+- forbidden: МИН 4 храни неподходящи за профила (алергии, медицински, цел)
+- supplements: САМО ако има ясна нужда от ${JSON.stringify(data.medicalConditions || [])} или ${data.medications === 'Да' ? 'медикаменти' : 'без медикаменти'}. БЕЗ опасни взаимодействия с ${data.medications === 'Да' ? data.medicationsDetails || 'медикаменти' : 'няма медикаменти'}.
+- psychology: 3 съвета за мотивация и постоянство
+- waterIntake: конкретна препоръка в литри
+
+Върни САМО JSON без друг текст!`;
+
+  // Call AI for recommendations
+  const recommendationsResponse = await callAIModel(env, recommendationsPrompt, 1000, 'fallback_recommendations', null, data, calculatedData);
+  const aiRecommendations = parseAIResponse(recommendationsResponse);
+  
+  // Extract AI-generated data with safe fallbacks only if AI fails
+  const recommendations = aiRecommendations.recommendations || [
+    'Консултирай се с лекар за конкретни препоръки',
+    'Храни се балансирано',
+    'Пий достатъчно вода'
   ];
   
-  const forbidden = [
-    'Бързи храни - високо съдържание на трансмазнини',
-    'Газирани напитки - празни калории и захар',
-    'Сладкиши и захар - рязко покачване на кръвна захар',
-    'Фритирани храни - тежки за храносмилане'
+  const forbidden = aiRecommendations.forbidden || [
+    'Алкохол',
+    'Преработени храни',
+    'Прекомерна захар'
   ];
   
-  const psychology = [
-    'Бъдете последователни - постоянството е ключът към успеха',
-    'Планирайте храненията предварително',
-    'Не пропускайте закуска'
+  const psychology = aiRecommendations.psychology || [
+    'Бъдете последователни',
+    'Планирайте предварително',
+    'Не се отказвайте при грешка'
   ];
+  
+  const waterIntake = aiRecommendations.waterIntake || '2-2.5л дневно';
+  const supplements = aiRecommendations.supplements || [];
   
   const plan = {
     analysis: { 
@@ -1252,7 +1289,7 @@ async function generateSimplifiedFallbackPlan(env, data) {
         problem: 'Използван опростен план поради технически ограничения',
         severity: 'Info',
         explanation: 'Този план е генериран с опростен алгоритъм като резервна опция'
-      }] // Fallback info message
+      }]
     },
     strategy: {
       dietaryModifier: 'Балансиран',
@@ -1263,10 +1300,10 @@ async function generateSimplifiedFallbackPlan(env, data) {
       foodsToInclude: recommendations,
       foodsToAvoid: forbidden,
       psychologicalSupport: psychology,
-      supplementRecommendations: [],
-      hydrationStrategy: '2-2.5л вода дневно'
+      supplementRecommendations: supplements,
+      hydrationStrategy: waterIntake
     },
-    weekPlan: JSON.parse(response),
+    weekPlan: weekPlan,
     summary: {
       bmr,
       dailyCalories: recommendedCalories,
@@ -1275,8 +1312,8 @@ async function generateSimplifiedFallbackPlan(env, data) {
     recommendations: recommendations,
     forbidden: forbidden,
     psychology: psychology,
-    waterIntake: '2-2.5л вода дневно',
-    supplements: []
+    waterIntake: waterIntake,
+    supplements: supplements
   };
   
   return plan;
