@@ -7044,7 +7044,7 @@ async function handleGetLoggingStatus(request, env) {
     }
 
     // AI logging is always enabled (required for debugging and monitoring)
-    // The system automatically keeps only the last session (MAX_LOG_ENTRIES = 1)
+    // The system automatically keeps the last 10 sessions (MAX_LOG_ENTRIES = 10)
     // Bulgarian: "AI логването е винаги включено за поддържане на последната пълна комуникация"
     return jsonResponse({ 
       success: true, 
