@@ -42,5 +42,10 @@ test-loading-animation.html
 # Test scripts
 test-whitelist-validation.js
 
+# Client data from questionnaire2
+clients/*.json
+clients/*
+!clients/.gitkeep
+
 # Note: Historical development documentation is archived in docs/archive/
 # This keeps the root directory clean and focused on active documentation
