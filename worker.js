@@ -6612,8 +6612,6 @@ export default {
         return await handleGetReports(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
         return await handleSavePrompt(request, env);
-      } else if (url.pathname === '/api/admin/get-prompt' && request.method === 'GET') {
-        return await handleGetPrompt(request, env);
       } else if (url.pathname === '/api/admin/get-default-prompt' && request.method === 'GET') {
         return await handleGetDefaultPrompt(request, env);
       } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
