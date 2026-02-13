@@ -24,10 +24,7 @@ BMR (изчислен): {bmr} kcal
 Включвай: {foodsToInclude}
 Избягвай: {foodsToAvoid}
 
-{modificationsSection - dynamic content from modifications}
-
-{dynamicWhitelistSection - dynamic content from KV storage}
-{dynamicBlacklistSection - dynamic content from KV storage}
+{modificationsSection}{dynamicWhitelistSection}{dynamicBlacklistSection}
 
 === АРХИТЕКТУРА НА ХРАНИТЕ (AFAM) ===
 Базови категории (от които се избират храни според модификатора):
