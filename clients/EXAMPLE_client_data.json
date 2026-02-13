@@ -1,0 +1,54 @@
+{
+  "id": "client_1707826800000_abc123",
+  "timestamp": "2026-02-13T12:00:00.000Z",
+  "answers": {
+    "name": "Иван Иванов",
+    "gender": "Мъж",
+    "age": "35",
+    "height": "180",
+    "weight": "85",
+    "email": "ivan.ivanov@example.com",
+    "goal": "Отслабване",
+    "lossKg": "10",
+    "sleepHours": "7–8",
+    "sleepInterrupt": "Не",
+    "chronotype": "Сутрешен",
+    "dailyActivityLevel": "Средно",
+    "stressLevel": "Високо",
+    "sportActivity": "Средна (2–4 дни седмично)",
+    "waterIntake": "1.5–2 л",
+    "drinksSweet": "Рядко",
+    "drinksAlcohol": "Понякога",
+    "weightChange": "Да",
+    "weightChangeDetails": "Покачих 5 кг през последните 6 месеца поради стрес на работа",
+    "dietHistory": "Да",
+    "dietType": "Кето диета",
+    "dietResult": "Отслабнах 3 кг за месец, но след това се върнах на старото тегло",
+    "overeatingFrequency": "Често",
+    "foodCravings": ["Сладко", "Тестени храни"],
+    "foodTriggers": ["Напрежение", "Скука"],
+    "eatingHabits": ["Хапвам сладко между храненията", "Храня се предимно вечер"],
+    "compensationMethods": ["Не"],
+    "socialComparison": "Понякога",
+    "dietPreference": ["Средиземноморска", "Високопротеинова"],
+    "dietDislike": "Морски дарове, гъби",
+    "dietLove": "Пилешко месо, салати, орехи",
+    "medicalConditions": ["Нямам"],
+    "medications": "Не",
+    "additionalNotes": "Имам проблеми със съня в периоди на високо напрежение. Бих искал да подобря енергийните си нива."
+  },
+  "files": [
+    {
+      "name": "blood-test-results.pdf",
+      "type": "application/pdf",
+      "size": 245678,
+      "data": "data:application/pdf;base64,JVBERi0xLjQKJeLjz9MKMyAwIG9iago8PC9GaWx0ZXIvRmxhdGVEZWNvZGUvTGVuZ3RoIDQ5Nj4+c3RyZWFtCnic..."
+    },
+    {
+      "name": "fitness-tracker-screenshot.jpg",
+      "type": "image/jpeg",
+      "size": 156432,
+      "data": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a..."
+    }
+  ]
+}
