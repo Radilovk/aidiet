@@ -115,7 +115,8 @@ const OFFENSIVE_PATTERNS = [
 // AI Communication Logging Configuration
 // AI logging is ALWAYS ENABLED to maintain last complete communication for debugging
 // MAX_LOG_ENTRIES controls how many sessions to keep (1 = only the most recent session)
-const MAX_LOG_ENTRIES = 1; // Keep only the latest session to balance functionality with KV usage
+// Increased to 10 to preserve error logs for debugging failed plan generations
+const MAX_LOG_ENTRIES = 10; // Keep last 10 sessions to ensure error logs are preserved for debugging
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -7043,7 +7044,7 @@ async function handleGetLoggingStatus(request, env) {
     }
 
     // AI logging is always enabled (required for debugging and monitoring)
-    // The system automatically keeps only the last session (MAX_LOG_ENTRIES = 1)
+    // The system automatically keeps the last 10 sessions (MAX_LOG_ENTRIES = 10)
     // Bulgarian: "AI логването е винаги включено за поддържане на последната пълна комуникация"
     return jsonResponse({ 
       success: true, 
