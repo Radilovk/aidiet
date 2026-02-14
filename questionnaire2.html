@@ -1934,8 +1934,31 @@
                     delete clientData.answers.medicalFiles;
                 }
                 
-                // Save to localStorage (as a backup and for demonstration)
+                // Save to localStorage (as a backup)
                 localStorage.setItem(`questionnaire2_${clientId}`, JSON.stringify(clientData));
+                
+                // Send data to backend API for automatic saving
+                try {
+                    const API_URL = 'https://aidiet.radilov-k.workers.dev/api/save-client-data';
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(clientData)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.error || 'Failed to save data to server');
+                    }
+                    
+                    console.log('Client data saved to backend:', result.clientId);
+                } catch (apiError) {
+                    console.error('Error saving to backend API:', apiError);
+                    // Continue anyway - data is still in localStorage
+                }
                 
                 // Simulate short delay for better UX
                 await new Promise(resolve => setTimeout(resolve, 1500));
@@ -1953,41 +1976,22 @@
                         <div style="background: var(--soft-red); padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: left;">
                             <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
                                 <i class="fas fa-info-circle" style="color: var(--primary-red); margin-right: 8px;"></i>
-                                Вашата информация беше получена успешно и ще бъде изпратена на нашия екип.
+                                Вашата информация беше получена успешно и беше изпратена автоматично на нашия екип.
                             </p>
                             <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
                                 <i class="fas fa-clock" style="color: var(--primary-red); margin-right: 8px;"></i>
                                 Скоро вашият персонален план за постигане на целта ще бъде готов.
                             </p>
-                            <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
+                            <p style="color: var(--text-dark); line-height: 1.8;">
                                 <i class="fas fa-envelope" style="color: var(--primary-red); margin-right: 8px;"></i>
                                 При необходимост от допълнителни въпроси, ще се свържем с вас на посочения имейл: <strong>${answers.email || 'N/A'}</strong>
                             </p>
-                            <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 0;">
-                                <i class="fas fa-download" style="color: var(--primary-red); margin-right: 8px;"></i>
-                                Данните ви са съхранени локално. Можете да ги изтеглите за вашите записи.
-                            </p>
                         </div>
-                        <button class="btn" id="downloadBtn" style="margin: 10px auto; display: block;">
-                            <i class="fas fa-download" style="margin-right: 8px;"></i>Изтегли данните
-                        </button>
                         <button class="btn" onclick="window.location.href='index.html'" style="margin: 10px auto; display: block; background: var(--text-gray);">
                             <i class="fas fa-home" style="margin-right: 8px;"></i>Към началната страница
                         </button>
                     </div>
                 `;
-                
-                // Attach download event listener
-                document.getElementById('downloadBtn').addEventListener('click', function() {
-                    const dataStr = JSON.stringify(clientData, null, 2);
-                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(dataBlob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${clientId}.json`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                });
                 
             } catch (error) {
                 console.error('Error saving data:', error);
