@@ -2439,6 +2439,50 @@ async function handleReportProblem(request, env) {
 }
 
 /**
+ * Handle saving questionnaire2 data from localStorage
+ */
+async function handleSaveQuestionnaire2Data(request, env) {
+  try {
+    const data = await request.json();
+    
+    if (!data || !data.id) {
+      return jsonResponse({ error: 'Invalid data: missing id' }, 400);
+    }
+    
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Store questionnaire2 data in KV with client ID as key
+    const kvKey = `questionnaire2_data:${data.id}`;
+    await env.page_content.put(kvKey, JSON.stringify(data));
+    
+    // Also maintain a list of all questionnaire2 submissions for easy retrieval
+    let dataList = await env.page_content.get('questionnaire2_data_list');
+    dataList = dataList ? JSON.parse(dataList) : [];
+    
+    // Check if this ID already exists in the list
+    if (!dataList.includes(data.id)) {
+      dataList.unshift(data.id); // Add to beginning (most recent first)
+    }
+    
+    await env.page_content.put('questionnaire2_data_list', JSON.stringify(dataList));
+    
+    console.log('Questionnaire2 data saved:', data.id);
+    
+    return jsonResponse({ 
+      success: true, 
+      id: data.id,
+      message: 'Questionnaire data saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving questionnaire2 data:', error);
+    return jsonResponse({ error: `Failed to save data: ${error.message}` }, 500);
+  }
+}
+
+/**
  * Get all problem reports for admin panel
  */
 async function handleGetReports(request, env) {
@@ -6778,6 +6822,8 @@ export default {
         return await handleChat(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
         return await handleReportProblem(request, env);
+      } else if (url.pathname === '/api/save-questionnaire2-data' && request.method === 'POST') {
+        return await handleSaveQuestionnaire2Data(request, env);
       } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
         return await handleGetReports(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
