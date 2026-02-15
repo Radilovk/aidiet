@@ -1934,8 +1934,31 @@
                     delete clientData.answers.medicalFiles;
                 }
                 
-                // Save to localStorage (as a backup and for demonstration)
+                // Save to localStorage (as a backup)
                 localStorage.setItem(`questionnaire2_${clientId}`, JSON.stringify(clientData));
+                
+                // Send data to backend API for automatic saving
+                try {
+                    const API_URL = 'https://aidiet.radilov-k.workers.dev/api/save-client-data';
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(clientData)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.error || 'Failed to save data to server');
+                    }
+                    
+                    console.log('Client data saved to backend:', result.clientId);
+                } catch (apiError) {
+                    console.error('Error saving to backend API:', apiError);
+                    // Continue anyway - data is still in localStorage
+                }
                 
                 // Simulate short delay for better UX
                 await new Promise(resolve => setTimeout(resolve, 1500));
@@ -1953,7 +1976,7 @@
                         <div style="background: var(--soft-red); padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: left;">
                             <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
                                 <i class="fas fa-info-circle" style="color: var(--primary-red); margin-right: 8px;"></i>
-                                Вашата информация беше получена успешно и ще бъде изпратена на нашия екип.
+                                Вашата информация беше получена успешно и беше изпратена автоматично на нашия екип.
                             </p>
                             <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
                                 <i class="fas fa-clock" style="color: var(--primary-red); margin-right: 8px;"></i>

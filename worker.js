@@ -2475,6 +2475,80 @@ async function handleGetReports(request, env) {
   }
 }
 
+/**
+ * Handle client data submission from questionnaire 2
+ * Saves client data to KV storage for team processing
+ * 
+ * @example
+ * // Request
+ * POST /api/save-client-data
+ * {
+ *   "id": "client_1234567890_abc123",
+ *   "timestamp": "2026-02-14T12:00:00.000Z",
+ *   "answers": { ... },
+ *   "files": [ ... ]
+ * }
+ * 
+ * // Response
+ * {
+ *   "success": true,
+ *   "clientId": "client_1234567890_abc123",
+ *   "message": "Client data saved successfully"
+ * }
+ */
+async function handleSaveClientData(request, env) {
+  try {
+    const data = await request.json();
+    
+    // Validate required fields
+    if (!data.id || !data.timestamp || !data.answers) {
+      return jsonResponse({ error: 'Missing required fields: id, timestamp, or answers' }, 400);
+    }
+    
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    const clientId = data.id;
+    
+    // Create client data object
+    const clientData = {
+      id: clientId,
+      timestamp: data.timestamp,
+      answers: data.answers,
+      files: data.files || [],
+      submittedAt: new Date().toISOString()
+    };
+    
+    // Store client data in KV with client: prefix
+    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+    
+    // Maintain a list of all client IDs for easy retrieval
+    let clientsList = await env.page_content.get('clients_list');
+    clientsList = clientsList ? JSON.parse(clientsList) : [];
+    clientsList.unshift(clientId); // Add to beginning (most recent first)
+    
+    // Keep only last 500 clients in the list
+    if (clientsList.length > 500) {
+      clientsList = clientsList.slice(0, 500);
+    }
+    
+    await env.page_content.put('clients_list', JSON.stringify(clientsList));
+    
+    console.log('Client data saved:', clientId);
+    
+    return jsonResponse({ 
+      success: true, 
+      clientId: clientId,
+      message: 'Client data saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving client data:', error);
+    return jsonResponse({ error: `Failed to save client data: ${error.message}` }, 500);
+  }
+}
+
 
 /**
  * Multi-step plan generation for better individualization
@@ -6778,6 +6852,8 @@ export default {
         return await handleChat(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
         return await handleReportProblem(request, env);
+      } else if (url.pathname === '/api/save-client-data' && request.method === 'POST') {
+        return await handleSaveClientData(request, env);
       } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
         return await handleGetReports(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
