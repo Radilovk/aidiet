@@ -1177,13 +1177,16 @@
                                 <i class="fas fa-toggle-on"></i> AI Логване
                             </h3>
                             <p style="color: var(--text-gray); margin: 0;">
-                                Статус: <strong id="loggingStatusText" style="color: var(--primary-red);">Зареждане...</strong>
+                                Статус: <strong id="loggingStatusText" style="color: var(--text-gray);">Натиснете бутона за проверка</strong>
                             </p>
                             <small style="color: var(--text-gray); display: block; margin-top: 5px;">
                                 ⚠️ Изключването спестява ~36 KV операции на план (56% редукция)
                             </small>
                         </div>
-                        <div style="display: flex; gap: 10px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn" onclick="loadLoggingStatus()" style="background: var(--accent-blue);">
+                                <i class="fas fa-sync"></i> Провери
+                            </button>
                             <button id="enableLoggingBtn" class="btn" onclick="toggleLogging(true)" style="background: #28a745;">
                                 <i class="fas fa-check"></i> Включи
                             </button>
@@ -1244,9 +1247,9 @@
                 <div class="form-group">
                     <label>Текущ Черен Списък:</label>
                     <div id="blacklistDisplay" style="padding: 15px; background: var(--soft-red); border-radius: 8px; margin-bottom: 15px; min-height: 80px;">
-                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            <!-- Blacklisted items will be displayed here -->
-                        </div>
+                        <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                            Натиснете "Опресни Списъка", за да видите черния списък.
+                        </p>
                     </div>
                 </div>
                 <div class="form-group">
@@ -1275,9 +1278,9 @@
                 <div class="form-group">
                     <label>Текущ Бял Списък:</label>
                     <div id="whitelistDisplay" style="padding: 15px; background: #d4edda; border-radius: 8px; margin-bottom: 15px; min-height: 80px;">
-                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            <!-- Whitelisted items will be displayed here -->
-                        </div>
+                        <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                            Натиснете "Опресни Списъка", за да видите белия списък.
+                        </p>
                     </div>
                 </div>
                 <div class="form-group">
@@ -2204,9 +2207,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             document.getElementById('adminDashboard').style.display = 'block';
             loadSettings();
             loadStats();
-            loadBlacklist(); // Load blacklist on dashboard load
-            loadWhitelist(); // Load whitelist on dashboard load
-            loadLoggingStatus(); // Load logging status on dashboard load
+            // Note: Blacklist, whitelist, and logging status are now loaded on-demand
+            // when the user clicks the respective "Refresh" buttons to reduce backend load
         }
 
         // Load Settings
