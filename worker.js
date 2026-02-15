@@ -1403,7 +1403,9 @@ function setChatContext(sessionId, userData, userPlan) {
     
     chatContextCache[sessionId] = { userData, userPlan };
     chatContextCacheTime[sessionId] = Date.now();
-    console.log(`[Chat Context Cache] Context stored for session: ${sessionId}`);
+    // Log first 8 chars of sessionId to avoid PII exposure in production logs
+    const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
+    console.log(`[Chat Context Cache] Context stored for session: ${sessionIdShort}`);
     return true;
   } catch (error) {
     console.error('[Chat Context Cache] Error storing context:', error);
@@ -1418,23 +1420,24 @@ function setChatContext(sessionId, userData, userPlan) {
  */
 function getChatContext(sessionId) {
   const now = Date.now();
+  const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
   
   // Check if context exists and is not expired
   if (chatContextCache[sessionId] && chatContextCacheTime[sessionId]) {
     const age = now - chatContextCacheTime[sessionId];
     
     if (age < CHAT_CONTEXT_CACHE_TTL) {
-      console.log(`[Chat Context Cache HIT] Session: ${sessionId} (age: ${Math.round(age/1000)}s)`);
+      console.log(`[Chat Context Cache HIT] Session: ${sessionIdShort} (age: ${Math.round(age/1000)}s)`);
       return chatContextCache[sessionId];
     } else {
       // Expired - clean up
       delete chatContextCache[sessionId];
       delete chatContextCacheTime[sessionId];
-      console.log(`[Chat Context Cache EXPIRED] Session: ${sessionId}`);
+      console.log(`[Chat Context Cache EXPIRED] Session: ${sessionIdShort}`);
     }
   }
   
-  console.log(`[Chat Context Cache MISS] Session: ${sessionId}`);
+  console.log(`[Chat Context Cache MISS] Session: ${sessionIdShort}`);
   return null;
 }
 
@@ -1446,7 +1449,8 @@ function invalidateChatContext(sessionId = null) {
   if (sessionId) {
     delete chatContextCache[sessionId];
     delete chatContextCacheTime[sessionId];
-    console.log(`[Chat Context Cache INVALIDATED] Session: ${sessionId}`);
+    const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
+    console.log(`[Chat Context Cache INVALIDATED] Session: ${sessionIdShort}`);
   } else {
     chatContextCache = {};
     chatContextCacheTime = {};
