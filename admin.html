@@ -3284,7 +3284,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 });
                 
                 html += `
-                    <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                    <div class="client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}" style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                             <div style="flex: 1; min-width: 200px;">
                                 <h3 style="margin: 0 0 5px 0; color: var(--text-dark);">
@@ -3304,10 +3304,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             </div>
                         </div>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="btn" onclick="viewClientDetails('${client.id}')" style="flex: 1; min-width: 120px; background: var(--accent-blue);">
+                            <button class="btn client-view-btn" style="flex: 1; min-width: 120px; background: var(--accent-blue);">
                                 <i class="fas fa-eye"></i> Преглед
                             </button>
-                            <button class="btn" onclick="downloadClientData('${client.id}', '${escapeHtml(client.name)}')" style="flex: 1; min-width: 120px; background: #28a745;">
+                            <button class="btn client-download-btn" style="flex: 1; min-width: 120px; background: #28a745;">
                                 <i class="fas fa-download"></i> Изтегли JSON
                             </button>
                         </div>
@@ -3317,6 +3317,24 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             
             html += '</div>';
             container.innerHTML = html;
+            
+            // Add event listeners for buttons using event delegation
+            container.querySelectorAll('.client-view-btn').forEach((btn, index) => {
+                btn.addEventListener('click', function() {
+                    const card = this.closest('.client-card');
+                    const clientId = card.getAttribute('data-client-id');
+                    viewClientDetails(clientId);
+                });
+            });
+            
+            container.querySelectorAll('.client-download-btn').forEach((btn, index) => {
+                btn.addEventListener('click', function() {
+                    const card = this.closest('.client-card');
+                    const clientId = card.getAttribute('data-client-id');
+                    const clientName = card.getAttribute('data-client-name');
+                    downloadClientData(clientId, clientName);
+                });
+            });
         }
         
         function filterClients() {
@@ -3352,13 +3370,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 
                 // Create a modal to display client details
                 let detailsHtml = `
-                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;" onclick="this.remove()">
-                        <div style="background: var(--bg-color); padding: 30px; border-radius: 12px; max-width: 800px; max-height: 90vh; overflow-y: auto; width: 100%;" onclick="event.stopPropagation()">
+                    <div class="client-modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                        <div class="client-modal-content" style="background: var(--bg-color); padding: 30px; border-radius: 12px; max-width: 800px; max-height: 90vh; overflow-y: auto; width: 100%;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                                 <h2 style="margin: 0; color: var(--text-dark);">
                                     <i class="fas fa-user-circle"></i> ${escapeHtml(client.answers.name || 'N/A')}
                                 </h2>
-                                <button onclick="this.closest('[style*=\\"position: fixed\\"]').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-gray);">
+                                <button class="client-modal-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-gray);">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
@@ -3409,10 +3427,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             ` : ''}
                             
                             <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
-                                <button class="btn" onclick="downloadClientData('${client.id}', '${escapeHtml(client.answers.name || 'client')}')" style="background: #28a745;">
+                                <button class="btn client-modal-download" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.answers.name || 'client')}" style="background: #28a745;">
                                     <i class="fas fa-download"></i> Изтегли JSON
                                 </button>
-                                <button class="btn" onclick="this.closest('[style*=\\"position: fixed\\"]').remove()" style="background: var(--text-gray);">
+                                <button class="btn client-modal-close-btn" style="background: var(--text-gray);">
                                     <i class="fas fa-times"></i> Затвори
                                 </button>
                             </div>
@@ -3421,6 +3439,30 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 `;
                 
                 document.body.insertAdjacentHTML('beforeend', detailsHtml);
+                
+                // Add event listeners for modal buttons
+                const modal = document.querySelector('.client-modal-overlay');
+                const modalContent = modal.querySelector('.client-modal-content');
+                
+                // Close modal when clicking overlay (but not modal content)
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+                // Close buttons
+                modal.querySelectorAll('.client-modal-close, .client-modal-close-btn').forEach(btn => {
+                    btn.addEventListener('click', () => modal.remove());
+                });
+                
+                // Download button
+                const downloadBtn = modal.querySelector('.client-modal-download');
+                downloadBtn.addEventListener('click', function() {
+                    const clientId = this.getAttribute('data-client-id');
+                    const clientName = this.getAttribute('data-client-name');
+                    downloadClientData(clientId, clientName);
+                });
                 
             } catch (error) {
                 console.error('Error viewing client details:', error);

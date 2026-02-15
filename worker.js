@@ -2566,33 +2566,39 @@ async function handleGetClientsList(request, env) {
     
     // Fetch basic info for each client (only first 100 for performance)
     const clientsToFetch = clientsList.slice(0, 100);
-    const clientsData = [];
     
-    for (const clientId of clientsToFetch) {
+    // Fetch all clients in parallel for better performance
+    const fetchPromises = clientsToFetch.map(async (clientId) => {
       try {
         const clientDataStr = await env.page_content.get(`client:${clientId}`);
         if (clientDataStr) {
           const clientData = JSON.parse(clientDataStr);
-          clientsData.push({
+          return {
             id: clientData.id,
             timestamp: clientData.timestamp,
             submittedAt: clientData.submittedAt,
             name: clientData.answers?.name || 'N/A',
             email: clientData.answers?.email || 'N/A',
             goal: clientData.answers?.goal || 'N/A'
-          });
+          };
         }
+        return null;
       } catch (err) {
         console.error(`Error fetching client ${clientId}:`, err);
-        // Continue with other clients
+        return null;
       }
-    }
+    });
+    
+    const results = await Promise.all(fetchPromises);
+    const clientsData = results.filter(client => client !== null);
+    const failedCount = results.length - clientsData.length;
     
     return jsonResponse({ 
       success: true, 
       clients: clientsData,
       total: clientsList.length,
-      showing: clientsData.length
+      showing: clientsData.length,
+      failedCount: failedCount
     });
   } catch (error) {
     console.error('Error getting clients list:', error);
