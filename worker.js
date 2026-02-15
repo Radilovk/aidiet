@@ -2549,6 +2549,93 @@ async function handleSaveClientData(request, env) {
   }
 }
 
+/**
+ * Get list of all client IDs with basic info (for admin panel)
+ * Returns: Array of { id, timestamp, name, email }
+ */
+async function handleGetClientsList(request, env) {
+  try {
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    // Get the list of all client IDs
+    let clientsList = await env.page_content.get('clients_list');
+    clientsList = clientsList ? JSON.parse(clientsList) : [];
+    
+    // Fetch basic info for each client (only first 100 for performance)
+    const clientsToFetch = clientsList.slice(0, 100);
+    const clientsData = [];
+    
+    for (const clientId of clientsToFetch) {
+      try {
+        const clientDataStr = await env.page_content.get(`client:${clientId}`);
+        if (clientDataStr) {
+          const clientData = JSON.parse(clientDataStr);
+          clientsData.push({
+            id: clientData.id,
+            timestamp: clientData.timestamp,
+            submittedAt: clientData.submittedAt,
+            name: clientData.answers?.name || 'N/A',
+            email: clientData.answers?.email || 'N/A',
+            goal: clientData.answers?.goal || 'N/A'
+          });
+        }
+      } catch (err) {
+        console.error(`Error fetching client ${clientId}:`, err);
+        // Continue with other clients
+      }
+    }
+    
+    return jsonResponse({ 
+      success: true, 
+      clients: clientsData,
+      total: clientsList.length,
+      showing: clientsData.length
+    });
+  } catch (error) {
+    console.error('Error getting clients list:', error);
+    return jsonResponse({ error: `Failed to get clients list: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Get full data for a specific client (for admin panel)
+ * Returns: Complete client data object
+ */
+async function handleGetClientData(request, env) {
+  try {
+    const url = new URL(request.url);
+    const clientId = url.searchParams.get('clientId');
+    
+    if (!clientId) {
+      return jsonResponse({ error: 'Missing clientId parameter' }, 400);
+    }
+    
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    const clientDataStr = await env.page_content.get(`client:${clientId}`);
+    
+    if (!clientDataStr) {
+      return jsonResponse({ error: 'Client not found' }, 404);
+    }
+    
+    const clientData = JSON.parse(clientDataStr);
+    
+    return jsonResponse({ 
+      success: true, 
+      client: clientData
+    });
+  } catch (error) {
+    console.error('Error getting client data:', error);
+    return jsonResponse({ error: `Failed to get client data: ${error.message}` }, 500);
+  }
+}
+
 
 /**
  * Multi-step plan generation for better individualization
@@ -6892,6 +6979,10 @@ export default {
         return await handleGetLoggingStatus(request, env);
       } else if (url.pathname === '/api/admin/set-logging-status' && request.method === 'POST') {
         return await handleSetLoggingStatus(request, env);
+      } else if (url.pathname === '/api/admin/get-clients-list' && request.method === 'GET') {
+        return await handleGetClientsList(request, env);
+      } else if (url.pathname === '/api/admin/get-client-data' && request.method === 'GET') {
+        return await handleGetClientData(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }

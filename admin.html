@@ -1130,6 +1130,38 @@
                 </div>
             </div>
 
+            <!-- Client Questionnaires Section -->
+            <div class="card">
+                <h2><i class="fas fa-users"></i> Клиентски Въпросници</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Тук можете да видите всички попълнени въпросници от клиенти, изпратени през questionnaire2.html. Данните се съхраняват автоматично в KV хранилището.
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn" onclick="loadClientsList()" style="flex: 1;">
+                        <i class="fas fa-sync"></i> Зареди Клиенти
+                    </button>
+                    <input type="text" id="clientsSearchInput" placeholder="Търси по име или имейл..." 
+                           onkeyup="filterClients()" style="flex: 2; padding: 10px; border: 2px solid #d1d5db; border-radius: 8px;">
+                </div>
+                <div id="clientsStatsContainer" style="display: none; margin-bottom: 20px; padding: 15px; background: var(--soft-red); border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; text-align: center;">
+                        <div>
+                            <strong>Общо Клиенти:</strong>
+                            <div id="totalClients" style="font-size: 1.5rem; color: var(--primary-red); font-weight: bold;">-</div>
+                        </div>
+                        <div>
+                            <strong>Показани:</strong>
+                            <div id="showingClients" style="font-size: 1.5rem; color: var(--primary-red); font-weight: bold;">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="clientsListContainer" style="max-height: 600px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                        Натиснете "Зареди Клиенти" за да видите списъка с клиенти.
+                    </p>
+                </div>
+            </div>
+
             <!-- AI Communication Logs -->
             <div class="card">
                 <h2><i class="fas fa-network-wired"></i> AI Комуникационни Логове</h2>
@@ -3191,6 +3223,235 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 console.error('Error loading reports:', error);
                 container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на доклади</p>';
                 showError('Грешка при зареждане на доклади: ' + error.message);
+            }
+        }
+
+        // Load clients list
+        let allClientsData = []; // Store all clients for filtering
+        
+        async function loadClientsList() {
+            const container = document.getElementById('clientsListContainer');
+            const statsContainer = document.getElementById('clientsStatsContainer');
+            container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+            
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-clients-list');
+                const result = await response.json();
+                
+                if (result.success && result.clients) {
+                    allClientsData = result.clients; // Store for filtering
+                    
+                    // Update stats
+                    document.getElementById('totalClients').textContent = result.total;
+                    document.getElementById('showingClients').textContent = result.showing;
+                    statsContainer.style.display = 'block';
+                    
+                    if (result.clients.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма клиенти за показване.</p>';
+                        return;
+                    }
+                    
+                    displayClients(result.clients);
+                    showSuccess(`Заредени ${result.clients.length} клиента от общо ${result.total}`);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Error loading clients:', error);
+                container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на клиенти</p>';
+                showError('Грешка при зареждане на клиенти: ' + error.message);
+            }
+        }
+        
+        function displayClients(clients) {
+            const container = document.getElementById('clientsListContainer');
+            
+            if (clients.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма намерени клиенти.</p>';
+                return;
+            }
+            
+            let html = '<div style="display: grid; gap: 15px;">';
+            
+            clients.forEach(client => {
+                const submittedDate = new Date(client.submittedAt || client.timestamp);
+                const dateStr = submittedDate.toLocaleString('bg-BG', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                html += `
+                    <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <h3 style="margin: 0 0 5px 0; color: var(--text-dark);">
+                                    <i class="fas fa-user"></i> ${escapeHtml(client.name)}
+                                </h3>
+                                <p style="margin: 5px 0; color: var(--text-gray); font-size: 0.9rem;">
+                                    <i class="fas fa-envelope"></i> ${escapeHtml(client.email)}
+                                </p>
+                                <p style="margin: 5px 0; color: var(--text-gray); font-size: 0.9rem;">
+                                    <i class="fas fa-bullseye"></i> Цел: ${escapeHtml(client.goal)}
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <p style="margin: 0; color: var(--text-gray); font-size: 0.85rem;">
+                                    <i class="fas fa-clock"></i> ${dateStr}
+                                </p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn" onclick="viewClientDetails('${client.id}')" style="flex: 1; min-width: 120px; background: var(--accent-blue);">
+                                <i class="fas fa-eye"></i> Преглед
+                            </button>
+                            <button class="btn" onclick="downloadClientData('${client.id}', '${escapeHtml(client.name)}')" style="flex: 1; min-width: 120px; background: #28a745;">
+                                <i class="fas fa-download"></i> Изтегли JSON
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function filterClients() {
+            const searchTerm = document.getElementById('clientsSearchInput').value.toLowerCase();
+            
+            if (!allClientsData || allClientsData.length === 0) {
+                return;
+            }
+            
+            const filtered = allClientsData.filter(client => {
+                const name = (client.name || '').toLowerCase();
+                const email = (client.email || '').toLowerCase();
+                const goal = (client.goal || '').toLowerCase();
+                return name.includes(searchTerm) || email.includes(searchTerm) || goal.includes(searchTerm);
+            });
+            
+            displayClients(filtered);
+            document.getElementById('showingClients').textContent = filtered.length;
+        }
+        
+        async function viewClientDetails(clientId) {
+            try {
+                const response = await fetch(`${WORKER_URL}/api/admin/get-client-data?clientId=${encodeURIComponent(clientId)}`);
+                const result = await response.json();
+                
+                if (!result.success || !result.client) {
+                    throw new Error('Failed to load client data');
+                }
+                
+                const client = result.client;
+                const submittedDate = new Date(client.submittedAt || client.timestamp);
+                const dateStr = submittedDate.toLocaleString('bg-BG');
+                
+                // Create a modal to display client details
+                let detailsHtml = `
+                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;" onclick="this.remove()">
+                        <div style="background: var(--bg-color); padding: 30px; border-radius: 12px; max-width: 800px; max-height: 90vh; overflow-y: auto; width: 100%;" onclick="event.stopPropagation()">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h2 style="margin: 0; color: var(--text-dark);">
+                                    <i class="fas fa-user-circle"></i> ${escapeHtml(client.answers.name || 'N/A')}
+                                </h2>
+                                <button onclick="this.closest('[style*=\\"position: fixed\\"]').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-gray);">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div style="background: var(--soft-red); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <p style="margin: 5px 0; color: var(--text-dark);">
+                                    <strong><i class="fas fa-clock"></i> Дата на подаване:</strong> ${dateStr}
+                                </p>
+                                <p style="margin: 5px 0; color: var(--text-dark);">
+                                    <strong><i class="fas fa-hashtag"></i> ID:</strong> ${escapeHtml(client.id)}
+                                </p>
+                                <p style="margin: 5px 0; color: var(--text-dark);">
+                                    <strong><i class="fas fa-envelope"></i> Email:</strong> ${escapeHtml(client.answers.email || 'N/A')}
+                                </p>
+                            </div>
+                            
+                            <h3 style="color: var(--text-dark); margin-bottom: 15px;">Отговори от въпросника:</h3>
+                            <div style="background: var(--card-bg); padding: 20px; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+                `;
+                
+                // Display all answers
+                for (const [key, value] of Object.entries(client.answers)) {
+                    let displayValue = value;
+                    if (Array.isArray(value)) {
+                        displayValue = value.join(', ');
+                    }
+                    detailsHtml += `
+                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
+                            <strong style="color: var(--text-dark); display: block; margin-bottom: 5px;">${escapeHtml(key)}:</strong>
+                            <span style="color: var(--text-gray);">${escapeHtml(String(displayValue))}</span>
+                        </div>
+                    `;
+                }
+                
+                detailsHtml += `
+                            </div>
+                            
+                            ${client.files && client.files.length > 0 ? `
+                                <h3 style="color: var(--text-dark); margin: 20px 0 15px 0;">Прикачени файлове:</h3>
+                                <div style="background: var(--card-bg); padding: 15px; border-radius: 8px;">
+                                    ${client.files.map(file => `
+                                        <div style="margin-bottom: 10px; color: var(--text-dark);">
+                                            <i class="fas fa-file"></i> ${escapeHtml(file.name)} 
+                                            <span style="color: var(--text-gray); font-size: 0.85rem;">(${(file.size / 1024).toFixed(2)} KB)</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                            
+                            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                                <button class="btn" onclick="downloadClientData('${client.id}', '${escapeHtml(client.answers.name || 'client')}')" style="background: #28a745;">
+                                    <i class="fas fa-download"></i> Изтегли JSON
+                                </button>
+                                <button class="btn" onclick="this.closest('[style*=\\"position: fixed\\"]').remove()" style="background: var(--text-gray);">
+                                    <i class="fas fa-times"></i> Затвори
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', detailsHtml);
+                
+            } catch (error) {
+                console.error('Error viewing client details:', error);
+                showError('Грешка при зареждане на детайли: ' + error.message);
+            }
+        }
+        
+        async function downloadClientData(clientId, clientName) {
+            try {
+                const response = await fetch(`${WORKER_URL}/api/admin/get-client-data?clientId=${encodeURIComponent(clientId)}`);
+                const result = await response.json();
+                
+                if (!result.success || !result.client) {
+                    throw new Error('Failed to load client data');
+                }
+                
+                // Create a blob and download
+                const blob = new Blob([JSON.stringify(result.client, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `client_${clientName.replace(/[^a-z0-9]/gi, '_')}_${clientId}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showSuccess('Файлът беше изтеглен успешно');
+            } catch (error) {
+                console.error('Error downloading client data:', error);
+                showError('Грешка при изтегляне: ' + error.message);
             }
         }
 
