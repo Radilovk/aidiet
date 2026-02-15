@@ -1,23 +1,23 @@
 Summary за 7-дневен план.
 
-КЛИЕНТ: {name}, Цел: {goal}, BMR: {bmr}
-Целеви: {recommendedCalories} kcal/ден | Реален: {avgCalories} kcal/ден
-Макроси: Protein {avgProtein}g, Carbs {avgCarbs}g, Fats {avgFats}g
+КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
+Целеви: ${recommendedCalories} kcal/ден | Реален: ${avgCalories} kcal/ден
+Макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
 
-ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Алергии: {allergies} | Медикаменти: {medications}{dynamicWhitelistSection}{dynamicBlacklistSection}
+ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Алергии: ${healthContext.allergies} | Медикаменти: ${healthContext.medications}${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 JSON (ТОЧЕН ФОРМАТ):
 {
-  "summary": {"bmr": {bmr}, "dailyCalories": {avgCalories}, "macros": {"protein": {avgProtein}, "carbs": {avgCarbs}, "fats": {avgFats}}},
+  "summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}},
   "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["храна 1", "храна 2", "храна 3"],
-  "psychology": {psychologicalSupport},
-  "waterIntake": "{hydrationStrategy}",
+  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport.slice(0, 3)) : '["съвет 1", "съвет 2"]'},
+  "waterIntake": "${strategy.hydrationStrategy || '2-2.5л дневно'}",
   "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
 }
 
 ЗАДЪЛЖИТЕЛНО:
-- recommendations: МИН 3 конкретни храни подходящи за {goal}
-- forbidden: МИН 3 храни неподходящи за {keyProblems}
-- supplements: според медикаменти {medications} БЕЗ опасни взаимодействия
+- recommendations: МИН 3 конкретни храни подходящи за ${data.goal}
+- forbidden: МИН 3 храни неподходящи за ${healthContext.keyProblems || 'общи рискове'}
+- supplements: според медикаменти ${healthContext.medications} БЕЗ опасни взаимодействия
 - psychology: от стратегия, максимум 3 съвета

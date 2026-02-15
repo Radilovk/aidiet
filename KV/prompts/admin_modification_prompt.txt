@@ -64,13 +64,13 @@
    [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]"
 
 7. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
-   - "no_intermediate_meals" - без междинни хранения
-   - "3_meals_per_day" - 3 хранения дневно
-   - "4_meals_per_day" - 4 хранения дневно
-   - "vegetarian" - вегетариански план
-   - "no_dairy" - без млечни продукти
-   - "low_carb" - нисковъглехидратна диета
-   - "increase_protein" - повече протеини
+   - "${PLAN_MODIFICATIONS.NO_INTERMEDIATE_MEALS}" - без междинни хранения
+   - "${PLAN_MODIFICATIONS.THREE_MEALS_PER_DAY}" - 3 хранения дневно
+   - "${PLAN_MODIFICATIONS.FOUR_MEALS_PER_DAY}" - 4 хранения дневно
+   - "${PLAN_MODIFICATIONS.VEGETARIAN}" - вегетариански план
+   - "${PLAN_MODIFICATIONS.NO_DAIRY}" - без млечни продукти
+   - "${PLAN_MODIFICATIONS.LOW_CARB}" - нисковъглехидратна диета
+   - "${PLAN_MODIFICATIONS.INCREASE_PROTEIN}" - повече протеини
    - "exclude_food:име_на_храна" - премахване на конкретна храна
 
 ПОМНИ: 

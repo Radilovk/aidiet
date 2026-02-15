@@ -1,27 +1,38 @@
 Ти си експертен диетолог и трябва да КОРИГИРАШ хранителен план, който има следните проблеми:
 
 ═══ ГРЕШКИ ЗА КОРИГИРАНЕ ═══
-{validationErrors formatted list - numbered errors like "1. Missing calories", "2. Invalid macros", etc.}
+${validationErrors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 
 ═══ ТЕКУЩ ПЛАН (С ГРЕШКИ) ═══
-{plan as JSON - full plan object that failed validation}
+${JSON.stringify(plan, null, 2)}
 
 ═══ КЛИЕНТСКИ ДАННИ ═══
-{userData as JSON - essential fields: name, age, gender, goal, medicalConditions, dietPreference, dietDislike, dietLove, additionalNotes}
+${JSON.stringify({
+  name: userData.name,
+  age: userData.age,
+  gender: userData.gender,
+  goal: userData.goal,
+  medicalConditions: userData.medicalConditions,
+  dietPreference: userData.dietPreference,
+  dietDislike: userData.dietDislike,
+  dietLove: userData.dietLove,
+  additionalNotes: userData.additionalNotes
+}, null, 2)}
 
-{Conditionally shown if additionalNotes exists:
-"═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
-⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корецциите!
+${userData.additionalNotes ? `
+═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корекциите!
 
-ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ {name}:
-{additionalNotes}
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${userData.name}:
+${userData.additionalNotes}
 
 ⚠️ ЗАДЪЛЖИТЕЛНО: Всички корекции трябва да уважават тази информация!
-═══════════════════════════════════════════════════════════════"}
+═══════════════════════════════════════════════════════════════
+` : ''}
 
 ═══ ПРАВИЛА ЗА КОРИГИРАНЕ ═══
 
-{MEAL_NAME_FORMAT_INSTRUCTIONS - detailed formatting rules for meal names and descriptions}
+${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
 ВАЖНО - СТРАТЕГИЯ И ОБОСНОВКА:
 1. ВСЯКА корекция ТРЯБВА да бъде обоснована
@@ -57,18 +68,18 @@
    - При диабет: НЕ високовъглехидратни храни
    - При анемия + вегетарианство: добавка с желязо ЗАДЪЛЖИТЕЛНА
    - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
-   - Спазвай медицинските условия от клиентските данни
+   - Спазвай: ${JSON.stringify(userData.medicalConditions || [])}
 
 6. КАЛОРИИ И МАКРОСИ:
    - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats, fiber)
-   - Дневни калории минимум {MIN_DAILY_CALORIES constant} kcal (може да варират между дни)
+   - Дневни калории минимум ${MIN_DAILY_CALORIES} kcal (може да варират между дни)
    - Прецизни изчисления: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
 
 7. СТРУКТУРА:
    - Всички 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО
    - 1-5 хранения на ден (ОБОСНОВАНИ в strategy)
-   - Избягвай храни които клиентът не обича
-   - Включвай любими храни където е подходящо
+   - Избягвай: ${userData.dietDislike || 'няма'}
+   - Включвай: ${userData.dietLove || 'няма'}
 
 ═══ ТВОЯТА ЗАДАЧА ═══
 Коригирай проблемните части и ДОБАВИ ОБОСНОВКИ в strategy полетата:

@@ -5,15 +5,64 @@
 ФОКУС: Анализирай КОРЕЛАЦИИТЕ между всички фактори и определи оптималните калорийни и макронутриентни нужди базирани на цялостната клинична картина.
 
 ═══ КЛИЕНТСКИ ПРОФИЛ ═══
-{userData: JSON object with fields - name, age, gender, height, weight, goal, lossKg, sleepHours, sleepInterrupt, chronotype, sportActivity, dailyActivityLevel, stressLevel, waterIntake, drinksSweet, drinksAlcohol, overeatingFrequency, eatingHabits, foodCravings, foodTriggers, compensationMethods, socialComparison, medicalConditions, medications, medicationsDetails, weightChange, weightChangeDetails, dietHistory, dietType, dietResult, dietPreference, dietDislike, dietLove, additionalNotes}
+${JSON.stringify({
+  name: data.name,
+  age: data.age,
+  gender: data.gender,
+  height: data.height,
+  weight: data.weight,
+  goal: data.goal,
+  lossKg: data.lossKg,
+  
+  // Sleep & circadian rhythm
+  sleepHours: data.sleepHours,
+  sleepInterrupt: data.sleepInterrupt,
+  chronotype: data.chronotype,
+  
+  // Activity & stress
+  sportActivity: data.sportActivity,
+  dailyActivityLevel: data.dailyActivityLevel,
+  stressLevel: data.stressLevel,
+  
+  // Nutrition & hydration
+  waterIntake: data.waterIntake,
+  drinksSweet: data.drinksSweet,
+  drinksAlcohol: data.drinksAlcohol,
+  
+  // Eating behavior - FULL DATA for precise correlational analysis
+  overeatingFrequency: data.overeatingFrequency,
+  eatingHabits: data.eatingHabits,
+  foodCravings: data.foodCravings,
+  foodTriggers: data.foodTriggers,
+  compensationMethods: data.compensationMethods,
+  socialComparison: data.socialComparison,
+  
+  // Medical & history - FULL DATA for comprehensive understanding
+  medicalConditions: data.medicalConditions,
+  medications: data.medications,
+  medicationsDetails: data.medicationsDetails,
+  weightChange: data.weightChange,
+  weightChangeDetails: data.weightChangeDetails,
+  dietHistory: data.dietHistory,
+  dietType: data.dietType,
+  dietResult: data.dietResult,
+  
+  // Preferences
+  dietPreference: data.dietPreference,
+  dietDislike: data.dietDislike,
+  dietLove: data.dietLove,
+  
+  // Additional notes from user (CRITICAL INFORMATION)
+  additionalNotes: data.additionalNotes
+}, null, 2)}
 
-{Conditionally shown if additionalNotes exists:
-"═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+${data.additionalNotes ? `
+═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
 ⚠️ МАКСИМАЛЕН ПРИОРИТЕТ: Следната информация е предоставена директно от потребителя и ТРЯБВА да бъде взета предвид при ЦЕЛИЯ анализ, изчисления и препоръки.
 Това може да променя критично анализа, стратегията и плана!
 
-ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ {name}:
-{additionalNotes}
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${data.name}:
+${data.additionalNotes}
 
 ⚠️ ЗАДЪЛЖИТЕЛНО: Анализирай как тази информация влияе на:
 1. Изчисленията на BMR/TDEE/Калории
@@ -21,48 +70,66 @@
 3. Психологическия профил
 4. Медицинските противопоказания
 5. Храните и храненията в плана
-═══════════════════════════════════════════════════════════════"}
+═══════════════════════════════════════════════════════════════
+` : ''}
 
 ═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
 Основни физически параметри (за референция):
-- Тегло: {weight} кг
-- Височина: {height} см
-- Възраст: {age} години
-- Пол: {gender}
-- Цел: {goal}
-{Conditionally shown if lossKg exists: "- Желано отслабване: {lossKg} кг"}
+- Тегло: ${data.weight} кг
+- Височина: ${data.height} см
+- Възраст: ${data.age} години
+- Пол: ${data.gender}
+- Цел: ${data.goal}
+${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
 
 ═══ BACKEND РЕФЕРЕНТНИ ИЗЧИСЛЕНИЯ (Issues #2, #7, #9, #10, #28 - Feb 2026) ═══
-{Backend auto-calculated values section - computed from calculateUnifiedActivityScore(), calculateBMR(), calculateTDEE(), calculateSafeDeficit(), calculateMacronutrientRatios()}
-
+${(() => {
+  // Calculate unified activity score (Issue #7)
+  const activityData = calculateUnifiedActivityScore(data);
+  
+  // Calculate BMR
+  const bmr = calculateBMR(data);
+  
+  // Calculate TDEE using new unified score
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  
+  // Calculate safe deficit (Issue #9)
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  
+  // Calculate baseline macros (Issue #2, #28) - pass TDEE for accurate percentages
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  
+  return `
 УНИФИЦИРАН АКТИВНОСТ СКОР (Issue #7):
-- Дневна активност: {dailyActivityLevel} → {dailyScore}/3
-- Спортна активност: {sportActivity} → ~{sportDays} дни
-- КОМБИНИРАН СКОР: {combinedScore}/10 ({activityLevel})
+- Дневна активност: ${data.dailyActivityLevel} → ${activityData.dailyScore}/3
+- Спортна активност: ${data.sportActivity} → ~${activityData.sportDays} дни
+- КОМБИНИРАН СКОР: ${activityData.combinedScore}/10 (${activityData.activityLevel})
 - Формула: дневна активност (1-3) + спортни дни → скала 1-10
 
 БАЗОВИ КАЛКУЛАЦИИ:
-- BMR (Mifflin-St Jeor): {bmr} kcal
-  * Мъж: 10×{weight} + 6.25×{height} - 5×{age} + 5
-  * Жена: 10×{weight} + 6.25×{height} - 5×{age} - 161
+- BMR (Mifflin-St Jeor): ${bmr} kcal
+  * Мъж: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} + 5
+  * Жена: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} - 161
   
-- TDEE (Issue #10): {tdee} kcal
-  * BMR × {activityFactor} (фактор за активност скор {combinedScore})
+- TDEE (Issue #10): ${tdee} kcal
+  * BMR × ${(tdee / bmr).toFixed(2)} (фактор за активност скор ${activityData.combinedScore})
   * Нов множител базиран на 1-10 скала (не дублирани дефиниции)
   
-- БЕЗОПАСЕН ДЕФИЦИТ (Issue #9): {targetCalories} kcal
-  * Максимален дефицит: 25% ({maxDeficitCalories} kcal минимум)
-  * Стандартен дефицит: {deficitPercent}%
+- БЕЗОПАСЕН ДЕФИЦИТ (Issue #9): ${deficitData.targetCalories} kcal
+  * Максимален дефицит: 25% (${deficitData.maxDeficitCalories} kcal минимум)
+  * Стандартен дефицит: ${deficitData.deficitPercent}%
   * AI може да коригира за специални стратегии (интермитентно гладуване и др.)
 
 БАЗОВИ МАКРОНУТРИЕНТИ (Issue #2, #28 - НЕ циркулярна логика):
-- Протеин: {protein}% ({proteinGramsPerKg}g/kg за {gender})
-  * Протеинови нужди според пол: {gender}
-  * Коригирано според активност скор {combinedScore}
-- Въглехидрати: {carbs}%
-- Мазнини: {fats}%
-- СУМА: {sum}% (валидирано = 100%)
+- Протеин: ${macros.protein}% (${macros.proteinGramsPerKg}g/kg за ${data.gender})
+  * ${data.gender === 'Мъж' ? 'Мъже имат по-високи нужди' : 'Жени имат по-ниски нужди'} от протеин
+  * Коригирано според активност скор ${activityData.combinedScore}
+- Въглехидрати: ${macros.carbs}%
+- Мазнини: ${macros.fats}%
+- СУМА: ${macros.protein + macros.carbs + macros.fats}% (валидирано = 100%)
 - Формула: процентно разпределение базирано на активност и цел
+`;
+})()}
 
 РЕФЕРЕНТНИТЕ изчисления са само ОТПРАВНА ТОЧКА за валидация. ТИ определяш финалните стойности според холистичния анализ.
 
@@ -77,40 +144,40 @@
 
 2. БАЗОВ МЕТАБОЛИЗЪМ (BMR) И TDEE:
    - Използвай Mifflin-St Jeor формулата (виж референтните изчисления)
-   - Коригирай според активност скор 1-10 ({combinedScore}/10)
+   - Коригирай според активност скор 1-10 (${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10)
    - TDEE = BMR × активност фактор
 
 3. СТАНДАРТ ЗА РАЗПРЕДЕЛЯНЕ НА МАКРОСИ:
    - Протеини: базирай на активност, цел и пол
    - Мазнини: необходими за хормонален баланс
    - Въглехидрати: според активност и метаболитен тип
-   - Фибри: изчисли според пол, възраст и цел (обикновено персонализирай)
+   - Фибри: изчисли според пол, възраст и цел (обикновено ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г дневно, но персонализирай)
 
 4. НИВО НА АКТИВНОСТ (скала 1-10):
-   - Вече изчислено: {combinedScore}/10 ({activityLevel})
+   - Вече изчислено: ${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10 (${(() => { const ad = calculateUnifiedActivityScore(data); return ad.activityLevel; })()})
    - Анализирай как това влияе на калорийни нужди
 
 5. ФИЗИОЛОГИЧНА ФАЗА В ЖИВОТА:
-   - Възраст: {age} години
+   - Възраст: ${data.age} години
    - Определи фаза: Млад възрастен (18-30), Зряла възраст (31-50), Средна възраст (51-65), Напреднала възраст (65+)
    - Влияние на метаболизъм и хормонален профил
 
 6. ДНЕВЕН ВОДЕН ДЕФИЦИТ (Water Gap):
-   - Формула: (Тегло × множител) + базова нужда (базиран на активност)
-   - Нужда: ({weight} × множител) + базова = изчислена нужда литра
-   - Текущ прием: {waterIntake}
+   - Формула: (Тегло × ${WATER_PER_KG_MULTIPLIER}) + ${BASE_WATER_NEED_LITERS}Л (базиран на активност)
+   - Нужда: (${data.weight} × ${WATER_PER_KG_MULTIPLIER}) + ${BASE_WATER_NEED_LITERS} = ${(parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2)} до ${(parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2)} литра
+   - Текущ прием: ${data.waterIntake || 'неизвестен'}
    - Изчисли дефицит и влияние върху липолизата
 
 8. ОТРИЦАТЕЛНИ ЗДРАВОСЛОВНИ ФАКТОРИ (тежест 1-3):
-   - Медицински състояния: {medicalConditions as JSON array}
-   - Лекарства: {medications} - {medicationsDetails}
+   - Медицински състояния: ${JSON.stringify(data.medicalConditions || [])}
+   - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
    - Оцени всеки фактор по скала 1 (леко) до 3 (тежко)
 
 9. ПРЕЧЕЩИ ФАКТОРИ ЗА ПОСТИГАНЕ НА ЦЕЛТА (тежест 1-3):
-   - Стрес: {stressLevel}
-   - Качество на съня: {sleepHours}ч, прекъсвания: {sleepInterrupt}
-   - Навици: {eatingHabits as JSON array}
-   - Емоционални тригери: {foodTriggers as JSON array}
+   - Стрес: ${data.stressLevel}
+   - Качество на съня: ${data.sleepHours}ч, прекъсвания: ${data.sleepInterrupt}
+   - Навици: ${JSON.stringify(data.eatingHabits || [])}
+   - Емоционални тригери: ${JSON.stringify(data.foodTriggers || [])}
    - Оцени всеки по скала 1-3
 
 10. СУМАРНИ ФАКТОРИ:
@@ -119,30 +186,30 @@
 
 11. ХИПОТЕЗА ЗА ПСИХОПРОФИЛ И ТЕМПЕРАМЕНТ:
     - Анализирай данните за:
-      * Хранителни желания: {foodCravings as JSON array}
-      * Тригери: {foodTriggers as JSON array}
-      * Копинг механизми: {compensationMethods as JSON array}
-      * Социално сравнение: {socialComparison}
-    - Определи вероятен темперамент с процент вероятност (само ако >80%)
+      * Хранителни желания: ${JSON.stringify(data.foodCravings || [])}
+      * Тригери: ${JSON.stringify(data.foodTriggers || [])}
+      * Копинг механизми: ${JSON.stringify(data.compensationMethods || [])}
+      * Социално сравнение: ${data.socialComparison}
+    - Определи вероятен темперамент с процент вероятност (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%)
     - Възможни типове: Холерик, Сангвиник, Флегматик, Меланхолик
 
 11a. РЕАКТИВНОСТ НА МЕТАБОЛИЗМА:
     - Анализирай спрямо:
-      * Активност скор: {combinedScore}/10
-      * Физиологична фаза: {age} год.
+      * Активност скор: ${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10
+      * Физиологична фаза: ${data.age} год.
       * Психопрофил (от т.11)
-      * История на диети: {dietHistory}, {dietType}, {dietResult}
-      * Хронотип: {chronotype}
-      * Стрес: {stressLevel}
+      * История на диети: ${data.dietHistory}, ${data.dietType || 'N/A'}, ${data.dietResult || 'N/A'}
+      * Хронотип: ${data.chronotype}
+      * Стрес: ${data.stressLevel}
     - Определи: Бавен/Среден/Бърз метаболизъм
     - Адаптивност към промени: Ниска/Средна/Висока
 
 12. КОРЕКЦИЯ НА РЕАЛЕН МЕТАБОЛИЗЪМ:
     - Коригирай BMR/TDEE според:
       * Точки 4, 5, 11, 11a
-      * Качество на сън: {sleepHours}ч, {sleepInterrupt}
-      * Хронотип: {chronotype}
-      * Стрес: {stressLevel}
+      * Качество на сън: ${data.sleepHours}ч, ${data.sleepInterrupt}
+      * Хронотип: ${data.chronotype}
+      * Стрес: ${data.stressLevel}
       * Здравен статус и медикаменти
     - Определи РЕАЛЕН метаболизъм (може да е ±10-20% от изчисления)
 
@@ -198,7 +265,7 @@
   "activityLevel": "ниво 1-10 и описание",
   "physiologicalPhase": "фаза според възраст и влияние",
   "waterDeficit": {
-    "dailyNeed": "литри дневно (формула)",
+    "dailyNeed": "литри дневно",
     "currentIntake": "текущ прием",
     "deficit": "дефицит в литри",
     "impactOnLipolysis": "влияние върху отслабването"
@@ -219,7 +286,7 @@
   ],
   "cumulativeRiskScore": "сума на припокриващи се фактори",
   "psychoProfile": {
-    "temperament": "тип (само ако >80% вероятност)",
+    "temperament": "тип (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност)",
     "probability": число процент
   },
   "metabolicReactivity": {
@@ -238,7 +305,7 @@
   "psychologicalProfile": "детайлен анализ на психологическия профил",
   "successChance": число (-100 до 100),
   "currentHealthStatus": {
-    "score": число 0-100 (ЗАНИЖЕНО с 10%),
+    "score": число 0-100 (ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}%),
     "description": "текущо състояние",
     "keyIssues": ["проблем 1", "проблем 2"]
   },
@@ -266,5 +333,5 @@
   ]
 }
 
-Бъди КОНКРЕТЕН за {name}. Обяснявай ЗАЩО и КАК, не просто "добър" или "лош".
+Бъди КОНКРЕТЕН за ${data.name}. Обяснявай ЗАЩО и КАК, не просто "добър" или "лош".
 ВАЖНО: Направи анализ, който е индивидуализиран и базиран на ВСИЧКИ предоставени данни.
