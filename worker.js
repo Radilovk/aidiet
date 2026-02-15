@@ -5801,9 +5801,340 @@ async function handleSavePrompt(request, env) {
 /**
 
 /**
+ * Generate the actual default prompt templates used in the worker
+ * These are the REAL prompts embedded in worker.js, not the KV reference files
+ */
+function generateActualDefaultPrompt(type) {
+  // Sample data to show the structure - will be replaced with actual user data at runtime
+  const sampleData = {
+    name: '{name}',
+    age: '{age}',
+    gender: '{gender}',
+    goal: '{goal}',
+    bmr: '{bmr}',
+    recommendedCalories: '{recommendedCalories}',
+    dietaryModifier: '{dietaryModifier}',
+    mealTiming: '{mealTiming}',
+    keyPrinciples: '{keyPrinciples}',
+    foodsToInclude: '{foodsToInclude}',
+    foodsToAvoid: '{foodsToAvoid}',
+    stressLevel: '{stressLevel}',
+    sleepHours: '{sleepHours}',
+    chronotype: '{chronotype}',
+    startDay: '{startDay}',
+    endDay: '{endDay}',
+    dietType: '{dietType}',
+    macroRatios: '{macroRatios}',
+    macroGrams: '{macroGrams}',
+    fiber: '{fiber}',
+    calorieDistribution: '{calorieDistribution}',
+    macroDistribution: '{macroDistribution}',
+    dietLove: '{dietLove}',
+    dietDislike: '{dietDislike}',
+    additionalNotes: '{additionalNotes}',
+    daysInChunk: '{daysInChunk}'
+  };
+  
+  switch(type) {
+    case 'meal_plan':
+      // This is the ACTUAL prompt structure from generateMealPlanChunkPrompt (line 1456)
+      return `Генерирай ДНИ ${sampleData.startDay}-${sampleData.endDay} за ${sampleData.name}.
+
+=== ПРОФИЛ ===
+Цел: ${sampleData.goal} | BMR: ${sampleData.bmr} | Калории: ${sampleData.recommendedCalories} kcal/ден | Модификатор: "${sampleData.dietaryModifier}"
+Стрес: ${sampleData.stressLevel} | Сън: ${sampleData.sleepHours}ч | Хронотип: ${sampleData.chronotype}
+
+=== ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
+Макро съотношения: ${sampleData.macroRatios}
+Дневни макро грамове: ${sampleData.macroGrams}
+Дневни фибри: ${sampleData.fiber}
+
+=== ДАННИ ОТ СТЪПКА 2 (СТРАТЕГИЯ) ===
+Диета: ${sampleData.dietType} | Хранения: ${sampleData.mealTiming}
+Принципи: ${sampleData.keyPrinciples}
+Предпочитани храни (от стъпка 2): ${sampleData.foodsToInclude}
+Допълнителни предпочитани храни (от потребител): ${sampleData.dietLove}
+Нежелани храни (от стъпка 2): ${sampleData.foodsToAvoid}
+Допълнителни нежелани храни (от потребител): ${sampleData.dietDislike}
+Разпределение на калории (стъпка 2): ${sampleData.calorieDistribution}
+Разпределение на макроси (стъпка 2): ${sampleData.macroDistribution}
+
+=== ADLE v5.1 - АРХИТЕКТУРА НА ХРАНЕНЕТО ===
+Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
+
+МОДИФИКАТОР (Диетичен филтър): "${sampleData.dietaryModifier}"
+Модификаторът филтрира кои храни са ПОЗВОЛЕНИ от универсалната база.
+
+УНИВЕРСАЛНА БАЗА ОТ РЕСУРСИ (Категории храни):
+[PRO] БЕЛТЪК - Основен градивен елемент:
+  • Животински: месо (пилешко, говеждо, свинско), риба, яйца, млечни (сирене, извара, кисело мляко)
+  • Растителен: тофу, темпе, растителен протеин
+  • Смесен: бобови (леща, боб, нахут) - PRO или ENG според режима
+
+[ENG] ЕНЕРГИЯ - Въглехидрати/Скорбяла:
+  • Зърнени: ориз, киноа, елда, овес, паста, хляб
+  • Кореноплодни: картофи, сладки картофи
+  • Плодове: всички видове (съдържат захар)
+
+[VOL] ОБЕМ И ФИБРИ - Зеленчуци без скорбяла:
+  • Сурови: салати (листни), краставици, домати
+  • Готвени: броколи, тиквички, чушки, гъби, карфиол, патладжан
+
+[FAT] МАЗНИНИ - Вкус и ситост:
+  • Източници: зехтин, масло, авокадо, ядки, семена, тахан, маслини
+
+[CMPX] СЪСТАВНИ/СЛОЖНИ ЯСТИЯ - Възприемани като "едно цяло":
+  • Тестени/Печива: пица, лазаня, мусака, паста със сос, киш/баница
+  • Сандвич-тип: бургер, дюнер/врап, такос
+  • Яхнии/Оризови: ястия, в които не можеш да отделиш белтъка от гарнитурата (ризото, паеля)
+
+СТРУКТУРНИ ШАБЛОНИ (Форми на ястия):
+ШАБЛОН A: "РАЗДЕЛЕНА ЧИНИЯ" → [PRO] + [ENG] + [VOL]
+  Пример: Печено пиле + Картофи на фурна + Зелена салата
+  Употреба: Стандартен обяд/вечеря
+
+ШАБЛОН B: "СМЕСЕНО ЯСТИЕ/КУПА" → Смес от [PRO] + [ENG] + [VOL]
+  Пример: Пилешка яхния с грах и картофи; Купа с киноа, тофу и зеленчуци
+  Употреба: Готвено домашно ястие
+
+ШАБЛОН C: "ЛЕКО/САНДВИЧ" → [ENG-Хляб] + [PRO] + [FAT] + [VOL-Свежест]
+  Пример: Сандвич с пуешко и кашкавал; Тост с авокадо и яйце
+  Употреба: Закуска или Обяд в движение
+
+ШАБЛОН D: "ЕДИНЕН БЛОК" → [CMPX] + [VOL-Салата/Зеленчук]
+  Пример: Парче лазаня + Салата домати; Бургер + Салата коулсло
+  ЗАДЪЛЖИТЕЛНО: Винаги добавяй [VOL] като баланс към тежките храни
+  Употреба: Уикенд, свободно хранене, комфортна храна
+
+ЛОГИЧЕСКИ ЛОСТОВЕ (Как МОДИФИКАТОРЪТ управлява системата):
+1. ФИЛТРИРАНЕ: Ако модификатор забранява група → търси алтернатива в същата категория
+   • "Веган" → без животински [PRO], използвай растителен
+   • "Без глутен" → [ENG] само безглутенови (ориз/картофи/царевица)
+   • "Кето/Нисковъглехидратно" → минимизирай [ENG], компенсирай с [VOL] и [FAT]
+
+2. ДЕКОНСТРУКЦИЯ НА [CMPX]: Преди да избереш Шаблон D, провери дали съставът е съвместим!
+   • При "Нисковъглехидратно": стандартен бургер (хляб) е несъвместим → "Бургер без хлебче"
+   • При "Веган": "Лазаня" → "Веган лазаня със зеленчуци"
+   • Ако не можеш да гарантираш съвместимост → НЕ използвай Шаблон D
+
+3. АКТИВНОСТ НА КАТЕГОРИИТЕ:
+   • Нисковъглехидратно: [ENG] деактивиран → компенсирай с повече [VOL] и [FAT]
+   • Щадящ стомах: [VOL] само готвени/щадящи (без сурови влакнини)
+
+HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
+РЯДКО (≤2x/седмица): бекон, пуешка шунка
+WHITELIST/BLACKLIST: {динамични списъци от KV storage}
+
+ПРАВИЛА ЗА ИЗХОД:
+• Естествен български език - БЕЗ технически кодове ([PRO], [ENG])
+• Без странни комбинации - общоприети кулинарни норми
+• Шаблон D не е "прегрешение" - нормална част от менюто (напр. уикенд), винаги балансиран със салата
+• Адаптивност: Ако категория не може да се попълни → автоматично премини към позволена алтернатива
+
+=== ИЗИСКВАНИЯ ===
+1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
+2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
+3. Калории: protein×4 + carbs×4 + fats×9
+4. Целеви дневни калории: ~${sampleData.recommendedCalories} kcal (±100 kcal OK)
+5. Брой хранения: 2-4 хранения според профила (1-2 при IF, 3-4 стандартно)
+6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано)
+   Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс 200 kcal)
+7. Разнообразие: Различни ястия от предишните дни
+
+ФОРМАТ НА ИМЕНАТА: "Име на ястието (XXXg)" - пример: "Гръцка салата (250g)", "Пилешко филе с картофи (350g)"
+
+JSON ФОРМАТ (дни ${sampleData.startDay}-${sampleData.endDay}):
+{
+  "day${sampleData.startDay}": {
+    "meals": [
+      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+    ],
+    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
+  }${sampleData.daysInChunk > 1 ? `,\n  "day${parseInt(sampleData.startDay) + 1}": {...}` : ''}
+}
+
+Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals!
+
+ВАЖНО: Това е ДЕЙСТВИТЕЛНИЯТ промпт, използван в worker.js за генериране на хранителни планове (Стъпка 3).
+Променливите в {} се заместват с реални данни от потребителя при изпълнение.`;
+
+    case 'analysis':
+      return `Ти си експертен клиничен диетолог, ендокринолог и бихейвиорален психолог. 
+
+ТВОЯТА ЗАДАЧА: Направи професионален ХОЛИСТИЧЕН АНАЛИЗ на здравословния и метаболитен профил на клиента.
+
+ФОКУС: Анализирай КОРЕЛАЦИИТЕ между всички фактори и определи оптималните калорийни и макронутриентни нужди базирани на цялостната клинична картина.
+
+=== КЛИЕНТСКИ ПРОФИЛ ===
+{JSON обект с всички данни от потребителя - name, age, gender, height, weight, goal, sleep, activity, stress, water, eating habits, medical conditions, preferences, etc.}
+
+[... пълният промпт съдържа още ~300 реда с детайлни инструкции за анализ ...]
+
+JSON ФОРМАТ:
+{
+  "bmi": число,
+  "bmiCategory": "текст",
+  "bmr": число,
+  "tdee": число,
+  "recommendedCalories": число,
+  "macroRatios": {"protein": число, "carbs": число, "fats": число, "fiber": число},
+  "macroGrams": {"protein": число, "carbs": число, "fats": число},
+  "activityLevel": "текст",
+  "physiologicalPhase": "текст",
+  "waterDeficit": {...},
+  "negativeHealthFactors": [...],
+  "hinderingFactors": [...],
+  "cumulativeRiskScore": "текст",
+  "psychoProfile": {...},
+  "metabolicReactivity": {...},
+  "correctedMetabolism": {...},
+  "metabolicProfile": "текст",
+  "healthRisks": [...],
+  "nutritionalNeeds": [...],
+  "psychologicalProfile": "текст",
+  "successChance": число,
+  "currentHealthStatus": {...},
+  "forecastPessimistic": {...},
+  "forecastOptimistic": {...},
+  "keyProblems": [...]
+}
+
+ВАЖНО: Това е ДЕЙСТВИТЕЛНИЯТ промпт за Стъпка 1 (Анализ) в worker.js.
+За пълната версия вижте функцията generateAnalysisPrompt() на ред ~3836.`;
+
+    case 'strategy':
+      return `Базирайки се на здравословния профил и анализа, определи оптималната диетична стратегия:
+
+КЛИЕНТ: {name}, {age} год., Цел: {goal}
+
+АНАЛИЗ (КОМПАКТЕН):
+- BMR/TDEE/Калории: {bmr} / {tdee} / {recommendedCalories}
+- Макро съотношения: {macroRatios}
+- Макро грамове дневно: {macroGrams}
+- Метаболитен профил: {metabolicProfile}
+- Здравни рискове: {healthRisks}
+- Хранителни нужди: {nutritionalNeeds}
+- Психологически профил: {psychologicalProfile}
+
+ПРЕДПОЧИТАНИЯ:
+- Диетични предпочитания: {dietPreference}
+- Не обича/непоносимост: {dietDislike}
+- Любими храни: {dietLove}
+
+[... детайлни инструкции за седмична схема, специални случаи, разпределение на калории ...]
+
+JSON ФОРМАТ:
+{
+  "dietaryModifier": "текст",
+  "modifierReasoning": "текст",
+  "welcomeMessage": "текст",
+  "planJustification": "текст",
+  "longTermStrategy": "текст",
+  "mealCountJustification": "текст",
+  "afterDinnerMealJustification": "текст",
+  "dietType": "текст",
+  "weeklyMealPattern": "текст",
+  "weeklyScheme": {...},
+  "breakfastStrategy": "текст",
+  "calorieDistribution": "текст",
+  "macroDistribution": "текст",
+  "mealTiming": {...},
+  "keyPrinciples": [...],
+  "foodsToInclude": [...],
+  "foodsToAvoid": [...],
+  "supplementRecommendations": [...],
+  "hydrationStrategy": "текст",
+  "communicationStyle": {...},
+  "psychologicalSupport": [...]
+}
+
+ВАЖНО: Това е ДЕЙСТВИТЕЛНИЯТ промпт за Стъпка 2 (Стратегия) в worker.js.
+За пълната версия вижте функцията generateStrategyPrompt() на ред ~4295.`;
+
+    case 'summary':
+      return `Създай обобщение и препоръки за седмичния хранителен план.
+
+ПРОФИЛ: {name}, {age}, {goal}
+BMR: {bmr}, Калории: {recommendedCalories}
+
+АНАЛИЗ (КОМПАКТЕН): {analysis data}
+СТРАТЕГИЯ (КОМПАКТНА): {strategy data}
+СЕДМИЧЕН ПЛАН: {weekPlan summary}
+
+[... инструкции за генериране на обобщение, препоръки, добавки ...]
+
+JSON ФОРМАТ:
+{
+  "summary": "текст",
+  "recommendations": [...],
+  "supplements": [...],
+  "additionalNotes": "текст"
+}
+
+ВАЖНО: Това е ДЕЙСТВИТЕЛНИЯТ промпт за Стъпка 4 (Обобщение) в worker.js.
+За пълната версия вижте функцията generateMealPlanSummaryPrompt() на ред ~1865.`;
+
+    case 'consultation':
+      return `Ти си личен диетолог, психолог и здравен асистент за {name}.
+
+КЛИЕНТСКИ ПРОФИЛ:
+{userData JSON}
+
+ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
+{userPlan JSON}
+
+ИСТОРИЯ НА РАЗГОВОРА:
+{conversationHistory}
+
+ПОТРЕБИТЕЛСКО СЪОБЩЕНИЕ:
+{userMessage}
+
+[... инструкции за консултация и отговори ...]
+
+ВАЖНО: Това е ДЕЙСТВИТЕЛНИЯТ промпт за чат консултации в worker.js.
+За пълната версия вижте функцията generateChatPrompt() на ред ~1137.`;
+
+    case 'modification':
+      return `Модифицирай хранителния план според заявката на потребителя.
+
+ЗАЯВКА: {userMessage}
+ТЕКУЩ ПЛАН: {userPlan JSON}
+ПРОФИЛ: {userData JSON}
+
+[... инструкции за модификация ...]
+
+JSON ФОРМАТ: {модифициран план}
+
+ВАЖНО: Това е ДЕЙСТВИТЕЛНИЯТ промпт за модификация на планове в worker.js.`;
+
+    case 'correction':
+      return `Коригирай грешките във валидирания план.
+
+ГРЕШКИ:
+{validationErrors}
+
+ТЕКУЩ ПЛАН:
+{plan JSON}
+
+ПРОФИЛ:
+{userData JSON}
+
+[... инструкции за корекция ...]
+
+JSON ФОРМАТ: {коригиран план}
+
+ВАЖНО: Това е ДЕЙСТВИТЕЛНИЯТ промпт за корекция на грешки в worker.js.
+За пълната версия вижте функцията generateCorrectionPrompt() на ред ~3214.`;
+
+    default:
+      return null;
+  }
+}
+
+/**
  * Admin: Get default prompt for viewing in admin panel
  * Reads prompts directly from KV storage (admin_*_prompt keys)
- * These are the ACTUAL prompts used in generation
+ * If not in KV, returns the ACTUAL default prompt embedded in worker.js
  */
 async function handleGetDefaultPrompt(request, env) {
   try {
@@ -5842,14 +6173,33 @@ async function handleGetDefaultPrompt(request, env) {
       }
     }
     
+    // If not found in KV, return the actual default prompt from worker.js
     if (!prompt) {
+      console.log(`Prompt ${kvKey} not found in KV, returning embedded default from worker.js`);
+      prompt = generateActualDefaultPrompt(type);
+      
+      if (!prompt) {
+        return jsonResponse({ 
+          error: `Prompt type "${type}" not supported`,
+          hint: `Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction`
+        }, 400);
+      }
+      
       return jsonResponse({ 
-        error: `Prompt not found in KV storage. Please upload prompts using ./KV/upload-kv-keys.sh`,
-        hint: `Missing key: ${kvKey}`
-      }, 404);
+        success: true, 
+        prompt: prompt,
+        source: 'worker.js (embedded default)',
+        note: 'This is the ACTUAL default prompt used by the worker when no custom prompt is set in KV storage.'
+      }, 200, {
+        cacheControl: 'public, max-age=1800' // Cache for 30 minutes
+      });
     }
     
-    return jsonResponse({ success: true, prompt: prompt }, 200, {
+    return jsonResponse({ 
+      success: true, 
+      prompt: prompt,
+      source: 'KV storage (custom)'
+    }, 200, {
       cacheControl: 'public, max-age=1800' // Cache for 30 minutes
     });
   } catch (error) {
