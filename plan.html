@@ -634,6 +634,13 @@
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
         }
 
+        .chat-icon-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
         /* --- MODAL (POPUP) --- */
         .modal-overlay {
             position: fixed;
@@ -2016,7 +2023,7 @@
 
     <!-- Chat Assistant Button -->
     <button class="fab-chat" onclick="openChat()">
-        <i class="fas fa-comment-dots"></i>
+        <img src="./docs/Chat2.png" alt="Chat Assistant" class="chat-icon-img">
     </button>
 
     <!-- INFO MODAL -->
