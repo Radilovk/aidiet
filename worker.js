@@ -7239,8 +7239,9 @@ async function handlePushSend(request, env) {
       
       if (response.ok || response.status === 201) {
         // OPTIMIZATION: Record that we sent this notification
+        // TTL must be > MIN_INTERVAL_MS to prevent race conditions
         await env.page_content.put(rateLimitKey, Date.now().toString(), {
-          expirationTtl: 60 // 1 minute
+          expirationTtl: 90 // 90 seconds (30s limit + 60s buffer)
         });
         
         console.log(`✅ Push notification sent successfully to user ${userId}`);
@@ -7497,8 +7498,11 @@ async function handleScheduledNotifications(event, env, ctx) {
         if (shouldProcessWater) {
           notificationPromises.push(
             checkAndSendWaterReminder(userId, settings.waterReminders, currentHour, env)
-              .then(() => notificationsSent++)
-              .catch(error => console.error(`Error sending water reminder to ${userId}:`, error))
+              .then(() => ({ success: true, type: 'water' }))
+              .catch(error => {
+                console.error(`Error sending water reminder to ${userId}:`, error);
+                return { success: false, type: 'water', error };
+              })
           );
         }
 
@@ -7506,8 +7510,11 @@ async function handleScheduledNotifications(event, env, ctx) {
         if (shouldProcessMeal) {
           notificationPromises.push(
             checkAndSendMealReminder(userId, settings.mealReminders, currentTime, env)
-              .then(() => notificationsSent++)
-              .catch(error => console.error(`Error sending meal reminder to ${userId}:`, error))
+              .then(() => ({ success: true, type: 'meal' }))
+              .catch(error => {
+                console.error(`Error sending meal reminder to ${userId}:`, error);
+                return { success: false, type: 'meal', error };
+              })
           );
         }
 
@@ -7515,14 +7522,23 @@ async function handleScheduledNotifications(event, env, ctx) {
         if (shouldProcessCustom) {
           notificationPromises.push(
             checkAndSendCustomReminders(userId, settings.customReminders, currentTime, now, env)
-              .then(() => notificationsSent++)
-              .catch(error => console.error(`Error sending custom reminder to ${userId}:`, error))
+              .then(() => ({ success: true, type: 'custom' }))
+              .catch(error => {
+                console.error(`Error sending custom reminder to ${userId}:`, error);
+                return { success: false, type: 'custom', error };
+              })
           );
         }
       }
 
       // OPTIMIZATION 5: Execute all notifications in parallel (much faster than sequential)
-      await Promise.allSettled(notificationPromises);
+      const results = await Promise.allSettled(notificationPromises);
+      
+      // Count successful notifications (thread-safe approach)
+      const successfulNotifications = results.filter(
+        result => result.status === 'fulfilled' && result.value?.success
+      ).length;
+      notificationsSent += successfulNotifications;
       
       // Move to next page if available
       cursor = listResult.list_complete ? null : listResult.cursor;
