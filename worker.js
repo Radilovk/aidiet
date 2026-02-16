@@ -6850,6 +6850,48 @@ function uint8ArrayToBase64Url(uint8Array) {
 }
 
 /**
+ * Convert raw VAPID keys (base64url format) to JWK format
+ * 
+ * The web-push library generates VAPID keys as base64url-encoded raw keys.
+ * However, Web Crypto API requires EC private keys to be imported in either
+ * PKCS8 or JWK format. This function converts the raw keys to JWK format.
+ * 
+ * @param {string} publicKeyBase64Url - VAPID public key in base64url format
+ * @param {string} privateKeyBase64Url - VAPID private key in base64url format
+ * @returns {Object} JWK object for the private key
+ */
+function vapidKeysToJWK(publicKeyBase64Url, privateKeyBase64Url) {
+  // Decode the public key (65 bytes: 0x04 + 32 bytes x + 32 bytes y)
+  const publicKeyBytes = base64UrlToUint8Array(publicKeyBase64Url);
+  
+  if (publicKeyBytes.length !== 65 || publicKeyBytes[0] !== 0x04) {
+    throw new Error('Invalid VAPID public key format. Expected 65 bytes starting with 0x04.');
+  }
+  
+  // Extract x and y coordinates (32 bytes each)
+  const x = publicKeyBytes.slice(1, 33);
+  const y = publicKeyBytes.slice(33, 65);
+  
+  // The private key is the scalar d (32 bytes)
+  const d = base64UrlToUint8Array(privateKeyBase64Url);
+  
+  if (d.length !== 32) {
+    throw new Error('Invalid VAPID private key format. Expected 32 bytes.');
+  }
+  
+  // Create JWK object
+  const jwk = {
+    kty: 'EC',
+    crv: 'P-256',
+    x: uint8ArrayToBase64Url(x),
+    y: uint8ArrayToBase64Url(y),
+    d: uint8ArrayToBase64Url(d)
+  };
+  
+  return jwk;
+}
+
+/**
  * Send Web Push notification with VAPID authentication
  * 
  * @param {Object} subscription - Push subscription object
@@ -6894,10 +6936,11 @@ async function sendWebPushNotification(subscription, payload, env) {
   const unsignedToken = `${headerEncoded}.${payloadEncoded}`;
   
   // Import VAPID private key for signing
-  const privateKeyUint8 = base64UrlToUint8Array(vapidPrivateKey);
+  // Convert raw VAPID keys (from web-push generate-vapid-keys) to JWK format
+  const privateKeyJwk = vapidKeysToJWK(vapidPublicKey, vapidPrivateKey);
   const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    privateKeyUint8,
+    'jwk',
+    privateKeyJwk,
     {
       name: 'ECDSA',
       namedCurve: 'P-256'

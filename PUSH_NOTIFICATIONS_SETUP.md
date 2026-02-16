@@ -317,6 +317,45 @@ console.log(localStorage.getItem('userId'));
 2. Redeploy the worker: `wrangler deploy`
 3. Refresh admin panel
 
+### DataError: Invalid PKCS8 input (FIXED in February 2026)
+
+**Symptom:** Server logs show error:
+```
+Error sending push notification: DataError: Invalid PKCS8 input.
+```
+
+**Root Cause:**
+This error occurred because the `web-push generate-vapid-keys` command generates keys in **raw** base64url format (32 bytes for private key), but the code was attempting to import them as **PKCS8** format. The Web Crypto API requires EC private keys to be in either PKCS8 or JWK format, not raw.
+
+**Solution (Already Implemented):**
+The code has been updated to automatically convert raw VAPID keys to JWK (JSON Web Key) format before importing them into the Web Crypto API. This fix:
+
+1. **Decodes the public key** (65 bytes: 0x04 + 32 bytes x + 32 bytes y)
+2. **Extracts x and y coordinates** from the public key
+3. **Uses the private key scalar** (d) from the 32-byte private key
+4. **Creates a JWK object** with the proper format:
+   ```json
+   {
+     "kty": "EC",
+     "crv": "P-256",
+     "x": "<base64url x coordinate>",
+     "y": "<base64url y coordinate>",
+     "d": "<base64url private key>",
+     "ext": true
+   }
+   ```
+5. **Imports the key using 'jwk' format** instead of 'pkcs8'
+
+**What You Need to Do:**
+- Simply use the standard keys from `web-push generate-vapid-keys`
+- No conversion or special formatting needed
+- The worker code now handles the conversion automatically
+
+**Verification:**
+After deploying the updated worker, test by sending a push notification from the admin panel. You should see:
+- ✅ "Push notification sent successfully" - The fix is working!
+- ❌ If you still see errors, check the Cloudflare Worker logs for details
+
 ### Notifications not received:
 
 **Possible causes:**
