@@ -7420,44 +7420,57 @@ async function handleScheduledNotifications(event, env, ctx) {
     console.log(`Current UTC time: ${currentTime}`);
 
     // Get list of all subscribed users (we need to iterate through KV)
-    // Note: This is a simple implementation. For production with many users,
-    // consider maintaining a separate list of user IDs
+    // Handle pagination for >1000 users
     const subscriptionPrefix = 'push_subscription_';
-    const { keys } = await env.page_content.list({ prefix: subscriptionPrefix });
+    let cursor = null;
+    let totalUsers = 0;
     
-    if (!keys || keys.length === 0) {
-      console.log('No subscribed users found');
-      return;
-    }
-
-    console.log(`Found ${keys.length} subscribed users`);
-
-    // Process each user
-    for (const key of keys) {
-      const userId = key.name.replace(subscriptionPrefix, '');
+    do {
+      const listResult = await env.page_content.list({ 
+        prefix: subscriptionPrefix,
+        cursor: cursor
+      });
       
-      try {
-        // Check water reminders
-        if (settings.waterReminders?.enabled) {
-          await checkAndSendWaterReminder(userId, settings.waterReminders, currentHour, env);
+      if (!listResult.keys || listResult.keys.length === 0) {
+        if (totalUsers === 0) {
+          console.log('No subscribed users found');
         }
-
-        // Check meal reminders
-        if (settings.mealReminders?.enabled) {
-          await checkAndSendMealReminder(userId, settings.mealReminders, currentTime, env);
-        }
-
-        // Check custom reminders
-        if (settings.customReminders && settings.customReminders.length > 0) {
-          await checkAndSendCustomReminders(userId, settings.customReminders, currentTime, now, env);
-        }
-      } catch (error) {
-        console.error(`Error processing notifications for user ${userId}:`, error);
-        // Continue with next user even if one fails
+        break;
       }
-    }
 
-    console.log('Scheduled notification check completed');
+      console.log(`Processing ${listResult.keys.length} subscribed users (batch)`);
+      totalUsers += listResult.keys.length;
+
+      // Process each user in this batch
+      for (const key of listResult.keys) {
+        const userId = key.name.replace(subscriptionPrefix, '');
+        
+        try {
+          // Check water reminders
+          if (settings.waterReminders?.enabled) {
+            await checkAndSendWaterReminder(userId, settings.waterReminders, currentHour, env);
+          }
+
+          // Check meal reminders
+          if (settings.mealReminders?.enabled) {
+            await checkAndSendMealReminder(userId, settings.mealReminders, currentTime, env);
+          }
+
+          // Check custom reminders
+          if (settings.customReminders && settings.customReminders.length > 0) {
+            await checkAndSendCustomReminders(userId, settings.customReminders, currentTime, now, env);
+          }
+        } catch (error) {
+          console.error(`Error processing notifications for user ${userId}:`, error);
+          // Continue with next user even if one fails
+        }
+      }
+      
+      // Move to next page if available
+      cursor = listResult.list_complete ? null : listResult.cursor;
+    } while (cursor);
+
+    console.log(`Scheduled notification check completed. Processed ${totalUsers} total users.`);
   } catch (error) {
     console.error('Error in scheduled notification handler:', error);
   }
@@ -7470,12 +7483,25 @@ async function checkAndSendWaterReminder(userId, waterSettings, currentHour, env
   const { frequency, startHour, endHour } = waterSettings;
   
   // Check if current hour is within the water reminder window
-  if (currentHour < startHour || currentHour > endHour) {
+  // Handle cases where the window spans midnight (e.g., startHour=22, endHour=6)
+  const isInWindow = startHour <= endHour 
+    ? (currentHour >= startHour && currentHour <= endHour)
+    : (currentHour >= startHour || currentHour <= endHour);
+  
+  if (!isInWindow) {
     return;
   }
 
   // Check if current hour matches the frequency pattern
-  const hoursSinceStart = currentHour - startHour;
+  // Calculate hours since start, handling midnight crossing
+  let hoursSinceStart;
+  if (currentHour >= startHour) {
+    hoursSinceStart = currentHour - startHour;
+  } else {
+    // Crossed midnight
+    hoursSinceStart = (24 - startHour) + currentHour;
+  }
+  
   if (hoursSinceStart % frequency === 0) {
     console.log(`Sending water reminder to user ${userId}`);
     
@@ -7532,8 +7558,8 @@ async function checkAndSendMealReminder(userId, mealSettings, currentTime, env) 
         console.log(`Sending snack reminder to user ${userId}`);
         
         const pushMessage = {
-          title: '🍎 Напомняне: Закуска',
-          body: 'Време е за здравословна закуска между храненията.',
+          title: '🍎 Напомняне: Междинна Закуска',
+          body: 'Време е за здравословна междинна закуска.',
           url: '/plan.html',
           icon: '/icon-192x192.png',
           notificationType: 'snack'
@@ -7617,7 +7643,6 @@ async function sendPushNotificationToUser(userId, pushMessage, env) {
  */
 export default {
   // Fetch handler for HTTP requests
-  async fetch(request, env, ctx) {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     
