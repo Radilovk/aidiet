@@ -1143,9 +1143,10 @@ function checkFoodExistsInPlan(plan, foodName) {
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
  */
-async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null, userData = null, calculatedData = null) {
+async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null, userData = null, calculatedData = null, skipJSONEnforcement = false) {
   // Apply strict JSON-only enforcement to reduce unnecessary output
-  const enforcedPrompt = enforceJSONOnlyPrompt(prompt);
+  // Skip enforcement for chat requests where plain text responses are expected
+  const enforcedPrompt = skipJSONEnforcement ? prompt : enforceJSONOnlyPrompt(prompt);
   
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(enforcedPrompt);
@@ -2422,7 +2423,8 @@ async function handleChat(request, env) {
     const chatPrompt = await generateChatPrompt(env, message, effectiveUserData, effectiveUserPlan, chatHistory, chatMode);
     
     // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
-    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null);
+    // Skip JSON enforcement for chat to get plain text conversational responses
+    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
     
     // Check if the response contains a plan regeneration instruction
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
