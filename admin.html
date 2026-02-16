@@ -1663,7 +1663,9 @@
             whitelist: 5 * 60 * 1000,     // 5 minutes for whitelist
             reports: 2 * 60 * 1000,       // 2 minutes for reports (more dynamic)
             defaultPrompts: 30 * 60 * 1000, // 30 minutes for default prompts (rarely change)
-            aiLogs: 1 * 60 * 1000         // 1 minute for AI logs (frequently updated)
+            aiLogs: 1 * 60 * 1000,        // 1 minute for AI logs (frequently updated)
+            short: 2 * 60 * 1000,         // 2 minutes for short-lived data
+            notifications: 10 * 60 * 1000 // 10 minutes for notification settings (rarely change)
         };
 
         // In-memory cache object
@@ -3145,7 +3147,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const result = await cachedFetch(
                     WORKER_URL + '/api/admin/notification-settings',
                     'admin:notification-settings',
-                    CACHE_CONFIG.short
+                    CACHE_CONFIG.notifications  // Use longer cache for notification settings
                 );
                 
                 if (result.success && result.settings) {
