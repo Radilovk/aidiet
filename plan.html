@@ -4257,11 +4257,114 @@
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('Service Worker registered:', registration);
+                        
+                        // Check if push notifications are supported and request permission
+                        if ('PushManager' in window && 'Notification' in window) {
+                            checkNotificationPermission(registration);
+                        }
                     })
                     .catch(error => {
                         console.error('Service Worker registration failed:', error);
                     });
             });
+        }
+        
+        // --- Push Notifications ---
+        async function checkNotificationPermission(registration) {
+            // Check if already subscribed
+            if (localStorage.getItem('pushSubscribed') === 'true') {
+                console.log('Already subscribed to push notifications');
+                return;
+            }
+            
+            // Check if already granted
+            if (Notification.permission === 'granted') {
+                console.log('Notification permission already granted');
+                await subscribeToPushNotifications(registration);
+            } else if (Notification.permission !== 'denied') {
+                // Wait a bit before asking for permission to avoid overwhelming the user
+                setTimeout(() => {
+                    showNotificationPrompt(registration);
+                }, 5000); // Wait 5 seconds after page load
+            }
+        }
+        
+        async function showNotificationPrompt(registration) {
+            // Show a custom prompt before requesting browser permission
+            const shouldAsk = confirm(
+                '🔔 Искате ли да получавате напомняния за храна, вода и съобщения от вашия AI консултант?\n\n' +
+                'Това ще ви помогне да следвате плана си по-лесно.'
+            );
+            
+            if (shouldAsk) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('Notification permission granted');
+                    await subscribeToPushNotifications(registration);
+                }
+            }
+        }
+        
+        async function subscribeToPushNotifications(registration) {
+            try {
+                // Get VAPID public key from server
+                const vapidResponse = await fetch(`${WORKER_URL}/api/push/vapid-public-key`);
+                const vapidData = await vapidResponse.json();
+                
+                if (!vapidData.success || vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
+                    console.warn('VAPID keys not configured on server');
+                    return;
+                }
+                
+                // Convert VAPID key from base64url to Uint8Array
+                const urlBase64ToUint8Array = (base64String) => {
+                    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                    const base64 = (base64String + padding)
+                        .replace(/\-/g, '+')
+                        .replace(/_/g, '/');
+                    const rawData = window.atob(base64);
+                    const outputArray = new Uint8Array(rawData.length);
+                    for (let i = 0; i < rawData.length; ++i) {
+                        outputArray[i] = rawData.charCodeAt(i);
+                    }
+                    return outputArray;
+                };
+                
+                // Subscribe to push notifications
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
+                });
+                
+                // Get or generate user ID
+                let userId = localStorage.getItem('userId');
+                if (!userId) {
+                    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('userId', userId);
+                }
+                
+                // Send subscription to server
+                const response = await fetch(`${WORKER_URL}/api/push/subscribe`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        subscription: subscription.toJSON()
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    console.log('Successfully subscribed to push notifications');
+                    localStorage.setItem('pushSubscribed', 'true');
+                } else {
+                    console.error('Failed to save subscription on server:', result);
+                }
+            } catch (error) {
+                console.error('Error subscribing to push notifications:', error);
+            }
         }
 
         // --- PWA Helper Functions ---
