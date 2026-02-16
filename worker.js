@@ -6824,6 +6824,134 @@ async function handleRemoveFromWhitelist(request, env) {
 }
 
 /**
+ * Web Push Protocol Implementation
+ * 
+ * Helper functions to implement Web Push protocol with VAPID authentication
+ * without external dependencies, using Web Crypto API available in Cloudflare Workers.
+ */
+
+/**
+ * Convert base64url string to Uint8Array
+ */
+function base64UrlToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+  
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/**
+ * Convert Uint8Array to base64url string
+ */
+function uint8ArrayToBase64Url(uint8Array) {
+  const base64 = btoa(String.fromCharCode.apply(null, uint8Array));
+  return base64
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+/**
+ * Send Web Push notification with VAPID authentication
+ * 
+ * @param {Object} subscription - Push subscription object
+ * @param {string} payload - JSON string to send
+ * @param {Object} env - Environment with VAPID keys
+ * @returns {Promise<Response>} Push service response
+ */
+async function sendWebPushNotification(subscription, payload, env) {
+  const vapidPublicKey = env.VAPID_PUBLIC_KEY;
+  const vapidPrivateKey = env.VAPID_PRIVATE_KEY;
+  
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    throw new Error('VAPID keys not configured');
+  }
+  
+  // Extract push service endpoint URL
+  const endpoint = subscription.endpoint;
+  const audienceUrl = new URL(endpoint);
+  const audience = `${audienceUrl.protocol}//${audienceUrl.host}`;
+  
+  // Create JWT header and payload for VAPID
+  const jwtHeader = {
+    typ: 'JWT',
+    alg: 'ES256'
+  };
+  
+  const exp = Math.floor(Date.now() / 1000) + 12 * 60 * 60; // 12 hours expiration
+  const jwtPayload = {
+    aud: audience,
+    exp: exp,
+    sub: 'mailto:admin@biocode.website'
+  };
+  
+  // Encode header and payload
+  const headerEncoded = uint8ArrayToBase64Url(
+    new TextEncoder().encode(JSON.stringify(jwtHeader))
+  );
+  const payloadEncoded = uint8ArrayToBase64Url(
+    new TextEncoder().encode(JSON.stringify(jwtPayload))
+  );
+  
+  const unsignedToken = `${headerEncoded}.${payloadEncoded}`;
+  
+  // Import VAPID private key for signing
+  const privateKeyUint8 = base64UrlToUint8Array(vapidPrivateKey);
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    privateKeyUint8,
+    {
+      name: 'ECDSA',
+      namedCurve: 'P-256'
+    },
+    false,
+    ['sign']
+  );
+  
+  // Sign the JWT
+  const signature = await crypto.subtle.sign(
+    {
+      name: 'ECDSA',
+      hash: { name: 'SHA-256' }
+    },
+    cryptoKey,
+    new TextEncoder().encode(unsignedToken)
+  );
+  
+  const signatureBase64 = uint8ArrayToBase64Url(new Uint8Array(signature));
+  const jwt = `${unsignedToken}.${signatureBase64}`;
+  
+  // Prepare request headers
+  const headers = {
+    'TTL': '86400', // 24 hours
+    'Content-Type': 'application/octet-stream',
+    'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`,
+    'Urgency': 'normal'
+  };
+  
+  // For now, we'll send the payload as plaintext
+  // Full encryption would require implementing the Web Push encryption protocol
+  const body = new TextEncoder().encode(payload);
+  
+  // Send push notification to the push service
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: headers,
+    body: body
+  });
+  
+  return response;
+}
+
+/**
  * Push Notifications: Get VAPID public key
  * 
  * Returns the VAPID public key needed for push notification subscription.
@@ -7002,7 +7130,7 @@ async function handlePushSubscribe(request, env) {
  */
 async function handlePushSend(request, env) {
   try {
-    const { userId, title, body, url } = await request.json();
+    const { userId, title, body, url, icon, notificationType } = await request.json();
     
     if (!userId) {
       return jsonResponse({ error: 'Missing userId' }, 400);
@@ -7026,33 +7154,187 @@ async function handlePushSend(request, env) {
     const pushMessage = {
       title: title || 'NutriPlan',
       body: body || 'Ново напомняне от NutriPlan',
-      url: url || '/'
+      url: url || '/',
+      icon: icon || '/icon-192x192.png',
+      notificationType: notificationType || 'general',
+      timestamp: Date.now()
     };
 
-    // In a production environment, you would:
-    // 1. Use the web-push library or similar to send the actual push notification
-    // 2. Use VAPID keys for authentication
-    // 3. Encrypt the payload according to Web Push protocol
+    console.log(`Sending push notification to user ${userId}:`, pushMessage);
     
-    // For now, we'll just log that we would send the notification
-    console.log(`Would send push notification to user ${userId}:`, pushMessage);
-    console.log('Subscription endpoint:', subscription.endpoint);
+    // Check if VAPID keys are configured
+    if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
+      console.warn('VAPID keys not configured. Notification not sent.');
+      return jsonResponse({ 
+        success: false,
+        message: 'VAPID keys not configured',
+        note: 'Please configure VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables'
+      }, 500);
+    }
     
-    // TODO: Implement actual Web Push sending with VAPID
-    // This requires the 'web-push' library or manual implementation of the Web Push protocol
-    // Example with web-push library (needs to be imported):
-    // const webpush = require('web-push');
-    // webpush.setVapidDetails('mailto:example@domain.com', env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
-    // await webpush.sendNotification(subscription, JSON.stringify(pushMessage));
+    // Send the push notification using Web Push protocol
+    try {
+      const response = await sendWebPushNotification(
+        subscription,
+        JSON.stringify(pushMessage),
+        env
+      );
+      
+      if (response.ok || response.status === 201) {
+        console.log(`Push notification sent successfully to user ${userId}`);
+        return jsonResponse({ 
+          success: true,
+          message: 'Push notification sent successfully'
+        });
+      } else {
+        console.error(`Push service returned status ${response.status}:`, await response.text());
+        return jsonResponse({ 
+          success: false,
+          message: `Push service error: ${response.status}`,
+          statusCode: response.status
+        }, 500);
+      }
+    } catch (pushError) {
+      console.error('Error sending push notification:', pushError);
+      return jsonResponse({ 
+        success: false,
+        error: 'Failed to send push notification: ' + pushError.message 
+      }, 500);
+    }
+  } catch (error) {
+    console.error('Error in handlePushSend:', error);
+    return jsonResponse({ error: 'Failed to process notification request: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Save notification settings
+ * 
+ * Saves global notification settings for the system
+ * 
+ * @param {Request} request - Request with notification settings
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<Response>} JSON response
+ */
+async function handleSaveNotificationSettings(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const settings = await request.json();
+    
+    // Validate settings structure
+    const validSettings = {
+      enabled: settings.enabled !== false, // Default to true
+      chatMessages: settings.chatMessages !== false,
+      waterReminders: {
+        enabled: settings.waterReminders?.enabled !== false,
+        frequency: settings.waterReminders?.frequency || 2, // hours
+        startHour: settings.waterReminders?.startHour || 8,
+        endHour: settings.waterReminders?.endHour || 22
+      },
+      mealReminders: {
+        enabled: settings.mealReminders?.enabled !== false,
+        breakfast: settings.mealReminders?.breakfast || '08:00',
+        lunch: settings.mealReminders?.lunch || '13:00',
+        dinner: settings.mealReminders?.dinner || '19:00',
+        snacks: settings.mealReminders?.snacks || false
+      },
+      customReminders: settings.customReminders || []
+    };
+
+    await env.page_content.put('notification_settings', JSON.stringify(validSettings));
+    
+    console.log('Notification settings saved:', validSettings);
     
     return jsonResponse({ 
       success: true,
-      message: 'Push notification sent (simulated)',
-      note: 'Full Web Push implementation requires VAPID keys and web-push library'
+      message: 'Настройките за известия са запазени',
+      settings: validSettings
     });
   } catch (error) {
-    console.error('Error sending push notification:', error);
-    return jsonResponse({ error: 'Failed to send notification: ' + error.message }, 500);
+    console.error('Error saving notification settings:', error);
+    return jsonResponse({ error: 'Failed to save notification settings: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Get notification settings
+ * 
+ * Retrieves global notification settings
+ * 
+ * @param {Request} request - Request object
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<Response>} JSON response with settings
+ */
+async function handleGetNotificationSettings(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const settingsData = await env.page_content.get('notification_settings');
+    
+    // Default settings if none exist
+    const defaultSettings = {
+      enabled: true,
+      chatMessages: true,
+      waterReminders: {
+        enabled: true,
+        frequency: 2,
+        startHour: 8,
+        endHour: 22
+      },
+      mealReminders: {
+        enabled: true,
+        breakfast: '08:00',
+        lunch: '13:00',
+        dinner: '19:00',
+        snacks: false
+      },
+      customReminders: []
+    };
+
+    const settings = settingsData ? JSON.parse(settingsData) : defaultSettings;
+    
+    return jsonResponse({ 
+      success: true,
+      settings: settings
+    });
+  } catch (error) {
+    console.error('Error getting notification settings:', error);
+    return jsonResponse({ error: 'Failed to get notification settings: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Get list of subscribed users
+ * 
+ * Returns list of users who have subscribed to push notifications
+ * 
+ * @param {Request} request - Request object
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<Response>} JSON response with subscriptions count
+ */
+async function handleGetSubscriptions(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    // In Cloudflare KV, we can't easily list all keys with a prefix
+    // So we'll return a simple response for now
+    // In production, you might want to maintain a separate list of subscribed users
+    
+    return jsonResponse({ 
+      success: true,
+      message: 'За получаване на пълен списък с абонирани потребители, използвайте Cloudflare KV dashboard',
+      note: 'Subscriptions are stored with prefix: push_subscription_'
+    });
+  } catch (error) {
+    console.error('Error getting subscriptions:', error);
+    return jsonResponse({ error: 'Failed to get subscriptions: ' + error.message }, 500);
   }
 }
 
@@ -7121,6 +7403,12 @@ export default {
         return await handlePushSend(request, env);
       } else if (url.pathname === '/api/push/vapid-public-key' && request.method === 'GET') {
         return await handleGetVapidPublicKey(request, env);
+      } else if (url.pathname === '/api/admin/notification-settings' && request.method === 'GET') {
+        return await handleGetNotificationSettings(request, env);
+      } else if (url.pathname === '/api/admin/notification-settings' && request.method === 'POST') {
+        return await handleSaveNotificationSettings(request, env);
+      } else if (url.pathname === '/api/admin/subscriptions' && request.method === 'GET') {
+        return await handleGetSubscriptions(request, env);
       } else if (url.pathname === '/api/admin/get-logging-status' && request.method === 'GET') {
         return await handleGetLoggingStatus(request, env);
       } else if (url.pathname === '/api/admin/set-logging-status' && request.method === 'POST') {
