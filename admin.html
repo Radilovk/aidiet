@@ -1238,6 +1238,125 @@
                 </div>
             </div>
 
+            <!-- Push Notifications Management -->
+            <div class="card">
+                <h2><i class="fas fa-bell"></i> Управление на Push Известия</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Конфигурирайте автоматични известия за потребителите. Известията се изпращат само на потребители, които са дали разрешение в браузъра си.
+                </div>
+
+                <!-- Notification Status -->
+                <div class="form-group">
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px;">
+                        <div class="stat-card">
+                            <div class="stat-label">VAPID Ключ</div>
+                            <div class="stat-value" id="vapidKeyStatus" style="font-size: 0.9rem;">Зареждане...</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Статус</div>
+                            <div class="stat-value" id="notificationStatus">
+                                <span id="notificationEnabledBadge" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9rem;">Зареждане...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global Enable/Disable -->
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="notificationsEnabled" style="width: auto; margin-right: 10px;" checked>
+                        Активирай системата за известия
+                    </label>
+                </div>
+
+                <!-- Chat Messages Notifications -->
+                <div class="form-group">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-comments"></i> Известия за Чат Съобщения
+                    </h3>
+                    <label>
+                        <input type="checkbox" id="chatNotificationsEnabled" style="width: auto; margin-right: 10px;" checked>
+                        Изпращай известия при автоматични съобщения от AI асистента
+                    </label>
+                </div>
+
+                <!-- Water Reminders -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-tint"></i> Напомняния за Пиене на Вода
+                    </h3>
+                    <label>
+                        <input type="checkbox" id="waterRemindersEnabled" style="width: auto; margin-right: 10px;" checked>
+                        Активирай напомняния за вода
+                    </label>
+                    <div id="waterReminderSettings" style="margin-top: 15px; padding-left: 25px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                            <div>
+                                <label>Честота (часове)</label>
+                                <input type="number" id="waterFrequency" min="1" max="6" value="2" style="width: 100%;">
+                            </div>
+                            <div>
+                                <label>Начален час</label>
+                                <input type="number" id="waterStartHour" min="0" max="23" value="8" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <label>Краен час</label>
+                            <input type="number" id="waterEndHour" min="0" max="23" value="22" style="width: 100%;">
+                        </div>
+                        <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                            Пример: При честота 2 часа, начален час 8 и краен час 22, известията ще се изпращат на: 8:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Meal Reminders -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-utensils"></i> Напомняния за Хранене
+                    </h3>
+                    <label>
+                        <input type="checkbox" id="mealRemindersEnabled" style="width: auto; margin-right: 10px;" checked>
+                        Активирай напомняния за хранене
+                    </label>
+                    <div id="mealReminderSettings" style="margin-top: 15px; padding-left: 25px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label>Закуска</label>
+                                <input type="time" id="breakfastTime" value="08:00" style="width: 100%;">
+                            </div>
+                            <div>
+                                <label>Обяд</label>
+                                <input type="time" id="lunchTime" value="13:00" style="width: 100%;">
+                            </div>
+                            <div>
+                                <label>Вечеря</label>
+                                <input type="time" id="dinnerTime" value="19:00" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label>
+                                <input type="checkbox" id="snackRemindersEnabled" style="width: auto; margin-right: 10px;">
+                                Активирай напомняния за междинни закуски
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn" onclick="saveNotificationSettings()">
+                        <i class="fas fa-save"></i> Запази Настройки
+                    </button>
+                    <button class="btn" onclick="loadNotificationSettings()" style="background: var(--accent-blue);">
+                        <i class="fas fa-sync"></i> Презареди
+                    </button>
+                    <button class="btn" onclick="sendTestNotification()" style="background: var(--accent-yellow); color: var(--text-dark);">
+                        <i class="fas fa-paper-plane"></i> Тествай Известие
+                    </button>
+                </div>
+            </div>
+
             <!-- Blacklist Management -->
             <div class="card">
                 <h2><i class="fas fa-ban"></i> Управление на Черен Списък с Храни</h2>
@@ -3033,6 +3152,164 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
+        // --- Push Notifications Management ---
+        
+        // Load notification settings on page load
+        async function loadNotificationSettings() {
+            try {
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/notification-settings',
+                    'admin:notification-settings',
+                    CACHE_CONFIG.short
+                );
+                
+                if (result.success && result.settings) {
+                    const settings = result.settings;
+                    
+                    // Global enable
+                    document.getElementById('notificationsEnabled').checked = settings.enabled !== false;
+                    
+                    // Chat notifications
+                    document.getElementById('chatNotificationsEnabled').checked = settings.chatMessages !== false;
+                    
+                    // Water reminders
+                    document.getElementById('waterRemindersEnabled').checked = settings.waterReminders?.enabled !== false;
+                    document.getElementById('waterFrequency').value = settings.waterReminders?.frequency || 2;
+                    document.getElementById('waterStartHour').value = settings.waterReminders?.startHour || 8;
+                    document.getElementById('waterEndHour').value = settings.waterReminders?.endHour || 22;
+                    
+                    // Meal reminders
+                    document.getElementById('mealRemindersEnabled').checked = settings.mealReminders?.enabled !== false;
+                    document.getElementById('breakfastTime').value = settings.mealReminders?.breakfast || '08:00';
+                    document.getElementById('lunchTime').value = settings.mealReminders?.lunch || '13:00';
+                    document.getElementById('dinnerTime').value = settings.mealReminders?.dinner || '19:00';
+                    document.getElementById('snackRemindersEnabled').checked = settings.mealReminders?.snacks === true;
+                    
+                    // Update status badge
+                    updateNotificationStatusBadge(settings.enabled);
+                    
+                    showSuccess('Настройките за известия са заредени успешно!');
+                } else {
+                    throw new Error('Invalid response');
+                }
+            } catch (error) {
+                console.error('Error loading notification settings:', error);
+                showError('Не може да се заредят настройките за известия.');
+            }
+        }
+        
+        // Save notification settings
+        async function saveNotificationSettings() {
+            try {
+                const settings = {
+                    enabled: document.getElementById('notificationsEnabled').checked,
+                    chatMessages: document.getElementById('chatNotificationsEnabled').checked,
+                    waterReminders: {
+                        enabled: document.getElementById('waterRemindersEnabled').checked,
+                        frequency: parseInt(document.getElementById('waterFrequency').value) || 2,
+                        startHour: parseInt(document.getElementById('waterStartHour').value) || 8,
+                        endHour: parseInt(document.getElementById('waterEndHour').value) || 22
+                    },
+                    mealReminders: {
+                        enabled: document.getElementById('mealRemindersEnabled').checked,
+                        breakfast: document.getElementById('breakfastTime').value || '08:00',
+                        lunch: document.getElementById('lunchTime').value || '13:00',
+                        dinner: document.getElementById('dinnerTime').value || '19:00',
+                        snacks: document.getElementById('snackRemindersEnabled').checked
+                    }
+                };
+                
+                const response = await fetch(WORKER_URL + '/api/admin/notification-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Clear cache
+                    clearCacheKey('admin:notification-settings');
+                    updateNotificationStatusBadge(settings.enabled);
+                    showSuccess('Настройките за известия са запазени успешно!');
+                } else {
+                    throw new Error(result.error || 'Failed to save settings');
+                }
+            } catch (error) {
+                console.error('Error saving notification settings:', error);
+                showError('Не може да се запазят настройките: ' + error.message);
+            }
+        }
+        
+        // Update notification status badge
+        function updateNotificationStatusBadge(enabled) {
+            const badge = document.getElementById('notificationEnabledBadge');
+            if (enabled) {
+                badge.textContent = '✓ Активирани';
+                badge.style.background = '#d4edda';
+                badge.style.color = '#155724';
+            } else {
+                badge.textContent = '✗ Деактивирани';
+                badge.style.background = '#f8d7da';
+                badge.style.color = '#721c24';
+            }
+        }
+        
+        // Send test notification
+        async function sendTestNotification() {
+            try {
+                // For testing purposes, we'll send to the admin (you can modify this)
+                const userId = 'admin-test'; // You might want to prompt for a user ID
+                
+                const response = await fetch(WORKER_URL + '/api/push/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        title: 'Тестово известие от NutriPlan',
+                        body: 'Това е тестово известие за проверка на системата.',
+                        url: '/admin.html',
+                        notificationType: 'general'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Тестовото известие е изпратено успешно!');
+                } else {
+                    throw new Error(result.message || result.error || 'Failed to send notification');
+                }
+            } catch (error) {
+                console.error('Error sending test notification:', error);
+                showError('Грешка при изпращане на тестово известие: ' + error.message);
+            }
+        }
+        
+        // Check VAPID key status
+        async function checkVapidKeyStatus() {
+            try {
+                const response = await fetch(WORKER_URL + '/api/push/vapid-public-key');
+                const result = await response.json();
+                
+                const statusEl = document.getElementById('vapidKeyStatus');
+                if (result.success && result.publicKey && result.publicKey !== 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
+                    statusEl.textContent = '✓ Конфигуриран';
+                    statusEl.style.color = '#28a745';
+                } else {
+                    statusEl.textContent = '✗ Не е конфигуриран';
+                    statusEl.style.color = '#dc3545';
+                }
+            } catch (error) {
+                console.error('Error checking VAPID key:', error);
+                document.getElementById('vapidKeyStatus').textContent = '? Неизвестен';
+            }
+        }
+
         // --- Whitelist Management ---
         let currentWhitelist = [];
 
@@ -3938,6 +4215,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Initialize
         checkAuth();
         loadColorScheme();
+        
+        // Load notification settings and check VAPID key status on page load
+        loadNotificationSettings();
+        checkVapidKeyStatus();
 
         // --- PWA Install Banner Functionality ---
         let deferredPrompt;
