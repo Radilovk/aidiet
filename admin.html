@@ -848,9 +848,6 @@
                 <button class="tab-btn" onclick="switchTab('features', event)">
                     <i class="fas fa-sliders-h"></i> Функции
                 </button>
-                <button class="tab-btn" onclick="switchTab('system', event)">
-                    <i class="fas fa-tools"></i> Система
-                </button>
             </div>
 
             <!-- Configuration Tab -->
@@ -1533,11 +1530,6 @@
             </div>
             </div>
             <!-- End Features Tab -->
-
-            <!-- System Tab -->
-            <div id="tab-system" class="tab-content">
-            </div>
-            <!-- End System Tab -->
         </div>
     </div>
 
@@ -1570,7 +1562,7 @@
         // --- Tab Management ---
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'system'];
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features'];
             if (!validTabs.includes(tabName)) {
                 console.error('Invalid tab name:', tabName);
                 return;
@@ -1616,7 +1608,7 @@
         function initializeTab() {
             const savedTab = localStorage.getItem('selectedTab') || 'configuration';
             // Validate saved tab to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'system'];
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features'];
             const tabToLoad = validTabs.includes(savedTab) ? savedTab : 'configuration';
             
             const tabContents = document.querySelectorAll('.tab-content');
