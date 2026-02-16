@@ -183,6 +183,21 @@ self.addEventListener('push', (event) => {
       vibrate = [150];
       tag = 'nutriplan-snack';
       break;
+    case 'sleep':
+      vibrate = [200, 100, 200, 100, 200];
+      tag = 'nutriplan-sleep';
+      requireInteraction = false;
+      break;
+    case 'activity':
+      vibrate = [100, 100, 100];
+      tag = 'nutriplan-activity';
+      requireInteraction = false;
+      break;
+    case 'supplements':
+      vibrate = [150, 50, 150];
+      tag = 'nutriplan-supplements';
+      requireInteraction = false;
+      break;
     default:
       break;
   }

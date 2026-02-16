@@ -7376,6 +7376,239 @@ async function handleGetSubscriptions(request, env) {
 }
 
 /**
+ * User: Get user notification preferences
+ * 
+ * Retrieves notification preferences for a specific user
+ * 
+ * @param {Request} request - Request object with userId parameter
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<Response>} JSON response with user preferences
+ */
+async function handleGetUserNotificationPreferences(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+    
+    if (!userId) {
+      return jsonResponse({ error: 'Missing userId parameter' }, 400);
+    }
+
+    const preferencesKey = `notification_preferences_${userId}`;
+    const preferencesData = await env.page_content.get(preferencesKey);
+    
+    // Default preferences if none exist
+    const defaultPreferences = {
+      enabled: true,
+      meals: { enabled: true, advanceMinutes: 60 },
+      water: { enabled: true },
+      sleep: { enabled: true, time: '22:00' },
+      activity: { enabled: true, morningTime: '07:00', dayTime: '15:00' },
+      supplements: { enabled: true }
+    };
+
+    const preferences = preferencesData ? JSON.parse(preferencesData) : defaultPreferences;
+    
+    return jsonResponse({ 
+      success: true,
+      preferences: preferences
+    });
+  } catch (error) {
+    console.error('Error getting user notification preferences:', error);
+    return jsonResponse({ error: 'Failed to get preferences: ' + error.message }, 500);
+  }
+}
+
+/**
+ * User: Save user notification preferences
+ * 
+ * Saves notification preferences for a specific user
+ * 
+ * @param {Request} request - Request with userId and preferences
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<Response>} JSON response
+ */
+async function handleSaveUserNotificationPreferences(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const { userId, preferences } = await request.json();
+    
+    if (!userId || !preferences) {
+      return jsonResponse({ error: 'Missing userId or preferences' }, 400);
+    }
+
+    const preferencesKey = `notification_preferences_${userId}`;
+    await env.page_content.put(preferencesKey, JSON.stringify(preferences));
+    
+    console.log(`Notification preferences saved for user: ${userId}`);
+    
+    return jsonResponse({ 
+      success: true,
+      message: 'Preferences saved successfully',
+      preferences: preferences
+    });
+  } catch (error) {
+    console.error('Error saving user notification preferences:', error);
+    return jsonResponse({ error: 'Failed to save preferences: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Send AI assistant message to user
+ * 
+ * Sends a notification to a user as if it came from the AI assistant
+ * 
+ * @param {Request} request - Request with userId and message
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<Response>} JSON response
+ */
+async function handleAdminSendMessage(request, env) {
+  try {
+    const { userId, message } = await request.json();
+    
+    if (!userId || !message) {
+      return jsonResponse({ error: 'Missing userId or message' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    // Send notification to user
+    const sendRequest = new Request(request.url.replace(/\/api\/admin\/send-message$/, '/api/push/send'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: userId,
+        title: 'AI Асистент - NutriPlan',
+        body: message,
+        url: '/plan.html',
+        notificationType: 'chat'
+      })
+    });
+
+    const response = await handlePushSend(sendRequest, env);
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log(`Admin message sent to user ${userId}: ${message}`);
+      return jsonResponse({ 
+        success: true,
+        message: 'Съобщението беше изпратено успешно'
+      });
+    } else {
+      return jsonResponse({ 
+        success: false,
+        error: result.error || result.message
+      }, 500);
+    }
+  } catch (error) {
+    console.error('Error sending admin message:', error);
+    return jsonResponse({ error: 'Failed to send message: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Get notification templates
+ * 
+ * Retrieves customizable notification templates
+ * 
+ * @param {Request} request - Request object
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<Response>} JSON response with templates
+ */
+async function handleGetNotificationTemplates(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const templatesData = await env.page_content.get('notification_templates');
+    
+    // Default templates
+    const defaultTemplates = {
+      meals: {
+        breakfast: { title: 'Време за закуска', body: 'Започнете деня си със здравословна закуска 🍳', time: '08:00' },
+        lunch: { title: 'Време за обяд', body: 'Време е за вашия здравословен обяд 🥗', time: '13:00' },
+        dinner: { title: 'Време за вечеря', body: 'Не забравяйте вечерята си 🍽️', time: '19:00' },
+        snack: { title: 'Време за закуска', body: 'Време е за здравословна междинна закуска 🍎', time: '10:30' }
+      },
+      water: {
+        title: 'Време за вода',
+        body: 'Не забравяйте да пиете вода! 💧',
+        frequency: 2
+      },
+      sleep: {
+        title: 'Време за сън',
+        body: 'Подгответе се за почивка. Добър сън е важен за здравето ви! 😴',
+        time: '22:00'
+      },
+      activity: {
+        morning: { title: 'Сутрешна активност', body: 'Започнете деня с лека физическа активност! 🏃', time: '07:00' },
+        day: { title: 'Време за движение', body: 'Направете кратка разходка или упражнения! 🚶', time: '15:00' }
+      },
+      supplements: {
+        title: 'Хранителни добавки',
+        body: 'Не забравяйте да приемете вашите хранителни добавки 💊',
+        times: []
+      }
+    };
+
+    const templates = templatesData ? JSON.parse(templatesData) : defaultTemplates;
+    
+    return jsonResponse({ 
+      success: true,
+      templates: templates
+    });
+  } catch (error) {
+    console.error('Error getting notification templates:', error);
+    return jsonResponse({ error: 'Failed to get templates: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Save notification templates
+ * 
+ * Saves customizable notification templates
+ * 
+ * @param {Request} request - Request with templates
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<Response>} JSON response
+ */
+async function handleSaveNotificationTemplates(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const { templates } = await request.json();
+    
+    if (!templates) {
+      return jsonResponse({ error: 'Missing templates' }, 400);
+    }
+
+    await env.page_content.put('notification_templates', JSON.stringify(templates));
+    
+    console.log('Notification templates saved');
+    
+    return jsonResponse({ 
+      success: true,
+      message: 'Шаблоните за известия са запазени',
+      templates: templates
+    });
+  } catch (error) {
+    console.error('Error saving notification templates:', error);
+    return jsonResponse({ error: 'Failed to save templates: ' + error.message }, 500);
+  }
+}
+
+/**
  * Helper to create JSON response with optional cache control
  * @param {Object} data - Response data
  * @param {number} status - HTTP status code
@@ -7444,6 +7677,16 @@ export default {
         return await handleGetNotificationSettings(request, env);
       } else if (url.pathname === '/api/admin/notification-settings' && request.method === 'POST') {
         return await handleSaveNotificationSettings(request, env);
+      } else if (url.pathname === '/api/admin/notification-templates' && request.method === 'GET') {
+        return await handleGetNotificationTemplates(request, env);
+      } else if (url.pathname === '/api/admin/notification-templates' && request.method === 'POST') {
+        return await handleSaveNotificationTemplates(request, env);
+      } else if (url.pathname === '/api/admin/send-message' && request.method === 'POST') {
+        return await handleAdminSendMessage(request, env);
+      } else if (url.pathname === '/api/user/notification-preferences' && request.method === 'GET') {
+        return await handleGetUserNotificationPreferences(request, env);
+      } else if (url.pathname === '/api/user/notification-preferences' && request.method === 'POST') {
+        return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/admin/subscriptions' && request.method === 'GET') {
         return await handleGetSubscriptions(request, env);
       } else if (url.pathname === '/api/admin/get-logging-status' && request.method === 'GET') {
