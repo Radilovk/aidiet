@@ -4274,21 +4274,31 @@
         
         // --- Push Notifications ---
         async function checkNotificationPermission(registration) {
+            // Display user ID for debugging/testing purposes
+            const userId = localStorage.getItem('userId');
+            if (userId) {
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('🔑 Your User ID for testing notifications:');
+                console.log('%c' + userId, 'font-size: 14px; font-weight: bold; color: #3b82f6');
+                console.log('ℹ️  Use this ID in the Admin Panel to send test notifications');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            }
+            
             // Check actual subscription status from service worker
             try {
                 const existingSubscription = await registration.pushManager.getSubscription();
                 if (existingSubscription) {
-                    console.log('Already subscribed to push notifications');
+                    console.log('✅ Already subscribed to push notifications');
                     localStorage.setItem('pushSubscribed', 'true');
                     return;
                 }
             } catch (error) {
-                console.error('Error checking subscription:', error);
+                console.error('❌ Error checking subscription:', error);
             }
             
             // Check if already granted
             if (Notification.permission === 'granted') {
-                console.log('Notification permission already granted');
+                console.log('📱 Notification permission already granted');
                 await subscribeToPushNotifications(registration);
             } else if (Notification.permission !== 'denied') {
                 // Wait a bit before asking for permission to avoid overwhelming the user
@@ -4321,23 +4331,50 @@
                 const vapidData = await vapidResponse.json();
                 
                 if (!vapidData.success || vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
-                    console.warn('VAPID keys not configured on server');
+                    console.warn('❌ VAPID keys not configured on server');
+                    console.info('ℹ️ To enable push notifications, the administrator needs to:');
+                    console.info('1. Generate VAPID keys using: npm install -g web-push && web-push generate-vapid-keys');
+                    console.info('2. Configure VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in Cloudflare Worker environment variables');
+                    console.info('3. See PUSH_NOTIFICATIONS_SETUP.md for detailed instructions');
+                    return;
+                }
+                
+                // Validate VAPID key format (should be base64url, typically 87-88 characters)
+                if (!vapidData.publicKey || vapidData.publicKey.length < 80) {
+                    console.error('❌ Invalid VAPID public key format received from server');
+                    console.error('Received key:', vapidData.publicKey);
+                    console.info('ℹ️ The VAPID public key should be a base64url string of 87-88 characters');
+                    console.info('Example: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBrYhQzj_0sS5kVwfg3A');
                     return;
                 }
                 
                 // Convert VAPID key from base64url to Uint8Array
                 const urlBase64ToUint8Array = (base64String) => {
-                    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                    const base64 = (base64String + padding)
-                        .replace(/\-/g, '+')
-                        .replace(/_/g, '/');
-                    const rawData = window.atob(base64);
-                    const outputArray = new Uint8Array(rawData.length);
-                    for (let i = 0; i < rawData.length; ++i) {
-                        outputArray[i] = rawData.charCodeAt(i);
+                    try {
+                        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                        const base64 = (base64String + padding)
+                            .replace(/\-/g, '+')
+                            .replace(/_/g, '/');
+                        const rawData = window.atob(base64);
+                        const outputArray = new Uint8Array(rawData.length);
+                        for (let i = 0; i < rawData.length; ++i) {
+                            outputArray[i] = rawData.charCodeAt(i);
+                        }
+                        return outputArray;
+                    } catch (e) {
+                        throw new Error('Failed to decode VAPID key: ' + e.message);
                     }
-                    return outputArray;
                 };
+                
+                // Get or generate user ID before subscribing
+                let userId = localStorage.getItem('userId');
+                if (!userId) {
+                    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+                    localStorage.setItem('userId', userId);
+                }
+                
+                console.log('📱 Subscribing to push notifications...');
+                console.log('Your User ID:', userId);
                 
                 // Subscribe to push notifications
                 const subscription = await registration.pushManager.subscribe({
@@ -4345,12 +4382,7 @@
                     applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
                 });
                 
-                // Get or generate user ID
-                let userId = localStorage.getItem('userId');
-                if (!userId) {
-                    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
-                    localStorage.setItem('userId', userId);
-                }
+                console.log('✅ Push subscription created successfully');
                 
                 // Send subscription to server
                 const response = await fetch(`${WORKER_URL}/api/push/subscribe`, {
@@ -4366,13 +4398,27 @@
                 
                 const result = await response.json();
                 if (result.success) {
-                    console.log('Successfully subscribed to push notifications');
+                    console.log('✅ Successfully subscribed to push notifications');
+                    console.log('🔑 Your User ID for testing:', userId);
+                    console.info('ℹ️ Use this User ID when sending test notifications from the admin panel');
                     localStorage.setItem('pushSubscribed', 'true');
                 } else {
-                    console.error('Failed to save subscription on server:', result);
+                    console.error('❌ Failed to save subscription on server:', result);
                 }
             } catch (error) {
-                console.error('Error subscribing to push notifications:', error);
+                console.error('❌ Error subscribing to push notifications:', error);
+                
+                // Provide specific error guidance
+                if (error.name === 'InvalidAccessError' || error.message.includes('applicationServerKey')) {
+                    console.error('🔧 The VAPID public key configured on the server is invalid or malformed');
+                    console.info('ℹ️ Administrator: Please verify that:');
+                    console.info('1. VAPID_PUBLIC_KEY is set correctly in Cloudflare Worker environment');
+                    console.info('2. The key is a valid base64url string (typically 87-88 characters)');
+                    console.info('3. The key was generated using web-push or a compatible tool');
+                    console.info('4. See PUSH_NOTIFICATIONS_SETUP.md for instructions');
+                } else {
+                    console.info('ℹ️ Check browser console for details');
+                }
             }
         }
 
