@@ -1416,6 +1416,148 @@
                 </div>
             </div>
 
+            <!-- Admin Messaging Section -->
+            <div class="card" style="margin-top: 20px;">
+                <h2><i class="fas fa-comment-dots"></i> Изпращане на AI Асистент Съобщения</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Изпратете персонализирано съобщение на потребител от AI асистента. Потребителят ще получи push известие.
+                </div>
+
+                <div class="form-group">
+                    <label>User ID на потребителя</label>
+                    <input type="text" id="messageUserId" placeholder="напр. user_1234567890_abc123" 
+                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        Потребителят може да намери своето User ID в browser console
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Съобщение</label>
+                    <textarea id="messageText" rows="4" placeholder="Въведете съобщението от AI асистента..."
+                              style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; resize: vertical;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" onclick="sendAdminMessage()">
+                        <i class="fas fa-paper-plane"></i> Изпрати Съобщение
+                    </button>
+                </div>
+            </div>
+
+            <!-- Notification Templates Editor -->
+            <div class="card" style="margin-top: 20px;">
+                <h2><i class="fas fa-edit"></i> Редактиране на Шаблони за Известия</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Персонализирайте текста и времето на автоматичните известия.
+                </div>
+
+                <!-- Meal Templates -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
+                        <i class="fas fa-utensils"></i> Известия за Хранене
+                    </h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600;">Закуска</label>
+                        <input type="text" id="templateMealBreakfastTitle" placeholder="Заглавие" 
+                               style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                        <input type="text" id="templateMealBreakfastBody" placeholder="Текст на известието" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600;">Обяд</label>
+                        <input type="text" id="templateMealLunchTitle" placeholder="Заглавие" 
+                               style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                        <input type="text" id="templateMealLunchBody" placeholder="Текст на известието" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600;">Вечеря</label>
+                        <input type="text" id="templateMealDinnerTitle" placeholder="Заглавие" 
+                               style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                        <input type="text" id="templateMealDinnerBody" placeholder="Текст на известието" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600;">Междинна закуска</label>
+                        <input type="text" id="templateMealSnackTitle" placeholder="Заглавие" 
+                               style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                        <input type="text" id="templateMealSnackBody" placeholder="Текст на известието" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                    </div>
+                </div>
+
+                <!-- Water Template -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
+                        <i class="fas fa-tint"></i> Известия за Вода
+                    </h3>
+                    <input type="text" id="templateWaterTitle" placeholder="Заглавие" 
+                           style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="text" id="templateWaterBody" placeholder="Текст на известието" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+
+                <!-- Sleep Template -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
+                        <i class="fas fa-moon"></i> Известия за Сън
+                    </h3>
+                    <input type="text" id="templateSleepTitle" placeholder="Заглавие" 
+                           style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="text" id="templateSleepBody" placeholder="Текст на известието" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+
+                <!-- Activity Template -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
+                        <i class="fas fa-running"></i> Известия за Активност
+                    </h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600;">Сутрешна активност</label>
+                        <input type="text" id="templateActivityMorningTitle" placeholder="Заглавие" 
+                               style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                        <input type="text" id="templateActivityMorningBody" placeholder="Текст на известието" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600;">Дневна активност</label>
+                        <input type="text" id="templateActivityDayTitle" placeholder="Заглавие" 
+                               style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                        <input type="text" id="templateActivityDayBody" placeholder="Текст на известието" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                    </div>
+                </div>
+
+                <!-- Supplements Template -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
+                        <i class="fas fa-pills"></i> Известия за Хранителни Добавки
+                    </h3>
+                    <input type="text" id="templateSupplementsTitle" placeholder="Заглавие" 
+                           style="width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="text" id="templateSupplementsBody" placeholder="Текст на известието" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+
+                <!-- Template Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn" onclick="saveNotificationTemplates()">
+                        <i class="fas fa-save"></i> Запази Шаблони
+                    </button>
+                    <button class="btn" onclick="loadNotificationTemplates()" style="background: var(--accent-blue);">
+                        <i class="fas fa-sync"></i> Презареди
+                    </button>
+                </div>
+            </div>
+
             <!-- Blacklist Management -->
             <div class="card">
                 <h2><i class="fas fa-ban"></i> Управление на Черен Списък с Храни</h2>
@@ -3088,6 +3230,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (result.success && result.settings) {
                     const settings = result.settings;
                     
+                    // Cache global settings in localStorage for client-side use
+                    localStorage.setItem('globalNotificationSettings', JSON.stringify(settings));
+                    // Use version from backend, not client-generated
+                    if (result.version) {
+                        localStorage.setItem('globalNotificationSettingsVersion', result.version.toString());
+                    }
+                    
                     // Global enable
                     document.getElementById('notificationsEnabled').checked = settings.enabled !== false;
                     
@@ -3155,7 +3304,15 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     // Clear cache
                     clearCacheKey('admin:notification-settings');
                     updateNotificationStatusBadge(settings.enabled);
-                    showSuccess('Настройките за известия са запазени успешно!');
+                    
+                    // Cache global settings in localStorage for client-side scheduling
+                    localStorage.setItem('globalNotificationSettings', JSON.stringify(settings));
+                    // Use version from backend response
+                    if (result.version) {
+                        localStorage.setItem('globalNotificationSettingsVersion', result.version.toString());
+                    }
+                    
+                    showSuccess('Настройките за известия са запазени успешно! Клиентите ще получат актуализациите.');
                 } else {
                     throw new Error(result.error || 'Failed to save settings');
                 }
@@ -3238,6 +3395,180 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             } catch (error) {
                 console.error('Error checking VAPID key:', error);
                 document.getElementById('vapidKeyStatus').textContent = '? Неизвестен';
+            }
+        }
+
+        // --- Admin Messaging Functions ---
+        async function sendAdminMessage() {
+            const userId = document.getElementById('messageUserId').value.trim();
+            const message = document.getElementById('messageText').value.trim();
+
+            if (!userId || !message) {
+                showError('Моля, попълнете User ID и съобщение.');
+                return;
+            }
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, message })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess('Съобщението е изпратено успешно!');
+                    document.getElementById('messageUserId').value = '';
+                    document.getElementById('messageText').value = '';
+                } else {
+                    throw new Error(result.error || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending admin message:', error);
+                showError('Грешка при изпращане: ' + error.message);
+            }
+        }
+
+        // --- Notification Templates Functions ---
+        let currentTemplateData = null; // Store loaded templates to preserve times and other metadata
+
+        async function loadNotificationTemplates() {
+            try {
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/notification-templates',
+                    'admin:notification-templates',
+                    CACHE_CONFIG.short
+                );
+
+                if (result.success && result.templates) {
+                    const t = result.templates;
+                    currentTemplateData = t; // Store for preserving metadata during saves
+                    
+                    // Cache templates in localStorage for client-side use
+                    localStorage.setItem('notificationTemplates', JSON.stringify(t));
+                    // Use version from backend, not client-generated
+                    if (result.version) {
+                        localStorage.setItem('notificationTemplatesVersion', result.version.toString());
+                    }
+
+                    // Meal templates
+                    document.getElementById('templateMealBreakfastTitle').value = t.meals?.breakfast?.title || '';
+                    document.getElementById('templateMealBreakfastBody').value = t.meals?.breakfast?.body || '';
+                    document.getElementById('templateMealLunchTitle').value = t.meals?.lunch?.title || '';
+                    document.getElementById('templateMealLunchBody').value = t.meals?.lunch?.body || '';
+                    document.getElementById('templateMealDinnerTitle').value = t.meals?.dinner?.title || '';
+                    document.getElementById('templateMealDinnerBody').value = t.meals?.dinner?.body || '';
+                    document.getElementById('templateMealSnackTitle').value = t.meals?.snack?.title || '';
+                    document.getElementById('templateMealSnackBody').value = t.meals?.snack?.body || '';
+
+                    // Water template
+                    document.getElementById('templateWaterTitle').value = t.water?.title || '';
+                    document.getElementById('templateWaterBody').value = t.water?.body || '';
+
+                    // Sleep template
+                    document.getElementById('templateSleepTitle').value = t.sleep?.title || '';
+                    document.getElementById('templateSleepBody').value = t.sleep?.body || '';
+
+                    // Activity templates
+                    document.getElementById('templateActivityMorningTitle').value = t.activity?.morning?.title || '';
+                    document.getElementById('templateActivityMorningBody').value = t.activity?.morning?.body || '';
+                    document.getElementById('templateActivityDayTitle').value = t.activity?.day?.title || '';
+                    document.getElementById('templateActivityDayBody').value = t.activity?.day?.body || '';
+
+                    // Supplements template
+                    document.getElementById('templateSupplementsTitle').value = t.supplements?.title || '';
+                    document.getElementById('templateSupplementsBody').value = t.supplements?.body || '';
+
+                    showSuccess('Шаблоните са заредени успешно!');
+                }
+            } catch (error) {
+                console.error('Error loading notification templates:', error);
+                showError('Не може да се заредят шаблоните.');
+            }
+        }
+
+        async function saveNotificationTemplates() {
+            try {
+                // Preserve times from loaded templates or use defaults
+                const templates = {
+                    meals: {
+                        breakfast: {
+                            title: document.getElementById('templateMealBreakfastTitle').value,
+                            body: document.getElementById('templateMealBreakfastBody').value,
+                            time: currentTemplateData?.meals?.breakfast?.time || '08:00'
+                        },
+                        lunch: {
+                            title: document.getElementById('templateMealLunchTitle').value,
+                            body: document.getElementById('templateMealLunchBody').value,
+                            time: currentTemplateData?.meals?.lunch?.time || '13:00'
+                        },
+                        dinner: {
+                            title: document.getElementById('templateMealDinnerTitle').value,
+                            body: document.getElementById('templateMealDinnerBody').value,
+                            time: currentTemplateData?.meals?.dinner?.time || '19:00'
+                        },
+                        snack: {
+                            title: document.getElementById('templateMealSnackTitle').value,
+                            body: document.getElementById('templateMealSnackBody').value,
+                            time: currentTemplateData?.meals?.snack?.time || '10:30'
+                        }
+                    },
+                    water: {
+                        title: document.getElementById('templateWaterTitle').value,
+                        body: document.getElementById('templateWaterBody').value,
+                        frequency: currentTemplateData?.water?.frequency || 2
+                    },
+                    sleep: {
+                        title: document.getElementById('templateSleepTitle').value,
+                        body: document.getElementById('templateSleepBody').value,
+                        time: currentTemplateData?.sleep?.time || '22:00'
+                    },
+                    activity: {
+                        morning: {
+                            title: document.getElementById('templateActivityMorningTitle').value,
+                            body: document.getElementById('templateActivityMorningBody').value,
+                            time: currentTemplateData?.activity?.morning?.time || '07:00'
+                        },
+                        day: {
+                            title: document.getElementById('templateActivityDayTitle').value,
+                            body: document.getElementById('templateActivityDayBody').value,
+                            time: currentTemplateData?.activity?.day?.time || '15:00'
+                        }
+                    },
+                    supplements: {
+                        title: document.getElementById('templateSupplementsTitle').value,
+                        body: document.getElementById('templateSupplementsBody').value,
+                        times: currentTemplateData?.supplements?.times || []
+                    }
+                };
+
+                const response = await fetch(WORKER_URL + '/api/admin/notification-templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templates })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    clearCache('admin:notification-templates');
+                    
+                    // Cache templates in localStorage for client-side use
+                    localStorage.setItem('notificationTemplates', JSON.stringify(templates));
+                    // Use version from backend response
+                    if (result.version) {
+                        localStorage.setItem('notificationTemplatesVersion', result.version.toString());
+                    }
+                    
+                    showSuccess('Шаблоните са запазени успешно! Клиентите ще получат актуализациите при следващо зареждане.');
+                    console.log('Templates cached in localStorage with version:', result.version);
+                } else {
+                    throw new Error(result.error || 'Failed to save templates');
+                }
+            } catch (error) {
+                console.error('Error saving notification templates:', error);
+                showError('Грешка при запазване на шаблони.');
             }
         }
 
@@ -4149,6 +4480,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         
         // Load notification settings and check VAPID key status on page load
         loadNotificationSettings();
+        loadNotificationTemplates();
         checkVapidKeyStatus();
 
         // --- PWA Install Banner Functionality ---

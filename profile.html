@@ -148,6 +148,72 @@
         .profile-email {
             color: var(--text-light);
             font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        /* PWA Install Button in Profile */
+        .profile-install-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+            margin-top: 10px;
+        }
+
+        .profile-install-btn:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .profile-install-btn:active {
+            transform: translateY(0);
+        }
+
+        .profile-install-btn i {
+            font-size: 1.1rem;
+        }
+
+        .profile-install-btn.hidden {
+            display: none;
+        }
+
+        /* Installed status badge */
+        .profile-installed-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--soft-red);
+            color: var(--primary-red);
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .profile-installed-badge i {
+            font-size: 1.1rem;
+        }
+
+        .profile-installed-badge.hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .profile-install-btn {
+                font-size: 0.9rem;
+                padding: 11px 20px;
+            }
         }
 
         /* --- FORM --- */
@@ -867,6 +933,18 @@
             <div class="profile-avatar" id="profileAvatar">И</div>
             <div class="profile-name" id="profileName">Име</div>
             <div class="profile-email" id="profileEmail">email@example.com</div>
+            
+            <!-- PWA Install Button -->
+            <button class="profile-install-btn hidden" id="profileInstallBtn" onclick="handleProfileInstallClick()">
+                <i class="fas fa-download"></i>
+                <span id="profileInstallBtnText">Инсталирай приложение</span>
+            </button>
+            
+            <!-- Installed Badge -->
+            <div class="profile-installed-badge hidden" id="profileInstalledBadge">
+                <i class="fas fa-check-circle"></i>
+                <span>Приложението е инсталирано</span>
+            </div>
         </div>
 
         <div id="alertContainer"></div>
@@ -1097,6 +1175,117 @@
             <div class="form-group">
                 <label class="form-label">Бележки</label>
                 <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled></textarea>
+            </div>
+        </div>
+
+        <!-- Notification Preferences Section -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-bell"></i>
+                Настройки за известия
+            </div>
+            <div class="alert alert-info" style="margin-bottom: 15px;">
+                <i class="fas fa-info-circle"></i>
+                Персонализирайте кои напомняния искате да получавате
+            </div>
+            
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="notifEnabled" style="width: auto; cursor: pointer;">
+                    <span class="form-label" style="margin: 0; cursor: pointer;">Активирай известия</span>
+                </label>
+            </div>
+
+            <div id="notificationOptions" style="margin-top: 15px;">
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="notifMeals" style="width: auto; cursor: pointer;">
+                        <span class="form-label" style="margin: 0; cursor: pointer;">
+                            <i class="fas fa-utensils" style="color: var(--primary-red);"></i>
+                            Напомняния за хранене
+                        </span>
+                    </label>
+                    <small style="color: var(--text-light); margin-left: 30px; display: block;">
+                        Получавайте напомняния 1 час преди закуска, обяд и вечеря
+                    </small>
+                    <div id="mealAdvanceMinutes" style="margin-left: 30px; margin-top: 10px; display: none;">
+                        <label class="form-label" style="font-size: 0.85rem;">Предварително време (минути):</label>
+                        <input type="number" id="mealAdvanceInput" min="15" max="120" step="15" value="60" 
+                               style="width: 100px; padding: 5px; border: 1px solid var(--text-light); border-radius: 5px;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="notifWater" style="width: auto; cursor: pointer;">
+                        <span class="form-label" style="margin: 0; cursor: pointer;">
+                            <i class="fas fa-tint" style="color: #3b82f6;"></i>
+                            Напомняния за вода
+                        </span>
+                    </label>
+                    <small style="color: var(--text-light); margin-left: 30px; display: block;">
+                        Редовни напомняния за хидратация през деня
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="notifSleep" style="width: auto; cursor: pointer;">
+                        <span class="form-label" style="margin: 0; cursor: pointer;">
+                            <i class="fas fa-moon" style="color: #8b5cf6;"></i>
+                            Напомняне за сън
+                        </span>
+                    </label>
+                    <small style="color: var(--text-light); margin-left: 30px; display: block;">
+                        Напомняне за препоръчителното време за сън
+                    </small>
+                    <div id="sleepTimeOption" style="margin-left: 30px; margin-top: 10px; display: none;">
+                        <label class="form-label" style="font-size: 0.85rem;">Време за сън:</label>
+                        <input type="time" id="sleepTimeInput" value="22:00" 
+                               style="padding: 5px; border: 1px solid var(--text-light); border-radius: 5px;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="notifActivity" style="width: auto; cursor: pointer;">
+                        <span class="form-label" style="margin: 0; cursor: pointer;">
+                            <i class="fas fa-running" style="color: #f59e0b;"></i>
+                            Напомняния за физическа активност
+                        </span>
+                    </label>
+                    <small style="color: var(--text-light); margin-left: 30px; display: block;">
+                        Насърчаване за сутрешна и дневна активност
+                    </small>
+                    <div id="activityTimesOption" style="margin-left: 30px; margin-top: 10px; display: none;">
+                        <label class="form-label" style="font-size: 0.85rem;">Сутрешна активност:</label>
+                        <input type="time" id="activityMorningInput" value="07:00" 
+                               style="padding: 5px; border: 1px solid var(--text-light); border-radius: 5px; margin-bottom: 5px;">
+                        <label class="form-label" style="font-size: 0.85rem;">Дневна активност:</label>
+                        <input type="time" id="activityDayInput" value="15:00" 
+                               style="padding: 5px; border: 1px solid var(--text-light); border-radius: 5px;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="notifSupplements" style="width: auto; cursor: pointer;">
+                        <span class="form-label" style="margin: 0; cursor: pointer;">
+                            <i class="fas fa-pills" style="color: #ef4444;"></i>
+                            Напомняния за хранителни добавки
+                        </span>
+                    </label>
+                    <small style="color: var(--text-light); margin-left: 30px; display: block;">
+                        Напомняне за прием на добавки според вашия план
+                    </small>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveNotificationPreferences()" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-save"></i>
+                    Запази настройките за известия
+                </button>
             </div>
         </div>
 
@@ -1647,6 +1836,136 @@
             window.location.href = 'analysis.html';
         }
 
+        // --- Notification Preferences Functions ---
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+
+        function loadNotificationPreferences() {
+            try {
+                // Load preferences from localStorage (client-side only)
+                const prefsData = localStorage.getItem('notificationPreferences');
+                
+                // Default preferences
+                const defaultPrefs = {
+                    enabled: true,
+                    meals: { enabled: true, advanceMinutes: 60 },
+                    water: { enabled: true },
+                    sleep: { enabled: true, time: '22:00' },
+                    activity: { enabled: true, morningTime: '07:00', dayTime: '15:00' },
+                    supplements: { enabled: true }
+                };
+                
+                const prefs = prefsData ? JSON.parse(prefsData) : defaultPrefs;
+                
+                // Set checkbox values
+                document.getElementById('notifEnabled').checked = prefs.enabled !== false;
+                document.getElementById('notifMeals').checked = prefs.meals?.enabled !== false;
+                document.getElementById('notifWater').checked = prefs.water?.enabled !== false;
+                document.getElementById('notifSleep').checked = prefs.sleep?.enabled !== false;
+                document.getElementById('notifActivity').checked = prefs.activity?.enabled !== false;
+                document.getElementById('notifSupplements').checked = prefs.supplements?.enabled !== false;
+                
+                // Set advanced options
+                if (prefs.meals?.advanceMinutes) {
+                    document.getElementById('mealAdvanceInput').value = prefs.meals.advanceMinutes;
+                }
+                if (prefs.sleep?.time) {
+                    document.getElementById('sleepTimeInput').value = prefs.sleep.time;
+                }
+                if (prefs.activity?.morningTime) {
+                    document.getElementById('activityMorningInput').value = prefs.activity.morningTime;
+                }
+                if (prefs.activity?.dayTime) {
+                    document.getElementById('activityDayInput').value = prefs.activity.dayTime;
+                }
+                
+                // Update visibility of options
+                updateNotificationOptionsVisibility();
+                
+                console.log('Notification preferences loaded from localStorage');
+            } catch (error) {
+                console.error('Error loading notification preferences:', error);
+            }
+        }
+
+        function saveNotificationPreferences() {
+            try {
+                const preferences = {
+                    enabled: document.getElementById('notifEnabled').checked,
+                    meals: {
+                        enabled: document.getElementById('notifMeals').checked,
+                        advanceMinutes: parseInt(document.getElementById('mealAdvanceInput').value) || 60
+                    },
+                    water: {
+                        enabled: document.getElementById('notifWater').checked
+                    },
+                    sleep: {
+                        enabled: document.getElementById('notifSleep').checked,
+                        time: document.getElementById('sleepTimeInput').value || '22:00'
+                    },
+                    activity: {
+                        enabled: document.getElementById('notifActivity').checked,
+                        morningTime: document.getElementById('activityMorningInput').value || '07:00',
+                        dayTime: document.getElementById('activityDayInput').value || '15:00'
+                    },
+                    supplements: {
+                        enabled: document.getElementById('notifSupplements').checked
+                    }
+                };
+
+                // Save to localStorage (client-side only, no backend call)
+                localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
+                
+                // Reschedule notifications with new preferences
+                if (typeof scheduleNotifications === 'function') {
+                    scheduleNotifications();
+                }
+                
+                showAlert('Настройките за известия са запазени успешно! ✓', 'info');
+                console.log('Notification preferences saved to localStorage:', preferences);
+            } catch (error) {
+                console.error('Error saving notification preferences:', error);
+                showAlert('Грешка при запазване на настройките.', 'warning');
+            }
+        }
+
+        function updateNotificationOptionsVisibility() {
+            const enabled = document.getElementById('notifEnabled').checked;
+            const notificationOptions = document.getElementById('notificationOptions');
+            
+            if (enabled) {
+                notificationOptions.style.opacity = '1';
+                notificationOptions.style.pointerEvents = 'auto';
+            } else {
+                notificationOptions.style.opacity = '0.5';
+                notificationOptions.style.pointerEvents = 'none';
+            }
+
+            // Show/hide advanced options
+            const mealAdvance = document.getElementById('mealAdvanceMinutes');
+            const sleepTime = document.getElementById('sleepTimeOption');
+            const activityTimes = document.getElementById('activityTimesOption');
+            
+            mealAdvance.style.display = document.getElementById('notifMeals').checked ? 'block' : 'none';
+            sleepTime.style.display = document.getElementById('notifSleep').checked ? 'block' : 'none';
+            activityTimes.style.display = document.getElementById('notifActivity').checked ? 'block' : 'none';
+        }
+
+        // Add event listeners for notification checkboxes
+        document.addEventListener('DOMContentLoaded', function() {
+            const notifEnabled = document.getElementById('notifEnabled');
+            const notifMeals = document.getElementById('notifMeals');
+            const notifSleep = document.getElementById('notifSleep');
+            const notifActivity = document.getElementById('notifActivity');
+            
+            if (notifEnabled) notifEnabled.addEventListener('change', updateNotificationOptionsVisibility);
+            if (notifMeals) notifMeals.addEventListener('change', updateNotificationOptionsVisibility);
+            if (notifSleep) notifSleep.addEventListener('change', updateNotificationOptionsVisibility);
+            if (notifActivity) notifActivity.addEventListener('change', updateNotificationOptionsVisibility);
+            
+            // Load preferences on page load
+            loadNotificationPreferences();
+        });
+
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
@@ -1743,6 +2062,9 @@
             e.preventDefault();
             deferredPrompt = e;
             
+            // Update profile install button
+            updateProfileInstallButton();
+            
             // Show the install banner only if not recently dismissed
             if (!wasBannerRecentlyDismissed()) {
                 showInstallBanner();
@@ -1756,6 +2078,13 @@
                     }
                 }, 3000);
             }
+        });
+
+        // Listen for app installed event
+        window.addEventListener('appinstalled', (e) => {
+            if (PWA_DEBUG) console.log('App installed successfully');
+            deferredPrompt = null;
+            updateProfileInstallButton();
         });
 
         // Show install banner
@@ -1905,6 +2234,112 @@
             }
         }
 
+        // Profile Install Button Handler
+        async function handleProfileInstallClick() {
+            if (PWA_DEBUG) console.log('Profile install button clicked');
+            
+            // If we have a deferred prompt (Chrome/Edge Android/Desktop), trigger it
+            if (deferredPrompt) {
+                const success = await triggerInstallPrompt();
+                if (success) {
+                    updateProfileInstallButton();
+                }
+            } else {
+                // Show platform-specific installation instructions
+                showInstallInstructions();
+            }
+        }
+
+        // Show platform-specific installation instructions
+        function showInstallInstructions() {
+            let message = '';
+            
+            if (isIOS && isSafari) {
+                message = '📱 Как да инсталирам на iPhone/iPad?\n\n' +
+                         '1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n' +
+                         '2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n' +
+                         '3. Потвърдете, като натиснете "Add" (Добави)\n\n' +
+                         '✨ След това приложението ще е на началния ви екран!';
+            } else if (isIOS) {
+                message = '⚠️ За да инсталирате приложението на iPhone/iPad, моля използвайте Safari браузъра.\n\n' +
+                         'Отворете това приложение в Safari и следвайте инструкциите.';
+            } else if (isAndroid && (isChrome || isEdge)) {
+                const browserName = isChrome ? 'Chrome' : 'Edge';
+                message = `📱 Как да инсталирам на Android (${browserName})?\n\n` +
+                         '✅ БЪРЗ НАЧИН:\n' +
+                         '1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n' +
+                         '2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n' +
+                         '3. Натиснете "Инсталирай" в диалога\n\n' +
+                         '✅ АЛТЕРНАТИВА:\n' +
+                         '• Потърсете иконата (⊕) в адресната лента\n' +
+                         '• Кликнете и изберете "Инсталирай"\n\n' +
+                         '💡 ВАЖНО: Ако не виждате опцията веднага:\n' +
+                         '• Презаредете страницата (F5)\n' +
+                         '• Изчакайте 2-3 секунди\n' +
+                         '• Кликнете на някой бутон на страницата';
+            } else if (isAndroid) {
+                message = '📱 Как да инсталирам на Android?\n\n' +
+                         '1. Отворете менюто на браузъра (обикновено в горната част)\n' +
+                         '2. Потърсете опцията "Добави към начален екран" или "Инсталирай"\n' +
+                         '3. Потвърдете действието\n\n' +
+                         'Препоръчваме да използвате Chrome или Edge за най-добро изживяване.';
+            } else if (!isMobile && (isChrome || isEdge)) {
+                const browserName = isChrome ? 'Chrome' : 'Edge';
+                message = `💻 Как да инсталирам в ${browserName}?\n\n` +
+                         '1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n' +
+                         '2. Кликнете върху нея и изберете "Инсталирай"\n' +
+                         '3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."\n\n' +
+                         'След инсталация приложението ще се отвори в отделен прозорец.';
+            } else {
+                message = '💻 Инсталация на приложението\n\n' +
+                         'За да инсталирате приложението:\n\n' +
+                         '1. Отворете менюто на браузъра\n' +
+                         '2. Потърсете опцията "Инсталирай" или "Добави към начален екран"\n' +
+                         '3. Потвърдете действието\n\n' +
+                         'Препоръчваме Chrome или Edge за най-добро изживяване.';
+            }
+            
+            alert(message);
+        }
+
+        // Update profile install button based on current state
+        function updateProfileInstallButton() {
+            const installBtn = document.getElementById('profileInstallBtn');
+            const installedBadge = document.getElementById('profileInstalledBadge');
+            const btnText = document.getElementById('profileInstallBtnText');
+            
+            if (!installBtn || !installedBadge) return;
+            
+            // Check if already installed (running in standalone mode)
+            if (isInStandaloneMode()) {
+                installBtn.classList.add('hidden');
+                installedBadge.classList.remove('hidden');
+                if (PWA_DEBUG) console.log('App is installed - showing badge');
+                return;
+            }
+            
+            // Show install button
+            installedBadge.classList.add('hidden');
+            installBtn.classList.remove('hidden');
+            
+            // Update button text based on platform
+            if (deferredPrompt) {
+                // Can trigger automatic install
+                btnText.textContent = 'Инсталирай приложение';
+                if (PWA_DEBUG) console.log('Deferred prompt available - showing install button');
+            } else if (isIOS && isSafari) {
+                // iOS Safari - manual instructions
+                btnText.textContent = 'Как да инсталирам?';
+                if (PWA_DEBUG) console.log('iOS Safari - showing how to install');
+            } else if (isAndroid || !isMobile) {
+                // Android or Desktop - show instructions
+                btnText.textContent = 'Инструкции за инсталация';
+                if (PWA_DEBUG) console.log('Showing installation instructions');
+            } else {
+                btnText.textContent = 'Инсталирай приложение';
+            }
+        }
+
         // iOS Install Banner Functions
         function showIosInstallBanner() {
             const hasDismissed = localStorage.getItem('ios_install_dismissed');
@@ -1970,6 +2405,11 @@
         // Don't show fallback guidance - only show banner when beforeinstallprompt fires
         // This ensures automatic installation prompt instead of manual instructions
         window.addEventListener('load', () => {
+            // Update profile install button on page load
+            setTimeout(() => {
+                updateProfileInstallButton();
+            }, 500);
+            
             setTimeout(() => {
                 // Only log for debugging - don't show manual instructions
                 if (!deferredPrompt && !isInStandaloneMode()) {
