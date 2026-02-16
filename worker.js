@@ -6313,7 +6313,7 @@ async function handleGetConfig(request, env) {
  * 
  * @param {Request} request - HTTP request with optional query params (limit, offset)
  * @param {Object} env - Environment bindings
- * @returns {Response} JSON response with:
+ * @returns {Promise<Response>} JSON response with:
  *   - logs: Array of log entries (request + response pairs)
  *   - total: Total number of logs
  *   - limit: Number of logs per page
