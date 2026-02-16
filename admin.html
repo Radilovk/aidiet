@@ -3232,7 +3232,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     
                     // Cache global settings in localStorage for client-side use
                     localStorage.setItem('globalNotificationSettings', JSON.stringify(settings));
-                    localStorage.setItem('globalNotificationSettingsVersion', Date.now().toString());
+                    // Use version from backend, not client-generated
+                    if (result.version) {
+                        localStorage.setItem('globalNotificationSettingsVersion', result.version.toString());
+                    }
                     
                     // Global enable
                     document.getElementById('notificationsEnabled').checked = settings.enabled !== false;
@@ -3441,7 +3444,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     
                     // Cache templates in localStorage for client-side use
                     localStorage.setItem('notificationTemplates', JSON.stringify(t));
-                    localStorage.setItem('notificationTemplatesVersion', Date.now().toString());
+                    // Use version from backend, not client-generated
+                    if (result.version) {
+                        localStorage.setItem('notificationTemplatesVersion', result.version.toString());
+                    }
 
                     // Meal templates
                     document.getElementById('templateMealBreakfastTitle').value = t.meals?.breakfast?.title || '';
@@ -3546,17 +3552,14 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     clearCache('admin:notification-templates');
                     
                     // Cache templates in localStorage for client-side use
-                    // Include version number to allow cache invalidation
-                    const cachedTemplates = {
-                        templates: templates,
-                        version: Date.now(),
-                        lastUpdated: new Date().toISOString()
-                    };
                     localStorage.setItem('notificationTemplates', JSON.stringify(templates));
-                    localStorage.setItem('notificationTemplatesVersion', cachedTemplates.version.toString());
+                    // Use version from backend response
+                    if (result.version) {
+                        localStorage.setItem('notificationTemplatesVersion', result.version.toString());
+                    }
                     
                     showSuccess('Шаблоните са запазени успешно! Клиентите ще получат актуализациите при следващо зареждане.');
-                    console.log('Templates cached in localStorage with version:', cachedTemplates.version);
+                    console.log('Templates cached in localStorage with version:', result.version);
                 } else {
                     throw new Error(result.error || 'Failed to save templates');
                 }

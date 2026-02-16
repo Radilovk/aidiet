@@ -2368,8 +2368,8 @@
                 // Schedule the notification
                 const timerId = setTimeout(() => {
                     this.showNotification(options);
-                    // Reschedule for next day
-                    setTimeout(() => this.scheduleDailyNotification(time, options), 24 * 60 * 60 * 1000);
+                    // Reschedule for next day (directly, not wrapped in setTimeout)
+                    this.scheduleDailyNotification(time, options);
                 }, delay);
                 
                 this.scheduledTimers.push(timerId);
