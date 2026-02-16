@@ -1402,6 +1402,69 @@
                     </div>
                 </div>
 
+                <!-- Custom Reminders -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-bell"></i> Персонализирани Напомняния
+                    </h3>
+                    <p style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 15px;">
+                        Създавай персонализирани напомняния за всички потребители на определени часове и дни.
+                    </p>
+                    
+                    <!-- List of custom reminders -->
+                    <div id="customRemindersList" style="margin-bottom: 15px;">
+                        <!-- Custom reminders will be dynamically added here -->
+                    </div>
+
+                    <!-- Add new reminder form -->
+                    <div style="border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; background: #f9f9f9;">
+                        <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 1rem;">Добави Ново Напомняне</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div>
+                                <label>Заглавие</label>
+                                <input type="text" id="newReminderTitle" placeholder="напр. Пий вода" style="width: 100%;">
+                            </div>
+                            <div>
+                                <label>Час</label>
+                                <input type="time" id="newReminderTime" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label>Съобщение</label>
+                            <textarea id="newReminderMessage" placeholder="напр. Време е да пиеш вода" style="width: 100%; min-height: 60px;"></textarea>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label>Дни (оставете празно за всеки ден)</label>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px;">
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" class="reminder-day" value="1"> Понеделник
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" class="reminder-day" value="2"> Вторник
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" class="reminder-day" value="3"> Сряда
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" class="reminder-day" value="4"> Четвъртък
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" class="reminder-day" value="5"> Петък
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" class="reminder-day" value="6"> Събота
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" class="reminder-day" value="0"> Неделя
+                                </label>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="addCustomReminder()" style="background: var(--accent-blue); margin-top: 10px;">
+                            <i class="fas fa-plus"></i> Добави Напомняне
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Action Buttons -->
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn" onclick="saveNotificationSettings()">
@@ -3107,6 +3170,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     document.getElementById('dinnerTime').value = settings.mealReminders?.dinner || '19:00';
                     document.getElementById('snackRemindersEnabled').checked = settings.mealReminders?.snacks === true;
                     
+                    // Custom reminders
+                    window.customReminders = settings.customReminders || [];
+                    displayCustomReminders();
+                    
                     // Update status badge
                     updateNotificationStatusBadge(settings.enabled);
                     
@@ -3138,7 +3205,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         lunch: document.getElementById('lunchTime').value || '13:00',
                         dinner: document.getElementById('dinnerTime').value || '19:00',
                         snacks: document.getElementById('snackRemindersEnabled').checked
-                    }
+                    },
+                    customReminders: window.customReminders || []
                 };
                 
                 const response = await fetch(WORKER_URL + '/api/admin/notification-settings', {
@@ -3218,6 +3286,132 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             } catch (error) {
                 console.error('Error sending test notification:', error);
                 showError('Грешка при изпращане на тестово известие: ' + error.message);
+            }
+        }
+        
+        // Custom Reminders Management
+        
+        // Display custom reminders list
+        function displayCustomReminders() {
+            const container = document.getElementById('customRemindersList');
+            const reminders = window.customReminders || [];
+            
+            if (reminders.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-gray); font-style: italic;">Няма добавени персонализирани напомняния.</p>';
+                return;
+            }
+            
+            const dayNames = ['Неделя', 'Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота'];
+            
+            container.innerHTML = reminders.map((reminder, index) => {
+                const daysText = reminder.days && reminder.days.length > 0 
+                    ? reminder.days.map(d => dayNames[d]).join(', ')
+                    : 'Всеки ден';
+                
+                return `
+                    <div style="border: 1px solid #e0e0e0; padding: 12px; border-radius: 8px; margin-bottom: 10px; background: white;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                    <strong style="font-size: 1rem;">${reminder.title}</strong>
+                                    <span style="background: var(--accent-blue); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
+                                        ${reminder.time}
+                                    </span>
+                                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                        <input type="checkbox" ${reminder.enabled ? 'checked' : ''} 
+                                            onchange="toggleCustomReminder(${index})" 
+                                            style="margin: 0;">
+                                        <span style="font-size: 0.85rem; color: ${reminder.enabled ? 'var(--accent-green)' : 'var(--text-gray)'};">
+                                            ${reminder.enabled ? 'Активно' : 'Неактивно'}
+                                        </span>
+                                    </label>
+                                </div>
+                                <p style="margin: 5px 0; color: var(--text-gray); font-size: 0.9rem;">${reminder.message}</p>
+                                <p style="margin: 5px 0; color: var(--text-gray); font-size: 0.85rem;">
+                                    <i class="fas fa-calendar"></i> ${daysText}
+                                </p>
+                            </div>
+                            <button onclick="removeCustomReminder(${index})" 
+                                style="background: var(--accent-red); color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Add new custom reminder
+        function addCustomReminder() {
+            const title = document.getElementById('newReminderTitle').value.trim();
+            const time = document.getElementById('newReminderTime').value;
+            const message = document.getElementById('newReminderMessage').value.trim();
+            
+            if (!title) {
+                showError('Моля, въведете заглавие на напомнянето.');
+                return;
+            }
+            
+            if (!time) {
+                showError('Моля, изберете час за напомнянето.');
+                return;
+            }
+            
+            if (!message) {
+                showError('Моля, въведете съобщение за напомнянето.');
+                return;
+            }
+            
+            // Get selected days
+            const dayCheckboxes = document.querySelectorAll('.reminder-day:checked');
+            const days = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
+            
+            // Create new reminder
+            const newReminder = {
+                id: Date.now(),
+                title: title,
+                message: message,
+                time: time,
+                days: days,
+                enabled: true,
+                type: 'general'
+            };
+            
+            // Add to list
+            if (!window.customReminders) {
+                window.customReminders = [];
+            }
+            window.customReminders.push(newReminder);
+            
+            // Clear form
+            document.getElementById('newReminderTitle').value = '';
+            document.getElementById('newReminderTime').value = '';
+            document.getElementById('newReminderMessage').value = '';
+            document.querySelectorAll('.reminder-day').forEach(cb => cb.checked = false);
+            
+            // Update display
+            displayCustomReminders();
+            showSuccess('Напомнянето е добавено! Не забравяйте да запазите настройките.');
+        }
+        
+        // Toggle custom reminder enabled/disabled
+        function toggleCustomReminder(index) {
+            if (window.customReminders && window.customReminders[index]) {
+                window.customReminders[index].enabled = !window.customReminders[index].enabled;
+                displayCustomReminders();
+            }
+        }
+        
+        // Remove custom reminder
+        function removeCustomReminder(index) {
+            if (!confirm('Сигурни ли сте, че искате да изтриете това напомняне?')) {
+                return;
+            }
+            
+            if (window.customReminders && window.customReminders[index]) {
+                window.customReminders.splice(index, 1);
+                displayCustomReminders();
+                showSuccess('Напомнянето е изтрито! Не забравяйте да запазите настройките.');
             }
         }
         

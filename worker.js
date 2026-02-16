@@ -7376,12 +7376,248 @@ async function handleGetSubscriptions(request, env) {
 }
 
 /**
+ * Scheduled: Handle scheduled notifications (cron trigger)
+ * 
+ * This runs every hour to check and send scheduled reminders:
+ * - Water reminders (based on frequency and time window)
+ * - Meal reminders (at specified times)
+ * - Custom reminders (at scheduled times)
+ * 
+ * @param {Object} event - Scheduled event
+ * @param {Object} env - Environment bindings
+ * @param {Object} ctx - Execution context
+ */
+async function handleScheduledNotifications(event, env, ctx) {
+  try {
+    console.log('Running scheduled notification check at', new Date().toISOString());
+    
+    if (!env.page_content) {
+      console.error('KV storage not configured');
+      return;
+    }
+
+    // Get notification settings
+    const settingsData = await env.page_content.get('notification_settings');
+    if (!settingsData) {
+      console.log('No notification settings found, skipping scheduled notifications');
+      return;
+    }
+
+    const settings = JSON.parse(settingsData);
+    
+    // Check if notifications are globally enabled
+    if (!settings.enabled) {
+      console.log('Notifications are disabled, skipping scheduled notifications');
+      return;
+    }
+
+    // Get current time
+    const now = new Date();
+    const currentHour = now.getUTCHours();
+    const currentMinute = now.getUTCMinutes();
+    const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+
+    console.log(`Current UTC time: ${currentTime}`);
+
+    // Get list of all subscribed users (we need to iterate through KV)
+    // Note: This is a simple implementation. For production with many users,
+    // consider maintaining a separate list of user IDs
+    const subscriptionPrefix = 'push_subscription_';
+    const { keys } = await env.page_content.list({ prefix: subscriptionPrefix });
+    
+    if (!keys || keys.length === 0) {
+      console.log('No subscribed users found');
+      return;
+    }
+
+    console.log(`Found ${keys.length} subscribed users`);
+
+    // Process each user
+    for (const key of keys) {
+      const userId = key.name.replace(subscriptionPrefix, '');
+      
+      try {
+        // Check water reminders
+        if (settings.waterReminders?.enabled) {
+          await checkAndSendWaterReminder(userId, settings.waterReminders, currentHour, env);
+        }
+
+        // Check meal reminders
+        if (settings.mealReminders?.enabled) {
+          await checkAndSendMealReminder(userId, settings.mealReminders, currentTime, env);
+        }
+
+        // Check custom reminders
+        if (settings.customReminders && settings.customReminders.length > 0) {
+          await checkAndSendCustomReminders(userId, settings.customReminders, currentTime, now, env);
+        }
+      } catch (error) {
+        console.error(`Error processing notifications for user ${userId}:`, error);
+        // Continue with next user even if one fails
+      }
+    }
+
+    console.log('Scheduled notification check completed');
+  } catch (error) {
+    console.error('Error in scheduled notification handler:', error);
+  }
+}
+
+/**
+ * Check and send water reminder if needed
+ */
+async function checkAndSendWaterReminder(userId, waterSettings, currentHour, env) {
+  const { frequency, startHour, endHour } = waterSettings;
+  
+  // Check if current hour is within the water reminder window
+  if (currentHour < startHour || currentHour > endHour) {
+    return;
+  }
+
+  // Check if current hour matches the frequency pattern
+  const hoursSinceStart = currentHour - startHour;
+  if (hoursSinceStart % frequency === 0) {
+    console.log(`Sending water reminder to user ${userId}`);
+    
+    const pushMessage = {
+      title: '💧 Напомняне за вода',
+      body: 'Време е да пиеш вода! Хидратацията е важна за здравето ти.',
+      url: '/plan.html',
+      icon: '/icon-192x192.png',
+      notificationType: 'water'
+    };
+
+    await sendPushNotificationToUser(userId, pushMessage, env);
+  }
+}
+
+/**
+ * Check and send meal reminder if needed
+ */
+async function checkAndSendMealReminder(userId, mealSettings, currentTime, env) {
+  const meals = [
+    { time: mealSettings.breakfast, name: 'Закуска', emoji: '🍳' },
+    { time: mealSettings.lunch, name: 'Обяд', emoji: '🍽️' },
+    { time: mealSettings.dinner, name: 'Вечеря', emoji: '🍴' }
+  ];
+
+  for (const meal of meals) {
+    // Check if current time matches meal time (within the current hour)
+    const [mealHour, mealMinute] = meal.time.split(':').map(Number);
+    const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+    
+    // Send reminder if we're within 5 minutes of the meal time
+    if (currentHour === mealHour && Math.abs(currentMinute - mealMinute) <= 5) {
+      console.log(`Sending ${meal.name} reminder to user ${userId}`);
+      
+      const pushMessage = {
+        title: `${meal.emoji} Напомняне: ${meal.name}`,
+        body: `Време е за ${meal.name.toLowerCase()}! Не забравяй да следваш плана си.`,
+        url: '/plan.html',
+        icon: '/icon-192x192.png',
+        notificationType: 'meal'
+      };
+
+      await sendPushNotificationToUser(userId, pushMessage, env);
+    }
+  }
+
+  // Check snack reminders if enabled
+  if (mealSettings.snacks && mealSettings.snackTimes) {
+    for (const snackTime of mealSettings.snackTimes) {
+      const [snackHour, snackMinute] = snackTime.split(':').map(Number);
+      const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+      
+      if (currentHour === snackHour && Math.abs(currentMinute - snackMinute) <= 5) {
+        console.log(`Sending snack reminder to user ${userId}`);
+        
+        const pushMessage = {
+          title: '🍎 Напомняне: Закуска',
+          body: 'Време е за здравословна закуска между храненията.',
+          url: '/plan.html',
+          icon: '/icon-192x192.png',
+          notificationType: 'snack'
+        };
+
+        await sendPushNotificationToUser(userId, pushMessage, env);
+      }
+    }
+  }
+}
+
+/**
+ * Check and send custom reminders if needed
+ */
+async function checkAndSendCustomReminders(userId, customReminders, currentTime, now, env) {
+  const currentDay = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
+  
+  for (const reminder of customReminders) {
+    // Skip if reminder is not enabled
+    if (!reminder.enabled) {
+      continue;
+    }
+
+    // Check if current time matches reminder time
+    const [reminderHour, reminderMinute] = reminder.time.split(':').map(Number);
+    const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+    
+    if (currentHour !== reminderHour || Math.abs(currentMinute - reminderMinute) > 5) {
+      continue;
+    }
+
+    // Check if current day matches reminder schedule
+    if (reminder.days && reminder.days.length > 0) {
+      if (!reminder.days.includes(currentDay)) {
+        continue;
+      }
+    }
+
+    console.log(`Sending custom reminder "${reminder.title}" to user ${userId}`);
+    
+    const pushMessage = {
+      title: reminder.title || '🔔 Напомняне',
+      body: reminder.message || 'Имаш напомняне от NutriPlan',
+      url: reminder.url || '/plan.html',
+      icon: '/icon-192x192.png',
+      notificationType: reminder.type || 'general'
+    };
+
+    await sendPushNotificationToUser(userId, pushMessage, env);
+  }
+}
+
+/**
+ * Helper function to send push notification to a specific user
+ */
+async function sendPushNotificationToUser(userId, pushMessage, env) {
+  try {
+    // Get user's push subscription
+    const subscriptionData = await env.page_content.get(`push_subscription_${userId}`);
+    if (!subscriptionData) {
+      console.log(`No subscription found for user ${userId}`);
+      return;
+    }
+
+    const subscription = JSON.parse(subscriptionData);
+    
+    // Send the push notification
+    await sendWebPushNotification(subscription, pushMessage, env);
+    console.log(`Push notification sent successfully to user ${userId}`);
+  } catch (error) {
+    console.error(`Error sending push notification to user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Helper to create JSON response with optional cache control
  * @param {Object} data - Response data
  * @param {number} status - HTTP status code
  * @param {Object} options - Optional settings { cacheControl: string }
  */
 export default {
+  // Fetch handler for HTTP requests
+  async fetch(request, env, ctx) {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     
@@ -7461,5 +7697,10 @@ export default {
       console.error('Error:', error);
       return jsonResponse({ error: error.message }, 500);
     }
+  },
+
+  // Scheduled handler for cron triggers
+  async scheduled(event, env, ctx) {
+    await handleScheduledNotifications(event, env, ctx);
   }
 };
