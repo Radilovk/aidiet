@@ -2151,6 +2151,289 @@
             return false; // Not a duplicate
         }
         
+        // ===================================================================
+        // CLIENT-SIDE NOTIFICATION SCHEDULER
+        // ===================================================================
+        
+        /**
+         * Notification Scheduler - Handles all client-side notification scheduling
+         * Uses browser Notification API with alarm/timer-based scheduling
+         * All data stored in localStorage, no backend dependency
+         */
+        const NotificationScheduler = {
+            scheduledTimers: [],
+            
+            /**
+             * Initialize notification scheduler
+             * Called when plan is loaded or user changes preferences
+             */
+            init() {
+                console.log('[Notifications] Initializing client-side notification scheduler');
+                this.clearAllScheduled();
+                
+                const prefs = this.getPreferences();
+                if (!prefs.enabled) {
+                    console.log('[Notifications] Notifications disabled by user');
+                    return;
+                }
+                
+                // Schedule all notification types
+                if (prefs.meals?.enabled && dietPlan) {
+                    this.scheduleMealNotifications(dietPlan, prefs.meals);
+                }
+                if (prefs.water?.enabled) {
+                    this.scheduleWaterNotifications(prefs.water);
+                }
+                if (prefs.sleep?.enabled) {
+                    this.scheduleSleepNotifications(prefs.sleep);
+                }
+                if (prefs.activity?.enabled) {
+                    this.scheduleActivityNotifications(prefs.activity);
+                }
+                if (prefs.supplements?.enabled) {
+                    this.scheduleSupplementNotifications(prefs.supplements);
+                }
+                
+                console.log(`[Notifications] Scheduled ${this.scheduledTimers.length} notifications`);
+            },
+            
+            /**
+             * Get notification preferences from localStorage
+             */
+            getPreferences() {
+                const defaultPrefs = {
+                    enabled: true,
+                    meals: { enabled: true, advanceMinutes: 60 },
+                    water: { enabled: true },
+                    sleep: { enabled: true, time: '22:00' },
+                    activity: { enabled: true, morningTime: '07:00', dayTime: '15:00' },
+                    supplements: { enabled: true }
+                };
+                
+                const stored = localStorage.getItem('notificationPreferences');
+                return stored ? JSON.parse(stored) : defaultPrefs;
+            },
+            
+            /**
+             * Get notification templates from localStorage (cached from admin panel)
+             */
+            getTemplates() {
+                const defaultTemplates = {
+                    meals: {
+                        breakfast: { title: 'Време за закуска', body: 'Започнете деня си със здравословна закуска 🍳' },
+                        lunch: { title: 'Време за обяд', body: 'Време е за вашия здравословен обяд 🥗' },
+                        dinner: { title: 'Време за вечеря', body: 'Не забравяйте вечерята си 🍽️' },
+                        snack: { title: 'Време за междинна закуска', body: 'Време е за здравословна междинна закуска 🍎' }
+                    },
+                    water: { title: 'Време за вода', body: 'Не забравяйте да пиете вода! 💧' },
+                    sleep: { title: 'Време за сън', body: 'Подгответе се за почивка. Добър сън е важен за здравето ви! 😴' },
+                    activity: {
+                        morning: { title: 'Сутрешна активност', body: 'Започнете деня с лека физическа активност! 🏃' },
+                        day: { title: 'Време за движение', body: 'Направете кратка разходка или упражнения! 🚶' }
+                    },
+                    supplements: { title: 'Хранителни добавки', body: 'Не забравяйте да приемете вашите хранителни добавки 💊' }
+                };
+                
+                const stored = localStorage.getItem('notificationTemplates');
+                return stored ? JSON.parse(stored) : defaultTemplates;
+            },
+            
+            /**
+             * Schedule meal notifications based on plan and preferences
+             */
+            scheduleMealNotifications(plan, mealPrefs) {
+                const templates = this.getTemplates().meals;
+                const advanceMs = (mealPrefs.advanceMinutes || 60) * 60 * 1000;
+                
+                // Get meal times from global notification settings (admin-configured)
+                const globalSettings = this.getGlobalSettings();
+                const mealTimes = {
+                    breakfast: globalSettings?.mealReminders?.breakfast || '08:00',
+                    lunch: globalSettings?.mealReminders?.lunch || '13:00',
+                    dinner: globalSettings?.mealReminders?.dinner || '19:00'
+                };
+                
+                // Schedule daily meal notifications
+                Object.entries(mealTimes).forEach(([mealType, time]) => {
+                    this.scheduleDailyNotification(time, {
+                        title: templates[mealType]?.title || `Време за ${mealType}`,
+                        body: templates[mealType]?.body || `Време е за хранене`,
+                        tag: `meal-${mealType}`,
+                        icon: '/icon-192x192.png',
+                        advanceMs: advanceMs
+                    });
+                });
+            },
+            
+            /**
+             * Schedule water reminders
+             */
+            scheduleWaterNotifications(waterPrefs) {
+                const templates = this.getTemplates().water;
+                const globalSettings = this.getGlobalSettings();
+                const waterSettings = globalSettings?.waterReminders || {};
+                
+                const frequency = waterSettings.frequency || 2; // hours
+                const startHour = waterSettings.startHour || 8;
+                const endHour = waterSettings.endHour || 22;
+                
+                // Schedule water notifications throughout the day
+                for (let hour = startHour; hour <= endHour; hour += frequency) {
+                    const time = `${hour.toString().padStart(2, '0')}:00`;
+                    this.scheduleDailyNotification(time, {
+                        title: templates.title,
+                        body: templates.body,
+                        tag: `water-${hour}`,
+                        icon: '/icon-192x192.png'
+                    });
+                }
+            },
+            
+            /**
+             * Schedule sleep reminder
+             */
+            scheduleSleepNotifications(sleepPrefs) {
+                const templates = this.getTemplates().sleep;
+                const time = sleepPrefs.time || '22:00';
+                
+                this.scheduleDailyNotification(time, {
+                    title: templates.title,
+                    body: templates.body,
+                    tag: 'sleep',
+                    icon: '/icon-192x192.png'
+                });
+            },
+            
+            /**
+             * Schedule activity reminders
+             */
+            scheduleActivityNotifications(activityPrefs) {
+                const templates = this.getTemplates().activity;
+                
+                // Morning activity
+                this.scheduleDailyNotification(activityPrefs.morningTime || '07:00', {
+                    title: templates.morning.title,
+                    body: templates.morning.body,
+                    tag: 'activity-morning',
+                    icon: '/icon-192x192.png'
+                });
+                
+                // Day activity
+                this.scheduleDailyNotification(activityPrefs.dayTime || '15:00', {
+                    title: templates.day.title,
+                    body: templates.day.body,
+                    tag: 'activity-day',
+                    icon: '/icon-192x192.png'
+                });
+            },
+            
+            /**
+             * Schedule supplement reminders
+             */
+            scheduleSupplementNotifications(supplementPrefs) {
+                const templates = this.getTemplates().supplements;
+                const globalSettings = this.getGlobalSettings();
+                const times = globalSettings?.supplements?.times || ['09:00', '21:00'];
+                
+                times.forEach((time, index) => {
+                    this.scheduleDailyNotification(time, {
+                        title: templates.title,
+                        body: templates.body,
+                        tag: `supplements-${index}`,
+                        icon: '/icon-192x192.png'
+                    });
+                });
+            },
+            
+            /**
+             * Schedule a daily recurring notification
+             */
+            scheduleDailyNotification(time, options) {
+                const [hours, minutes] = time.split(':').map(Number);
+                const now = new Date();
+                const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+                
+                // Apply advance time if specified
+                if (options.advanceMs) {
+                    scheduledTime.setTime(scheduledTime.getTime() - options.advanceMs);
+                }
+                
+                // If time has passed today, schedule for tomorrow
+                if (scheduledTime <= now) {
+                    scheduledTime.setDate(scheduledTime.getDate() + 1);
+                }
+                
+                const delay = scheduledTime.getTime() - now.getTime();
+                
+                // Schedule the notification
+                const timerId = setTimeout(() => {
+                    this.showNotification(options);
+                    // Reschedule for next day
+                    setTimeout(() => this.scheduleDailyNotification(time, options), 24 * 60 * 60 * 1000);
+                }, delay);
+                
+                this.scheduledTimers.push(timerId);
+                
+                console.log(`[Notifications] Scheduled "${options.title}" for ${scheduledTime.toLocaleTimeString()}`);
+            },
+            
+            /**
+             * Show notification using Notification API
+             */
+            async showNotification(options) {
+                if (!('Notification' in window)) {
+                    console.warn('[Notifications] Notification API not supported');
+                    return;
+                }
+                
+                if (Notification.permission === 'granted') {
+                    try {
+                        const notification = new Notification(options.title, {
+                            body: options.body,
+                            icon: options.icon,
+                            tag: options.tag,
+                            requireInteraction: options.requireInteraction || false
+                        });
+                        
+                        notification.onclick = () => {
+                            window.focus();
+                            notification.close();
+                        };
+                    } catch (e) {
+                        console.error('[Notifications] Error showing notification:', e);
+                    }
+                }
+            },
+            
+            /**
+             * Get global notification settings (admin-configured)
+             */
+            getGlobalSettings() {
+                const stored = localStorage.getItem('globalNotificationSettings');
+                return stored ? JSON.parse(stored) : null;
+            },
+            
+            /**
+             * Clear all scheduled timers
+             */
+            clearAllScheduled() {
+                this.scheduledTimers.forEach(timerId => clearTimeout(timerId));
+                this.scheduledTimers = [];
+            }
+        };
+        
+        /**
+         * Global function to schedule/reschedule notifications
+         * Called when preferences change or plan is updated
+         */
+        function scheduleNotifications() {
+            NotificationScheduler.init();
+        }
+        
+        // ===================================================================
+        // END CLIENT-SIDE NOTIFICATION SCHEDULER
+        // ===================================================================
+        
         // UI strings for chat modes
         const CHAT_MODE_STRINGS = {
             consultation: {
@@ -2301,6 +2584,9 @@
                 
                 // Display macros visualization
                 displayMacrosVisualization();
+                
+                // Initialize client-side notification scheduler
+                scheduleNotifications();
                 
             } catch (error) {
                 console.error('Error loading diet data:', error);
