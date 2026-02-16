@@ -702,7 +702,7 @@
             background: var(--primary-red);
             color: white;
             border-color: var(--primary-dark);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); /* Green shadow matches theme */
         }
 
         .tab-btn i {
@@ -1579,6 +1579,13 @@
 
         // --- Tab Management ---
         function switchTab(tabName, evt) {
+            // Validate tabName to prevent XSS
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'system'];
+            if (!validTabs.includes(tabName)) {
+                console.error('Invalid tab name:', tabName);
+                return;
+            }
+
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => {
@@ -1597,15 +1604,18 @@
                 selectedTab.classList.add('active');
             }
 
-            // Add active class to clicked button (using evt if passed, otherwise find by tab name)
+            // Add active class to clicked button (using evt if passed, otherwise find by data attribute)
             if (evt && evt.target) {
                 evt.target.closest('.tab-btn').classList.add('active');
             } else {
-                // Find button by onclick attribute
-                const button = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
-                if (button) {
-                    button.classList.add('active');
-                }
+                // Find button by matching tab name in a safe way
+                const buttons = document.querySelectorAll('.tab-btn');
+                buttons.forEach(button => {
+                    const onclick = button.getAttribute('onclick');
+                    if (onclick && onclick.includes(tabName)) {
+                        button.classList.add('active');
+                    }
+                });
             }
 
             // Save selected tab to localStorage
@@ -1615,20 +1625,29 @@
         // Initialize tab on page load
         function initializeTab() {
             const savedTab = localStorage.getItem('selectedTab') || 'configuration';
-            const tabButton = document.querySelector(`.tab-btn[onclick*="${savedTab}"]`);
-            if (tabButton) {
-                // Simulate click on the saved tab
-                const tabContents = document.querySelectorAll('.tab-content');
-                tabContents.forEach(content => content.classList.remove('active'));
-                const tabButtons = document.querySelectorAll('.tab-btn');
-                tabButtons.forEach(button => button.classList.remove('active'));
-                
-                document.getElementById('tab-' + savedTab)?.classList.add('active');
-                tabButton.classList.add('active');
-            }
+            // Validate saved tab to prevent XSS
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'system'];
+            const tabToLoad = validTabs.includes(savedTab) ? savedTab : 'configuration';
+            
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(button => button.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabToLoad)?.classList.add('active');
+            
+            // Find and activate the matching button
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(button => {
+                const onclick = button.getAttribute('onclick');
+                if (onclick && onclick.includes(tabToLoad)) {
+                    button.classList.add('active');
+                }
+            });
         }
 
         // Initialize tab when dashboard is shown
+        // Timeout is needed to ensure DOM is fully loaded before tab initialization
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(initializeTab, 100);
         });
