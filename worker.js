@@ -113,13 +113,15 @@ const OFFENSIVE_PATTERNS = [
 ];
 
 // AI Communication Logging Configuration
-// AI logging uses Cache API instead of KV to avoid quota limits
+// HYBRID APPROACH: Cache API for normal logs + KV for errors
 // Cache API is free and doesn't count against KV READ/WRITE quotas
 // Logs are stored temporarily in Cache with 24-hour TTL
+// Errors are permanently stored in KV for debugging
 // MAX_LOG_ENTRIES controls how many sessions to keep (1 = only the most recent session)
 // Increased to 10 to preserve error logs for debugging failed plan generations
 const MAX_LOG_ENTRIES = 10; // Keep last 10 sessions to ensure error logs are preserved for debugging
 const AI_LOG_CACHE_TTL = 24 * 60 * 60; // 24 hours - logs expire after 1 day
+const AI_ERROR_LOG_KV_ENABLED = true; // Enable KV storage for errors (debugging capability)
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -5942,15 +5944,14 @@ function generateMockResponse(prompt) {
  */
 
 /**
- * Log AI communication to KV storage
+ * Log AI communication to Cache API (normal) and KV (errors only)
+ * HYBRID APPROACH:
+ * - All logs → Cache API (free, no quota impact, 24h TTL)
+ * - Errors only → KV (permanent, for debugging, minimal quota impact)
  * Tracks all communication between backend and AI model
  */
 async function logAIRequest(env, stepName, requestData) {
   try {
-    // AI logging uses Cache API instead of KV to avoid quota limits
-    // Cache API is free and doesn't count against KV READ/WRITE quotas
-    // Logs are stored temporarily with 24-hour TTL
-
     // Generate unique log ID
     const logId = generateUniqueId('ai_log');
     const timestamp = new Date().toISOString();
@@ -5972,10 +5973,13 @@ async function logAIRequest(env, stepName, requestData) {
       modelName: requestData.modelName || 'unknown',
       // Include structured user data and calculations for export
       userData: requestData.userData || null,
-      calculatedData: requestData.calculatedData || null
+      calculatedData: requestData.calculatedData || null,
+      // Flag for error state
+      hasError: !!requestData.error,
+      error: requestData.error || null
     };
 
-    // Store individual log entry in Cache API (no KV quota impact!)
+    // ALWAYS store in Cache API (no KV quota impact!)
     await cacheSet(`ai_communication_log:${logId}`, logEntry, AI_LOG_CACHE_TTL);
     
     // Get or create session index from Cache API
@@ -6000,6 +6004,20 @@ async function logAIRequest(env, stepName, requestData) {
     sessionLogs.push(logId);
     await cacheSet(`ai_session_logs:${sessionId}`, sessionLogs, AI_LOG_CACHE_TTL);
     
+    // HYBRID: If there's an error, ALSO store in KV for permanent debugging
+    if (requestData.error && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
+      try {
+        await env.page_content.put(
+          `ai_error_log:${logId}`,
+          JSON.stringify(logEntry)
+        );
+        console.log(`[KV] Error logged to KV for permanent storage: ${stepName} (${logId})`);
+      } catch (kvError) {
+        console.error('[KV] Failed to log error to KV:', kvError);
+        // Continue - error is still in Cache API
+      }
+    }
+    
     console.log(`[Cache API] AI request logged: ${stepName} (${logId}, session: ${sessionId})`);
     return logId;
   } catch (error) {
@@ -6015,10 +6033,6 @@ async function logAIResponse(env, logId, stepName, responseData) {
       return;
     }
 
-    // AI logging uses Cache API instead of KV to avoid quota limits
-    // Cache API is free and doesn't count against KV READ/WRITE quotas
-    // Logs are stored temporarily with 24-hour TTL
-
     const timestamp = new Date().toISOString();
     
     const logEntry = {
@@ -6031,11 +6045,26 @@ async function logAIResponse(env, logId, stepName, responseData) {
       estimatedOutputTokens: responseData.estimatedOutputTokens || 0,
       duration: responseData.duration || 0,
       success: responseData.success || false,
-      error: responseData.error || null
+      error: responseData.error || null,
+      hasError: !!responseData.error || !responseData.success
     };
 
-    // Update the log entry with response data in Cache API (no KV quota impact!)
+    // ALWAYS store response in Cache API (no KV quota impact!)
     await cacheSet(`ai_communication_log:${logId}_response`, logEntry, AI_LOG_CACHE_TTL);
+    
+    // HYBRID: If there's an error or failure, ALSO store in KV for permanent debugging
+    if ((responseData.error || !responseData.success) && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
+      try {
+        await env.page_content.put(
+          `ai_error_log:${logId}_response`,
+          JSON.stringify(logEntry)
+        );
+        console.log(`[KV] Error response logged to KV for permanent storage: ${stepName} (${logId})`);
+      } catch (kvError) {
+        console.error('[KV] Failed to log error response to KV:', kvError);
+        // Continue - error is still in Cache API
+      }
+    }
     
     console.log(`[Cache API] AI response logged: ${stepName} (${logId})`);
   } catch (error) {
