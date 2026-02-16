@@ -2419,6 +2419,57 @@
             clearAllScheduled() {
                 this.scheduledTimers.forEach(timerId => clearTimeout(timerId));
                 this.scheduledTimers = [];
+            },
+            
+            /**
+             * Check for updates from backend (only when admin changes settings)
+             * This is called periodically or on page load
+             */
+            async checkForUpdates() {
+                try {
+                    // Check template version
+                    const localTemplateVersion = localStorage.getItem('notificationTemplatesVersion');
+                    const localSettingsVersion = localStorage.getItem('globalNotificationSettingsVersion');
+                    
+                    // Fetch latest versions from backend (lightweight check)
+                    const response = await fetch('https://aidiet.radilov-k.workers.dev/api/admin/notification-templates');
+                    const data = await response.json();
+                    
+                    if (data.success && data.templates) {
+                        // Check if we need to update
+                        const serverVersion = data.version || Date.now();
+                        
+                        if (!localTemplateVersion || parseInt(localTemplateVersion) < serverVersion) {
+                            console.log('[Notifications] New templates available, updating cache');
+                            localStorage.setItem('notificationTemplates', JSON.stringify(data.templates));
+                            localStorage.setItem('notificationTemplatesVersion', serverVersion.toString());
+                            
+                            // Reschedule with new templates
+                            this.init();
+                        }
+                    }
+                    
+                    // Similarly check global settings
+                    const settingsResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/admin/notification-settings');
+                    const settingsData = await settingsResponse.json();
+                    
+                    if (settingsData.success && settingsData.settings) {
+                        const serverSettingsVersion = settingsData.version || Date.now();
+                        
+                        if (!localSettingsVersion || parseInt(localSettingsVersion) < serverSettingsVersion) {
+                            console.log('[Notifications] New settings available, updating cache');
+                            localStorage.setItem('globalNotificationSettings', JSON.stringify(settingsData.settings));
+                            localStorage.setItem('globalNotificationSettingsVersion', serverSettingsVersion.toString());
+                            
+                            // Reschedule with new settings
+                            this.init();
+                        }
+                    }
+                } catch (error) {
+                    // Fail silently - offline or backend issue
+                    // Continue using cached data
+                    console.log('[Notifications] Could not check for updates, using cached data');
+                }
             }
         };
         
@@ -2428,6 +2479,14 @@
          */
         function scheduleNotifications() {
             NotificationScheduler.init();
+        }
+        
+        /**
+         * Check for notification updates on page load
+         * This is the ONLY backend call for notifications (cache check)
+         */
+        async function checkNotificationUpdates() {
+            await NotificationScheduler.checkForUpdates();
         }
         
         // ===================================================================
@@ -2515,6 +2574,8 @@
             loadPlanHistory();
             // Load chat history
             loadChatHistory();
+            // Check for notification updates from backend (only call if admin changed)
+            checkNotificationUpdates();
         });
 
         // --- Theme Management ---

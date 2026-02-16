@@ -7283,12 +7283,17 @@ async function handleSaveNotificationSettings(request, env) {
 
     await env.page_content.put('notification_settings', JSON.stringify(validSettings));
     
-    console.log('Notification settings saved:', validSettings);
+    // Update version number to invalidate client cache
+    const version = Date.now();
+    await env.page_content.put('notification_settings_version', version.toString());
+    
+    console.log('Notification settings saved with version:', version);
     
     return jsonResponse({ 
       success: true,
       message: 'Настройките за известия са запазени',
-      settings: validSettings
+      settings: validSettings,
+      version: version
     });
   } catch (error) {
     console.error('Error saving notification settings:', error);
@@ -7335,9 +7340,14 @@ async function handleGetNotificationSettings(request, env) {
 
     const settings = settingsData ? JSON.parse(settingsData) : defaultSettings;
     
+    // Get version from KV or use current timestamp
+    const versionData = await env.page_content.get('notification_settings_version');
+    const version = versionData ? parseInt(versionData) : Date.now();
+    
     return jsonResponse({ 
       success: true,
-      settings: settings
+      settings: settings,
+      version: version
     });
   } catch (error) {
     console.error('Error getting notification settings:', error);
@@ -7567,9 +7577,14 @@ async function handleGetNotificationTemplates(request, env) {
 
     const templates = templatesData ? JSON.parse(templatesData) : defaultTemplates;
     
+    // Get version from KV or use current timestamp
+    const versionData = await env.page_content.get('notification_templates_version');
+    const version = versionData ? parseInt(versionData) : Date.now();
+    
     return jsonResponse({ 
       success: true,
-      templates: templates
+      templates: templates,
+      version: version
     });
   } catch (error) {
     console.error('Error getting notification templates:', error);
@@ -7600,12 +7615,17 @@ async function handleSaveNotificationTemplates(request, env) {
 
     await env.page_content.put('notification_templates', JSON.stringify(templates));
     
-    console.log('Notification templates saved');
+    // Update version number to invalidate client cache
+    const version = Date.now();
+    await env.page_content.put('notification_templates_version', version.toString());
+    
+    console.log('Notification templates saved with version:', version);
     
     return jsonResponse({ 
       success: true,
       message: 'Шаблоните за известия са запазени',
-      templates: templates
+      templates: templates,
+      version: version
     });
   } catch (error) {
     console.error('Error saving notification templates:', error);
