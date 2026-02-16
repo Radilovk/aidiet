@@ -702,7 +702,7 @@
             background: var(--primary-red);
             color: white;
             border-color: var(--primary-dark);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); /* Green shadow matches theme */
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); /* Matches primary green theme color */
         }
 
         .tab-btn i {
@@ -1599,7 +1599,7 @@
             });
 
             // Show selected tab content
-            const selectedTab = document.getElementById('tab-' + tabName);
+            const selectedTab = document.getElementById(`tab-${tabName}`);
             if (selectedTab) {
                 selectedTab.classList.add('active');
             }
@@ -1634,7 +1634,7 @@
             const tabButtons = document.querySelectorAll('.tab-btn');
             tabButtons.forEach(button => button.classList.remove('active'));
             
-            document.getElementById('tab-' + tabToLoad)?.classList.add('active');
+            document.getElementById(`tab-${tabToLoad}`)?.classList.add('active');
             
             // Find and activate the matching button
             const buttons = document.querySelectorAll('.tab-btn');
@@ -1647,9 +1647,9 @@
         }
 
         // Initialize tab when dashboard is shown
-        // Timeout is needed to ensure DOM is fully loaded before tab initialization
         document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(initializeTab, 100);
+            // DOMContentLoaded already ensures DOM is fully loaded, no timeout needed
+            initializeTab();
         });
 
         // WARNING: This is a basic client-side authentication for demonstration purposes.
