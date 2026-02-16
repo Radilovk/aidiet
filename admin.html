@@ -836,22 +836,19 @@
 
             <!-- Tab Navigation -->
             <div class="tab-navigation">
-                <button class="tab-btn active" onclick="switchTab('configuration')">
+                <button class="tab-btn active" onclick="switchTab('configuration', event)">
                     <i class="fas fa-cog"></i> Конфигурация
                 </button>
-                <button class="tab-btn" onclick="switchTab('ai-prompts')">
+                <button class="tab-btn" onclick="switchTab('ai-prompts', event)">
                     <i class="fas fa-robot"></i> AI Промпти
                 </button>
-                <button class="tab-btn" onclick="switchTab('chat-assistant')">
-                    <i class="fas fa-comments"></i> Чат Асистент
-                </button>
-                <button class="tab-btn" onclick="switchTab('monitoring')">
+                <button class="tab-btn" onclick="switchTab('monitoring', event)">
                     <i class="fas fa-chart-line"></i> Мониторинг
                 </button>
-                <button class="tab-btn" onclick="switchTab('features')">
+                <button class="tab-btn" onclick="switchTab('features', event)">
                     <i class="fas fa-sliders-h"></i> Функции
                 </button>
-                <button class="tab-btn" onclick="switchTab('system')">
+                <button class="tab-btn" onclick="switchTab('system', event)">
                     <i class="fas fa-tools"></i> Система
                 </button>
             </div>
@@ -1581,7 +1578,7 @@
         initializeTheme();
 
         // --- Tab Management ---
-        function switchTab(tabName) {
+        function switchTab(tabName, evt) {
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => {
@@ -1600,8 +1597,16 @@
                 selectedTab.classList.add('active');
             }
 
-            // Add active class to clicked button
-            event.target.closest('.tab-btn').classList.add('active');
+            // Add active class to clicked button (using evt if passed, otherwise find by tab name)
+            if (evt && evt.target) {
+                evt.target.closest('.tab-btn').classList.add('active');
+            } else {
+                // Find button by onclick attribute
+                const button = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+                if (button) {
+                    button.classList.add('active');
+                }
+            }
 
             // Save selected tab to localStorage
             localStorage.setItem('selectedTab', tabName);
