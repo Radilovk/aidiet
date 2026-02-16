@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест на Известия - NutriPlan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 600px;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .status-box {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+        
+        .status-box.success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        
+        .status-box.warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        
+        .status-box.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .status-box.info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        
+        .info-item {
+            padding: 10px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .info-item strong {
+            display: inline-block;
+            width: 180px;
+            color: #666;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+        }
+        
+        ul {
+            margin: 10px 0 10px 20px;
+        }
+        
+        li {
+            margin: 5px 0;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Тест на Известия</h1>
+        
+        <div id="platformInfo" class="status-box info">
+            <h3>Информация за Платформа</h3>
+            <div class="info-item">
+                <strong>Операционна Система:</strong>
+                <span id="osInfo">Зареждане...</span>
+            </div>
+            <div class="info-item">
+                <strong>Браузър:</strong>
+                <span id="browserInfo">Зареждане...</span>
+            </div>
+            <div class="info-item">
+                <strong>PWA Режим:</strong>
+                <span id="pwaInfo">Зареждане...</span>
+            </div>
+            <div class="info-item">
+                <strong>Notification API:</strong>
+                <span id="notifApiInfo">Зареждане...</span>
+            </div>
+            <div class="info-item">
+                <strong>Service Worker:</strong>
+                <span id="swInfo">Зареждане...</span>
+            </div>
+            <div class="info-item">
+                <strong>Permission Status:</strong>
+                <span id="permissionInfo">Зареждане...</span>
+            </div>
+        </div>
+        
+        <div id="compatibilityStatus"></div>
+        
+        <div style="margin: 20px 0;">
+            <button id="requestPermBtn" onclick="requestPermission()">
+                🔔 Поискай Permission
+            </button>
+            <button id="testNotifBtn" onclick="sendTestNotification()" disabled>
+                ✉️ Тествай Известие
+            </button>
+            <button id="testSWNotifBtn" onclick="sendServiceWorkerNotification()" disabled>
+                📱 Тествай SW Известие
+            </button>
+        </div>
+        
+        <div id="testResults" class="test-results"></div>
+        
+        <a href="/" class="back-link">← Назад към Начало</a>
+    </div>
+    
+    <script>
+        // Platform Detection
+        const Platform = {
+            isIOS: () => /iPhone|iPad|iPod/i.test(navigator.userAgent),
+            isAndroid: () => /Android/i.test(navigator.userAgent),
+            isHuawei: () => /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent),
+            isSafari: () => /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent),
+            isChrome: () => /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent),
+            isFirefox: () => /Firefox/i.test(navigator.userAgent),
+            isPWA: () => window.matchMedia('(display-mode: standalone)').matches || 
+                        window.navigator.standalone === true
+        };
+        
+        // Update platform info
+        function updatePlatformInfo() {
+            // OS
+            let os = 'Unknown';
+            if (Platform.isIOS()) os = 'iOS';
+            else if (Platform.isAndroid()) os = 'Android';
+            else if (Platform.isHuawei()) os = 'Huawei/HarmonyOS';
+            else if (navigator.userAgent.includes('Win')) os = 'Windows';
+            else if (navigator.userAgent.includes('Mac')) os = 'macOS';
+            else if (navigator.userAgent.includes('Linux')) os = 'Linux';
+            document.getElementById('osInfo').textContent = os;
+            
+            // Browser
+            let browser = 'Unknown';
+            if (Platform.isChrome()) browser = 'Chrome';
+            else if (Platform.isFirefox()) browser = 'Firefox';
+            else if (Platform.isSafari()) browser = 'Safari';
+            else if (navigator.userAgent.includes('Edg')) browser = 'Edge';
+            document.getElementById('browserInfo').textContent = browser;
+            
+            // PWA
+            const isPWA = Platform.isPWA();
+            document.getElementById('pwaInfo').textContent = isPWA ? '✅ Да (Инсталирано)' : '❌ Не (Browser)';
+            
+            // Notification API
+            const hasNotifAPI = 'Notification' in window;
+            document.getElementById('notifApiInfo').textContent = hasNotifAPI ? '✅ Поддържа се' : '❌ Не се поддържа';
+            
+            // Service Worker
+            const hasSW = 'serviceWorker' in navigator;
+            document.getElementById('swInfo').textContent = hasSW ? '✅ Поддържа се' : '❌ Не се поддържа';
+            
+            // Permission
+            if (hasNotifAPI) {
+                const perm = Notification.permission;
+                let permText = '';
+                if (perm === 'granted') permText = '✅ Разрешено';
+                else if (perm === 'denied') permText = '❌ Отказано';
+                else permText = '⏸️ Не е поискано';
+                document.getElementById('permissionInfo').textContent = permText;
+                
+                // Update buttons
+                if (perm === 'granted') {
+                    document.getElementById('testNotifBtn').disabled = false;
+                    document.getElementById('testSWNotifBtn').disabled = false;
+                    document.getElementById('requestPermBtn').disabled = true;
+                }
+            } else {
+                document.getElementById('permissionInfo').textContent = 'N/A';
+            }
+            
+            // Show compatibility status
+            showCompatibilityStatus(os, browser, isPWA, hasNotifAPI);
+        }
+        
+        function showCompatibilityStatus(os, browser, isPWA, hasNotifAPI) {
+            const container = document.getElementById('compatibilityStatus');
+            let html = '';
+            let cssClass = 'success';
+            
+            if (os === 'iOS' && !isPWA) {
+                cssClass = 'warning';
+                html = `
+                    <h3>⚠️ iOS Ограничена Поддръжка</h3>
+                    <p>Известията работят САМО когато приложението е инсталирано като PWA.</p>
+                    <p><strong>Как да инсталирате:</strong></p>
+                    <ol>
+                        <li>Отворете в Safari (не Chrome/Firefox)</li>
+                        <li>Натиснете Share бутона (квадратче със стрелка)</li>
+                        <li>Изберете "Add to Home Screen"</li>
+                        <li>Отворете от Home Screen</li>
+                        <li>Разрешете известия</li>
+                    </ol>
+                `;
+            } else if (os === 'Huawei/HarmonyOS') {
+                cssClass = 'error';
+                html = `
+                    <h3>❌ Huawei Не Се Поддържа</h3>
+                    <p>Уеб известия не работят на Huawei устройства без Google Services.</p>
+                    <p><strong>Алтернативи:</strong></p>
+                    <ul>
+                        <li>Използвайте Huawei Calendar за напомняния</li>
+                        <li>Задайте alarms в Clock app</li>
+                        <li>Използвайте Reminders app</li>
+                    </ul>
+                `;
+            } else if (!hasNotifAPI) {
+                cssClass = 'error';
+                html = `
+                    <h3>❌ Браузърът Не Поддържа Известия</h3>
+                    <p>Моля, използвайте по-нова версия на браузъра.</p>
+                `;
+            } else if (os === 'Android' || os === 'Windows' || os === 'macOS' || os === 'Linux') {
+                cssClass = 'success';
+                html = `
+                    <h3>✅ Пълна Поддръжка</h3>
+                    <p>Вашата платформа напълно поддържа известия!</p>
+                    <p>Кликнете "Поискай Permission" за да разрешите известия.</p>
+                `;
+            }
+            
+            container.className = 'status-box ' + cssClass;
+            container.innerHTML = html;
+        }
+        
+        async function requestPermission() {
+            if (!('Notification' in window)) {
+                showResult('❌ Notification API не се поддържа', 'error');
+                return;
+            }
+            
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    showResult('✅ Permission разрешено успешно!', 'success');
+                    updatePlatformInfo();
+                } else if (permission === 'denied') {
+                    showResult('❌ Permission отказано. Проверете browser settings.', 'error');
+                } else {
+                    showResult('⏸️ Permission не е дадено.', 'warning');
+                }
+            } catch (e) {
+                showResult('❌ Грешка: ' + e.message, 'error');
+            }
+        }
+        
+        async function sendTestNotification() {
+            if (Notification.permission !== 'granted') {
+                showResult('❌ Permission не е дадено. Натиснете "Поискай Permission" първо.', 'error');
+                return;
+            }
+            
+            try {
+                const notification = new Notification('🎉 Тестово Известие', {
+                    body: 'Ако виждате това, известията работят на вашето устройство!',
+                    icon: '/icon-192x192.png',
+                    tag: 'test-notification',
+                    requireInteraction: false
+                });
+                
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+                
+                showResult('✅ Тестово известие изпратено (Notification API)', 'success');
+            } catch (e) {
+                showResult('❌ Грешка при изпращане: ' + e.message, 'error');
+            }
+        }
+        
+        async function sendServiceWorkerNotification() {
+            if (Notification.permission !== 'granted') {
+                showResult('❌ Permission не е дадено.', 'error');
+                return;
+            }
+            
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                await registration.showNotification('🚀 SW Тестово Известие', {
+                    body: 'Това известие идва от Service Worker (по-добра iOS поддръжка)',
+                    icon: '/icon-192x192.png',
+                    badge: '/icon-192x192.png',
+                    tag: 'sw-test-notification',
+                    requireInteraction: false,
+                    vibrate: [200, 100, 200]
+                });
+                
+                showResult('✅ Service Worker известие изпратено успешно!', 'success');
+            } catch (e) {
+                showResult('❌ Service Worker грешка: ' + e.message, 'error');
+            }
+        }
+        
+        function showResult(message, type) {
+            const container = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = 'status-box ' + type;
+            div.textContent = message;
+            container.appendChild(div);
+            
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                div.style.opacity = '0';
+                setTimeout(() => div.remove(), 300);
+            }, 10000);
+        }
+        
+        // Initialize on page load
+        updatePlatformInfo();
+        
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.error('Service Worker registration failed:', err));
+        }
+    </script>
+</body>
+</html>
