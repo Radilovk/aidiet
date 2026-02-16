@@ -1148,15 +1148,75 @@
         reveal();
 
         // --- PWA Service Worker Registration ---
+        
+        /**
+         * Platform Detection Utility
+         */
+        const PlatformDetector = {
+            isIOS: () => {
+                return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            },
+            isAndroid: () => {
+                return /Android/i.test(navigator.userAgent);
+            },
+            isHuawei: () => {
+                return /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent);
+            },
+            isPWA: () => {
+                return window.matchMedia('(display-mode: standalone)').matches || 
+                       window.navigator.standalone === true;
+            },
+            supportsNotifications: () => {
+                return 'Notification' in window && 'serviceWorker' in navigator;
+            },
+            getCompatibilityWarning: () => {
+                if (PlatformDetector.isIOS() && !PlatformDetector.isPWA()) {
+                    return {
+                        show: true,
+                        message: 'За известия на iOS, инсталирайте приложението: Safari → Share → Add to Home Screen',
+                        type: 'warning'
+                    };
+                } else if (PlatformDetector.isHuawei()) {
+                    return {
+                        show: true,
+                        message: 'Huawei устройствата не поддържат уеб известия. Използвайте Calendar app за напомняния.',
+                        type: 'warning'
+                    };
+                } else if (!PlatformDetector.supportsNotifications()) {
+                    return {
+                        show: true,
+                        message: 'Вашият браузър не поддържа известия. Моля, използвайте по-нова версия.',
+                        type: 'error'
+                    };
+                }
+                return { show: false };
+            }
+        };
+        
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
+                // Check platform compatibility first
+                const compatWarning = PlatformDetector.getCompatibilityWarning();
+                if (compatWarning.show) {
+                    console.warn('[Platform]', compatWarning.message);
+                }
+                
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('Service Worker registered:', registration);
                         
                         // Check if push notifications are supported and request permission
                         if ('PushManager' in window && 'Notification' in window) {
-                            checkNotificationPermission(registration);
+                            // Only prompt if platform supports it
+                            if (PlatformDetector.supportsNotifications() && 
+                                (!PlatformDetector.isIOS() || PlatformDetector.isPWA())) {
+                                checkNotificationPermission(registration);
+                            } else if (compatWarning.show) {
+                                // Show compatibility warning to user
+                                setTimeout(() => {
+                                    console.log('[Notifications] Platform limitation:', compatWarning.message);
+                                }, 2000);
+                            }
                         }
                     })
                     .catch(error => {
