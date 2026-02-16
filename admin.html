@@ -3307,7 +3307,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     
                     // Cache global settings in localStorage for client-side scheduling
                     localStorage.setItem('globalNotificationSettings', JSON.stringify(settings));
-                    localStorage.setItem('globalNotificationSettingsVersion', Date.now().toString());
+                    // Use version from backend response
+                    if (result.version) {
+                        localStorage.setItem('globalNotificationSettingsVersion', result.version.toString());
+                    }
                     
                     showSuccess('Настройките за известия са запазени успешно! Клиентите ще получат актуализациите.');
                 } else {
