@@ -2156,24 +2156,121 @@
         // ===================================================================
         
         /**
+         * Platform Detection Utility
+         */
+        const PlatformDetector = {
+            isIOS: () => {
+                return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            },
+            isAndroid: () => {
+                return /Android/i.test(navigator.userAgent);
+            },
+            isHuawei: () => {
+                // Detect Huawei devices
+                return /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent);
+            },
+            isSafari: () => {
+                return /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+            },
+            isPWA: () => {
+                // Check if running as installed PWA
+                return window.matchMedia('(display-mode: standalone)').matches || 
+                       window.navigator.standalone === true;
+            },
+            supportsNotifications: () => {
+                return 'Notification' in window && 'serviceWorker' in navigator;
+            },
+            getCompatibilityInfo: () => {
+                const info = {
+                    platform: 'unknown',
+                    notificationsSupported: false,
+                    requiresPWAInstall: false,
+                    limitedSupport: false,
+                    recommendations: []
+                };
+                
+                if (PlatformDetector.isIOS()) {
+                    info.platform = 'iOS';
+                    info.requiresPWAInstall = !PlatformDetector.isPWA();
+                    info.limitedSupport = true;
+                    info.notificationsSupported = PlatformDetector.isPWA();
+                    if (!PlatformDetector.isPWA()) {
+                        info.recommendations.push('Инсталирайте приложението на начален екран за известия');
+                        info.recommendations.push('Safari → Share → Add to Home Screen');
+                    }
+                } else if (PlatformDetector.isHuawei()) {
+                    info.platform = 'Huawei';
+                    info.notificationsSupported = false;
+                    info.limitedSupport = true;
+                    info.recommendations.push('Huawei устройствата имат ограничена поддръжка за уеб известия');
+                    info.recommendations.push('Използвайте календар напомняния като алтернатива');
+                } else if (PlatformDetector.isAndroid()) {
+                    info.platform = 'Android';
+                    info.notificationsSupported = PlatformDetector.supportsNotifications();
+                    info.limitedSupport = false;
+                } else {
+                    info.platform = 'Desktop';
+                    info.notificationsSupported = PlatformDetector.supportsNotifications();
+                    info.limitedSupport = false;
+                }
+                
+                return info;
+            }
+        };
+        
+        /**
          * Notification Scheduler - Handles all client-side notification scheduling
-         * Uses browser Notification API with alarm/timer-based scheduling
+         * Uses browser Notification API with Service Worker for better reliability
          * All data stored in localStorage, no backend dependency
          */
         const NotificationScheduler = {
             scheduledTimers: [],
+            serviceWorkerReg: null,
             
             /**
              * Initialize notification scheduler
              * Called when plan is loaded or user changes preferences
              */
-            init() {
+            async init() {
                 console.log('[Notifications] Initializing client-side notification scheduler');
+                
+                // Check platform compatibility
+                const compatInfo = PlatformDetector.getCompatibilityInfo();
+                console.log('[Notifications] Platform:', compatInfo.platform);
+                console.log('[Notifications] Support:', compatInfo.notificationsSupported ? 'Yes' : 'No');
+                
+                if (!compatInfo.notificationsSupported) {
+                    console.warn('[Notifications] Platform does not support notifications');
+                    if (compatInfo.recommendations.length > 0) {
+                        console.warn('[Notifications] Recommendations:');
+                        compatInfo.recommendations.forEach(rec => console.warn('  - ' + rec));
+                    }
+                    // Show user-facing warning
+                    this.showPlatformWarning(compatInfo);
+                    return;
+                }
+                
+                // Get service worker registration
+                if ('serviceWorker' in navigator) {
+                    try {
+                        this.serviceWorkerReg = await navigator.serviceWorker.ready;
+                        console.log('[Notifications] Service Worker ready');
+                    } catch (e) {
+                        console.error('[Notifications] Service Worker not available:', e);
+                    }
+                }
+                
                 this.clearAllScheduled();
                 
                 const prefs = this.getPreferences();
                 if (!prefs.enabled) {
                     console.log('[Notifications] Notifications disabled by user');
+                    return;
+                }
+                
+                // Check notification permission
+                if (Notification.permission !== 'granted') {
+                    console.warn('[Notifications] Permission not granted');
                     return;
                 }
                 
@@ -2195,6 +2292,31 @@
                 }
                 
                 console.log(`[Notifications] Scheduled ${this.scheduledTimers.length} notifications`);
+            },
+            
+            /**
+             * Show platform compatibility warning to user
+             */
+            showPlatformWarning(compatInfo) {
+                if (compatInfo.recommendations.length === 0) return;
+                
+                // Create a simple alert div
+                const alertHtml = `
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin: 20px; color: #856404;">
+                        <h4 style="margin: 0 0 10px 0;">⚠️ Известия не са поддържани</h4>
+                        <p style="margin: 0 0 10px 0;"><strong>Платформа:</strong> ${compatInfo.platform}</p>
+                        <p style="margin: 0 0 10px 0;"><strong>Препоръки:</strong></p>
+                        <ul style="margin: 0; padding-left: 20px;">
+                            ${compatInfo.recommendations.map(r => `<li>${r}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+                
+                // Try to insert warning at the top of the page
+                const container = document.querySelector('.container') || document.body;
+                const warningDiv = document.createElement('div');
+                warningDiv.innerHTML = alertHtml;
+                container.insertBefore(warningDiv, container.firstChild);
             },
             
             /**
@@ -2378,7 +2500,8 @@
             },
             
             /**
-             * Show notification using Notification API
+             * Show notification using Notification API or Service Worker
+             * Uses Service Worker for better platform compatibility (especially iOS)
              */
             async showNotification(options) {
                 if (!('Notification' in window)) {
@@ -2386,11 +2509,33 @@
                     return;
                 }
                 
-                if (Notification.permission === 'granted') {
-                    try {
+                if (Notification.permission !== 'granted') {
+                    console.warn('[Notifications] Notification permission not granted');
+                    return;
+                }
+                
+                try {
+                    // Prefer Service Worker notifications for better iOS support
+                    if (this.serviceWorkerReg && this.serviceWorkerReg.showNotification) {
+                        // Use Service Worker notification (works better on iOS PWA)
+                        await this.serviceWorkerReg.showNotification(options.title, {
+                            body: options.body,
+                            icon: options.icon || '/icon-192x192.png',
+                            badge: '/icon-192x192.png',
+                            tag: options.tag,
+                            requireInteraction: options.requireInteraction || false,
+                            data: {
+                                url: '/',
+                                timestamp: Date.now()
+                            },
+                            vibrate: options.vibrate || [200, 100, 200]
+                        });
+                        console.log('[Notifications] Notification shown via Service Worker');
+                    } else {
+                        // Fallback to regular Notification API
                         const notification = new Notification(options.title, {
                             body: options.body,
-                            icon: options.icon,
+                            icon: options.icon || '/icon-192x192.png',
                             tag: options.tag,
                             requireInteraction: options.requireInteraction || false
                         });
@@ -2399,9 +2544,10 @@
                             window.focus();
                             notification.close();
                         };
-                    } catch (e) {
-                        console.error('[Notifications] Error showing notification:', e);
+                        console.log('[Notifications] Notification shown via Notification API');
                     }
+                } catch (e) {
+                    console.error('[Notifications] Error showing notification:', e);
                 }
             },
             
