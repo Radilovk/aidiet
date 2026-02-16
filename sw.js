@@ -2,6 +2,8 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 const CACHE_NAME = 'nutriplan-v2';
+const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
+const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const STATIC_CACHE = [
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire.html`,
@@ -136,17 +138,70 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
   
+  let notificationData = {
+    title: 'NutriPlan',
+    body: 'Ново напомняне от NutriPlan',
+    url: '/',
+    icon: DEFAULT_ICON,
+    notificationType: 'general'
+  };
+  
+  // Parse notification data if available
+  if (event.data) {
+    try {
+      notificationData = event.data.json();
+    } catch (e) {
+      // Fallback to text if JSON parsing fails
+      notificationData.body = event.data.text();
+    }
+  }
+  
+  // Customize notification based on type
+  let icon = notificationData.icon || DEFAULT_ICON;
+  let badge = DEFAULT_BADGE;
+  let vibrate = [200, 100, 200];
+  let tag = `nutriplan-${notificationData.notificationType || 'general'}`;
+  let requireInteraction = false;
+  
+  // Type-specific customizations
+  switch (notificationData.notificationType) {
+    case 'chat':
+      vibrate = [100, 50, 100];
+      tag = 'nutriplan-chat';
+      break;
+    case 'water':
+      vibrate = [200];
+      tag = 'nutriplan-water';
+      requireInteraction = false;
+      break;
+    case 'meal':
+      vibrate = [300, 100, 300];
+      tag = 'nutriplan-meal';
+      requireInteraction = true; // Meal reminders are more important
+      break;
+    case 'snack':
+      vibrate = [150];
+      tag = 'nutriplan-snack';
+      break;
+    default:
+      break;
+  }
+  
   const options = {
-    body: event.data ? event.data.text() : 'Ново напомняне от NutriPlan',
-    icon: `${BASE_PATH}/icon-192x192.svg`,
-    badge: `${BASE_PATH}/icon-192x192.svg`,
-    vibrate: [200, 100, 200],
-    tag: 'nutriplan-notification',
-    requireInteraction: false
+    body: notificationData.body,
+    icon: icon,
+    badge: badge,
+    vibrate: vibrate,
+    tag: tag,
+    requireInteraction: requireInteraction,
+    data: {
+      url: notificationData.url || '/',
+      notificationType: notificationData.notificationType
+    }
   };
 
   event.waitUntil(
-    self.registration.showNotification('NutriPlan', options)
+    self.registration.showNotification(notificationData.title, options)
   );
 });
 
@@ -154,8 +209,28 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked');
   event.notification.close();
+  
+  // Get the URL from notification data
+  const url = event.notification.data?.url || '/';
+  const targetUrl = url.startsWith('http') ? url : `${BASE_PATH}${url}`;
 
   event.waitUntil(
-    clients.openWindow(`${BASE_PATH}/index.html`)
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Check if there's already a window open
+        for (let i = 0; i < clientList.length; i++) {
+          const client = clientList[i];
+          if (client.url.includes(BASE_PATH) && 'focus' in client) {
+            return client.focus().then(() => {
+              // Navigate to the target URL
+              return client.navigate(targetUrl);
+            });
+          }
+        }
+        // If no window is open, open a new one
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
   );
 });
