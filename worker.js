@@ -766,18 +766,25 @@ const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night 
  * Cache API helper functions for AI logging
  * Cache API is free and doesn't count against KV quotas - perfect for temporary data like logs
  * Cache is automatically distributed across Cloudflare's global network
+ * 
+ * Note: Cache API in Cloudflare Workers uses the Request/Response pattern
+ * We use a consistent domain pattern for cache namespacing
  */
 
 /**
  * Store data in Cache API with specified TTL
  * @param {string} key - Cache key
  * @param {any} data - Data to store (will be JSON stringified)
- * @param {number} ttl - Time to live in seconds
+ * @param {number} ttl - Time to live in seconds (default: 24 hours)
+ * @returns {Promise<boolean>} - True if stored successfully, false on error
+ * Note: cache.put() may fail silently in edge cases, so this returns true if no error is thrown
  */
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
   try {
     const cache = caches.default;
-    const url = `https://ai-logs.cache/${key}`;
+    // Use a consistent cache domain for all AI logs
+    // In Cloudflare Workers, cache keys are based on URL patterns
+    const url = `https://ai-logs-cache.internal/${key}`;
     const response = new Response(JSON.stringify(data), {
       headers: {
         'Content-Type': 'application/json',
@@ -795,12 +802,12 @@ async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
 /**
  * Retrieve data from Cache API
  * @param {string} key - Cache key
- * @returns {Promise<any|null>} - Parsed data or null if not found
+ * @returns {Promise<any|null>} - Parsed data or null if not found/expired
  */
 async function cacheGet(key) {
   try {
     const cache = caches.default;
-    const url = `https://ai-logs.cache/${key}`;
+    const url = `https://ai-logs-cache.internal/${key}`;
     const response = await cache.match(url);
     if (!response) {
       return null;
@@ -816,12 +823,12 @@ async function cacheGet(key) {
 /**
  * Delete data from Cache API
  * @param {string} key - Cache key
- * @returns {Promise<boolean>} - True if deleted successfully
+ * @returns {Promise<boolean>} - True if entry was found and deleted, false if not found (not an error)
  */
 async function cacheDelete(key) {
   try {
     const cache = caches.default;
-    const url = `https://ai-logs.cache/${key}`;
+    const url = `https://ai-logs-cache.internal/${key}`;
     const deleted = await cache.delete(url);
     return deleted;
   } catch (error) {
@@ -6253,6 +6260,20 @@ async function handleGetConfig(request, env) {
 /**
  * Get AI communication logs
  * Returns logged AI requests and responses for monitoring and debugging
+ */
+/**
+ * Get AI communication logs
+ * Retrieves AI logs from Cache API (free, no KV quota impact)
+ * 
+ * @param {Request} request - HTTP request with optional query params (limit, offset)
+ * @param {Object} env - Environment bindings
+ * @returns {Response} JSON response with:
+ *   - logs: Array of log entries (request + response pairs)
+ *   - total: Total number of logs
+ *   - limit: Number of logs per page
+ *   - offset: Starting position for pagination
+ *   - sessionCount: Number of sessions
+ *   - storageType: 'cache' (indicates logs are from Cache API, not KV)
  */
 async function handleGetAILogs(request, env) {
   try {
