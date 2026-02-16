@@ -3416,6 +3416,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         // --- Notification Templates Functions ---
+        let loadedTemplates = null; // Store loaded templates to preserve times
+
         async function loadNotificationTemplates() {
             try {
                 const result = await cachedFetch(
@@ -3426,6 +3428,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 if (result.success && result.templates) {
                     const t = result.templates;
+                    loadedTemplates = t; // Store for later use
 
                     // Meal templates
                     document.getElementById('templateMealBreakfastTitle').value = t.meals?.breakfast?.title || '';
@@ -3465,55 +3468,56 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
         async function saveNotificationTemplates() {
             try {
+                // Preserve times from loaded templates or use defaults
                 const templates = {
                     meals: {
                         breakfast: {
                             title: document.getElementById('templateMealBreakfastTitle').value,
                             body: document.getElementById('templateMealBreakfastBody').value,
-                            time: '08:00'
+                            time: loadedTemplates?.meals?.breakfast?.time || '08:00'
                         },
                         lunch: {
                             title: document.getElementById('templateMealLunchTitle').value,
                             body: document.getElementById('templateMealLunchBody').value,
-                            time: '13:00'
+                            time: loadedTemplates?.meals?.lunch?.time || '13:00'
                         },
                         dinner: {
                             title: document.getElementById('templateMealDinnerTitle').value,
                             body: document.getElementById('templateMealDinnerBody').value,
-                            time: '19:00'
+                            time: loadedTemplates?.meals?.dinner?.time || '19:00'
                         },
                         snack: {
                             title: document.getElementById('templateMealSnackTitle').value,
                             body: document.getElementById('templateMealSnackBody').value,
-                            time: '10:30'
+                            time: loadedTemplates?.meals?.snack?.time || '10:30'
                         }
                     },
                     water: {
                         title: document.getElementById('templateWaterTitle').value,
                         body: document.getElementById('templateWaterBody').value,
-                        frequency: 2
+                        frequency: loadedTemplates?.water?.frequency || 2
                     },
                     sleep: {
                         title: document.getElementById('templateSleepTitle').value,
                         body: document.getElementById('templateSleepBody').value,
-                        time: '22:00'
+                        time: loadedTemplates?.sleep?.time || '22:00'
                     },
                     activity: {
                         morning: {
                             title: document.getElementById('templateActivityMorningTitle').value,
                             body: document.getElementById('templateActivityMorningBody').value,
-                            time: '07:00'
+                            time: loadedTemplates?.activity?.morning?.time || '07:00'
                         },
                         day: {
                             title: document.getElementById('templateActivityDayTitle').value,
                             body: document.getElementById('templateActivityDayBody').value,
-                            time: '15:00'
+                            time: loadedTemplates?.activity?.day?.time || '15:00'
                         }
                     },
                     supplements: {
                         title: document.getElementById('templateSupplementsTitle').value,
                         body: document.getElementById('templateSupplementsBody').value,
-                        times: []
+                        times: loadedTemplates?.supplements?.times || []
                     }
                 };
 

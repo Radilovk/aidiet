@@ -7480,17 +7480,22 @@ async function handleAdminSendMessage(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    // Send notification to user
-    const sendRequest = new Request(request.url.replace(/\/api\/admin\/send-message$/, '/api/push/send'), {
+    // Send notification to user by calling handlePushSend directly
+    const pushPayload = {
+      userId: userId,
+      title: 'AI Асистент - NutriPlan',
+      body: message,
+      url: '/plan.html',
+      notificationType: 'chat'
+    };
+
+    // Create a new request for handlePushSend
+    const url = new URL(request.url);
+    url.pathname = '/api/push/send';
+    const sendRequest = new Request(url.toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: userId,
-        title: 'AI Асистент - NutriPlan',
-        body: message,
-        url: '/plan.html',
-        notificationType: 'chat'
-      })
+      body: JSON.stringify(pushPayload)
     });
 
     const response = await handlePushSend(sendRequest, env);
