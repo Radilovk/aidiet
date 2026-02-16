@@ -1164,6 +1164,18 @@
         
         // --- Push Notifications ---
         async function checkNotificationPermission(registration) {
+            // Check actual subscription status from service worker
+            try {
+                const existingSubscription = await registration.pushManager.getSubscription();
+                if (existingSubscription) {
+                    console.log('Already subscribed to push notifications');
+                    localStorage.setItem('pushSubscribed', 'true');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking subscription:', error);
+            }
+            
             // Check if already granted
             if (Notification.permission === 'granted') {
                 console.log('Notification permission already granted');
@@ -1226,7 +1238,7 @@
                 // Get or generate user ID
                 let userId = localStorage.getItem('userId');
                 if (!userId) {
-                    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
                     localStorage.setItem('userId', userId);
                 }
                 

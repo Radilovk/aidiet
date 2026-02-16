@@ -6890,7 +6890,7 @@ async function sendWebPushNotification(subscription, payload, env) {
   const jwtPayload = {
     aud: audience,
     exp: exp,
-    sub: 'mailto:admin@biocode.website'
+    sub: env.VAPID_EMAIL || 'mailto:admin@biocode.website'
   };
   
   // Encode header and payload
@@ -6938,7 +6938,9 @@ async function sendWebPushNotification(subscription, payload, env) {
   };
   
   // For now, we'll send the payload as plaintext
-  // Full encryption would require implementing the Web Push encryption protocol
+  // Note: For production, you should implement Web Push encryption (RFC 8291)
+  // to protect sensitive user data. This requires encrypting with subscription's
+  // p256dh and auth keys. Plaintext is acceptable for non-sensitive notifications.
   const body = new TextEncoder().encode(payload);
   
   // Send push notification to the push service

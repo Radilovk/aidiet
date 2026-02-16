@@ -3260,8 +3260,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Send test notification
         async function sendTestNotification() {
             try {
-                // For testing purposes, we'll send to the admin (you can modify this)
-                const userId = 'admin-test'; // You might want to prompt for a user ID
+                // Prompt for user ID or use default test ID
+                const userId = prompt(
+                    'Въведете User ID на потребител с активен push subscription:\n\n' +
+                    'Забележка: Можете да намерите User ID в browser console на потребителя ' +
+                    '(localStorage.getItem("userId")) или използвайте "admin-test" за тестване.',
+                    'admin-test'
+                );
+                
+                if (!userId) {
+                    return; // User cancelled
+                }
                 
                 const response = await fetch(WORKER_URL + '/api/push/send', {
                     method: 'POST',

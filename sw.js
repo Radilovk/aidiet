@@ -2,6 +2,8 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 const CACHE_NAME = 'nutriplan-v2';
+const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
+const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const STATIC_CACHE = [
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire.html`,
@@ -140,7 +142,7 @@ self.addEventListener('push', (event) => {
     title: 'NutriPlan',
     body: 'Ново напомняне от NutriPlan',
     url: '/',
-    icon: `${BASE_PATH}/icon-192x192.png`,
+    icon: DEFAULT_ICON,
     notificationType: 'general'
   };
   
@@ -155,8 +157,8 @@ self.addEventListener('push', (event) => {
   }
   
   // Customize notification based on type
-  let icon = notificationData.icon || `${BASE_PATH}/icon-192x192.png`;
-  let badge = `${BASE_PATH}/icon-192x192.png`;
+  let icon = notificationData.icon || DEFAULT_ICON;
+  let badge = DEFAULT_BADGE;
   let vibrate = [200, 100, 200];
   let tag = `nutriplan-${notificationData.notificationType || 'general'}`;
   let requireInteraction = false;
