@@ -663,6 +663,86 @@
             vertical-align: middle;
         }
 
+        /* Tab Navigation Styles */
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            background: var(--white);
+            padding: 15px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .tab-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 20px;
+            background: var(--bg-color);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            color: var(--text-dark);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            background: var(--soft-red);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: var(--primary-red);
+            color: white;
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); /* Matches primary green theme color */
+        }
+
+        .tab-btn i {
+            font-size: 1.2rem;
+        }
+
+        /* Tab Content Styles */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive tabs for mobile */
+        @media (max-width: 768px) {
+            .tab-navigation {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .tab-btn {
+                min-width: 100%;
+                padding: 12px 15px;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -754,6 +834,27 @@
             <div id="successMessage" class="success-message"></div>
             <div id="errorMessage" class="error-message"></div>
 
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" onclick="switchTab('configuration', event)">
+                    <i class="fas fa-cog"></i> Конфигурация
+                </button>
+                <button class="tab-btn" onclick="switchTab('ai-prompts', event)">
+                    <i class="fas fa-robot"></i> AI Промпти
+                </button>
+                <button class="tab-btn" onclick="switchTab('monitoring', event)">
+                    <i class="fas fa-chart-line"></i> Мониторинг
+                </button>
+                <button class="tab-btn" onclick="switchTab('features', event)">
+                    <i class="fas fa-sliders-h"></i> Функции
+                </button>
+                <button class="tab-btn" onclick="switchTab('system', event)">
+                    <i class="fas fa-tools"></i> Система
+                </button>
+            </div>
+
+            <!-- Configuration Tab -->
+            <div id="tab-configuration" class="tab-content active">
             <!-- AI Model Selection -->
             <div class="card">
                 <h2><i class="fas fa-robot"></i> AI Модел</h2>
@@ -855,7 +956,11 @@
                     <i class="fas fa-file-alt"></i> Техническо Резюме (PR_SUMMARY.md)
                 </button>
             </div>
+            </div>
+            <!-- End Configuration Tab -->
 
+            <!-- AI Prompts Tab -->
+            <div id="tab-ai-prompts" class="tab-content">
             <!-- AI Prompt Editor -->
             <div class="card">
                 <h2><i class="fas fa-pen-fancy"></i> AI Промпт за Генериране на План</h2>
@@ -1113,7 +1218,11 @@
                     <input type="file" id="importPromptsFile" accept=".json" style="display: none;" onchange="importAllPrompts(event)">
                 </div>
             </div>
+            </div>
+            <!-- End AI Prompts Tab -->
 
+            <!-- Monitoring Tab -->
+            <div id="tab-monitoring" class="tab-content">
             <!-- Problem Reports Section -->
             <div class="card">
                 <h2><i class="fas fa-exclamation-triangle"></i> Доклади за Проблеми</h2>
@@ -1237,7 +1346,11 @@
                     </p>
                 </div>
             </div>
+            </div>
+            <!-- End Monitoring Tab -->
 
+            <!-- Features Tab -->
+            <div id="tab-features" class="tab-content">
             <!-- Push Notifications Management -->
             <div class="card">
                 <h2><i class="fas fa-bell"></i> Управление на Push Известия</h2>
@@ -1418,7 +1531,11 @@
                     <i class="fas fa-sync"></i> Опресни Списъка
                 </button>
             </div>
+            </div>
+            <!-- End Features Tab -->
 
+            <!-- System Tab -->
+            <div id="tab-system" class="tab-content">
             <!-- System Actions -->
             <div class="card">
                 <h2><i class="fas fa-tools"></i> Системни Действия</h2>
@@ -1429,6 +1546,8 @@
                     <i class="fas fa-file-alt"></i> Преглед на Логове
                 </button>
             </div>
+            </div>
+            <!-- End System Tab -->
         </div>
     </div>
 
@@ -1457,6 +1576,81 @@
 
         // Initialize theme on load
         initializeTheme();
+
+        // --- Tab Management ---
+        function switchTab(tabName, evt) {
+            // Validate tabName to prevent XSS
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'system'];
+            if (!validTabs.includes(tabName)) {
+                console.error('Invalid tab name:', tabName);
+                return;
+            }
+
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show selected tab content
+            const selectedTab = document.getElementById(`tab-${tabName}`);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+
+            // Add active class to clicked button (using evt if passed, otherwise find by data attribute)
+            if (evt && evt.target) {
+                evt.target.closest('.tab-btn').classList.add('active');
+            } else {
+                // Find button by matching tab name in a safe way
+                const buttons = document.querySelectorAll('.tab-btn');
+                buttons.forEach(button => {
+                    const onclick = button.getAttribute('onclick');
+                    if (onclick && onclick.includes(tabName)) {
+                        button.classList.add('active');
+                    }
+                });
+            }
+
+            // Save selected tab to localStorage
+            localStorage.setItem('selectedTab', tabName);
+        }
+
+        // Initialize tab on page load
+        function initializeTab() {
+            const savedTab = localStorage.getItem('selectedTab') || 'configuration';
+            // Validate saved tab to prevent XSS
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'system'];
+            const tabToLoad = validTabs.includes(savedTab) ? savedTab : 'configuration';
+            
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(button => button.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabToLoad}`)?.classList.add('active');
+            
+            // Find and activate the matching button
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(button => {
+                const onclick = button.getAttribute('onclick');
+                if (onclick && onclick.includes(tabToLoad)) {
+                    button.classList.add('active');
+                }
+            });
+        }
+
+        // Initialize tab when dashboard is shown
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOMContentLoaded already ensures DOM is fully loaded, no timeout needed
+            initializeTab();
+        });
 
         // WARNING: This is a basic client-side authentication for demonstration purposes.
         // For production use, implement proper server-side authentication with the worker.
