@@ -246,6 +246,68 @@ Content-Type: application/json
 
 ## Troubleshooting
 
+### InvalidAccessError: The provided applicationServerKey is not valid
+
+**Symptom:** Console shows error:
+```
+Error subscribing to push notifications: InvalidAccessError: Failed to execute 'subscribe' on 'PushManager': The provided applicationServerKey is not valid.
+```
+
+**Causes:**
+1. VAPID public key is not configured
+2. VAPID public key has incorrect format
+3. VAPID public key is malformed or corrupted
+
+**Solution:**
+
+1. **Generate new VAPID keys:**
+   ```bash
+   npm install -g web-push
+   web-push generate-vapid-keys
+   ```
+
+2. **Configure keys in Cloudflare Worker:**
+   - Go to Cloudflare Workers Dashboard
+   - Select your worker → Settings → Variables
+   - Add `VAPID_PUBLIC_KEY` with the public key
+   - Add `VAPID_PRIVATE_KEY` with the private key (encrypted)
+
+3. **Verify key format:**
+   - Should be a base64url string
+   - Typically 87-88 characters long
+   - Example: `BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBrYhQzj_0sS5kVwfg3A`
+
+4. **Redeploy the worker:**
+   ```bash
+   wrangler deploy
+   ```
+
+5. **Check browser console after reload:**
+   - ✅ `Push subscription created successfully` - Success!
+   - ❌ `Invalid VAPID public key format` - Key format is wrong
+   - ❌ `VAPID keys not configured` - Keys not set in environment
+
+### How to find User ID for testing
+
+**New Method (Since February 2026):**
+1. Open index.html or plan.html
+2. Open Developer Console (F12)
+3. Your User ID will be displayed in a blue box:
+   ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   🔑 Your User ID for testing notifications:
+   user_1234567890_abc123
+   ℹ️  Use this ID in the Admin Panel to send test notifications
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ```
+4. Copy this User ID and use it in the admin panel to send test notifications
+
+**Alternative Method (Browser Console):**
+```javascript
+// Check your User ID
+console.log(localStorage.getItem('userId'));
+```
+
 ### VAPID keys not configured:
 
 **Symptom:** Admin panel shows "✗ Not configured"
