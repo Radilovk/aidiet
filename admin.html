@@ -1536,16 +1536,6 @@
 
             <!-- System Tab -->
             <div id="tab-system" class="tab-content">
-            <!-- System Actions -->
-            <div class="card">
-                <h2><i class="fas fa-tools"></i> Системни Действия</h2>
-                <button class="btn" onclick="clearCache()" style="background: #e67e22;">
-                    <i class="fas fa-trash"></i> Изчисти Кеш
-                </button>
-                <button class="btn" onclick="viewLogs()" style="background: #3498db; margin-left: 10px;">
-                    <i class="fas fa-file-alt"></i> Преглед на Логове
-                </button>
-            </div>
             </div>
             <!-- End System Tab -->
         </div>
@@ -3196,25 +3186,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
             document.getElementById('colorScheme').value = savedScheme;
             previewColorScheme();
-        }
-
-        // Clear Cache
-        function clearCache() {
-            if (confirm('Сигурни ли сте, че искате да изчистите целия кеш? Това ще премахне всички запазени планове и данни от браузъра, както и кеша на админ панела.')) {
-                // Clear in-memory API cache
-                apiCache.clearAll();
-                
-                // Clear browser storage
-                localStorage.clear();
-                sessionStorage.setItem('adminLoggedIn', 'true'); // Keep logged in
-                
-                showSuccess('Кешът е изчистен успешно! API кешът е премахнат и браузърът е изчистен.');
-            }
-        }
-
-        // View Logs
-        function viewLogs() {
-            alert('Преглед на логове ще бъде имплементиран в бъдеща версия.\nЗа текущи логове, проверете Cloudflare Dashboard.');
         }
 
         // --- Blacklist Management ---
