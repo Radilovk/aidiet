@@ -6885,8 +6885,7 @@ function vapidKeysToJWK(publicKeyBase64Url, privateKeyBase64Url) {
     crv: 'P-256',
     x: uint8ArrayToBase64Url(x),
     y: uint8ArrayToBase64Url(y),
-    d: uint8ArrayToBase64Url(d),
-    ext: true
+    d: uint8ArrayToBase64Url(d)
   };
   
   return jwk;
