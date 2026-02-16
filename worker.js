@@ -7177,6 +7177,26 @@ async function handlePushSend(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
+    // OPTIMIZATION: Rate limiting for manual sends to prevent admin spam
+    const rateLimitKey = `manual_notification_sent_${userId}`;
+    const lastSentStr = await env.page_content.get(rateLimitKey);
+    
+    if (lastSentStr) {
+      const lastSent = parseInt(lastSentStr);
+      const timeSinceLastSent = Date.now() - lastSent;
+      const MIN_INTERVAL_MS = 30 * 1000; // 30 seconds between manual notifications
+      
+      if (timeSinceLastSent < MIN_INTERVAL_MS) {
+        const waitTime = Math.ceil((MIN_INTERVAL_MS - timeSinceLastSent) / 1000);
+        console.log(`⚡ Rate limit: Manual notification to ${userId} rejected - sent ${Math.round(timeSinceLastSent / 1000)}s ago`);
+        return jsonResponse({ 
+          success: false,
+          error: `Rate limit exceeded. Please wait ${waitTime} seconds before sending another notification to this user.`,
+          waitSeconds: waitTime
+        }, 429); // HTTP 429 Too Many Requests
+      }
+    }
+
     // Retrieve subscription from KV
     const subscriptionKey = `push_subscription_${userId}`;
     const subscriptionData = await env.page_content.get(subscriptionKey);
@@ -7218,7 +7238,12 @@ async function handlePushSend(request, env) {
       );
       
       if (response.ok || response.status === 201) {
-        console.log(`Push notification sent successfully to user ${userId}`);
+        // OPTIMIZATION: Record that we sent this notification
+        await env.page_content.put(rateLimitKey, Date.now().toString(), {
+          expirationTtl: 60 // 1 minute
+        });
+        
+        console.log(`✅ Push notification sent successfully to user ${userId}`);
         return jsonResponse({ 
           success: true,
           message: 'Push notification sent successfully'
@@ -7396,7 +7421,7 @@ async function handleScheduledNotifications(event, env, ctx) {
       return;
     }
 
-    // Get notification settings
+    // OPTIMIZATION 1: Get notification settings (this is unavoidable, but we check early)
     const settingsData = await env.page_content.get('notification_settings');
     if (!settingsData) {
       console.log('No notification settings found, skipping scheduled notifications');
@@ -7419,11 +7444,31 @@ async function handleScheduledNotifications(event, env, ctx) {
 
     console.log(`Current UTC time: ${currentTime}`);
 
+    // OPTIMIZATION 2: Check if ANY reminders should be sent this hour
+    // This avoids fetching user list if no notifications are scheduled
+    const shouldProcessWater = settings.waterReminders?.enabled && 
+      shouldSendWaterReminderThisHour(settings.waterReminders, currentHour);
+    
+    const shouldProcessMeal = settings.mealReminders?.enabled && 
+      shouldSendMealReminderThisHour(settings.mealReminders, currentHour);
+    
+    const shouldProcessCustom = settings.customReminders && settings.customReminders.length > 0 &&
+      shouldSendCustomReminderThisHour(settings.customReminders, currentHour);
+
+    // OPTIMIZATION 3: Skip user list fetch if nothing to send
+    if (!shouldProcessWater && !shouldProcessMeal && !shouldProcessCustom) {
+      console.log(`⚡ No reminders scheduled for hour ${currentHour}:00 UTC - skipping user iteration (backend load reduced)`);
+      return;
+    }
+
+    console.log(`📋 Reminders to process: water=${shouldProcessWater}, meal=${shouldProcessMeal}, custom=${shouldProcessCustom}`);
+
     // Get list of all subscribed users (we need to iterate through KV)
     // Handle pagination for >1000 users
     const subscriptionPrefix = 'push_subscription_';
     let cursor = null;
     let totalUsers = 0;
+    let notificationsSent = 0;
     
     do {
       const listResult = await env.page_content.list({ 
@@ -7441,39 +7486,127 @@ async function handleScheduledNotifications(event, env, ctx) {
       console.log(`Processing ${listResult.keys.length} subscribed users (batch)`);
       totalUsers += listResult.keys.length;
 
-      // Process each user in this batch
+      // OPTIMIZATION 4: Process users in batch
+      // Collect all notification promises and execute in parallel (faster)
+      const notificationPromises = [];
+
       for (const key of listResult.keys) {
         const userId = key.name.replace(subscriptionPrefix, '');
         
-        try {
-          // Check water reminders
-          if (settings.waterReminders?.enabled) {
-            await checkAndSendWaterReminder(userId, settings.waterReminders, currentHour, env);
-          }
+        // Check water reminders
+        if (shouldProcessWater) {
+          notificationPromises.push(
+            checkAndSendWaterReminder(userId, settings.waterReminders, currentHour, env)
+              .then(() => notificationsSent++)
+              .catch(error => console.error(`Error sending water reminder to ${userId}:`, error))
+          );
+        }
 
-          // Check meal reminders
-          if (settings.mealReminders?.enabled) {
-            await checkAndSendMealReminder(userId, settings.mealReminders, currentTime, env);
-          }
+        // Check meal reminders
+        if (shouldProcessMeal) {
+          notificationPromises.push(
+            checkAndSendMealReminder(userId, settings.mealReminders, currentTime, env)
+              .then(() => notificationsSent++)
+              .catch(error => console.error(`Error sending meal reminder to ${userId}:`, error))
+          );
+        }
 
-          // Check custom reminders
-          if (settings.customReminders && settings.customReminders.length > 0) {
-            await checkAndSendCustomReminders(userId, settings.customReminders, currentTime, now, env);
-          }
-        } catch (error) {
-          console.error(`Error processing notifications for user ${userId}:`, error);
-          // Continue with next user even if one fails
+        // Check custom reminders
+        if (shouldProcessCustom) {
+          notificationPromises.push(
+            checkAndSendCustomReminders(userId, settings.customReminders, currentTime, now, env)
+              .then(() => notificationsSent++)
+              .catch(error => console.error(`Error sending custom reminder to ${userId}:`, error))
+          );
         }
       }
+
+      // OPTIMIZATION 5: Execute all notifications in parallel (much faster than sequential)
+      await Promise.allSettled(notificationPromises);
       
       // Move to next page if available
       cursor = listResult.list_complete ? null : listResult.cursor;
     } while (cursor);
 
-    console.log(`Scheduled notification check completed. Processed ${totalUsers} total users.`);
+    console.log(`⚡ Scheduled notification check completed. Processed ${totalUsers} users, sent ${notificationsSent} notifications (backend optimized).`);
   } catch (error) {
     console.error('Error in scheduled notification handler:', error);
   }
+}
+
+/**
+ * OPTIMIZATION HELPER: Check if water reminders should be sent this hour
+ * Avoids fetching user list if no reminders are needed
+ */
+function shouldSendWaterReminderThisHour(waterSettings, currentHour) {
+  const { frequency, startHour, endHour } = waterSettings;
+  
+  // Check if current hour is within the water reminder window
+  const isInWindow = startHour <= endHour 
+    ? (currentHour >= startHour && currentHour <= endHour)
+    : (currentHour >= startHour || currentHour <= endHour);
+  
+  if (!isInWindow) {
+    return false;
+  }
+
+  // Check if current hour matches the frequency pattern
+  let hoursSinceStart;
+  if (currentHour >= startHour) {
+    hoursSinceStart = currentHour - startHour;
+  } else {
+    hoursSinceStart = (24 - startHour) + currentHour;
+  }
+  
+  return hoursSinceStart % frequency === 0;
+}
+
+/**
+ * OPTIMIZATION HELPER: Check if meal reminders should be sent this hour
+ */
+function shouldSendMealReminderThisHour(mealSettings, currentHour) {
+  const meals = [
+    mealSettings.breakfast,
+    mealSettings.lunch,
+    mealSettings.dinner
+  ];
+  
+  // Check if any meal time falls in current hour
+  for (const mealTime of meals) {
+    if (mealTime) {
+      const [mealHour] = mealTime.split(':').map(Number);
+      if (mealHour === currentHour) {
+        return true;
+      }
+    }
+  }
+  
+  // Check snack times if enabled
+  if (mealSettings.snacks && mealSettings.snackTimes) {
+    for (const snackTime of mealSettings.snackTimes) {
+      const [snackHour] = snackTime.split(':').map(Number);
+      if (snackHour === currentHour) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * OPTIMIZATION HELPER: Check if custom reminders should be sent this hour
+ */
+function shouldSendCustomReminderThisHour(customReminders, currentHour) {
+  for (const reminder of customReminders) {
+    if (!reminder.enabled) continue;
+    
+    const [reminderHour] = reminder.time.split(':').map(Number);
+    if (reminderHour === currentHour) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -7614,9 +7747,25 @@ async function checkAndSendCustomReminders(userId, customReminders, currentTime,
 
 /**
  * Helper function to send push notification to a specific user
+ * OPTIMIZATION: Includes rate limiting to prevent duplicate notifications
  */
 async function sendPushNotificationToUser(userId, pushMessage, env) {
   try {
+    // OPTIMIZATION: Rate limiting - check if we sent this notification type recently
+    const rateLimitKey = `notification_sent_${userId}_${pushMessage.notificationType}`;
+    const lastSentStr = await env.page_content.get(rateLimitKey);
+    
+    if (lastSentStr) {
+      const lastSent = parseInt(lastSentStr);
+      const timeSinceLastSent = Date.now() - lastSent;
+      const MIN_INTERVAL_MS = 50 * 60 * 1000; // 50 minutes (prevent duplicate hourly notifications)
+      
+      if (timeSinceLastSent < MIN_INTERVAL_MS) {
+        console.log(`⚡ Skipping ${pushMessage.notificationType} notification for ${userId} - sent ${Math.round(timeSinceLastSent / 60000)} minutes ago (rate limited)`);
+        return; // Skip sending, too soon since last notification
+      }
+    }
+    
     // Get user's push subscription
     const subscriptionData = await env.page_content.get(`push_subscription_${userId}`);
     if (!subscriptionData) {
@@ -7628,7 +7777,14 @@ async function sendPushNotificationToUser(userId, pushMessage, env) {
     
     // Send the push notification
     await sendWebPushNotification(subscription, pushMessage, env);
-    console.log(`Push notification sent successfully to user ${userId}`);
+    
+    // OPTIMIZATION: Record that we sent this notification (for rate limiting)
+    // Set with 1 hour expiration to keep KV clean
+    await env.page_content.put(rateLimitKey, Date.now().toString(), {
+      expirationTtl: 3600 // 1 hour
+    });
+    
+    console.log(`✅ Push notification sent successfully to user ${userId} (type: ${pushMessage.notificationType})`);
   } catch (error) {
     console.error(`Error sending push notification to user ${userId}:`, error);
     throw error;
