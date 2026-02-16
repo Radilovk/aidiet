@@ -982,6 +982,20 @@ function parseAIResponse(response) {
 // Actual GPT tokenization varies by language and content. This is sufficient
 // for conversation history management where approximate limits are acceptable.
 /**
+ * Wrap prompt with strict JSON-only enforcement prefix
+ * This reduces unnecessary AI explanation text and output tokens
+ */
+function enforceJSONOnlyPrompt(prompt) {
+  const jsonPrefix = `CRITICAL INSTRUCTION: You MUST respond with ONLY a valid JSON object. 
+Do not include any explanatory text, markdown formatting, or anything outside the JSON structure.
+Your response must start with { or [ and end with } or ].
+NO text before the JSON. NO text after the JSON. ONLY JSON.
+
+`;
+  return jsonPrefix + prompt;
+}
+
+/**
  * Accurate token count estimation for AI prompts (supports Cyrillic)
  */
 function estimateTokenCount(text) {
@@ -1051,8 +1065,11 @@ function checkFoodExistsInPlan(plan, foodName) {
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
  */
 async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null, userData = null, calculatedData = null) {
+  // Apply strict JSON-only enforcement to reduce unnecessary output
+  const enforcedPrompt = enforceJSONOnlyPrompt(prompt);
+  
   // Improved token estimation for Cyrillic text
-  const estimatedInputTokens = estimateTokenCount(prompt);
+  const estimatedInputTokens = estimateTokenCount(enforcedPrompt);
   console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
   
   // Monitor for large prompts - informational only
@@ -1073,7 +1090,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
 
   // Log AI request
   const logId = await logAIRequest(env, stepName, {
-    prompt: prompt,
+    prompt: enforcedPrompt,
     estimatedInputTokens: estimatedInputTokens,
     maxTokens: maxTokens,
     provider: preferredProvider,
@@ -1092,31 +1109,31 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     // If mock is selected, return mock response
     if (preferredProvider === 'mock') {
       console.warn('Mock mode selected. Returning mock response.');
-      response = generateMockResponse(prompt);
+      response = generateMockResponse(enforcedPrompt);
       success = true;
     } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
       // Try preferred provider first
-      response = await callOpenAI(env, prompt, modelName, maxTokens);
+      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens);
       success = true;
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      response = await callClaude(env, prompt, modelName, maxTokens);
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens);
       success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, prompt, modelName, maxTokens);
+      response = await callGemini(env, enforcedPrompt, modelName, maxTokens);
       success = true;
     } else {
       // Fallback hierarchy if preferred not available
       if (env.OPENAI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to OpenAI.');
-        response = await callOpenAI(env, prompt, modelName, maxTokens);
+        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens);
         success = true;
       } else if (env.ANTHROPIC_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Anthropic.');
-        response = await callClaude(env, prompt, modelName, maxTokens);
+        response = await callClaude(env, enforcedPrompt, modelName, maxTokens);
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Google Gemini.');
-        response = await callGemini(env, prompt, modelName, maxTokens);
+        response = await callGemini(env, enforcedPrompt, modelName, maxTokens);
         success = true;
       } else {
         throw new Error('No AI provider configured. Please configure at least one provider.');
