@@ -11,6 +11,11 @@ id = "81fc0991b2764918b682f9ca170abd4b"
 # Run: wrangler secret put OPENAI_API_KEY
 # Run: wrangler secret put GEMINI_API_KEY
 
+# Cron Triggers for scheduled notifications
+# Runs every hour to check and send scheduled reminders
+[triggers]
+crons = ["0 * * * *"]
+
 [env.production]
 name = "aidiet-worker"
 route = "aidiet.radilov-k.workers.dev/*"
