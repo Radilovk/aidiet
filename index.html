@@ -870,9 +870,6 @@
             });
         })();
     </script>
-    
-    <!-- Shared utilities for caching and request optimization -->
-    <script src="./shared-utils.js"></script>
 </head>
 <body>
 
@@ -1222,15 +1219,25 @@
         
         async function subscribeToPushNotifications(registration) {
             try {
-                // Get VAPID public key (cached to reduce backend load)
-                const vapidKey = await VapidKeyCache.get(WORKER_URL);
+                // Get VAPID public key from server
+                const vapidResponse = await fetch(`${WORKER_URL}/api/push/vapid-public-key`);
+                const vapidData = await vapidResponse.json();
                 
-                if (!vapidKey) {
+                if (!vapidData.success || vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
                     console.warn('❌ VAPID keys not configured on server');
                     console.info('ℹ️ To enable push notifications, the administrator needs to:');
                     console.info('1. Generate VAPID keys using: npm install -g web-push && web-push generate-vapid-keys');
                     console.info('2. Configure VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in Cloudflare Worker environment variables');
                     console.info('3. See PUSH_NOTIFICATIONS_SETUP.md for detailed instructions');
+                    return;
+                }
+                
+                // Validate VAPID key format (should be base64url, typically 87-88 characters)
+                if (!vapidData.publicKey || vapidData.publicKey.length < 80) {
+                    console.error('❌ Invalid VAPID public key format received from server');
+                    console.error('Received key:', vapidData.publicKey);
+                    console.info('ℹ️ The VAPID public key should be a base64url string of 87-88 characters');
+                    console.info('Example: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBrYhQzj_0sS5kVwfg3A');
                     return;
                 }
                 
@@ -1265,7 +1272,7 @@
                 // Subscribe to push notifications
                 const subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(vapidKey)
+                    applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
                 });
                 
                 console.log('✅ Push subscription created successfully');
