@@ -3416,7 +3416,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         // --- Notification Templates Functions ---
-        let loadedTemplates = null; // Store loaded templates to preserve times
+        let currentTemplateData = null; // Store loaded templates to preserve times and other metadata
 
         async function loadNotificationTemplates() {
             try {
@@ -3428,7 +3428,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 if (result.success && result.templates) {
                     const t = result.templates;
-                    loadedTemplates = t; // Store for later use
+                    currentTemplateData = t; // Store for preserving metadata during saves
 
                     // Meal templates
                     document.getElementById('templateMealBreakfastTitle').value = t.meals?.breakfast?.title || '';
@@ -3474,50 +3474,50 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         breakfast: {
                             title: document.getElementById('templateMealBreakfastTitle').value,
                             body: document.getElementById('templateMealBreakfastBody').value,
-                            time: loadedTemplates?.meals?.breakfast?.time || '08:00'
+                            time: currentTemplateData?.meals?.breakfast?.time || '08:00'
                         },
                         lunch: {
                             title: document.getElementById('templateMealLunchTitle').value,
                             body: document.getElementById('templateMealLunchBody').value,
-                            time: loadedTemplates?.meals?.lunch?.time || '13:00'
+                            time: currentTemplateData?.meals?.lunch?.time || '13:00'
                         },
                         dinner: {
                             title: document.getElementById('templateMealDinnerTitle').value,
                             body: document.getElementById('templateMealDinnerBody').value,
-                            time: loadedTemplates?.meals?.dinner?.time || '19:00'
+                            time: currentTemplateData?.meals?.dinner?.time || '19:00'
                         },
                         snack: {
                             title: document.getElementById('templateMealSnackTitle').value,
                             body: document.getElementById('templateMealSnackBody').value,
-                            time: loadedTemplates?.meals?.snack?.time || '10:30'
+                            time: currentTemplateData?.meals?.snack?.time || '10:30'
                         }
                     },
                     water: {
                         title: document.getElementById('templateWaterTitle').value,
                         body: document.getElementById('templateWaterBody').value,
-                        frequency: loadedTemplates?.water?.frequency || 2
+                        frequency: currentTemplateData?.water?.frequency || 2
                     },
                     sleep: {
                         title: document.getElementById('templateSleepTitle').value,
                         body: document.getElementById('templateSleepBody').value,
-                        time: loadedTemplates?.sleep?.time || '22:00'
+                        time: currentTemplateData?.sleep?.time || '22:00'
                     },
                     activity: {
                         morning: {
                             title: document.getElementById('templateActivityMorningTitle').value,
                             body: document.getElementById('templateActivityMorningBody').value,
-                            time: loadedTemplates?.activity?.morning?.time || '07:00'
+                            time: currentTemplateData?.activity?.morning?.time || '07:00'
                         },
                         day: {
                             title: document.getElementById('templateActivityDayTitle').value,
                             body: document.getElementById('templateActivityDayBody').value,
-                            time: loadedTemplates?.activity?.day?.time || '15:00'
+                            time: currentTemplateData?.activity?.day?.time || '15:00'
                         }
                     },
                     supplements: {
                         title: document.getElementById('templateSupplementsTitle').value,
                         body: document.getElementById('templateSupplementsBody').value,
-                        times: loadedTemplates?.supplements?.times || []
+                        times: currentTemplateData?.supplements?.times || []
                     }
                 };
 
