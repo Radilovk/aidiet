@@ -113,10 +113,15 @@ const OFFENSIVE_PATTERNS = [
 ];
 
 // AI Communication Logging Configuration
-// AI logging is ALWAYS ENABLED to maintain last complete communication for debugging
+// HYBRID APPROACH: Cache API for normal logs + KV for errors
+// Cache API is free and doesn't count against KV READ/WRITE quotas
+// Logs are stored temporarily in Cache with 24-hour TTL
+// Errors are permanently stored in KV for debugging
 // MAX_LOG_ENTRIES controls how many sessions to keep (1 = only the most recent session)
 // Increased to 10 to preserve error logs for debugging failed plan generations
 const MAX_LOG_ENTRIES = 10; // Keep last 10 sessions to ensure error logs are preserved for debugging
+const AI_LOG_CACHE_TTL = 24 * 60 * 60; // 24 hours - logs expire after 1 day
+const AI_ERROR_LOG_KV_ENABLED = true; // Enable KV storage for errors (debugging capability)
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -759,6 +764,80 @@ const CHAT_CONTEXT_MAX_SIZE = 1000; // Maximum number of cached contexts (preven
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 
+/**
+ * Cache API helper functions for AI logging
+ * Cache API is free and doesn't count against KV quotas - perfect for temporary data like logs
+ * Cache is automatically distributed across Cloudflare's global network
+ * 
+ * Note: Cache API in Cloudflare Workers uses the Request/Response pattern
+ * We use a consistent domain pattern for cache namespacing
+ */
+
+/**
+ * Store data in Cache API with specified TTL
+ * @param {string} key - Cache key
+ * @param {any} data - Data to store (will be JSON stringified)
+ * @param {number} ttl - Time to live in seconds (default: 24 hours)
+ * @returns {Promise<boolean>} - True if stored successfully, false on error
+ * Note: cache.put() may fail silently in edge cases, so this returns true if no error is thrown
+ */
+async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
+  try {
+    const cache = caches.default;
+    // Use a consistent cache domain for all AI logs
+    // In Cloudflare Workers, cache keys are based on URL patterns
+    const url = `https://ai-logs-cache.internal/${key}`;
+    const response = new Response(JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': `public, max-age=${ttl}`
+      }
+    });
+    await cache.put(url, response);
+    return true;
+  } catch (error) {
+    console.error(`[Cache API] Failed to set key ${key}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Retrieve data from Cache API
+ * @param {string} key - Cache key
+ * @returns {Promise<any|null>} - Parsed data or null if not found/expired
+ */
+async function cacheGet(key) {
+  try {
+    const cache = caches.default;
+    const url = `https://ai-logs-cache.internal/${key}`;
+    const response = await cache.match(url);
+    if (!response) {
+      return null;
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`[Cache API] Failed to get key ${key}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Delete data from Cache API
+ * @param {string} key - Cache key
+ * @returns {Promise<boolean>} - True if entry was found and deleted, false if not found (not an error)
+ */
+async function cacheDelete(key) {
+  try {
+    const cache = caches.default;
+    const url = `https://ai-logs-cache.internal/${key}`;
+    const deleted = await cache.delete(url);
+    return deleted;
+  } catch (error) {
+    console.error(`[Cache API] Failed to delete key ${key}:`, error);
+    return false;
+  }
+}
 
 /**
  * Remove internal justification fields from plan before returning to client
@@ -5865,20 +5944,14 @@ function generateMockResponse(prompt) {
  */
 
 /**
- * Log AI communication to KV storage
+ * Log AI communication to Cache API (normal) and KV (errors only)
+ * HYBRID APPROACH:
+ * - All logs → Cache API (free, no quota impact, 24h TTL)
+ * - Errors only → KV (permanent, for debugging, minimal quota impact)
  * Tracks all communication between backend and AI model
  */
 async function logAIRequest(env, stepName, requestData) {
   try {
-    if (!env.page_content) {
-      console.warn('KV storage not configured, skipping AI request logging');
-      return null;
-    }
-
-    // AI logging is always enabled to maintain last complete communication log
-    // This is required for debugging and monitoring purposes
-    // The system keeps only the last MAX_LOG_ENTRIES sessions to manage KV usage
-
     // Generate unique log ID
     const logId = generateUniqueId('ai_log');
     const timestamp = new Date().toISOString();
@@ -5900,15 +5973,18 @@ async function logAIRequest(env, stepName, requestData) {
       modelName: requestData.modelName || 'unknown',
       // Include structured user data and calculations for export
       userData: requestData.userData || null,
-      calculatedData: requestData.calculatedData || null
+      calculatedData: requestData.calculatedData || null,
+      // Flag for error state
+      hasError: !!requestData.error,
+      error: requestData.error || null
     };
 
-    // Store individual log entry
-    await env.page_content.put(`ai_communication_log:${logId}`, JSON.stringify(logEntry));
+    // ALWAYS store in Cache API (no KV quota impact!)
+    await cacheSet(`ai_communication_log:${logId}`, logEntry, AI_LOG_CACHE_TTL);
     
-    // Get or create session index
-    let sessionIndex = await env.page_content.get('ai_communication_session_index');
-    sessionIndex = sessionIndex ? JSON.parse(sessionIndex) : [];
+    // Get or create session index from Cache API
+    let sessionIndex = await cacheGet('ai_communication_session_index');
+    sessionIndex = sessionIndex || [];
     
     // Add sessionId to index if not already present
     if (!sessionIndex.includes(sessionId)) {
@@ -5919,33 +5995,43 @@ async function logAIRequest(env, stepName, requestData) {
         sessionIndex = sessionIndex.slice(0, MAX_LOG_ENTRIES);
       }
       
-      await env.page_content.put('ai_communication_session_index', JSON.stringify(sessionIndex));
+      await cacheSet('ai_communication_session_index', sessionIndex, AI_LOG_CACHE_TTL);
     }
     
-    // Add log to session's log list
-    let sessionLogs = await env.page_content.get(`ai_session_logs:${sessionId}`);
-    sessionLogs = sessionLogs ? JSON.parse(sessionLogs) : [];
+    // Add log to session's log list in Cache API
+    let sessionLogs = await cacheGet(`ai_session_logs:${sessionId}`);
+    sessionLogs = sessionLogs || [];
     sessionLogs.push(logId);
-    await env.page_content.put(`ai_session_logs:${sessionId}`, JSON.stringify(sessionLogs));
+    await cacheSet(`ai_session_logs:${sessionId}`, sessionLogs, AI_LOG_CACHE_TTL);
     
-    console.log(`AI request logged: ${stepName} (${logId}, session: ${sessionId})`);
+    // HYBRID: If there's an error, ALSO store in KV for permanent debugging
+    if (requestData.error && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
+      try {
+        await env.page_content.put(
+          `ai_error_log:${logId}`,
+          JSON.stringify(logEntry)
+        );
+        console.log(`[KV] Error logged to KV for permanent storage: ${stepName} (${logId})`);
+      } catch (kvError) {
+        console.error('[KV] Failed to log error to KV:', kvError);
+        // Continue - error is still in Cache API
+      }
+    }
+    
+    console.log(`[Cache API] AI request logged: ${stepName} (${logId}, session: ${sessionId})`);
     return logId;
   } catch (error) {
-    console.error('Failed to log AI request:', error);
+    console.error('[Cache API] Failed to log AI request:', error);
     return null;
   }
 }
 
 async function logAIResponse(env, logId, stepName, responseData) {
   try {
-    if (!env.page_content || !logId) {
-      console.warn('KV storage not configured or missing logId, skipping AI response logging');
+    if (!logId) {
+      console.warn('[Cache API] Missing logId, skipping AI response logging');
       return;
     }
-
-    // AI logging is always enabled to maintain last complete communication log
-    // This is required for debugging and monitoring purposes
-    // The system keeps only the last MAX_LOG_ENTRIES sessions to manage KV usage
 
     const timestamp = new Date().toISOString();
     
@@ -5959,15 +6045,30 @@ async function logAIResponse(env, logId, stepName, responseData) {
       estimatedOutputTokens: responseData.estimatedOutputTokens || 0,
       duration: responseData.duration || 0,
       success: responseData.success || false,
-      error: responseData.error || null
+      error: responseData.error || null,
+      hasError: !!responseData.error || !responseData.success
     };
 
-    // Update the log entry with response data
-    await env.page_content.put(`ai_communication_log:${logId}_response`, JSON.stringify(logEntry));
+    // ALWAYS store response in Cache API (no KV quota impact!)
+    await cacheSet(`ai_communication_log:${logId}_response`, logEntry, AI_LOG_CACHE_TTL);
     
-    console.log(`AI response logged: ${stepName} (${logId})`);
+    // HYBRID: If there's an error or failure, ALSO store in KV for permanent debugging
+    if ((responseData.error || !responseData.success) && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
+      try {
+        await env.page_content.put(
+          `ai_error_log:${logId}_response`,
+          JSON.stringify(logEntry)
+        );
+        console.log(`[KV] Error response logged to KV for permanent storage: ${stepName} (${logId})`);
+      } catch (kvError) {
+        console.error('[KV] Failed to log error response to KV:', kvError);
+        // Continue - error is still in Cache API
+      }
+    }
+    
+    console.log(`[Cache API] AI response logged: ${stepName} (${logId})`);
   } catch (error) {
-    console.error('Failed to log AI response:', error);
+    console.error('[Cache API] Failed to log AI response:', error);
   }
 }
 
@@ -6189,34 +6290,40 @@ async function handleGetConfig(request, env) {
  * Get AI communication logs
  * Returns logged AI requests and responses for monitoring and debugging
  */
+/**
+ * Get AI communication logs
+ * Retrieves AI logs from Cache API (free, no KV quota impact)
+ * 
+ * @param {Request} request - HTTP request with optional query params (limit, offset)
+ * @param {Object} env - Environment bindings
+ * @returns {Response} JSON response with:
+ *   - logs: Array of log entries (request + response pairs)
+ *   - total: Total number of logs
+ *   - limit: Number of logs per page
+ *   - offset: Starting position for pagination
+ *   - sessionCount: Number of sessions
+ *   - storageType: 'cache' (indicates logs are from Cache API, not KV)
+ */
 async function handleGetAILogs(request, env) {
   try {
-    if (!env.page_content) {
-      return jsonResponse({ error: 'KV storage not configured' }, 500);
-    }
-
+    // AI logs are now stored in Cache API (free, no KV quota impact)
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
     
-    // Try to get session index first (new format)
-    let sessionIndex = await env.page_content.get('ai_communication_session_index');
+    // Get session index from Cache API
+    let sessionIndex = await cacheGet('ai_communication_session_index');
     
-    if (sessionIndex) {
-      // New session-based format
-      const sessionIds = JSON.parse(sessionIndex);
-      
-      if (sessionIds.length === 0) {
-        return jsonResponse({ success: true, logs: [], total: 0 });
-      }
+    if (sessionIndex && sessionIndex.length > 0) {
+      // Session-based format (current)
+      const sessionIds = sessionIndex;
       
       // Get all log IDs from ALL sessions (not just the latest one)
       const allLogIds = [];
       for (const sessionId of sessionIds) {
-        const sessionLogsData = await env.page_content.get(`ai_session_logs:${sessionId}`);
+        const sessionLogsData = await cacheGet(`ai_session_logs:${sessionId}`);
         if (sessionLogsData) {
-          const sessionLogIds = JSON.parse(sessionLogsData);
-          allLogIds.push(...sessionLogIds);
+          allLogIds.push(...sessionLogsData);
         }
       }
       
@@ -6229,10 +6336,10 @@ async function handleGetAILogs(request, env) {
       // Apply pagination
       const paginatedIds = allLogIds.slice(offset, offset + limit);
       
-      // Fetch logs in parallel
+      // Fetch logs in parallel from Cache API
       const logPromises = paginatedIds.flatMap(logId => [
-        env.page_content.get(`ai_communication_log:${logId}`),
-        env.page_content.get(`ai_communication_log:${logId}_response`)
+        cacheGet(`ai_communication_log:${logId}`),
+        cacheGet(`ai_communication_log:${logId}_response`)
       ]);
       
       const logData = await Promise.all(logPromises);
@@ -6240,8 +6347,8 @@ async function handleGetAILogs(request, env) {
       // Combine request and response logs
       const logs = [];
       for (let i = 0; i < paginatedIds.length; i++) {
-        const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
-        const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
+        const requestLog = logData[i * 2];
+        const responseLog = logData[i * 2 + 1];
         
         if (requestLog) {
           logs.push({
@@ -6257,117 +6364,95 @@ async function handleGetAILogs(request, env) {
         total: total,
         limit: limit,
         offset: offset,
-        sessionCount: sessionIds.length
+        sessionCount: sessionIds.length,
+        storageType: 'cache' // Indicate logs are from Cache API
       }, 200, {
         cacheControl: 'public, max-age=60' // Cache for 1 minute - logs are frequently updated
       });
     } else {
-      // Fallback to old log index format for backward compatibility
-      const logIndex = await env.page_content.get('ai_communication_log_index');
-      if (!logIndex) {
-        return jsonResponse({ success: true, logs: [], total: 0 });
-      }
-      
-      const logIds = JSON.parse(logIndex);
-      const total = logIds.length;
-      
-      // Apply pagination
-      const paginatedIds = logIds.slice(offset, offset + limit);
-      
-      // Fetch logs in parallel
-      const logPromises = paginatedIds.flatMap(logId => [
-        env.page_content.get(`ai_communication_log:${logId}`),
-        env.page_content.get(`ai_communication_log:${logId}_response`)
-      ]);
-      
-      const logData = await Promise.all(logPromises);
-      
-      // Combine request and response logs
-      const logs = [];
-      for (let i = 0; i < paginatedIds.length; i++) {
-        const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
-        const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
-        
-        if (requestLog) {
-          logs.push({
-            ...requestLog,
-            response: responseLog
-          });
-        }
-      }
-      
+      // No logs found
       return jsonResponse({ 
         success: true, 
-        logs: logs,
-        total: total,
-        limit: limit,
-        offset: offset
-      }, 200, {
-        cacheControl: 'public, max-age=60' // Cache for 1 minute - logs are frequently updated
+        logs: [], 
+        total: 0,
+        storageType: 'cache'
       });
     }
   } catch (error) {
-    console.error('Error getting AI logs:', error);
-    return jsonResponse({ error: 'Failed to get AI logs: ' + error.message }, 500);
+    console.error('[Cache API] Error fetching AI logs:', error);
+    return jsonResponse({ error: 'Failed to fetch AI logs', details: error.message }, 500);
   }
 }
 
 /**
  * Cleanup AI logs - delete all previous logs and keep only the most recent one
+ * NOTE: Cache API logs automatically expire after 24 hours, so this is optional
  */
 async function handleCleanupAILogs(request, env) {
   try {
-    if (!env.page_content) {
-      return jsonResponse({ error: 'KV storage not configured' }, 500);
-    }
-
-    // Get log index
-    const logIndex = await env.page_content.get('ai_communication_log_index');
-    if (!logIndex) {
-      return jsonResponse({ success: true, message: 'No logs to cleanup', deletedCount: 0 });
-    }
+    // AI logs are now in Cache API and automatically expire after 24 hours
+    // This function manually clears all logs from cache
     
-    let logIds;
-    try {
-      logIds = JSON.parse(logIndex);
-    } catch (parseError) {
-      console.error('Failed to parse log index:', parseError);
-      return jsonResponse({ error: 'Invalid log index format' }, 500);
+    // Get session index from Cache API
+    let sessionIndex = await cacheGet('ai_communication_session_index');
+    
+    if (!sessionIndex || sessionIndex.length === 0) {
+      return jsonResponse({ 
+        success: true, 
+        message: 'No logs to cleanup', 
+        deletedCount: 0,
+        storageType: 'cache'
+      });
     }
     
-    if (logIds.length === 0) {
-      return jsonResponse({ success: true, message: 'No logs to cleanup', deletedCount: 0 });
+    // Get all log IDs from all sessions
+    const allLogIds = [];
+    for (const sessionId of sessionIndex) {
+      const sessionLogsData = await cacheGet(`ai_session_logs:${sessionId}`);
+      if (sessionLogsData) {
+        allLogIds.push(...sessionLogsData);
+      }
     }
     
-    // Keep only the most recent log (first in the array)
-    const recentLogId = logIds[0];
-    const logsToDelete = logIds.slice(1);
-    
-    // Delete old log entries
-    // Note: This operation is not atomic and may have race conditions if called concurrently
-    // However, this is an admin-only function and concurrent calls are unlikely
-    if (logsToDelete.length > 0) {
-      const deletePromises = logsToDelete.flatMap(id => [
-        env.page_content.delete(`ai_communication_log:${id}`),
-        env.page_content.delete(`ai_communication_log:${id}_response`)
-      ]);
-      
-      await Promise.all(deletePromises);
+    if (allLogIds.length === 0) {
+      return jsonResponse({ 
+        success: true, 
+        message: 'No logs to cleanup', 
+        deletedCount: 0,
+        storageType: 'cache'
+      });
     }
     
-    // Update log index to contain only the most recent log
-    await env.page_content.put('ai_communication_log_index', JSON.stringify([recentLogId]));
+    // Delete all log entries from Cache API
+    const deletePromises = [];
+    for (const logId of allLogIds) {
+      deletePromises.push(
+        cacheDelete(`ai_communication_log:${logId}`),
+        cacheDelete(`ai_communication_log:${logId}_response`)
+      );
+    }
     
-    console.log(`Cleaned up ${logsToDelete.length} old log entries, kept ${recentLogId}`);
+    // Delete session logs
+    for (const sessionId of sessionIndex) {
+      deletePromises.push(cacheDelete(`ai_session_logs:${sessionId}`));
+    }
+    
+    // Delete session index
+    deletePromises.push(cacheDelete('ai_communication_session_index'));
+    
+    await Promise.all(deletePromises);
+    
+    console.log(`[Cache API] Cleaned up ${allLogIds.length} log entries from ${sessionIndex.length} sessions`);
     
     return jsonResponse({ 
       success: true, 
-      message: `Successfully cleaned up ${logsToDelete.length} old log entries`,
-      deletedCount: logsToDelete.length,
-      keptLogId: recentLogId
+      message: `Successfully cleaned up ${allLogIds.length} log entries from ${sessionIndex.length} sessions`,
+      deletedCount: allLogIds.length,
+      sessionCount: sessionIndex.length,
+      storageType: 'cache'
     }, 200);
   } catch (error) {
-    console.error('Error cleaning up AI logs:', error);
+    console.error('[Cache API] Error cleaning up AI logs:', error);
     return jsonResponse({ error: 'Failed to cleanup AI logs: ' + error.message }, 500);
   }
 }
@@ -6378,261 +6463,149 @@ async function handleCleanupAILogs(request, env) {
  */
 async function handleExportAILogs(request, env) {
   try {
-    if (!env.page_content) {
-      return jsonResponse({ error: 'KV storage not configured' }, 500);
-    }
-
-    // Try to get session index first (new format)
-    let sessionIndex = await env.page_content.get('ai_communication_session_index');
+    // AI logs are now in Cache API
+    // Get session index from Cache API
+    let sessionIndex = await cacheGet('ai_communication_session_index');
     
-    if (sessionIndex) {
-      // New session-based format
-      const sessionIds = JSON.parse(sessionIndex);
-      
-      if (sessionIds.length === 0) {
-        return new Response('Няма налични логове за експорт.', {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          }
-        });
-      }
-      
-      // Get all log IDs from ALL sessions (not just the latest one)
-      const allLogIds = [];
-      const sessionLogCounts = [];
-      for (const sessionId of sessionIds) {
-        const sessionLogsData = await env.page_content.get(`ai_session_logs:${sessionId}`);
-        if (sessionLogsData) {
-          const sessionLogIds = JSON.parse(sessionLogsData);
-          sessionLogCounts.push({ sessionId, count: sessionLogIds.length });
-          allLogIds.push(...sessionLogIds);
-        }
-      }
-      
-      if (allLogIds.length === 0) {
-        return new Response('Няма налични логове за експорт.', {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          }
-        });
-      }
-      
-      // Fetch all logs from ALL sessions
-      const logPromises = allLogIds.flatMap(logId => [
-        env.page_content.get(`ai_communication_log:${logId}`),
-        env.page_content.get(`ai_communication_log:${logId}_response`)
-      ]);
-      
-      const logData = await Promise.all(logPromises);
-      
-      // Build text content
-      let textContent = '='.repeat(80) + '\n';
-      textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
-      textContent += '='.repeat(80) + '\n\n';
-      textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
-      textContent += `Общо сесии: ${sessionIds.length}\n`;
-      textContent += `Общо стъпки: ${allLogIds.length}\n`;
-      sessionLogCounts.forEach((session, index) => {
-        textContent += `  Сесия ${index + 1} (${session.sessionId}): ${session.count} стъпки\n`;
-      });
-      textContent += '\n';
-      
-      // Note: logData contains paired entries (request, response) for each log ID
-      // Each log ID maps to 2 entries in logData: [request at i*2, response at i*2+1]
-      for (let i = 0; i < allLogIds.length; i++) {
-        const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
-        const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
-        
-        if (requestLog) {
-          textContent += '='.repeat(80) + '\n';
-          textContent += `СТЪПКА ${i + 1}: ${requestLog.stepName}\n`;
-          textContent += `ID на сесия: ${requestLog.sessionId || 'N/A'}\n`;
-          textContent += '='.repeat(80) + '\n\n';
-          
-          // Request information
-          textContent += '--- ИЗПРАТЕНИ ДАННИ ---\n';
-          textContent += `Времева марка: ${requestLog.timestamp}\n`;
-          textContent += `Провайдър: ${requestLog.provider}\n`;
-          textContent += `Модел: ${requestLog.modelName}\n`;
-          textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
-          textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
-          textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
-          
-          // User data (client data)
-          if (requestLog.userData) {
-            textContent += '--- КЛИЕНТСКИ ДАННИ ---\n';
-            textContent += JSON.stringify(requestLog.userData, null, 2);
-            textContent += '\n\n';
-          }
-          
-          // Calculated data (backend calculations)
-          if (requestLog.calculatedData) {
-            textContent += '--- БЕКЕНД КАЛКУЛАЦИИ ---\n';
-            textContent += JSON.stringify(requestLog.calculatedData, null, 2);
-            textContent += '\n\n';
-          }
-          
-          textContent += '--- ПРОМПТ ---\n';
-          textContent += requestLog.prompt || '(Няма съхранен промпт)';
-          textContent += '\n\n';
-          
-          // Response information
-          if (responseLog) {
-            textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
-            textContent += `Времева марка: ${responseLog.timestamp}\n`;
-            textContent += `Успех: ${responseLog.success ? 'Да' : 'Не'}\n`;
-            textContent += `Време за отговор: ${responseLog.duration} ms\n`;
-            textContent += `Дължина на отговор: ${responseLog.responseLength} символа\n`;
-            textContent += `Приблизителни изходни токени: ${responseLog.estimatedOutputTokens}\n`;
-            
-            if (responseLog.error) {
-              textContent += `Грешка: ${responseLog.error}\n`;
-            }
-            
-            textContent += '\n--- AI ОТГОВОР ---\n';
-            textContent += responseLog.response || '(Няма съхранен отговор)';
-            textContent += '\n\n';
-          } else {
-            textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
-            textContent += '(Няма получен отговор)\n\n';
-          }
-        }
-      }
-      
-      textContent += '='.repeat(80) + '\n';
-      textContent += 'КРАЙ НА ЕКСПОРТА\n';
-      textContent += '='.repeat(80) + '\n';
-      
-      return new Response(textContent, {
+    if (!sessionIndex || sessionIndex.length === 0) {
+      return new Response('Няма налични логове за експорт.', {
         status: 200,
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': `attachment; filename="ai_communication_logs_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19)}.txt"`,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        }
-      });
-    } else {
-      // Fallback to old log index format for backward compatibility
-      const logIndex = await env.page_content.get('ai_communication_log_index');
-      if (!logIndex) {
-        return new Response('Няма налични логове за експорт.', {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          }
-        });
-      }
-      
-      const logIds = JSON.parse(logIndex);
-      
-      // Fetch all logs (old format - only one entry)
-      const logPromises = logIds.flatMap(logId => [
-        env.page_content.get(`ai_communication_log:${logId}`),
-        env.page_content.get(`ai_communication_log:${logId}_response`)
-      ]);
-      
-      const logData = await Promise.all(logPromises);
-      
-      // Build text content (same as before for old format)
-      let textContent = '='.repeat(80) + '\n';
-      textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ (СТАР ФОРМАТ)\n';
-      textContent += '='.repeat(80) + '\n\n';
-      textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
-      textContent += `Общо стъпки: ${logIds.length}\n`;
-      textContent += `Забележка: Това е стар формат на логове без групиране по сесии.\n\n`;
-      
-      for (let i = 0; i < logIds.length; i++) {
-        const requestLog = logData[i * 2] ? JSON.parse(logData[i * 2]) : null;
-        const responseLog = logData[i * 2 + 1] ? JSON.parse(logData[i * 2 + 1]) : null;
-        
-        if (requestLog) {
-          textContent += '='.repeat(80) + '\n';
-          textContent += `СТЪПКА ${i + 1}: ${requestLog.stepName}\n`;
-          textContent += '='.repeat(80) + '\n\n';
-          
-          // Request information
-          textContent += '--- ИЗПРАТЕНИ ДАННИ ---\n';
-          textContent += `Времева марка: ${requestLog.timestamp}\n`;
-          textContent += `Провайдър: ${requestLog.provider}\n`;
-          textContent += `Модел: ${requestLog.modelName}\n`;
-          textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
-          textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
-          textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
-          
-          // User data (client data)
-          if (requestLog.userData) {
-            textContent += '--- КЛИЕНТСКИ ДАННИ ---\n';
-            textContent += JSON.stringify(requestLog.userData, null, 2);
-            textContent += '\n\n';
-          }
-          
-          // Calculated data (backend calculations)
-          if (requestLog.calculatedData) {
-            textContent += '--- БЕКЕНД КАЛКУЛАЦИИ ---\n';
-            textContent += JSON.stringify(requestLog.calculatedData, null, 2);
-            textContent += '\n\n';
-          }
-          
-          textContent += '--- ПРОМПТ ---\n';
-          textContent += requestLog.prompt || '(Няма съхранен промпт)';
-          textContent += '\n\n';
-          
-          // Response information
-          if (responseLog) {
-            textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
-            textContent += `Времева марка: ${responseLog.timestamp}\n`;
-            textContent += `Успех: ${responseLog.success ? 'Да' : 'Не'}\n`;
-            textContent += `Време за отговор: ${responseLog.duration} ms\n`;
-            textContent += `Дължина на отговор: ${responseLog.responseLength} символа\n`;
-            textContent += `Приблизителни изходни токени: ${responseLog.estimatedOutputTokens}\n`;
-            
-            if (responseLog.error) {
-              textContent += `Грешка: ${responseLog.error}\n`;
-            }
-            
-            textContent += '\n--- AI ОТГОВОР ---\n';
-            textContent += responseLog.response || '(Няма съхранен отговор)';
-            textContent += '\n\n';
-          } else {
-            textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
-            textContent += '(Няма получен отговор)\n\n';
-          }
-        }
-      }
-      
-      textContent += '='.repeat(80) + '\n';
-      textContent += 'КРАЙ НА ЕКСПОРТА\n';
-      textContent += '='.repeat(80) + '\n';
-      
-      return new Response(textContent, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': `attachment; filename="ai_communication_logs_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19)}.txt"`,
+          'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type'
         }
       });
     }
+    
+    // Session-based format
+    const sessionIds = sessionIndex;
+    
+    // Get all log IDs from ALL sessions
+    const allLogIds = [];
+    const sessionLogCounts = [];
+    for (const sessionId of sessionIds) {
+      const sessionLogsData = await cacheGet(`ai_session_logs:${sessionId}`);
+      if (sessionLogsData) {
+        sessionLogCounts.push({ sessionId, count: sessionLogsData.length });
+        allLogIds.push(...sessionLogsData);
+      }
+    }
+    
+    if (allLogIds.length === 0) {
+      return new Response('Няма налични логове за експорт.', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      });
+    }
+    
+    // Fetch all logs from Cache API
+    const logPromises = allLogIds.flatMap(logId => [
+      cacheGet(`ai_communication_log:${logId}`),
+      cacheGet(`ai_communication_log:${logId}_response`)
+    ]);
+    
+    const logData = await Promise.all(logPromises);
+    
+    // Build text content
+    let textContent = '='.repeat(80) + '\n';
+    textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
+    textContent += '(Съхранени в Cache API - автоматично изтриване след 24 часа)\n';
+    textContent += '='.repeat(80) + '\n\n';
+    textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
+    textContent += `Общо сесии: ${sessionIds.length}\n`;
+    textContent += `Общо стъпки: ${allLogIds.length}\n`;
+    sessionLogCounts.forEach((session, index) => {
+      textContent += `  Сесия ${index + 1} (${session.sessionId}): ${session.count} стъпки\n`;
+    });
+    textContent += '\n';
+    
+    // Note: logData contains paired entries (request, response) for each log ID
+    // Each log ID maps to 2 entries in logData: [request at i*2, response at i*2+1]
+    for (let i = 0; i < allLogIds.length; i++) {
+      const requestLog = logData[i * 2];
+      const responseLog = logData[i * 2 + 1];
+      
+      if (requestLog) {
+        textContent += '='.repeat(80) + '\n';
+        textContent += `СТЪПКА ${i + 1}: ${requestLog.stepName}\n`;
+        textContent += `ID на сесия: ${requestLog.sessionId || 'N/A'}\n`;
+        textContent += '='.repeat(80) + '\n\n';
+        
+        // Request information
+        textContent += '--- ИЗПРАТЕНИ ДАННИ ---\n';
+        textContent += `Времева марка: ${requestLog.timestamp}\n`;
+        textContent += `Провайдър: ${requestLog.provider}\n`;
+        textContent += `Модел: ${requestLog.modelName}\n`;
+        textContent += `Дължина на промпт: ${requestLog.promptLength} символа\n`;
+        textContent += `Приблизителни входни токени: ${requestLog.estimatedInputTokens}\n`;
+        textContent += `Максимални изходни токени: ${requestLog.maxOutputTokens || 'N/A'}\n\n`;
+        
+        // User data (client data)
+        if (requestLog.userData) {
+          textContent += '--- КЛИЕНТСКИ ДАННИ ---\n';
+          textContent += JSON.stringify(requestLog.userData, null, 2);
+          textContent += '\n\n';
+        }
+        
+        // Calculated data (backend calculations)
+        if (requestLog.calculatedData) {
+          textContent += '--- БЕКЕНД КАЛКУЛАЦИИ ---\n';
+          textContent += JSON.stringify(requestLog.calculatedData, null, 2);
+          textContent += '\n\n';
+        }
+        
+        textContent += '--- ПРОМПТ ---\n';
+        textContent += requestLog.prompt || '(Няма съхранен промпт)';
+        textContent += '\n\n';
+        
+        // Response information
+        if (responseLog) {
+          textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
+          textContent += `Времева марка: ${responseLog.timestamp}\n`;
+          textContent += `Успех: ${responseLog.success ? 'Да' : 'Не'}\n`;
+          textContent += `Време за отговор: ${responseLog.duration} ms\n`;
+          textContent += `Дължина на отговор: ${responseLog.responseLength} символа\n`;
+          textContent += `Приблизителни изходни токени: ${responseLog.estimatedOutputTokens}\n`;
+          
+          if (responseLog.error) {
+            textContent += `Грешка: ${responseLog.error}\n`;
+          }
+          
+          textContent += '\n--- AI ОТГОВОР ---\n';
+          textContent += responseLog.response || '(Няма съхранен отговор)';
+          textContent += '\n\n';
+        } else {
+          textContent += '--- ПОЛУЧЕН ОТГОВОР ---\n';
+          textContent += '(Няма получен отговор)\n\n';
+        }
+      }
+    }
+    
+    textContent += '='.repeat(80) + '\n';
+    textContent += 'КРАЙ НА ЕКСПОРТА\n';
+    textContent += '='.repeat(80) + '\n';
+    
+    return new Response(textContent, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Disposition': `attachment; filename="ai_communication_logs_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19)}.txt"`,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }
+    });
   } catch (error) {
-    console.error('Error exporting AI logs:', error);
+    console.error('[Cache API] Error exporting AI logs:', error);
     return jsonResponse({ error: 'Failed to export AI logs: ' + error.message }, 500);
   }
 }
