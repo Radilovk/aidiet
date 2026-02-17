@@ -2343,6 +2343,10 @@
                 }
                 
                 console.log(`[Notifications] Scheduled ${this.scheduledTimers.length} notifications`);
+                
+                // Sync preferences to backend for server-side cron scheduling
+                // This enables background push notifications even when app is closed
+                await this.syncPreferencesToBackend();
             },
             
             /**
@@ -2492,6 +2496,44 @@
             },
             
             /**
+             * Sync notification preferences to backend for cron-based scheduling
+             * This enables background push notifications even when app is closed
+             */
+            async syncPreferencesToBackend() {
+                try {
+                    const userId = localStorage.getItem('userId');
+                    if (!userId) {
+                        console.log('[Notifications] No userId found - skipping backend sync');
+                        return;
+                    }
+                    
+                    const prefs = this.getPreferences();
+                    console.log('[Notifications] Syncing preferences to backend for user:', userId);
+                    
+                    const response = await fetch(`${WORKER_URL}/api/user/notification-preferences`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: userId,
+                            preferences: prefs
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('[Notifications] Preferences synced to backend successfully');
+                    } else {
+                        console.warn('[Notifications] Failed to sync preferences to backend:', data.message);
+                    }
+                } catch (error) {
+                    console.error('[Notifications] Error syncing preferences to backend:', error);
+                    // Continue silently - not critical for local notifications
+                }
+            },
+            
+            /**
              * Schedule meal notifications based on plan and preferences
              */
             scheduleMealNotifications(plan, mealPrefs) {
@@ -2631,8 +2673,8 @@
             },
             
             /**
-             * Show notification using Notification API or Service Worker
-             * Uses Service Worker for better platform compatibility (especially iOS)
+             * Show notification using backend Push API for background support
+             * This ensures notifications work even when the app is closed
              */
             async showNotification(options) {
                 if (!('Notification' in window)) {
@@ -2646,7 +2688,69 @@
                 }
                 
                 try {
-                    // Prefer Service Worker notifications for better iOS support
+                    // Get current user ID
+                    const userId = localStorage.getItem('userId');
+                    if (!userId) {
+                        console.warn('[Notifications] No userId found - cannot send push notification');
+                        // Fallback to local notification for backwards compatibility
+                        await this.showLocalNotification(options);
+                        return;
+                    }
+                    
+                    // Send push notification through backend API
+                    // This ensures notifications work in background when app is closed
+                    const pushResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/push/send', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userId: userId,
+                            title: options.title || 'NutriPlan',
+                            body: options.body || 'Ново напомняне от NutriPlan',
+                            url: '/plan.html',
+                            icon: options.icon || '/icon-192x192.png',
+                            notificationType: this.getNotificationTypeFromTag(options.tag)
+                        })
+                    });
+                    
+                    const pushData = await pushResponse.json();
+                    
+                    if (pushData.success) {
+                        console.log('[Notifications] Push notification sent successfully via backend');
+                    } else {
+                        console.warn('[Notifications] Backend push failed, using local notification:', pushData.message);
+                        // Fallback to local notification
+                        await this.showLocalNotification(options);
+                    }
+                } catch (e) {
+                    console.error('[Notifications] Error sending push notification:', e);
+                    // Fallback to local notification
+                    await this.showLocalNotification(options);
+                }
+            },
+            
+            /**
+             * Extract notification type from tag for backend API
+             */
+            getNotificationTypeFromTag(tag) {
+                if (!tag) return 'general';
+                if (tag.includes('meal')) return 'meal';
+                if (tag.includes('water')) return 'water';
+                if (tag.includes('sleep')) return 'sleep';
+                if (tag.includes('activity')) return 'activity';
+                if (tag.includes('supplements')) return 'supplements';
+                if (tag.includes('snack')) return 'snack';
+                if (tag.includes('chat')) return 'chat';
+                return 'general';
+            },
+            
+            /**
+             * Show local notification (fallback when push API is not available)
+             * Only works when app is in foreground
+             */
+            async showLocalNotification(options) {
+                try {
                     if (this.serviceWorkerReg && this.serviceWorkerReg.showNotification) {
                         // Use Service Worker notification (works better on iOS PWA)
                         const timestamp = Date.now();
@@ -2664,7 +2768,7 @@
                             },
                             vibrate: options.vibrate || [200, 100, 200]
                         });
-                        console.log('[Notifications] Notification shown via Service Worker');
+                        console.log('[Notifications] Local notification shown via Service Worker');
                     } else {
                         // Fallback to regular Notification API
                         const notification = new Notification(options.title, {
@@ -2680,10 +2784,10 @@
                             window.focus();
                             notification.close();
                         };
-                        console.log('[Notifications] Notification shown via Notification API');
+                        console.log('[Notifications] Local notification shown via Notification API');
                     }
                 } catch (e) {
-                    console.error('[Notifications] Error showing notification:', e);
+                    console.error('[Notifications] Error showing local notification:', e);
                 }
             },
             

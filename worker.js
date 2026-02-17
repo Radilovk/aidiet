@@ -6983,6 +6983,22 @@ async function handlePushSubscribe(request, env) {
     const subscriptionKey = `push_subscription_${userId}`;
     await env.page_content.put(subscriptionKey, JSON.stringify(subscription));
     
+    // Maintain a list of all subscribed users for cron job processing
+    const listKey = 'push_subscriptions_list';
+    let userIdsList = [];
+    
+    const existingListData = await env.page_content.get(listKey);
+    if (existingListData) {
+      userIdsList = JSON.parse(existingListData);
+    }
+    
+    // Add userId if not already in list
+    if (!userIdsList.includes(userId)) {
+      userIdsList.push(userId);
+      await env.page_content.put(listKey, JSON.stringify(userIdsList));
+      console.log(`Added user ${userId} to subscriptions list`);
+    }
+    
     console.log(`Push subscription saved for user: ${userId}`);
     
     return jsonResponse({ 
@@ -7499,6 +7515,289 @@ async function handleSaveNotificationTemplates(request, env) {
  * @param {number} status - HTTP status code
  * @param {Object} options - Optional settings { cacheControl: string }
  */
+
+/**
+ * Scheduled event handler for cron-triggered push notifications
+ * Runs every hour to check and send scheduled notifications
+ */
+async function handleScheduledNotifications(env) {
+  console.log('[Cron] Running scheduled notifications check');
+  
+  try {
+    if (!env.page_content) {
+      console.error('[Cron] KV storage not configured');
+      return;
+    }
+    
+    // Get all user subscriptions
+    const subscriptionsData = await env.page_content.get('push_subscriptions_list');
+    if (!subscriptionsData) {
+      console.log('[Cron] No subscriptions found');
+      return;
+    }
+    
+    const userIds = JSON.parse(subscriptionsData);
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+    
+    console.log(`[Cron] Checking notifications for ${userIds.length} users at ${currentTime}`);
+    
+    // Process each user
+    for (const userId of userIds) {
+      try {
+        // Get user's notification preferences
+        const prefsKey = `notification_preferences_${userId}`;
+        const prefsData = await env.page_content.get(prefsKey);
+        
+        if (!prefsData) {
+          console.log(`[Cron] No preferences found for user ${userId}`);
+          continue;
+        }
+        
+        const prefs = JSON.parse(prefsData);
+        
+        if (!prefs.enabled) {
+          console.log(`[Cron] Notifications disabled for user ${userId}`);
+          continue;
+        }
+        
+        // Get global notification settings
+        const globalSettingsData = await env.page_content.get('global_notification_settings');
+        const globalSettings = globalSettingsData ? JSON.parse(globalSettingsData) : {};
+        
+        // Check meal reminders
+        if (prefs.meals?.enabled && globalSettings.mealReminders) {
+          await checkAndSendMealReminders(userId, globalSettings.mealReminders, currentTime, env);
+        }
+        
+        // Check water reminders (every 2 hours by default)
+        if (prefs.water?.enabled && globalSettings.waterReminders?.enabled) {
+          await checkAndSendWaterReminders(userId, globalSettings.waterReminders, currentHour, currentMinute, env);
+        }
+        
+        // Check sleep reminder
+        if (prefs.sleep?.enabled && prefs.sleep.time) {
+          await checkAndSendSleepReminder(userId, prefs.sleep.time, currentTime, env);
+        }
+        
+        // Check activity reminders
+        if (prefs.activity?.enabled) {
+          await checkAndSendActivityReminders(userId, prefs.activity, currentTime, env);
+        }
+        
+        // Check supplement reminders
+        if (prefs.supplements?.enabled && globalSettings.supplements?.times) {
+          await checkAndSendSupplementReminders(userId, globalSettings.supplements.times, currentTime, env);
+        }
+        
+      } catch (userError) {
+        console.error(`[Cron] Error processing user ${userId}:`, userError);
+        // Continue with next user
+      }
+    }
+    
+    console.log('[Cron] Scheduled notifications check completed');
+  } catch (error) {
+    console.error('[Cron] Error in scheduled notifications:', error);
+  }
+}
+
+/**
+ * Check and send meal reminders
+ */
+async function checkAndSendMealReminders(userId, mealReminders, currentTime, env) {
+  const templates = await getNotificationTemplates(env);
+  const mealTypes = ['breakfast', 'lunch', 'dinner'];
+  
+  for (const mealType of mealTypes) {
+    const mealTime = mealReminders[mealType];
+    if (mealTime === currentTime) {
+      console.log(`[Cron] Sending ${mealType} reminder to user ${userId}`);
+      await sendPushNotificationToUser(userId, {
+        title: templates.meals[mealType]?.title || `Време за ${mealType}`,
+        body: templates.meals[mealType]?.body || 'Време е за хранене',
+        url: '/plan.html',
+        notificationType: 'meal'
+      }, env);
+    }
+  }
+}
+
+/**
+ * Check and send water reminders
+ */
+async function checkAndSendWaterReminders(userId, waterSettings, currentHour, currentMinute, env) {
+  const frequency = waterSettings.frequency || 2;
+  const startHour = waterSettings.startHour || 8;
+  const endHour = waterSettings.endHour || 22;
+  
+  // Only send on the hour (0 minutes) and within active hours
+  if (currentMinute === 0 && currentHour >= startHour && currentHour <= endHour) {
+    // Check if this hour matches the frequency
+    if ((currentHour - startHour) % frequency === 0) {
+      console.log(`[Cron] Sending water reminder to user ${userId}`);
+      const templates = await getNotificationTemplates(env);
+      await sendPushNotificationToUser(userId, {
+        title: templates.water?.title || 'Време за вода',
+        body: templates.water?.body || 'Не забравяйте да пиете вода! 💧',
+        url: '/plan.html',
+        notificationType: 'water'
+      }, env);
+    }
+  }
+}
+
+/**
+ * Check and send sleep reminder
+ */
+async function checkAndSendSleepReminder(userId, sleepTime, currentTime, env) {
+  if (sleepTime === currentTime) {
+    console.log(`[Cron] Sending sleep reminder to user ${userId}`);
+    const templates = await getNotificationTemplates(env);
+    await sendPushNotificationToUser(userId, {
+      title: templates.sleep?.title || 'Време за сън',
+      body: templates.sleep?.body || 'Подгответе се за почивка 😴',
+      url: '/plan.html',
+      notificationType: 'sleep'
+    }, env);
+  }
+}
+
+/**
+ * Check and send activity reminders
+ */
+async function checkAndSendActivityReminders(userId, activityPrefs, currentTime, env) {
+  const templates = await getNotificationTemplates(env);
+  
+  if (activityPrefs.morningTime === currentTime) {
+    console.log(`[Cron] Sending morning activity reminder to user ${userId}`);
+    await sendPushNotificationToUser(userId, {
+      title: templates.activity?.morning?.title || 'Сутрешна активност',
+      body: templates.activity?.morning?.body || 'Започнете деня с активност! 🏃',
+      url: '/plan.html',
+      notificationType: 'activity'
+    }, env);
+  }
+  
+  if (activityPrefs.dayTime === currentTime) {
+    console.log(`[Cron] Sending day activity reminder to user ${userId}`);
+    await sendPushNotificationToUser(userId, {
+      title: templates.activity?.day?.title || 'Време за движение',
+      body: templates.activity?.day?.body || 'Направете кратка разходка! 🚶',
+      url: '/plan.html',
+      notificationType: 'activity'
+    }, env);
+  }
+}
+
+/**
+ * Check and send supplement reminders
+ */
+async function checkAndSendSupplementReminders(userId, supplementTimes, currentTime, env) {
+  if (supplementTimes.includes(currentTime)) {
+    console.log(`[Cron] Sending supplement reminder to user ${userId}`);
+    const templates = await getNotificationTemplates(env);
+    await sendPushNotificationToUser(userId, {
+      title: templates.supplements?.title || 'Хранителни добавки',
+      body: templates.supplements?.body || 'Време за хранителните добавки 💊',
+      url: '/plan.html',
+      notificationType: 'supplements'
+    }, env);
+  }
+}
+
+/**
+ * Get notification templates from KV
+ */
+async function getNotificationTemplates(env) {
+  const templatesData = await env.page_content.get('notification_templates');
+  if (templatesData) {
+    return JSON.parse(templatesData);
+  }
+  
+  // Return defaults if not found
+  return {
+    meals: {
+      breakfast: { title: 'Време за закуска', body: 'Започнете деня си със здравословна закуска 🍳' },
+      lunch: { title: 'Време за обяд', body: 'Време е за вашия здравословен обяд 🥗' },
+      dinner: { title: 'Време за вечеря', body: 'Не забравяйте вечерята си 🍽️' },
+      snack: { title: 'Време за междинна закуска', body: 'Време е за здравословна междинна закуска 🍎' }
+    },
+    water: { title: 'Време за вода', body: 'Не забравяйте да пиете вода! 💧' },
+    sleep: { title: 'Време за сън', body: 'Подгответе се за почивка. Добър сън е важен! 😴' },
+    activity: {
+      morning: { title: 'Сутрешна активност', body: 'Започнете деня с активност! 🏃' },
+      day: { title: 'Време за движение', body: 'Направете кратка разходка! 🚶' }
+    },
+    supplements: { title: 'Хранителни добавки', body: 'Не забравяйте добавките 💊' }
+  };
+}
+
+/**
+ * Send push notification to a specific user
+ */
+async function sendPushNotificationToUser(userId, message, env) {
+  try {
+    // Get user's push subscription
+    const subscriptionKey = `push_subscription_${userId}`;
+    const subscriptionData = await env.page_content.get(subscriptionKey);
+    
+    if (!subscriptionData) {
+      console.warn(`[Cron] No push subscription found for user ${userId}`);
+      return;
+    }
+    
+    const subscription = JSON.parse(subscriptionData);
+    
+    // Prepare push message
+    const pushMessage = {
+      title: message.title || 'NutriPlan',
+      body: message.body || 'Ново напомняне от NutriPlan',
+      url: message.url || '/plan.html',
+      icon: message.icon || '/icon-192x192.png',
+      notificationType: message.notificationType || 'general',
+      timestamp: Date.now()
+    };
+    
+    // Check if VAPID keys are configured
+    if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
+      console.error('[Cron] VAPID keys not configured');
+      return;
+    }
+    
+    // Send the push notification
+    const response = await sendWebPushNotification(
+      subscription,
+      JSON.stringify(pushMessage),
+      env
+    );
+    
+    if (response.ok || response.status === 201) {
+      console.log(`[Cron] Push notification sent successfully to user ${userId}`);
+    } else {
+      console.error(`[Cron] Push service returned status ${response.status}`);
+      
+      // If subscription is no longer valid (410 Gone), remove it
+      if (response.status === 410) {
+        console.log(`[Cron] Removing invalid subscription for user ${userId}`);
+        await env.page_content.delete(subscriptionKey);
+        
+        // Update subscriptions list
+        const listData = await env.page_content.get('push_subscriptions_list');
+        if (listData) {
+          const userIds = JSON.parse(listData);
+          const updatedIds = userIds.filter(id => id !== userId);
+          await env.page_content.put('push_subscriptions_list', JSON.stringify(updatedIds));
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`[Cron] Error sending push notification to user ${userId}:`, error);
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -7589,5 +7888,13 @@ export default {
       console.error('Error:', error);
       return jsonResponse({ error: error.message }, 500);
     }
+  },
+  
+  /**
+   * Handle scheduled cron triggers for push notifications
+   */
+  async scheduled(event, env, ctx) {
+    console.log('[Worker] Scheduled event triggered at:', new Date().toISOString());
+    ctx.waitUntil(handleScheduledNotifications(env));
   }
 };
