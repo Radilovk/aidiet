@@ -4945,6 +4945,93 @@ function calculateAverageMacrosFromPlan(weekPlan) {
 }
 
 /**
+ * PLAN1 IMPROVEMENT #2: Validate a single day's meal plan
+ * Checks: daily calories tolerance, hard-forbidden foods, meal count
+ * Returns validation result with specific errors
+ */
+function validateDayPlan(dayKey, dayData, finalTargets, strategy) {
+  const errors = [];
+  const warnings = [];
+  
+  if (!dayData || !dayData.meals || !Array.isArray(dayData.meals)) {
+    errors.push(`${dayKey}: Missing meals array`);
+    return { valid: false, errors, warnings };
+  }
+  
+  // 1. Check meal count matches architecture (if specified in strategy)
+  const expectedMealCount = strategy.weeklyScheme?.[dayKey.replace('day', '').toLowerCase()]?.meals;
+  if (expectedMealCount && dayData.meals.length !== expectedMealCount) {
+    warnings.push(`${dayKey}: Expected ${expectedMealCount} meals, got ${dayData.meals.length}`);
+  }
+  
+  // 2. Calculate daily calories
+  let dailyCalories = 0;
+  dayData.meals.forEach(meal => {
+    if (meal.calories) {
+      dailyCalories += typeof meal.calories === 'number' ? meal.calories : parseInt(meal.calories) || 0;
+    }
+  });
+  
+  // 3. Check daily calories tolerance (±7%)
+  const targetCalories = finalTargets.calories;
+  const tolerance = 0.07; // 7%
+  const minCalories = targetCalories * (1 - tolerance);
+  const maxCalories = targetCalories * (1 + tolerance);
+  
+  if (dailyCalories < minCalories || dailyCalories > maxCalories) {
+    errors.push(`${dayKey}: Daily calories ${dailyCalories} outside tolerance range ${Math.round(minCalories)}-${Math.round(maxCalories)} (target: ${targetCalories})`);
+  }
+  
+  // 4. Check for hard-forbidden foods (PLAN1 IMPROVEMENT #4)
+  const hardForbidden = strategy.hardForbidden || [];
+  if (hardForbidden.length > 0) {
+    dayData.meals.forEach((meal, mealIndex) => {
+      const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
+      
+      hardForbidden.forEach(forbiddenFood => {
+        // Simple substring match - can be improved with regex
+        const searchTerm = forbiddenFood.toLowerCase();
+        if (mealText.includes(searchTerm)) {
+          errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains HARD-FORBIDDEN food "${forbiddenFood}"`);
+        }
+      });
+    });
+  }
+  
+  // 5. Check ADLE v8 hard bans (existing critical rules)
+  dayData.meals.forEach((meal, mealIndex) => {
+    const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
+    
+    // Check for onion
+    if (/\b(лук|onion)\b/.test(mealText)) {
+      errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains ONION (ADLE v8 hard ban)`);
+    }
+    
+    // Check for turkey meat (but not turkey ham)
+    if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
+      errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains TURKEY MEAT (ADLE v8 hard ban)`);
+    }
+    
+    // Check for ketchup/mayo
+    if (/\b(кетчуп|майонеза|ketchup|mayonnaise)\b/.test(mealText)) {
+      errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains KETCHUP/MAYO (ADLE v8 hard ban)`);
+    }
+    
+    // Check for peas + fish combination
+    if (/\b(грах|peas)\b/.test(mealText) && /\b(риба|fish)\b/.test(mealText)) {
+      errors.push(`${dayKey}, meal ${mealIndex + 1}: PEAS + FISH forbidden combination (ADLE v8)`);
+    }
+  });
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    dailyCalories
+  };
+}
+
+/**
  * Progressive meal plan generation - generates meal plan in smaller chunks
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
@@ -4989,6 +5076,24 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
       for (let day = startDay; day <= endDay; day++) {
         const dayKey = `day${day}`;
         if (chunkData[dayKey]) {
+          // PLAN1 IMPROVEMENT #2: Validate day before accepting it
+          const validation = validateDayPlan(dayKey, chunkData[dayKey], finalTargets, strategy);
+          
+          if (!validation.valid) {
+            console.warn(`Validation failed for ${dayKey}:`, validation.errors);
+            // For now, log warnings but accept the day (repair can be added later)
+            // TODO: Implement single-day repair mechanism
+            validation.errors.forEach(err => console.warn(`  - ${err}`));
+          }
+          
+          if (validation.warnings.length > 0) {
+            validation.warnings.forEach(warn => console.log(`  ⚠️ ${warn}`));
+          }
+          
+          if (validation.dailyCalories) {
+            console.log(`${dayKey}: ${validation.dailyCalories} kcal (target: ${finalTargets.calories})`);
+          }
+          
           weekPlan[dayKey] = chunkData[dayKey];
           previousDays.push({
             day: day,
@@ -5026,7 +5131,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
         },
         weekPlan: weekPlan,
         recommendations: strategy.foodsToInclude || [],
-        forbidden: strategy.foodsToAvoid || [],
+        // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
+        forbidden: strategy.foodsToAvoid || strategy.hardForbidden || [],
+        hardForbidden: strategy.hardForbidden || [],
+        limited: strategy.limited || [],
         psychology: strategy.psychologicalSupport || [],
         waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
         supplements: strategy.supplementRecommendations || []
@@ -5041,7 +5149,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
       },
       weekPlan: weekPlan,
       recommendations: summaryData.recommendations || strategy.foodsToInclude || [],
-      forbidden: summaryData.forbidden || strategy.foodsToAvoid || [],
+      // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
+      forbidden: summaryData.forbidden || strategy.foodsToAvoid || strategy.hardForbidden || [],
+      hardForbidden: strategy.hardForbidden || [],
+      limited: strategy.limited || [],
       psychology: summaryData.psychology || strategy.psychologicalSupport || [],
       waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: summaryData.supplements || strategy.supplementRecommendations || []
@@ -5063,7 +5174,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
       },
       weekPlan: weekPlan,
       recommendations: strategy.foodsToInclude || [],
-      forbidden: strategy.foodsToAvoid || [],
+      // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
+      forbidden: strategy.foodsToAvoid || strategy.hardForbidden || [],
+      hardForbidden: strategy.hardForbidden || [],
+      limited: strategy.limited || [],
       psychology: strategy.psychologicalSupport || [],
       waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: strategy.supplementRecommendations || []
