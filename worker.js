@@ -3831,6 +3831,68 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 `;
 }
 
+/**
+ * PLAN1 IMPROVEMENT #1: Step 1A - Calculate reference values (source of truth)
+ * Calculates BMR, TDEE, calories, macros, water, and activity score from user data
+ * This becomes the baseline that AI can adjust in Step 1B
+ * 
+ * @param {Object} data - User profile data
+ * @returns {Object} Reference values for nutrition targets
+ */
+function calculateReferenceValues(data) {
+  // Calculate BMR using Mifflin-St Jeor equation
+  const bmr = calculateBMR(data);
+  
+  // Calculate unified activity score
+  const activityData = calculateUnifiedActivityScore(data);
+  
+  // Calculate TDEE based on activity score
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  
+  // Calculate target calories based on goal
+  let targetCalories = tdee;
+  if (data.goal && data.goal.includes('Отслабване')) {
+    // Weight loss: 15-18% deficit
+    targetCalories = Math.round(tdee * 0.85);
+  } else if (data.goal && data.goal.includes('Мускулна маса')) {
+    // Muscle gain: 10% surplus
+    targetCalories = Math.round(tdee * 1.1);
+  }
+  // Otherwise maintenance = tdee
+  
+  // Calculate macronutrient ratios
+  const macroRatios = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  
+  // Calculate macro grams from target calories
+  const macroGrams = {
+    protein: Math.round((targetCalories * macroRatios.protein / 100) / 4),
+    carbs: Math.round((targetCalories * macroRatios.carbs / 100) / 4),
+    fats: Math.round((targetCalories * macroRatios.fats / 100) / 9)
+  };
+  
+  // Calculate water needs
+  const weight = parseFloat(data.weight) || 70;
+  const baseWater = weight * WATER_PER_KG_MULTIPLIER;
+  const activityBonus = activityData.combinedScore >= 6 ? ACTIVITY_WATER_BONUS_LITERS : 0;
+  const waterNeed = Math.round((baseWater + activityBonus) * 10) / 10;
+  
+  return {
+    bmr,
+    tdee,
+    targetCalories,
+    activityScore: activityData.combinedScore,
+    activityLevel: activityData.activityLevel,
+    macroRatios: {
+      protein: macroRatios.protein,
+      carbs: macroRatios.carbs,
+      fats: macroRatios.fats
+    },
+    macroGrams,
+    waterNeed,
+    proteinGramsPerKg: macroRatios.proteinGramsPerKg
+  };
+}
+
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
@@ -3846,7 +3908,19 @@ async function generatePlanMultiStep(env, data) {
   };
   
   try {
-    // Step 1: Analyze user profile (1st AI request)
+    // PLAN1 IMPROVEMENT #1: Step 1A - Calculate reference values in code
+    // This establishes the "source of truth" for all numerical targets
+    const referenceValues = calculateReferenceValues(data);
+    console.log('Step 1A (Code calculations):', {
+      bmr: referenceValues.bmr,
+      tdee: referenceValues.tdee,
+      targetCalories: referenceValues.targetCalories,
+      macroGrams: referenceValues.macroGrams,
+      waterNeed: referenceValues.waterNeed
+    });
+    
+    // Step 1B: AI analysis with reference values context
+    // AI can provide corrections/adjustments based on health factors
     // Focus: Deep health analysis, metabolic profile, correlations
     const analysisPrompt = await generateAnalysisPrompt(data, env);
     const analysisInputTokens = estimateTokenCount(analysisPrompt);
@@ -3889,6 +3963,40 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Analysis complete (1/3)');
     
+    // PLAN1 IMPROVEMENT #1: Create finalTargets from Step 1A + Step 1B
+    // Lock the final numerical targets - these will be used throughout Steps 2-4
+    // AI adjustments from analysis take precedence over reference calculations
+    const finalTargets = {
+      bmr: analysis.bmr || analysis.correctedMetabolism?.realBMR || referenceValues.bmr,
+      tdee: analysis.tdee || analysis.correctedMetabolism?.realTDEE || referenceValues.tdee,
+      calories: analysis.recommendedCalories || referenceValues.targetCalories,
+      macroGrams: analysis.macroGrams || referenceValues.macroGrams,
+      macroRatios: analysis.macroRatios || referenceValues.macroRatios,
+      waterNeed: analysis.waterDeficit?.dailyNeed 
+        ? parseFloat(String(analysis.waterDeficit.dailyNeed).match(/[\d.]+/)?.[0] || referenceValues.waterNeed)
+        : referenceValues.waterNeed,
+      activityLevel: analysis.activityLevel || referenceValues.activityLevel,
+      
+      // Track adjustments made by AI
+      adjustments: {
+        caloriesDelta: analysis.recommendedCalories 
+          ? analysis.recommendedCalories - referenceValues.targetCalories
+          : 0,
+        bmrCorrection: analysis.correctedMetabolism?.correctionPercent || '0%',
+        source: analysis.recommendedCalories ? 'AI adjusted' : 'Code calculated'
+      }
+    };
+    
+    console.log('finalTargets locked:', {
+      calories: finalTargets.calories,
+      macroGrams: finalTargets.macroGrams,
+      waterNeed: finalTargets.waterNeed,
+      adjustments: finalTargets.adjustments
+    });
+    
+    // From this point forward, Steps 2-4 MUST use finalTargets
+    // They are NOT allowed to recalculate or override these values
+    
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
@@ -3927,7 +4035,8 @@ async function generatePlanMultiStep(env, data) {
     if (ENABLE_PROGRESSIVE_GENERATION) {
       console.log('Multi-step generation: Using progressive meal plan generation');
       try {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, null, sessionId);
+        // PLAN1 IMPROVEMENT #1: Pass finalTargets to meal plan generation
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, finalTargets, null, sessionId);
       } catch (error) {
         console.error('Progressive meal plan generation failed:', error);
         throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
@@ -3969,10 +4078,12 @@ async function generatePlanMultiStep(env, data) {
     
     // Combine all parts into final plan (meal plan takes precedence)
     // Returns comprehensive plan with analysis and strategy included
+    // PLAN1 IMPROVEMENT #1: Include finalTargets in the plan
     return {
       ...mealPlan,
       analysis: analysis,
       strategy: strategy,
+      finalTargets: finalTargets, // PLAN1: Locked targets used throughout generation
       _meta: {
         tokenUsage: cumulativeTokens,
         generatedAt: new Date().toISOString()
@@ -4621,6 +4732,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   "keyPrinciples": ["текст"],
   "foodsToInclude": ["текст"],
   "foodsToAvoid": ["текст"],
+  "hardForbidden": ["ПЛАН1: храни НИКОГА (алергия/непоносимост/здравна заб)"],
+  "limited": ["ПЛАН1: храни РЯДКО/малки порции/условно огранич"],
   "supplementRecommendations": ["текст"],
   "hydrationStrategy": "текст",
   "communicationStyle": {
@@ -4766,6 +4879,8 @@ ${data.additionalNotes}
   "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
   "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
   "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
+  "hardForbidden": ["ПЛАН1 IMPROVEMENT #4: Храни които са АБСОЛЮТНО ЗАБРАНЕНИ НИКОГА (напр. алергия, непоносимост, здравна противопоказание). Празен масив [] ако няма такива."],
+  "limited": ["ПЛАН1 IMPROVEMENT #4: Храни които са УСЛОВНО ОГРАНИЧЕНИ (рядко, малки порции, само определени разфасовки). Празен масив [] ако няма такива."],
   "supplementRecommendations": [
     "Индивидуална добавка 1 (с дозировка и обосновка специфична за ${data.name})",
     "Индивидуална добавка 2 (с дозировка и обосновка специфична за ${data.name})",
@@ -4833,8 +4948,10 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * Progressive meal plan generation - generates meal plan in smaller chunks
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
+ * 
+ * PLAN1 IMPROVEMENT #1: Uses finalTargets instead of recalculating
  */
-async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null) {
+async function generateMealPlanProgressive(env, data, analysis, strategy, finalTargets, errorPreventionComment = null, sessionId = null) {
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};
@@ -4843,43 +4960,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   // Cache dynamic food lists once (prevents 4 redundant calls per generation)
   const cachedFoodLists = await getDynamicFoodListsSections(env);
   
-  // Parse BMR and calories - handle both numeric and string values
-  let bmr;
-  if (analysis.bmr) {
-    // If bmr is already a number, use it directly
-    if (typeof analysis.bmr === 'number') {
-      bmr = Math.round(analysis.bmr);
-    } else {
-      // Otherwise, extract from string
-      const bmrMatch = String(analysis.bmr).match(/\d+/);
-      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
-    }
-  }
-  if (!bmr) {
-    bmr = calculateBMR(data);
-  }
-  
-  let recommendedCalories;
-  if (analysis.recommendedCalories) {
-    // If recommendedCalories is already a number, use it directly
-    if (typeof analysis.recommendedCalories === 'number') {
-      recommendedCalories = Math.round(analysis.recommendedCalories);
-    } else {
-      // Otherwise, extract from string
-      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
-    }
-  }
-  if (!recommendedCalories) {
-    const tdee = calculateTDEE(bmr, data.sportActivity);
-    if (data.goal === 'Отслабване') {
-      recommendedCalories = Math.round(tdee * 0.85);
-    } else if (data.goal === 'Покачване на мускулна маса') {
-      recommendedCalories = Math.round(tdee * 1.1);
-    } else {
-      recommendedCalories = tdee;
-    }
-  }
+  // PLAN1 IMPROVEMENT #1: Use finalTargets instead of recalculating
+  // These values are locked and cannot be changed by Step 3
+  const bmr = finalTargets.bmr;
+  const recommendedCalories = finalTargets.calories;
   
   // Generate meal plan in chunks
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
