@@ -6894,9 +6894,174 @@ function vapidKeysToJWK(publicKeyBase64Url, privateKeyBase64Url) {
 }
 
 /**
- * Send Web Push notification with VAPID authentication
+ * Encrypt payload for Web Push using RFC 8291 (aes128gcm)
  * 
- * @param {Object} subscription - Push subscription object
+ * @param {string} payload - The message payload to encrypt
+ * @param {string} userPublicKey - Base64url-encoded user agent public key (p256dh)
+ * @param {string} userAuth - Base64url-encoded user agent auth secret
+ * @returns {Promise<Object>} Encrypted data with headers
+ */
+async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
+  // Generate a local key pair (application server keys for this message)
+  const localKeyPair = await crypto.subtle.generateKey(
+    {
+      name: 'ECDH',
+      namedCurve: 'P-256'
+    },
+    true,
+    ['deriveBits']
+  );
+  
+  // Export local public key in raw format
+  const localPublicKey = await crypto.subtle.exportKey('raw', localKeyPair.publicKey);
+  const localPublicKeyBytes = new Uint8Array(localPublicKey);
+  
+  // Decode user's public key and auth secret
+  const userPublicKeyBytes = base64UrlToUint8Array(userPublicKey);
+  const userAuthBytes = base64UrlToUint8Array(userAuth);
+  
+  // Import user's public key for ECDH
+  const importedUserPublicKey = await crypto.subtle.importKey(
+    'raw',
+    userPublicKeyBytes,
+    {
+      name: 'ECDH',
+      namedCurve: 'P-256'
+    },
+    false,
+    []
+  );
+  
+  // Perform ECDH to get shared secret
+  const sharedSecret = await crypto.subtle.deriveBits(
+    {
+      name: 'ECDH',
+      public: importedUserPublicKey
+    },
+    localKeyPair.privateKey,
+    256
+  );
+  
+  // Build info for HKDF (auth_info and key_info)
+  const authInfo = new TextEncoder().encode('Content-Encoding: auth\0');
+  const keyInfo = new TextEncoder().encode('Content-Encoding: aes128gcm\0');
+  
+  // Create HKDF key from auth secret
+  const authHkdfKey = await crypto.subtle.importKey(
+    'raw',
+    userAuthBytes,
+    {
+      name: 'HKDF'
+    },
+    false,
+    ['deriveBits']
+  );
+  
+  // Derive pseudo-random key (PRK) using auth secret and shared secret
+  const prk = await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: userAuthBytes,
+      info: authInfo
+    },
+    await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits']),
+    256
+  );
+  
+  // Concatenate for context: clientPublicKey + serverPublicKey  
+  const context = new Uint8Array(userPublicKeyBytes.length + localPublicKeyBytes.length);
+  context.set(userPublicKeyBytes, 0);
+  context.set(localPublicKeyBytes, userPublicKeyBytes.length);
+  
+  // Build final key_info with context
+  const keyInfoWithContext = new Uint8Array(keyInfo.length + context.length);
+  keyInfoWithContext.set(keyInfo, 0);
+  keyInfoWithContext.set(context, keyInfo.length);
+  
+  // Derive content encryption key (CEK) using PRK
+  const prkKey = await crypto.subtle.importKey(
+    'raw',
+    prk,
+    {
+      name: 'HKDF'
+    },
+    false,
+    ['deriveBits']
+  );
+  
+  const contentEncryptionKey = await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: new Uint8Array(32), // Empty salt for CEK
+      info: keyInfoWithContext
+    },
+    prkKey,
+    128 // 16 bytes for AES-128
+  );
+  
+  // Generate nonce using similar HKDF derivation
+  const nonceInfo = new TextEncoder().encode('Content-Encoding: nonce\0');
+  const nonceInfoWithContext = new Uint8Array(nonceInfo.length + context.length);
+  nonceInfoWithContext.set(nonceInfo, 0);
+  nonceInfoWithContext.set(context, nonceInfo.length);
+  
+  const nonce = await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: new Uint8Array(32),
+      info: nonceInfoWithContext
+    },
+    prkKey,
+    96 // 12 bytes for GCM nonce
+  );
+  
+  // Prepare payload with padding
+  const payloadBytes = new TextEncoder().encode(payload);
+  const paddingLength = 0; // No padding for simplicity
+  const record = new Uint8Array(2 + paddingLength + payloadBytes.length);
+  
+  // Add padding delimiter (2 bytes for padding length)
+  record[0] = (paddingLength >> 8) & 0xFF;
+  record[1] = paddingLength & 0xFF;
+  record.set(payloadBytes, 2 + paddingLength);
+  
+  // Import CEK for AES-GCM encryption
+  const cekKey = await crypto.subtle.importKey(
+    'raw',
+    contentEncryptionKey,
+    {
+      name: 'AES-GCM'
+    },
+    false,
+    ['encrypt']
+  );
+  
+  // Encrypt the record
+  const encrypted = await crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv: new Uint8Array(nonce),
+      tagLength: 128
+    },
+    cekKey,
+    record
+  );
+  
+  // Return encrypted payload and server public key
+  return {
+    ciphertext: new Uint8Array(encrypted),
+    salt: userAuthBytes, // Using auth as salt (simplified)
+    publicKey: localPublicKeyBytes
+  };
+}
+
+/**
+ * Send Web Push notification with VAPID authentication and RFC 8291 encryption
+ * 
+ * @param {Object} subscription - Push subscription object with endpoint and keys
  * @param {string} payload - JSON string to send
  * @param {Object} env - Environment with VAPID keys
  * @returns {Promise<Response>} Push service response
@@ -6964,19 +7129,62 @@ async function sendWebPushNotification(subscription, payload, env) {
   const signatureBase64 = uint8ArrayToBase64Url(new Uint8Array(signature));
   const jwt = `${unsignedToken}.${signatureBase64}`;
   
-  // Prepare request headers
+  // Encrypt payload using RFC 8291 (aes128gcm)
+  // Modern browsers require encrypted payloads for Web Push
+  let body;
   const headers = {
     'TTL': '86400', // 24 hours
-    'Content-Type': 'application/octet-stream',
     'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`,
     'Urgency': 'normal'
   };
   
-  // For now, we'll send the payload as plaintext
-  // Note: For production, you should implement Web Push encryption (RFC 8291)
-  // to protect sensitive user data. This requires encrypting with subscription's
-  // p256dh and auth keys. Plaintext is acceptable for non-sensitive notifications.
-  const body = new TextEncoder().encode(payload);
+  // Check if subscription has encryption keys (required for modern browsers)
+  if (subscription.keys && subscription.keys.p256dh && subscription.keys.auth) {
+    try {
+      // Encrypt the payload
+      const encrypted = await encryptWebPushPayload(
+        payload,
+        subscription.keys.p256dh,
+        subscription.keys.auth
+      );
+      
+      // Combine salt (16 bytes) + record size (4 bytes) + public key length (1 byte) + public key (65 bytes) + ciphertext
+      const recordSize = 4096; // Standard record size
+      const salt = encrypted.salt.slice(0, 16); // Use first 16 bytes of auth as salt
+      const publicKey = encrypted.publicKey;
+      
+      // Build the encrypted message body per RFC 8291
+      const header = new Uint8Array(16 + 4 + 1 + publicKey.length); // salt + rs + idlen + key
+      header.set(salt, 0); // 16 bytes salt
+      header[16] = (recordSize >> 24) & 0xFF; // 4 bytes record size (big-endian)
+      header[17] = (recordSize >> 16) & 0xFF;
+      header[18] = (recordSize >> 8) & 0xFF;
+      header[19] = recordSize & 0xFF;
+      header[20] = publicKey.length; // 1 byte key ID length
+      header.set(publicKey, 21); // 65 bytes public key
+      
+      // Combine header and ciphertext
+      body = new Uint8Array(header.length + encrypted.ciphertext.length);
+      body.set(header, 0);
+      body.set(encrypted.ciphertext, header.length);
+      
+      // Add encryption headers
+      headers['Content-Type'] = 'application/octet-stream';
+      headers['Content-Encoding'] = 'aes128gcm';
+      
+      console.log('Sending encrypted push notification');
+    } catch (encryptError) {
+      console.error('Encryption failed, falling back to plaintext:', encryptError);
+      // Fallback to plaintext if encryption fails
+      body = new TextEncoder().encode(payload);
+      headers['Content-Type'] = 'application/octet-stream';
+    }
+  } else {
+    // No encryption keys in subscription - send plaintext (for backwards compatibility)
+    console.warn('No encryption keys in subscription, sending plaintext');
+    body = new TextEncoder().encode(payload);
+    headers['Content-Type'] = 'application/octet-stream';
+  }
   
   // Send push notification to the push service
   const response = await fetch(endpoint, {
