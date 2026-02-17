@@ -1887,7 +1887,7 @@
             }
         }
 
-        function saveNotificationPreferences() {
+        async function saveNotificationPreferences() {
             try {
                 const preferences = {
                     enabled: document.getElementById('notifEnabled').checked,
@@ -1914,6 +1914,31 @@
 
                 // Save to localStorage (client-side only, no backend call)
                 localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
+                
+                // Sync to backend for server-side cron scheduling
+                const userId = localStorage.getItem('userId');
+                if (userId) {
+                    try {
+                        const response = await fetch(`${WORKER_URL}/api/user/notification-preferences`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                userId: userId,
+                                preferences: preferences
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            console.log('Preferences synced to backend for server-side scheduling');
+                        }
+                    } catch (backendError) {
+                        console.warn('Could not sync to backend:', backendError);
+                        // Continue anyway - local notifications still work
+                    }
+                }
                 
                 // Reschedule notifications with new preferences
                 if (typeof scheduleNotifications === 'function') {

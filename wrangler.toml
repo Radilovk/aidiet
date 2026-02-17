@@ -7,6 +7,11 @@ compatibility_date = "2024-01-01"
 binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"
 
+# Cron triggers for scheduled push notifications
+# Runs every hour to check and send scheduled notifications
+[triggers]
+crons = ["0 * * * *"]
+
 # Environment variables for API keys (configure via wrangler secret)
 # Run: wrangler secret put OPENAI_API_KEY
 # Run: wrangler secret put GEMINI_API_KEY
@@ -18,3 +23,6 @@ route = "aidiet.radilov-k.workers.dev/*"
 [[env.production.kv_namespaces]]
 binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"
+
+[env.production.triggers]
+crons = ["0 * * * *"]
