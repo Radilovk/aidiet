@@ -2304,25 +2304,42 @@
                 
                 // Check notification permission
                 if (Notification.permission !== 'granted') {
-                    console.warn('[Notifications] Permission not granted');
+                    console.warn('[Notifications] Permission not granted. Current permission:', Notification.permission);
+                    console.info('[Notifications] To enable notifications:');
+                    console.info('  1. Click the notification permission prompt when it appears');
+                    console.info('  2. Or enable notifications in your browser settings');
+                    console.info('  3. Refresh the page after granting permission');
                     return;
                 }
+                
+                console.log('[Notifications] Permission granted, scheduling notifications...');
                 
                 // Schedule all notification types
                 if (prefs.meals?.enabled && dietPlan) {
                     this.scheduleMealNotifications(dietPlan, prefs.meals);
+                    console.log('[Notifications] Meal notifications scheduled');
+                } else {
+                    console.log('[Notifications] Meal notifications disabled or no diet plan');
                 }
+                
                 if (prefs.water?.enabled) {
                     this.scheduleWaterNotifications(prefs.water);
+                    console.log('[Notifications] Water notifications scheduled');
                 }
+                
                 if (prefs.sleep?.enabled) {
                     this.scheduleSleepNotifications(prefs.sleep);
+                    console.log('[Notifications] Sleep notifications scheduled');
                 }
+                
                 if (prefs.activity?.enabled) {
                     this.scheduleActivityNotifications(prefs.activity);
+                    console.log('[Notifications] Activity notifications scheduled');
                 }
+                
                 if (prefs.supplements?.enabled) {
                     this.scheduleSupplementNotifications(prefs.supplements);
+                    console.log('[Notifications] Supplement notifications scheduled');
                 }
                 
                 console.log(`[Notifications] Scheduled ${this.scheduledTimers.length} notifications`);
@@ -2675,7 +2692,32 @@
              */
             getGlobalSettings() {
                 const stored = localStorage.getItem('globalNotificationSettings');
-                return stored ? JSON.parse(stored) : null;
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+                
+                // Return defaults if not found
+                const defaults = {
+                    enabled: true,
+                    waterReminders: {
+                        enabled: true,
+                        frequency: 2,  // hours
+                        startHour: 8,
+                        endHour: 22
+                    },
+                    mealReminders: {
+                        enabled: true,
+                        breakfast: '08:00',
+                        lunch: '13:00',
+                        dinner: '19:00'
+                    }
+                };
+                
+                // Save defaults to localStorage
+                localStorage.setItem('globalNotificationSettings', JSON.stringify(defaults));
+                console.log('[Notifications] Initialized default global settings');
+                
+                return defaults;
             },
             
             /**

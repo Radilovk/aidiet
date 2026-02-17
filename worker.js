@@ -510,10 +510,9 @@ function validateDataAdequacy(data) {
     errors.push(`Възрастта трябва да бъде между ${MIN_AGE} и ${MAX_AGE} години. Моля, въведете реалистична стойност.`);
   }
   
-  // Add note for minors
+  // Note for minors - TODO: Implement guardian consent verification in production
   if (age >= MIN_AGE && age < 18) {
-    // Note: In production, this should trigger a guardian consent flow
-    console.log(`Minor user (age ${age}) - guardian consent should be obtained`);
+    console.warn(`Minor user (age ${age}) - TODO: guardian consent verification required in production`);
   }
   
   // Check BMI extremes (medically unrealistic BMI values)
@@ -1113,31 +1112,6 @@ function generateUserId(data) {
   return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
 }
 
-// Enhancement #4: Check if a food item exists in the meal plan (case-insensitive, partial match)
-function checkFoodExistsInPlan(plan, foodName) {
-  if (!plan || !plan.weekPlan) return false;
-  
-  const searchTerm = foodName.toLowerCase();
-  
-  // Search through all days and meals
-  for (const dayKey in plan.weekPlan) {
-    const day = plan.weekPlan[dayKey];
-    if (day && Array.isArray(day.meals)) {
-      for (const meal of day.meals) {
-        // Check meal name and description
-        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (meal.description && meal.description.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-  }
-  
-  return false;
-}
-
 /**
  * Call AI model with load monitoring
  * Goal: Monitor request sizes to ensure no single request is overloaded
@@ -1150,13 +1124,6 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(enforcedPrompt);
-  console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
-  
-  // Monitor for large prompts - informational only
-  // Note: Progressive generation already distributes meal plan across multiple requests
-  if (estimatedInputTokens > 8000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context. Progressive generation is already enabled for meal plans.`);
-  }
   
   // Alert if prompt is very large - may indicate issue
   if (estimatedInputTokens > 12000) {
@@ -1397,11 +1364,8 @@ async function getDynamicFoodListsSections(env) {
   // Check cache first
   const now = Date.now();
   if (foodListsCache && (now - foodListsCacheTime) < FOOD_LISTS_CACHE_TTL) {
-    console.log('[Cache HIT] Food lists from cache');
     return foodListsCache;
   }
-  
-  console.log('[Cache MISS] Loading food lists from KV');
   let dynamicWhitelist = [];
   let dynamicBlacklist = [];
   
@@ -1448,7 +1412,6 @@ async function getDynamicFoodListsSections(env) {
 function invalidateFoodListsCache() {
   foodListsCache = null;
   foodListsCacheTime = 0;
-  console.log('[Cache INVALIDATED] Food lists cache cleared');
 }
 
 /**
@@ -1459,11 +1422,9 @@ function invalidateCustomPromptsCache(key = null) {
   if (key) {
     delete customPromptsCache[key];
     delete customPromptsCacheTime[key];
-    console.log(`[Cache INVALIDATED] Custom prompt '${key}' cleared`);
   } else {
     customPromptsCache = {};
     customPromptsCacheTime = {};
-    console.log('[Cache INVALIDATED] All custom prompts cleared');
   }
 }
 
@@ -1495,14 +1456,10 @@ function setChatContext(sessionId, userData, userPlan) {
         delete chatContextCache[key];
         delete chatContextCacheTime[key];
       }
-      console.log(`[Chat Context Cache] Removed ${toRemove} old entries to prevent memory bloat`);
     }
     
     chatContextCache[sessionId] = { userData, userPlan };
     chatContextCacheTime[sessionId] = Date.now();
-    // Log first 8 chars of sessionId to avoid PII exposure in production logs
-    const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
-    console.log(`[Chat Context Cache] Context stored for session: ${sessionIdShort}`);
     return true;
   } catch (error) {
     console.error('[Chat Context Cache] Error storing context:', error);
@@ -1517,24 +1474,20 @@ function setChatContext(sessionId, userData, userPlan) {
  */
 function getChatContext(sessionId) {
   const now = Date.now();
-  const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
   
   // Check if context exists and is not expired
   if (chatContextCache[sessionId] && chatContextCacheTime[sessionId]) {
     const age = now - chatContextCacheTime[sessionId];
     
     if (age < CHAT_CONTEXT_CACHE_TTL) {
-      console.log(`[Chat Context Cache HIT] Session: ${sessionIdShort} (age: ${Math.round(age/1000)}s)`);
       return chatContextCache[sessionId];
     } else {
       // Expired - clean up
       delete chatContextCache[sessionId];
       delete chatContextCacheTime[sessionId];
-      console.log(`[Chat Context Cache EXPIRED] Session: ${sessionIdShort}`);
     }
   }
   
-  console.log(`[Chat Context Cache MISS] Session: ${sessionIdShort}`);
   return null;
 }
 
@@ -1546,12 +1499,9 @@ function invalidateChatContext(sessionId = null) {
   if (sessionId) {
     delete chatContextCache[sessionId];
     delete chatContextCacheTime[sessionId];
-    const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
-    console.log(`[Chat Context Cache INVALIDATED] Session: ${sessionIdShort}`);
   } else {
     chatContextCache = {};
     chatContextCacheTime = {};
-    console.log('[Chat Context Cache INVALIDATED] All sessions cleared');
   }
 }
 
@@ -2187,7 +2137,6 @@ JSON (ТОЧЕН ФОРМАТ):
  */
 async function handleGeneratePlan(request, env) {
   try {
-    console.log('handleGeneratePlan: Starting');
     const data = await request.json();
     
     // Validate required fields
@@ -2208,13 +2157,11 @@ async function handleGeneratePlan(request, env) {
 
     // Generate unique user ID (could be email or session-based)
     const userId = data.email || generateUserId(data);
-    console.log('handleGeneratePlan: Request received for userId:', userId);
     
     // Check for goal contradictions before generating plan
     const { hasContradiction, warningData } = detectGoalContradiction(data);
     
     if (hasContradiction) {
-      console.log('handleGeneratePlan: Goal contradiction detected, returning warning');
       return jsonResponse({ 
         success: true,
         hasContradiction: true,
@@ -2223,12 +2170,9 @@ async function handleGeneratePlan(request, env) {
       });
     }
     
-    console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
-    
     // Use multi-step approach for better individualization
     // No caching - client stores plan locally
     let structuredPlan = await generatePlanMultiStep(env, data);
-    console.log('handleGeneratePlan: Plan structured for userId:', userId);
     
     // ENHANCED: Implement step-specific correction loop
     // Instead of correcting the whole plan, regenerate from the earliest error step
@@ -2240,27 +2184,9 @@ async function handleGeneratePlan(request, env) {
     
     while (!validation.isValid && correctionAttempts < maxAttempts) {
       correctionAttempts++;
-      console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${maxAttempts}):`, validation.errors);
-      console.log(`handleGeneratePlan: Earliest error step: ${validation.earliestErrorStep}`);
-      
-      // Enhanced logging: Show errors per step for debugging
-      console.log('=== DETAILED ERROR BREAKDOWN BY STEP ===');
-      if (validation.stepErrors) {
-        Object.keys(validation.stepErrors).forEach(stepKey => {
-          const stepErrs = validation.stepErrors[stepKey];
-          if (stepErrs && stepErrs.length > 0) {
-            console.log(`  ${stepKey}: ${stepErrs.length} error(s)`);
-            stepErrs.forEach((err, idx) => {
-              console.log(`    ${idx + 1}. ${err}`);
-            });
-          }
-        });
-      }
-      console.log('========================================');
       
       try {
         // Regenerate from the earliest error step with targeted error prevention
-        console.log(`handleGeneratePlan: Regenerating from ${validation.earliestErrorStep} (attempt ${correctionAttempts})`);
         structuredPlan = await regenerateFromStep(
           env, 
           data, 
@@ -2270,14 +2196,8 @@ async function handleGeneratePlan(request, env) {
           correctionAttempts
         );
         
-        console.log(`handleGeneratePlan: Plan regenerated from ${validation.earliestErrorStep} (attempt ${correctionAttempts})`);
-        
         // Re-validate the regenerated plan
         validation = validatePlan(structuredPlan, data);
-        
-        if (validation.isValid) {
-          console.log(`handleGeneratePlan: Plan validated successfully after ${correctionAttempts} correction(s)`);
-        }
       } catch (error) {
         console.error(`handleGeneratePlan: Regeneration attempt ${correctionAttempts} failed:`, error);
         // Continue with next attempt or exit loop
@@ -2293,19 +2213,12 @@ async function handleGeneratePlan(request, env) {
       
       // Fallback strategy: Try to generate a simplified plan as last resort
       if (correctionAttempts >= maxAttempts) {
-        console.log('handleGeneratePlan: Attempting simplified fallback plan generation');
-        console.log(`handleGeneratePlan: Last validation errors before fallback:`);
-        console.log(`  - Total errors: ${validation.errors.length}`);
-        console.log(`  - Earliest error step: ${validation.earliestErrorStep}`);
-        console.log(`  - Step errors:`, JSON.stringify(validation.stepErrors, null, 2));
-        
         try {
           // Generate simplified plan with reduced requirements
           const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
           const fallbackValidation = validatePlan(simplifiedPlan, data);
           
           if (fallbackValidation.isValid) {
-            console.log('handleGeneratePlan: Simplified fallback plan validated successfully');
             const cleanPlan = removeInternalJustifications(simplifiedPlan);
             return jsonResponse({ 
               success: true, 
@@ -2332,8 +2245,6 @@ async function handleGeneratePlan(request, env) {
         suggestion: "Моля, опитайте отново или свържете се с поддръжката"
       }, 400);
     }
-    
-    console.log('handleGeneratePlan: Plan validated successfully');
     
     // Remove internal justification fields before returning to client
     const cleanPlan = removeInternalJustifications(structuredPlan);
@@ -2385,7 +2296,6 @@ async function handleChat(request, env) {
         effectiveUserData = cachedContext.userData;
         effectiveUserPlan = cachedContext.userPlan;
         cacheWasUsed = true;
-        console.log(`[Chat Optimization] Using cached context for user ${userId} - payload reduced by ~90%`);
       } else {
         // Cache miss - validate that client provided full context as fallback
         if (!userData || !userPlan) {
@@ -2397,7 +2307,6 @@ async function handleChat(request, env) {
         
         // Store context for future requests
         setChatContext(userId, userData, userPlan);
-        console.log(`[Chat Optimization] Context not cached - storing for future requests`);
       }
     } else {
       // Legacy mode - full context required
@@ -2494,8 +2403,6 @@ async function handleChat(request, env) {
           
           // Only actually regenerate if we're in modification mode
           if (chatMode === 'modification') {
-            console.log('REGENERATE_PLAN detected, regenerating plan with modifications');
-            
             const regenerateData = JSON.parse(jsonContent);
             const modifications = regenerateData.modifications || [];
             
@@ -2512,18 +2419,9 @@ async function handleChat(request, env) {
                 // Extract food name from "exclude_food:име_на_храна"
                 const foodName = mod.substring('exclude_food:'.length).trim();
                 if (foodName) {
-                  // Enhancement #4: Check if food exists in plan (case-insensitive)
-                  const foodExistsInPlan = checkFoodExistsInPlan(userPlan, foodName);
-                  
                   // Add to excluded foods regardless (as preference for future plan generations)
                   excludedFoods.add(foodName);
                   validatedModifications.push(mod);
-                  
-                  if (foodExistsInPlan) {
-                    console.log('Adding food exclusion (found in current plan):', foodName);
-                  } else {
-                    console.log('Adding food exclusion (preference for future plans):', foodName);
-                  }
                 }
               } else {
                 existingMods.add(mod);
@@ -2544,10 +2442,7 @@ async function handleChat(request, env) {
             planWasUpdated = true;
             updatedPlan = newPlan;
             updatedUserData = modifiedUserData;
-            
-            console.log('Plan regenerated successfully with modifications:', validatedModifications);
           } else {
-            console.log('REGENERATE_PLAN instruction removed from response (not in modification mode)');
           }
         } else {
           console.error('Could not find closing bracket for REGENERATE_PLAN');
@@ -2607,7 +2502,6 @@ async function handleChat(request, env) {
       // Client needs to send full context on next request to update cache
       if (userId) {
         invalidateChatContext(userId);
-        console.log(`[Chat Optimization] Cache invalidated for user ${userId} due to plan update`);
       }
     }
     
@@ -4941,8 +4835,6 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * This approach reduces token usage per request and provides better error handling
  */
 async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null) {
-  console.log('Progressive generation: Starting meal plan generation in chunks');
-  
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};
@@ -4950,7 +4842,6 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   
   // Cache dynamic food lists once (prevents 4 redundant calls per generation)
   const cachedFoodLists = await getDynamicFoodListsSections(env);
-  console.log('Progressive generation: Cached food lists for reuse across chunks');
   
   // Parse BMR and calories - handle both numeric and string values
   let bmr;
@@ -4996,27 +4887,17 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
     const daysInChunk = endDay - startDay + 1;
     
-    console.log(`Progressive generation: Generating days ${startDay}-${endDay} (chunk ${chunkIndex + 1}/${chunks})`);
-    
     try {
       const chunkPrompt = await generateMealPlanChunkPrompt(
         data, analysis, strategy, bmr, recommendedCalories,
         startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
       );
       
-      const chunkInputTokens = estimateTokenCount(chunkPrompt);
-      console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
-      
       const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, analysis);
-      const chunkOutputTokens = estimateTokenCount(chunkResponse);
-      console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
-      
       const chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
         const errorMsg = chunkData.error || 'Invalid response';
-        console.error(`Chunk ${chunkIndex + 1} parsing failed:`, errorMsg);
-        console.error('AI Response preview (first 1000 chars):', chunkResponse?.substring(0, 1000));
         throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
       }
       
@@ -5033,16 +4914,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response`);
         }
       }
-      
-      console.log(`Progressive generation: Chunk ${chunkIndex + 1}/${chunks} complete`);
     } catch (error) {
-      console.error(`Progressive generation: Chunk ${chunkIndex + 1} failed:`, error);
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
   }
   
   // Generate summary, recommendations, etc. in final request
-  console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, analysis);
@@ -5110,210 +4987,6 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   }
 }
 
-/**
- * Generate nutrition plan prompt for AI (legacy single-step approach, kept for backward compatibility)
- */
-async function generateNutritionPrompt(data, env) {
-  // Try to get custom prompt from KV
-  let promptTemplate = null;
-  if (env.page_content) {
-    promptTemplate = await env.page_content.get('admin_plan_prompt');
-  }
-
-  // Use default if no custom prompt
-  if (!promptTemplate) {
-    promptTemplate = `Ти си професионален диетолог, ендокринолог и здравен консултант. Създай подробен, индивидуализиран 7-дневен хранителен план за клиент със следните характеристики:
-
-ОСНОВНИ ДАННИ:
-- Име: {name}
-- Пол: {gender}
-- Възраст: {age} години
-- Ръст: {height} см
-- Тегло: {weight} кг
-- Цел: {goal}
-{lossKg}
-
-ЗДРАВОСЛОВЕН ПРОФИЛ:
-- Сън: {sleepHours} часа (прекъсвания: {sleepInterrupt})
-- Хронотип: {chronotype}
-- Активност през деня: {dailyActivityLevel}
-- Стрес: {stressLevel}
-- Спортна активност: {sportActivity}
-
-ХРАНИТЕЛНИ НАВИЦИ:
-- Вода: {waterIntake}
-- Прекомерно хранене: {overeatingFrequency}
-- Хранителни навици: {eatingHabits}
-- Желания за храна: {foodCravings}
-- Тригери за хранене: {foodTriggers}
-
-ПРЕДПОЧИТАНИЯ:
-- Диетични предпочитания: {dietPreference}
-- Не обича/непоносимост/алергия: {dietDislike}
-- Любими храни: {dietLove}
-
-МЕДИЦИНСКИ СЪСТОЯНИЯ:
-- Състояния: {medicalConditions}
-- Лекарства: {medications}
-
-КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ:
-- Този план е САМО и ЕДИНСТВЕНО за {name}
-- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
-- ВСИЧКИ калории, BMR, макронутриенти са ИНДИВИДУАЛНО изчислени
-- Хранителните добавки са ПЕРСОНАЛНО подбрани според анализа
-- Психологическите съвети са базирани на КОНКРЕТНИЯ емоционален профил
-
-ВАЖНИ НАСОКИ ЗА СЪЗДАВАНЕ НА ПЛАНА:
-1. Използвай САМО храни, които клиентът обича или няма непоносимост към
-2. СТРОГО избягвай храните от списъка с непоносимости и алергии
-3. Включвай любимите храни в здравословен контекст
-4. Спазвай медицинските ограничения и корелирай ги с хранителните нужди
-5. Използвай РАЗНООБРАЗНИ храни - избягвай повторения
-6. Всички ястия трябва да бъдат реалистични и лесни за приготвяне
-7. Използвай български и средиземноморски продукти
-8. Адаптирай времето на хранене към хронотипа {chronotype}
-9. Всяко ястие да е балансирано и подходящо за целта {goal}
-10. АНАЛИЗИРАЙ корелациите между сън, стрес и хранителни нужди
-11. ИНДИВИДУАЛИЗИРАЙ макронутриентите според активност, медицински състояния и цели
-
-КРИТИЧНО ИЗИСКВАНЕ ЗА ИНДИВИДУАЛИЗАЦИЯ:
-- Този план е САМО за {name} и трябва да отразява УНИКАЛНИЯ профил
-- Вземи предвид ХОЛИСТИЧНО всички параметри и тяхната взаимовръзка
-- Психологическите съвети трябва да са СПЕЦИФИЧНИ за емоционалния профил на {name}
-- Хранителните добавки трябва да са ИНДИВИДУАЛНО подбрани според:
-  * Дефицити от анализа (напр. нисък витамин D заради малко излагане на слънце)
-  * Медицински състояния (напр. магнезий за стрес, омега-3 за възпаление)
-  * Цели (напр. протеин за мускулна маса, желязо за енергия)
-  * Възраст и пол (напр. калций за жени над 40, цинк за мъже)
-- Дозировките трябва да са ПЕРСОНАЛИЗИРАНИ според тегло, възраст и нужди
-- ЗАБРАНЕНИ са универсални "мултивитамини" без конкретна обосновка
-
-СТРОГО ЗАБРАНЕНО:
-- Странни комбинации от храни (напр. чийзкейк със салата)
-- Екзотични продукти, трудно достъпни в България
-- Повтаряне на едни и същи храни в различни дни
-- Комбинации, нетипични за българската/средиземноморска кухня
-- Храни от списъка с непоносимости
-
-Моля, върни отговора в следния JSON формат (с ИНДИВИДУАЛНИ стойности):
-
-{
-  "summary": {
-    "bmr": "ИНДИВИДУАЛНО изчислена базова метаболитна скорост за {name}",
-    "dailyCalories": "ПЕРСОНАЛИЗИРАН дневен прием калории според цел {goal}",
-    "macros": {
-      "protein": "протеин в грамове ПЕРСОНАЛИЗИРАН за {name}",
-      "carbs": "въглехидрати в грамове ПЕРСОНАЛИЗИРАНИ за {name}", 
-      "fats": "мазнини в грамове ПЕРСОНАЛИЗИРАНИ за {name}"
-    }
-  },
-  "weekPlan": {
-    "day1": {
-      "meals": [
-        {
-          "type": "Закуска",
-          "name": "Име на реалистично българско/средиземноморско ястие",
-          "weight": "250g",
-          "description": "Детайлно описание на ястието и съставки",
-          "benefits": "Конкретни ползи за здравето на {name}",
-          "calories": 350
-        }
-      ]
-    }
-  },
-  "recommendations": ["конкретна храна 1 подходяща за {name}", "конкретна храна 2 подходяща за {name}", "конкретна храна 3 подходяща за {name}", "конкретна храна 4 подходяща за {name}", "конкретна храна 5 подходяща за {name}"],
-  "forbidden": ["конкретна забранена храна 1 за {name}", "конкретна забранена храна 2 за {name}", "конкретна забранена храна 3 за {name}", "конкретна забранена храна 4 за {name}"],
-  "psychology": ["психологически съвет 1 базиран на емоционалното хранене на {name}", "психологически съвет 2 базиран на поведението на {name}", "психологически съвет 3 за мотивация специфичен за {name}"],
-  "waterIntake": "Детайлен препоръчителен прием на вода персонализиран за {name}",
-  "supplements": ["ИНДИВИДУАЛНА добавка 1 за {name} с дозировка и обосновка (БАЗИРАНА на: ${data.age} год. ${data.gender}, ${data.goal}, ${data.medicalConditions || 'няма'})", "ИНДИВИДУАЛНА добавка 2 за {name} с дозировка и обосновка (БАЗИРАНА на: ${data.sportActivity}, сън ${data.sleepHours}ч)", "ИНДИВИДУАЛНА добавка 3 за {name} с дозировка и обосновка (БАЗИРАНА на: ${data.eatingHabits}, ${data.dietPreference})"]
-}
-
-КРИТИЧНО ВАЖНО ЗА "recommendations" И "forbidden":
-- "recommendations" ТРЯБВА да съдържа САМО конкретни храни (минимум 5-6 елемента)
-  * ДА: "Зеленолистни зеленчуци (спанак, марули, рукола)", "Пилешко месо", "Риба (сьомга, скумрия, паламуд)", "Киноа и кафявориз", "Гръцко кисело мляко"
-  * НЕ: "Пийте повече вода", "Хранете се редовно", "Слушайте тялото си"
-- "forbidden" ТРЯБВА да съдържа САМО конкретни храни или категории храни (минимум 4-5 елемента)
-  * ДА: "Бели хлебни изделия", "Газирани напитки", "Пържени храни", "Сладкиши и торти", "Фаст фуд"
-  * НЕ: "Избягвайте стреса", "Не прекалявайте с порциите"
-- ЗАБРАНЕНО е да слагаш общи съвети в "recommendations" или "forbidden"
-- Всеки елемент трябва да е САМО име на храна или категория храни
-- Препоръчаните храни трябва да са съобразени с целта на клиента ({goal})
-
-КРИТИЧНО ВАЖНО ЗА ФОРМАТИРАНЕ:
-1. "psychology" ТРЯБВА да е масив с ТОЧНО 3 елемента
-2. "supplements" ТРЯБВА да е масив с ТОЧНО 3 елемента
-3. "recommendations" ТРЯБВА да е масив с минимум 5-6 конкретни храни
-4. "forbidden" ТРЯБВА да е масив с минимум 4-5 конкретни храни
-5. Всеки елемент е просто текст БЕЗ специални префикси
-6. Елементите трябва да бъдат конкретни и специфични за клиента
-
-Пример за ПРАВИЛЕН формат:
-"recommendations": [
-  "Зеленолистни зеленчуци (спанак, марули, рукола)",
-  "Пилешко месо без кожа",
-  "Бяла риба (цаца, пъстърва)",
-  "Киноа и кафявориз",
-  "Гръцко кисело мляко",
-  "Ядки (бадеми, орехи - малки порции)"
-],
-"forbidden": [
-  "Бели хлебни изделия и паста",
-  "Газирани напитки със захар",
-  "Пържени храни и фаст фуд",
-  "Сладкиши, торти и бонбони",
-  "Преработено месо (салами, наденици)"
-],
-"psychology": [
-  "Не се обвинявайте при грешка - един лош ден не разваля прогреса",
-  "Слушайте сигналите на тялото си за глад и ситост вместо да се храните емоционално", 
-  "Водете дневник на емоциите при хранене за по-добро самоосъзнаване"
-],
-"supplements": [
-  "Витамин D3 - 2000 IU дневно, сутрин с храна за добро усвояване (СПЕЦИФИЧНО за {name}: ${data.age} год., ${data.gender}, слънчева експозиция)",
-  "Омега-3 мастни киселини - 1000mg дневно за сърдечно здраве (СПЕЦИФИЧНО за {name}: цел ${data.goal}, активност ${data.sportActivity})",
-  "Магнезий - 200mg вечер преди лягане за по-добър сън (СПЕЦИФИЧНО за {name}: сън ${data.sleepHours}ч, стрес ${data.stressLevel})"
-]
-
-=== МЕДИЦИНСКИ И ДИЕТИЧНИ ПРИНЦИПИ ЗА РЕД НА ХРАНЕНИЯ ===
-КРИТИЧНО ВАЖНО: Следвай СТРОГО медицинските и диететични принципи за ред на храненията:
-1. ХРОНОЛОГИЧЕН РЕД: Храненията ТРЯБВА да следват естествения дневен ритъм
-   - Закуска (сутрин) - ВИНАГИ първо ако има закуска
-   - Обяд (обед) - след закуската или първо хранене ако няма закуска
-   - Следобедна закуска (опционално, между обяд и вечеря)
-   - Вечеря (вечер) - ВИНАГИ последно хранене
-2. ЗАБРАНЕНО: Хранения след вечеря (НЕ може да има закуска след вечеря!)
-3. ЗАБРАНЕНО: Хранения в неестествен ред (напр. вечеря преди обяд)
-4. ПОЗВОЛЕНИ ТИПОВЕ: "Закуска", "Обяд", "Следобедна закуска", "Вечеря"
-
-Създай пълни 7 дни (day1 до day7) с 1-5 хранения според стратегията В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Всяко хранене трябва да е УНИКАЛНО, балансирано и строго съобразено с индивидуалните нужди, предпочитания и здравословно състояние на клиента.`;
-  }
-
-  // Replace template variables with actual data
-  return promptTemplate
-    .replace(/{name}/g, data.name || '')
-    .replace(/{gender}/g, data.gender || '')
-    .replace(/{age}/g, data.age || '')
-    .replace(/{height}/g, data.height || '')
-    .replace(/{weight}/g, data.weight || '')
-    .replace(/{goal}/g, data.goal || '')
-    .replace(/{lossKg}/g, data.lossKg ? `- Целево отслабване: ${data.lossKg} кг` : '')
-    .replace(/{sleepHours}/g, data.sleepHours || '')
-    .replace(/{sleepInterrupt}/g, data.sleepInterrupt || 'Не')
-    .replace(/{chronotype}/g, data.chronotype || '')
-    .replace(/{dailyActivityLevel}/g, data.dailyActivityLevel || '')
-    .replace(/{stressLevel}/g, data.stressLevel || '')
-    .replace(/{sportActivity}/g, data.sportActivity || '')
-    .replace(/{waterIntake}/g, data.waterIntake || '')
-    .replace(/{overeatingFrequency}/g, data.overeatingFrequency || '')
-    .replace(/{eatingHabits}/g, JSON.stringify(data.eatingHabits || []))
-    .replace(/{foodCravings}/g, JSON.stringify(data.foodCravings || []))
-    .replace(/{foodTriggers}/g, JSON.stringify(data.foodTriggers || []))
-    .replace(/{dietPreference}/g, JSON.stringify(data.dietPreference || []))
-    .replace(/{dietDislike}/g, data.dietDislike || 'Няма')
-    .replace(/{dietLove}/g, data.dietLove || 'Няма')
-    .replace(/{medicalConditions}/g, JSON.stringify(data.medicalConditions || []))
-    .replace(/{medications}/g, data.medications === 'Да' ? data.medicationsDetails : 'Не приема');
-}
 
 
 /**
