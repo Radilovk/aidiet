@@ -6960,8 +6960,9 @@ async function encryptWebPushPayload(payload, subscription) {
   const nonce = await hkdfExpand(prk, nonceInfo, 12); // 12 bytes for GCM
 
   // Prepare payload with padding (RFC 8188)
+  // Using zero padding for now - could add random padding for better privacy
   const payloadBytes = new TextEncoder().encode(payload);
-  const paddingLength = 0; // Can add padding for obfuscation
+  const paddingLength = 0;
   const paddedPayload = new Uint8Array(2 + paddingLength + payloadBytes.length);
   
   // First 2 bytes indicate padding length (big-endian)
@@ -7177,7 +7178,9 @@ async function sendWebPushNotification(subscription, payload, env) {
   const encrypted = await encryptWebPushPayload(payload, subscription);
   
   // Add encryption headers
-  // Note: VAPID public key from env.VAPID_PUBLIC_KEY is already in base64url format
+  // Using 'aesgcm' (RFC 8291) content encoding - widely supported across browsers
+  // Note: 'aes128gcm' (RFC 8188) is newer but requires different implementation
+  // VAPID public key from env.VAPID_PUBLIC_KEY is already in base64url format
   headers['Content-Encoding'] = 'aesgcm';
   headers['Encryption'] = `salt=${uint8ArrayToBase64Url(encrypted.salt)}`;
   headers['Crypto-Key'] = `dh=${uint8ArrayToBase64Url(encrypted.publicKey)}; p256ecdsa=${vapidPublicKey}`;
