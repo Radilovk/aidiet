@@ -4079,14 +4079,20 @@ async function generatePlanMultiStep(env, data) {
     // Combine all parts into final plan (meal plan takes precedence)
     // Returns comprehensive plan with analysis and strategy included
     // PLAN1 IMPROVEMENT #1: Include finalTargets in the plan
+    // PLAN1 IMPROVEMENT #5: Plan structure provides separate artifacts for chat:
+    //   - finalTargets: Locked numerical targets
+    //   - strategy: Architecture and rules (Step 2)
+    //   - weekPlan: Validated meal plan (Step 3)
+    //   - recommendations, psychology, supplements: Additional guidance (Step 4)
     return {
-      ...mealPlan,
-      analysis: analysis,
-      strategy: strategy,
+      ...mealPlan,  // Includes: weekPlan, summary, recommendations, forbidden, psychology, waterIntake, supplements
+      analysis: analysis,  // Step 1B: Health analysis with correlations
+      strategy: strategy,  // Step 2: Architecture (weeklyScheme, mealTiming, calorieDistribution, etc.)
       finalTargets: finalTargets, // PLAN1: Locked targets used throughout generation
       _meta: {
         tokenUsage: cumulativeTokens,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        plan1Compliant: true  // Indicates this plan follows Plan1 architecture
       }
     };
   } catch (error) {
