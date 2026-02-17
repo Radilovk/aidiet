@@ -6906,17 +6906,17 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   
   // Generate a local key pair (application server keys for this message)
-  const localKeyPair = await crypto.subtle.generateKey(
+  const localKeyPair = /** @type {CryptoKeyPair} */ (await crypto.subtle.generateKey(
     {
       name: 'ECDH',
       namedCurve: 'P-256'
     },
     true,
     ['deriveBits']
-  );
+  ));
   
   // Export local public key in raw format
-  const localPublicKey = await crypto.subtle.exportKey('raw', localKeyPair.publicKey);
+  const localPublicKey = /** @type {ArrayBuffer} */ (await crypto.subtle.exportKey('raw', localKeyPair.publicKey));
   const localPublicKeyBytes = new Uint8Array(localPublicKey);
   
   // Decode user's public key and auth secret
@@ -6937,10 +6937,10 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
   
   // Perform ECDH to get shared secret
   const sharedSecret = await crypto.subtle.deriveBits(
-    {
+    /** @type {EcdhKeyDeriveParams} */ ({
       name: 'ECDH',
       public: importedUserPublicKey
-    },
+    }),
     localKeyPair.privateKey,
     256
   );
