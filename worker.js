@@ -1113,31 +1113,6 @@ function generateUserId(data) {
   return btoa(str).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
 }
 
-// Enhancement #4: Check if a food item exists in the meal plan (case-insensitive, partial match)
-function checkFoodExistsInPlan(plan, foodName) {
-  if (!plan || !plan.weekPlan) return false;
-  
-  const searchTerm = foodName.toLowerCase();
-  
-  // Search through all days and meals
-  for (const dayKey in plan.weekPlan) {
-    const day = plan.weekPlan[dayKey];
-    if (day && Array.isArray(day.meals)) {
-      for (const meal of day.meals) {
-        // Check meal name and description
-        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (meal.description && meal.description.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-  }
-  
-  return false;
-}
-
 /**
  * Call AI model with load monitoring
  * Goal: Monitor request sizes to ensure no single request is overloaded
