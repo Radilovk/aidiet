@@ -6947,20 +6947,13 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
   
   // Derive keys using HKDF as per RFC 8291
   // Step 1: Derive IKM (Input Keying Material) from shared secret and auth
-  const ikmHkdf = await crypto.subtle.importKey(
-    'raw',
-    userAuthBytes,
-    { name: 'HKDF' },
-    false,
-    ['deriveBits']
-  );
-  
+  // Per RFC 8291: IKM = HKDF-Extract(auth_secret, shared_secret)
   const authInfo = new TextEncoder().encode('Content-Encoding: auth\0');
   const ikm = await crypto.subtle.deriveBits(
     {
       name: 'HKDF',
       hash: 'SHA-256',
-      salt: userAuthBytes,
+      salt: userAuthBytes, // auth secret as salt
       info: authInfo
     },
     await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits']),
@@ -7136,7 +7129,7 @@ async function sendWebPushNotification(subscription, payload, env) {
       
       // Combine salt (16 bytes) + record size (4 bytes) + public key length (1 byte) + public key (65 bytes) + ciphertext
       const recordSize = 4096; // Standard record size
-      const salt = encrypted.salt.slice(0, 16); // Use first 16 bytes of auth as salt
+      const salt = encrypted.salt; // Random 16-byte salt from encryption
       const publicKey = encrypted.publicKey;
       
       // Build the encrypted message body per RFC 8291
