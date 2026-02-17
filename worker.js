@@ -6932,7 +6932,7 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
       namedCurve: 'P-256'
     },
     false,
-    []
+    ['deriveBits']
   );
   
   // Perform ECDH to get shared secret
