@@ -348,15 +348,19 @@
             try {
                 const registration = await navigator.serviceWorker.ready;
                 await registration.showNotification('🚀 SW Тестово Известие', {
-                    body: 'Това известие идва от Service Worker (по-добра iOS поддръжка)',
+                    body: 'Това известие идва от Service Worker (по-добра iOS поддръжка). Кликнете за отваряне на план.html',
                     icon: '/icon-192x192.png',
                     badge: '/icon-192x192.png',
                     tag: 'sw-test-notification',
                     requireInteraction: false,
-                    vibrate: [200, 100, 200]
+                    vibrate: [200, 100, 200],
+                    data: {
+                        url: '/plan.html',
+                        timestamp: Date.now()
+                    }
                 });
                 
-                showResult('✅ Service Worker известие изпратено успешно!', 'success');
+                showResult('✅ Service Worker известие изпратено успешно! Кликнете го за тест на URL.', 'success');
             } catch (e) {
                 showResult('❌ Service Worker грешка: ' + e.message, 'error');
             }
