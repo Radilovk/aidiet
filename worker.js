@@ -6899,9 +6899,12 @@ function vapidKeysToJWK(publicKeyBase64Url, privateKeyBase64Url) {
  * @param {string} payload - The message payload to encrypt
  * @param {string} userPublicKey - Base64url-encoded user agent public key (p256dh)
  * @param {string} userAuth - Base64url-encoded user agent auth secret
- * @returns {Promise<Object>} Encrypted data with headers
+ * @returns {Promise<Object>} Encrypted data with salt and public key
  */
 async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
+  // Generate a random 16-byte salt
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  
   // Generate a local key pair (application server keys for this message)
   const localKeyPair = await crypto.subtle.generateKey(
     {
@@ -6942,23 +6945,18 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
     256
   );
   
-  // Build info for HKDF (auth_info and key_info)
-  const authInfo = new TextEncoder().encode('Content-Encoding: auth\0');
-  const keyInfo = new TextEncoder().encode('Content-Encoding: aes128gcm\0');
-  
-  // Create HKDF key from auth secret
-  const authHkdfKey = await crypto.subtle.importKey(
+  // Derive keys using HKDF as per RFC 8291
+  // Step 1: Derive IKM (Input Keying Material) from shared secret and auth
+  const ikmHkdf = await crypto.subtle.importKey(
     'raw',
     userAuthBytes,
-    {
-      name: 'HKDF'
-    },
+    { name: 'HKDF' },
     false,
     ['deriveBits']
   );
   
-  // Derive pseudo-random key (PRK) using auth secret and shared secret
-  const prk = await crypto.subtle.deriveBits(
+  const authInfo = new TextEncoder().encode('Content-Encoding: auth\0');
+  const ikm = await crypto.subtle.deriveBits(
     {
       name: 'HKDF',
       hash: 'SHA-256',
@@ -6969,77 +6967,65 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
     256
   );
   
-  // Concatenate for context: clientPublicKey + serverPublicKey  
+  // Step 2: Build context for key and nonce derivation
+  // Context = clientPublicKey || serverPublicKey
   const context = new Uint8Array(userPublicKeyBytes.length + localPublicKeyBytes.length);
   context.set(userPublicKeyBytes, 0);
   context.set(localPublicKeyBytes, userPublicKeyBytes.length);
   
-  // Build final key_info with context
-  const keyInfoWithContext = new Uint8Array(keyInfo.length + context.length);
-  keyInfoWithContext.set(keyInfo, 0);
-  keyInfoWithContext.set(context, keyInfo.length);
+  // Step 3: Derive Content Encryption Key (CEK)
+  const keyInfo = new TextEncoder().encode('Content-Encoding: aes128gcm\0');
+  const keyInfoFull = new Uint8Array(keyInfo.length + context.length);
+  keyInfoFull.set(keyInfo, 0);
+  keyInfoFull.set(context, keyInfo.length);
   
-  // Derive content encryption key (CEK) using PRK
-  const prkKey = await crypto.subtle.importKey(
-    'raw',
-    prk,
-    {
-      name: 'HKDF'
-    },
-    false,
-    ['deriveBits']
-  );
-  
-  const contentEncryptionKey = await crypto.subtle.deriveBits(
+  const cek = await crypto.subtle.deriveBits(
     {
       name: 'HKDF',
       hash: 'SHA-256',
-      salt: new Uint8Array(32), // Empty salt for CEK
-      info: keyInfoWithContext
+      salt: salt,
+      info: keyInfoFull
     },
-    prkKey,
+    await crypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveBits']),
     128 // 16 bytes for AES-128
   );
   
-  // Generate nonce using similar HKDF derivation
+  // Step 4: Derive Nonce
   const nonceInfo = new TextEncoder().encode('Content-Encoding: nonce\0');
-  const nonceInfoWithContext = new Uint8Array(nonceInfo.length + context.length);
-  nonceInfoWithContext.set(nonceInfo, 0);
-  nonceInfoWithContext.set(context, nonceInfo.length);
+  const nonceInfoFull = new Uint8Array(nonceInfo.length + context.length);
+  nonceInfoFull.set(nonceInfo, 0);
+  nonceInfoFull.set(context, nonceInfo.length);
   
   const nonce = await crypto.subtle.deriveBits(
     {
       name: 'HKDF',
       hash: 'SHA-256',
-      salt: new Uint8Array(32),
-      info: nonceInfoWithContext
+      salt: salt,
+      info: nonceInfoFull
     },
-    prkKey,
+    await crypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveBits']),
     96 // 12 bytes for GCM nonce
   );
   
-  // Prepare payload with padding
+  // Step 5: Prepare payload with padding
   const payloadBytes = new TextEncoder().encode(payload);
   const paddingLength = 0; // No padding for simplicity
-  const record = new Uint8Array(2 + paddingLength + payloadBytes.length);
   
-  // Add padding delimiter (2 bytes for padding length)
+  // Record format: padding_length (2 bytes) + padding + payload
+  const record = new Uint8Array(2 + paddingLength + payloadBytes.length);
   record[0] = (paddingLength >> 8) & 0xFF;
   record[1] = paddingLength & 0xFF;
   record.set(payloadBytes, 2 + paddingLength);
   
-  // Import CEK for AES-GCM encryption
+  // Step 6: Encrypt the record with AES-128-GCM
   const cekKey = await crypto.subtle.importKey(
     'raw',
-    contentEncryptionKey,
-    {
-      name: 'AES-GCM'
-    },
+    cek,
+    { name: 'AES-GCM' },
     false,
     ['encrypt']
   );
   
-  // Encrypt the record
   const encrypted = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
@@ -7050,10 +7036,10 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
     record
   );
   
-  // Return encrypted payload and server public key
+  // Return encrypted payload, salt, and server public key
   return {
     ciphertext: new Uint8Array(encrypted),
-    salt: userAuthBytes, // Using auth as salt (simplified)
+    salt: salt,
     publicKey: localPublicKeyBytes
   };
 }
