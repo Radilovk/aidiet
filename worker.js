@@ -3831,69 +3831,6 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 `;
 }
 
-/**
- * PLAN1 IMPROVEMENT #1: Step 1A - Calculate reference values (source of truth)
- * Calculates BMR, TDEE, calories, macros, water, and activity score from user data
- * This becomes the baseline that AI can adjust in Step 1B
- * 
- * @param {Object} data - User profile data
- * @returns {Object} Reference values for nutrition targets
- */
-function calculateReferenceValues(data) {
-  // Calculate BMR using Mifflin-St Jeor equation
-  const bmr = calculateBMR(data);
-  
-  // Calculate unified activity score
-  const activityData = calculateUnifiedActivityScore(data);
-  
-  // Calculate TDEE based on activity score
-  const tdee = calculateTDEE(bmr, activityData.combinedScore);
-  
-  // Calculate target calories based on goal
-  let targetCalories = tdee;
-  const goalLower = (data.goal || '').toLowerCase();
-  if (goalLower === 'отслабване' || goalLower === 'намаляне на тегло') {
-    // Weight loss: 15-18% deficit
-    targetCalories = Math.round(tdee * 0.85);
-  } else if (goalLower === 'покачване на мускулна маса' || goalLower === 'увеличаване на мускули') {
-    // Muscle gain: 10% surplus
-    targetCalories = Math.round(tdee * 1.1);
-  }
-  // Otherwise maintenance = tdee
-  
-  // Calculate macronutrient ratios
-  const macroRatios = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
-  
-  // Calculate macro grams from target calories
-  const macroGrams = {
-    protein: Math.round((targetCalories * macroRatios.protein / 100) / 4),
-    carbs: Math.round((targetCalories * macroRatios.carbs / 100) / 4),
-    fats: Math.round((targetCalories * macroRatios.fats / 100) / 9)
-  };
-  
-  // Calculate water needs
-  const weight = parseFloat(data.weight) || 70;
-  const baseWater = weight * WATER_PER_KG_MULTIPLIER;
-  const activityBonus = activityData.combinedScore >= 6 ? ACTIVITY_WATER_BONUS_LITERS : 0;
-  const waterNeed = Math.round((baseWater + activityBonus) * 10) / 10;
-  
-  return {
-    bmr,
-    tdee,
-    targetCalories,
-    activityScore: activityData.combinedScore,
-    activityLevel: activityData.activityLevel,
-    macroRatios: {
-      protein: macroRatios.protein,
-      carbs: macroRatios.carbs,
-      fats: macroRatios.fats
-    },
-    macroGrams,
-    waterNeed,
-    proteinGramsPerKg: macroRatios.proteinGramsPerKg
-  };
-}
-
 async function generatePlanMultiStep(env, data) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
@@ -3909,19 +3846,8 @@ async function generatePlanMultiStep(env, data) {
   };
   
   try {
-    // PLAN1 IMPROVEMENT #1: Step 1A - Calculate reference values in code
-    // This establishes the "source of truth" for all numerical targets
-    const referenceValues = calculateReferenceValues(data);
-    console.log('Step 1A (Code calculations):', {
-      bmr: referenceValues.bmr,
-      tdee: referenceValues.tdee,
-      targetCalories: referenceValues.targetCalories,
-      macroGrams: referenceValues.macroGrams,
-      waterNeed: referenceValues.waterNeed
-    });
-    
-    // Step 1B: AI analysis with reference values context
-    // AI can provide corrections/adjustments based on health factors
+    // Step 1: Analyze user profile (1st AI request)
+    // AI calculates BMR, TDEE, calories based on ALL correlates
     // Focus: Deep health analysis, metabolic profile, correlations
     const analysisPrompt = await generateAnalysisPrompt(data, env);
     const analysisInputTokens = estimateTokenCount(analysisPrompt);
@@ -3964,39 +3890,13 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Analysis complete (1/3)');
     
-    // PLAN1 IMPROVEMENT #1: Create finalTargets from Step 1A + Step 1B
-    // Lock the final numerical targets - these will be used throughout Steps 2-4
-    // AI adjustments from analysis take precedence over reference calculations
-    const finalTargets = {
-      bmr: analysis.bmr || analysis.correctedMetabolism?.realBMR || referenceValues.bmr,
-      tdee: analysis.tdee || analysis.correctedMetabolism?.realTDEE || referenceValues.tdee,
-      calories: analysis.recommendedCalories || referenceValues.targetCalories,
-      macroGrams: analysis.macroGrams || referenceValues.macroGrams,
-      macroRatios: analysis.macroRatios || referenceValues.macroRatios,
-      waterNeed: analysis.waterDeficit?.dailyNeed 
-        ? parseFloat(String(analysis.waterDeficit.dailyNeed).match(/[\d.]+/)?.[0] || referenceValues.waterNeed)
-        : referenceValues.waterNeed,
-      activityLevel: analysis.activityLevel || referenceValues.activityLevel,
-      
-      // Track adjustments made by AI
-      adjustments: {
-        caloriesDelta: analysis.recommendedCalories 
-          ? analysis.recommendedCalories - referenceValues.targetCalories
-          : 0,
-        bmrCorrection: analysis.correctedMetabolism?.correctionPercent || '0%',
-        source: analysis.recommendedCalories ? 'AI adjusted' : 'Code calculated'
-      }
-    };
+    // PLAN1: Use analysis values directly as source of truth
+    // Extract numerical targets from AI analysis for use in Steps 2-4
+    const bmr = analysis.bmr || analysis.correctedMetabolism?.realBMR || calculateBMR(data);
+    const tdee = analysis.tdee || analysis.correctedMetabolism?.realTDEE;
+    const calories = analysis.recommendedCalories;
     
-    console.log('finalTargets locked:', {
-      calories: finalTargets.calories,
-      macroGrams: finalTargets.macroGrams,
-      waterNeed: finalTargets.waterNeed,
-      adjustments: finalTargets.adjustments
-    });
-    
-    // From this point forward, Steps 2-4 MUST use finalTargets
-    // They are NOT allowed to recalculate or override these values
+    console.log('Analysis targets:', { bmr, tdee, calories });
     
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
@@ -4036,8 +3936,8 @@ async function generatePlanMultiStep(env, data) {
     if (ENABLE_PROGRESSIVE_GENERATION) {
       console.log('Multi-step generation: Using progressive meal plan generation');
       try {
-        // PLAN1 IMPROVEMENT #1: Pass finalTargets to meal plan generation
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, finalTargets, null, sessionId);
+        // Pass analysis directly - it contains all needed values
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, null, sessionId);
       } catch (error) {
         console.error('Progressive meal plan generation failed:', error);
         throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
@@ -4079,17 +3979,11 @@ async function generatePlanMultiStep(env, data) {
     
     // Combine all parts into final plan (meal plan takes precedence)
     // Returns comprehensive plan with analysis and strategy included
-    // PLAN1 IMPROVEMENT #1: Include finalTargets in the plan
-    // PLAN1 IMPROVEMENT #5: Plan structure provides separate artifacts for chat:
-    //   - finalTargets: Locked numerical targets
-    //   - strategy: Architecture and rules (Step 2)
-    //   - weekPlan: Validated meal plan (Step 3)
-    //   - recommendations, psychology, supplements: Additional guidance (Step 4)
+    // Analysis contains locked numerical targets from AI
     return {
       ...mealPlan,  // Includes: weekPlan, summary, recommendations, forbidden, psychology, waterIntake, supplements
-      analysis: analysis,  // Step 1B: Health analysis with correlations
+      analysis: analysis,  // Step 1: Health analysis with locked targets (bmr, tdee, calories, macros)
       strategy: strategy,  // Step 2: Architecture (weeklyScheme, mealTiming, calorieDistribution, etc.)
-      finalTargets: finalTargets, // PLAN1: Locked targets used throughout generation
       _meta: {
         tokenUsage: cumulativeTokens,
         generatedAt: new Date().toISOString(),
@@ -4952,106 +4846,11 @@ function calculateAverageMacrosFromPlan(weekPlan) {
 }
 
 /**
- * PLAN1 IMPROVEMENT #2: Validate a single day's meal plan
- * Checks: daily calories tolerance, hard-forbidden foods, meal count
- * Returns validation result with specific errors
- */
-function validateDayPlan(dayKey, dayData, finalTargets, strategy) {
-  const errors = [];
-  const warnings = [];
-  
-  if (!dayData || !dayData.meals || !Array.isArray(dayData.meals)) {
-    errors.push(`${dayKey}: Missing meals array`);
-    return { valid: false, errors, warnings };
-  }
-  
-  // 1. Check meal count matches architecture (if specified in strategy)
-  const expectedMealCount = strategy.weeklyScheme?.[dayKey.replace('day', '').toLowerCase()]?.meals;
-  if (expectedMealCount && dayData.meals.length !== expectedMealCount) {
-    warnings.push(`${dayKey}: Expected ${expectedMealCount} meals, got ${dayData.meals.length}`);
-  }
-  
-  // 2. Calculate daily calories
-  let dailyCalories = 0;
-  dayData.meals.forEach(meal => {
-    if (meal.calories) {
-      const calories = typeof meal.calories === 'number' ? meal.calories : parseInt(meal.calories) || 0;
-      if (calories === 0 && meal.calories) {
-        warnings.push(`${dayKey}: Could not parse calories from "${meal.calories}"`);
-      }
-      dailyCalories += calories;
-    }
-  });
-  
-  // 3. Check daily calories tolerance (±7%)
-  const targetCalories = finalTargets.calories;
-  const tolerance = 0.07; // 7%
-  const minCalories = targetCalories * (1 - tolerance);
-  const maxCalories = targetCalories * (1 + tolerance);
-  
-  if (dailyCalories < minCalories || dailyCalories > maxCalories) {
-    errors.push(`${dayKey}: Daily calories ${dailyCalories} outside tolerance range ${Math.round(minCalories)}-${Math.round(maxCalories)} (target: ${targetCalories})`);
-  }
-  
-  // 4. Check for hard-forbidden foods (PLAN1 IMPROVEMENT #4)
-  const hardForbidden = strategy.hardForbidden || [];
-  if (hardForbidden.length > 0) {
-    dayData.meals.forEach((meal, mealIndex) => {
-      const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
-      
-      hardForbidden.forEach(forbiddenFood => {
-        // Use word boundary matching to avoid false positives
-        // Escape special regex characters in food name
-        const escapedFood = forbiddenFood.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const pattern = new RegExp(`\\b${escapedFood.toLowerCase()}`, 'i');
-        if (pattern.test(mealText)) {
-          errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains HARD-FORBIDDEN food "${forbiddenFood}"`);
-        }
-      });
-    });
-  }
-  
-  // 5. Check ADLE v8 hard bans (existing critical rules)
-  dayData.meals.forEach((meal, mealIndex) => {
-    const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
-    
-    // Check for onion
-    if (/\b(лук|onion)\b/.test(mealText)) {
-      errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains ONION (ADLE v8 hard ban)`);
-    }
-    
-    // Check for turkey meat (but not turkey ham)
-    if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
-      errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains TURKEY MEAT (ADLE v8 hard ban)`);
-    }
-    
-    // Check for ketchup/mayo
-    if (/\b(кетчуп|майонеза|ketchup|mayonnaise)\b/.test(mealText)) {
-      errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains KETCHUP/MAYO (ADLE v8 hard ban)`);
-    }
-    
-    // Check for peas + fish combination
-    if (/\b(грах|peas)\b/.test(mealText) && /\b(риба|fish)\b/.test(mealText)) {
-      errors.push(`${dayKey}, meal ${mealIndex + 1}: PEAS + FISH forbidden combination (ADLE v8)`);
-    }
-  });
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-    dailyCalories
-  };
-}
-
-/**
  * Progressive meal plan generation - generates meal plan in smaller chunks
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
- * 
- * PLAN1 IMPROVEMENT #1: Uses finalTargets instead of recalculating
  */
-async function generateMealPlanProgressive(env, data, analysis, strategy, finalTargets, errorPreventionComment = null, sessionId = null) {
+async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null) {
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};
@@ -5060,10 +4859,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
   // Cache dynamic food lists once (prevents 4 redundant calls per generation)
   const cachedFoodLists = await getDynamicFoodListsSections(env);
   
-  // PLAN1 IMPROVEMENT #1: Use finalTargets instead of recalculating
-  // These values are locked and cannot be changed by Step 3
-  const bmr = finalTargets.bmr;
-  const recommendedCalories = finalTargets.calories;
+  // Extract values from analysis (AI-calculated, source of truth)
+  const bmr = analysis.bmr || analysis.correctedMetabolism?.realBMR || calculateBMR(data);
+  const recommendedCalories = analysis.recommendedCalories;
   
   // Generate meal plan in chunks
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
@@ -5089,24 +4887,6 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
       for (let day = startDay; day <= endDay; day++) {
         const dayKey = `day${day}`;
         if (chunkData[dayKey]) {
-          // PLAN1 IMPROVEMENT #2: Validate day before accepting it
-          const validation = validateDayPlan(dayKey, chunkData[dayKey], finalTargets, strategy);
-          
-          if (!validation.valid) {
-            console.warn(`Validation failed for ${dayKey}:`, validation.errors);
-            // For now, log warnings but accept the day (repair can be added later)
-            // TODO: Implement single-day repair mechanism
-            validation.errors.forEach(err => console.warn(`  - ${err}`));
-          }
-          
-          if (validation.warnings.length > 0) {
-            validation.warnings.forEach(warn => console.log(`  ⚠️ ${warn}`));
-          }
-          
-          if (validation.dailyCalories) {
-            console.log(`${dayKey}: ${validation.dailyCalories} kcal (target: ${finalTargets.calories})`);
-          }
-          
           weekPlan[dayKey] = chunkData[dayKey];
           previousDays.push({
             day: day,
