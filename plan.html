@@ -2524,6 +2524,8 @@
                             badge: '/icon-192x192.png',
                             tag: options.tag,
                             requireInteraction: options.requireInteraction || false,
+                            silent: false,
+                            timestamp: Date.now(),
                             data: {
                                 url: '/plan.html',
                                 timestamp: Date.now()
@@ -2537,7 +2539,9 @@
                             body: options.body,
                             icon: options.icon || '/icon-192x192.png',
                             tag: options.tag,
-                            requireInteraction: options.requireInteraction || false
+                            requireInteraction: options.requireInteraction || false,
+                            silent: false,
+                            timestamp: Date.now()
                         });
                         
                         notification.onclick = () => {
