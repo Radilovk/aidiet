@@ -510,10 +510,9 @@ function validateDataAdequacy(data) {
     errors.push(`Възрастта трябва да бъде между ${MIN_AGE} и ${MAX_AGE} години. Моля, въведете реалистична стойност.`);
   }
   
-  // Add note for minors
+  // Note for minors - TODO: Implement guardian consent verification in production
   if (age >= MIN_AGE && age < 18) {
-    // Note: In production, this should trigger a guardian consent flow
-    console.warn(`Minor user (age ${age}) - guardian consent should be obtained`);
+    console.warn(`Minor user (age ${age}) - TODO: guardian consent verification required in production`);
   }
   
   // Check BMI extremes (medically unrealistic BMI values)
