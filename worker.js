@@ -3851,10 +3851,11 @@ function calculateReferenceValues(data) {
   
   // Calculate target calories based on goal
   let targetCalories = tdee;
-  if (data.goal && data.goal.includes('Отслабване')) {
+  const goalLower = (data.goal || '').toLowerCase();
+  if (goalLower === 'отслабване' || goalLower === 'намаляне на тегло') {
     // Weight loss: 15-18% deficit
     targetCalories = Math.round(tdee * 0.85);
-  } else if (data.goal && data.goal.includes('Мускулна маса')) {
+  } else if (goalLower === 'покачване на мускулна маса' || goalLower === 'увеличаване на мускули') {
     // Muscle gain: 10% surplus
     targetCalories = Math.round(tdee * 1.1);
   }
@@ -4974,7 +4975,11 @@ function validateDayPlan(dayKey, dayData, finalTargets, strategy) {
   let dailyCalories = 0;
   dayData.meals.forEach(meal => {
     if (meal.calories) {
-      dailyCalories += typeof meal.calories === 'number' ? meal.calories : parseInt(meal.calories) || 0;
+      const calories = typeof meal.calories === 'number' ? meal.calories : parseInt(meal.calories) || 0;
+      if (calories === 0 && meal.calories) {
+        warnings.push(`${dayKey}: Could not parse calories from "${meal.calories}"`);
+      }
+      dailyCalories += calories;
     }
   });
   
@@ -4995,9 +5000,11 @@ function validateDayPlan(dayKey, dayData, finalTargets, strategy) {
       const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
       
       hardForbidden.forEach(forbiddenFood => {
-        // Simple substring match - can be improved with regex
-        const searchTerm = forbiddenFood.toLowerCase();
-        if (mealText.includes(searchTerm)) {
+        // Use word boundary matching to avoid false positives
+        // Escape special regex characters in food name
+        const escapedFood = forbiddenFood.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = new RegExp(`\\b${escapedFood.toLowerCase()}`, 'i');
+        if (pattern.test(mealText)) {
           errors.push(`${dayKey}, meal ${mealIndex + 1}: Contains HARD-FORBIDDEN food "${forbiddenFood}"`);
         }
       });
@@ -5138,7 +5145,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
         weekPlan: weekPlan,
         recommendations: strategy.foodsToInclude || [],
         // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
-        forbidden: strategy.foodsToAvoid || strategy.hardForbidden || [],
+        // Backward compatibility: use foodsToAvoid if present, otherwise hardForbidden
+        forbidden: (strategy.foodsToAvoid && strategy.foodsToAvoid.length > 0) 
+          ? strategy.foodsToAvoid 
+          : (strategy.hardForbidden || []),
         hardForbidden: strategy.hardForbidden || [],
         limited: strategy.limited || [],
         psychology: strategy.psychologicalSupport || [],
@@ -5156,7 +5166,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
       weekPlan: weekPlan,
       recommendations: summaryData.recommendations || strategy.foodsToInclude || [],
       // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
-      forbidden: summaryData.forbidden || strategy.foodsToAvoid || strategy.hardForbidden || [],
+      // Backward compatibility: prefer summaryData.forbidden, then foodsToAvoid, then hardForbidden
+      forbidden: (summaryData.forbidden && summaryData.forbidden.length > 0)
+        ? summaryData.forbidden
+        : ((strategy.foodsToAvoid && strategy.foodsToAvoid.length > 0)
+          ? strategy.foodsToAvoid
+          : (strategy.hardForbidden || [])),
       hardForbidden: strategy.hardForbidden || [],
       limited: strategy.limited || [],
       psychology: summaryData.psychology || strategy.psychologicalSupport || [],
@@ -5181,7 +5196,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, finalT
       weekPlan: weekPlan,
       recommendations: strategy.foodsToInclude || [],
       // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
-      forbidden: strategy.foodsToAvoid || strategy.hardForbidden || [],
+      // Backward compatibility: use foodsToAvoid if present, otherwise hardForbidden
+      forbidden: (strategy.foodsToAvoid && strategy.foodsToAvoid.length > 0)
+        ? strategy.foodsToAvoid
+        : (strategy.hardForbidden || []),
       hardForbidden: strategy.hardForbidden || [],
       limited: strategy.limited || [],
       psychology: strategy.psychologicalSupport || [],
