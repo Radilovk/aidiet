@@ -4,6 +4,8 @@ const BASE_PATH = '';
 const CACHE_NAME = 'nutriplan-v2';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
+const DEFAULT_TITLE = 'NutriPlan';
+const DEFAULT_BODY = 'Ново напомняне от NutriPlan';
 const STATIC_CACHE = [
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire.html`,
@@ -140,8 +142,8 @@ self.addEventListener('push', (event) => {
   console.log('[SW] event.data:', event.data);
   
   let notificationData = {
-    title: 'NutriPlan',
-    body: 'Ново напомняне от NutriPlan',
+    title: DEFAULT_TITLE,
+    body: DEFAULT_BODY,
     url: '/plan.html',
     icon: DEFAULT_ICON,
     notificationType: 'general'
@@ -167,9 +169,9 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Final notification data:', notificationData);
   
   // Customize notification based on type
-  let title = notificationData.title || 'NutriPlan';
+  let title = notificationData.title || DEFAULT_TITLE;
   let icon = notificationData.icon || DEFAULT_ICON;
-  let body = notificationData.body || 'Ново напомняне от NutriPlan';
+  let body = notificationData.body || DEFAULT_BODY;
   let badge = DEFAULT_BADGE;
   let vibrate = [200, 100, 200];
   let tag = `nutriplan-${notificationData.notificationType || 'general'}`;
