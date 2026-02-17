@@ -6937,10 +6937,10 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
   
   // Perform ECDH to get shared secret
   const sharedSecret = await crypto.subtle.deriveBits(
-    /** @type {EcdhKeyDeriveParams} */ ({
+    {
       name: 'ECDH',
       public: importedUserPublicKey
-    }),
+    },
     localKeyPair.privateKey,
     256
   );
