@@ -7003,6 +7003,14 @@ async function encryptWebPushPayload(payload, subscription) {
  * @returns {Promise<Uint8Array>} Derived key material
  */
 async function hkdfExpand(prk, info, length) {
+  if (length <= 0) {
+    throw new Error('HKDF-Expand length must be positive');
+  }
+  
+  if (length > 255 * 32) {
+    throw new Error('HKDF-Expand length too large (max 255 * 32 bytes)');
+  }
+  
   const prkKey = await crypto.subtle.importKey(
     'raw',
     prk,
@@ -7172,7 +7180,7 @@ async function sendWebPushNotification(subscription, payload, env) {
   // Note: VAPID public key from env.VAPID_PUBLIC_KEY is already in base64url format
   headers['Content-Encoding'] = 'aesgcm';
   headers['Encryption'] = `salt=${uint8ArrayToBase64Url(encrypted.salt)}`;
-  headers['Crypto-Key'] = `dh=${uint8ArrayToBase64Url(encrypted.publicKey)};p256ecdsa=${vapidPublicKey}`;
+  headers['Crypto-Key'] = `dh=${uint8ArrayToBase64Url(encrypted.publicKey)}; p256ecdsa=${vapidPublicKey}`;
   
   // Send push notification to the push service
   const response = await fetch(endpoint, {
