@@ -2172,6 +2172,15 @@
             isSafari: () => {
                 return /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
             },
+            isChrome: () => {
+                return /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
+            },
+            isFirefox: () => {
+                return /Firefox/i.test(navigator.userAgent);
+            },
+            isEdge: () => {
+                return /Edg/i.test(navigator.userAgent);
+            },
             isPWA: () => {
                 // Check if running as installed PWA
                 return window.matchMedia('(display-mode: standalone)').matches || 
@@ -2180,9 +2189,17 @@
             supportsNotifications: () => {
                 return 'Notification' in window && 'serviceWorker' in navigator;
             },
+            getBrowserName: () => {
+                if (PlatformDetector.isEdge()) return 'Edge';
+                if (PlatformDetector.isChrome()) return 'Chrome';
+                if (PlatformDetector.isFirefox()) return 'Firefox';
+                if (PlatformDetector.isSafari()) return 'Safari';
+                return 'Unknown';
+            },
             getCompatibilityInfo: () => {
                 const info = {
                     platform: 'unknown',
+                    browser: PlatformDetector.getBrowserName(),
                     notificationsSupported: false,
                     requiresPWAInstall: false,
                     limitedSupport: false,
@@ -2194,24 +2211,41 @@
                     info.requiresPWAInstall = !PlatformDetector.isPWA();
                     info.limitedSupport = true;
                     info.notificationsSupported = PlatformDetector.isPWA();
-                    if (!PlatformDetector.isPWA()) {
+                    
+                    if (!PlatformDetector.isSafari()) {
+                        // Chrome or Firefox on iOS
+                        info.notificationsSupported = false;
+                        info.recommendations.push('Chrome и Firefox на iOS не поддържат известия');
+                        info.recommendations.push('Моля използвайте Safari и инсталирайте приложението');
+                        info.recommendations.push('Safari → Share → Add to Home Screen');
+                    } else if (!PlatformDetector.isPWA()) {
                         info.recommendations.push('Инсталирайте приложението на начален екран за известия');
                         info.recommendations.push('Safari → Share → Add to Home Screen');
+                        info.recommendations.push('След това отворете от началния екран');
                     }
                 } else if (PlatformDetector.isHuawei()) {
                     info.platform = 'Huawei';
                     info.notificationsSupported = false;
                     info.limitedSupport = true;
-                    info.recommendations.push('Huawei устройствата имат ограничена поддръжка за уеб известия');
-                    info.recommendations.push('Използвайте календар напомняния като алтернатива');
+                    info.recommendations.push('Huawei устройствата без Google Services нямат поддръжка за уеб известия');
+                    info.recommendations.push('Използвайте Huawei Calendar за напомняния');
+                    info.recommendations.push('Или задайте будилници в Alarm приложението');
                 } else if (PlatformDetector.isAndroid()) {
                     info.platform = 'Android';
                     info.notificationsSupported = PlatformDetector.supportsNotifications();
                     info.limitedSupport = false;
+                    if (!info.notificationsSupported) {
+                        info.recommendations.push('Вашият браузър не поддържа известия');
+                        info.recommendations.push('Използвайте Chrome, Firefox или Samsung Internet');
+                    }
                 } else {
                     info.platform = 'Desktop';
                     info.notificationsSupported = PlatformDetector.supportsNotifications();
                     info.limitedSupport = false;
+                    if (!info.notificationsSupported) {
+                        info.recommendations.push('Вашият браузър не поддържа известия');
+                        info.recommendations.push('Използвайте модерен браузър: Chrome, Firefox, Edge или Safari 16+');
+                    }
                 }
                 
                 return info;
@@ -2295,20 +2329,94 @@
             },
             
             /**
-             * Show platform compatibility warning to user
+             * Show platform compatibility warning to user with actionable steps
              */
             showPlatformWarning(compatInfo) {
                 if (compatInfo.recommendations.length === 0) return;
                 
-                // Create a simple alert div
+                // Different warning styles based on platform
+                let warningStyle, warningIcon, warningTitle, actionButtons = '';
+                
+                if (compatInfo.platform === 'iOS' && !compatInfo.notificationsSupported) {
+                    warningStyle = 'background: #d1ecf1; border: 1px solid #17a2b8; color: #0c5460;';
+                    warningIcon = '📱';
+                    warningTitle = 'iOS изисква PWA инсталация за известия';
+                    actionButtons = `
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #17a2b8;">
+                            <strong>Как да инсталирате (iOS Safari):</strong>
+                            <ol style="margin: 10px 0 0 20px; padding: 0;">
+                                <li>Натиснете бутона <strong>Share</strong> (квадратче със стрелка) долу</li>
+                                <li>Scroll down и изберете <strong>"Add to Home Screen"</strong></li>
+                                <li>Натиснете <strong>"Add"</strong></li>
+                                <li>Отворете приложението от <strong>Home Screen</strong></li>
+                                <li>Разрешете известия когато се покаже prompt</li>
+                            </ol>
+                            <p style="margin: 10px 0 0 0;"><em>Забележка: Chrome и Firefox на iOS не поддържат известия. Използвайте Safari.</em></p>
+                            <div style="margin-top: 15px;">
+                                <strong>Или използвайте алтернатива:</strong>
+                                <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                    📅 Експортирай в Календар
+                                </button>
+                                <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Ще изтеглите .ics файл, който можете да импортирате в iOS Calendar</em></p>
+                            </div>
+                        </div>
+                    `;
+                } else if (compatInfo.platform === 'Huawei') {
+                    warningStyle = 'background: #f8d7da; border: 1px solid #dc3545; color: #721c24;';
+                    warningIcon = '❌';
+                    warningTitle = 'Huawei устройства не поддържат уеб известия';
+                    actionButtons = `
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dc3545;">
+                            <strong>Алтернативни решения:</strong>
+                            <ul style="margin: 10px 0 0 20px; padding: 0;">
+                                <li><strong>Huawei Calendar</strong> - Създайте повтарящи се събития за храна и вода</li>
+                                <li><strong>Alarm App</strong> - Задайте будилници за часовете на хранене</li>
+                                <li><strong>Reminders App</strong> - Ръчно добавяне на напомняния</li>
+                            </ul>
+                            <p style="margin: 10px 0 0 0;"><em>Уеб push известия изискват Google Play Services.</em></p>
+                            <div style="margin-top: 15px;">
+                                <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                    📅 Експортирай в Календар (.ics)
+                                </button>
+                                <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Импортирайте файла в Huawei Calendar за автоматични напомняния</em></p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    warningStyle = 'background: #fff3cd; border: 1px solid #ffc107; color: #856404;';
+                    warningIcon = '⚠️';
+                    warningTitle = 'Ограничена поддръжка за известия';
+                    actionButtons = `
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffc107;">
+                            <strong>Алтернативно решение:</strong>
+                            <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #ffc107; color: #856404; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">
+                                📅 Експортирай в Календар
+                            </button>
+                            <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Използвайте вашето календарно приложение за напомняния</em></p>
+                        </div>
+                    `;
+                }
+                
+                // Create enhanced alert div
                 const alertHtml = `
-                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin: 20px; color: #856404;">
-                        <h4 style="margin: 0 0 10px 0;">⚠️ Известия не са поддържани</h4>
-                        <p style="margin: 0 0 10px 0;"><strong>Платформа:</strong> ${compatInfo.platform}</p>
-                        <p style="margin: 0 0 10px 0;"><strong>Препоръки:</strong></p>
-                        <ul style="margin: 0; padding-left: 20px;">
-                            ${compatInfo.recommendations.map(r => `<li>${r}</li>`).join('')}
-                        </ul>
+                    <div style="${warningStyle} border-radius: 12px; padding: 20px; margin: 20px auto; max-width: 800px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.5em;">${warningIcon}</span>
+                            ${warningTitle}
+                        </h3>
+                        <p style="margin: 0 0 10px 0;"><strong>Платформа:</strong> ${compatInfo.platform} (${compatInfo.browser})</p>
+                        ${compatInfo.recommendations.length > 0 ? `
+                        <div style="margin: 10px 0;">
+                            <strong>Препоръки:</strong>
+                            <ul style="margin: 5px 0 0 20px; padding: 0;">
+                                ${compatInfo.recommendations.map(r => `<li style="margin: 5px 0;">${r}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+                        ${actionButtons}
+                        <button onclick="this.parentElement.remove()" style="margin-top: 15px; padding: 8px 16px; background: rgba(0,0,0,0.1); border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            Затвори това съобщение
+                        </button>
                     </div>
                 `;
                 
@@ -2316,6 +2424,12 @@
                 const container = document.querySelector('.container') || document.body;
                 const warningDiv = document.createElement('div');
                 warningDiv.innerHTML = alertHtml;
+                warningDiv.id = 'platform-warning';
+                
+                // Remove existing warning if present
+                const existing = document.getElementById('platform-warning');
+                if (existing) existing.remove();
+                
                 container.insertBefore(warningDiv, container.firstChild);
             },
             
@@ -2518,15 +2632,18 @@
                     // Prefer Service Worker notifications for better iOS support
                     if (this.serviceWorkerReg && this.serviceWorkerReg.showNotification) {
                         // Use Service Worker notification (works better on iOS PWA)
+                        const timestamp = Date.now();
                         await this.serviceWorkerReg.showNotification(options.title, {
                             body: options.body,
                             icon: options.icon || '/icon-192x192.png',
                             badge: '/icon-192x192.png',
                             tag: options.tag,
                             requireInteraction: options.requireInteraction || false,
+                            silent: false,
+                            timestamp: timestamp,
                             data: {
                                 url: '/plan.html',
-                                timestamp: Date.now()
+                                timestamp: timestamp
                             },
                             vibrate: options.vibrate || [200, 100, 200]
                         });
@@ -2537,7 +2654,9 @@
                             body: options.body,
                             icon: options.icon || '/icon-192x192.png',
                             tag: options.tag,
-                            requireInteraction: options.requireInteraction || false
+                            requireInteraction: options.requireInteraction || false,
+                            silent: false,
+                            timestamp: Date.now()
                         });
                         
                         notification.onclick = () => {
@@ -2616,6 +2735,175 @@
                     // Continue using cached data
                     console.log('[Notifications] Could not check for updates, using cached data');
                 }
+            }
+        };
+        
+        /**
+         * Calendar Export Utility - Fallback for platforms without notification support
+         * Generates iCalendar (.ics) file that users can import to their calendar app
+         */
+        const CalendarExporter = {
+            /**
+             * Generate iCalendar (.ics) file with all reminders
+             */
+            generateICS() {
+                const prefs = NotificationScheduler.getPreferences();
+                const templates = NotificationScheduler.getTemplates();
+                const globalSettings = NotificationScheduler.getGlobalSettings();
+                
+                let icsContent = [
+                    'BEGIN:VCALENDAR',
+                    'VERSION:2.0',
+                    'PRODID:-//NutriPlan//Notification Reminders//EN',
+                    'CALSCALE:GREGORIAN',
+                    'METHOD:PUBLISH',
+                    'X-WR-CALNAME:NutriPlan Напомняния',
+                    'X-WR-TIMEZONE:Europe/Sofia',
+                    'X-WR-CALDESC:Напомняния за храна, вода и активности от NutriPlan'
+                ];
+                
+                const now = new Date();
+                const dateStamp = this.formatDateTimeStamp(now);
+                
+                // Add meal reminders
+                if (prefs.meals?.enabled && globalSettings?.mealReminders) {
+                    const mealTimes = globalSettings.mealReminders;
+                    Object.entries(mealTimes).forEach(([mealType, config]) => {
+                        if (config.enabled && config.time) {
+                            const template = templates.meals[mealType];
+                            if (template) {
+                                icsContent.push(...this.createRecurringEvent(
+                                    template.title,
+                                    template.body,
+                                    config.time,
+                                    'DAILY',
+                                    dateStamp
+                                ));
+                            }
+                        }
+                    });
+                }
+                
+                // Add water reminders
+                if (prefs.water?.enabled && globalSettings?.waterReminders?.enabled) {
+                    const waterConfig = globalSettings.waterReminders;
+                    const interval = waterConfig.intervalHours || 2;
+                    const startHour = parseInt(waterConfig.startTime?.split(':')[0]) || 8;
+                    const endHour = parseInt(waterConfig.endTime?.split(':')[0]) || 22;
+                    
+                    for (let hour = startHour; hour <= endHour; hour += interval) {
+                        const time = `${hour.toString().padStart(2, '0')}:00`;
+                        icsContent.push(...this.createRecurringEvent(
+                            templates.water.title,
+                            templates.water.body,
+                            time,
+                            'DAILY',
+                            dateStamp
+                        ));
+                    }
+                }
+                
+                // Add sleep reminder
+                if (prefs.sleep?.enabled) {
+                    const sleepTime = prefs.sleep.time || '22:00';
+                    icsContent.push(...this.createRecurringEvent(
+                        templates.sleep.title,
+                        templates.sleep.body,
+                        sleepTime,
+                        'DAILY',
+                        dateStamp
+                    ));
+                }
+                
+                // Add activity reminders
+                if (prefs.activity?.enabled) {
+                    const morningTime = prefs.activity.morningTime || '07:00';
+                    icsContent.push(...this.createRecurringEvent(
+                        templates.activity.morning.title,
+                        templates.activity.morning.body,
+                        morningTime,
+                        'DAILY',
+                        dateStamp
+                    ));
+                    
+                    const dayTime = prefs.activity.dayTime || '15:00';
+                    icsContent.push(...this.createRecurringEvent(
+                        templates.activity.day.title,
+                        templates.activity.day.body,
+                        dayTime,
+                        'DAILY',
+                        dateStamp
+                    ));
+                }
+                
+                icsContent.push('END:VCALENDAR');
+                return icsContent.join('\r\n');
+            },
+            
+            /**
+             * Create a recurring event in iCalendar format
+             */
+            createRecurringEvent(title, description, time, frequency, dateStamp) {
+                const uid = `nutriplan-${title.toLowerCase().replace(/\s+/g, '-')}-${time.replace(':', '')}@biocode.website`;
+                const [hours, minutes] = time.split(':');
+                
+                // Start date (today at specified time)
+                const startDate = new Date();
+                startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                
+                return [
+                    'BEGIN:VEVENT',
+                    `UID:${uid}`,
+                    `DTSTAMP:${dateStamp}`,
+                    `DTSTART:${this.formatDateTime(startDate)}`,
+                    `SUMMARY:${title}`,
+                    `DESCRIPTION:${description}`,
+                    `RRULE:FREQ=${frequency}`,
+                    'BEGIN:VALARM',
+                    'TRIGGER:-PT0M',
+                    'ACTION:DISPLAY',
+                    `DESCRIPTION:${title}`,
+                    'END:VALARM',
+                    'END:VEVENT'
+                ];
+            },
+            
+            /**
+             * Format date/time for iCalendar
+             */
+            formatDateTime(date) {
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                const seconds = date.getSeconds().toString().padStart(2, '0');
+                return `${year}${month}${day}T${hours}${minutes}${seconds}`;
+            },
+            
+            /**
+             * Format date/time stamp for iCalendar
+             */
+            formatDateTimeStamp(date) {
+                return this.formatDateTime(date) + 'Z';
+            },
+            
+            /**
+             * Download ICS file
+             */
+            downloadICS() {
+                const icsContent = this.generateICS();
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'nutriplan-reminders.ics';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                console.log('[Calendar] ICS file downloaded');
             }
         };
         

@@ -179,6 +179,7 @@ self.addEventListener('push', (event) => {
     let body = notificationData.body || DEFAULT_BODY;
     let badge = DEFAULT_BADGE;
     let vibrate = [200, 100, 200];
+    let timestamp = Date.now();
     let tag = `nutriplan-${notificationData.notificationType || 'general'}`;
     let requireInteraction = false;
     
@@ -186,7 +187,8 @@ self.addEventListener('push', (event) => {
     switch (notificationData.notificationType) {
       case 'chat':
         vibrate = [100, 50, 100];
-        tag = 'nutriplan-chat';
+        // Unique tag for each chat message using crypto.randomUUID() for better uniqueness
+        tag = `nutriplan-chat-${crypto.randomUUID()}`;
         break;
       case 'water':
         vibrate = [200];
@@ -228,6 +230,8 @@ self.addEventListener('push', (event) => {
       vibrate: vibrate,
       tag: tag,
       requireInteraction: requireInteraction,
+      silent: false,
+      timestamp: timestamp,
       data: {
         url: notificationData.url || '/plan.html',
         notificationType: notificationData.notificationType
