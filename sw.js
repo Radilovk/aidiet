@@ -150,9 +150,11 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       notificationData = event.data.json();
+      console.log('[SW] Notification data:', { title: notificationData.title, bodyLength: notificationData.body?.length, type: notificationData.notificationType });
     } catch (e) {
       // Fallback to text if JSON parsing fails
       notificationData.body = event.data.text();
+      console.log('[SW] Failed to parse JSON, using text');
     }
   }
   
