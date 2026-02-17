@@ -167,6 +167,7 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Final notification data:', notificationData);
   
   // Customize notification based on type
+  let title = notificationData.title || 'NutriPlan';
   let icon = notificationData.icon || DEFAULT_ICON;
   let body = notificationData.body || 'Ново напомняне от NutriPlan';
   let badge = DEFAULT_BADGE;
@@ -226,10 +227,10 @@ self.addEventListener('push', (event) => {
     }
   };
 
-  console.log('[SW] Showing notification with title:', notificationData.title, 'body:', body);
+  console.log('[SW] Showing notification with title:', title, 'body:', body);
 
   event.waitUntil(
-    self.registration.showNotification(notificationData.title, options)
+    self.registration.showNotification(title, options)
   );
 });
 
