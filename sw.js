@@ -168,6 +168,7 @@ self.addEventListener('push', (event) => {
   
   // Customize notification based on type
   let icon = notificationData.icon || DEFAULT_ICON;
+  let body = notificationData.body || 'Ново напомняне от NutriPlan';
   let badge = DEFAULT_BADGE;
   let vibrate = [200, 100, 200];
   let tag = `nutriplan-${notificationData.notificationType || 'general'}`;
@@ -213,7 +214,7 @@ self.addEventListener('push', (event) => {
   }
   
   const options = {
-    body: notificationData.body,
+    body: body,
     icon: icon,
     badge: badge,
     vibrate: vibrate,
@@ -225,7 +226,7 @@ self.addEventListener('push', (event) => {
     }
   };
 
-  console.log('[SW] Showing notification with title:', notificationData.title, 'body:', notificationData.body);
+  console.log('[SW] Showing notification with title:', notificationData.title, 'body:', body);
 
   event.waitUntil(
     self.registration.showNotification(notificationData.title, options)
