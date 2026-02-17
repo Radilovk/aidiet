@@ -7605,6 +7605,19 @@ async function handleScheduledNotifications(env) {
 }
 
 /**
+ * Normalize time string to HH:MM format with zero padding
+ */
+function normalizeTime(timeStr) {
+  if (!timeStr) return null;
+  const parts = timeStr.split(':');
+  if (parts.length !== 2) return null;
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  if (isNaN(hours) || isNaN(minutes)) return null;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+/**
  * Check and send meal reminders
  */
 async function checkAndSendMealReminders(userId, mealReminders, currentTime, env) {
@@ -7612,8 +7625,8 @@ async function checkAndSendMealReminders(userId, mealReminders, currentTime, env
   const mealTypes = ['breakfast', 'lunch', 'dinner'];
   
   for (const mealType of mealTypes) {
-    const mealTime = mealReminders[mealType];
-    if (mealTime === currentTime) {
+    const mealTime = normalizeTime(mealReminders[mealType]);
+    if (mealTime && mealTime === currentTime) {
       console.log(`[Cron] Sending ${mealType} reminder to user ${userId}`);
       await sendPushNotificationToUser(userId, {
         title: templates.meals[mealType]?.title || `Време за ${mealType}`,
@@ -7653,7 +7666,8 @@ async function checkAndSendWaterReminders(userId, waterSettings, currentHour, cu
  * Check and send sleep reminder
  */
 async function checkAndSendSleepReminder(userId, sleepTime, currentTime, env) {
-  if (sleepTime === currentTime) {
+  const normalizedSleepTime = normalizeTime(sleepTime);
+  if (normalizedSleepTime && normalizedSleepTime === currentTime) {
     console.log(`[Cron] Sending sleep reminder to user ${userId}`);
     const templates = await getNotificationTemplates(env);
     await sendPushNotificationToUser(userId, {
@@ -7671,7 +7685,8 @@ async function checkAndSendSleepReminder(userId, sleepTime, currentTime, env) {
 async function checkAndSendActivityReminders(userId, activityPrefs, currentTime, env) {
   const templates = await getNotificationTemplates(env);
   
-  if (activityPrefs.morningTime === currentTime) {
+  const normalizedMorningTime = normalizeTime(activityPrefs.morningTime);
+  if (normalizedMorningTime && normalizedMorningTime === currentTime) {
     console.log(`[Cron] Sending morning activity reminder to user ${userId}`);
     await sendPushNotificationToUser(userId, {
       title: templates.activity?.morning?.title || 'Сутрешна активност',
@@ -7681,7 +7696,8 @@ async function checkAndSendActivityReminders(userId, activityPrefs, currentTime,
     }, env);
   }
   
-  if (activityPrefs.dayTime === currentTime) {
+  const normalizedDayTime = normalizeTime(activityPrefs.dayTime);
+  if (normalizedDayTime && normalizedDayTime === currentTime) {
     console.log(`[Cron] Sending day activity reminder to user ${userId}`);
     await sendPushNotificationToUser(userId, {
       title: templates.activity?.day?.title || 'Време за движение',
@@ -7696,7 +7712,9 @@ async function checkAndSendActivityReminders(userId, activityPrefs, currentTime,
  * Check and send supplement reminders
  */
 async function checkAndSendSupplementReminders(userId, supplementTimes, currentTime, env) {
-  if (supplementTimes.includes(currentTime)) {
+  // Normalize all supplement times and check if any match current time
+  const normalizedTimes = supplementTimes.map(t => normalizeTime(t)).filter(t => t !== null);
+  if (normalizedTimes.includes(currentTime)) {
     console.log(`[Cron] Sending supplement reminder to user ${userId}`);
     const templates = await getNotificationTemplates(env);
     await sendPushNotificationToUser(userId, {

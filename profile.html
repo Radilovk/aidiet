@@ -1919,7 +1919,7 @@
                 const userId = localStorage.getItem('userId');
                 if (userId) {
                     try {
-                        const response = await fetch('https://aidiet.radilov-k.workers.dev/api/user/notification-preferences', {
+                        const response = await fetch(`${WORKER_URL}/api/user/notification-preferences`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
