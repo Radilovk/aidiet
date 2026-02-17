@@ -141,7 +141,7 @@ self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'NutriPlan',
     body: 'Ново напомняне от NutriPlan',
-    url: '/',
+    url: '/plan.html',
     icon: DEFAULT_ICON,
     notificationType: 'general'
   };
@@ -210,7 +210,7 @@ self.addEventListener('push', (event) => {
     tag: tag,
     requireInteraction: requireInteraction,
     data: {
-      url: notificationData.url || '/',
+      url: notificationData.url || '/plan.html',
       notificationType: notificationData.notificationType
     }
   };
@@ -226,7 +226,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   // Get the URL from notification data
-  const url = event.notification.data?.url || '/';
+  const url = event.notification.data?.url || '/plan.html';
   const targetUrl = url.startsWith('http') ? url : `${BASE_PATH}${url}`;
 
   event.waitUntil(

@@ -7191,7 +7191,7 @@ async function handlePushSend(request, env) {
     const pushMessage = {
       title: title || 'NutriPlan',
       body: body || 'Ново напомняне от NutriPlan',
-      url: url || '/',
+      url: url || '/plan.html',
       icon: icon || '/icon-192x192.png',
       notificationType: notificationType || 'general',
       timestamp: Date.now()
