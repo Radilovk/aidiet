@@ -137,6 +137,7 @@ self.addEventListener('fetch', (event) => {
 // Push notification event
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
+  console.log('[SW] event.data:', event.data);
   
   let notificationData = {
     title: 'NutriPlan',
@@ -149,12 +150,21 @@ self.addEventListener('push', (event) => {
   // Parse notification data if available
   if (event.data) {
     try {
-      notificationData = event.data.json();
+      const parsedData = event.data.json();
+      console.log('[SW] Parsed JSON data:', parsedData);
+      notificationData = parsedData;
     } catch (e) {
       // Fallback to text if JSON parsing fails
-      notificationData.body = event.data.text();
+      console.warn('[SW] JSON parse failed, trying text:', e);
+      const textData = event.data.text();
+      console.log('[SW] Text data:', textData);
+      notificationData.body = textData;
     }
+  } else {
+    console.warn('[SW] No event.data - using defaults');
   }
+  
+  console.log('[SW] Final notification data:', notificationData);
   
   // Customize notification based on type
   let icon = notificationData.icon || DEFAULT_ICON;
@@ -214,6 +224,8 @@ self.addEventListener('push', (event) => {
       notificationType: notificationData.notificationType
     }
   };
+
+  console.log('[SW] Showing notification with title:', notificationData.title, 'body:', notificationData.body);
 
   event.waitUntil(
     self.registration.showNotification(notificationData.title, options)
