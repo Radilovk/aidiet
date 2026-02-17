@@ -513,7 +513,7 @@ function validateDataAdequacy(data) {
   // Add note for minors
   if (age >= MIN_AGE && age < 18) {
     // Note: In production, this should trigger a guardian consent flow
-    console.log(`Minor user (age ${age}) - guardian consent should be obtained`);
+    console.warn(`Minor user (age ${age}) - guardian consent should be obtained`);
   }
   
   // Check BMI extremes (medically unrealistic BMI values)
@@ -1150,13 +1150,6 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(enforcedPrompt);
-  console.log(`AI Request: estimated input tokens: ${estimatedInputTokens}, max output tokens: ${maxTokens || 'default'}`);
-  
-  // Monitor for large prompts - informational only
-  // Note: Progressive generation already distributes meal plan across multiple requests
-  if (estimatedInputTokens > 8000) {
-    console.warn(`⚠️ Large input prompt detected: ~${estimatedInputTokens} tokens. This is expected for chat requests with full context. Progressive generation is already enabled for meal plans.`);
-  }
   
   // Alert if prompt is very large - may indicate issue
   if (estimatedInputTokens > 12000) {
@@ -1397,11 +1390,8 @@ async function getDynamicFoodListsSections(env) {
   // Check cache first
   const now = Date.now();
   if (foodListsCache && (now - foodListsCacheTime) < FOOD_LISTS_CACHE_TTL) {
-    console.log('[Cache HIT] Food lists from cache');
     return foodListsCache;
   }
-  
-  console.log('[Cache MISS] Loading food lists from KV');
   let dynamicWhitelist = [];
   let dynamicBlacklist = [];
   
@@ -1448,7 +1438,6 @@ async function getDynamicFoodListsSections(env) {
 function invalidateFoodListsCache() {
   foodListsCache = null;
   foodListsCacheTime = 0;
-  console.log('[Cache INVALIDATED] Food lists cache cleared');
 }
 
 /**
@@ -1459,11 +1448,9 @@ function invalidateCustomPromptsCache(key = null) {
   if (key) {
     delete customPromptsCache[key];
     delete customPromptsCacheTime[key];
-    console.log(`[Cache INVALIDATED] Custom prompt '${key}' cleared`);
   } else {
     customPromptsCache = {};
     customPromptsCacheTime = {};
-    console.log('[Cache INVALIDATED] All custom prompts cleared');
   }
 }
 
@@ -1495,14 +1482,10 @@ function setChatContext(sessionId, userData, userPlan) {
         delete chatContextCache[key];
         delete chatContextCacheTime[key];
       }
-      console.log(`[Chat Context Cache] Removed ${toRemove} old entries to prevent memory bloat`);
     }
     
     chatContextCache[sessionId] = { userData, userPlan };
     chatContextCacheTime[sessionId] = Date.now();
-    // Log first 8 chars of sessionId to avoid PII exposure in production logs
-    const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
-    console.log(`[Chat Context Cache] Context stored for session: ${sessionIdShort}`);
     return true;
   } catch (error) {
     console.error('[Chat Context Cache] Error storing context:', error);
@@ -1517,24 +1500,20 @@ function setChatContext(sessionId, userData, userPlan) {
  */
 function getChatContext(sessionId) {
   const now = Date.now();
-  const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
   
   // Check if context exists and is not expired
   if (chatContextCache[sessionId] && chatContextCacheTime[sessionId]) {
     const age = now - chatContextCacheTime[sessionId];
     
     if (age < CHAT_CONTEXT_CACHE_TTL) {
-      console.log(`[Chat Context Cache HIT] Session: ${sessionIdShort} (age: ${Math.round(age/1000)}s)`);
       return chatContextCache[sessionId];
     } else {
       // Expired - clean up
       delete chatContextCache[sessionId];
       delete chatContextCacheTime[sessionId];
-      console.log(`[Chat Context Cache EXPIRED] Session: ${sessionIdShort}`);
     }
   }
   
-  console.log(`[Chat Context Cache MISS] Session: ${sessionIdShort}`);
   return null;
 }
 
@@ -1546,12 +1525,9 @@ function invalidateChatContext(sessionId = null) {
   if (sessionId) {
     delete chatContextCache[sessionId];
     delete chatContextCacheTime[sessionId];
-    const sessionIdShort = sessionId ? sessionId.substring(0, 8) + '...' : 'unknown';
-    console.log(`[Chat Context Cache INVALIDATED] Session: ${sessionIdShort}`);
   } else {
     chatContextCache = {};
     chatContextCacheTime = {};
-    console.log('[Chat Context Cache INVALIDATED] All sessions cleared');
   }
 }
 
@@ -2187,7 +2163,6 @@ JSON (ТОЧЕН ФОРМАТ):
  */
 async function handleGeneratePlan(request, env) {
   try {
-    console.log('handleGeneratePlan: Starting');
     const data = await request.json();
     
     // Validate required fields
@@ -2208,13 +2183,11 @@ async function handleGeneratePlan(request, env) {
 
     // Generate unique user ID (could be email or session-based)
     const userId = data.email || generateUserId(data);
-    console.log('handleGeneratePlan: Request received for userId:', userId);
     
     // Check for goal contradictions before generating plan
     const { hasContradiction, warningData } = detectGoalContradiction(data);
     
     if (hasContradiction) {
-      console.log('handleGeneratePlan: Goal contradiction detected, returning warning');
       return jsonResponse({ 
         success: true,
         hasContradiction: true,
@@ -2223,12 +2196,9 @@ async function handleGeneratePlan(request, env) {
       });
     }
     
-    console.log('handleGeneratePlan: Generating new plan with multi-step approach for userId:', userId);
-    
     // Use multi-step approach for better individualization
     // No caching - client stores plan locally
     let structuredPlan = await generatePlanMultiStep(env, data);
-    console.log('handleGeneratePlan: Plan structured for userId:', userId);
     
     // ENHANCED: Implement step-specific correction loop
     // Instead of correcting the whole plan, regenerate from the earliest error step
@@ -2240,27 +2210,9 @@ async function handleGeneratePlan(request, env) {
     
     while (!validation.isValid && correctionAttempts < maxAttempts) {
       correctionAttempts++;
-      console.log(`handleGeneratePlan: Plan validation failed (attempt ${correctionAttempts}/${maxAttempts}):`, validation.errors);
-      console.log(`handleGeneratePlan: Earliest error step: ${validation.earliestErrorStep}`);
-      
-      // Enhanced logging: Show errors per step for debugging
-      console.log('=== DETAILED ERROR BREAKDOWN BY STEP ===');
-      if (validation.stepErrors) {
-        Object.keys(validation.stepErrors).forEach(stepKey => {
-          const stepErrs = validation.stepErrors[stepKey];
-          if (stepErrs && stepErrs.length > 0) {
-            console.log(`  ${stepKey}: ${stepErrs.length} error(s)`);
-            stepErrs.forEach((err, idx) => {
-              console.log(`    ${idx + 1}. ${err}`);
-            });
-          }
-        });
-      }
-      console.log('========================================');
       
       try {
         // Regenerate from the earliest error step with targeted error prevention
-        console.log(`handleGeneratePlan: Regenerating from ${validation.earliestErrorStep} (attempt ${correctionAttempts})`);
         structuredPlan = await regenerateFromStep(
           env, 
           data, 
@@ -2270,14 +2222,8 @@ async function handleGeneratePlan(request, env) {
           correctionAttempts
         );
         
-        console.log(`handleGeneratePlan: Plan regenerated from ${validation.earliestErrorStep} (attempt ${correctionAttempts})`);
-        
         // Re-validate the regenerated plan
         validation = validatePlan(structuredPlan, data);
-        
-        if (validation.isValid) {
-          console.log(`handleGeneratePlan: Plan validated successfully after ${correctionAttempts} correction(s)`);
-        }
       } catch (error) {
         console.error(`handleGeneratePlan: Regeneration attempt ${correctionAttempts} failed:`, error);
         // Continue with next attempt or exit loop
@@ -2293,19 +2239,12 @@ async function handleGeneratePlan(request, env) {
       
       // Fallback strategy: Try to generate a simplified plan as last resort
       if (correctionAttempts >= maxAttempts) {
-        console.log('handleGeneratePlan: Attempting simplified fallback plan generation');
-        console.log(`handleGeneratePlan: Last validation errors before fallback:`);
-        console.log(`  - Total errors: ${validation.errors.length}`);
-        console.log(`  - Earliest error step: ${validation.earliestErrorStep}`);
-        console.log(`  - Step errors:`, JSON.stringify(validation.stepErrors, null, 2));
-        
         try {
           // Generate simplified plan with reduced requirements
           const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
           const fallbackValidation = validatePlan(simplifiedPlan, data);
           
           if (fallbackValidation.isValid) {
-            console.log('handleGeneratePlan: Simplified fallback plan validated successfully');
             const cleanPlan = removeInternalJustifications(simplifiedPlan);
             return jsonResponse({ 
               success: true, 
@@ -2332,8 +2271,6 @@ async function handleGeneratePlan(request, env) {
         suggestion: "Моля, опитайте отново или свържете се с поддръжката"
       }, 400);
     }
-    
-    console.log('handleGeneratePlan: Plan validated successfully');
     
     // Remove internal justification fields before returning to client
     const cleanPlan = removeInternalJustifications(structuredPlan);
@@ -2385,7 +2322,6 @@ async function handleChat(request, env) {
         effectiveUserData = cachedContext.userData;
         effectiveUserPlan = cachedContext.userPlan;
         cacheWasUsed = true;
-        console.log(`[Chat Optimization] Using cached context for user ${userId} - payload reduced by ~90%`);
       } else {
         // Cache miss - validate that client provided full context as fallback
         if (!userData || !userPlan) {
@@ -2397,7 +2333,6 @@ async function handleChat(request, env) {
         
         // Store context for future requests
         setChatContext(userId, userData, userPlan);
-        console.log(`[Chat Optimization] Context not cached - storing for future requests`);
       }
     } else {
       // Legacy mode - full context required
@@ -2494,8 +2429,6 @@ async function handleChat(request, env) {
           
           // Only actually regenerate if we're in modification mode
           if (chatMode === 'modification') {
-            console.log('REGENERATE_PLAN detected, regenerating plan with modifications');
-            
             const regenerateData = JSON.parse(jsonContent);
             const modifications = regenerateData.modifications || [];
             
@@ -2512,18 +2445,9 @@ async function handleChat(request, env) {
                 // Extract food name from "exclude_food:име_на_храна"
                 const foodName = mod.substring('exclude_food:'.length).trim();
                 if (foodName) {
-                  // Enhancement #4: Check if food exists in plan (case-insensitive)
-                  const foodExistsInPlan = checkFoodExistsInPlan(userPlan, foodName);
-                  
                   // Add to excluded foods regardless (as preference for future plan generations)
                   excludedFoods.add(foodName);
                   validatedModifications.push(mod);
-                  
-                  if (foodExistsInPlan) {
-                    console.log('Adding food exclusion (found in current plan):', foodName);
-                  } else {
-                    console.log('Adding food exclusion (preference for future plans):', foodName);
-                  }
                 }
               } else {
                 existingMods.add(mod);
@@ -2544,10 +2468,7 @@ async function handleChat(request, env) {
             planWasUpdated = true;
             updatedPlan = newPlan;
             updatedUserData = modifiedUserData;
-            
-            console.log('Plan regenerated successfully with modifications:', validatedModifications);
           } else {
-            console.log('REGENERATE_PLAN instruction removed from response (not in modification mode)');
           }
         } else {
           console.error('Could not find closing bracket for REGENERATE_PLAN');
@@ -2607,7 +2528,6 @@ async function handleChat(request, env) {
       // Client needs to send full context on next request to update cache
       if (userId) {
         invalidateChatContext(userId);
-        console.log(`[Chat Optimization] Cache invalidated for user ${userId} due to plan update`);
       }
     }
     
@@ -4941,8 +4861,6 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * This approach reduces token usage per request and provides better error handling
  */
 async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null) {
-  console.log('Progressive generation: Starting meal plan generation in chunks');
-  
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};
@@ -4950,7 +4868,6 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   
   // Cache dynamic food lists once (prevents 4 redundant calls per generation)
   const cachedFoodLists = await getDynamicFoodListsSections(env);
-  console.log('Progressive generation: Cached food lists for reuse across chunks');
   
   // Parse BMR and calories - handle both numeric and string values
   let bmr;
@@ -4996,27 +4913,17 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
     const daysInChunk = endDay - startDay + 1;
     
-    console.log(`Progressive generation: Generating days ${startDay}-${endDay} (chunk ${chunkIndex + 1}/${chunks})`);
-    
     try {
       const chunkPrompt = await generateMealPlanChunkPrompt(
         data, analysis, strategy, bmr, recommendedCalories,
         startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
       );
       
-      const chunkInputTokens = estimateTokenCount(chunkPrompt);
-      console.log(`Chunk ${chunkIndex + 1} input tokens: ~${chunkInputTokens}`);
-      
       const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, analysis);
-      const chunkOutputTokens = estimateTokenCount(chunkResponse);
-      console.log(`Chunk ${chunkIndex + 1} output tokens: ~${chunkOutputTokens}`);
-      
       const chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
         const errorMsg = chunkData.error || 'Invalid response';
-        console.error(`Chunk ${chunkIndex + 1} parsing failed:`, errorMsg);
-        console.error('AI Response preview (first 1000 chars):', chunkResponse?.substring(0, 1000));
         throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
       }
       
@@ -5033,16 +4940,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response`);
         }
       }
-      
-      console.log(`Progressive generation: Chunk ${chunkIndex + 1}/${chunks} complete`);
     } catch (error) {
-      console.error(`Progressive generation: Chunk ${chunkIndex + 1} failed:`, error);
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
   }
   
   // Generate summary, recommendations, etc. in final request
-  console.log('Progressive generation: Generating summary and recommendations');
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, analysis);
