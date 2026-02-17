@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Test - NutriPlan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #10b981; margin-top: 0; }
+        .test-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #10b981;
+        }
+        .status { 
+            font-weight: bold; 
+            float: right;
+        }
+        .pass { color: #28a745; }
+        .fail { color: #dc3545; }
+        .warning { color: #ffc107; }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #059669; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 PWA Функционалност - Тест</h1>
+        
+        <div class="test-item">
+            <strong>Service Worker:</strong>
+            <span class="status" id="sw-status">Проверка...</span>
+        </div>
+        
+        <div class="test-item">
+            <strong>Manifest.json:</strong>
+            <span class="status" id="manifest-status">Проверка...</span>
+        </div>
+        
+        <div class="test-item">
+            <strong>PWA Режим:</strong>
+            <span class="status" id="pwa-status">Проверка...</span>
+        </div>
+        
+        <div class="test-item">
+            <strong>Offline Поддръжка:</strong>
+            <span class="status" id="offline-status">Проверка...</span>
+        </div>
+        
+        <div class="test-item">
+            <strong>Notification API:</strong>
+            <span class="status" id="notif-status">Проверка...</span>
+        </div>
+        
+        <div class="test-item">
+            <strong>Push Manager:</strong>
+            <span class="status" id="push-status">Проверка...</span>
+        </div>
+        
+        <div id="results"></div>
+        
+        <button onclick="runTests()">▶ Стартирай Тестове</button>
+        <button onclick="location.href='/'">← Към Началната Страница</button>
+    </div>
+    
+    <script>
+        function setStatus(id, text, className) {
+            const el = document.getElementById(id);
+            el.textContent = text;
+            el.className = 'status ' + className;
+        }
+        
+        async function runTests() {
+            // Test 1: Service Worker
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        setStatus('sw-status', '✅ Активен', 'pass');
+                    } else {
+                        setStatus('sw-status', '⚠️ Не е регистриран', 'warning');
+                    }
+                } catch (e) {
+                    setStatus('sw-status', '❌ Грешка', 'fail');
+                }
+            } else {
+                setStatus('sw-status', '❌ Не се поддържа', 'fail');
+            }
+            
+            // Test 2: Manifest
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                try {
+                    const response = await fetch(manifestLink.href);
+                    if (response.ok) {
+                        const manifest = await response.json();
+                        setStatus('manifest-status', `✅ ${manifest.short_name}`, 'pass');
+                    } else {
+                        setStatus('manifest-status', '❌ Не е достъпен', 'fail');
+                    }
+                } catch (e) {
+                    setStatus('manifest-status', '❌ Грешка', 'fail');
+                }
+            } else {
+                setStatus('manifest-status', '❌ Липсва', 'fail');
+            }
+            
+            // Test 3: PWA Mode
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                          window.navigator.standalone === true;
+            if (isPWA) {
+                setStatus('pwa-status', '✅ Standalone', 'pass');
+            } else {
+                setStatus('pwa-status', '⚠️ Browser режим', 'warning');
+            }
+            
+            // Test 4: Offline Support
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                if (cacheNames.length > 0) {
+                    setStatus('offline-status', `✅ ${cacheNames.length} кешове`, 'pass');
+                } else {
+                    setStatus('offline-status', '⚠️ Няма кеш', 'warning');
+                }
+            } else {
+                setStatus('offline-status', '❌ Не се поддържа', 'fail');
+            }
+            
+            // Test 5: Notifications
+            if ('Notification' in window) {
+                setStatus('notif-status', `✅ ${Notification.permission}`, 'pass');
+            } else {
+                setStatus('notif-status', '❌ Не се поддържа', 'fail');
+            }
+            
+            // Test 6: Push Manager
+            if ('PushManager' in window) {
+                setStatus('push-status', '✅ Поддържан', 'pass');
+            } else {
+                setStatus('push-status', '❌ Не се поддържа', 'fail');
+            }
+        }
+        
+        // Auto-run tests on load
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>
