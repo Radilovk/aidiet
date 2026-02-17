@@ -2518,6 +2518,7 @@
                     // Prefer Service Worker notifications for better iOS support
                     if (this.serviceWorkerReg && this.serviceWorkerReg.showNotification) {
                         // Use Service Worker notification (works better on iOS PWA)
+                        const timestamp = Date.now();
                         await this.serviceWorkerReg.showNotification(options.title, {
                             body: options.body,
                             icon: options.icon || '/icon-192x192.png',
@@ -2525,10 +2526,10 @@
                             tag: options.tag,
                             requireInteraction: options.requireInteraction || false,
                             silent: false,
-                            timestamp: Date.now(),
+                            timestamp: timestamp,
                             data: {
                                 url: '/plan.html',
-                                timestamp: Date.now()
+                                timestamp: timestamp
                             },
                             vibrate: options.vibrate || [200, 100, 200]
                         });
