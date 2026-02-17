@@ -53,7 +53,35 @@ Conclusion:
 - Using @ts-ignore is safe and does not compromise functionality
 ```
 
-#### 3. Къде се използва в кода?
+#### 3. Доказателство че `$public` НЕ работи
+Създаден е тест (`/tmp/test-dollar-public-fails.js`), който доказва:
+
+**Опит с `$public` (както TypeScript предлага):**
+```
+❌ FAILED with error:
+"Failed to normalize algorithm: passed algorithm can not be converted 
+to 'EcdhKeyDeriveParams' because 'public' is required in 'EcdhKeyDeriveParams'."
+```
+
+**Опит с `public` (правилният вариант):**
+```
+✅ SUCCESS: deriveBits works with "public"
+Shared secret length: 32 bytes
+```
+
+**Заключение от теста:**
+```
+✅ Using "public" is CORRECT and REQUIRED
+❌ Using "$public" FAILS and is WRONG
+
+The TypeScript error message is misleading!
+Cloudflare's type definitions are incorrect.
+The @ts-ignore comment is the right solution.
+```
+
+Грешката казва ясно: **"'public' is required"** - това е окончателното доказателство!
+
+#### 4. Къде се използва в кода?
 
 Функцията `encryptWebPushPayload` (ред 6904) използва ECDH за:
 - Криптиране на Web Push известия
