@@ -141,99 +141,113 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
   console.log('[SW] event.data:', event.data);
   
-  let notificationData = {
-    title: DEFAULT_TITLE,
-    body: DEFAULT_BODY,
-    url: '/plan.html',
-    icon: DEFAULT_ICON,
-    notificationType: 'general'
-  };
-  
-  // Parse notification data if available
-  if (event.data) {
-    try {
-      const parsedData = event.data.json();
-      console.log('[SW] Parsed JSON data:', parsedData);
-      notificationData = parsedData;
-    } catch (e) {
-      // Fallback to text if JSON parsing fails
-      console.warn('[SW] JSON parse failed, trying text:', e);
-      const textData = event.data.text();
-      console.log('[SW] Text data:', textData);
-      notificationData.body = textData;
+  const notificationPromise = (async () => {
+    let notificationData = {
+      title: DEFAULT_TITLE,
+      body: DEFAULT_BODY,
+      url: '/plan.html',
+      icon: DEFAULT_ICON,
+      notificationType: 'general'
+    };
+    
+    // Parse notification data if available
+    if (event.data) {
+      try {
+        const parsedData = await event.data.json();
+        console.log('[SW] Parsed JSON data:', parsedData);
+        notificationData = parsedData;
+      } catch (e) {
+        // Fallback to text if JSON parsing fails
+        console.warn('[SW] JSON parse failed, trying text:', e);
+        try {
+          const textData = await event.data.text();
+          console.log('[SW] Text data:', textData);
+          notificationData.body = textData;
+        } catch (textError) {
+          console.error('[SW] Failed to parse text data:', textError);
+        }
+      }
+    } else {
+      console.warn('[SW] No event.data - using defaults');
     }
-  } else {
-    console.warn('[SW] No event.data - using defaults');
-  }
-  
-  console.log('[SW] Final notification data:', notificationData);
-  
-  // Customize notification based on type
-  let title = notificationData.title || DEFAULT_TITLE;
-  let icon = notificationData.icon || DEFAULT_ICON;
-  let body = notificationData.body || DEFAULT_BODY;
-  let badge = DEFAULT_BADGE;
-  let vibrate = [200, 100, 200];
-  let tag = `nutriplan-${notificationData.notificationType || 'general'}`;
-  let requireInteraction = false;
-  
-  // Type-specific customizations
-  switch (notificationData.notificationType) {
-    case 'chat':
-      vibrate = [100, 50, 100];
-      tag = 'nutriplan-chat';
-      break;
-    case 'water':
-      vibrate = [200];
-      tag = 'nutriplan-water';
-      requireInteraction = false;
-      break;
-    case 'meal':
-      vibrate = [300, 100, 300];
-      tag = 'nutriplan-meal';
-      requireInteraction = true; // Meal reminders are more important
-      break;
-    case 'snack':
-      vibrate = [150];
-      tag = 'nutriplan-snack';
-      break;
-    case 'sleep':
-      vibrate = [200, 100, 200, 100, 200];
-      tag = 'nutriplan-sleep';
-      requireInteraction = false;
-      break;
-    case 'activity':
-      vibrate = [100, 100, 100];
-      tag = 'nutriplan-activity';
-      requireInteraction = false;
-      break;
-    case 'supplements':
-      vibrate = [150, 50, 150];
-      tag = 'nutriplan-supplements';
-      requireInteraction = false;
-      break;
-    default:
-      break;
-  }
-  
-  const options = {
-    body: body,
-    icon: icon,
-    badge: badge,
-    vibrate: vibrate,
-    tag: tag,
-    requireInteraction: requireInteraction,
-    data: {
-      url: notificationData.url || '/plan.html',
-      notificationType: notificationData.notificationType
+    
+    console.log('[SW] Final notification data:', notificationData);
+    
+    // Customize notification based on type
+    let title = notificationData.title || DEFAULT_TITLE;
+    let icon = notificationData.icon || DEFAULT_ICON;
+    let body = notificationData.body || DEFAULT_BODY;
+    let badge = DEFAULT_BADGE;
+    let vibrate = [200, 100, 200];
+    let tag = `nutriplan-${notificationData.notificationType || 'general'}`;
+    let requireInteraction = false;
+    
+    // Type-specific customizations
+    switch (notificationData.notificationType) {
+      case 'chat':
+        vibrate = [100, 50, 100];
+        tag = 'nutriplan-chat';
+        break;
+      case 'water':
+        vibrate = [200];
+        tag = 'nutriplan-water';
+        requireInteraction = false;
+        break;
+      case 'meal':
+        vibrate = [300, 100, 300];
+        tag = 'nutriplan-meal';
+        requireInteraction = true; // Meal reminders are more important
+        break;
+      case 'snack':
+        vibrate = [150];
+        tag = 'nutriplan-snack';
+        break;
+      case 'sleep':
+        vibrate = [200, 100, 200, 100, 200];
+        tag = 'nutriplan-sleep';
+        requireInteraction = false;
+        break;
+      case 'activity':
+        vibrate = [100, 100, 100];
+        tag = 'nutriplan-activity';
+        requireInteraction = false;
+        break;
+      case 'supplements':
+        vibrate = [150, 50, 150];
+        tag = 'nutriplan-supplements';
+        requireInteraction = false;
+        break;
+      default:
+        break;
     }
-  };
+    
+    const options = {
+      body: body,
+      icon: icon,
+      badge: badge,
+      vibrate: vibrate,
+      tag: tag,
+      requireInteraction: requireInteraction,
+      data: {
+        url: notificationData.url || '/plan.html',
+        notificationType: notificationData.notificationType
+      }
+    };
 
-  console.log('[SW] Showing notification with title:', title, 'body:', body);
+    console.log('[SW] Showing notification with title:', title, 'body:', body);
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+    return self.registration.showNotification(title, options);
+  })();
+
+  event.waitUntil(notificationPromise.catch(err => {
+    console.error('[SW] Failed to show notification:', err);
+    // Show default notification as fallback
+    return self.registration.showNotification(DEFAULT_TITLE, {
+      body: DEFAULT_BODY,
+      icon: DEFAULT_ICON,
+      badge: DEFAULT_BADGE
+    });
+  }));
 });
 
 // Notification click event
