@@ -6952,11 +6952,11 @@ async function encryptWebPushPayload(payload, subscription) {
   const prk = await crypto.subtle.sign('HMAC', authKey, sharedSecret);
 
   // Derive content encryption key using HKDF-Expand
-  const cekInfo = buildInfo('aesgcm', userPublicKey, localPublicKeyBytes, salt);
+  const cekInfo = buildInfo('aesgcm', userPublicKey, localPublicKeyBytes);
   const cek = await hkdfExpand(prk, cekInfo, 16); // 16 bytes for AES-128
 
   // Derive nonce using HKDF-Expand
-  const nonceInfo = buildInfo('nonce', userPublicKey, localPublicKeyBytes, salt);
+  const nonceInfo = buildInfo('nonce', userPublicKey, localPublicKeyBytes);
   const nonce = await hkdfExpand(prk, nonceInfo, 12); // 12 bytes for GCM
 
   // Prepare payload with padding (RFC 8188)
@@ -7037,19 +7037,51 @@ async function hkdfExpand(prk, info, length) {
 /**
  * Build info buffer for HKDF as per RFC 8291
  * 
+ * Format: "Content-Encoding: {type}\0P-256\0" + length(recipientPublicKey) + recipientPublicKey + length(senderPublicKey) + senderPublicKey
+ * 
  * @param {string} type - 'aesgcm' or 'nonce'
  * @param {Uint8Array} userPublicKey - Recipient's public key
  * @param {Uint8Array} localPublicKey - Sender's public key
- * @param {Uint8Array} salt - Random salt
  * @returns {Uint8Array} Info buffer
  */
-function buildInfo(type, userPublicKey, localPublicKey, salt) {
+function buildInfo(type, userPublicKey, localPublicKey) {
   const encoding = new TextEncoder();
-  const prefix = encoding.encode(`Content-Encoding: ${type}\0`);
+  const contentEncoding = encoding.encode(`Content-Encoding: ${type}\0`);
+  const p256Context = encoding.encode('P-256\0');
   
-  const info = new Uint8Array(prefix.length + 1);
-  info.set(prefix);
-  info[prefix.length] = 0; // Null terminator
+  // Create length buffers (2 bytes, big-endian)
+  const userKeyLenBuf = new Uint8Array(2);
+  userKeyLenBuf[0] = (userPublicKey.length >> 8) & 0xFF;
+  userKeyLenBuf[1] = userPublicKey.length & 0xFF;
+  
+  const localKeyLenBuf = new Uint8Array(2);
+  localKeyLenBuf[0] = (localPublicKey.length >> 8) & 0xFF;
+  localKeyLenBuf[1] = localPublicKey.length & 0xFF;
+  
+  // Concatenate all parts
+  const totalLength = contentEncoding.length + p256Context.length +
+                      userKeyLenBuf.length + userPublicKey.length +
+                      localKeyLenBuf.length + localPublicKey.length;
+  
+  const info = new Uint8Array(totalLength);
+  let offset = 0;
+  
+  info.set(contentEncoding, offset);
+  offset += contentEncoding.length;
+  
+  info.set(p256Context, offset);
+  offset += p256Context.length;
+  
+  info.set(userKeyLenBuf, offset);
+  offset += userKeyLenBuf.length;
+  
+  info.set(userPublicKey, offset);
+  offset += userPublicKey.length;
+  
+  info.set(localKeyLenBuf, offset);
+  offset += localKeyLenBuf.length;
+  
+  info.set(localPublicKey, offset);
   
   return info;
 }
@@ -7137,6 +7169,7 @@ async function sendWebPushNotification(subscription, payload, env) {
   const encrypted = await encryptWebPushPayload(payload, subscription);
   
   // Add encryption headers
+  // Note: VAPID public key from env.VAPID_PUBLIC_KEY is already in base64url format
   headers['Content-Encoding'] = 'aesgcm';
   headers['Encryption'] = `salt=${uint8ArrayToBase64Url(encrypted.salt)}`;
   headers['Crypto-Key'] = `dh=${uint8ArrayToBase64Url(encrypted.publicKey)};p256ecdsa=${vapidPublicKey}`;
