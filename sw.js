@@ -186,7 +186,7 @@ self.addEventListener('push', (event) => {
     switch (notificationData.notificationType) {
       case 'chat':
         vibrate = [100, 50, 100];
-        tag = 'nutriplan-chat';
+        tag = `nutriplan-chat-${Date.now()}`; // Unique tag for each chat message
         break;
       case 'water':
         vibrate = [200];
@@ -228,6 +228,8 @@ self.addEventListener('push', (event) => {
       vibrate: vibrate,
       tag: tag,
       requireInteraction: requireInteraction,
+      silent: false,
+      timestamp: Date.now(),
       data: {
         url: notificationData.url || '/plan.html',
         notificationType: notificationData.notificationType
