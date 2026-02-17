@@ -150,11 +150,15 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       notificationData = event.data.json();
+      console.log('[SW] Parsed notification data:', notificationData);
     } catch (e) {
       // Fallback to text if JSON parsing fails
       notificationData.body = event.data.text();
+      console.log('[SW] Failed to parse JSON, using text:', notificationData.body);
     }
   }
+  
+  console.log('[SW] Final notification data - Title:', notificationData.title, 'Body:', notificationData.body);
   
   // Customize notification based on type
   let icon = notificationData.icon || DEFAULT_ICON;
@@ -214,6 +218,8 @@ self.addEventListener('push', (event) => {
       notificationType: notificationData.notificationType
     }
   };
+
+  console.log('[SW] Showing notification with title:', notificationData.title, 'and options:', options);
 
   event.waitUntil(
     self.registration.showNotification(notificationData.title, options)

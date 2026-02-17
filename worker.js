@@ -7197,7 +7197,11 @@ async function handlePushSend(request, env) {
       timestamp: Date.now()
     };
 
-    console.log(`Sending push notification to user ${userId}:`, pushMessage);
+    console.log(`Sending push notification to user ${userId}`);
+    console.log('Push message title:', pushMessage.title);
+    console.log('Push message body:', pushMessage.body);
+    console.log('Push message URL:', pushMessage.url);
+    console.log('Push message type:', pushMessage.notificationType);
     
     // Check if VAPID keys are configured
     if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
