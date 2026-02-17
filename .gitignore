@@ -9,6 +9,7 @@ yarn-error.log*
 wrangler.toml.lock
 dist/
 worker/
+tsconfig.json
 
 # Environment variables
 .env

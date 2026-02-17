@@ -20,6 +20,8 @@
   "author": "Radilov-K",
   "license": "MIT",
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260217.0",
+    "typescript": "^5.9.3",
     "wrangler": "^3.0.0"
   },
   "repository": {
