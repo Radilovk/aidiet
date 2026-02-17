@@ -2352,6 +2352,13 @@
                                 <li>Разрешете известия когато се покаже prompt</li>
                             </ol>
                             <p style="margin: 10px 0 0 0;"><em>Забележка: Chrome и Firefox на iOS не поддържат известия. Използвайте Safari.</em></p>
+                            <div style="margin-top: 15px;">
+                                <strong>Или използвайте алтернатива:</strong>
+                                <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                    📅 Експортирай в Календар
+                                </button>
+                                <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Ще изтеглите .ics файл, който можете да импортирате в iOS Calendar</em></p>
+                            </div>
                         </div>
                     `;
                 } else if (compatInfo.platform === 'Huawei') {
@@ -2367,12 +2374,27 @@
                                 <li><strong>Reminders App</strong> - Ръчно добавяне на напомняния</li>
                             </ul>
                             <p style="margin: 10px 0 0 0;"><em>Уеб push известия изискват Google Play Services.</em></p>
+                            <div style="margin-top: 15px;">
+                                <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                    📅 Експортирай в Календар (.ics)
+                                </button>
+                                <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Импортирайте файла в Huawei Calendar за автоматични напомняния</em></p>
+                            </div>
                         </div>
                     `;
                 } else {
                     warningStyle = 'background: #fff3cd; border: 1px solid #ffc107; color: #856404;';
                     warningIcon = '⚠️';
                     warningTitle = 'Ограничена поддръжка за известия';
+                    actionButtons = `
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffc107;">
+                            <strong>Алтернативно решение:</strong>
+                            <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #ffc107; color: #856404; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">
+                                📅 Експортирай в Календар
+                            </button>
+                            <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Използвайте вашето календарно приложение за напомняния</em></p>
+                        </div>
+                    `;
                 }
                 
                 // Create enhanced alert div
@@ -2382,7 +2404,7 @@
                             <span style="font-size: 1.5em;">${warningIcon}</span>
                             ${warningTitle}
                         </h3>
-                        <p style="margin: 0 0 10px 0;"><strong>Платформа:</strong> ${compatInfo.platform}</p>
+                        <p style="margin: 0 0 10px 0;"><strong>Платформа:</strong> ${compatInfo.platform} (${compatInfo.browser})</p>
                         ${compatInfo.recommendations.length > 0 ? `
                         <div style="margin: 10px 0;">
                             <strong>Препоръки:</strong>
@@ -2713,6 +2735,175 @@
                     // Continue using cached data
                     console.log('[Notifications] Could not check for updates, using cached data');
                 }
+            }
+        };
+        
+        /**
+         * Calendar Export Utility - Fallback for platforms without notification support
+         * Generates iCalendar (.ics) file that users can import to their calendar app
+         */
+        const CalendarExporter = {
+            /**
+             * Generate iCalendar (.ics) file with all reminders
+             */
+            generateICS() {
+                const prefs = NotificationScheduler.getPreferences();
+                const templates = NotificationScheduler.getTemplates();
+                const globalSettings = NotificationScheduler.getGlobalSettings();
+                
+                let icsContent = [
+                    'BEGIN:VCALENDAR',
+                    'VERSION:2.0',
+                    'PRODID:-//NutriPlan//Notification Reminders//EN',
+                    'CALSCALE:GREGORIAN',
+                    'METHOD:PUBLISH',
+                    'X-WR-CALNAME:NutriPlan Напомняния',
+                    'X-WR-TIMEZONE:Europe/Sofia',
+                    'X-WR-CALDESC:Напомняния за храна, вода и активности от NutriPlan'
+                ];
+                
+                const now = new Date();
+                const dateStamp = this.formatDateTimeStamp(now);
+                
+                // Add meal reminders
+                if (prefs.meals?.enabled && globalSettings?.mealReminders) {
+                    const mealTimes = globalSettings.mealReminders;
+                    Object.entries(mealTimes).forEach(([mealType, config]) => {
+                        if (config.enabled && config.time) {
+                            const template = templates.meals[mealType];
+                            if (template) {
+                                icsContent.push(...this.createRecurringEvent(
+                                    template.title,
+                                    template.body,
+                                    config.time,
+                                    'DAILY',
+                                    dateStamp
+                                ));
+                            }
+                        }
+                    });
+                }
+                
+                // Add water reminders
+                if (prefs.water?.enabled && globalSettings?.waterReminders?.enabled) {
+                    const waterConfig = globalSettings.waterReminders;
+                    const interval = waterConfig.intervalHours || 2;
+                    const startHour = parseInt(waterConfig.startTime?.split(':')[0]) || 8;
+                    const endHour = parseInt(waterConfig.endTime?.split(':')[0]) || 22;
+                    
+                    for (let hour = startHour; hour <= endHour; hour += interval) {
+                        const time = `${hour.toString().padStart(2, '0')}:00`;
+                        icsContent.push(...this.createRecurringEvent(
+                            templates.water.title,
+                            templates.water.body,
+                            time,
+                            'DAILY',
+                            dateStamp
+                        ));
+                    }
+                }
+                
+                // Add sleep reminder
+                if (prefs.sleep?.enabled) {
+                    const sleepTime = prefs.sleep.time || '22:00';
+                    icsContent.push(...this.createRecurringEvent(
+                        templates.sleep.title,
+                        templates.sleep.body,
+                        sleepTime,
+                        'DAILY',
+                        dateStamp
+                    ));
+                }
+                
+                // Add activity reminders
+                if (prefs.activity?.enabled) {
+                    const morningTime = prefs.activity.morningTime || '07:00';
+                    icsContent.push(...this.createRecurringEvent(
+                        templates.activity.morning.title,
+                        templates.activity.morning.body,
+                        morningTime,
+                        'DAILY',
+                        dateStamp
+                    ));
+                    
+                    const dayTime = prefs.activity.dayTime || '15:00';
+                    icsContent.push(...this.createRecurringEvent(
+                        templates.activity.day.title,
+                        templates.activity.day.body,
+                        dayTime,
+                        'DAILY',
+                        dateStamp
+                    ));
+                }
+                
+                icsContent.push('END:VCALENDAR');
+                return icsContent.join('\r\n');
+            },
+            
+            /**
+             * Create a recurring event in iCalendar format
+             */
+            createRecurringEvent(title, description, time, frequency, dateStamp) {
+                const uid = `nutriplan-${title.toLowerCase().replace(/\s+/g, '-')}-${time.replace(':', '')}@biocode.website`;
+                const [hours, minutes] = time.split(':');
+                
+                // Start date (today at specified time)
+                const startDate = new Date();
+                startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                
+                return [
+                    'BEGIN:VEVENT',
+                    `UID:${uid}`,
+                    `DTSTAMP:${dateStamp}`,
+                    `DTSTART:${this.formatDateTime(startDate)}`,
+                    `SUMMARY:${title}`,
+                    `DESCRIPTION:${description}`,
+                    `RRULE:FREQ=${frequency}`,
+                    'BEGIN:VALARM',
+                    'TRIGGER:-PT0M',
+                    'ACTION:DISPLAY',
+                    `DESCRIPTION:${title}`,
+                    'END:VALARM',
+                    'END:VEVENT'
+                ];
+            },
+            
+            /**
+             * Format date/time for iCalendar
+             */
+            formatDateTime(date) {
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                const seconds = date.getSeconds().toString().padStart(2, '0');
+                return `${year}${month}${day}T${hours}${minutes}${seconds}`;
+            },
+            
+            /**
+             * Format date/time stamp for iCalendar
+             */
+            formatDateTimeStamp(date) {
+                return this.formatDateTime(date) + 'Z';
+            },
+            
+            /**
+             * Download ICS file
+             */
+            downloadICS() {
+                const icsContent = this.generateICS();
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'nutriplan-reminders.ics';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                console.log('[Calendar] ICS file downloaded');
             }
         };
         
