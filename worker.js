@@ -3847,6 +3847,7 @@ async function generatePlanMultiStep(env, data) {
   
   try {
     // Step 1: Analyze user profile (1st AI request)
+    // AI calculates BMR, TDEE, calories based on ALL correlates
     // Focus: Deep health analysis, metabolic profile, correlations
     const analysisPrompt = await generateAnalysisPrompt(data, env);
     const analysisInputTokens = estimateTokenCount(analysisPrompt);
@@ -3889,6 +3890,14 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Analysis complete (1/3)');
     
+    // PLAN1: Use analysis values directly as source of truth
+    // Extract numerical targets from AI analysis for use in Steps 2-4
+    const bmr = analysis.bmr || analysis.correctedMetabolism?.realBMR || calculateBMR(data);
+    const tdee = analysis.tdee || analysis.correctedMetabolism?.realTDEE;
+    const calories = analysis.recommendedCalories;
+    
+    console.log('Analysis targets:', { bmr, tdee, calories });
+    
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
     const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
@@ -3927,6 +3936,7 @@ async function generatePlanMultiStep(env, data) {
     if (ENABLE_PROGRESSIVE_GENERATION) {
       console.log('Multi-step generation: Using progressive meal plan generation');
       try {
+        // Pass analysis directly - it contains all needed values
         mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, null, sessionId);
       } catch (error) {
         console.error('Progressive meal plan generation failed:', error);
@@ -3969,13 +3979,15 @@ async function generatePlanMultiStep(env, data) {
     
     // Combine all parts into final plan (meal plan takes precedence)
     // Returns comprehensive plan with analysis and strategy included
+    // Analysis contains locked numerical targets from AI
     return {
-      ...mealPlan,
-      analysis: analysis,
-      strategy: strategy,
+      ...mealPlan,  // Includes: weekPlan, summary, recommendations, forbidden, psychology, waterIntake, supplements
+      analysis: analysis,  // Step 1: Health analysis with locked targets (bmr, tdee, calories, macros)
+      strategy: strategy,  // Step 2: Architecture (weeklyScheme, mealTiming, calorieDistribution, etc.)
       _meta: {
         tokenUsage: cumulativeTokens,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        plan1Compliant: true  // Indicates this plan follows Plan1 architecture
       }
     };
   } catch (error) {
@@ -4621,6 +4633,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   "keyPrinciples": ["текст"],
   "foodsToInclude": ["текст"],
   "foodsToAvoid": ["текст"],
+  "hardForbidden": ["ПЛАН1: храни НИКОГА (алергия/непоносимост/здравна заб)"],
+  "limited": ["ПЛАН1: храни РЯДКО/малки порции/условно огранич"],
   "supplementRecommendations": ["текст"],
   "hydrationStrategy": "текст",
   "communicationStyle": {
@@ -4766,6 +4780,8 @@ ${data.additionalNotes}
   "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
   "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
   "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
+  "hardForbidden": ["ПЛАН1 IMPROVEMENT #4: Храни които са АБСОЛЮТНО ЗАБРАНЕНИ НИКОГА (напр. алергия, непоносимост, здравна противопоказание). Празен масив [] ако няма такива."],
+  "limited": ["ПЛАН1 IMPROVEMENT #4: Храни които са УСЛОВНО ОГРАНИЧЕНИ (рядко, малки порции, само определени разфасовки). Празен масив [] ако няма такива."],
   "supplementRecommendations": [
     "Индивидуална добавка 1 (с дозировка и обосновка специфична за ${data.name})",
     "Индивидуална добавка 2 (с дозировка и обосновка специфична за ${data.name})",
@@ -4843,43 +4859,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   // Cache dynamic food lists once (prevents 4 redundant calls per generation)
   const cachedFoodLists = await getDynamicFoodListsSections(env);
   
-  // Parse BMR and calories - handle both numeric and string values
-  let bmr;
-  if (analysis.bmr) {
-    // If bmr is already a number, use it directly
-    if (typeof analysis.bmr === 'number') {
-      bmr = Math.round(analysis.bmr);
-    } else {
-      // Otherwise, extract from string
-      const bmrMatch = String(analysis.bmr).match(/\d+/);
-      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
-    }
-  }
-  if (!bmr) {
-    bmr = calculateBMR(data);
-  }
-  
-  let recommendedCalories;
-  if (analysis.recommendedCalories) {
-    // If recommendedCalories is already a number, use it directly
-    if (typeof analysis.recommendedCalories === 'number') {
-      recommendedCalories = Math.round(analysis.recommendedCalories);
-    } else {
-      // Otherwise, extract from string
-      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
-      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
-    }
-  }
-  if (!recommendedCalories) {
-    const tdee = calculateTDEE(bmr, data.sportActivity);
-    if (data.goal === 'Отслабване') {
-      recommendedCalories = Math.round(tdee * 0.85);
-    } else if (data.goal === 'Покачване на мускулна маса') {
-      recommendedCalories = Math.round(tdee * 1.1);
-    } else {
-      recommendedCalories = tdee;
-    }
-  }
+  // Extract values from analysis (AI-calculated, source of truth)
+  const bmr = analysis.bmr || analysis.correctedMetabolism?.realBMR || calculateBMR(data);
+  const recommendedCalories = analysis.recommendedCalories;
   
   // Generate meal plan in chunks
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
@@ -4942,7 +4924,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         },
         weekPlan: weekPlan,
         recommendations: strategy.foodsToInclude || [],
-        forbidden: strategy.foodsToAvoid || [],
+        // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
+        // Backward compatibility: use foodsToAvoid if present, otherwise hardForbidden
+        forbidden: (strategy.foodsToAvoid && strategy.foodsToAvoid.length > 0) 
+          ? strategy.foodsToAvoid 
+          : (strategy.hardForbidden || []),
+        hardForbidden: strategy.hardForbidden || [],
+        limited: strategy.limited || [],
         psychology: strategy.psychologicalSupport || [],
         waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
         supplements: strategy.supplementRecommendations || []
@@ -4957,7 +4945,15 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       },
       weekPlan: weekPlan,
       recommendations: summaryData.recommendations || strategy.foodsToInclude || [],
-      forbidden: summaryData.forbidden || strategy.foodsToAvoid || [],
+      // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
+      // Backward compatibility: prefer summaryData.forbidden, then foodsToAvoid, then hardForbidden
+      forbidden: (summaryData.forbidden && summaryData.forbidden.length > 0)
+        ? summaryData.forbidden
+        : ((strategy.foodsToAvoid && strategy.foodsToAvoid.length > 0)
+          ? strategy.foodsToAvoid
+          : (strategy.hardForbidden || [])),
+      hardForbidden: strategy.hardForbidden || [],
+      limited: strategy.limited || [],
       psychology: summaryData.psychology || strategy.psychologicalSupport || [],
       waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: summaryData.supplements || strategy.supplementRecommendations || []
@@ -4979,7 +4975,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       },
       weekPlan: weekPlan,
       recommendations: strategy.foodsToInclude || [],
-      forbidden: strategy.foodsToAvoid || [],
+      // PLAN1 IMPROVEMENT #4: Support both forbidden and hardForbidden/limited
+      // Backward compatibility: use foodsToAvoid if present, otherwise hardForbidden
+      forbidden: (strategy.foodsToAvoid && strategy.foodsToAvoid.length > 0)
+        ? strategy.foodsToAvoid
+        : (strategy.hardForbidden || []),
+      hardForbidden: strategy.hardForbidden || [],
+      limited: strategy.limited || [],
       psychology: strategy.psychologicalSupport || [],
       waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: strategy.supplementRecommendations || []
