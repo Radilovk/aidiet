@@ -283,3 +283,161 @@ self.addEventListener('notificationclick', (event) => {
       })
   );
 });
+
+// ========================================================================
+// PERIODIC BACKGROUND SYNC FOR LOCAL NOTIFICATIONS
+// ========================================================================
+
+// Periodic Background Sync - Check for due notifications
+// This event fires when the browser wakes up the Service Worker
+// Frequency controlled by browser (typically every 12-24 hours minimum)
+self.addEventListener('periodicsync', (event) => {
+  console.log('[SW] Periodic sync event:', event.tag);
+  
+  if (event.tag === 'check-notifications') {
+    event.waitUntil(checkAndShowDueNotifications());
+  }
+});
+
+/**
+ * Check IndexedDB for due notifications and show them
+ * Called by periodic sync or other triggers
+ */
+async function checkAndShowDueNotifications() {
+  console.log('[SW] Checking for due notifications');
+  
+  try {
+    // Import NotificationDB (inline version for SW context)
+    await importNotificationDB();
+    
+    // Get notifications due within 5 minutes
+    const dueNotifications = await NotificationDB.getDueNotifications(5);
+    
+    if (dueNotifications.length === 0) {
+      console.log('[SW] No notifications due');
+      return;
+    }
+    
+    console.log(`[SW] Found ${dueNotifications.length} due notifications`);
+    
+    // Show each notification
+    for (const notif of dueNotifications) {
+      try {
+        await self.registration.showNotification(notif.title, {
+          body: notif.body,
+          icon: notif.icon || DEFAULT_ICON,
+          badge: DEFAULT_BADGE,
+          tag: `${notif.type}-${notif.id}`,
+          data: notif.data,
+          requireInteraction: notif.type === 'meal',
+          vibrate: getVibrationPattern(notif.type),
+          timestamp: notif.scheduledTime
+        });
+        
+        // Mark as shown in IndexedDB
+        await NotificationDB.markAsShown(notif.id);
+        
+        console.log('[SW] Showed notification:', notif.type, notif.title);
+      } catch (error) {
+        console.error('[SW] Failed to show notification:', error);
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Error checking notifications:', error);
+  }
+}
+
+/**
+ * Get vibration pattern by notification type
+ */
+function getVibrationPattern(type) {
+  const patterns = {
+    meal: [300, 100, 300],
+    water: [200],
+    sleep: [200, 100, 200, 100, 200],
+    activity: [100, 100, 100],
+    supplements: [150, 50, 150],
+    chat: [100, 50, 100]
+  };
+  return patterns[type] || [200, 100, 200];
+}
+
+/**
+ * Import NotificationDB for use in Service Worker
+ * This is a minimal inline version of the IndexedDB wrapper
+ */
+async function importNotificationDB() {
+  if (self.NotificationDB) return; // Already imported
+  
+  // Inline minimal NotificationDB implementation for SW
+  self.NotificationDB = {
+    dbName: 'NutriPlanNotifications',
+    version: 1,
+    db: null,
+    
+    async init() {
+      if (this.db) return this.db;
+      
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(this.dbName, this.version);
+        request.onsuccess = () => {
+          this.db = request.result;
+          resolve(this.db);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    },
+    
+    async getDueNotifications(windowMinutes = 5) {
+      await this.init();
+      
+      return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['notifications'], 'readonly');
+        const store = transaction.objectStore('notifications');
+        const index = store.index('status');
+        const request = index.getAll('pending');
+        
+        request.onsuccess = () => {
+          const pending = request.result;
+          const now = Date.now();
+          const window = windowMinutes * 60 * 1000;
+          
+          const due = pending.filter(notif => {
+            const timeDiff = notif.scheduledTime - now;
+            return timeDiff <= window && timeDiff >= -window;
+          });
+          
+          resolve(due);
+        };
+        
+        request.onerror = () => reject(request.error);
+      });
+    },
+    
+    async markAsShown(id) {
+      await this.init();
+      
+      return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['notifications'], 'readwrite');
+        const store = transaction.objectStore('notifications');
+        const request = store.get(id);
+        
+        request.onsuccess = () => {
+          const notification = request.result;
+          if (notification) {
+            notification.status = 'shown';
+            notification.shownAt = Date.now();
+            
+            const updateRequest = store.put(notification);
+            updateRequest.onsuccess = () => resolve(true);
+            updateRequest.onerror = () => reject(updateRequest.error);
+          } else {
+            resolve(false);
+          }
+        };
+        
+        request.onerror = () => reject(request.error);
+      });
+    }
+  };
+}
