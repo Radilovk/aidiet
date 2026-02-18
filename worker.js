@@ -4059,8 +4059,9 @@ function replacePromptVariables(template, variables) {
  * Backend handles: BMR, TDEE, safety checks
  */
 async function generateAnalysisPrompt(data, env, errorPreventionComment = null) {
-  // IMPORTANT: AI calculates BMR, TDEE, and calories based on ALL correlates
-  // Backend no longer pre-calculates these values - AI does holistic analysis
+  // IMPORTANT: Backend calculates reference values (BMR, TDEE, macros, safe deficit)
+  // These are passed as REFERENCE CALCULATIONS to AI for validation and adjustment
+  // AI performs holistic analysis and may adjust values based on ALL health correlates
   
   // Check if there's a custom prompt in KV storage
   const customPrompt = await getCustomPrompt(env, 'admin_analysis_prompt');
@@ -4535,6 +4536,11 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     metabolicProfile: (analysis.metabolicProfile || '').length > 200 ? 
       (analysis.metabolicProfile || '').substring(0, 200) + '...' : 
       (analysis.metabolicProfile || 'не е анализиран'),
+    psychoProfile: analysis.psychoProfile ? 
+      (analysis.psychoProfile.temperament ? 
+        `${analysis.psychoProfile.temperament} (${analysis.psychoProfile.probability}% вероятност)` :
+        `Не определен (<80% вероятност, ${analysis.psychoProfile.probability || 0}%)`) :
+      'не е анализиран',
     healthRisks: (analysis.healthRisks || []).slice(0, 3).join('; '),
     nutritionalNeeds: (analysis.nutritionalNeeds || []).slice(0, 3).join('; '),
     psychologicalProfile: (analysis.psychologicalProfile || '').length > 150 ?
@@ -4563,6 +4569,7 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       macroRatios: analysisCompact.macroRatios,
       macroGrams: analysisCompact.macroGrams,
       metabolicProfile: analysisCompact.metabolicProfile,
+      psychoProfile: analysisCompact.psychoProfile,
       healthRisks: analysisCompact.healthRisks,
       nutritionalNeeds: analysisCompact.nutritionalNeeds,
       psychologicalProfile: analysisCompact.psychologicalProfile,
