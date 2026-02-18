@@ -3438,7 +3438,8 @@
                         meal.name, 
                         meal.description || '', 
                         meal.benefits || '',
-                        meal.macros || null
+                        meal.macros || null,
+                        meal.products || null
                     );
                 };
                 
@@ -3738,12 +3739,25 @@
             return item;
         }
 
-        function openModal(title, description, benefit, macros) {
+        function openModal(title, description, benefit, macros, products) {
             mTitle.textContent = title;
             
-            // Add macros to description if available
+            // Add products to description if available, otherwise use macros
             let fullDescription = description;
-            if (macros && (macros.protein !== undefined || macros.carbs !== undefined || macros.fats !== undefined || macros.fiber !== undefined)) {
+            if (products && Array.isArray(products) && products.length > 0) {
+                const productDetails = [];
+                
+                products.forEach(product => {
+                    if (product.name && product.weight) {
+                        productDetails.push(`${product.name}: ${product.weight}`);
+                    }
+                });
+                
+                if (productDetails.length > 0) {
+                    fullDescription = description + ' | ' + productDetails.join(', ');
+                }
+            } else if (macros && (macros.protein !== undefined || macros.carbs !== undefined || macros.fats !== undefined || macros.fiber !== undefined)) {
+                // Fallback to macros if products not available
                 const { protein, carbs, fats, fiber } = parseMacronutrients(macros);
                 const gramDetails = [];
                 
