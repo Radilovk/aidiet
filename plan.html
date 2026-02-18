@@ -3750,7 +3750,11 @@
                 products.forEach(product => {
                     if (product.name && product.weight) {
                         // Ensure weight has units (convert to Cyrillic 'г' for consistency)
-                        let weight = String(product.weight);
+                        let weight = String(product.weight).trim();
+                        // Skip empty or zero weights
+                        if (!weight || weight === '0' || weight === '0г' || weight === '0g') {
+                            return;
+                        }
                         // Normalize Latin 'g' to Cyrillic 'г'
                         if (weight.endsWith('g')) {
                             weight = weight.slice(0, -1) + 'г';
