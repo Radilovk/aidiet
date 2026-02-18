@@ -1439,13 +1439,18 @@
             if (analysis.forecastPessimistic) {
                 const pessimistic = analysis.forecastPessimistic;
                 
-                // Update risks (limit to first 5 - assumes AI returns sorted by severity)
+                // Update risks (ensure at least 5 items)
                 const risksContainer = document.getElementById('pessimisticRisks');
                 if (pessimistic.risks && Array.isArray(pessimistic.risks) && pessimistic.risks.length > 0) {
+                    const risks = pessimistic.risks.slice(0, 5);
+                    // Ensure at least 5 items by padding with default message if needed
+                    while (risks.length < 5) {
+                        risks.push('Консултирайте се с лекар за допълнителна оценка');
+                    }
                     risksContainer.innerHTML = `
                         <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
                         <ul>
-                            ${pessimistic.risks.slice(0, 5).map(risk => `<li>${risk}</li>`).join('')}
+                            ${risks.map(risk => `<li>${risk}</li>`).join('')}
                         </ul>
                     `;
                 } else {
@@ -1457,13 +1462,18 @@
             if (analysis.forecastOptimistic) {
                 const optimistic = analysis.forecastOptimistic;
                 
-                // Update improvements (limit to first 5 - assumes AI returns sorted by desirability)
+                // Update improvements (ensure at least 5 items)
                 const improvementsContainer = document.getElementById('optimisticImprovements');
                 if (optimistic.improvements && Array.isArray(optimistic.improvements) && optimistic.improvements.length > 0) {
+                    const improvements = optimistic.improvements.slice(0, 5);
+                    // Ensure at least 5 items by padding with default message if needed
+                    while (improvements.length < 5) {
+                        improvements.push('Продължете да следвате плана за оптимални резултати');
+                    }
                     improvementsContainer.innerHTML = `
                         <h4><i class="fas fa-check-circle"></i> Възможни Подобрения</h4>
                         <ul>
-                            ${optimistic.improvements.slice(0, 5).map(improvement => `
+                            ${improvements.map(improvement => `
                                 <li><i class="fas fa-check"></i> ${improvement}</li>
                             `).join('')}
                         </ul>

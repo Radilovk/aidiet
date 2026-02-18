@@ -823,10 +823,11 @@
             height: 36px;
             background: var(--bg-color);
             border-radius: 18px;
-            overflow: hidden;
+            overflow: visible;
             display: flex;
             box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 16px;
+            margin-top: 24px;
         }
         
         .macro-segment {
@@ -834,13 +835,26 @@
             transition: all 0.3s ease;
             position: relative;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-end;
             font-size: 0.75rem;
             font-weight: 600;
             color: white;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
             min-width: 45px;
+        }
+        
+        .macro-segment::before {
+            content: attr(data-percent);
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            white-space: nowrap;
         }
         
         .macro-segment:hover {
@@ -2117,6 +2131,10 @@
         // Prevents duplicate messages from being sent within a time window
         let recentMessageCache = new Map(); // Map<messageText, timestamp>
         const MESSAGE_DEDUP_WINDOW = 3000; // 3 seconds - if same message sent within this window, it's ignored
+        
+        // Demo version: Total message limit
+        let totalMessagesSent = 0;
+        const MAX_TOTAL_MESSAGES = 10; // Demo version limit
         
         /**
          * Check if a message is a duplicate of a recent message
@@ -3698,7 +3716,7 @@
             segment.className = `macro-segment ${type}`;
             segment.style.width = percent + '%';
             if (percent > 10) {
-                segment.textContent = Math.round(percent) + '%';
+                segment.setAttribute('data-percent', Math.round(percent) + '%');
             }
             segment.title = `${label}: ${value}г (${Math.round(percent)}%)`;
             return segment;
@@ -3718,7 +3736,24 @@
 
         function openModal(title, description, benefit, macros) {
             mTitle.textContent = title;
-            mDesc.textContent = description;
+            
+            // Add macros to description if available
+            let fullDescription = description;
+            if (macros && (macros.protein || macros.carbs || macros.fats || macros.fiber)) {
+                const { protein, carbs, fats, fiber } = parseMacronutrients(macros);
+                const gramDetails = [];
+                
+                if (protein > 0) gramDetails.push(`Протеин: ${protein}г`);
+                if (carbs > 0) gramDetails.push(`Въглехидрати: ${carbs}г`);
+                if (fats > 0) gramDetails.push(`Мазнини: ${fats}г`);
+                if (fiber > 0) gramDetails.push(`Фибри: ${fiber}г`);
+                
+                if (gramDetails.length > 0) {
+                    fullDescription = description + ' | ' + gramDetails.join(', ');
+                }
+            }
+            
+            mDesc.textContent = fullDescription;
             mBenefit.textContent = benefit;
             
             // Handle macronutrient visualization
@@ -4020,6 +4055,13 @@
             const message = input.value.trim();
             
             if (!message) return;
+            
+            // Check demo version limit
+            if (totalMessagesSent >= MAX_TOTAL_MESSAGES) {
+                addMessageToChat('⚠️ Демо версията на приложението позволява до 10 чат съобщения. За неограничен достъп до чата, моля свържете се с нас.', 'assistant');
+                input.value = '';
+                return;
+            }
             
             // Enhancement #9: Check for duplicate messages
             if (isDuplicateMessage(message)) {
@@ -4547,6 +4589,12 @@
             if (saveToHistory) {
                 chatHistory.push({ text: message, role: role, timestamp: Date.now() });
                 saveChatHistory();
+                
+                // Increment total messages counter for user messages
+                if (role === 'user') {
+                    totalMessagesSent++;
+                    localStorage.setItem('totalMessagesSent', totalMessagesSent.toString());
+                }
             }
         }
         
@@ -4698,6 +4746,12 @@
                 const savedConversationId = localStorage.getItem('conversationId');
                 if (savedConversationId) {
                     conversationId = savedConversationId;
+                }
+                
+                // Load total messages sent counter
+                const savedCount = localStorage.getItem('totalMessagesSent');
+                if (savedCount) {
+                    totalMessagesSent = parseInt(savedCount, 10) || 0;
                 }
             } catch (e) {
                 console.error('Failed to load chat history:', e);

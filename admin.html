@@ -1339,6 +1339,17 @@
                     </label>
                 </div>
 
+                <!-- Plan Regeneration Control -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-sync-alt"></i> Регенериране на План
+                    </h3>
+                    <label>
+                        <input type="checkbox" id="planRegenerationEnabled" style="width: auto; margin-right: 10px;" checked>
+                        Позволи на потребителите да регенерират плана от профила си
+                    </label>
+                </div>
+
                 <!-- Water Reminders -->
                 <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
                     <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
@@ -3243,6 +3254,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     // Chat notifications
                     document.getElementById('chatNotificationsEnabled').checked = settings.chatMessages !== false;
                     
+                    // Plan regeneration
+                    document.getElementById('planRegenerationEnabled').checked = settings.planRegeneration !== false;
+                    
                     // Water reminders
                     document.getElementById('waterRemindersEnabled').checked = settings.waterReminders?.enabled !== false;
                     document.getElementById('waterFrequency').value = settings.waterReminders?.frequency || 2;
@@ -3275,6 +3289,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const settings = {
                     enabled: document.getElementById('notificationsEnabled').checked,
                     chatMessages: document.getElementById('chatNotificationsEnabled').checked,
+                    planRegeneration: document.getElementById('planRegenerationEnabled').checked,
                     waterReminders: {
                         enabled: document.getElementById('waterRemindersEnabled').checked,
                         frequency: parseInt(document.getElementById('waterFrequency').value) || 2,

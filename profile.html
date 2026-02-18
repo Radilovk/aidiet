@@ -1385,8 +1385,20 @@
             const saveBtn = document.getElementById('saveBtn');
             const saveAndRegenerateBtn = document.getElementById('saveAndRegenerateBtn');
 
+            // Check if plan regeneration is enabled from admin settings
+            let planRegenerationEnabled = true; // Default to enabled
+            try {
+                const globalSettings = localStorage.getItem('globalNotificationSettings');
+                if (globalSettings) {
+                    const settings = JSON.parse(globalSettings);
+                    planRegenerationEnabled = settings.planRegeneration !== false;
+                }
+            } catch (e) {
+                console.error('Error loading admin settings:', e);
+            }
+
             if (hasAnyChanges) {
-                if (hasDietRelatedChanges) {
+                if (hasDietRelatedChanges && planRegenerationEnabled) {
                     saveBtn.classList.add('hidden');
                     saveAndRegenerateBtn.classList.remove('hidden');
                 } else {

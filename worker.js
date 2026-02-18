@@ -4145,13 +4145,13 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
     "timeframe": "текст",
     "weight": "текст",
     "health": "текст",
-    "risks": ["текст"]
+    "risks": ["текст", "текст", "текст", "текст", "текст"]
   },
   "forecastOptimistic": {
     "timeframe": "текст",
     "weight": "текст",
     "health": "текст",
-    "improvements": ["текст"]
+    "improvements": ["текст", "текст", "текст", "текст", "текст"]
   },
   "keyProblems": [
     {
@@ -4492,13 +4492,13 @@ ${(() => {
     "timeframe": "12 месеца",
     "weight": "прогнозно тегло",
     "health": "прогнозно здраве",
-    "risks": ["риск 1", "риск 2"]
+    "risks": ["риск 1", "риск 2", "риск 3", "риск 4", "риск 5"]
   },
   "forecastOptimistic": {
     "timeframe": "12 месеца",
     "weight": "прогнозно тегло",
     "health": "прогнозно здраве",
-    "improvements": ["подобрение 1", "подобрение 2"]
+    "improvements": ["подобрение 1", "подобрение 2", "подобрение 3", "подобрение 4", "подобрение 5"]
   },
   "keyProblems": [
     {
