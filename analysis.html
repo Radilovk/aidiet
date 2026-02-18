@@ -1253,6 +1253,19 @@
     </div>
 
     <script>
+        // Constants
+        const DEFAULT_RISK_PADDING_MESSAGE = 'Консултирайте се с лекар за допълнителна оценка';
+        const DEFAULT_IMPROVEMENT_PADDING_MESSAGE = 'Продължете да следвате плана за оптимални резултати';
+        
+        // Helper function to pad array to minimum length
+        function padArrayToMinLength(array, minLength, defaultValue) {
+            const paddedArray = [...array];
+            while (paddedArray.length < minLength) {
+                paddedArray.push(defaultValue);
+            }
+            return paddedArray;
+        }
+        
         // Theme Management
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -1439,13 +1452,14 @@
             if (analysis.forecastPessimistic) {
                 const pessimistic = analysis.forecastPessimistic;
                 
-                // Update risks (limit to first 5 - assumes AI returns sorted by severity)
+                // Update risks (ensure at least 5 items)
                 const risksContainer = document.getElementById('pessimisticRisks');
                 if (pessimistic.risks && Array.isArray(pessimistic.risks) && pessimistic.risks.length > 0) {
+                    const risks = padArrayToMinLength(pessimistic.risks.slice(0, 5), 5, DEFAULT_RISK_PADDING_MESSAGE);
                     risksContainer.innerHTML = `
                         <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
                         <ul>
-                            ${pessimistic.risks.slice(0, 5).map(risk => `<li>${risk}</li>`).join('')}
+                            ${risks.map(risk => `<li>${risk}</li>`).join('')}
                         </ul>
                     `;
                 } else {
@@ -1457,13 +1471,14 @@
             if (analysis.forecastOptimistic) {
                 const optimistic = analysis.forecastOptimistic;
                 
-                // Update improvements (limit to first 5 - assumes AI returns sorted by desirability)
+                // Update improvements (ensure at least 5 items)
                 const improvementsContainer = document.getElementById('optimisticImprovements');
                 if (optimistic.improvements && Array.isArray(optimistic.improvements) && optimistic.improvements.length > 0) {
+                    const improvements = padArrayToMinLength(optimistic.improvements.slice(0, 5), 5, DEFAULT_IMPROVEMENT_PADDING_MESSAGE);
                     improvementsContainer.innerHTML = `
                         <h4><i class="fas fa-check-circle"></i> Възможни Подобрения</h4>
                         <ul>
-                            ${optimistic.improvements.slice(0, 5).map(improvement => `
+                            ${improvements.map(improvement => `
                                 <li><i class="fas fa-check"></i> ${improvement}</li>
                             `).join('')}
                         </ul>
