@@ -3752,7 +3752,8 @@
                         // Ensure weight has units (convert to Cyrillic 'г' for consistency)
                         let weight = String(product.weight).trim();
                         // Skip empty or zero weights
-                        if (!weight || weight === '0' || weight === '0г' || weight === '0g') {
+                        if (!weight || weight === '0' || weight === '0г' || weight === '0g' || 
+                            weight === '0.0' || weight === '0.0г' || weight === '0.0g') {
                             return;
                         }
                         // Normalize Latin 'g' to Cyrillic 'г'
