@@ -1257,6 +1257,15 @@
         const DEFAULT_RISK_PADDING_MESSAGE = 'Консултирайте се с лекар за допълнителна оценка';
         const DEFAULT_IMPROVEMENT_PADDING_MESSAGE = 'Продължете да следвате плана за оптимални резултати';
         
+        // Helper function to pad array to minimum length
+        function padArrayToMinLength(array, minLength, defaultValue) {
+            const paddedArray = [...array];
+            while (paddedArray.length < minLength) {
+                paddedArray.push(defaultValue);
+            }
+            return paddedArray;
+        }
+        
         // Theme Management
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -1446,11 +1455,7 @@
                 // Update risks (ensure at least 5 items)
                 const risksContainer = document.getElementById('pessimisticRisks');
                 if (pessimistic.risks && Array.isArray(pessimistic.risks) && pessimistic.risks.length > 0) {
-                    const risks = pessimistic.risks.slice(0, 5);
-                    // Ensure at least 5 items by padding with default message if needed
-                    while (risks.length < 5) {
-                        risks.push(DEFAULT_RISK_PADDING_MESSAGE);
-                    }
+                    const risks = padArrayToMinLength(pessimistic.risks.slice(0, 5), 5, DEFAULT_RISK_PADDING_MESSAGE);
                     risksContainer.innerHTML = `
                         <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
                         <ul>
@@ -1469,11 +1474,7 @@
                 // Update improvements (ensure at least 5 items)
                 const improvementsContainer = document.getElementById('optimisticImprovements');
                 if (optimistic.improvements && Array.isArray(optimistic.improvements) && optimistic.improvements.length > 0) {
-                    const improvements = optimistic.improvements.slice(0, 5);
-                    // Ensure at least 5 items by padding with default message if needed
-                    while (improvements.length < 5) {
-                        improvements.push(DEFAULT_IMPROVEMENT_PADDING_MESSAGE);
-                    }
+                    const improvements = padArrayToMinLength(optimistic.improvements.slice(0, 5), 5, DEFAULT_IMPROVEMENT_PADDING_MESSAGE);
                     improvementsContainer.innerHTML = `
                         <h4><i class="fas fa-check-circle"></i> Възможни Подобрения</h4>
                         <ul>

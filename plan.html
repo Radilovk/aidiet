@@ -823,11 +823,11 @@
             height: 36px;
             background: var(--bg-color);
             border-radius: 18px;
-            overflow: visible;
+            overflow: visible; /* Changed from 'hidden' to allow percentage labels above bars */
             display: flex;
             box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 16px;
-            margin-top: 24px;
+            margin-top: 24px; /* Space for percentage labels above */
         }
         
         .macro-segment {
@@ -3715,10 +3715,14 @@
             const segment = document.createElement('div');
             segment.className = `macro-segment ${type}`;
             segment.style.width = percent + '%';
+            
+            const roundedPercent = Math.round(percent);
+            const percentText = roundedPercent + '%';
+            
             if (percent > 10) {
-                segment.setAttribute('data-percent', Math.round(percent) + '%');
+                segment.setAttribute('data-percent', percentText);
             }
-            segment.title = `${label}: ${value}г (${Math.round(percent)}%)`;
+            segment.title = `${label}: ${value}г (${percentText})`;
             return segment;
         }
 
@@ -3739,14 +3743,14 @@
             
             // Add macros to description if available
             let fullDescription = description;
-            if (macros && (macros.protein || macros.carbs || macros.fats || macros.fiber)) {
+            if (macros && (macros.protein !== undefined || macros.carbs !== undefined || macros.fats !== undefined || macros.fiber !== undefined)) {
                 const { protein, carbs, fats, fiber } = parseMacronutrients(macros);
                 const gramDetails = [];
                 
-                if (protein > 0) gramDetails.push(`Протеин: ${protein}г`);
-                if (carbs > 0) gramDetails.push(`Въглехидрати: ${carbs}г`);
-                if (fats > 0) gramDetails.push(`Мазнини: ${fats}г`);
-                if (fiber > 0) gramDetails.push(`Фибри: ${fiber}г`);
+                if (protein !== undefined && protein > 0) gramDetails.push(`Протеин: ${protein}г`);
+                if (carbs !== undefined && carbs > 0) gramDetails.push(`Въглехидрати: ${carbs}г`);
+                if (fats !== undefined && fats > 0) gramDetails.push(`Мазнини: ${fats}г`);
+                if (fiber !== undefined && fiber > 0) gramDetails.push(`Фибри: ${fiber}г`);
                 
                 if (gramDetails.length > 0) {
                     fullDescription = description + ' | ' + gramDetails.join(', ');
