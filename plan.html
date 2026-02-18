@@ -4058,7 +4058,7 @@
             
             // Check demo version limit
             if (totalMessagesSent >= MAX_TOTAL_MESSAGES) {
-                addMessageToChat('⚠️ Демо версията на приложението позволява до 10 чат съобщения. За неограничен достъп до чата, моля свържете се с нас.', 'assistant');
+                addMessageToChat(`⚠️ Демо версията на приложението позволява до ${MAX_TOTAL_MESSAGES} чат съобщения. За неограничен достъп до чата, моля свържете се с нас.`, 'assistant');
                 input.value = '';
                 return;
             }

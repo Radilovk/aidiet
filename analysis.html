@@ -1253,6 +1253,10 @@
     </div>
 
     <script>
+        // Constants
+        const DEFAULT_RISK_PADDING_MESSAGE = 'Консултирайте се с лекар за допълнителна оценка';
+        const DEFAULT_IMPROVEMENT_PADDING_MESSAGE = 'Продължете да следвате плана за оптимални резултати';
+        
         // Theme Management
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -1445,7 +1449,7 @@
                     const risks = pessimistic.risks.slice(0, 5);
                     // Ensure at least 5 items by padding with default message if needed
                     while (risks.length < 5) {
-                        risks.push('Консултирайте се с лекар за допълнителна оценка');
+                        risks.push(DEFAULT_RISK_PADDING_MESSAGE);
                     }
                     risksContainer.innerHTML = `
                         <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
@@ -1468,7 +1472,7 @@
                     const improvements = optimistic.improvements.slice(0, 5);
                     // Ensure at least 5 items by padding with default message if needed
                     while (improvements.length < 5) {
-                        improvements.push('Продължете да следвате плана за оптимални резултати');
+                        improvements.push(DEFAULT_IMPROVEMENT_PADDING_MESSAGE);
                     }
                     improvementsContainer.innerHTML = `
                         <h4><i class="fas fa-check-circle"></i> Възможни Подобрения</h4>
