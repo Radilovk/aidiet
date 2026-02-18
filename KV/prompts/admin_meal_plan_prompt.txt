@@ -109,7 +109,8 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 6. Ред: Закуска, ако е посочено в стъпка 2→ Обяд → (Следобедна закуска Ако е посочена в стъпка 2) → Вечеря → (Късна закуска ако е посочена от стъпка 2)
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
 7. Разнообразие: Различни ястия от предишните дни
-8. Продукти ЗАДЪЛЖИТЕЛНИ: За ВСЯКО ястие, посочи списък products с name и weight (в грамове) на всеки продукт/съставка в храненето${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n9. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
+8. Продукти ЗАДЪЛЖИТЕЛНИ: За ВСЯКО ястие, посочи списък products с name и weight (в грамове) на всеки продукт/съставка в храненето
+${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\nВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
@@ -117,7 +118,7 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
 {
   "day${startDay}": {
     "meals": [
-      {"type": "Закуска/Следобедна закуска/Обяд/Вечеря/Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}, "products": [{"name": "продукт1", "weight": "Xg"}, {"name": "продукт2", "weight": "Xg"}]}
+      {"type": "Закуска/Следобедна закуска/Обяд/Вечеря/Късна закуска", "name": "име", "weight": "Xг", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}, "products": [{"name": "продукт1", "weight": "Xг"}, {"name": "продукт2", "weight": "Xг"}]}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}

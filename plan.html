@@ -3749,7 +3749,12 @@
                 
                 products.forEach(product => {
                     if (product.name && product.weight) {
-                        productDetails.push(`${product.name}: ${product.weight}`);
+                        // Ensure weight has units (add 'г' if missing)
+                        let weight = product.weight;
+                        if (!weight.endsWith('г') && !weight.endsWith('g')) {
+                            weight = weight + 'г';
+                        }
+                        productDetails.push(`${product.name}: ${weight}`);
                     }
                 });
                 
