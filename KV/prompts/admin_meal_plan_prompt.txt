@@ -118,7 +118,16 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
 {
   "day${startDay}": {
     "meals": [
-      {"type": "Закуска/Следобедна закуска/Обяд/Вечеря/Късна закуска", "name": "име", "weight": "Xг", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}, "products": [{"name": "продукт1", "weight": "Xг"}, {"name": "продукт2", "weight": "Xг"}]}
+      {
+        "type": "Закуска/Следобедна закуска/Обяд/Вечеря/Късна закуска", 
+        "name": "име", 
+        "weight": "Xг", 
+        "description": "описание", 
+        "benefits": "ползи", 
+        "calories": X, 
+        "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}, 
+        "products": [{"name": "продукт1", "weight": "Xг"}, {"name": "продукт2", "weight": "Xг"}]
+      }
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
