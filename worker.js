@@ -4059,8 +4059,9 @@ function replacePromptVariables(template, variables) {
  * Backend handles: BMR, TDEE, safety checks
  */
 async function generateAnalysisPrompt(data, env, errorPreventionComment = null) {
-  // IMPORTANT: AI calculates BMR, TDEE, and calories based on ALL correlates
-  // Backend no longer pre-calculates these values - AI does holistic analysis
+  // IMPORTANT: Backend calculates reference values (BMR, TDEE, macros, safe deficit)
+  // These are passed as REFERENCE CALCULATIONS to AI for validation and adjustment
+  // AI performs holistic analysis and may adjust values based on ALL health correlates
   
   // Check if there's a custom prompt in KV storage
   const customPrompt = await getCustomPrompt(env, 'admin_analysis_prompt');
