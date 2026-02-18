@@ -4155,76 +4155,72 @@
                 let optimizedPlan = null;
                 let optimizedUserData = null;
                 
-                // For modification mode OR if context not cached, send full context
+                // ALWAYS prepare fallback context to handle cache misses in stateless workers
+                // Cloudflare Workers can route requests to different instances where cache may not exist
+                if (chatMode === 'consultation') {
+                    // Consultation: send compact version as fallback
+                    optimizedPlan = {
+                        summary: dietPlan.summary,
+                        weekPlan: compactWeekPlan(dietPlan.weekPlan),
+                        recommendations: dietPlan.recommendations,
+                        forbidden: dietPlan.forbidden
+                    };
+                    
+                    optimizedUserData = {
+                        name: userData.name,
+                        age: userData.age,
+                        weight: userData.weight,
+                        height: userData.height,
+                        gender: userData.gender,
+                        goal: userData.goal,
+                        dietPreference: userData.dietPreference,
+                        dietDislike: userData.dietDislike,
+                        dietLove: userData.dietLove,
+                        medicalConditions: userData.medicalConditions
+                    };
+                } else {
+                    // Modification mode: send full data as fallback
+                    optimizedPlan = dietPlan;
+                    optimizedUserData = userData;
+                }
+                
+                // For first message or modification mode, don't try to use cache
                 if (chatMode === 'modification' || !chatContextCached) {
-                    // Modification mode needs full data for plan regeneration
-                    // OR first message needs to cache context on server
-                    if (chatMode === 'consultation') {
-                        // Consultation: send compact version
-                        optimizedPlan = {
-                            summary: dietPlan.summary,
-                            weekPlan: compactWeekPlan(dietPlan.weekPlan),
-                            recommendations: dietPlan.recommendations,
-                            forbidden: dietPlan.forbidden
-                        };
-                        
-                        optimizedUserData = {
-                            name: userData.name,
-                            age: userData.age,
-                            weight: userData.weight,
-                            height: userData.height,
-                            gender: userData.gender,
-                            goal: userData.goal,
-                            dietPreference: userData.dietPreference,
-                            dietDislike: userData.dietDislike,
-                            dietLove: userData.dietLove,
-                            medicalConditions: userData.medicalConditions
-                        };
-                    } else {
-                        // Modification mode: send full data
-                        optimizedPlan = dietPlan;
-                        optimizedUserData = userData;
-                    }
-                    useCachedContext = false; // Tell server not to use cache (will store this context for future use)
+                    useCachedContext = false;
                 }
                 
                 // Log payload sizes for debugging
                 if (console && console.log) {
+                    const actualSize = JSON.stringify({ 
+                        userId, 
+                        message, 
+                        conversationHistory: apiHistory,
+                        useCachedContext: useCachedContext,
+                        userData: optimizedUserData,
+                        userPlan: optimizedPlan
+                    }).length;
+                    
                     if (useCachedContext) {
-                        const cachedSize = JSON.stringify({ 
-                            userId, 
-                            message, 
-                            conversationHistory: apiHistory,
-                            useCachedContext: true
-                        }).length;
-                        const fullSize = JSON.stringify({ 
-                            userData, 
-                            userPlan: dietPlan, 
-                            conversationHistory: apiHistory 
-                        }).length;
-                        console.log(`[REVOLUTIONARY] Chat payload: ${cachedSize} bytes (${Math.round((1 - cachedSize/fullSize) * 100)}% reduction via server cache!)`);
+                        console.log(`[REVOLUTIONARY] Chat payload: ${actualSize} bytes with fallback context (server will prefer cache if available)`);
                     } else {
                         const fullSize = JSON.stringify({ userData, userPlan: dietPlan, conversationHistory: apiHistory }).length;
-                        const optimizedSize = JSON.stringify({ userData: optimizedUserData, userPlan: optimizedPlan, conversationHistory: apiHistory }).length;
-                        console.log(`Chat payload: ${optimizedSize} bytes (${Math.round((1 - optimizedSize/fullSize) * 100)}% reduction)`);
+                        console.log(`Chat payload: ${actualSize} bytes (${Math.round((1 - actualSize/fullSize) * 100)}% reduction via optimization)`);
                     }
                 }
                 
                 // Send to backend with revolutionary optimization
+                // ALWAYS include fallback context to handle cache misses in stateless workers
                 const requestBody = {
                     userId: userId,
                     message: message,
                     conversationId: conversationId,
                     mode: chatMode,
                     conversationHistory: apiHistory,
-                    useCachedContext: useCachedContext
+                    useCachedContext: useCachedContext,
+                    // Include fallback context - server will use cache if available, fallback if not
+                    userData: optimizedUserData,
+                    userPlan: optimizedPlan
                 };
-                
-                // Only include full context if not using cache
-                if (!useCachedContext) {
-                    requestBody.userData = optimizedUserData;
-                    requestBody.userPlan = optimizedPlan;
-                }
                 
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/chat', {
                     method: 'POST',
