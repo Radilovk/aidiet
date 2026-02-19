@@ -6150,19 +6150,10 @@ async function handleExportAILogs(request, env) {
       });
     }
     
-    // Session-based format
-    const sessionIds = sessionIndex;
+    // Export only the last (most recent) plan - sessionIndex[0] is most recent
+    const lastSessionId = sessionIndex[0];
     
-    // Get all log IDs from ALL sessions
-    const allLogIds = [];
-    const sessionLogCounts = [];
-    for (const sessionId of sessionIds) {
-      const sessionLogsData = await cacheGet(`ai_session_logs:${sessionId}`);
-      if (sessionLogsData) {
-        sessionLogCounts.push({ sessionId, count: sessionLogsData.length });
-        allLogIds.push(...sessionLogsData);
-      }
-    }
+    const allLogIds = await cacheGet(`ai_session_logs:${lastSessionId}`) || [];
     
     if (allLogIds.length === 0) {
       return new Response('Няма налични логове за експорт.', {
@@ -6177,7 +6168,7 @@ async function handleExportAILogs(request, env) {
       });
     }
     
-    // Fetch all logs from Cache API
+    // Fetch all logs for the last session from Cache API
     const logPromises = allLogIds.flatMap(logId => [
       cacheGet(`ai_communication_log:${logId}`),
       cacheGet(`ai_communication_log:${logId}_response`)
@@ -6187,15 +6178,12 @@ async function handleExportAILogs(request, env) {
     
     // Build text content
     let textContent = '='.repeat(80) + '\n';
-    textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ЕКСПОРТ\n';
+    textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ПОСЛЕДЕН ПЛАН\n';
     textContent += '(Съхранени в Cache API - автоматично изтриване след 24 часа)\n';
     textContent += '='.repeat(80) + '\n\n';
     textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
-    textContent += `Общо сесии: ${sessionIds.length}\n`;
+    textContent += `Сесия: ${lastSessionId}\n`;
     textContent += `Общо стъпки: ${allLogIds.length}\n`;
-    sessionLogCounts.forEach((session, index) => {
-      textContent += `  Сесия ${index + 1} (${session.sessionId}): ${session.count} стъпки\n`;
-    });
     textContent += '\n';
     
     // Note: logData contains paired entries (request, response) for each log ID
