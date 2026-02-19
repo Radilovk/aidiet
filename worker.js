@@ -1711,28 +1711,25 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
+  // Build JSON format example with all days in the chunk
+  const mealTemplate = `{"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const dayTemplate = (dayNum) => `  "day${dayNum}": {
+    "meals": [
+      ${mealTemplate}
+    ],
+    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
+  }`;
+  
+  const jsonExample = [];
+  for (let i = startDay; i <= endDay; i++) {
+    jsonExample.push(dayTemplate(i));
+  }
+  
+  defaultPrompt += `
 JSON ФОРМАТ (дни ${startDay}-${endDay}):
-${daysInChunk === 1 ? `{
-  "day${startDay}": {
-    "meals": [
-      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
-    ],
-    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }
-}` : `{
-  "day${startDay}": {
-    "meals": [
-      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
-    ],
-    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  },
-  "day${endDay}": {
-    "meals": [
-      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
-    ],
-    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }
-}`}
+{
+${jsonExample.join(',\n')}
+}
 
 КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!`;
   
