@@ -122,8 +122,8 @@ ${(() => {
 
 Определи вероятен темперамент:
 - Възможни типове: Холерик, Сангвиник, Флегматик, Меланхолик
-- Връщай САМО ако вероятността е > 80%
-- Включи процент вероятност
+- Връщай САМО ако вероятността е > 80% (висока увереност)
+- Включи процент вероятност и обяснение (reasoning)
 
 СТЪПКА 2: ОПРЕДЕЛЯНЕ НА ПСИХОПРОФИЛ
 Анализирай темперамента (от СТЪПКА 1) заедно със следните полета:
@@ -222,9 +222,7 @@ ${(() => {
 - Покачване/Мускулна маса: +10% до +15%
 
 4.4 ИЗЧИСЛЯВАНЕ НА ФИНАЛНИ КАЛОРИИ:
-```
-Final_Calories = TDEE × (1 + clinicalAdjustmentPercent/100 + metabolicAdjustmentPercent/100 + goalAdjustmentPercent/100)
-```
+Формула: Final_Calories = TDEE × (1 + clinicalAdjustmentPercent/100 + metabolicAdjustmentPercent/100 + goalAdjustmentPercent/100)
 
 ВАЖНО: Включи ВСИЧКИ три корекции при изчисляването.
 
@@ -279,7 +277,7 @@ Final_Calories = TDEE × (1 + clinicalAdjustmentPercent/100 + metabolicAdjustmen
   "temperamentResult": {
     "temperament": "тип (само ако >80% вероятност) или null",
     "probability": число процент или null,
-    "reasoning": "обяснение защо този темперамент"
+    "reasoning": "обяснение защо този темперамент (кратко)"
   },
   "psychoprofileResult": {
     "behavioralPatterns": "поведенчески модели при хранене",
@@ -324,9 +322,9 @@ Final_Calories = TDEE × (1 + clinicalAdjustmentPercent/100 + metabolicAdjustmen
     "reasoning": "обяснение на избора на макроси според психопрофил и здравословни нужди"
   },
   "macroGrams": {
-    "protein": число грамове (finalCalories × protein% / 400),
-    "carbs": число грамове (finalCalories × carbs% / 400),
-    "fats": число грамове (finalCalories × fats% / 900)
+    "protein": число грамове (izчисли като: finalCalories × protein% / 4 / 100),
+    "carbs": число грамове (изчисли като: finalCalories × carbs% / 4 / 100),
+    "fats": число грамове (изчисли като: finalCalories × fats% / 9 / 100)
   },
   
   // ═══════════════════════════════════════════════════════════════
@@ -373,17 +371,26 @@ Final_Calories = TDEE × (1 + clinicalAdjustmentPercent/100 + metabolicAdjustmen
   // ═══════════════════════════════════════════════════════════════
   "bmr": число,
   "tdee": число,
-  "recommendedCalories": число (от finalCalories),
-  "macroRatios": обект (копие от горе),
-  "macroGrams": обект (копие от горе),
+  "recommendedCalories": число (същото като calorieCorrections.finalCalories),
+  "macroRatios": {
+    "protein": число процент,
+    "carbs": число процент,
+    "fats": число процент,
+    "fiber": число грамове
+  },
+  "macroGrams": {
+    "protein": число грамове,
+    "carbs": число грамове,
+    "fats": число грамове
+  },
   "psychoProfile": {
-    "temperament": "тип или null (копие от temperamentResult.temperament за backward compatibility)",
-    "probability": число или null (копие от temperamentResult.probability за backward compatibility)
+    "temperament": "тип или null (същото като temperamentResult.temperament за backward compatibility)",
+    "probability": число или null (същото като temperamentResult.probability за backward compatibility)
   },
   "metabolicProfile": "анализ на метаболитния профил (бърз/среден/бавен)",
   "healthRisks": масив от рискове,
   "nutritionalNeeds": масив от хранителни нужди,
-  "psychologicalProfile": "кратко резюме на психопрофила (от psychoprofileResult)",
+  "psychologicalProfile": "кратко резюме на психопрофила (2-3 изречения от psychoprofileResult)",
   "successChance": число (-100 до 100)
 }
 
