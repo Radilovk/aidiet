@@ -4089,44 +4089,53 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
 
 Структурата ТРЯБВА да включва:
 {
-  "temperamentResult": {
-    "temperament": "текст или null",
-    "probability": число или null,
-    "reasoning": "текст"
-  },
-  "psychoprofileResult": {
-    "behavioralPatterns": "текст",
-    "emotionalTriggers": "текст",
-    "motivationalFactors": "текст",
-    "psychologicalBarriers": "текст",
-    "communicationStyle": "текст"
-  },
-  "negativeFactors": {
-    "healthFactors": [{"factor": "текст", "severity": число, "description": "текст", "impact": "текст"}],
-    "goalHinderingFactors": [{"factor": "текст", "severity": число, "description": "текст", "impact": "текст"}]
-  },
-  "calorieCorrections": {
-    "baseTDEE": число,
-    "clinicalAdjustmentPercent": число,
-    "clinicalAdjustmentReasoning": "текст",
-    "metabolicAdjustmentPercent": число,
-    "metabolicAdjustmentReasoning": "текст",
-    "goalAdjustmentPercent": число,
-    "goalAdjustmentReasoning": "текст",
-    "finalCalories": число
-  },
+  "bmi": число,
+  "bmiCategory": "текст",
+  "bmr": число,
+  "tdee": число,
+  "recommendedCalories": число,
   "macroRatios": {
     "protein": число,
     "carbs": число,
     "fats": число,
-    "fiber": число,
-    "reasoning": "текст"
+    "fiber": число
   },
   "macroGrams": {
     "protein": число,
     "carbs": число,
     "fats": число
   },
+  "activityLevel": "текст",
+  "physiologicalPhase": "текст",
+  "waterDeficit": {
+    "dailyNeed": "текст",
+    "currentIntake": "текст",
+    "deficit": "текст",
+    "impactOnLipolysis": "текст"
+  },
+  "negativeHealthFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
+  "hinderingFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
+  "cumulativeRiskScore": "текст",
+  "psychoProfile": {
+    "temperament": "текст",
+    "probability": число,
+    "reasoning": "текст"
+  },
+  "metabolicReactivity": {
+    "speed": "текст",
+    "adaptability": "текст"
+  },
+  "correctedMetabolism": {
+    "realBMR": число,
+    "realTDEE": число,
+    "correction": "текст",
+    "correctionPercent": "текст"
+  },
+  "metabolicProfile": "текст",
+  "healthRisks": ["текст"],
+  "nutritionalNeeds": ["текст"],
+  "psychologicalProfile": "текст",
+  "successChance": число,
   "currentHealthStatus": {
     "score": число,
     "description": "текст",
@@ -4134,10 +4143,14 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   },
   "forecastPessimistic": {
     "timeframe": "текст",
+    "weight": "текст",
+    "health": "текст",
     "risks": ["текст", "текст", "текст", "текст", "текст"]
   },
   "forecastOptimistic": {
     "timeframe": "текст",
+    "weight": "текст",
+    "health": "текст",
     "improvements": ["текст", "текст", "текст", "текст", "текст"]
   },
   "keyProblems": [
@@ -4149,19 +4162,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
       "category": "текст",
       "impact": "текст"
     }
-  ],
-  "bmr": число,
-  "tdee": число,
-  "recommendedCalories": число,
-  "psychoProfile": {
-    "temperament": "текст или null",
-    "probability": число или null
-  },
-  "metabolicProfile": "текст",
-  "healthRisks": ["текст"],
-  "nutritionalNeeds": ["текст"],
-  "psychologicalProfile": "текст",
-  "successChance": число
+  ]
 }
 
 ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
