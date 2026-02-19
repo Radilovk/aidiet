@@ -1,5 +1,47 @@
 # Резюме: Разделяне на данните в Plan2 промпти
 
+## ВАЖНО УТОЧНЕНИЕ - Какво точно е Сектор 3?
+
+**❗ КРИТИЧНО ЗА РАЗБИРАНЕ:**
+
+**Сектор 3 НЕ е "всички данни които се предават към следващата стъпка".**
+
+**Сектор 3 е "данни от АНАЛИЗА на текущата стъпка, които са полезни за следващата стъпка".**
+
+### Пълната формула:
+
+```
+Вход на Стъпка N = 
+  userData (отговори от въпросника) +
+  Сектор 3 от Стъпка N-1 (анализ) +
+  Сектор 3 от Стъпка N-2 (ако е нужно) +
+  Допълнителни елементи (whitelists, blacklists и др.)
+```
+
+### Конкретни примери:
+
+**Стъпка 2 (Стратегия) получава:**
+- ✅ userData (клиентски данни от въпросника - name, age, goal, preferences и др.)
+- ✅ Сектор 3 от Стъпка 1 (metabolicProfile, psychoProfile, healthRisks и др.)
+
+**Стъпка 3 (Хранителен план) получава:**
+- ✅ userData (клиентски данни от въпросника - name, age, goal, dietDislike, dietLove и др.)
+- ✅ Сектор 3 от Стъпка 1 (macroGrams, recommendedCalories)
+- ✅ Сектор 3 от Стъпка 2 (weeklyScheme, keyPrinciples, foodsToInclude, foodsToAvoid и др.)
+- ✅ dynamicWhitelistSection (от KV storage)
+- ✅ dynamicBlacklistSection (от KV storage)
+- ✅ previousDays (за разнообразие при chunk генериране)
+
+**Стъпка 4 (Резюме) получава:**
+- ✅ userData (частични клиентски данни - name, goal, medications и др.)
+- ✅ Избрани данни от Стъпка 1 (BMR, keyProblems)
+- ✅ Избрани данни от Стъпка 2 (psychologicalSupport, hydrationStrategy)
+- ✅ Агрегирани данни от Стъпка 3 (avgCalories, avgMacros)
+- ✅ dynamicWhitelistSection (от KV storage)
+- ✅ dynamicBlacklistSection (от KV storage)
+
+---
+
 ## Изпълнени промени
 
 ### ✅ Постигнато

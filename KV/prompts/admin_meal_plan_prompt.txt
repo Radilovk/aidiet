@@ -1,17 +1,25 @@
 ═══════════════════════════════════════════════════════════════════════════════
 ВХОД НА ДАННИ ЗА СТЪПКА 3:
-1. Клиентски данни (userData) - основен профил (име, възраст, цел, предпочитания)
-2. Резултат от Стъпка 1 (analysis) - МИНИМАЛЕН формат с:
-   - bmr, recommendedCalories, macroGrams (за изчисления на хранения)
-3. Резултат от Стъпка 2 (strategy) - КОМПАКТЕН формат с:
+1. Клиентски данни (userData) - основен профил от въпросника
+   (name, age, goal, preferences, dietDislike, dietLove, stressLevel, sleepHours, chronotype)
+2. Резултат от Стъпка 1 (Сектор 3) - МИНИМАЛЕН формат с:
+   - bmr, recommendedCalories, macroGrams, macroRatios (за изчисления на хранения)
+3. Резултат от Стъпка 2 (Сектор 3) - КОМПАКТЕН формат с:
    - dietType, weeklyScheme, mealTiming, keyPrinciples
    - foodsToInclude, foodsToAvoid, calorieDistribution, macroDistribution
 4. Предишни дни (previousDays) - за разнообразие (ако е chunk 2-4)
+5. Допълнителни елементи от KV storage:
+   - dynamicWhitelistSection (персонализиран списък одобрени храни)
+   - dynamicBlacklistSection (персонализиран списък забранени храни)
 
 ЦЕЛИ НА СТЪПКА 3:
 - Анализ: Генериране на конкретни ястия според стратегията
 - Frontend: Готови хранения за показване (meals, dailyTotals)
 - Следваща стъпка: Данни за summary (средни стойности - изчислени от backend)
+
+ВАЖНО ЗА РАЗБИРАНЕ:
+Сектор 3 съдържа данните за summary (средни калории/макроси), но те се ИЗЧИСЛЯВАТ от backend.
+Стъпка 4 получава: userData + данни от Стъпка 1/2 + aggregated weekPlan + whitelists/blacklists
 ═══════════════════════════════════════════════════════════════════════════════
 
 Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
@@ -156,6 +164,14 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
   // СЕКТОР 3: ДАННИ ЗА СЛЕДВАЩА СТЪПКА (Pass to Step 4 - Summary)
   // Цел: Агрегирани данни за финално резюме
   // Бележка: Backend извлича и агрегира тези данни автоматично
+  // 
+  // ВАЖНО УТОЧНЕНИЕ:
+  // Сектор 3 съдържа САМО средните стойности, които се ИЗЧИСЛЯВАТ от backend.
+  // Стъпка 4 получава КОМБИНАЦИЯ от:
+  //   - userData (клиентски данни от въпросника)
+  //   - Избрани данни от Стъпка 1 и Стъпка 2 (BMR, keyProblems, psychologicalSupport и др.)
+  //   - Агрегирани данни от weekPlan (avgCalories, avgProtein, avgCarbs, avgFats)
+  //   - dynamicWhitelistSection и dynamicBlacklistSection (от KV storage)
   // ═══════════════════════════════════════════════════════════════
   // (Изход: avgCalories, avgProtein, avgCarbs, avgFats - изчислени от backend)
 }
