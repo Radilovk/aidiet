@@ -1397,11 +1397,15 @@
         }
 
         .macro-bar-container {
-            margin-top: 24px;
-            padding: 18px 16px;
-            background: var(--card-bg);
-            border-radius: 14px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            height: 36px;
+            background: var(--bg-color);
+            border-radius: 18px;
+            overflow: visible; /* Changed from 'hidden' to allow percentage labels above bars */
+            display: flex;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+            margin-top: 24px; /* Space for percentage labels above */
         }
 
         .macro-bar-label {
@@ -3741,23 +3745,8 @@
         function openModal(title, description, benefit, macros) {
             mTitle.textContent = title;
             
-            // Add macros to description if available
-            let fullDescription = description;
-            if (macros && (macros.protein !== undefined || macros.carbs !== undefined || macros.fats !== undefined || macros.fiber !== undefined)) {
-                const { protein, carbs, fats, fiber } = parseMacronutrients(macros);
-                const gramDetails = [];
-                
-                if (protein !== undefined && protein > 0) gramDetails.push(`Протеин: ${protein}г`);
-                if (carbs !== undefined && carbs > 0) gramDetails.push(`Въглехидрати: ${carbs}г`);
-                if (fats !== undefined && fats > 0) gramDetails.push(`Мазнини: ${fats}г`);
-                if (fiber !== undefined && fiber > 0) gramDetails.push(`Фибри: ${fiber}г`);
-                
-                if (gramDetails.length > 0) {
-                    fullDescription = description + ' | ' + gramDetails.join(', ');
-                }
-            }
-            
-            mDesc.textContent = fullDescription;
+            // Display description as-is (contains ingredient weights from AI)
+            mDesc.textContent = description;
             mBenefit.textContent = benefit;
             
             // Handle macronutrient visualization

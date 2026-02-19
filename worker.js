@@ -1711,17 +1711,28 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
-JSON ФОРМАТ (дни ${startDay}-${endDay}):
-{
-  "day${startDay}": {
+  // Build JSON format example with all days in the chunk
+  // Note: Indentation and formatting are intentional for AI model readability
+  const mealTemplate = `{"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const dayTemplate = (dayNum) => `  "day${dayNum}": {
     "meals": [
-      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+      ${mealTemplate}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
+  }`;
+  
+  const jsonExample = [];
+  for (let i = startDay; i <= endDay; i++) {
+    jsonExample.push(dayTemplate(i));
+  }
+  
+  defaultPrompt += `
+JSON ФОРМАТ (дни ${startDay}-${endDay}):
+{
+${jsonExample.join(',\n')}
 }
 
-Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals!`;
+КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!`;
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -4908,6 +4919,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
       }
       
+      // Log the structure of chunkData for debugging
+      console.log(`Chunk ${chunkIndex + 1} data keys:`, Object.keys(chunkData));
+      
       // Merge chunk data into weekPlan
       for (let day = startDay; day <= endDay; day++) {
         const dayKey = `day${day}`;
@@ -4918,7 +4932,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
             meals: chunkData[dayKey].meals || []
           });
         } else {
-          throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response`);
+          // Log what keys are actually present
+          console.error(`Missing ${dayKey} in chunk ${chunkIndex + 1}. Available keys:`, Object.keys(chunkData));
+          throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response. Available keys: ${Object.keys(chunkData).join(', ')}`);
         }
       }
     } catch (error) {
