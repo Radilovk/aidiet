@@ -4183,6 +4183,13 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   }
   
   // Build default prompt with optional error prevention comment
+  // Pre-calculate backend values once to avoid redundant calculations
+  const activityData = calculateUnifiedActivityScore(data);
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+
   let defaultPrompt = '';
   
   if (errorPreventionComment) {
@@ -4244,7 +4251,14 @@ ${JSON.stringify({
   dietLove: data.dietLove,
   
   // Additional notes from user (CRITICAL INFORMATION)
-  additionalNotes: data.additionalNotes
+  additionalNotes: data.additionalNotes,
+  
+  // Backend-computed values (already calculated, no need to recalculate)
+  unifiedActivityScore: activityData,
+  BMR: bmr,
+  TDEE: tdee,
+  safeDeficit: deficitData,
+  macronutrientRatios: macros
 }, null, 2)}
 
 ${data.additionalNotes ? `
@@ -4264,66 +4278,6 @@ ${data.additionalNotes}
 ═══════════════════════════════════════════════════════════════
 ` : ''}
 
-═══ БАЗОВА ИНФОРМАЦИЯ ЗА ИЗЧИСЛЕНИЯ ═══
-Основни физически параметри (за референция):
-- Тегло: ${data.weight} кг
-- Височина: ${data.height} см
-- Възраст: ${data.age} години
-- Пол: ${data.gender}
-- Цел: ${data.goal}
-${data.lossKg ? `- Желано отслабване: ${data.lossKg} кг` : ''}
-
-═══ BACKEND РЕФЕРЕНТНИ ИЗЧИСЛЕНИЯ (Issues #2, #7, #9, #10, #28 - Feb 2026) ═══
-${(() => {
-  // Calculate unified activity score (Issue #7)
-  const activityData = calculateUnifiedActivityScore(data);
-  
-  // Calculate BMR
-  const bmr = calculateBMR(data);
-  
-  // Calculate TDEE using new unified score
-  const tdee = calculateTDEE(bmr, activityData.combinedScore);
-  
-  // Calculate safe deficit (Issue #9)
-  const deficitData = calculateSafeDeficit(tdee, data.goal);
-  
-  // Calculate baseline macros (Issue #2, #28) - pass TDEE for accurate percentages
-  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
-  
-  return `
-УНИФИЦИРАН АКТИВНОСТ СКОР (Issue #7):
-- Дневна активност: ${data.dailyActivityLevel} → ${activityData.dailyScore}/3
-- Спортна активност: ${data.sportActivity} → ~${activityData.sportDays} дни
-- КОМБИНИРАН СКОР: ${activityData.combinedScore}/10 (${activityData.activityLevel})
-- Формула: дневна активност (1-3) + спортни дни → скала 1-10
-
-БАЗОВИ КАЛКУЛАЦИИ:
-- BMR (Mifflin-St Jeor): ${bmr} kcal
-  * Мъж: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} + 5
-  * Жена: 10×${data.weight} + 6.25×${data.height} - 5×${data.age} - 161
-  
-- TDEE (Issue #10): ${tdee} kcal
-  * BMR × ${(tdee / bmr).toFixed(2)} (фактор за активност скор ${activityData.combinedScore})
-  * Нов множител базиран на 1-10 скала (не дублирани дефиниции)
-  
-- БЕЗОПАСЕН ДЕФИЦИТ (Issue #9): ${deficitData.targetCalories} kcal
-  * Максимален дефицит: 25% (${deficitData.maxDeficitCalories} kcal минимум)
-  * Стандартен дефицит: ${deficitData.deficitPercent}%
-  * AI може да коригира за специални стратегии (интермитентно гладуване и др.)
-
-БАЗОВИ МАКРОНУТРИЕНТИ (Issue #2, #28 - НЕ циркулярна логика):
-- Протеин: ${macros.protein}% (${macros.proteinGramsPerKg}g/kg за ${data.gender})
-  * ${data.gender === 'Мъж' ? 'Мъже имат по-високи нужди' : 'Жени имат по-ниски нужди'} от протеин
-  * Коригирано според активност скор ${activityData.combinedScore}
-- Въглехидрати: ${macros.carbs}%
-- Мазнини: ${macros.fats}%
-- СУМА: ${macros.protein + macros.carbs + macros.fats}% (валидирано = 100%)
-- Формула: процентно разпределение базирано на активност и цел
-`;
-})()}
-
-РЕФЕРЕНТНИТЕ изчисления са само ОТПРАВНА ТОЧКА за валидация. ТИ определяш финалните стойности според холистичния анализ.
-
 ═══ ТВОЯТА ЗАДАЧА - РАЗШИРЕН АНАЛИЗ ═══
 
 Направи ХОЛИСТИЧЕН АНАЛИЗ, включващ следните стъпки:
@@ -4335,7 +4289,7 @@ ${(() => {
 
 2. БАЗОВ МЕТАБОЛИЗЪМ (BMR) И TDEE:
    - Използвай Mifflin-St Jeor формулата (виж референтните изчисления)
-   - Коригирай според активност скор 1-10 (${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10)
+   - Коригирай според активност скор 1-10 (${activityData.combinedScore}/10)
    - TDEE = BMR × активност фактор
 
 3. СТАНДАРТ ЗА РАЗПРЕДЕЛЯНЕ НА МАКРОСИ:
@@ -4345,7 +4299,7 @@ ${(() => {
    - Фибри: изчисли според пол, възраст и цел (обикновено ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г дневно, но персонализирай)
 
 4. НИВО НА АКТИВНОСТ (скала 1-10):
-   - Вече изчислено: ${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10 (${(() => { const ad = calculateUnifiedActivityScore(data); return ad.activityLevel; })()})
+   - Вече изчислено: ${activityData.combinedScore}/10 (${activityData.activityLevel})
    - Анализирай как това влияе на калорийни нужди
 
 5. ФИЗИОЛОГИЧНА ФАЗА В ЖИВОТА:
@@ -4386,7 +4340,7 @@ ${(() => {
 
 11a. РЕАКТИВНОСТ НА МЕТАБОЛИЗМА:
     - Анализирай спрямо:
-      * Активност скор: ${(() => { const ad = calculateUnifiedActivityScore(data); return ad.combinedScore; })()}/10
+      * Активност скор: ${activityData.combinedScore}/10
       * Физиологична фаза: ${data.age} год.
       * Психопрофил (от т.11)
       * История на диети: ${data.dietHistory}, ${data.dietType || 'N/A'}, ${data.dietResult || 'N/A'}
