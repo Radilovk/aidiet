@@ -1,44 +1,49 @@
 # Резюме: Разделяне на данните в Plan2 промпти
 
-## ВАЖНО УТОЧНЕНИЕ - Какво точно е Сектор 3?
+## КРИТИЧНО ВАЖНО - Правилно разбиране на секторите
 
-**❗ КРИТИЧНО ЗА РАЗБИРАНЕ:**
+### Какво представляват секторите?
 
-**Сектор 3 НЕ е "всички данни които се предават към следващата стъпка".**
+**СЕКТОР 1: ВХОДНИ ДАННИ - ОБРАБОТКА**
+- Съдържа входните данни които стъпката ПОЛУЧАВА
+- Обработва тези данни и генерира анализ
+- Включва: userData + Сектор 3 изходи от предишни стъпки + допълнителни елементи
 
-**Сектор 3 е "данни от АНАЛИЗА на текущата стъпка, които са полезни за следващата стъпка".**
+**СЕКТОР 2: ИЗХОД ЗА FRONTEND**
+- Съдържа изходни данни за показване на потребителя
+- НЕ се предават на следващи стъпки
+- Цел: Директна визуализация
 
-### Пълната формула:
+**СЕКТОР 3: ИЗХОД ЗА СЛЕДВАЩА СТЪПКА**
+- Съдържа ИЗХОДА от текущата стъпка
+- Този изход става ВХОД в СЕКТОР 1 на следващата стъпка
+- Следващата стъпка ОБРАБОТВА тези данни
+
+### Data Flow:
 
 ```
-Вход на Стъпка N = 
-  userData (отговори от въпросника) +
-  Сектор 3 от Стъпка N-1 (анализ) +
-  Сектор 3 от Стъпка N-2 (ако е нужно) +
-  Допълнителни елементи (whitelists, blacklists и др.)
+Стъпка 1:
+  СЕКТОР 1 (Вход): userData + backend calculations
+               ↓ ОБРАБОТКА
+  СЕКТОР 2 (Изход): currentHealthStatus, keyProblems → Frontend
+  СЕКТОР 3 (Изход): metabolicProfile, psychoProfile, healthRisks
+               ↓
+               ↓ Този изход става вход ↓
+               ↓
+Стъпка 2:
+  СЕКТОР 1 (Вход): userData + СЕКТОР 3 от Стъпка 1
+               ↓ ОБРАБОТКА
+  СЕКТОР 2 (Изход): welcomeMessage, planJustification → Frontend
+  СЕКТОР 3 (Изход): weeklyScheme, keyPrinciples, foodsToInclude
+               ↓
+               ↓ Този изход става вход ↓
+               ↓
+Стъпка 3:
+  СЕКТОР 1 (Вход): userData + СЕКТОР 3 от Стъпки 1,2 + whitelists
+               ↓ ОБРАБОТКА
+  СЕКТОР 2 (Изход): meals, dailyTotals → Frontend
+  СЕКТОР 3 (Изход): avgCalories, avgMacros (изчислени от backend)
 ```
-
-### Конкретни примери:
-
-**Стъпка 2 (Стратегия) получава:**
-- ✅ userData (клиентски данни от въпросника - name, age, goal, preferences и др.)
-- ✅ Сектор 3 от Стъпка 1 (metabolicProfile, psychoProfile, healthRisks и др.)
-
-**Стъпка 3 (Хранителен план) получава:**
-- ✅ userData (клиентски данни от въпросника - name, age, goal, dietDislike, dietLove и др.)
-- ✅ Сектор 3 от Стъпка 1 (macroGrams, recommendedCalories)
-- ✅ Сектор 3 от Стъпка 2 (weeklyScheme, keyPrinciples, foodsToInclude, foodsToAvoid и др.)
-- ✅ dynamicWhitelistSection (от KV storage)
-- ✅ dynamicBlacklistSection (от KV storage)
-- ✅ previousDays (за разнообразие при chunk генериране)
-
-**Стъпка 4 (Резюме) получава:**
-- ✅ userData (частични клиентски данни - name, goal, medications и др.)
-- ✅ Избрани данни от Стъпка 1 (BMR, keyProblems)
-- ✅ Избрани данни от Стъпка 2 (psychologicalSupport, hydrationStrategy)
-- ✅ Агрегирани данни от Стъпка 3 (avgCalories, avgMacros)
-- ✅ dynamicWhitelistSection (от KV storage)
-- ✅ dynamicBlacklistSection (от KV storage)
 
 ---
 
