@@ -3438,8 +3438,7 @@
                         meal.name, 
                         meal.description || '', 
                         meal.benefits || '',
-                        meal.macros || null,
-                        meal.products || null
+                        meal.macros || null
                     );
                 };
                 
@@ -3739,38 +3738,12 @@
             return item;
         }
 
-        function openModal(title, description, benefit, macros, products) {
+        function openModal(title, description, benefit, macros) {
             mTitle.textContent = title;
             
-            // Add products to description if available, otherwise use macros
+            // Add macros to description if available
             let fullDescription = description;
-            if (products && Array.isArray(products) && products.length > 0) {
-                const productDetails = [];
-                
-                products.forEach(product => {
-                    if (product.name && product.weight) {
-                        // Ensure weight has units (convert to Cyrillic 'г' for consistency)
-                        let weight = String(product.weight).trim();
-                        // Skip empty or zero weights
-                        if (!weight || weight === '0' || weight === '0г' || weight === '0g' || 
-                            weight === '0.0' || weight === '0.0г' || weight === '0.0g') {
-                            return;
-                        }
-                        // Normalize Latin 'g' to Cyrillic 'г'
-                        if (weight.endsWith('g')) {
-                            weight = weight.slice(0, -1) + 'г';
-                        } else if (!weight.endsWith('г')) {
-                            weight = weight + 'г';
-                        }
-                        productDetails.push(`${product.name}: ${weight}`);
-                    }
-                });
-                
-                if (productDetails.length > 0) {
-                    fullDescription = description + ' | ' + productDetails.join(', ');
-                }
-            } else if (macros && (macros.protein !== undefined || macros.carbs !== undefined || macros.fats !== undefined || macros.fiber !== undefined)) {
-                // Fallback to macros if products not available
+            if (macros && (macros.protein !== undefined || macros.carbs !== undefined || macros.fats !== undefined || macros.fiber !== undefined)) {
                 const { protein, carbs, fats, fiber } = parseMacronutrients(macros);
                 const gramDetails = [];
                 
