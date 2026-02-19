@@ -886,13 +886,51 @@ function jsonResponse(data, status = 200, options = {}) {
 }
 
 /**
+ * Escape literal control characters (newlines, tabs, carriage returns) inside
+ * JSON string values.  Uses the same state-machine approach as extractBalancedJSON
+ * so that structural characters outside strings are left untouched.
+ */
+function escapeControlCharsInStrings(jsonStr) {
+  let result = '';
+  let inString = false;
+  let escapeNext = false;
+  for (let i = 0; i < jsonStr.length; i++) {
+    const char = jsonStr[i];
+    const code = jsonStr.charCodeAt(i);
+    if (escapeNext) {
+      escapeNext = false;
+      result += char;
+      continue;
+    }
+    if (char === '\\') {
+      escapeNext = true;
+      result += char;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      result += char;
+      continue;
+    }
+    if (inString) {
+      if (code === 0x0A) { result += '\\n'; continue; }  // literal newline → \n
+      if (code === 0x0D) { result += '\\r'; continue; }  // literal CR → \r
+      if (code === 0x09) { result += '\\t'; continue; }  // literal tab → \t
+    }
+    result += char;
+  }
+  return result;
+}
+
+/**
  * Sanitize JSON string to fix common AI formatting issues
  * - Remove trailing commas before } or ]
  * - Fix missing commas between array/object elements
  * - Remove duplicate commas
  */
 function sanitizeJSON(jsonStr) {
-  let result = jsonStr;
+  // First, escape any literal control characters inside string values
+  let result = escapeControlCharsInStrings(jsonStr);
   
   // 1. Remove trailing commas before } or ]
   result = result.replace(/,(\s*[}\]])/g, '$1');
@@ -1703,38 +1741,28 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
 3. Калории: protein×4 + carbs×4 + fats×9
-4. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal OK)
-5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
-6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
+4. Целеви дневни калории: ~${recommendedCalories} kcal
+5. Брой хранения: ${strategy.mealCountJustification || '2-5 хранения според профила (1-2 при IF, 3-4 стандартно)'}
+6. Ред: Закуска, ако е посочено в стъпка 2→ Обяд → (Следобедна закуска Ако е посочена в стъпка 2) → Вечеря → (Късна закуска ако е посочена от стъпка 2)
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
 7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 `;
 
-  // Build JSON format example with all days in the chunk
-  // Note: Indentation and formatting are intentional for AI model readability
-  const mealTemplate = `{"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
-  const dayTemplate = (dayNum) => `  "day${dayNum}": {
-    "meals": [
-      ${mealTemplate}
-    ],
-    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }`;
-  
-  const jsonExample = [];
-  for (let i = startDay; i <= endDay; i++) {
-    jsonExample.push(dayTemplate(i));
-  }
-  
   defaultPrompt += `
 JSON ФОРМАТ (дни ${startDay}-${endDay}):
 {
-${jsonExample.join(',\n')}
+  "day${startDay}": {
+    "meals": [
+      {"type": "Закуска/Следобедна закуска/Обяд/Вечеря/Късна закуска", "name": "иМЕ", "weight": "Xg", "description": "описание с грамаж на необходимите продукти", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+    ],
+    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
+  }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
 }
 
-КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!`;
-  
+Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals. задължително се съобразявай с recommendedCalories за съответния ден!`;
+
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
     // Replace variables in custom prompt
