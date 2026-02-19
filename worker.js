@@ -1597,7 +1597,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 `;
   }
   
-  const defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
+  let defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
 
 === ПРОФИЛ ===
 Цел: ${data.goal} | BMR: ${bmr} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}
@@ -1710,6 +1710,7 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
+`;
 
   // Build JSON format example with all days in the chunk
   // Note: Indentation and formatting are intentional for AI model readability
