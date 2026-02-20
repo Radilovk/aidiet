@@ -31,19 +31,33 @@
 3а. clinicalAdjustmentPercent — клинична корекция
   Базирай само на: medicalConditions, medications (additionalNotes само ако е пряко клинично/медицинско)
   Пример: хипотиреоидизъм → -8%, диабет Тип 2 → -5%, без диагноза → 0
+  Диапазон: -15% до +5%
 
 3б. metabolicAdjustmentPercent — метаболитна корекция
   Базирай на: sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил (Стъпка 2), темперамент (Стъпка 1), additionalNotes
   Пример: хронически стрес + лош сън → -5%, оптимален сън + нисък стрес → +2
+  Диапазон: -10% до +5%
 
 3в. goalAdjustmentPercent — корекция спрямо цел
   Базирай само на: goal, additionalNotes (ако засяга целта)
   Пример: Отслабване → -15 до -20, Поддръжка → 0, Покачване на мускулна маса → +10
+  Диапазон: -20% до +15%
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Сумата от трите корекции НЕ трябва да надвишава -25% (безопасен максимален дефицит).
+Ако сборът е под -25%, ограничи goalAdjustmentPercent така, че total = клинично + метаболитно + цел ≥ -25%.
 
 → Резултат: correctedMetabolism (с clinicalAdjustmentPercent, metabolicAdjustmentPercent, goalAdjustmentPercent)
 
 СТЪПКА 4: ФИНАЛНИ КАЛОРИИ
-Final_Calories = round(tdee × (1 + (clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent) / 100))
+totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent
+(ограничи на минимум -25%)
+Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
+
+⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под {MIN_RECOMMENDED_CALORIES} kcal (безопасен минимум).
+Ако формулата даде по-малко, задай recommendedCalories = {MIN_RECOMMENDED_CALORIES} kcal и посочи в correctedMetabolism.correction причината.
+
+correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
+correctedMetabolism.realTDEE = Final_Calories
 → Резултат: recommendedCalories, correctedMetabolism.realBMR, realTDEE, correctionPercent
 
 СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати, Фибри)
@@ -51,7 +65,19 @@ Final_Calories = round(tdee × (1 + (clinicalAdjustmentPercent + metabolicAdjust
 - темперамент (Стъпка 1) и психопрофил (Стъпка 2)
 - хранителни навици: eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol
 - клинични данни: medicalConditions, medications
-- Изчисли грамовете на базата на recommendedCalories (Стъпка 4)
+
+Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на recommendedCalories от Стъпка 4):
+  protein_g  = round(recommendedCalories × protein% / 100 / 4)
+  fats_g     = round(recommendedCalories × fats% / 100 / 9)
+  carbs_g    = round(recommendedCalories × carbs% / 100 / 4)
+
+Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ recommendedCalories (разлика ≤ 15 kcal е ок)
+Ако не, коригирай carbs_g: carbs_g = round((recommendedCalories - protein_g×4 - fats_g×9) / 4)
+
+⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ {MIN_FAT_GRAMS}г за хормонална функция.
+Ако формулата дава по-малко, увеличи fats% и намали carbs%.
+
+Фибри: {FIBER_MIN_GRAMS}-{FIBER_MAX_GRAMS}г дневно (коригирай по пол, възраст, медицински условия).
 → Резултат: macroRatios (%), macroGrams (g)
 
 СТЪПКА 6: ДАННИ ЗА СТРАНИЦАТА С АНАЛИЗ (за фронтенда — непроменени)

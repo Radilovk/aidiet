@@ -92,6 +92,9 @@ const MIN_BMI = 10; // Medically possible minimum
 const MAX_BMI = 80; // Medically possible maximum
 const MAX_WEIGHT_LOSS_KG = 50; // Maximum weight loss per plan
 const MAX_WEIGHT_LOSS_PERCENT = 0.5; // Maximum 50% of body weight
+const MIN_RECOMMENDED_CALORIES_FEMALE = 1200; // Hard floor - minimum safe calories for women
+const MIN_RECOMMENDED_CALORIES_MALE = 1500;   // Hard floor - minimum safe calories for men
+const MIN_FAT_GRAMS_PER_KG = 0.7; // Minimum dietary fat for hormonal function (g/kg body weight)
 
 // Analysis Configuration
 const WATER_PER_KG_MULTIPLIER = 0.035; // Liters per kg body weight
@@ -1835,6 +1838,13 @@ async function generateMealPlanPrompt(data, analysis, strategy, env, errorPreven
       recommendedCalories = tdee; // Maintenance
     }
   }
+
+  // Enforce minimum calorie floor based on gender (medical safety)
+  const calorieFloor = data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
+  if (recommendedCalories < calorieFloor) {
+    console.log(`Warning: recommendedCalories ${recommendedCalories} kcal below safe floor (${calorieFloor} kcal for ${data.gender}). Clamping to floor.`);
+    recommendedCalories = calorieFloor;
+  }
   
   // Build modifications section if any
   let modificationsSection = '';
@@ -3164,6 +3174,29 @@ function validatePlan(plan, userData) {
   }
   
   // 7. Check for goal-plan alignment (Step 2 - Strategy issue)
+  // 7a. Minimum calorie safety floor (medical requirement)
+  if (plan.analysis && plan.analysis.recommendedCalories) {
+    const recCal = parseInt(plan.analysis.recommendedCalories) || 0;
+    const calFloor = userData.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
+    if (recCal > 0 && recCal < calFloor) {
+      const error = `Препоръчителните калории (${recCal} kcal) са под безопасния минимум (${calFloor} kcal за ${userData.gender})`;
+      errors.push(error);
+      stepErrors.step1_analysis.push(error);
+    }
+  }
+
+  // 7b. Minimum fat grams (hormonal function requires ≥0.7g/kg)
+  if (plan.analysis && plan.analysis.macroGrams && userData.weight) {
+    const fatGrams = parseInt(plan.analysis.macroGrams.fats) || 0;
+    const weight = parseFloat(userData.weight) || 70;
+    const minFatGrams = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+    if (fatGrams > 0 && fatGrams < minFatGrams) {
+      const error = `Мазнините (${fatGrams}г) са под минималната нужда от ${minFatGrams}г (${MIN_FAT_GRAMS_PER_KG}г/кг) за хормонална функция`;
+      errors.push(error);
+      stepErrors.step1_analysis.push(error);
+    }
+  }
+
   if (userData.goal === 'Отслабване' && plan.summary && plan.summary.dailyCalories) {
     // Extract numeric calories
     const caloriesMatch = String(plan.summary.dailyCalories).match(/\d+/);
@@ -4091,7 +4124,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
     let prompt = replacePromptVariables(customPrompt, {
       userData: data,
       // Backend-computed values with clean keys
-      backendCalculations: { activityScore: activityData, bmr, tdee, safeDeficit: deficitData, baselineMacros: macros },
+      backendCalculations: { activityScore: activityData, bmr, tdee, safeDeficit_reference: deficitData, baselineMacros: macros },
       bmr,
       tdee,
       activityScore: activityData,
@@ -4129,7 +4162,11 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
       additionalNotes: data.additionalNotes || '',
       additionalNotesSection,
       TEMPERAMENT_CONFIDENCE_THRESHOLD,
-      HEALTH_STATUS_UNDERESTIMATE_PERCENT
+      HEALTH_STATUS_UNDERESTIMATE_PERCENT,
+      MIN_RECOMMENDED_CALORIES: data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE,
+      MIN_FAT_GRAMS: Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG),
+      FIBER_MIN_GRAMS,
+      FIBER_MAX_GRAMS
     });
     
     // Inject error prevention comment if provided
@@ -4284,11 +4321,12 @@ ${JSON.stringify({
 }, null, 2)}
 
 ═══ БАЗОВИ ИЗЧИСЛЕНИЯ ОТ БЕКЕНДА (НЕ преизчислявай) ═══
+Забележка: safeDeficit е само справочна стойност — базата за ТВОИТЕ корекции е tdee.
 ${JSON.stringify({
   activityScore: activityData,
   bmr: bmr,
   tdee: tdee,
-  safeDeficit: deficitData,
+  safeDeficit_reference: deficitData,
   baselineMacros: macros
 }, null, 2)}
 
@@ -4316,19 +4354,33 @@ ${data.additionalNotes}
 3а. clinicalAdjustmentPercent — клинична корекция
   Базирай само на: medicalConditions, medications (additionalNotes само ако е пряко клинично/медицинско)
   Пример: хипотиреоидизъм → -8%, диабет Тип 2 → -5%, без диагноза → 0
+  Диапазон: -15% до +5%
 
 3б. metabolicAdjustmentPercent — метаболитна корекция
   Базирай на: sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил (Стъпка 2), темперамент (Стъпка 1), additionalNotes
-  Пример: хронически стрес + лош сън → -5%, оптимален сън + ниски стрес → +2
+  Пример: хронически стрес + лош сън → -5%, оптимален сън + нисък стрес → +2
+  Диапазон: -10% до +5%
 
 3в. goalAdjustmentPercent — корекция спрямо цел
   Базирай само на: goal, additionalNotes (ако засяга целта)
   Пример: Отслабване → -15 до -20, Поддръжка → 0, Покачване на мускулна маса → +10
+  Диапазон: -20% до +15%
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Сумата от трите корекции НЕ трябва да надвишава -25% (безопасен максимален дефицит).
+Ако сборът е под -25%, ограничи goalAdjustmentPercent така, че total = клинично + метаболитно + цел ≥ -25%.
 
 → Резултат: correctedMetabolism (с clinicalAdjustmentPercent, metabolicAdjustmentPercent, goalAdjustmentPercent)
 
 СТЪПКА 4: ФИНАЛНИ КАЛОРИИ
-Final_Calories = round(tdee × (1 + (clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent) / 100))
+totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent
+(ограничи на минимум -25%)
+Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
+
+⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal (безопасен минимум за ${data.gender}).
+Ако формулата даде по-малко, задай recommendedCalories = ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal и посочи в correctedMetabolism.correction причината.
+
+correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
+correctedMetabolism.realTDEE = Final_Calories
 → Резултат: recommendedCalories, correctedMetabolism.realBMR, realTDEE, correctionPercent
 
 СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати, Фибри)
@@ -4336,7 +4388,19 @@ Final_Calories = round(tdee × (1 + (clinicalAdjustmentPercent + metabolicAdjust
 - темперамент (Стъпка 1) и психопрофил (Стъпка 2)
 - хранителни навици: eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol
 - клинични данни: medicalConditions, medications
-- Изчисли грамовете на базата на recommendedCalories (Стъпка 4)
+
+Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на recommendedCalories от Стъпка 4):
+  protein_g  = round(recommendedCalories × protein% / 100 / 4)
+  fats_g     = round(recommendedCalories × fats% / 100 / 9)
+  carbs_g    = round(recommendedCalories × carbs% / 100 / 4)
+
+Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ recommendedCalories (разлика ≤ 15 kcal е ок)
+Ако не, коригирай carbs_g: carbs_g = round((recommendedCalories - protein_g×4 - fats_g×9) / 4)
+
+⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ ${Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG)}г (${MIN_FAT_GRAMS_PER_KG}г/кг × ${data.weight}кг) за хормонална функция.
+Ако формулата дава по-малко, увеличи fats% и намали carbs%.
+
+Фибри: ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г дневно (коригирай по пол, възраст, медицински условия).
 → Резултат: macroRatios (%), macroGrams (g)
 
 СТЪПКА 6: ДАННИ ЗА СТРАНИЦАТА С АНАЛИЗ (за фронтенда — непроменени)
