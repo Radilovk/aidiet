@@ -1758,16 +1758,75 @@ ${jsonExample.join(',\n')}
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
-    // Replace variables in custom prompt
+    // Pre-compute complex sections for KV prompt variable substitution
+    const formatMacroStr = (p, c, f) => (p && c && f) ? ` | Б:${p}г В:${c}г М:${f}г` : '';
+    const weeklySchemeSection = strategyCompact.weeklyScheme ? `\n\n=== СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===\n${Object.keys(strategyCompact.weeklyScheme).map(day => {
+      const dayData = strategyCompact.weeklyScheme[day];
+      const dayName = DAY_NAMES_BG[day] || day;
+      const calStr = dayData.calories ? ` | ${dayData.calories} kcal` : '';
+      return `${dayName}: ${dayData.meals} хранения${calStr}${formatMacroStr(dayData.protein, dayData.carbs, dayData.fats)} - ${dayData.description}`;
+    }).join('\n')}` : '';
+    const customAdditionalNotesSection = data.additionalNotes ? `\n\nВАЖНО - Потребителски бележки: ${data.additionalNotes}` : '';
+    const dailyCalorieTargets = (() => {
+      const lines = [];
+      for (let d = startDay; d <= endDay; d++) {
+        const key = DAY_NUMBER_TO_KEY[d - 1];
+        const dayTarget = strategy.weeklyScheme && strategy.weeklyScheme[key];
+        const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
+        lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${formatMacroStr(dayTarget?.protein, dayTarget?.carbs, dayTarget?.fats)} (±${DAILY_CALORIE_TOLERANCE} kcal OK)`);
+      }
+      return lines.join('\n');
+    })();
+    const noBreakfastNote = data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : '';
+    const extraDaysExample = daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : '';
+
+    // Replace variables in custom prompt - pass all pre-computed values
     let prompt = replacePromptVariables(customPrompt, {
       userData: data,
       analysisData: analysis,
       strategyData: strategy,
-      bmr: bmr,
-      recommendedCalories: recommendedCalories,
-      startDay: startDay,
-      endDay: endDay,
-      previousDays: previousDays
+      bmr,
+      recommendedCalories,
+      startDay,
+      endDay,
+      previousDays,
+      // Profile data
+      name: data.name,
+      goal: data.goal,
+      stressLevel: data.stressLevel,
+      sleepHours: data.sleepHours,
+      chronotype: data.chronotype,
+      dietLove: data.dietLove || 'няма',
+      dietDislike: data.dietDislike || 'няма',
+      // Computed sections
+      dietaryModifier,
+      modificationsSection,
+      previousDaysContext,
+      weeklySchemeSection,
+      additionalNotesSection: customAdditionalNotesSection,
+      dailyCalorieTargets,
+      noBreakfastNote,
+      extraDaysExample,
+      // Analysis compact data (Step 1)
+      macroRatios: analysisCompact.macroRatios,
+      macroGrams: analysisCompact.macroGrams,
+      fiber: analysisCompact.fiber,
+      // Strategy compact data (Step 2)
+      dietType: strategyCompact.dietType,
+      mealTiming: strategyCompact.mealTiming,
+      keyPrinciples: strategyCompact.keyPrinciples,
+      foodsToInclude: strategyCompact.foodsToInclude,
+      foodsToAvoid: strategyCompact.foodsToAvoid,
+      calorieDistribution: strategyCompact.calorieDistribution,
+      macroDistribution: strategyCompact.macroDistribution,
+      mealCountJustification: strategy.mealCountJustification || '2-5 хранения според профила (1-2 при IF, 3-4 стандартно)',
+      // Food lists
+      dynamicWhitelistSection,
+      dynamicBlacklistSection,
+      // Constants
+      DAILY_CALORIE_TOLERANCE,
+      MAX_LATE_SNACK_CALORIES,
+      MEAL_NAME_FORMAT_INSTRUCTIONS
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
