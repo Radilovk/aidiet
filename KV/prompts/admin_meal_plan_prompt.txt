@@ -1,37 +1,33 @@
-Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
+Генерирай ДНИ {startDay}-{endDay} за {userData.name}.
 
 === ПРОФИЛ ===
-Цел: ${data.goal} | BMR: ${bmr} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}
-Стрес: ${data.stressLevel} | Сън: ${data.sleepHours}ч | Хронотип: ${data.chronotype}${previousDaysContext}
+Цел: {userData.goal} | BMR: {bmr} | Калории: {recommendedCalories} kcal/ден | Модификатор: "{dietaryModifier}"{modificationsSection}
+Стрес: {userData.stressLevel} | Сън: {userData.sleepHours}ч | Хронотип: {userData.chronotype}{previousDaysContext}
 
 === ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
-Макро съотношения: ${analysisCompact.macroRatios}
-Дневни макро грамове: ${analysisCompact.macroGrams}
-Дневни фибри: ${analysisCompact.fiber}
+Макро съотношения: {analysisCompact.macroRatios}
+Дневни макро грамове: {analysisCompact.macroGrams}
+Дневни фибри: {analysisCompact.fiber}
 
 === ДАННИ ОТ СТЪПКА 2 (СТРАТЕГИЯ) ===
-Диета: ${strategyCompact.dietType} | Хранения: ${strategyCompact.mealTiming}
-Принципи: ${strategyCompact.keyPrinciples}
-Предпочитани храни (от стъпка 2): ${strategyCompact.foodsToInclude}
-Допълнителни предпочитани храни (от потребител): ${data.dietLove || 'няма'}
-Нежелани храни (от стъпка 2): ${strategyCompact.foodsToAvoid}
-Допълнителни нежелани храни (от потребител): ${data.dietDislike || 'няма'}
-Разпределение на калории (стъпка 2): ${strategyCompact.calorieDistribution}
-Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${strategyCompact.weeklyScheme ? `
+Диета: {strategyCompact.dietType} | Хранения: {strategyCompact.mealTiming}
+Принципи: {strategyCompact.keyPrinciples}
+Предпочитани храни (от стъпка 2): {strategyCompact.foodsToInclude}
+Допълнителни предпочитани храни (от потребител): {dietLove}
+Нежелани храни (от стъпка 2): {strategyCompact.foodsToAvoid}
+Допълнителни нежелани храни (от потребител): {dietDislike}
+Разпределение на калории (стъпка 2): {strategyCompact.calorieDistribution}
+Разпределение на макроси (стъпка 2): {strategyCompact.macroDistribution}
 
 === СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===
-${Object.keys(strategyCompact.weeklyScheme).map(day => {
-  const dayData = strategyCompact.weeklyScheme[day];
-  const dayName = DAY_NAMES_BG[day] || day; // Fallback to English name if not found
-  return `${dayName}: ${dayData.meals} хранения - ${dayData.description}`;
-}).join('\n')}` : ''}${data.additionalNotes ? `
+{strategyCompact.weeklyScheme}
 
-ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
+Потребителски бележки: {userData.additionalNotes}
 
 === ADLE v5.1 - АРХИТЕКТУРА НА ХРАНЕНЕТО ===
 Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
-МОДИФИКАТОР (Диетичен филтър): "${dietaryModifier}"
+МОДИФИКАТОР (Диетичен филтър): "{dietaryModifier}"
 Модификаторът филтрира кои храни са ПОЗВОЛЕНИ от универсалната база.
 
 УНИВЕРСАЛНА БАЗА ОТ РЕСУРСИ (Категории храни):
@@ -92,7 +88,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
 
 HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
 РЯДКО (≤2x/седмица): бекон, пуешка шунка
-WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
+WHITELIST: {dynamicWhitelistSection}{dynamicBlacklistSection}
 
 ПРАВИЛА ЗА ИЗХОД:
 • Естествен български език - БЕЗ технически кодове ([PRO], [ENG])
@@ -104,22 +100,23 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
 3. Калории: protein×4 + carbs×4 + fats×9
-4. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal OK)
-5. Брой хранения: ${strategy.mealCountJustification || '2-5 хранения според профила (1-2 при IF, 3-4 стандартно)'}
+4. Целеви дневни калории: ~{recommendedCalories} kcal/ден, адаптирани по дни от Седмичната структура горе (±{DAILY_CALORIE_TOLERANCE} kcal OK)
+5. Брой хранения: {strategyData.mealCountJustification}
 6. Ред: Закуска, ако е посочено в стъпка 2→ Обяд → (Следобедна закуска Ако е посочена в стъпка 2) → Вечеря → (Късна закуска ако е посочена от стъпка 2)
-   Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
+   ВАЖНО: Ако навиците {userData.eatingHabits} включват "Не закусвам" - пропусни закуска!
+   Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс {MAX_LATE_SNACK_CALORIES} kcal)
+7. Разнообразие: Различни ястия от предишните дни
 
-${MEAL_NAME_FORMAT_INSTRUCTIONS}
+{MEAL_NAME_FORMAT_INSTRUCTIONS}
 
-JSON ФОРМАТ (дни ${startDay}-${endDay}):
+JSON ФОРМАТ (дни {startDay}-{endDay}):
 {
-  "day${startDay}": {
+  "day{startDay}": {
     "meals": [
       {"type": "Закуска/Следобедна закуска/Обяд/Вечеря/Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }${daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : ''}
+  }
 }
 
 Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals!

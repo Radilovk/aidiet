@@ -1758,16 +1758,30 @@ ${jsonExample.join(',\n')}
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
-    // Replace variables in custom prompt
+    // All necessary values are already computed above (analysisCompact, strategyCompact,
+    // dietaryModifier, modificationsSection, previousDaysContext, food lists).
+    // Dot-notation support in replacePromptVariables allows {analysisCompact.macroRatios} etc.
     let prompt = replacePromptVariables(customPrompt, {
       userData: data,
       analysisData: analysis,
       strategyData: strategy,
-      bmr: bmr,
-      recommendedCalories: recommendedCalories,
-      startDay: startDay,
-      endDay: endDay,
-      previousDays: previousDays
+      analysisCompact,
+      strategyCompact,
+      bmr,
+      recommendedCalories,
+      startDay,
+      endDay,
+      previousDays,
+      dietaryModifier,
+      modificationsSection,
+      previousDaysContext,
+      dynamicWhitelistSection,
+      dynamicBlacklistSection,
+      dietLove: data.dietLove || 'няма',
+      dietDislike: data.dietDislike || 'няма',
+      DAILY_CALORIE_TOLERANCE,
+      MAX_LATE_SNACK_CALORIES,
+      MEAL_NAME_FORMAT_INSTRUCTIONS
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
@@ -4114,16 +4128,18 @@ function hasJsonFormatInstructions(prompt) {
 
 /**
  * Replace variables in prompt template
- * Variables are marked with {variableName} syntax
+ * Supports simple {variableName} and nested dot-notation {obj.field.nested} syntax
  */
 function replacePromptVariables(template, variables) {
-  // Use replace with regex and replacer function for efficient variable substitution
-  return template.replace(/\{(\w+)\}/g, (match, key) => {
-    if (key in variables) {
-      const value = variables[key];
-      return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+  return template.replace(/\{([\w.]+)\}/g, (match, key) => {
+    const keys = key.split('.');
+    let value = variables;
+    for (const k of keys) {
+      if (value == null || typeof value !== 'object' || !(k in value)) return match;
+      value = value[k];
     }
-    return match; // Return original if variable not found
+    if (value == null) return '';
+    return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
   });
 }
 
