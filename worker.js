@@ -4071,19 +4071,65 @@ function replacePromptVariables(template, variables) {
  * Backend handles: BMR, TDEE, safety checks
  */
 async function generateAnalysisPrompt(data, env, errorPreventionComment = null) {
-  // IMPORTANT: Backend calculates reference values (BMR, TDEE, macros, safe deficit)
-  // These are passed as REFERENCE CALCULATIONS to AI for validation and adjustment
-  // AI performs holistic analysis and may adjust values based on ALL health correlates
-  
+  // Pre-calculate backend values for both custom and default prompts
+  const activityData = calculateUnifiedActivityScore(data);
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
+  const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);
+
   // Check if there's a custom prompt in KV storage
   const customPrompt = await getCustomPrompt(env, 'admin_analysis_prompt');
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
-    // Replace variables in custom prompt with actual data
-    // Pass the entire data object as userData
+    const additionalNotesSection = data.additionalNotes
+      ? `═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══\n${data.additionalNotes}\n═══════════════════════════════════════════════════════════════`
+      : '';
     let prompt = replacePromptVariables(customPrompt, {
-      userData: data
+      userData: data,
+      // Backend-computed values with clean keys
+      backendCalculations: { activityScore: activityData, bmr, tdee, safeDeficit: deficitData, baselineMacros: macros },
+      bmr,
+      tdee,
+      activityScore: activityData,
+      safeDeficit: deficitData,
+      baselineMacros: macros,
+      combinedScore: activityData.combinedScore,
+      activityLevel: activityData.activityLevel,
+      waterMin,
+      waterMax,
+      // Individual client fields for instructions
+      name: data.name,
+      age: data.age,
+      gender: data.gender,
+      weight: data.weight,
+      height: data.height,
+      goal: data.goal,
+      lossKg: data.lossKg || '',
+      sleepHours: data.sleepHours,
+      sleepInterrupt: data.sleepInterrupt,
+      chronotype: data.chronotype,
+      sportActivity: data.sportActivity,
+      dailyActivityLevel: data.dailyActivityLevel,
+      stressLevel: data.stressLevel,
+      waterIntake: data.waterIntake || 'неизвестен',
+      medicalConditions: JSON.stringify(data.medicalConditions || []),
+      medications: data.medications,
+      medicationsDetails: data.medicationsDetails || '',
+      medicationsText: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'Не приема',
+      eatingHabits: JSON.stringify(data.eatingHabits || []),
+      foodCravings: JSON.stringify(data.foodCravings || []),
+      foodTriggers: JSON.stringify(data.foodTriggers || []),
+      compensationMethods: JSON.stringify(data.compensationMethods || []),
+      socialComparison: data.socialComparison || '',
+      dietHistory: data.dietHistory || '',
+      additionalNotes: data.additionalNotes || '',
+      additionalNotesSection,
+      TEMPERAMENT_CONFIDENCE_THRESHOLD,
+      HEALTH_STATUS_UNDERESTIMATE_PERCENT
     });
     
     // Inject error prevention comment if provided
@@ -4186,16 +4232,6 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   }
   
   // Build default prompt with optional error prevention comment
-  // Pre-calculate backend values once to avoid redundant calculations
-  const activityData = calculateUnifiedActivityScore(data);
-  const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, activityData.combinedScore);
-  const deficitData = calculateSafeDeficit(tdee, data.goal);
-  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
-
-  const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
-  const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);
-
   let defaultPrompt = '';
   
   if (errorPreventionComment) {
@@ -4462,6 +4498,9 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
+    const additionalNotesSection = data.additionalNotes
+      ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══\n${data.additionalNotes}\n═══════════════════════════════════════════════════════════════`
+      : '';
     // Replace variables in custom prompt
     let prompt = replacePromptVariables(customPrompt, {
       userData: data,
@@ -4482,8 +4521,10 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       dietDislike: data.dietDislike || '',
       dietLove: data.dietLove || '',
       additionalNotes: data.additionalNotes || '',
+      additionalNotesSection,
       eatingHabits: JSON.stringify(data.eatingHabits || []),
-      chronotype: data.chronotype || 'Среден тип'
+      chronotype: data.chronotype || 'Среден тип',
+      TEMPERAMENT_CONFIDENCE_THRESHOLD
     });
     
     // Inject error prevention comment if provided
