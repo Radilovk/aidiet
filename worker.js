@@ -160,6 +160,9 @@ const DAY_NAMES_BG = {
   sunday: 'Неделя'
 };
 
+// Map day numbers (1-7) to weekday keys used in strategy.weeklyScheme
+const DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
 // Bulgarian error message shown when REGENERATE_PLAN parsing fails and no clean response text remains
 const ERROR_MESSAGE_PARSE_FAILURE = ERROR_MESSAGES.PARSE_FAILURE;
 
@@ -1624,8 +1627,11 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 === СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===
 ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   const dayData = strategyCompact.weeklyScheme[day];
-  const dayName = DAY_NAMES_BG[day] || day; // Fallback to English name if not found
-  return `${dayName}: ${dayData.meals} хранения - ${dayData.description}`;
+  const dayName = DAY_NAMES_BG[day] || day;
+  const calStr = dayData.calories ? ` | ${dayData.calories} kcal` : '';
+  const macroStr = (dayData.protein && dayData.carbs && dayData.fats)
+    ? ` | Б:${dayData.protein}г В:${dayData.carbs}г М:${dayData.fats}г` : '';
+  return `${dayName}: ${dayData.meals} хранения${calStr}${macroStr} - ${dayData.description}`;
 }).join('\n')}` : ''}${data.additionalNotes ? `
 
 ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
@@ -1706,7 +1712,19 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
 3. Калории: protein×4 + carbs×4 + fats×9
-4. Целеви дневни калории: ~${recommendedCalories} kcal (±${DAILY_CALORIE_TOLERANCE} kcal OK)
+4. Целеви дневни калории (от стъпка 2):
+${(() => {
+  const lines = [];
+  for (let d = startDay; d <= endDay; d++) {
+    const key = DAY_NUMBER_TO_KEY[d - 1];
+    const dayTarget = strategy.weeklyScheme && strategy.weeklyScheme[key];
+    const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
+    const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
+      ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
+    lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)`);
+  }
+  return lines.join('\n');
+})()}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
 6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
@@ -2077,13 +2095,19 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
     deficiencies: (analysis.nutritionalDeficiencies || []).join(', ') || 'няма установени'
   };
   
-  const defaultPrompt = `Summary за 7-дневен план.
+  const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
-Целеви: ${recommendedCalories} kcal/ден | Реален: ${avgCalories} kcal/ден
-Макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
+Препоръчителни калории: ${recommendedCalories} kcal/ден | Реални средни: ${avgCalories} kcal/ден
+Макроси (средни): Белтъчини ${avgProtein}г, Въглехидрати ${avgCarbs}г, Мазнини ${avgFats}г
 
-ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Алергии: ${healthContext.allergies} | Медикаменти: ${healthContext.medications}${dynamicWhitelistSection}${dynamicBlacklistSection}
+ТЕМПЕРАМЕНТ: ${analysis.psychoProfile?.temperament || 'не е определен'} (${analysis.psychoProfile?.probability || 0}% вероятност)
+ПСИХОЛОГИЧЕСКИ ПРОФИЛ: ${(analysis.psychologicalProfile || '').substring(0, 300)}
+ТИП ДИЕТА: ${strategy.dietType || strategy.dietaryModifier || 'балансирана'}
+
+ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Медикаменти: ${healthContext.medications}${dynamicWhitelistSection}${dynamicBlacklistSection}
+
+⚠️ ВАЖНО: supplements се дават на базата на ВСИЧКИ данни по-горе БЕЗ опасни взаимодействия с медикаментите.
 
 JSON (ТОЧЕН ФОРМАТ):
 {
@@ -2096,10 +2120,10 @@ JSON (ТОЧЕН ФОРМАТ):
 }
 
 ЗАДЪЛЖИТЕЛНО:
-- recommendations: МИН 3 конкретни храни подходящи за ${data.goal}
-- forbidden: МИН 3 храни неподходящи за ${healthContext.keyProblems || 'общи рискове'}
-- supplements: според медикаменти ${healthContext.medications} БЕЗ опасни взаимодействия
-- psychology: от стратегия, максимум 3 съвета`;
+- recommendations: МИН 5 конкретни храни подходящи за ${data.goal} и диета "${strategy.dietType || strategy.dietaryModifier || 'балансирана'}"
+- forbidden: МИН 3 храни неподходящи за ${healthContext.keyProblems || 'общи рискове'} и текущия план
+- supplements: конкретни добавки с дозировка, съобразени с психопрофила (${analysis.psychoProfile?.temperament || 'неопределен'}), цел (${data.goal}) и медикаменти
+- psychology: адаптирани към темперамента и психологическия профил на ${data.name}`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -2122,7 +2146,12 @@ JSON (ТОЧЕН ФОРМАТ):
       allergies: healthContext.allergies,
       medications: healthContext.medications,
       psychologicalSupport: JSON.stringify(psychologicalSupport.slice(0, 3)),
-      hydrationStrategy: hydrationStrategy
+      hydrationStrategy: hydrationStrategy,
+      temperament: analysis.psychoProfile?.temperament || 'не е определен',
+      temperamentProbability: analysis.psychoProfile?.probability || 0,
+      psychologicalProfile: (analysis.psychologicalProfile || '').substring(0, 300),
+      dietType: strategy.dietType || strategy.dietaryModifier || 'балансирана',
+      supplementRecommendations: JSON.stringify((strategy.supplementRecommendations || []).slice(0, 5))
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
@@ -4688,8 +4717,14 @@ ${data.additionalNotes}
 
 ═══ СПЕЦИАЛНИ ИЗИСКВАНИЯ ЗА СЕДМИЧНА СХЕМА ═══
 
-1. ОПРЕДЕЛЯНЕ НА СЕДМИЧНА СХЕМА:
-   - Определи за всеки ден: колко хранения и кога
+1. ОПРЕДЕЛЯНЕ НА СЕДМИЧНА СХЕМА И РАЗПРЕДЕЛЕНИЕ НА КАЛОРИИ:
+   - Определи за всеки ден: колко хранения, кога И целевите калории/макроси
+   - Базова цел: ${analysisCompact.recommendedCalories} kcal/ден и макроси ${analysisCompact.macroGrams}
+   - Дните МОЖЕ да имат различни калории и макроси спрямо:
+     * Тренировъчни дни (+10-15%) vs. почивни дни (-10-15%)
+     * Дни с интермитентно гладуване (намалени) vs. зареждащи дни (увеличени)
+     * Свободно хранене (леко завишени) след което лека вечеря
+   - ЗАДЪЛЖИТЕЛНО: Средните калории за седмицата ≈ ${analysisCompact.recommendedCalories} kcal/ден
    - Адаптирай според:
      * Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
      * Хронотип: ${data.chronotype}
@@ -4734,13 +4769,13 @@ ${data.additionalNotes}
   "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
   "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "weeklyScheme": {
-    "monday": {"meals": число, "description": "текст за ден"},
-    "tuesday": {"meals": число, "description": "текст за ден"},
-    "wednesday": {"meals": число, "description": "текст за ден"},
-    "thursday": {"meals": число, "description": "текст за ден"},
-    "friday": {"meals": число, "description": "текст за ден"},
-    "saturday": {"meals": число, "description": "текст за ден"},
-    "sunday": {"meals": число, "description": "текст за ден (включи свободно хранене ако е подходящо)"}
+    "monday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
+    "tuesday":   {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
+    "wednesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
+    "thursday":  {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
+    "friday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
+    "saturday":  {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
+    "sunday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден (включи свободно хранене ако е подходящо)"}
   },
   "breakfastStrategy": "текст - ако не закусва, какво се препоръчва вместо закуска",
   "calorieDistribution": "текст - как се разпределят калориите по дни и хранения",

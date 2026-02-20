@@ -1,23 +1,30 @@
-Summary за 7-дневен план.
+Стъпка 4: Финални препоръки за 7-дневния хранителен план на {name}.
 
-КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
-Целеви: ${recommendedCalories} kcal/ден | Реален: ${avgCalories} kcal/ден
-Макроси: Protein ${avgProtein}g, Carbs ${avgCarbs}g, Fats ${avgFats}g
+КЛИЕНТ: {name}, Цел: {goal}, BMR: {bmr}
+Препоръчителни калории: {recommendedCalories} kcal/ден | Реални средни: {avgCalories} kcal/ден
+Макроси (средни): Белтъчини {avgProtein}г, Въглехидрати {avgCarbs}г, Мазнини {avgFats}г
 
-ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Алергии: ${healthContext.allergies} | Медикаменти: ${healthContext.medications}${dynamicWhitelistSection}${dynamicBlacklistSection}
+ТЕМПЕРАМЕНТ: {temperament} ({temperamentProbability}% вероятност)
+ПСИХОЛОГИЧЕСКИ ПРОФИЛ: {psychologicalProfile}
+ТИП ДИЕТА: {dietType}
+
+ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Медикаменти: {medications}
+{dynamicWhitelistSection}{dynamicBlacklistSection}
+
+⚠️ ВАЖНО: supplements се дават на базата на ВСИЧКИ данни по-горе БЕЗ опасни взаимодействия с медикаментите.
 
 JSON (ТОЧЕН ФОРМАТ):
 {
-  "summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}},
+  "summary": {"bmr": {bmr}, "dailyCalories": {avgCalories}, "macros": {"protein": {avgProtein}, "carbs": {avgCarbs}, "fats": {avgFats}}},
   "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["храна 1", "храна 2", "храна 3"],
-  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport.slice(0, 3)) : '["съвет 1", "съвет 2"]'},
-  "waterIntake": "${strategy.hydrationStrategy || '2-2.5л дневно'}",
+  "psychology": {psychologicalSupport},
+  "waterIntake": "{hydrationStrategy}",
   "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
 }
 
 ЗАДЪЛЖИТЕЛНО:
-- recommendations: МИН 3 конкретни храни подходящи за ${data.goal}
-- forbidden: МИН 3 храни неподходящи за ${healthContext.keyProblems || 'общи рискове'}
-- supplements: според медикаменти ${healthContext.medications} БЕЗ опасни взаимодействия
-- psychology: от стратегия, максимум 3 съвета
+- recommendations: МИН 5 конкретни храни подходящи за {goal} и диета "{dietType}"
+- forbidden: МИН 3 храни неподходящи за {keyProblems} и текущия план
+- supplements: конкретни добавки с дозировка, съобразени с психопрофила ({temperament}), цел ({goal}) и медикаменти ({medications})
+- psychology: адаптирани към темперамента и психологическия профил на {name}
