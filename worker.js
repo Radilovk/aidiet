@@ -1758,72 +1758,27 @@ ${jsonExample.join(',\n')}
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
-    // Pre-compute complex sections for KV prompt variable substitution
-    const formatMacroStr = (p, c, f) => (p && c && f) ? ` | Б:${p}г В:${c}г М:${f}г` : '';
-    const weeklySchemeSection = strategyCompact.weeklyScheme ? `\n\n=== СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===\n${Object.keys(strategyCompact.weeklyScheme).map(day => {
-      const dayData = strategyCompact.weeklyScheme[day];
-      const dayName = DAY_NAMES_BG[day] || day;
-      const calStr = dayData.calories ? ` | ${dayData.calories} kcal` : '';
-      return `${dayName}: ${dayData.meals} хранения${calStr}${formatMacroStr(dayData.protein, dayData.carbs, dayData.fats)} - ${dayData.description}`;
-    }).join('\n')}` : '';
-    const customAdditionalNotesSection = data.additionalNotes ? `\n\nВАЖНО - Потребителски бележки: ${data.additionalNotes}` : '';
-    const dailyCalorieTargets = (() => {
-      const lines = [];
-      for (let d = startDay; d <= endDay; d++) {
-        const key = DAY_NUMBER_TO_KEY[d - 1];
-        const dayTarget = strategy.weeklyScheme && strategy.weeklyScheme[key];
-        const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
-        lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${formatMacroStr(dayTarget?.protein, dayTarget?.carbs, dayTarget?.fats)} (±${DAILY_CALORIE_TOLERANCE} kcal OK)`);
-      }
-      return lines.join('\n');
-    })();
-    const noBreakfastNote = data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : '';
-    const extraDaysExample = daysInChunk > 1 ? `,\n  "day${startDay + 1}": {...}` : '';
-
-    // Replace variables in custom prompt - pass all pre-computed values
+    // All necessary values are already computed above (analysisCompact, strategyCompact,
+    // dietaryModifier, modificationsSection, previousDaysContext, food lists).
+    // Dot-notation support in replacePromptVariables allows {analysisCompact.macroRatios} etc.
     let prompt = replacePromptVariables(customPrompt, {
       userData: data,
       analysisData: analysis,
       strategyData: strategy,
+      analysisCompact,
+      strategyCompact,
       bmr,
       recommendedCalories,
       startDay,
       endDay,
       previousDays,
-      // Profile data
-      name: data.name,
-      goal: data.goal,
-      stressLevel: data.stressLevel,
-      sleepHours: data.sleepHours,
-      chronotype: data.chronotype,
-      dietLove: data.dietLove || 'няма',
-      dietDislike: data.dietDislike || 'няма',
-      // Computed sections
       dietaryModifier,
       modificationsSection,
       previousDaysContext,
-      weeklySchemeSection,
-      additionalNotesSection: customAdditionalNotesSection,
-      dailyCalorieTargets,
-      noBreakfastNote,
-      extraDaysExample,
-      // Analysis compact data (Step 1)
-      macroRatios: analysisCompact.macroRatios,
-      macroGrams: analysisCompact.macroGrams,
-      fiber: analysisCompact.fiber,
-      // Strategy compact data (Step 2)
-      dietType: strategyCompact.dietType,
-      mealTiming: strategyCompact.mealTiming,
-      keyPrinciples: strategyCompact.keyPrinciples,
-      foodsToInclude: strategyCompact.foodsToInclude,
-      foodsToAvoid: strategyCompact.foodsToAvoid,
-      calorieDistribution: strategyCompact.calorieDistribution,
-      macroDistribution: strategyCompact.macroDistribution,
-      mealCountJustification: strategy.mealCountJustification || '2-5 хранения според профила (1-2 при IF, 3-4 стандартно)',
-      // Food lists
       dynamicWhitelistSection,
       dynamicBlacklistSection,
-      // Constants
+      dietLove: data.dietLove || 'няма',
+      dietDislike: data.dietDislike || 'няма',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
       MEAL_NAME_FORMAT_INSTRUCTIONS
@@ -4173,16 +4128,18 @@ function hasJsonFormatInstructions(prompt) {
 
 /**
  * Replace variables in prompt template
- * Variables are marked with {variableName} syntax
+ * Supports simple {variableName} and nested dot-notation {obj.field.nested} syntax
  */
 function replacePromptVariables(template, variables) {
-  // Use replace with regex and replacer function for efficient variable substitution
-  return template.replace(/\{(\w+)\}/g, (match, key) => {
-    if (key in variables) {
-      const value = variables[key];
-      return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+  return template.replace(/\{([\w.]+)\}/g, (match, key) => {
+    const keys = key.split('.');
+    let value = variables;
+    for (const k of keys) {
+      if (value == null || typeof value !== 'object' || !(k in value)) return match;
+      value = value[k];
     }
-    return match; // Return original if variable not found
+    if (value == null) return '';
+    return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
   });
 }
 

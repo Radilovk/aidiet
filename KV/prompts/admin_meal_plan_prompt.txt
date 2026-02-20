@@ -1,23 +1,28 @@
-Генерирай ДНИ {startDay}-{endDay} за {name}.
+Генерирай ДНИ {startDay}-{endDay} за {userData.name}.
 
 === ПРОФИЛ ===
-Цел: {goal} | BMR: {bmr} | Калории: {recommendedCalories} kcal/ден | Модификатор: "{dietaryModifier}"{modificationsSection}
-Стрес: {stressLevel} | Сън: {sleepHours}ч | Хронотип: {chronotype}{previousDaysContext}
+Цел: {userData.goal} | BMR: {bmr} | Калории: {recommendedCalories} kcal/ден | Модификатор: "{dietaryModifier}"{modificationsSection}
+Стрес: {userData.stressLevel} | Сън: {userData.sleepHours}ч | Хронотип: {userData.chronotype}{previousDaysContext}
 
 === ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
-Макро съотношения: {macroRatios}
-Дневни макро грамове: {macroGrams}
-Дневни фибри: {fiber}
+Макро съотношения: {analysisCompact.macroRatios}
+Дневни макро грамове: {analysisCompact.macroGrams}
+Дневни фибри: {analysisCompact.fiber}
 
 === ДАННИ ОТ СТЪПКА 2 (СТРАТЕГИЯ) ===
-Диета: {dietType} | Хранения: {mealTiming}
-Принципи: {keyPrinciples}
-Предпочитани храни (от стъпка 2): {foodsToInclude}
+Диета: {strategyCompact.dietType} | Хранения: {strategyCompact.mealTiming}
+Принципи: {strategyCompact.keyPrinciples}
+Предпочитани храни (от стъпка 2): {strategyCompact.foodsToInclude}
 Допълнителни предпочитани храни (от потребител): {dietLove}
-Нежелани храни (от стъпка 2): {foodsToAvoid}
+Нежелани храни (от стъпка 2): {strategyCompact.foodsToAvoid}
 Допълнителни нежелани храни (от потребител): {dietDislike}
-Разпределение на калории (стъпка 2): {calorieDistribution}
-Разпределение на макроси (стъпка 2): {macroDistribution}{weeklySchemeSection}{additionalNotesSection}
+Разпределение на калории (стъпка 2): {strategyCompact.calorieDistribution}
+Разпределение на макроси (стъпка 2): {strategyCompact.macroDistribution}
+
+=== СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===
+{strategyCompact.weeklyScheme}
+
+Потребителски бележки: {userData.additionalNotes}
 
 === ADLE v5.1 - АРХИТЕКТУРА НА ХРАНЕНЕТО ===
 Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
@@ -95,12 +100,12 @@ WHITELIST: {dynamicWhitelistSection}{dynamicBlacklistSection}
 1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
 3. Калории: protein×4 + carbs×4 + fats×9
-4. Целеви дневни калории (от стъпка 2):
-{dailyCalorieTargets}
-5. Брой хранения: {mealCountJustification}
+4. Целеви дневни калории: ~{recommendedCalories} kcal/ден, адаптирани по дни от Седмичната структура горе (±{DAILY_CALORIE_TOLERANCE} kcal OK)
+5. Брой хранения: {strategyData.mealCountJustification}
 6. Ред: Закуска, ако е посочено в стъпка 2→ Обяд → (Следобедна закуска Ако е посочена в стъпка 2) → Вечеря → (Късна закуска ако е посочена от стъпка 2)
+   ВАЖНО: Ако навиците {userData.eatingHabits} включват "Не закусвам" - пропусни закуска!
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс {MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни{noBreakfastNote}
+7. Разнообразие: Различни ястия от предишните дни
 
 {MEAL_NAME_FORMAT_INSTRUCTIONS}
 
@@ -111,7 +116,7 @@ JSON ФОРМАТ (дни {startDay}-{endDay}):
       {"type": "Закуска/Следобедна закуска/Обяд/Вечеря/Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }{extraDaysExample}
+  }
 }
 
 Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals!
