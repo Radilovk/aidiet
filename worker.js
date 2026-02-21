@@ -4590,6 +4590,9 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     realTDEE: analysis.correctedMetabolism?.realTDEE || null,
     psychoProfile: analysis.psychoProfile || null,
     temperament: analysis.psychoProfile?.temperament || '',
+    // add1: допълнителна специфична информация по преценка на администратора.
+    // Пример как трябва да изглежда попълненото поле:
+    // add1: 'Клиентът е преминал медицинска консултация на 20.02.2026 – препоръчан е нисък прием на натрий. Алергия към ядки потвърдена от лекар.'
     add1: ''
   };
   
