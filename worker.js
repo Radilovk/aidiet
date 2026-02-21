@@ -4583,26 +4583,14 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   // Check if there's a custom prompt in KV storage
   const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
   
-  // Extract only essential analysis data: psychoprofile, temperament, final calories, final macros
+  // Extract only the required fields from step 1 analysis result
   const analysisCompact = {
+    bmi: analysis.bmi || null,
+    realBMR: analysis.correctedMetabolism?.realBMR || null,
+    realTDEE: analysis.correctedMetabolism?.realTDEE || null,
+    psychoProfile: analysis.psychoProfile || null,
     temperament: analysis.psychoProfile?.temperament || '',
-    temperamentProbability: analysis.psychoProfile?.probability || 0,
-    psychologicalProfile: (analysis.psychologicalProfile || '').length > 200 ?
-      (analysis.psychologicalProfile || '').substring(0, 200) + '...' :
-      (analysis.psychologicalProfile || 'не е анализиран'),
-    recommendedCalories: analysis.recommendedCalories || 'не изчислен',
-    macroRatios: analysis.macroRatios ?
-      `Протеин: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Въглехидрати: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Мазнини: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}, Фибри: ${analysis.macroRatios.fiber != null ? analysis.macroRatios.fiber + 'г' : 'N/A'}` :
-      'не изчислени',
-    macroGrams: analysis.macroGrams ?
-      `Протеин: ${analysis.macroGrams.protein != null ? analysis.macroGrams.protein + 'г' : 'N/A'}, Въглехидрати: ${analysis.macroGrams.carbs != null ? analysis.macroGrams.carbs + 'г' : 'N/A'}, Мазнини: ${analysis.macroGrams.fats != null ? analysis.macroGrams.fats + 'г' : 'N/A'}` :
-      'не изчислени',
-    successChance: analysis.successChance || 'не изчислен',
-    keyProblems: (analysis.keyProblems || [])
-      .filter(p => p && p.title && p.severity)
-      .slice(0, 3)
-      .map(p => `${p.title} (${p.severity})`)
-      .join('; ')
+    add1: ''
   };
   
   // If custom prompt exists, use it; otherwise use default
@@ -4617,14 +4605,12 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       name: data.name,
       age: data.age,
       goal: data.goal,
+      bmi: analysisCompact.bmi,
+      realBMR: analysisCompact.realBMR,
+      realTDEE: analysisCompact.realTDEE,
+      psychoProfile: JSON.stringify(analysisCompact.psychoProfile),
       temperament: analysisCompact.temperament,
-      temperamentProbability: analysisCompact.temperamentProbability,
-      recommendedCalories: analysisCompact.recommendedCalories,
-      macroRatios: analysisCompact.macroRatios,
-      macroGrams: analysisCompact.macroGrams,
-      psychologicalProfile: analysisCompact.psychologicalProfile,
-      successChance: analysisCompact.successChance,
-      keyProblems: analysisCompact.keyProblems,
+      add1: analysisCompact.add1,
       dietPreference: JSON.stringify(data.dietPreference || []),
       dietPreference_other: data.dietPreference_other || '',
       dietDislike: data.dietDislike || '',
@@ -4708,13 +4694,11 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
 КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
 
 ═══ РЕЗУЛТАТИ ОТ АНАЛИЗА ═══
-- Темперамент: ${analysisCompact.temperament ? `${analysisCompact.temperament} (${analysisCompact.temperamentProbability}% вероятност)` : `Не определен (${analysisCompact.temperamentProbability}%)`}
-- Психологически профил: ${analysisCompact.psychologicalProfile}
-- Препоръчителни калории (финални, вече изчислени): ${analysisCompact.recommendedCalories} kcal
-- Макро съотношения: ${analysisCompact.macroRatios}
-- Макро грамове дневно: ${analysisCompact.macroGrams}
-- Шанс за успех: ${analysisCompact.successChance}
-- Ключови проблеми: ${analysisCompact.keyProblems}
+- BMI: ${analysisCompact.bmi || 'не е изчислен'}
+- Реален BMR: ${analysisCompact.realBMR || 'не е изчислен'}
+- Реален TDEE: ${analysisCompact.realTDEE || 'не е изчислен'}
+- Психопрофил: ${analysisCompact.psychoProfile ? JSON.stringify(analysisCompact.psychoProfile) : 'не е анализиран'}
+- Темперамент: ${analysisCompact.temperament || 'Не определен'}
 
 ПРЕДПОЧИТАНИЯ:
 - Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
@@ -4728,19 +4712,16 @@ ${data.additionalNotes}
 ═══════════════════════════════════════════════════════════════
 ` : ''}
 
-ВАЖНО: Калориите и макросите вече са финално изчислени в анализа. Не ги преизчислявай.
-Използвай препоръчителните калории (${analysisCompact.recommendedCalories} kcal) и макросите директно.
-
 ═══ СПЕЦИАЛНИ ИЗИСКВАНИЯ ЗА СЕДМИЧНА СХЕМА ═══
 
 1. ОПРЕДЕЛЯНЕ НА СЕДМИЧНА СХЕМА И РАЗПРЕДЕЛЕНИЕ НА КАЛОРИИ:
    - Определи за всеки ден: колко хранения, кога И целевите калории/макроси
-   - Базова цел: ${analysisCompact.recommendedCalories} kcal/ден и макроси ${analysisCompact.macroGrams}
+   - Базирай се на Реален TDEE: ${analysisCompact.realTDEE || 'изчисли от BMI и данните'} за определяне на калорийния прием
    - Дните МОЖЕ да имат различни калории и макроси спрямо:
      * Тренировъчни дни (+10-15%) vs. почивни дни (-10-15%)
      * Дни с интермитентно гладуване (намалени) vs. зареждащи дни (увеличени)
      * Свободно хранене (леко завишени) след което лека вечеря
-   - ЗАДЪЛЖИТЕЛНО: Средните калории за седмицата ≈ ${analysisCompact.recommendedCalories} kcal/ден
+   - ЗАДЪЛЖИТЕЛНО: Средните калории за седмицата ≈ Реален TDEE с корекция за целта
    - Адаптирай според:
      * Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
      * Хронотип: ${data.chronotype}
