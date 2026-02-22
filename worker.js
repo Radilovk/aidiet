@@ -4649,6 +4649,7 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       realTDEE: analysisCompact.realTDEE,
       psychoProfile: JSON.stringify(analysisCompact.psychoProfile),
       temperament: analysisCompact.temperament,
+      temperamentProbability: analysisCompact.psychoProfile?.probability || 0,
       add1: analysisCompact.add1,
       dietPreference: JSON.stringify(data.dietPreference || []),
       dietPreference_other: data.dietPreference_other || '',
