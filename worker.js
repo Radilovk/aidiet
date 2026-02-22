@@ -1327,7 +1327,7 @@ async function generateSimplifiedFallbackPlan(env, data) {
   // REUSE existing generateMealPlanSummaryPrompt() - it uses KV key 'admin_summary_prompt'
   // This generates recommendations, forbidden, psychology, supplements via AI
   const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
-  const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'fallback_summary', null, data, analysis);
+  const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'fallback_summary', null, data, buildCompactAnalysisForStep4(analysis));
   const summaryData = parseAIResponse(summaryResponse);
   
   // Use AI-generated data or fallback to strategy values
@@ -3743,7 +3743,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
       } else {
         const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env, stepErrorComment);
-        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId, data, analysis);
+        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId, data, buildCompactAnalysisForStep3(analysis));
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -3798,7 +3798,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const summaryInputTokens = estimateTokenCount(summaryPromptWithErrors);
       cumulativeTokens.input += summaryInputTokens;
       
-      const summaryResponse = await callAIModel(env, summaryPromptWithErrors, SUMMARY_TOKEN_LIMIT, 'step4_summary_regen', sessionId, data, analysis);
+      const summaryResponse = await callAIModel(env, summaryPromptWithErrors, SUMMARY_TOKEN_LIMIT, 'step4_summary_regen', sessionId, data, buildCompactAnalysisForStep4(analysis));
       const summaryOutputTokens = estimateTokenCount(summaryResponse);
       cumulativeTokens.output += summaryOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -4027,7 +4027,7 @@ async function generatePlanMultiStep(env, data) {
       let mealPlanResponse;
       
       try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId, data, analysis);
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId, data, buildCompactAnalysisForStep3(analysis));
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -4580,6 +4580,34 @@ correctedMetabolism.realTDEE = Final_Calories
 }
 
 /**
+ * Build compact analysis object with only the required fields for step 3 (meal plan chunks).
+ * Only these fields from step 1 AI response are passed to step 3: bmr, recommendedCalories, macroRatios, macroGrams.
+ */
+function buildCompactAnalysisForStep3(analysis) {
+  return {
+    bmr: analysis.bmr || null,
+    recommendedCalories: analysis.recommendedCalories || null,
+    macroRatios: analysis.macroRatios || null,
+    macroGrams: analysis.macroGrams || null
+  };
+}
+
+/**
+ * Build compact analysis object with only the required fields for step 4 (summary).
+ * Only these fields from step 1 AI response are passed to step 4: bmr, recommendedCalories, psychoProfile, psychologicalProfile, keyProblems, nutritionalDeficiencies.
+ */
+function buildCompactAnalysisForStep4(analysis) {
+  return {
+    bmr: analysis.bmr || null,
+    recommendedCalories: analysis.recommendedCalories || null,
+    psychoProfile: analysis.psychoProfile || null,
+    psychologicalProfile: analysis.psychologicalProfile || null,
+    keyProblems: analysis.keyProblems || [],
+    nutritionalDeficiencies: analysis.nutritionalDeficiencies || []
+  };
+}
+
+/**
  * Build compact analysis object with only the required fields for step 2.
  * Only these fields from step 1 AI response are passed to step 2: bmi, realBMR, realTDEE, psychoProfile, temperament.
  */
@@ -4924,7 +4952,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
       );
       
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, analysis);
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
       const chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
@@ -4958,7 +4986,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   // Generate summary, recommendations, etc. in final request
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
-    const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, analysis);
+    const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, buildCompactAnalysisForStep4(analysis));
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
