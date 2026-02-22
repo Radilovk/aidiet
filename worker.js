@@ -3718,7 +3718,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const strategyInputTokens = estimateTokenCount(strategyPrompt);
       cumulativeTokens.input += strategyInputTokens;
       
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, analysis);
+      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -3986,7 +3986,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, analysis);
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -4579,12 +4579,12 @@ correctedMetabolism.realTDEE = Final_Calories
   return defaultPrompt;
 }
 
-async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
-  
-  // Extract only the required fields from step 1 analysis result
-  const analysisCompact = {
+/**
+ * Build compact analysis object with only the required fields for step 2.
+ * Only these fields from step 1 AI response are passed to step 2: bmi, realBMR, realTDEE, psychoProfile, temperament.
+ */
+function buildCompactAnalysis(analysis) {
+  return {
     bmi: analysis.bmi || null,
     realBMR: analysis.correctedMetabolism?.realBMR || null,
     realTDEE: analysis.correctedMetabolism?.realTDEE || null,
@@ -4595,6 +4595,14 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     // add1: 'Клиентът е преминал медицинска консултация на 20.02.2026 – препоръчан е нисък прием на натрий. Алергия към ядки потвърдена от лекар.'
     add1: ''
   };
+}
+
+async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
+  
+  // Extract only the required fields from step 1 analysis result
+  const analysisCompact = buildCompactAnalysis(analysis);
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
