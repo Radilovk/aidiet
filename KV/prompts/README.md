@@ -42,15 +42,39 @@
 
 ## Формат на промптовете
 
-Всички промптове използват JavaScript template literals с placeholders:
-- `${data.name}` - Име на потребителя
-- `${data.age}` - Възраст
-- `${data.goal}` - Цел (отслабване, поддържане, набиране)
-- `${bmr}` - Базова метаболитна скорост
-- `${recommendedCalories}` - Препоръчителни калории
+Всички промптове използват `{placeholders}` с точкова нотация за достъп до вложени обекти:
+- `{name}` - Име на потребителя
+- `{age}` - Възраст
+- `{goal}` - Цел (отслабване, поддържане, набиране)
+- `{bmr}` - Базова метаболитна скорост
+- `{recommendedCalories}` - Препоръчителни калории (за стъпки 3 и 4)
 - И други променливи според контекста на всеки промпт
 
-**ВАЖНО**: Промптовете съдържат JavaScript код и template literals (${...}) точно както са дефинирани в worker.js. Те се оценяват динамично при генериране на плана.
+### Налични променливи по стъпки
+
+#### Стъпка 1 – `admin_analysis_prompt.txt`
+`{userData}`, `{backendCalculations}`, `{bmr}`, `{tdee}`, `{name}`, `{age}`, `{gender}`, `{weight}`, `{height}`, `{goal}`, `{sleepHours}`, `{sleepInterrupt}`, `{chronotype}`, `{sportActivity}`, `{dailyActivityLevel}`, `{stressLevel}`, `{waterIntake}`, `{waterMin}`, `{waterMax}`, `{medicalConditions}`, `{medications}`, `{medicationsText}`, `{eatingHabits}`, `{foodCravings}`, `{foodTriggers}`, `{compensationMethods}`, `{socialComparison}`, `{dietHistory}`, `{additionalNotes}`, `{additionalNotesSection}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`, `{HEALTH_STATUS_UNDERESTIMATE_PERCENT}`, `{MIN_RECOMMENDED_CALORIES}`, `{MIN_FAT_GRAMS}`, `{FIBER_MIN_GRAMS}`, `{FIBER_MAX_GRAMS}`
+
+#### Стъпка 2 – `admin_strategy_prompt.txt`
+Данни от стъпка 1 (само компактни полета): `{bmi}`, `{realBMR}`, `{realTDEE}`, `{temperament}`, `{temperamentProbability}`, `{add1}`
+Потребителски данни: `{name}`, `{age}`, `{goal}`, `{dietPreference}`, `{dietDislike}`, `{dietLove}`, `{eatingHabits}`, `{chronotype}`, `{additionalNotes}`, `{additionalNotesSection}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`
+⚠️ **Не са налични**: `{recommendedCalories}`, `{macroRatios}`, `{macroGrams}`, `{psychologicalProfile}`, `{successChance}`, `{keyProblems}` — използвай `{realTDEE}` вместо `{recommendedCalories}`
+
+#### Стъпка 3 – `admin_meal_plan_prompt.txt`
+Данни от стъпка 1 (компактни): `{analysisCompact.macroRatios}`, `{analysisCompact.macroGrams}`, `{analysisCompact.fiber}`
+Данни от стъпка 2 (пълна стратегия): `{strategyData.*}`, `{strategyCompact.*}`, `{dietaryModifier}`
+Изчислени: `{bmr}`, `{recommendedCalories}`, `{startDay}`, `{endDay}`, `{modificationsSection}`, `{previousDaysContext}`, `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
+Потребителски: `{userData.*}`, `{dietLove}`, `{dietDislike}`
+Константи: `{DAILY_CALORIE_TOLERANCE}`, `{MAX_LATE_SNACK_CALORIES}`, `{MEAL_NAME_FORMAT_INSTRUCTIONS}`
+
+#### Стъпка 4 – `admin_summary_prompt.txt`
+Данни от стъпка 1 (компактни): `{temperament}`, `{temperamentProbability}`, `{psychologicalProfile}`, `{keyProblems}`
+Данни от стъпка 2: `{dietType}`, `{psychologicalSupport}`, `{hydrationStrategy}`, `{supplementRecommendations}`
+Изчислени: `{bmr}`, `{recommendedCalories}`, `{avgCalories}`, `{avgProtein}`, `{avgCarbs}`, `{avgFats}`
+Потребителски: `{name}`, `{goal}`, `{medications}`, `{allergies}`
+Динамични списъци: `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
+
+**ВАЖНО**: Промптовете съдържат placeholders `{varName}` и `{obj.field}` (точкова нотация), които се заместват при runtime. Те НЕ са JavaScript template literals.
 
 ## Как се използват
 
@@ -81,7 +105,7 @@ cd /path/to/aidiet
 **ВАЖНО**: 
 - При редактиране на default промптове в worker.js, ЗАДЪЛЖИТЕЛНО актуализирайте съответния файл тук!
 - При редактиране на файловете тук, те стават активни САМО след качване в KV storage
-- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-02-15)
+- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-02-22)
 
 ## Бележки
 

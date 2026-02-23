@@ -1327,7 +1327,7 @@ async function generateSimplifiedFallbackPlan(env, data) {
   // REUSE existing generateMealPlanSummaryPrompt() - it uses KV key 'admin_summary_prompt'
   // This generates recommendations, forbidden, psychology, supplements via AI
   const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
-  const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'fallback_summary', null, data, analysis);
+  const summaryResponse = await callAIModel(env, summaryPrompt, 2000, 'fallback_summary', null, data, buildCompactAnalysisForStep4(analysis));
   const summaryData = parseAIResponse(summaryResponse);
   
   // Use AI-generated data or fallback to strategy values
@@ -1549,11 +1549,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
     mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
     keyPrinciples: (strategy.keyPrinciples || []).join('; '), // All principles from Step 2
-    foodsToInclude: (strategy.foodsToInclude || []).join(', '), // All preferred foods from Step 2
-    foodsToAvoid: (strategy.foodsToAvoid || []).join(', '), // All unwanted foods from Step 2
+    // Support both old (foodsToInclude/foodsToAvoid) and new (preferredFoodCategories/avoidFoodCategories) field names
+    foodsToInclude: (strategy.preferredFoodCategories || strategy.foodsToInclude || []).join(', '),
+    foodsToAvoid: (strategy.avoidFoodCategories || strategy.foodsToAvoid || []).join(', '),
     calorieDistribution: strategy.calorieDistribution || 'не е определено', // From Step 2
     macroDistribution: strategy.macroDistribution || 'не е определено', // From Step 2
-    weeklyScheme: strategy.weeklyScheme || null // Weekly structure from Step 2
+    weeklyScheme: strategy.weeklyScheme || null // Weekly structure from Step 2 (includes mealBreakdown per day)
   };
   
   // Extract macro information from Step 1 (analysis)
@@ -1631,7 +1632,13 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   const calStr = dayData.calories ? ` | ${dayData.calories} kcal` : '';
   const macroStr = (dayData.protein && dayData.carbs && dayData.fats)
     ? ` | Б:${dayData.protein}г В:${dayData.carbs}г М:${dayData.fats}г` : '';
-  return `${dayName}: ${dayData.meals} хранения${calStr}${macroStr} - ${dayData.description}`;
+  let mealBreakdownStr = '';
+  if (dayData.mealBreakdown && Array.isArray(dayData.mealBreakdown) && dayData.mealBreakdown.length > 0) {
+    mealBreakdownStr = '\n   ' + dayData.mealBreakdown.map(m =>
+      `${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`
+    ).join(' | ');
+  }
+  return `${dayName}: ${dayData.meals} хранения${calStr}${macroStr} - ${dayData.description}${mealBreakdownStr}`;
 }).join('\n')}` : ''}${data.additionalNotes ? `
 
 ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
@@ -1722,13 +1729,18 @@ ${(() => {
     const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
       ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
     lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)`);
+    if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
+      dayTarget.mealBreakdown.forEach(m => {
+        lines.push(`     → ${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`);
+      });
+    }
   }
   return lines.join('\n');
 })()}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
 6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
+7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без "Закуска", без "Следобедна закуска" и без "Късна закуска"! Само Обяд и Вечеря (и евентуално едно друго основно хранене).' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 `;
@@ -2109,7 +2121,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
     deficiencies: (analysis.nutritionalDeficiencies || []).join(', ') || 'няма установени'
   };
   
-  const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план.
+  const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план на ${data.name}.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
 Препоръчителни калории: ${recommendedCalories} kcal/ден | Реални средни: ${avgCalories} kcal/ден
@@ -2136,7 +2148,7 @@ JSON (ТОЧЕН ФОРМАТ):
 ЗАДЪЛЖИТЕЛНО:
 - recommendations: МИН 5 конкретни храни подходящи за ${data.goal} и диета "${strategy.dietType || strategy.dietaryModifier || 'балансирана'}"
 - forbidden: МИН 3 храни неподходящи за ${healthContext.keyProblems || 'общи рискове'} и текущия план
-- supplements: конкретни добавки с дозировка, съобразени с психопрофила (${analysis.psychoProfile?.temperament || 'неопределен'}), цел (${data.goal}) и медикаменти
+- supplements: конкретни добавки с дозировка, съобразени с психопрофила (${analysis.psychoProfile?.temperament || 'неопределен'}), цел (${data.goal}) и медикаменти (${healthContext.medications})
 - psychology: адаптирани към темперамента и психологическия профил на ${data.name}`;
 
   // If custom prompt exists, use it; otherwise use default
@@ -3198,6 +3210,22 @@ function validatePlan(plan, userData) {
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
         }
+        
+        // When the user does not eat breakfast, snacks are also forbidden
+        // (they contradict the reduced eating window implied by skipping breakfast)
+        if (userData.eatingHabits && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам')) {
+          const forbiddenWhenNoBreakfast = [
+            { type: 'Закуска', msg: `Ден ${i}: Клиентът не закусва, но има "Закуска" в плана` },
+            { type: 'Следобедна закуска', msg: `Ден ${i}: Клиентът не закусва — "Следобедна закуска" е несъвместима с намаления прозорец на хранене` },
+            { type: 'Късна закуска', msg: `Ден ${i}: Клиентът не закусва — "Късна закуска" е несъвместима с намаления прозорец на хранене` }
+          ];
+          forbiddenWhenNoBreakfast.forEach(({ type, msg }) => {
+            if (mealTypes.includes(type)) {
+              errors.push(msg);
+              stepErrors.step3_mealplan.push(msg);
+            }
+          });
+        }
       }
     }
   }
@@ -3718,7 +3746,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const strategyInputTokens = estimateTokenCount(strategyPrompt);
       cumulativeTokens.input += strategyInputTokens;
       
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, analysis);
+      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -3743,7 +3771,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
       } else {
         const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env, stepErrorComment);
-        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId, data, analysis);
+        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId, data, buildCompactAnalysisForStep3(analysis));
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -3798,7 +3826,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const summaryInputTokens = estimateTokenCount(summaryPromptWithErrors);
       cumulativeTokens.input += summaryInputTokens;
       
-      const summaryResponse = await callAIModel(env, summaryPromptWithErrors, SUMMARY_TOKEN_LIMIT, 'step4_summary_regen', sessionId, data, analysis);
+      const summaryResponse = await callAIModel(env, summaryPromptWithErrors, SUMMARY_TOKEN_LIMIT, 'step4_summary_regen', sessionId, data, buildCompactAnalysisForStep4(analysis));
       const summaryOutputTokens = estimateTokenCount(summaryResponse);
       cumulativeTokens.output += summaryOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -3986,7 +4014,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, analysis);
+      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -4027,7 +4055,7 @@ async function generatePlanMultiStep(env, data) {
       let mealPlanResponse;
       
       try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId, data, analysis);
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId, data, buildCompactAnalysisForStep3(analysis));
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -4579,12 +4607,40 @@ correctedMetabolism.realTDEE = Final_Calories
   return defaultPrompt;
 }
 
-async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
-  
-  // Extract only the required fields from step 1 analysis result
-  const analysisCompact = {
+/**
+ * Build compact analysis object with only the required fields for step 3 (meal plan chunks).
+ * Only these fields from step 1 AI response are passed to step 3: bmr, recommendedCalories, macroRatios, macroGrams.
+ */
+function buildCompactAnalysisForStep3(analysis) {
+  return {
+    bmr: analysis.bmr || null,
+    recommendedCalories: analysis.recommendedCalories || null,
+    macroRatios: analysis.macroRatios || null,
+    macroGrams: analysis.macroGrams || null
+  };
+}
+
+/**
+ * Build compact analysis object with only the required fields for step 4 (summary).
+ * Only these fields from step 1 AI response are passed to step 4: bmr, recommendedCalories, psychoProfile, psychologicalProfile, keyProblems, nutritionalDeficiencies.
+ */
+function buildCompactAnalysisForStep4(analysis) {
+  return {
+    bmr: analysis.bmr || null,
+    recommendedCalories: analysis.recommendedCalories || null,
+    psychoProfile: analysis.psychoProfile || null,
+    psychologicalProfile: analysis.psychologicalProfile || null,
+    keyProblems: analysis.keyProblems || [],
+    nutritionalDeficiencies: analysis.nutritionalDeficiencies || []
+  };
+}
+
+/**
+ * Build compact analysis object with only the required fields for step 2.
+ * Only these fields from step 1 AI response are passed to step 2: bmi, realBMR, realTDEE, psychoProfile, temperament.
+ */
+function buildCompactAnalysis(analysis) {
+  return {
     bmi: analysis.bmi || null,
     realBMR: analysis.correctedMetabolism?.realBMR || null,
     realTDEE: analysis.correctedMetabolism?.realTDEE || null,
@@ -4595,6 +4651,14 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     // add1: 'Клиентът е преминал медицинска консултация на 20.02.2026 – препоръчан е нисък прием на натрий. Алергия към ядки потвърдена от лекар.'
     add1: ''
   };
+}
+
+async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
+  // Check if there's a custom prompt in KV storage
+  const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
+  
+  // Extract only the required fields from step 1 analysis result
+  const analysisCompact = buildCompactAnalysis(analysis);
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -4613,6 +4677,7 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       realTDEE: analysisCompact.realTDEE,
       psychoProfile: JSON.stringify(analysisCompact.psychoProfile),
       temperament: analysisCompact.temperament,
+      temperamentProbability: analysisCompact.psychoProfile?.probability || 0,
       add1: analysisCompact.add1,
       dietPreference: JSON.stringify(data.dietPreference || []),
       dietPreference_other: data.dietPreference_other || '',
@@ -4649,13 +4714,13 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   "dietType": "текст",
   "weeklyMealPattern": "текст",
   "weeklyScheme": {
-    "monday": {"meals": число, "description": "текст"},
-    "tuesday": {"meals": число, "description": "текст"},
-    "wednesday": {"meals": число, "description": "текст"},
-    "thursday": {"meals": число, "description": "текст"},
-    "friday": {"meals": число, "description": "текст"},
-    "saturday": {"meals": число, "description": "текст"},
-    "sunday": {"meals": число, "description": "текст"}
+    "monday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "tuesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "wednesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "thursday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "friday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "saturday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "sunday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]}
   },
   "breakfastStrategy": "текст",
   "calorieDistribution": "текст",
@@ -4667,8 +4732,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     "chronotypeGuidance": "текст"
   },
   "keyPrinciples": ["текст"],
-  "foodsToInclude": ["текст"],
-  "foodsToAvoid": ["текст"],
+  "preferredFoodCategories": ["хранителна категория (НЕ конкретна храна)"],
+  "avoidFoodCategories": ["хранителна категория за избягване (НЕ конкретна храна)"],
   "supplementRecommendations": ["текст"],
   "hydrationStrategy": "текст",
   "communicationStyle": {
@@ -4696,12 +4761,11 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
 
 КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
 
-═══ РЕЗУЛТАТИ ОТ АНАЛИЗА ═══
+═══ РЕЗУЛТАТИ ОТ АНАЛИЗА (КОМПАКТЕН) ═══
 - BMI: ${analysisCompact.bmi || 'не е изчислен'}
-- Реален BMR: ${analysisCompact.realBMR || 'не е изчислен'}
-- Реален TDEE: ${analysisCompact.realTDEE || 'не е изчислен'}
-- Психопрофил: ${analysisCompact.psychoProfile ? JSON.stringify(analysisCompact.psychoProfile) : 'не е анализиран'}
-- Темперамент: ${analysisCompact.temperament || 'Не определен'}
+- BMR: ${analysisCompact.realBMR || 'не е изчислен'} kcal/ден (базов метаболизъм)
+- Препоръчителни калории (след всички корекции): ${analysisCompact.realTDEE || 'не е изчислен'} kcal/ден
+- Темперамент: ${analysisCompact.temperament || 'Не определен'} (${analysisCompact.psychoProfile?.probability || 0}% вероятност)
 
 ПРЕДПОЧИТАНИЯ:
 - Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
@@ -4709,29 +4773,40 @@ ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : '
 - Не обича/непоносимост: ${data.dietDislike || 'Няма'}
 - Любими храни: ${data.dietLove || 'Няма'}
 
-${data.additionalNotes ? `
-═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══
+${data.additionalNotes ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦІЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══
 ${data.additionalNotes}
 ═══════════════════════════════════════════════════════════════
 ` : ''}
+ВАЖНО: Калориите вече са финално изчислени в анализа. Не ги преизчислявай.
+Използвай препоръчителните калории (${analysisCompact.realTDEE || 'от анализа'} kcal) директно.
+
+⚠️ КЛЮЧОВО: Тази стъпка определя САМО подход, архитектура и рамка. НЕ давай конкретни примери с храни — конкретните продукти, грамажи и комбинации ще бъдат избрани в Стъпка 3!
 
 ═══ СПЕЦИАЛНИ ИЗИСКВАНИЯ ЗА СЕДМИЧНА СХЕМА ═══
 
 1. ОПРЕДЕЛЯНЕ НА СЕДМИЧНА СХЕМА И РАЗПРЕДЕЛЕНИЕ НА КАЛОРИИ:
    - Определи за всеки ден: колко хранения, кога И целевите калории/макроси
-   - Базирай се на Реален TDEE: ${analysisCompact.realTDEE || 'изчисли от BMI и данните'} за определяне на калорийния прием
+   - Базова цел: ${analysisCompact.realTDEE || 'от анализа'} kcal/ден
    - Дните МОЖЕ да имат различни калории и макроси спрямо:
      * Тренировъчни дни (+10-15%) vs. почивни дни (-10-15%)
      * Дни с интермитентно гладуване (намалени) vs. зареждащи дни (увеличени)
      * Свободно хранене (леко завишени) след което лека вечеря
-   - ЗАДЪЛЖИТЕЛНО: Средните калории за седмицата ≈ Реален TDEE с корекция за целта
+   - ЗАДЪЛЖИТЕЛНО: Средните калории за седмицата ≈ ${analysisCompact.realTDEE || 'препоръчителните калории'} kcal/ден
    - Адаптирай според:
      * Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
      * Хронотип: ${data.chronotype}
      * Темперамент и психопрофил от анализа
      * Цел: ${data.goal}
 
-2. СПЕЦИАЛНИ СЛУЧАИ:
+2. РАЗПРЕДЕЛЕНИЕ НА КАЛОРИИ И МАКРОСИ ПО ХРАНЕНИЯ:
+   - За всеки ден разпредели дневните калории и макроси между храненията (mealBreakdown)
+   - Сумата на mealBreakdown.calories ТРЯБВА да е равна на дневните calories
+   - Сумата на mealBreakdown.protein ТРЯБВА да е равна на дневния protein
+   - Сумата на mealBreakdown.carbs ТРЯБВА да е равна на дневния carbs
+   - Сумата на mealBreakdown.fats ТРЯБВА да е равна на дневните fats
+   - Броят обекти в mealBreakdown ТРЯБВА да е равен на meals за деня
+
+3. СПЕЦИАЛНИ СЛУЧАИ:
    a) Ако клиентът НЕ ЗАКУСВА:
       - Закуската ОТПАДА
       - ПРЕПОРЪЧАЙ вместо нея: вода с лимон, зелен чай, айран, или друга подходяща напитка
@@ -4749,7 +4824,7 @@ ${data.additionalNotes}
       - Ако е подходящо: зареждащи и разреждащи дни
       - Обясни физиологичната логика
 
-3. НАЧИН НА КОМУНИКАЦИЯ:
+4. НАЧИН НА КОМУНИКАЦИЯ:
    - Адаптирай комуникацията според темперамента от анализа
    - Ако темперамент е определен (>${TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност):
      * Холерик: Директен, фокусиран на резултати, кратки обяснения
@@ -4761,52 +4836,91 @@ ${data.additionalNotes}
 {
   "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
   "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
-  "welcomeMessage": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: ПЕРСОНАЛИЗИРАНО приветствие за ${data.name} при първото разглеждане на плана. Тонът трябва да бъде професионален, но топъл и мотивиращ. Включи: 1) Персонално поздравление с име, 2) Кратко споменаване на конкретни фактори от профила (възраст, цел, ключови предизвикателства), 3) Как планът е създаден специално за техните нужди, 4) Положителна визия за постигане на целите. Дължина: 150-250 думи. ВАЖНО: Избягвай генерични фрази - използвай конкретни детайли за ${data.name}.",
-  "planJustification": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: Обосновка на цялостната стратегия - брой хранения, време на хранене, циклично разпределение (ако има), и ЗАЩО тази стратегия е оптимална за ${data.name}. Минимум 100 символа.",
+  "welcomeMessage": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: ПЕРСОНАЛИЗИРАНО приветствие за ${data.name}. Включи: 1) Персонално поздравление с име, 2) Кратко споменаване на конкретни фактори от профила, 3) Как планът е създаден специално за нуждите, 4) Положителна визия за целите. Дължина: 150-250 думи.",
+  "planJustification": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: Обосновка на цялостната стратегия за ${data.name}. Минимум 100 символа.",
   "longTermStrategy": "Как планът работи седмично/циклично (разпределение калории/макроси, варииране хранения)",
   "mealCountJustification": "Защо този брой хранения (1-5) - стратегическа/физиологична/психологическа причина",
   "afterDinnerMealJustification": "Ако има хранения след вечеря, защо са необходими. Ако няма - 'Не са необходими'",
   "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
-  "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
+  "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "weeklyScheme": {
-    "monday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "tuesday":   {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "wednesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "thursday":  {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "friday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "saturday":  {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "sunday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден (включи свободно хранене ако е подходящо)"}
+    "monday":    {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [
+        {"type": "Закуска", "calories": число, "protein": число, "carbs": число, "fats": число},
+        {"type": "Обяд",    "calories": число, "protein": число, "carbs": число, "fats": число},
+        {"type": "Вечеря",  "calories": число, "protein": число, "carbs": число, "fats": число}
+      ]
+    },
+    "tuesday":   {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "wednesday": {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "thursday":  {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "friday":    {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "saturday":  {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "sunday":    {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден (включи свободно хранене ако е подходящо)",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    }
   },
   "breakfastStrategy": "текст - ако не закусва, какво се препоръчва вместо закуска",
   "calorieDistribution": "текст - как се разпределят калориите по дни и хранения",
   "macroDistribution": "текст - как се разпределят макросите според дни/хранения",
   "mealTiming": {
-    "pattern": "седмичен модел на хранене БЕЗ точни часове - използвай концепции като 'закуска', 'обяд', 'вечеря' според профила. Напр. 'Понеделник-Петък: 2 хранения (обяд, вечеря), Събота-Неделя: 3 хранения с закуска'",
+    "pattern": "седмичен модел на хранене БЕЗ точни часове - използвай концепции като 'закуска', 'обяд', 'вечеря'",
     "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
     "flexibility": "описание на гъвкавостта в схемата според дните и нуждите",
-    "chronotypeGuidance": "ВАЖНО (Issue #30): Обясни КАК хронотипът ${data.chronotype} влияе на времето на хранене - напр. 'Ранобудна птица: Закуска 07:00-08:00, Вечеря до 19:00' или 'Нощна птица: Първо хранене 12:00-13:00, Последно 22:00-23:00'"
+    "chronotypeGuidance": "Обясни КАК хронотипът ${data.chronotype} влияе на времето на хранене"
   },
-  "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
-  "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
-  "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
+  "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2", "принцип 3"],
+  "preferredFoodCategories": ["хранителна категория/група 1 (НЕ конкретна храна — напр. 'Постни протеини', 'Пълнозърнести храни')", "категория 2", "категория 3"],
+  "avoidFoodCategories": ["хранителна категория/група за избягване 1 (НЕ конкретна храна — напр. 'Рафинирани захари', 'Ултрапреработени храни')", "категория 2", "категория 3"],
   "supplementRecommendations": [
-    "Индивидуална добавка 1 (с дозировка и обосновка специфична за ${data.name})",
-    "Индивидуална добавка 2 (с дозировка и обосновка специфична за ${data.name})",
-    "Индивидуална добавка 3 (с дозировка и обосновка специфична за ${data.name})"
+    "Индивидуална добавка 1 (с дозировка и обосновка за ${data.name})",
+    "Индивидуална добавка 2",
+    "Индивидуална добавка 3"
   ],
-  "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name} според активност и климат",
+  "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name}",
   "communicationStyle": {
-    "temperament": "определен темперамент от анализа (ако >80%)",
+    "temperament": "определен темперамент от анализа (ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%)",
     "tone": "тон на комуникация според психопрофил",
     "approach": "подход към комуникация с клиента",
     "chatGuidelines": "насоки как AI асистентът трябва да общува с ${data.name}"
   },
   "psychologicalSupport": [
-    "Психологически съвет 1 базиран на емоционалното хранене на ${data.name}",
-    "Психологически съвет 2 базиран на стреса и поведението на ${data.name}",
-    "Психологически съвет 3 за мотивация специфичен за профила на ${data.name}"
+    "Психологически съвет 1 базиран на профила на ${data.name}",
+    "Психологически съвет 2",
+    "Психологически съвет 3 за мотивация"
   ]
 }
+
+ПРАВИЛА ЗА ПОПЪЛВАНЕ НА weeklyScheme:
+- Сумата на mealBreakdown.calories ТРЯБВА да е равна на calories за деня
+- Сумата на mealBreakdown.protein ТРЯБВА да е равна на protein за деня
+- Сумата на mealBreakdown.carbs ТРЯБВА да е равна на carbs за деня
+- Сумата на mealBreakdown.fats ТРЯБВА да е равна на fats за деня
+- Броят обекти в mealBreakdown ТРЯБВА да е равен на meals за деня
 
 Създай персонализирана стратегия за ${data.name} базирана на техния уникален профил.`;
   
@@ -4916,7 +5030,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
       );
       
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, analysis);
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
       const chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
@@ -4950,7 +5064,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   // Generate summary, recommendations, etc. in final request
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
-    const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, analysis);
+    const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, buildCompactAnalysisForStep4(analysis));
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
