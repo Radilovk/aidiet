@@ -765,6 +765,14 @@ let chatContextCacheTime = {};
 const CHAT_CONTEXT_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache (session-based)
 const CHAT_CONTEXT_MAX_SIZE = 1000; // Maximum number of cached contexts (prevent memory bloat)
 
+// Track logIds per session for deferred combined-index updates.
+// logAIRequest() appends each new logId here; finalizeAISessionLogs() reads
+// the list once and writes the combined index with a single cacheGet + cacheSet,
+// instead of one cacheGet + cacheSet per AI call. Together with the merged
+// request+response log entry in logAIResponse(), this reduces Cache API
+// subrequests from 4 per callAIModel call to 1.
+const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
+
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
@@ -1141,8 +1149,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   const preferredProvider = config.provider;
   const modelName = config.modelName;
 
-  // Log AI request
-  const logId = await logAIRequest(env, stepName, {
+  // Build request data object in memory (not written to cache here; combined with
+  // the response in logAIResponse to reduce Cache API subrequests per call from 4 to 1).
+  const requestData = {
     prompt: enforcedPrompt,
     estimatedInputTokens: estimatedInputTokens,
     maxTokens: maxTokens,
@@ -1150,8 +1159,12 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     modelName: modelName,
     sessionId: sessionId,
     userData: userData,
-    calculatedData: calculatedData
-  });
+    calculatedData: calculatedData,
+    timestamp: new Date().toISOString()
+  };
+
+  // Log AI request (no cache operation – just generates logId and tracks it in the session)
+  const logId = await logAIRequest(env, stepName, requestData);
 
   const startTime = Date.now();
   let response;
@@ -1197,13 +1210,21 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     error = err.message || 'Unknown error';
     throw err;
   } finally {
-    // Log AI response
+    // Log AI response combined with request data (single cache.put instead of two)
     await logAIResponse(env, logId, stepName, {
       response: response,
       success: success,
       error: error,
       duration: Date.now() - startTime
-    });
+    }, requestData);
+    
+    // For auto-sessions (no explicit sessionId provided), finalize the combined
+    // index immediately after this single call. Named sessions (plan generation)
+    // are finalized in bulk by generatePlanMultiStep / regenerateFromStep to
+    // keep Cache API subrequests to 2 per session rather than 2 per call.
+    if (!sessionId && requestData._effectiveSessionId) {
+      await finalizeAISessionLogs(env, requestData._effectiveSessionId);
+    }
   }
 
   return response;
@@ -1364,6 +1385,14 @@ async function generateSimplifiedFallbackPlan(env, data) {
 }
 
 /**
+ * Normalize a blacklist entry to object format.
+ * Handles backward-compat with old string[] KV data.
+ */
+function normalizeBlacklistEntry(entry) {
+  return typeof entry === 'string' ? { item: entry, mode: 'ban' } : entry;
+}
+
+/**
  * Helper function to fetch and build dynamic whitelist/blacklist sections for prompts
  */
 async function getDynamicFoodListsSections(env) {
@@ -1391,20 +1420,40 @@ async function getDynamicFoodListsSections(env) {
     console.error('Error loading whitelist/blacklist from KV:', error);
   }
   
+  // Normalize blacklist entries: backward-compat with old string[] format
+  const normalizedBlacklist = dynamicBlacklist.map(normalizeBlacklistEntry);
+
+  // Build substitutions array for validatePlan auto-corrector.
+  // Sort by detect length descending so longer/more-specific phrases match first
+  // (e.g. "гръцко кисело мляко" before "кисело мляко").
+  const dynamicSubstitutions = normalizedBlacklist
+    .filter(e => e.mode === 'substitute' && e.substitute)
+    .map(e => ({ detect: e.item, replace: e.substitute }))
+    .sort((a, b) => b.detect.length - a.detect.length);
+
   // Build dynamic whitelist section if there are custom items
   let dynamicWhitelistSection = '';
   if (dynamicWhitelist.length > 0) {
     dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
   }
   
-  // Build dynamic blacklist section if there are custom items
+  // Build dynamic blacklist section - differentiate bans from substitutes
   let dynamicBlacklistSection = '';
-  if (dynamicBlacklist.length > 0) {
-    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
+  if (normalizedBlacklist.length > 0) {
+    const banLines = normalizedBlacklist
+      .filter(e => e.mode !== 'substitute')
+      .map(e => `${e.item} (ЗАБРАНЕНО)`);
+    const subLines = normalizedBlacklist
+      .filter(e => e.mode === 'substitute' && e.substitute)
+      .map(e => `${e.item} → замести с „${e.substitute}"`);
+    const allLines = [...banLines, ...subLines];
+    if (allLines.length > 0) {
+      dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ОТ АДМИН ПАНЕЛ):\n- ${allLines.join('\n- ')}\nЗабранените храни НЕ трябва да се използват. Храните за заместване ТРЯБВА да се заменят с посочения алтернативен вариант.`;
+    }
   }
   
   // Cache the result
-  const result = { dynamicWhitelistSection, dynamicBlacklistSection };
+  const result = { dynamicWhitelistSection, dynamicBlacklistSection, dynamicSubstitutions };
   foodListsCache = result;
   foodListsCacheTime = now;
   
@@ -1682,7 +1731,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   Употреба: Готвено домашно ястие
 
 ШАБЛОН C: "ЛЕКО/САНДВИЧ" → [ENG-Хляб] + [PRO] + [FAT] + [VOL-Свежест]
-  Пример: Сандвич с пуешко и кашкавал; Тост с авокадо и яйце
+  Пример: Сандвич с пилешко и кашкавал; Тост с авокадо и яйце
   Употреба: Закуска или Обяд в движение
 
 ШАБЛОН D: "ЕДИНЕН БЛОК" → [CMPX] + [VOL-Салата/Зеленчук]
@@ -2251,9 +2300,12 @@ async function handleGeneratePlan(request, env) {
     // No caching - client stores plan locally
     let structuredPlan = await generatePlanMultiStep(env, data);
     
+    // Load food substitutions from KV (already cached after generatePlanMultiStep)
+    const { dynamicSubstitutions } = await getDynamicFoodListsSections(env);
+
     // ENHANCED: Implement step-specific correction loop
     // Instead of correcting the whole plan, regenerate from the earliest error step
-    let validation = validatePlan(structuredPlan, data);
+    let validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
     let correctionAttempts = 0;
     
     // Safety check: ensure MAX_CORRECTION_ATTEMPTS is valid
@@ -2274,7 +2326,7 @@ async function handleGeneratePlan(request, env) {
         );
         
         // Re-validate the regenerated plan
-        validation = validatePlan(structuredPlan, data);
+        validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
       } catch (error) {
         console.error(`handleGeneratePlan: Regeneration attempt ${correctionAttempts} failed:`, error);
         // Continue with next attempt or exit loop
@@ -2293,7 +2345,7 @@ async function handleGeneratePlan(request, env) {
         try {
           // Generate simplified plan with reduced requirements
           const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
-          const fallbackValidation = validatePlan(simplifiedPlan, data);
+          const fallbackValidation = validatePlan(simplifiedPlan, data, dynamicSubstitutions);
           
           if (fallbackValidation.isValid) {
             const cleanPlan = removeInternalJustifications(simplifiedPlan);
@@ -2882,7 +2934,11 @@ const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermitt
 const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's clear reasoning and strategy)
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 // Note: DAILY_CALORIE_TOLERANCE and MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
-const MAX_CORRECTION_ATTEMPTS = 4; // Maximum number of AI correction attempts before failing (must be >= 0)
+const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts before failing.
+// Reduced from 4 to 1: each correction attempt generates up to 7 AI calls (fetch subrequests).
+// With 4 corrections the baseline alone was ~94 subrequests — well above Cloudflare's 50-subrequest
+// limit per Worker invocation. With 1 correction the baseline is 46 (safe), and even with a
+// handful of transient Gemini retries we stay comfortably under the limit.
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
@@ -2922,19 +2978,46 @@ const DEFAULT_FOOD_WHITELIST = [
   'грах', 'peas'
 ];
 
-// Default blacklist - hard banned foods for admin panel
+// Default blacklist - hard banned foods for admin panel.
+// Each entry is { item, mode: 'ban'|'substitute', substitute? }.
+// 'ban'       – food is forbidden outright; AI is instructed not to use it.
+// 'substitute'– food is replaced with the nearest acceptable alternative
+//               both in the AI prompt and by the in-plan auto-corrector.
 const DEFAULT_FOOD_BLACKLIST = [
-  'лук', 'onion',
-  'пуешко месо', 'turkey meat',
-  'изкуствени подсладители', 'artificial sweeteners',
-  'мед', 'захар', 'конфитюр', 'сиропи',
-  'honey', 'sugar', 'jam', 'syrups',
-  'кетчуп', 'майонеза', 'BBQ сос',
-  'ketchup', 'mayonnaise', 'BBQ sauce',
-  'гръцко кисело мляко', 'greek yogurt'
+  { item: 'лук',                   mode: 'substitute', substitute: 'чесън'             },
+  { item: 'onion',                  mode: 'substitute', substitute: 'garlic'            },
+  { item: 'пуешко месо',            mode: 'substitute', substitute: 'пилешко месо'      },
+  { item: 'turkey meat',            mode: 'substitute', substitute: 'chicken'           },
+  { item: 'пуешко',                 mode: 'substitute', substitute: 'пилешко'           },
+  { item: 'изкуствени подсладители',mode: 'ban'                                         },
+  { item: 'artificial sweeteners',  mode: 'ban'                                         },
+  { item: 'мед',                    mode: 'ban'                                         },
+  { item: 'захар',                  mode: 'ban'                                         },
+  { item: 'конфитюр',               mode: 'ban'                                         },
+  { item: 'сиропи',                 mode: 'ban'                                         },
+  { item: 'honey',                  mode: 'ban'                                         },
+  { item: 'sugar',                  mode: 'ban'                                         },
+  { item: 'jam',                    mode: 'ban'                                         },
+  { item: 'syrups',                 mode: 'ban'                                         },
+  { item: 'кетчуп',                 mode: 'substitute', substitute: 'доматен сос'       },
+  { item: 'ketchup',                mode: 'substitute', substitute: 'tomato sauce'      },
+  { item: 'майонеза',               mode: 'substitute', substitute: 'натурален дресинг' },
+  { item: 'mayonnaise',             mode: 'substitute', substitute: 'natural dressing'  },
+  { item: 'BBQ сос',                mode: 'ban'                                         },
+  { item: 'BBQ sauce',              mode: 'ban'                                         },
+  { item: 'гръцко кисело мляко',    mode: 'substitute', substitute: 'кисело мляко'      },
+  { item: 'greek yogurt',           mode: 'substitute', substitute: 'yogurt'            },
+  { item: 'агнешко',                mode: 'substitute', substitute: 'говеждо'           },
+  { item: 'заешко',                 mode: 'substitute', substitute: 'пилешко'           },
+  { item: 'патешко',                mode: 'substitute', substitute: 'пилешко'           },
+  { item: 'гъшко',                  mode: 'substitute', substitute: 'пилешко'           },
+  { item: 'дивеч',                  mode: 'substitute', substitute: 'говеждо'           },
+  { item: 'lamb',                   mode: 'substitute', substitute: 'beef'              },
+  { item: 'rabbit',                 mode: 'substitute', substitute: 'chicken'           },
+  { item: 'duck',                   mode: 'substitute', substitute: 'chicken'           },
+  { item: 'goose',                  mode: 'substitute', substitute: 'chicken'           },
+  { item: 'venison',                mode: 'substitute', substitute: 'beef'              },
 ];
-
-const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
 
 const ADLE_V8_HARD_RULES = {
   R1: 'Protein main = exactly 1. Secondary protein only if (breakfast AND eggs), 0-1.',
@@ -2960,45 +3043,35 @@ const ADLE_V8_SPECIAL_RULES = {
   TEMPLATE_C_RESTRICTION: 'Template C (sandwich) allowed ONLY for snacks, NOT for main meals.'
 };
 
-// ADLE v8 Whitelists - Allowed foods (from meallogic.txt)
-const ADLE_V8_PROTEIN_WHITELIST = [
-  'яйца', 'eggs', 'egg', 'яйце',
-  'пилешко', 'chicken', 'пиле', 'пилешк',
-  'говеждо', 'beef', 'говежд',
-  'свинско', 'свинска', 'pork', 'свин',
-  'риба', 'fish', 'скумрия', 'mackerel', 'тон', 'tuna', 'сьомга', 'salmon',
-  'кисело мляко', 'yogurt', 'йогурт', 'кефир',
-  'извара', 'cottage cheese', 'извар',
-  'сирене', 'cheese', 'сирен',
-  'боб', 'beans', 'бобови',
-  'леща', 'lentils', 'лещ',
-  'нахут', 'chickpeas', 'нахут',
-  'грах', 'peas', 'гра'
-];
-
-// Proteins explicitly NOT on whitelist (should trigger warning)
-// Using word stems to catch variations (e.g., заешко, заешки, заешка)
-// SECURITY NOTE: These strings are static and pre-validated, not user input
-const ADLE_V8_NON_WHITELIST_PROTEINS = [
-  'заеш', 'rabbit', 'зайч',  // заешко, заешки, заешка
-  'патиц', 'патешк', 'duck',  // патица, патешко, патешки
-  'гъс', 'goose',  // гъска, гъсешко
-  'агн', 'lamb',  // агне, агнешко, агнешки
-  'дивеч', 'елен', 'deer', 'wild boar', 'глиган'
-];
-
-/**
- * Helper: Check if meal has "Reason:" justification for non-whitelist items
- */
-function hasReasonJustification(meal) {
-  return /reason:/i.test(meal.description || '') || /reason:/i.test(meal.name || '');
-}
-
 /**
  * Helper: Escape regex special characters in a string
  */
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Apply food substitutions to a single meal object in-place.
+ * `fixes` is an array of {detect, replace} from the KV blacklist.
+ * Returns an array of human-readable substitution descriptions that were applied.
+ * Longer phrases should appear before shorter sub-phrases in the fixes array.
+ */
+function applyFoodSubstitutions(meal, fixes) {
+  const applied = [];
+  for (const { detect, replace } of fixes) {
+    const re = new RegExp(escapeRegex(detect), 'gi');
+    let changed = false;
+    if (meal.name && re.test(meal.name)) {
+      meal.name = meal.name.replace(re, replace);
+      changed = true;
+    }
+    if (meal.description && new RegExp(escapeRegex(detect), 'gi').test(meal.description)) {
+      meal.description = meal.description.replace(new RegExp(escapeRegex(detect), 'gi'), replace);
+      changed = true;
+    }
+    if (changed) applied.push(`${detect}→${replace}`);
+  }
+  return applied;
 }
 
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
@@ -3014,7 +3087,7 @@ const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (optimal: 4 chunks total 
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
  * Returns { isValid: boolean, errors: string[] }
  */
-function validatePlan(plan, userData) {
+function validatePlan(plan, userData, substitutions = []) {
   const errors = [];
   const warnings = [];
   const stepErrors = {
@@ -3423,73 +3496,37 @@ function validatePlan(plan, userData) {
     }
   }
   
-  // 12. Check for ADLE v8 hard bans in meal descriptions (Step 3 - Meal plan issue)
+  // 12. Auto-correct ADLE v8 hard bans in meal descriptions.
+  // Instead of returning errors that trigger a correction loop, banned foods are
+  // replaced in-place with the nearest acceptable alternative. Fixes are logged
+  // as warnings so they remain visible without blocking the plan.
   if (plan.weekPlan) {
     Object.keys(plan.weekPlan).forEach(dayKey => {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
         day.meals.forEach((meal, mealIndex) => {
+          // Apply substitutions from KV blacklist in one pass
+          const fixes = applyFoodSubstitutions(meal, substitutions);
+          if (fixes.length > 0) {
+            warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: автокорекция: ${fixes.join(', ')}`);
+          }
+
+          // Auto-fix peas + fish combination: replace грах with броколи
           const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
-          
-          // Check for hard bans (onion, turkey meat, artificial sweeteners, honey/sugar, ketchup/mayo)
-          if (/\b(лук|onion)\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ЛУК (hard ban от ADLE v8)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
-          }
-          // Check for turkey meat but not turkey ham
-          if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ПУЕШКО МЕСО (hard ban от ADLE v8)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
-          }
-          // Check for Greek yogurt (blacklisted)
-          if (/\bгръцко\s+кисело\s+мляко\b/.test(mealText) || /\bgreek\s+yogurt\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ГРЪЦКО КИСЕЛО МЛЯКО (в черния списък - използвай само обикновено кисело мляко)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
-          }
-          // Check for honey/sugar/syrup in specific contexts (as ingredients, not in compound words)
-          if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(mealText) && !/медицин|междин|сиропен/.test(mealText)) {
-            warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Може да съдържа МЕД/ЗАХАР/СИРОП (hard ban от ADLE v8) - проверете`);
-          }
-          if (/\b(кетчуп|майонеза|ketchup|mayonnaise)\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа КЕТЧУП/МАЙОНЕЗА (hard ban от ADLE v8)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
-          }
-          
-          // Check for peas + fish forbidden combination
-          if (/\b(грах|peas)\b/.test(mealText) && /\b(риба|fish)\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: ГРАХ + РИБА забранена комбинация (ADLE v8 R0)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
-          }
-          
-          // Check for non-whitelist proteins (R12 enforcement)
-          let foundNonWhitelistProtein = false;
-          for (const protein of ADLE_V8_NON_WHITELIST_PROTEINS) {
-            // Use flexible matching for Cyrillic - check if pattern exists without being part of another word
-            // For Bulgarian words, match at word start (e.g., "заеш" matches "заешко", "заешки")
-            // SECURITY: Escape regex special chars to prevent ReDoS attacks
-            const escapedProtein = escapeRegex(protein);
-            const regex = new RegExp(`(^|[^а-яa-z])${escapedProtein}`, 'i');
-            const match = mealText.match(regex);
-            
-            if (match) {
-              // Extract the actual matched word from meal text for better error messages
-              const matchedWordRegex = new RegExp(`${escapedProtein}[а-яa-z]*`, 'i');
-              const actualWord = mealText.match(matchedWordRegex)?.[0] || protein;
-              
-              if (!hasReasonJustification(meal)) {
-                const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord.toUpperCase()}" което НЕ е в whitelist (ADLE v8 R12). Изисква се Reason: ... ако е обективно необходимо.`;
-                errors.push(error);
-                stepErrors.step3_mealplan.push(error);
-                foundNonWhitelistProtein = true;
-              } else {
-                warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord}" с обосновка - проверете дали е валидна`);
-              }
+          if (/грах|peas/.test(mealText) && /риба|fish/.test(mealText)) {
+            const pFixes = applyFoodSubstitutions(meal, [
+              { detect: 'грах', replace: 'броколи' },
+              { detect: 'peas', replace: 'broccoli' }
+            ]);
+            if (pFixes.length > 0) {
+              warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: автокорекция грах+риба: ${pFixes.join(', ')}`);
             }
+          }
+
+          // Honey/sugar/syrup: warning only (context-dependent, not auto-replaced)
+          const correctedMealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
+          if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(correctedMealText) && !/медицин|междин|сиропен/.test(correctedMealText)) {
+            warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Може да съдържа МЕД/ЗАХАР/СИРОП (hard ban от ADLE v8) - проверете`);
           }
         });
       }
@@ -3894,7 +3931,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     }
     
     // Combine all parts into final plan
-    return {
+    const result = {
       ...mealPlan,
       analysis: analysis,
       strategy: strategy,
@@ -3905,8 +3942,15 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         generatedAt: new Date().toISOString()
       }
     };
+    
+    // Update combined index once for this regeneration session
+    await finalizeAISessionLogs(env, sessionId);
+    
+    return result;
   } catch (error) {
     console.error(`Regeneration from ${earliestErrorStep} failed:`, error);
+    // Finalize session logs even on failure
+    await finalizeAISessionLogs(env, sessionId).catch(() => {});
     throw new Error(`Регенерацията от ${earliestErrorStep} се провали: ${error.message}`);
   }
 }
@@ -4085,7 +4129,7 @@ async function generatePlanMultiStep(env, data) {
     
     // Combine all parts into final plan (meal plan takes precedence)
     // Returns comprehensive plan with analysis and strategy included
-    return {
+    const result = {
       ...mealPlan,
       analysis: analysis,
       strategy: strategy,
@@ -4094,8 +4138,15 @@ async function generatePlanMultiStep(env, data) {
         generatedAt: new Date().toISOString()
       }
     };
+    
+    // Update combined index once for the whole session (2 subrequests total instead of 2×N)
+    await finalizeAISessionLogs(env, sessionId);
+    
+    return result;
   } catch (error) {
     console.error('Multi-step generation failed:', error);
+    // Finalize session logs even on failure so errors appear in admin logs
+    await finalizeAISessionLogs(env, sessionId).catch(() => {});
     // Return error with details instead of falling back silently
     throw new Error(`Генерирането на план се провали: ${error.message}`);
   }
@@ -5783,70 +5834,89 @@ function generateMockResponse(prompt) {
  * - All logs → Cache API (free, no quota impact, 24h TTL)
  * - Errors only → KV (permanent, for debugging, minimal quota impact)
  * Tracks all communication between backend and AI model
+ *
+ * SUBREQUEST OPTIMIZATION: This function performs ZERO cache operations.
+ * It generates a logId, always tracks it in pendingSessionLogs under an
+ * effective session ID (either the provided sessionId or an auto-generated
+ * one for standalone calls like chat), and stores that effectiveSessionId
+ * back in requestData._effectiveSessionId so callAIModel can finalize
+ * auto-sessions immediately after the single call completes.
+ * Named sessions (plan generation) are finalized by generatePlanMultiStep /
+ * regenerateFromStep, keeping Cache API index updates at 1 per session.
  */
 async function logAIRequest(env, stepName, requestData) {
   try {
     // Generate unique log ID
     const logId = generateUniqueId('ai_log');
+    
+    // Always use an effective session ID – auto-generate one for standalone
+    // calls (chat, fallback plan) that don't belong to a named session.
+    const effectiveSessionId = requestData.sessionId || generateUniqueId('auto_session');
+    
+    // Store it so callAIModel can finalize auto-sessions in the finally block.
+    requestData._effectiveSessionId = effectiveSessionId;
+    
+    // Always track so every call is indexed in the combined session log.
+    if (!pendingSessionLogs.has(effectiveSessionId)) {
+      pendingSessionLogs.set(effectiveSessionId, []);
+    }
+    pendingSessionLogs.get(effectiveSessionId).push(logId);
+    
+    console.log(`[Cache API] AI request tracked: ${stepName} (${logId}, session: ${effectiveSessionId})`);
+    return logId;
+  } catch (error) {
+    console.error('[Cache API] Failed to track AI request:', error);
+    return null;
+  }
+}
+
+/**
+ * Write a single combined request+response log entry to the Cache API.
+ * Accepts the requestData built in callAIModel so that both halves of the
+ * conversation are persisted in one cache.put (1 subrequest) instead of two.
+ */
+async function logAIResponse(env, logId, stepName, responseData, requestData = null) {
+  try {
+    if (!logId) {
+      console.warn('[Cache API] Missing logId, skipping AI response logging');
+      return;
+    }
+
     const timestamp = new Date().toISOString();
     
-    // Get sessionId from requestData, or generate one if not provided (for backward compatibility with non-session calls)
-    const sessionId = requestData.sessionId || generateUniqueId('auto_session');
-    
+    // Combined entry merges request metadata with response data so the admin
+    // panel can reconstruct the full conversation from a single cache entry.
     const logEntry = {
       id: logId,
-      sessionId: sessionId,
-      timestamp: timestamp,
+      sessionId: requestData?.sessionId || null,
+      timestamp: requestData?.timestamp || timestamp,
       stepName: stepName,
-      type: 'request',
-      prompt: requestData.prompt || '',
-      promptLength: requestData.prompt?.length || 0,
-      estimatedInputTokens: requestData.estimatedInputTokens || 0,
-      maxOutputTokens: requestData.maxTokens || null,
-      provider: requestData.provider || 'unknown',
-      modelName: requestData.modelName || 'unknown',
-      // Include structured user data and calculations for export
-      userData: requestData.userData || null,
-      calculatedData: requestData.calculatedData || null,
-      // Flag for error state
-      hasError: !!requestData.error,
-      error: requestData.error || null
+      type: 'combined',
+      // Request fields
+      prompt: requestData?.prompt || '',
+      promptLength: requestData?.prompt?.length || 0,
+      estimatedInputTokens: requestData?.estimatedInputTokens || 0,
+      maxOutputTokens: requestData?.maxTokens || null,
+      provider: requestData?.provider || 'unknown',
+      modelName: requestData?.modelName || 'unknown',
+      userData: requestData?.userData || null,
+      calculatedData: requestData?.calculatedData || null,
+      // Response fields
+      responseTimestamp: timestamp,
+      response: responseData.response || '',
+      responseLength: responseData.response?.length || 0,
+      estimatedOutputTokens: responseData.estimatedOutputTokens || 0,
+      duration: responseData.duration || 0,
+      success: responseData.success || false,
+      error: responseData.error || null,
+      hasError: !!responseData.error || !responseData.success
     };
 
-    // ALWAYS store in Cache API (no KV quota impact!)
+    // Single cache.put for the combined entry (1 subrequest instead of 2)
     await cacheSet(`ai_communication_log:${logId}`, logEntry, AI_LOG_CACHE_TTL);
     
-    // Use a single combined index to track sessions and their log IDs.
-    // This replaces the previous two-entry approach (ai_communication_session_index +
-    // ai_session_logs:{sessionId}) with one cache read/write, reducing subrequests by 2
-    // per call and keeping total subrequests well below the Cloudflare 50-subrequest limit.
-    let combinedIndex = await cacheGet('ai_log_combined_index');
-    combinedIndex = combinedIndex || { sessions: [], logs: {} };
-
-    // Add sessionId to the ordered list if not already present (most recent first)
-    if (!combinedIndex.sessions.includes(sessionId)) {
-      combinedIndex.sessions.unshift(sessionId);
-      // Keep only the last MAX_LOG_ENTRIES sessions
-      if (combinedIndex.sessions.length > MAX_LOG_ENTRIES) {
-        const removed = combinedIndex.sessions.splice(MAX_LOG_ENTRIES);
-        // Remove log lists for evicted sessions from the combined index.
-        // Individual ai_communication_log:{logId} entries will expire naturally via their TTL.
-        for (const evictedId of removed) {
-          delete combinedIndex.logs[evictedId];
-        }
-      }
-    }
-
-    // Append this log ID to the session's log list
-    if (!combinedIndex.logs[sessionId]) {
-      combinedIndex.logs[sessionId] = [];
-    }
-    combinedIndex.logs[sessionId].push(logId);
-
-    await cacheSet('ai_log_combined_index', combinedIndex, AI_LOG_CACHE_TTL);
-    
-    // HYBRID: If there's an error, ALSO store in KV for permanent debugging
-    if (requestData.error && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
+    // HYBRID: If there's an error or failure, ALSO store in KV for permanent debugging
+    if ((responseData.error || !responseData.success) && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
       try {
         await env.page_content.put(
           `ai_error_log:${logId}`,
@@ -5859,57 +5929,54 @@ async function logAIRequest(env, stepName, requestData) {
       }
     }
     
-    console.log(`[Cache API] AI request logged: ${stepName} (${logId}, session: ${sessionId})`);
-    return logId;
-  } catch (error) {
-    console.error('[Cache API] Failed to log AI request:', error);
-    return null;
-  }
-}
-
-async function logAIResponse(env, logId, stepName, responseData) {
-  try {
-    if (!logId) {
-      console.warn('[Cache API] Missing logId, skipping AI response logging');
-      return;
-    }
-
-    const timestamp = new Date().toISOString();
-    
-    const logEntry = {
-      id: logId,
-      timestamp: timestamp,
-      stepName: stepName,
-      type: 'response',
-      response: responseData.response || '',
-      responseLength: responseData.response?.length || 0,
-      estimatedOutputTokens: responseData.estimatedOutputTokens || 0,
-      duration: responseData.duration || 0,
-      success: responseData.success || false,
-      error: responseData.error || null,
-      hasError: !!responseData.error || !responseData.success
-    };
-
-    // ALWAYS store response in Cache API (no KV quota impact!)
-    await cacheSet(`ai_communication_log:${logId}_response`, logEntry, AI_LOG_CACHE_TTL);
-    
-    // HYBRID: If there's an error or failure, ALSO store in KV for permanent debugging
-    if ((responseData.error || !responseData.success) && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
-      try {
-        await env.page_content.put(
-          `ai_error_log:${logId}_response`,
-          JSON.stringify(logEntry)
-        );
-        console.log(`[KV] Error response logged to KV for permanent storage: ${stepName} (${logId})`);
-      } catch (kvError) {
-        console.error('[KV] Failed to log error response to KV:', kvError);
-        // Continue - error is still in Cache API
-      }
-    }
-    
     console.log(`[Cache API] AI response logged: ${stepName} (${logId})`);
   } catch (error) {
     console.error('[Cache API] Failed to log AI response:', error);
+  }
+}
+
+/**
+ * Flush the combined index for a plan-generation session to the Cache API.
+ * Called ONCE at the end of generatePlanMultiStep() and regenerateFromStep()
+ * instead of once per AI call, reducing the index read+write from 2×N
+ * subrequests to just 2 subrequests for the whole session.
+ */
+async function finalizeAISessionLogs(env, sessionId) {
+  if (!sessionId || !pendingSessionLogs.has(sessionId)) return;
+  
+  const logIds = pendingSessionLogs.get(sessionId);
+  pendingSessionLogs.delete(sessionId);
+  
+  if (!logIds || logIds.length === 0) return;
+  
+  try {
+    let combinedIndex = await cacheGet('ai_log_combined_index');
+    combinedIndex = combinedIndex || { sessions: [], logs: {} };
+
+    // Add sessionId to the ordered list if not already present (most recent first)
+    if (!combinedIndex.sessions.includes(sessionId)) {
+      combinedIndex.sessions.unshift(sessionId);
+      // Keep only the last MAX_LOG_ENTRIES sessions
+      if (combinedIndex.sessions.length > MAX_LOG_ENTRIES) {
+        const removed = combinedIndex.sessions.splice(MAX_LOG_ENTRIES);
+        for (const evictedId of removed) {
+          delete combinedIndex.logs[evictedId];
+        }
+      }
+    }
+
+    // Merge with any existing log IDs for this session (guards against duplicate
+    // calls for the same sessionId, even though pendingSessionLogs.delete above
+    // makes the second invocation a no-op in normal usage).
+    combinedIndex.logs[sessionId] = [
+      ...(combinedIndex.logs[sessionId] || []),
+      ...logIds
+    ];
+    await cacheSet('ai_log_combined_index', combinedIndex, AI_LOG_CACHE_TTL);
+    
+    console.log(`[Cache API] Session ${sessionId} index finalized with ${logIds.length} log entries`);
+  } catch (error) {
+    console.error('[Cache API] Failed to finalize session logs:', error);
   }
 }
 
@@ -6178,6 +6245,8 @@ async function handleGetAILogs(request, env) {
       const paginatedIds = allLogIds.slice(offset, offset + limit);
       
       // Fetch logs in parallel from Cache API
+      // New combined format: single entry per logId (type='combined')
+      // Old format: separate request + response entries (kept for backward compatibility)
       const logPromises = paginatedIds.flatMap(logId => [
         cacheGet(`ai_communication_log:${logId}`),
         cacheGet(`ai_communication_log:${logId}_response`)
@@ -6185,17 +6254,39 @@ async function handleGetAILogs(request, env) {
       
       const logData = await Promise.all(logPromises);
       
-      // Combine request and response logs
+      // Combine request and response logs (backward compatible with both formats)
       const logs = [];
       for (let i = 0; i < paginatedIds.length; i++) {
-        const requestLog = logData[i * 2];
-        const responseLog = logData[i * 2 + 1];
+        const primaryLog = logData[i * 2];
+        const legacyResponseLog = logData[i * 2 + 1];
         
-        if (requestLog) {
-          logs.push({
-            ...requestLog,
-            response: responseLog
-          });
+        if (primaryLog) {
+          if (primaryLog.type === 'combined') {
+            // New format: the primary entry already contains both request and response fields.
+            // Expose a nested `response` object so the admin panel sees the same shape as before.
+            logs.push({
+              ...primaryLog,
+              response: {
+                id: primaryLog.id,
+                timestamp: primaryLog.responseTimestamp || primaryLog.timestamp,
+                stepName: primaryLog.stepName,
+                type: 'response',
+                response: primaryLog.response,
+                responseLength: primaryLog.responseLength,
+                estimatedOutputTokens: primaryLog.estimatedOutputTokens,
+                duration: primaryLog.duration,
+                success: primaryLog.success,
+                error: primaryLog.error,
+                hasError: primaryLog.hasError
+              }
+            });
+          } else {
+            // Legacy format: merge separate request + response entries
+            logs.push({
+              ...primaryLog,
+              response: legacyResponseLog
+            });
+          }
         }
       }
       
@@ -6435,21 +6526,23 @@ async function handleExportAILogs(request, env) {
 }
 
 /**
- * Blacklist Management: Get blacklist from KV storage
+ * Blacklist Management: Get blacklist from KV storage.
+ * Returns array of {item, mode, substitute?} objects.
  */
 async function handleGetBlacklist(request, env) {
   try {
     if (!env.page_content) {
       console.error('KV namespace not configured');
-      // Return default blacklist if KV not available
       return jsonResponse({ success: true, blacklist: DEFAULT_FOOD_BLACKLIST });
     }
     
     const blacklistData = await env.page_content.get('food_blacklist');
-    const blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
+    let blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
+    // Normalize old string[] format to object[] for the admin panel
+    blacklist = blacklist.map(normalizeBlacklistEntry);
     
     return jsonResponse({ success: true, blacklist: blacklist }, 200, {
-      cacheControl: 'public, max-age=300' // Cache for 5 minutes - blacklist changes infrequently
+      cacheControl: 'public, max-age=300'
     });
   } catch (error) {
     console.error('Error getting blacklist:', error);
@@ -6458,33 +6551,42 @@ async function handleGetBlacklist(request, env) {
 }
 
 /**
- * Blacklist Management: Add item to blacklist
+ * Blacklist Management: Add item to blacklist.
+ * Accepts {item, mode: 'ban'|'substitute', substitute?}.
  */
 async function handleAddToBlacklist(request, env) {
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
+    const mode = data.mode === 'substitute' ? 'substitute' : 'ban';
+    const substitute = mode === 'substitute' ? (data.substitute?.trim() || '') : undefined;
     
     if (!item) {
       return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    if (mode === 'substitute' && !substitute) {
+      return jsonResponse({ error: 'Substitute is required when mode is substitute' }, 400);
     }
     
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
     
-    // Get current blacklist
+    // Get current blacklist and normalize to object format
     const blacklistData = await env.page_content.get('food_blacklist');
     let blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
+    blacklist = blacklist.map(normalizeBlacklistEntry);
     
-    // Add item if not already in list
-    if (!blacklist.includes(item)) {
-      blacklist.push(item);
-      await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
-      
-      // Invalidate food lists cache
-      invalidateFoodListsCache();
+    // Replace existing entry or add new one
+    const existing = blacklist.findIndex(e => e.item === item);
+    const entry = mode === 'substitute' ? { item, mode, substitute } : { item, mode };
+    if (existing >= 0) {
+      blacklist[existing] = entry;
+    } else {
+      blacklist.push(entry);
     }
+    await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    invalidateFoodListsCache();
     
     return jsonResponse({ success: true, blacklist: blacklist });
   } catch (error) {
@@ -6494,7 +6596,8 @@ async function handleAddToBlacklist(request, env) {
 }
 
 /**
- * Blacklist Management: Remove item from blacklist
+ * Blacklist Management: Remove item from blacklist.
+ * Matches by item name (works for both old string[] and new object[] format).
  */
 async function handleRemoveFromBlacklist(request, env) {
   try {
@@ -6509,12 +6612,13 @@ async function handleRemoveFromBlacklist(request, env) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
     
-    // Get current blacklist
+    // Get current blacklist and normalize to object format
     const blacklistData = await env.page_content.get('food_blacklist');
     let blacklist = blacklistData ? JSON.parse(blacklistData) : [];
+    blacklist = blacklist.map(normalizeBlacklistEntry);
     
-    // Remove item
-    blacklist = blacklist.filter(i => i !== item);
+    // Remove by item name
+    blacklist = blacklist.filter(e => e.item !== item);
     await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
     
     // Invalidate food lists cache
