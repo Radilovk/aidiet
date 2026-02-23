@@ -1796,7 +1796,7 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
   // Build JSON format example with all days in the chunk
   // Note: Indentation and formatting are intentional for AI model readability
-  const mealTemplate = `{"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const mealTemplate = `{"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const dayTemplate = (dayNum) => `  "day${dayNum}": {
     "meals": [
       ${mealTemplate}
@@ -1856,7 +1856,7 @@ ${jsonExample.join(',\n')}
 {
   "dayN": {
     "meals": [
-      {"type": "Закуска/Обяд/Вечеря", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
     ],
     "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
   }
@@ -2013,7 +2013,7 @@ JSON ФОРМАТ:
 {
   "day1": {
     "meals": [
-      {"name": "...", "time": "...", "calories": число, "macros": {...}},
+      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
       ...
     ]
   },
@@ -2099,7 +2099,7 @@ JSON ФОРМАТ:
 {
   "day1": {
     "meals": [
-      {"name": "...", "time": "...", "calories": число, "macros": {...}},
+      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
       ...
     ]
   },
