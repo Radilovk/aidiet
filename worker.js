@@ -1010,14 +1010,32 @@ function extractBalancedJSON(text) {
  */
 function parseAIResponse(response) {
   try {
-    // Step 1: Try to extract JSON from markdown code blocks first
-    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
-    if (markdownJsonMatch) {
+    // Step 1: Try to extract JSON from markdown code blocks first.
+    // Use a two-phase approach: extract everything between fence markers,
+    // then parse the content. This handles any language specifier (json,
+    // JSON, javascript, etc.) and avoids non-greedy regex fragility.
+    // Requires newlines after opening and before closing fence to avoid
+    // matching inline code; responses without newlines fall through to step 2.
+    // The non-greedy *? stops at the first closing fence — correct for
+    // single-block AI responses; multi-block responses fall through to step 2.
+    const fenceMatch = response.match(/```[a-zA-Z0-9]*\n([\s\S]*?)\n```/);
+    if (fenceMatch) {
+      const fenceContent = fenceMatch[1].trim();
+      // Try direct parse of fence content
       try {
-        const cleaned = sanitizeJSON(markdownJsonMatch[1]);
+        const cleaned = sanitizeJSON(fenceContent);
         return JSON.parse(cleaned);
-      } catch (e) {
-        console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
+      } catch (directErr) {
+        // Fence content may have leading text — try balanced extraction
+        const jsonFromFence = extractBalancedJSON(fenceContent);
+        if (jsonFromFence) {
+          try {
+            const cleaned = sanitizeJSON(jsonFromFence);
+            return JSON.parse(cleaned);
+          } catch (e) {
+            console.warn('Failed to parse JSON from fence content, trying other methods:', e.message);
+          }
+        }
       }
     }
     
