@@ -1740,7 +1740,7 @@ ${(() => {
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
 6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без закуска или само напитка!' : ''}
+7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без "Закуска", без "Следобедна закуска" и без "Късна закуска"! Само Обяд и Вечеря (и евентуално едно друго основно хранене).' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 `;
@@ -3209,6 +3209,22 @@ function validatePlan(plan, userData) {
           const error = `Ден ${i}: Повече от 1 късна закуска (${lateNightSnackCount}) - разрешена е максимум 1`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
+        }
+        
+        // When the user does not eat breakfast, snacks are also forbidden
+        // (they contradict the reduced eating window implied by skipping breakfast)
+        if (userData.eatingHabits && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам')) {
+          const forbiddenWhenNoBreakfast = [
+            { type: 'Закуска', msg: `Ден ${i}: Клиентът не закусва, но има "Закуска" в плана` },
+            { type: 'Следобедна закуска', msg: `Ден ${i}: Клиентът не закусва — "Следобедна закуска" е несъвместима с намаления прозорец на хранене` },
+            { type: 'Късна закуска', msg: `Ден ${i}: Клиентът не закусва — "Късна закуска" е несъвместима с намаления прозорец на хранене` }
+          ];
+          forbiddenWhenNoBreakfast.forEach(({ type, msg }) => {
+            if (mealTypes.includes(type)) {
+              errors.push(msg);
+              stepErrors.step3_mealplan.push(msg);
+            }
+          });
         }
       }
     }
