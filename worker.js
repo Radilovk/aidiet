@@ -3019,8 +3019,6 @@ const DEFAULT_FOOD_BLACKLIST = [
   { item: 'venison',                mode: 'substitute', substitute: 'beef'              },
 ];
 
-const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
-
 const ADLE_V8_HARD_RULES = {
   R1: 'Protein main = exactly 1. Secondary protein only if (breakfast AND eggs), 0-1.',
   R2: 'Vegetables = 1-2. Choose exactly ONE form: Salad OR Fresh side (not both). Potatoes ≠ vegetables.',
@@ -3044,40 +3042,6 @@ const ADLE_V8_SPECIAL_RULES = {
   CORN_NOT_ENERGY: 'Corn is NOT an energy source. Small corn only in salads as add-on.',
   TEMPLATE_C_RESTRICTION: 'Template C (sandwich) allowed ONLY for snacks, NOT for main meals.'
 };
-
-// ADLE v8 Whitelists - Allowed foods (from meallogic.txt)
-const ADLE_V8_PROTEIN_WHITELIST = [
-  'яйца', 'eggs', 'egg', 'яйце',
-  'пилешко', 'chicken', 'пиле', 'пилешк',
-  'говеждо', 'beef', 'говежд',
-  'свинско', 'свинска', 'pork', 'свин',
-  'риба', 'fish', 'скумрия', 'mackerel', 'тон', 'tuna', 'сьомга', 'salmon',
-  'кисело мляко', 'yogurt', 'йогурт', 'кефир',
-  'извара', 'cottage cheese', 'извар',
-  'сирене', 'cheese', 'сирен',
-  'боб', 'beans', 'бобови',
-  'леща', 'lentils', 'лещ',
-  'нахут', 'chickpeas', 'нахут',
-  'грах', 'peas', 'гра'
-];
-
-// Proteins explicitly NOT on whitelist (should trigger warning)
-// Using word stems to catch variations (e.g., заешко, заешки, заешка)
-// SECURITY NOTE: These strings are static and pre-validated, not user input
-const ADLE_V8_NON_WHITELIST_PROTEINS = [
-  'заеш', 'rabbit', 'зайч',  // заешко, заешки, заешка
-  'патиц', 'патешк', 'duck',  // патица, патешко, патешки
-  'гъс', 'goose',  // гъска, гъсешко
-  'агн', 'lamb',  // агне, агнешко, агнешки
-  'дивеч', 'елен', 'deer', 'wild boar', 'глиган'
-];
-
-/**
- * Helper: Check if meal has "Reason:" justification for non-whitelist items
- */
-function hasReasonJustification(meal) {
-  return /reason:/i.test(meal.description || '') || /reason:/i.test(meal.name || '');
-}
 
 /**
  * Helper: Escape regex special characters in a string
