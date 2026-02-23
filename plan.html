@@ -3415,6 +3415,14 @@
             return div.innerHTML.replace(/\n/g, '<br>');
         }
 
+        // Maps internal meal type keys (used by the AI / backend) to display names shown to the user.
+        // Abbreviated internal names were introduced to avoid the word "закуска" appearing in
+        // multiple type keys, which confused the AI model when clients skip breakfast.
+        const MEAL_TYPE_DISPLAY_NAMES = {
+            'Следобедна': 'Следобедна закуска',
+            'Нощна': 'Късна закуска'
+        };
+
         // --- Render Day Meals ---
         function renderDay(dayNum) {
             currentDay = dayNum;
@@ -3449,7 +3457,7 @@
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
                 mealInfo.innerHTML = `
-                    <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
+                    <div class="meal-type">${escapeHtmlWithBreaks(MEAL_TYPE_DISPLAY_NAMES[meal.type] || meal.type)}</div>
                     <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
                     <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${meal.calories ? ` • ${Math.round(meal.calories)} kcal` : ''}</div>
                 `;
