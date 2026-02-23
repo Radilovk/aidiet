@@ -1305,16 +1305,28 @@ async function generateSimplifiedFallbackPlan(env, data) {
 - Предпочитания: ${data.dietLove || 'няма'}
 
 ИЗИСКВАНИЯ (ОПРОСТЕНИ):
-- 3 хранения на ден: Закуска, Обяд, Вечеря
+- 3 хранения на ден: Закуска (сутрин), Обяд (обед), Вечеря (вечер)
 - Всяко ястие с calories и macros (protein, carbs, fats, fiber)
 - Общо около ${recommendedCalories} kcal/ден
 - Балансирани макроси: 30% протеини, 40% въглехидрати, 30% мазнини
+- ЗАДЪЛЖИТЕЛНО: използвай точно тези типове за полето "type": "Закуска", "Обяд", "Вечеря"
 
 ФОРМАТ (JSON):
 {
-  "day1": {"meals": [{"name": "...", "time": "...", "type": "Закуска", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}]},
-  "day2": {"meals": [...]},
-  ...
+  "day1": {"meals": [
+    {"name": "...", "time": "08:00", "type": "Закуска", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}},
+    {"name": "...", "time": "13:00", "type": "Обяд", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}},
+    {"name": "...", "time": "19:00", "type": "Вечеря", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+  ]},
+  "day2": {"meals": [
+    {"name": "...", "time": "08:00", "type": "Закуска", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}},
+    {"name": "...", "time": "13:00", "type": "Обяд", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}},
+    {"name": "...", "time": "19:00", "type": "Вечеря", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+  ]},
+  "day3": {"meals": [...]},
+  "day4": {"meals": [...]},
+  "day5": {"meals": [...]},
+  "day6": {"meals": [...]},
   "day7": {"meals": [...]}
 }
 
