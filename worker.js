@@ -1726,7 +1726,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
    • Нисковъглехидратно: [ENG] деактивиран → компенсирай с повече [VOL] и [FAT]
    • Щадящ стомах: [VOL] само готвени/щадящи (без сурови влакнини)
 
-HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба, агнешко, заешко, патешко, гъшко, дивеч
+HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
 РЯДКО (≤2x/седмица): бекон, пуешка шунка
 WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
@@ -2913,15 +2913,11 @@ const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедн
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 
 // Low glycemic index foods allowed in late-night snacks (GI < 55)
-// Extended list to match common AI-generated alternatives for the same food categories
 const LOW_GI_FOODS = [
   'кисело мляко', 'кефир', 'ядки', 'бадеми', 'орехи', 'кашу', 'лешници',
   'ябълка', 'круша', 'ягоди', 'боровинки', 'малини', 'черници',
   'авокадо', 'краставица', 'домат', 'зелени листни зеленчуци',
-  'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки',
-  // Common AI-generated alternatives for the same low-GI foods:
-  'натурален йогурт', 'йогурт', 'извара', 'горски плодове', 'плод', 'плодове',
-  'сирене', 'шепа ядки', 'смесени ядки', 'фъстъчено масло'
+  'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки'
 ];
 
 // ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
@@ -3493,32 +3489,6 @@ function validatePlan(plan, userData) {
             const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: ГРАХ + РИБА забранена комбинация (ADLE v8 R0)`;
             errors.push(error);
             stepErrors.step3_mealplan.push(error);
-          }
-          
-          // Check for non-whitelist proteins (R12 enforcement)
-          let foundNonWhitelistProtein = false;
-          for (const protein of ADLE_V8_NON_WHITELIST_PROTEINS) {
-            // Use flexible matching for Cyrillic - check if pattern exists without being part of another word
-            // For Bulgarian words, match at word start (e.g., "заеш" matches "заешко", "заешки")
-            // SECURITY: Escape regex special chars to prevent ReDoS attacks
-            const escapedProtein = escapeRegex(protein);
-            const regex = new RegExp(`(^|[^а-яa-z])${escapedProtein}`, 'i');
-            const match = mealText.match(regex);
-            
-            if (match) {
-              // Extract the actual matched word from meal text for better error messages
-              const matchedWordRegex = new RegExp(`${escapedProtein}[а-яa-z]*`, 'i');
-              const actualWord = mealText.match(matchedWordRegex)?.[0] || protein;
-              
-              if (!hasReasonJustification(meal)) {
-                const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord.toUpperCase()}" което НЕ е в whitelist (ADLE v8 R12). Изисква се Reason: ... ако е обективно необходимо.`;
-                errors.push(error);
-                stepErrors.step3_mealplan.push(error);
-                foundNonWhitelistProtein = true;
-              } else {
-                warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа "${actualWord}" с обосновка - проверете дали е валидна`);
-              }
-            }
           }
         });
       }
