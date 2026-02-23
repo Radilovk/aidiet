@@ -1385,6 +1385,14 @@ async function generateSimplifiedFallbackPlan(env, data) {
 }
 
 /**
+ * Normalize a blacklist entry to object format.
+ * Handles backward-compat with old string[] KV data.
+ */
+function normalizeBlacklistEntry(entry) {
+  return typeof entry === 'string' ? { item: entry, mode: 'ban' } : entry;
+}
+
+/**
  * Helper function to fetch and build dynamic whitelist/blacklist sections for prompts
  */
 async function getDynamicFoodListsSections(env) {
@@ -1412,20 +1420,40 @@ async function getDynamicFoodListsSections(env) {
     console.error('Error loading whitelist/blacklist from KV:', error);
   }
   
+  // Normalize blacklist entries: backward-compat with old string[] format
+  const normalizedBlacklist = dynamicBlacklist.map(normalizeBlacklistEntry);
+
+  // Build substitutions array for validatePlan auto-corrector.
+  // Sort by detect length descending so longer/more-specific phrases match first
+  // (e.g. "гръцко кисело мляко" before "кисело мляко").
+  const dynamicSubstitutions = normalizedBlacklist
+    .filter(e => e.mode === 'substitute' && e.substitute)
+    .map(e => ({ detect: e.item, replace: e.substitute }))
+    .sort((a, b) => b.detect.length - a.detect.length);
+
   // Build dynamic whitelist section if there are custom items
   let dynamicWhitelistSection = '';
   if (dynamicWhitelist.length > 0) {
     dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
   }
   
-  // Build dynamic blacklist section if there are custom items
+  // Build dynamic blacklist section - differentiate bans from substitutes
   let dynamicBlacklistSection = '';
-  if (dynamicBlacklist.length > 0) {
-    dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ДОПЪЛНИТЕЛНИ ЗАБРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicBlacklist.join('\n- ')}\nТези храни са категорично забранени от администратора и НЕ трябва да се използват.`;
+  if (normalizedBlacklist.length > 0) {
+    const banLines = normalizedBlacklist
+      .filter(e => e.mode !== 'substitute')
+      .map(e => `${e.item} (ЗАБРАНЕНО)`);
+    const subLines = normalizedBlacklist
+      .filter(e => e.mode === 'substitute' && e.substitute)
+      .map(e => `${e.item} → замести с „${e.substitute}"`);
+    const allLines = [...banLines, ...subLines];
+    if (allLines.length > 0) {
+      dynamicBlacklistSection = `\n\nАДМИН BLACKLIST (ОТ АДМИН ПАНЕЛ):\n- ${allLines.join('\n- ')}\nЗабранените храни НЕ трябва да се използват. Храните за заместване ТРЯБВА да се заменят с посочения алтернативен вариант.`;
+    }
   }
   
   // Cache the result
-  const result = { dynamicWhitelistSection, dynamicBlacklistSection };
+  const result = { dynamicWhitelistSection, dynamicBlacklistSection, dynamicSubstitutions };
   foodListsCache = result;
   foodListsCacheTime = now;
   
@@ -2272,9 +2300,12 @@ async function handleGeneratePlan(request, env) {
     // No caching - client stores plan locally
     let structuredPlan = await generatePlanMultiStep(env, data);
     
+    // Load food substitutions from KV (already cached after generatePlanMultiStep)
+    const { dynamicSubstitutions } = await getDynamicFoodListsSections(env);
+
     // ENHANCED: Implement step-specific correction loop
     // Instead of correcting the whole plan, regenerate from the earliest error step
-    let validation = validatePlan(structuredPlan, data);
+    let validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
     let correctionAttempts = 0;
     
     // Safety check: ensure MAX_CORRECTION_ATTEMPTS is valid
@@ -2295,7 +2326,7 @@ async function handleGeneratePlan(request, env) {
         );
         
         // Re-validate the regenerated plan
-        validation = validatePlan(structuredPlan, data);
+        validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
       } catch (error) {
         console.error(`handleGeneratePlan: Regeneration attempt ${correctionAttempts} failed:`, error);
         // Continue with next attempt or exit loop
@@ -2314,7 +2345,7 @@ async function handleGeneratePlan(request, env) {
         try {
           // Generate simplified plan with reduced requirements
           const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
-          const fallbackValidation = validatePlan(simplifiedPlan, data);
+          const fallbackValidation = validatePlan(simplifiedPlan, data, dynamicSubstitutions);
           
           if (fallbackValidation.isValid) {
             const cleanPlan = removeInternalJustifications(simplifiedPlan);
@@ -2947,19 +2978,45 @@ const DEFAULT_FOOD_WHITELIST = [
   'грах', 'peas'
 ];
 
-// Default blacklist - hard banned foods for admin panel
+// Default blacklist - hard banned foods for admin panel.
+// Each entry is { item, mode: 'ban'|'substitute', substitute? }.
+// 'ban'       – food is forbidden outright; AI is instructed not to use it.
+// 'substitute'– food is replaced with the nearest acceptable alternative
+//               both in the AI prompt and by the in-plan auto-corrector.
 const DEFAULT_FOOD_BLACKLIST = [
-  'лук', 'onion',
-  'пуешко месо', 'turkey meat',
-  'изкуствени подсладители', 'artificial sweeteners',
-  'мед', 'захар', 'конфитюр', 'сиропи',
-  'honey', 'sugar', 'jam', 'syrups',
-  'кетчуп', 'майонеза', 'BBQ сос',
-  'ketchup', 'mayonnaise', 'BBQ sauce',
-  'гръцко кисело мляко', 'greek yogurt',
-  // Non-whitelist proteins (moved from ADLE_V8_NON_WHITELIST_PROTEINS)
-  'агнешко', 'заешко', 'патешко', 'гъшко', 'дивеч',
-  'lamb', 'rabbit', 'duck', 'goose', 'venison'
+  { item: 'лук',                   mode: 'substitute', substitute: 'чесън'             },
+  { item: 'onion',                  mode: 'substitute', substitute: 'garlic'            },
+  { item: 'пуешко месо',            mode: 'substitute', substitute: 'пилешко месо'      },
+  { item: 'turkey meat',            mode: 'substitute', substitute: 'chicken'           },
+  { item: 'пуешко',                 mode: 'substitute', substitute: 'пилешко'           },
+  { item: 'изкуствени подсладители',mode: 'ban'                                         },
+  { item: 'artificial sweeteners',  mode: 'ban'                                         },
+  { item: 'мед',                    mode: 'ban'                                         },
+  { item: 'захар',                  mode: 'ban'                                         },
+  { item: 'конфитюр',               mode: 'ban'                                         },
+  { item: 'сиропи',                 mode: 'ban'                                         },
+  { item: 'honey',                  mode: 'ban'                                         },
+  { item: 'sugar',                  mode: 'ban'                                         },
+  { item: 'jam',                    mode: 'ban'                                         },
+  { item: 'syrups',                 mode: 'ban'                                         },
+  { item: 'кетчуп',                 mode: 'substitute', substitute: 'доматен сос'       },
+  { item: 'ketchup',                mode: 'substitute', substitute: 'tomato sauce'      },
+  { item: 'майонеза',               mode: 'substitute', substitute: 'натурален дресинг' },
+  { item: 'mayonnaise',             mode: 'substitute', substitute: 'natural dressing'  },
+  { item: 'BBQ сос',                mode: 'ban'                                         },
+  { item: 'BBQ sauce',              mode: 'ban'                                         },
+  { item: 'гръцко кисело мляко',    mode: 'substitute', substitute: 'кисело мляко'      },
+  { item: 'greek yogurt',           mode: 'substitute', substitute: 'yogurt'            },
+  { item: 'агнешко',                mode: 'substitute', substitute: 'говеждо'           },
+  { item: 'заешко',                 mode: 'substitute', substitute: 'пилешко'           },
+  { item: 'патешко',                mode: 'substitute', substitute: 'пилешко'           },
+  { item: 'гъшко',                  mode: 'substitute', substitute: 'пилешко'           },
+  { item: 'дивеч',                  mode: 'substitute', substitute: 'говеждо'           },
+  { item: 'lamb',                   mode: 'substitute', substitute: 'beef'              },
+  { item: 'rabbit',                 mode: 'substitute', substitute: 'chicken'           },
+  { item: 'duck',                   mode: 'substitute', substitute: 'chicken'           },
+  { item: 'goose',                  mode: 'substitute', substitute: 'chicken'           },
+  { item: 'venison',                mode: 'substitute', substitute: 'beef'              },
 ];
 
 const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
@@ -3029,36 +3086,11 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Nearest-alternative substitution table for hard-ban foods.
-// Used by validatePlan() to auto-correct meals in-place instead of returning errors.
-// Order matters: longer/more-specific phrases must come before shorter sub-phrases.
-const HARD_BAN_AUTO_FIXES = [
-  { detect: 'гръцко кисело мляко', replace: 'кисело мляко'     },
-  { detect: 'greek yogurt',         replace: 'yogurt'           },
-  { detect: 'пуешко месо',          replace: 'пилешко месо'     },
-  { detect: 'turkey meat',          replace: 'chicken'          },
-  { detect: 'пуешко',               replace: 'пилешко'          },
-  { detect: 'агнешко',              replace: 'говеждо'          },
-  { detect: 'заешко',               replace: 'пилешко'          },
-  { detect: 'патешко',              replace: 'пилешко'          },
-  { detect: 'гъшко',                replace: 'пилешко'          },
-  { detect: 'дивеч',                replace: 'говеждо'          },
-  { detect: 'lamb',                 replace: 'beef'             },
-  { detect: 'rabbit',               replace: 'chicken'          },
-  { detect: 'duck',                 replace: 'chicken'          },
-  { detect: 'goose',                replace: 'chicken'          },
-  { detect: 'venison',              replace: 'beef'             },
-  { detect: 'кетчуп',               replace: 'доматен сос'      },
-  { detect: 'ketchup',              replace: 'tomato sauce'     },
-  { detect: 'майонеза',             replace: 'натурален дресинг'},
-  { detect: 'mayonnaise',           replace: 'natural dressing' },
-  { detect: 'лук',                  replace: 'чесън'            },
-  { detect: 'onion',                replace: 'garlic'           },
-];
-
 /**
  * Apply food substitutions to a single meal object in-place.
+ * `fixes` is an array of {detect, replace} from the KV blacklist.
  * Returns an array of human-readable substitution descriptions that were applied.
+ * Longer phrases should appear before shorter sub-phrases in the fixes array.
  */
 function applyFoodSubstitutions(meal, fixes) {
   const applied = [];
@@ -3091,7 +3123,7 @@ const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (optimal: 4 chunks total 
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
  * Returns { isValid: boolean, errors: string[] }
  */
-function validatePlan(plan, userData) {
+function validatePlan(plan, userData, substitutions = []) {
   const errors = [];
   const warnings = [];
   const stepErrors = {
@@ -3509,8 +3541,8 @@ function validatePlan(plan, userData) {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
         day.meals.forEach((meal, mealIndex) => {
-          // Apply all hard-ban substitutions in one pass
-          const fixes = applyFoodSubstitutions(meal, HARD_BAN_AUTO_FIXES);
+          // Apply substitutions from KV blacklist in one pass
+          const fixes = applyFoodSubstitutions(meal, substitutions);
           if (fixes.length > 0) {
             warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: автокорекция: ${fixes.join(', ')}`);
           }
@@ -6530,21 +6562,23 @@ async function handleExportAILogs(request, env) {
 }
 
 /**
- * Blacklist Management: Get blacklist from KV storage
+ * Blacklist Management: Get blacklist from KV storage.
+ * Returns array of {item, mode, substitute?} objects.
  */
 async function handleGetBlacklist(request, env) {
   try {
     if (!env.page_content) {
       console.error('KV namespace not configured');
-      // Return default blacklist if KV not available
       return jsonResponse({ success: true, blacklist: DEFAULT_FOOD_BLACKLIST });
     }
     
     const blacklistData = await env.page_content.get('food_blacklist');
-    const blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
+    let blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
+    // Normalize old string[] format to object[] for the admin panel
+    blacklist = blacklist.map(normalizeBlacklistEntry);
     
     return jsonResponse({ success: true, blacklist: blacklist }, 200, {
-      cacheControl: 'public, max-age=300' // Cache for 5 minutes - blacklist changes infrequently
+      cacheControl: 'public, max-age=300'
     });
   } catch (error) {
     console.error('Error getting blacklist:', error);
@@ -6553,33 +6587,42 @@ async function handleGetBlacklist(request, env) {
 }
 
 /**
- * Blacklist Management: Add item to blacklist
+ * Blacklist Management: Add item to blacklist.
+ * Accepts {item, mode: 'ban'|'substitute', substitute?}.
  */
 async function handleAddToBlacklist(request, env) {
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
+    const mode = data.mode === 'substitute' ? 'substitute' : 'ban';
+    const substitute = mode === 'substitute' ? (data.substitute?.trim() || '') : undefined;
     
     if (!item) {
       return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    if (mode === 'substitute' && !substitute) {
+      return jsonResponse({ error: 'Substitute is required when mode is substitute' }, 400);
     }
     
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
     
-    // Get current blacklist
+    // Get current blacklist and normalize to object format
     const blacklistData = await env.page_content.get('food_blacklist');
     let blacklist = blacklistData ? JSON.parse(blacklistData) : DEFAULT_FOOD_BLACKLIST;
+    blacklist = blacklist.map(normalizeBlacklistEntry);
     
-    // Add item if not already in list
-    if (!blacklist.includes(item)) {
-      blacklist.push(item);
-      await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
-      
-      // Invalidate food lists cache
-      invalidateFoodListsCache();
+    // Replace existing entry or add new one
+    const existing = blacklist.findIndex(e => e.item === item);
+    const entry = mode === 'substitute' ? { item, mode, substitute } : { item, mode };
+    if (existing >= 0) {
+      blacklist[existing] = entry;
+    } else {
+      blacklist.push(entry);
     }
+    await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    invalidateFoodListsCache();
     
     return jsonResponse({ success: true, blacklist: blacklist });
   } catch (error) {
@@ -6589,7 +6632,8 @@ async function handleAddToBlacklist(request, env) {
 }
 
 /**
- * Blacklist Management: Remove item from blacklist
+ * Blacklist Management: Remove item from blacklist.
+ * Matches by item name (works for both old string[] and new object[] format).
  */
 async function handleRemoveFromBlacklist(request, env) {
   try {
@@ -6604,12 +6648,13 @@ async function handleRemoveFromBlacklist(request, env) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
     
-    // Get current blacklist
+    // Get current blacklist and normalize to object format
     const blacklistData = await env.page_content.get('food_blacklist');
     let blacklist = blacklistData ? JSON.parse(blacklistData) : [];
+    blacklist = blacklist.map(normalizeBlacklistEntry);
     
-    // Remove item
-    blacklist = blacklist.filter(i => i !== item);
+    // Remove by item name
+    blacklist = blacklist.filter(e => e.item !== item);
     await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
     
     // Invalidate food lists cache

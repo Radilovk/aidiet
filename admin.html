@@ -1573,7 +1573,7 @@
             <div class="card">
                 <h2><i class="fas fa-ban"></i> Управление на Черен Списък с Храни</h2>
                 <div class="warning-box">
-                    <strong>Внимание:</strong> Храните в черния списък ще бъдат КАТЕГОРИЧНО ЗАБРАНЕНИ при генериране на планове. AI-то няма да може да ги използва.
+                    <strong>Внимание:</strong> Всеки запис може да бъде <strong>Забрана</strong> (AI не използва храната) или <strong>Заместване</strong> (AI автоматично замества храната с посочения алтернативен вариант).
                 </div>
                 <div class="form-group">
                     <label>Текущ Черен Списък:</label>
@@ -1584,15 +1584,20 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Добави храна в черния списък:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="blacklistInput" placeholder="Напр: гръцко кисело мляко" style="flex: 1;">
+                    <label>Добави запис в черния списък:</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+                        <input type="text" id="blacklistInput" placeholder="Напр: гръцко кисело мляко" style="flex: 2; min-width: 160px;">
+                        <select id="blacklistMode" onchange="toggleSubstituteInput()" style="padding: 8px; border: 1px solid #ddd; border-radius: 5px; background: var(--white); color: var(--text-dark);">
+                            <option value="ban">🚫 Забрана</option>
+                            <option value="substitute">🔄 Заместване</option>
+                        </select>
+                        <input type="text" id="blacklistSubstitute" placeholder="Замести с..." style="flex: 2; min-width: 140px; display: none;">
                         <button class="btn" onclick="addToBlacklist()" style="background: var(--accent-light-red);">
                             <i class="fas fa-plus"></i> Добави
                         </button>
                     </div>
                     <small style="color: var(--text-gray); display: block; margin-top: 5px;">
-                        Добавете храни на български и/или английски език. Препоръчително е да добавите и двата варианта.
+                        Добавете храни на български и/или английски. При "Заместване" въведете алтернативния вариант.
                     </small>
                 </div>
                 <button class="btn" onclick="loadBlacklist()" style="background: var(--accent-blue); margin-top: 10px;">
@@ -3099,7 +3104,15 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         // --- Blacklist Management ---
+        // currentBlacklist: array of {item, mode: 'ban'|'substitute', substitute?}
         let currentBlacklist = [];
+
+        // Show/hide substitute input based on selected mode
+        function toggleSubstituteInput() {
+            const mode = document.getElementById('blacklistMode').value;
+            const subInput = document.getElementById('blacklistSubstitute');
+            subInput.style.display = mode === 'substitute' ? '' : 'none';
+        }
 
         // Load blacklist from KV storage
         async function loadBlacklist() {
@@ -3116,14 +3129,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showSuccess('Черният списък е зареден успешно!');
             } catch (error) {
                 console.error('Error loading blacklist:', error);
-                // Reset to empty - defaults will be loaded on next successful fetch from backend
                 currentBlacklist = [];
                 displayBlacklist();
                 showError('Не може да се зареди черният списък. Моля, опитайте отново.');
             }
         }
 
-        // Display blacklist items
+        // Display blacklist items (supports {item, mode, substitute?} objects)
         function displayBlacklist() {
             const container = document.getElementById('blacklistDisplay');
             if (currentBlacklist.length === 0) {
@@ -3131,14 +3143,22 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 return;
             }
 
-            const itemsHTML = currentBlacklist.map((item, index) => `
-                <div style="display: inline-flex; align-items: center; background: var(--white); padding: 8px 12px; border-radius: 20px; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <span style="color: var(--text-dark);">${escapeHtml(item)}</span>
-                    <button onclick="removeFromBlacklist(${index})" style="background: none; border: none; color: var(--accent-light-red); cursor: pointer; padding: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">
+            const itemsHTML = currentBlacklist.map((entry, index) => {
+                const isSub = entry.mode === 'substitute';
+                const label = isSub
+                    ? `🔄 ${escapeHtml(entry.item)} → ${entry.substitute ? escapeHtml(entry.substitute) : '<em style="opacity:0.6">(липсва заместване)</em>'}`
+                    : `🚫 ${escapeHtml(entry.item)}`;
+                const badgeStyle = isSub
+                    ? 'background: #fff3cd; color: #856404; border: 1px solid #ffc107;'
+                    : 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;';
+                return `
+                <div style="display: inline-flex; align-items: center; ${badgeStyle} padding: 6px 12px; border-radius: 20px; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.9em;">
+                    <span style="color: inherit;">${label}</span>
+                    <button onclick="removeFromBlacklist(${index})" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; opacity: 0.7;" title="Премахни">
                         <i class="fas fa-times"></i>
                     </button>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
 
             container.innerHTML = `<div style="display: flex; flex-wrap: wrap; gap: 8px;">${itemsHTML}</div>`;
         }
@@ -3146,84 +3166,65 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Add item to blacklist
         async function addToBlacklist() {
             const input = document.getElementById('blacklistInput');
+            const modeEl = document.getElementById('blacklistMode');
+            const subEl = document.getElementById('blacklistSubstitute');
             const item = input.value.trim().toLowerCase();
-            
-            if (!item) {
-                showError('Моля, въведете име на храна');
-                return;
-            }
+            const mode = modeEl.value;
+            const substitute = subEl.value.trim();
 
-            if (currentBlacklist.includes(item)) {
-                showError('Тази храна вече е в черния списък');
-                return;
-            }
+            if (!item) { showError('Моля, въведете име на храна'); return; }
+            if (mode === 'substitute' && !substitute) { showError('Моля, въведете алтернативата за заместване'); return; }
+            // Allow upsert: existing entry will be updated on the backend
+
+            const payload = mode === 'substitute' ? { item, mode, substitute } : { item, mode };
 
             try {
                 const response = await fetch(WORKER_URL + '/api/admin/add-to-blacklist', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ item: item })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
-
-                if (!response.ok) {
-                    throw new Error('Failed to add to blacklist');
-                }
-
+                if (!response.ok) throw new Error('Failed to add to blacklist');
                 const result = await response.json();
-                currentBlacklist = result.blacklist || [...currentBlacklist, item];
-                
-                // Invalidate blacklist cache after successful modification
+                currentBlacklist = result.blacklist || [...currentBlacklist, payload];
                 invalidateBlacklistCache();
-                
                 displayBlacklist();
                 input.value = '';
+                subEl.value = '';
                 showSuccess(`"${item}" е добавена в черния списък!`);
             } catch (error) {
                 console.error('Error adding to blacklist:', error);
-                // Fallback to local update
-                currentBlacklist.push(item);
+                currentBlacklist.push(payload);
                 displayBlacklist();
                 input.value = '';
+                subEl.value = '';
                 showSuccess(`"${item}" е добавена локално в черния списък!`);
             }
         }
 
         // Remove item from blacklist
         async function removeFromBlacklist(index) {
-            const item = currentBlacklist[index];
-            if (!confirm(`Сигурни ли сте, че искате да премахнете "${item}" от черния списък?`)) {
-                return;
-            }
+            const entry = currentBlacklist[index];
+            const itemName = entry.item;
+            if (!confirm(`Сигурни ли сте, че искате да премахнете "${itemName}" от черния списък?`)) return;
 
             try {
                 const response = await fetch(WORKER_URL + '/api/admin/remove-from-blacklist', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ item: item })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item: itemName })
                 });
-
-                if (!response.ok) {
-                    throw new Error('Failed to remove from blacklist');
-                }
-
+                if (!response.ok) throw new Error('Failed to remove from blacklist');
                 const result = await response.json();
                 currentBlacklist = result.blacklist || currentBlacklist.filter((_, i) => i !== index);
-                
-                // Invalidate blacklist cache after successful modification
                 invalidateBlacklistCache();
-                
                 displayBlacklist();
-                showSuccess(`"${item}" е премахната от черния списък!`);
+                showSuccess(`"${itemName}" е премахната от черния списък!`);
             } catch (error) {
                 console.error('Error removing from blacklist:', error);
-                // Fallback to local update
                 currentBlacklist.splice(index, 1);
                 displayBlacklist();
-                showSuccess(`"${item}" е премахната локално от черния списък!`);
+                showSuccess(`"${itemName}" е премахната локално от черния списък!`);
             }
         }
 
