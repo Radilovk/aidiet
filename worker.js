@@ -2956,7 +2956,10 @@ const DEFAULT_FOOD_BLACKLIST = [
   'honey', 'sugar', 'jam', 'syrups',
   'кетчуп', 'майонеза', 'BBQ сос',
   'ketchup', 'mayonnaise', 'BBQ sauce',
-  'гръцко кисело мляко', 'greek yogurt'
+  'гръцко кисело мляко', 'greek yogurt',
+  // Non-whitelist proteins (moved from ADLE_V8_NON_WHITELIST_PROTEINS)
+  'агнешко', 'заешко', 'патешко', 'гъшко', 'дивеч',
+  'lamb', 'rabbit', 'duck', 'goose', 'venison'
 ];
 
 const ADLE_V8_RARE_ITEMS = ['пуешка шунка', 'turkey ham', 'бекон', 'bacon']; // ≤2 times/week
@@ -3024,6 +3027,55 @@ function hasReasonJustification(meal) {
  */
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Nearest-alternative substitution table for hard-ban foods.
+// Used by validatePlan() to auto-correct meals in-place instead of returning errors.
+// Order matters: longer/more-specific phrases must come before shorter sub-phrases.
+const HARD_BAN_AUTO_FIXES = [
+  { detect: 'гръцко кисело мляко', replace: 'кисело мляко'     },
+  { detect: 'greek yogurt',         replace: 'yogurt'           },
+  { detect: 'пуешко месо',          replace: 'пилешко месо'     },
+  { detect: 'turkey meat',          replace: 'chicken'          },
+  { detect: 'пуешко',               replace: 'пилешко'          },
+  { detect: 'агнешко',              replace: 'говеждо'          },
+  { detect: 'заешко',               replace: 'пилешко'          },
+  { detect: 'патешко',              replace: 'пилешко'          },
+  { detect: 'гъшко',                replace: 'пилешко'          },
+  { detect: 'дивеч',                replace: 'говеждо'          },
+  { detect: 'lamb',                 replace: 'beef'             },
+  { detect: 'rabbit',               replace: 'chicken'          },
+  { detect: 'duck',                 replace: 'chicken'          },
+  { detect: 'goose',                replace: 'chicken'          },
+  { detect: 'venison',              replace: 'beef'             },
+  { detect: 'кетчуп',               replace: 'доматен сос'      },
+  { detect: 'ketchup',              replace: 'tomato sauce'     },
+  { detect: 'майонеза',             replace: 'натурален дресинг'},
+  { detect: 'mayonnaise',           replace: 'natural dressing' },
+  { detect: 'лук',                  replace: 'чесън'            },
+  { detect: 'onion',                replace: 'garlic'           },
+];
+
+/**
+ * Apply food substitutions to a single meal object in-place.
+ * Returns an array of human-readable substitution descriptions that were applied.
+ */
+function applyFoodSubstitutions(meal, fixes) {
+  const applied = [];
+  for (const { detect, replace } of fixes) {
+    const re = new RegExp(escapeRegex(detect), 'gi');
+    let changed = false;
+    if (meal.name && re.test(meal.name)) {
+      meal.name = meal.name.replace(re, replace);
+      changed = true;
+    }
+    if (meal.description && new RegExp(escapeRegex(detect), 'gi').test(meal.description)) {
+      meal.description = meal.description.replace(new RegExp(escapeRegex(detect), 'gi'), replace);
+      changed = true;
+    }
+    if (changed) applied.push(`${detect}→${replace}`);
+  }
+  return applied;
 }
 
 // Progressive generation: split meal plan into smaller chunks to avoid token limits
@@ -3448,47 +3500,37 @@ function validatePlan(plan, userData) {
     }
   }
   
-  // 12. Check for ADLE v8 hard bans in meal descriptions (Step 3 - Meal plan issue)
+  // 12. Auto-correct ADLE v8 hard bans in meal descriptions.
+  // Instead of returning errors that trigger a correction loop, banned foods are
+  // replaced in-place with the nearest acceptable alternative. Fixes are logged
+  // as warnings so they remain visible without blocking the plan.
   if (plan.weekPlan) {
     Object.keys(plan.weekPlan).forEach(dayKey => {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
         day.meals.forEach((meal, mealIndex) => {
+          // Apply all hard-ban substitutions in one pass
+          const fixes = applyFoodSubstitutions(meal, HARD_BAN_AUTO_FIXES);
+          if (fixes.length > 0) {
+            warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: автокорекция: ${fixes.join(', ')}`);
+          }
+
+          // Auto-fix peas + fish combination: replace грах with броколи
           const mealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
-          
-          // Check for hard bans (onion, turkey meat, artificial sweeteners, honey/sugar, ketchup/mayo)
-          if (/\b(лук|onion)\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ЛУК (hard ban от ADLE v8)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
+          if (/грах|peas/.test(mealText) && /риба|fish/.test(mealText)) {
+            const pFixes = applyFoodSubstitutions(meal, [
+              { detect: 'грах', replace: 'броколи' },
+              { detect: 'peas', replace: 'broccoli' }
+            ]);
+            if (pFixes.length > 0) {
+              warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: автокорекция грах+риба: ${pFixes.join(', ')}`);
+            }
           }
-          // Check for turkey meat but not turkey ham
-          if (/\bпуешко\b(?!\s*шунка)/.test(mealText) || /\bturkey\s+meat\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ПУЕШКО МЕСО (hard ban от ADLE v8)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
-          }
-          // Check for Greek yogurt (blacklisted)
-          if (/\bгръцко\s+кисело\s+мляко\b/.test(mealText) || /\bgreek\s+yogurt\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа ГРЪЦКО КИСЕЛО МЛЯКО (в черния списък - използвай само обикновено кисело мляко)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
-          }
-          // Check for honey/sugar/syrup in specific contexts (as ingredients, not in compound words)
-          if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(mealText) && !/медицин|междин|сиропен/.test(mealText)) {
+
+          // Honey/sugar/syrup: warning only (context-dependent, not auto-replaced)
+          const correctedMealText = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
+          if (/\b(мед|захар|сироп)\b(?=\s|,|\.|\))/.test(correctedMealText) && !/медицин|междин|сиропен/.test(correctedMealText)) {
             warnings.push(`Ден ${dayKey}, хранене ${mealIndex + 1}: Може да съдържа МЕД/ЗАХАР/СИРОП (hard ban от ADLE v8) - проверете`);
-          }
-          if (/\b(кетчуп|майонеза|ketchup|mayonnaise)\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: Съдържа КЕТЧУП/МАЙОНЕЗА (hard ban от ADLE v8)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
-          }
-          
-          // Check for peas + fish forbidden combination
-          if (/\b(грах|peas)\b/.test(mealText) && /\b(риба|fish)\b/.test(mealText)) {
-            const error = `Ден ${dayKey}, хранене ${mealIndex + 1}: ГРАХ + РИБА забранена комбинация (ADLE v8 R0)`;
-            errors.push(error);
-            stepErrors.step3_mealplan.push(error);
           }
         });
       }
