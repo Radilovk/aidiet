@@ -765,6 +765,14 @@ let chatContextCacheTime = {};
 const CHAT_CONTEXT_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache (session-based)
 const CHAT_CONTEXT_MAX_SIZE = 1000; // Maximum number of cached contexts (prevent memory bloat)
 
+// Track logIds per session for deferred combined-index updates.
+// logAIRequest() appends each new logId here; finalizeAISessionLogs() reads
+// the list once and writes the combined index with a single cacheGet + cacheSet,
+// instead of one cacheGet + cacheSet per AI call. Together with the merged
+// request+response log entry in logAIResponse(), this reduces Cache API
+// subrequests from 4 per callAIModel call to 1.
+const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
+
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
@@ -1141,8 +1149,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   const preferredProvider = config.provider;
   const modelName = config.modelName;
 
-  // Log AI request
-  const logId = await logAIRequest(env, stepName, {
+  // Build request data object in memory (not written to cache here; combined with
+  // the response in logAIResponse to reduce Cache API subrequests per call from 4 to 1).
+  const requestData = {
     prompt: enforcedPrompt,
     estimatedInputTokens: estimatedInputTokens,
     maxTokens: maxTokens,
@@ -1150,8 +1159,12 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     modelName: modelName,
     sessionId: sessionId,
     userData: userData,
-    calculatedData: calculatedData
-  });
+    calculatedData: calculatedData,
+    timestamp: new Date().toISOString()
+  };
+
+  // Log AI request (no cache operation – just generates logId and tracks it in the session)
+  const logId = await logAIRequest(env, stepName, requestData);
 
   const startTime = Date.now();
   let response;
@@ -1197,13 +1210,13 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     error = err.message || 'Unknown error';
     throw err;
   } finally {
-    // Log AI response
+    // Log AI response combined with request data (single cache.put instead of two)
     await logAIResponse(env, logId, stepName, {
       response: response,
       success: success,
       error: error,
       duration: Date.now() - startTime
-    });
+    }, requestData);
   }
 
   return response;
@@ -3894,7 +3907,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     }
     
     // Combine all parts into final plan
-    return {
+    const result = {
       ...mealPlan,
       analysis: analysis,
       strategy: strategy,
@@ -3905,8 +3918,15 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         generatedAt: new Date().toISOString()
       }
     };
+    
+    // Update combined index once for this regeneration session
+    await finalizeAISessionLogs(env, sessionId);
+    
+    return result;
   } catch (error) {
     console.error(`Regeneration from ${earliestErrorStep} failed:`, error);
+    // Finalize session logs even on failure
+    await finalizeAISessionLogs(env, sessionId).catch(() => {});
     throw new Error(`Регенерацията от ${earliestErrorStep} се провали: ${error.message}`);
   }
 }
@@ -4085,7 +4105,7 @@ async function generatePlanMultiStep(env, data) {
     
     // Combine all parts into final plan (meal plan takes precedence)
     // Returns comprehensive plan with analysis and strategy included
-    return {
+    const result = {
       ...mealPlan,
       analysis: analysis,
       strategy: strategy,
@@ -4094,8 +4114,15 @@ async function generatePlanMultiStep(env, data) {
         generatedAt: new Date().toISOString()
       }
     };
+    
+    // Update combined index once for the whole session (2 subrequests total instead of 2×N)
+    await finalizeAISessionLogs(env, sessionId);
+    
+    return result;
   } catch (error) {
     console.error('Multi-step generation failed:', error);
+    // Finalize session logs even on failure so errors appear in admin logs
+    await finalizeAISessionLogs(env, sessionId).catch(() => {});
     // Return error with details instead of falling back silently
     throw new Error(`Генерирането на план се провали: ${error.message}`);
   }
@@ -5783,70 +5810,90 @@ function generateMockResponse(prompt) {
  * - All logs → Cache API (free, no quota impact, 24h TTL)
  * - Errors only → KV (permanent, for debugging, minimal quota impact)
  * Tracks all communication between backend and AI model
+ *
+ * SUBREQUEST OPTIMIZATION: This function performs ZERO cache operations.
+ * It only generates a logId, optionally tracks it in the in-memory
+ * pendingSessionLogs map (for sessions where a sessionId is provided), and
+ * returns the logId for use by logAIResponse.  The actual Cache API write
+ * happens once in logAIResponse (combined request+response entry), and the
+ * combined index is updated once per session by finalizeAISessionLogs().
+ * This reduces Cache API subrequests from 4 per callAIModel call to 1,
+ * keeping the total well below the Cloudflare 50-subrequest limit even when
+ * the Gemini API needs multiple retries.
  */
 async function logAIRequest(env, stepName, requestData) {
   try {
     // Generate unique log ID
     const logId = generateUniqueId('ai_log');
+    
+    // Get sessionId from requestData
+    const sessionId = requestData.sessionId;
+    
+    // Track this logId under its session so finalizeAISessionLogs() can
+    // update the combined index with a single cache read+write at the end of
+    // the plan-generation flow instead of one read+write per AI call.
+    if (sessionId) {
+      if (!pendingSessionLogs.has(sessionId)) {
+        pendingSessionLogs.set(sessionId, []);
+      }
+      pendingSessionLogs.get(sessionId).push(logId);
+    }
+    
+    console.log(`[Cache API] AI request tracked: ${stepName} (${logId}, session: ${sessionId || 'none'})`);
+    return logId;
+  } catch (error) {
+    console.error('[Cache API] Failed to track AI request:', error);
+    return null;
+  }
+}
+
+/**
+ * Write a single combined request+response log entry to the Cache API.
+ * Accepts the requestData built in callAIModel so that both halves of the
+ * conversation are persisted in one cache.put (1 subrequest) instead of two.
+ */
+async function logAIResponse(env, logId, stepName, responseData, requestData = null) {
+  try {
+    if (!logId) {
+      console.warn('[Cache API] Missing logId, skipping AI response logging');
+      return;
+    }
+
     const timestamp = new Date().toISOString();
     
-    // Get sessionId from requestData, or generate one if not provided (for backward compatibility with non-session calls)
-    const sessionId = requestData.sessionId || generateUniqueId('auto_session');
-    
+    // Combined entry merges request metadata with response data so the admin
+    // panel can reconstruct the full conversation from a single cache entry.
     const logEntry = {
       id: logId,
-      sessionId: sessionId,
-      timestamp: timestamp,
+      sessionId: requestData?.sessionId || null,
+      timestamp: requestData?.timestamp || timestamp,
       stepName: stepName,
-      type: 'request',
-      prompt: requestData.prompt || '',
-      promptLength: requestData.prompt?.length || 0,
-      estimatedInputTokens: requestData.estimatedInputTokens || 0,
-      maxOutputTokens: requestData.maxTokens || null,
-      provider: requestData.provider || 'unknown',
-      modelName: requestData.modelName || 'unknown',
-      // Include structured user data and calculations for export
-      userData: requestData.userData || null,
-      calculatedData: requestData.calculatedData || null,
-      // Flag for error state
-      hasError: !!requestData.error,
-      error: requestData.error || null
+      type: 'combined',
+      // Request fields
+      prompt: requestData?.prompt || '',
+      promptLength: requestData?.prompt?.length || 0,
+      estimatedInputTokens: requestData?.estimatedInputTokens || 0,
+      maxOutputTokens: requestData?.maxTokens || null,
+      provider: requestData?.provider || 'unknown',
+      modelName: requestData?.modelName || 'unknown',
+      userData: requestData?.userData || null,
+      calculatedData: requestData?.calculatedData || null,
+      // Response fields
+      responseTimestamp: timestamp,
+      response: responseData.response || '',
+      responseLength: responseData.response?.length || 0,
+      estimatedOutputTokens: responseData.estimatedOutputTokens || 0,
+      duration: responseData.duration || 0,
+      success: responseData.success || false,
+      error: responseData.error || null,
+      hasError: !!responseData.error || !responseData.success
     };
 
-    // ALWAYS store in Cache API (no KV quota impact!)
+    // Single cache.put for the combined entry (1 subrequest instead of 2)
     await cacheSet(`ai_communication_log:${logId}`, logEntry, AI_LOG_CACHE_TTL);
     
-    // Use a single combined index to track sessions and their log IDs.
-    // This replaces the previous two-entry approach (ai_communication_session_index +
-    // ai_session_logs:{sessionId}) with one cache read/write, reducing subrequests by 2
-    // per call and keeping total subrequests well below the Cloudflare 50-subrequest limit.
-    let combinedIndex = await cacheGet('ai_log_combined_index');
-    combinedIndex = combinedIndex || { sessions: [], logs: {} };
-
-    // Add sessionId to the ordered list if not already present (most recent first)
-    if (!combinedIndex.sessions.includes(sessionId)) {
-      combinedIndex.sessions.unshift(sessionId);
-      // Keep only the last MAX_LOG_ENTRIES sessions
-      if (combinedIndex.sessions.length > MAX_LOG_ENTRIES) {
-        const removed = combinedIndex.sessions.splice(MAX_LOG_ENTRIES);
-        // Remove log lists for evicted sessions from the combined index.
-        // Individual ai_communication_log:{logId} entries will expire naturally via their TTL.
-        for (const evictedId of removed) {
-          delete combinedIndex.logs[evictedId];
-        }
-      }
-    }
-
-    // Append this log ID to the session's log list
-    if (!combinedIndex.logs[sessionId]) {
-      combinedIndex.logs[sessionId] = [];
-    }
-    combinedIndex.logs[sessionId].push(logId);
-
-    await cacheSet('ai_log_combined_index', combinedIndex, AI_LOG_CACHE_TTL);
-    
-    // HYBRID: If there's an error, ALSO store in KV for permanent debugging
-    if (requestData.error && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
+    // HYBRID: If there's an error or failure, ALSO store in KV for permanent debugging
+    if ((responseData.error || !responseData.success) && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
       try {
         await env.page_content.put(
           `ai_error_log:${logId}`,
@@ -5859,57 +5906,54 @@ async function logAIRequest(env, stepName, requestData) {
       }
     }
     
-    console.log(`[Cache API] AI request logged: ${stepName} (${logId}, session: ${sessionId})`);
-    return logId;
-  } catch (error) {
-    console.error('[Cache API] Failed to log AI request:', error);
-    return null;
-  }
-}
-
-async function logAIResponse(env, logId, stepName, responseData) {
-  try {
-    if (!logId) {
-      console.warn('[Cache API] Missing logId, skipping AI response logging');
-      return;
-    }
-
-    const timestamp = new Date().toISOString();
-    
-    const logEntry = {
-      id: logId,
-      timestamp: timestamp,
-      stepName: stepName,
-      type: 'response',
-      response: responseData.response || '',
-      responseLength: responseData.response?.length || 0,
-      estimatedOutputTokens: responseData.estimatedOutputTokens || 0,
-      duration: responseData.duration || 0,
-      success: responseData.success || false,
-      error: responseData.error || null,
-      hasError: !!responseData.error || !responseData.success
-    };
-
-    // ALWAYS store response in Cache API (no KV quota impact!)
-    await cacheSet(`ai_communication_log:${logId}_response`, logEntry, AI_LOG_CACHE_TTL);
-    
-    // HYBRID: If there's an error or failure, ALSO store in KV for permanent debugging
-    if ((responseData.error || !responseData.success) && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
-      try {
-        await env.page_content.put(
-          `ai_error_log:${logId}_response`,
-          JSON.stringify(logEntry)
-        );
-        console.log(`[KV] Error response logged to KV for permanent storage: ${stepName} (${logId})`);
-      } catch (kvError) {
-        console.error('[KV] Failed to log error response to KV:', kvError);
-        // Continue - error is still in Cache API
-      }
-    }
-    
     console.log(`[Cache API] AI response logged: ${stepName} (${logId})`);
   } catch (error) {
     console.error('[Cache API] Failed to log AI response:', error);
+  }
+}
+
+/**
+ * Flush the combined index for a plan-generation session to the Cache API.
+ * Called ONCE at the end of generatePlanMultiStep() and regenerateFromStep()
+ * instead of once per AI call, reducing the index read+write from 2×N
+ * subrequests to just 2 subrequests for the whole session.
+ */
+async function finalizeAISessionLogs(env, sessionId) {
+  if (!sessionId || !pendingSessionLogs.has(sessionId)) return;
+  
+  const logIds = pendingSessionLogs.get(sessionId);
+  pendingSessionLogs.delete(sessionId);
+  
+  if (!logIds || logIds.length === 0) return;
+  
+  try {
+    let combinedIndex = await cacheGet('ai_log_combined_index');
+    combinedIndex = combinedIndex || { sessions: [], logs: {} };
+
+    // Add sessionId to the ordered list if not already present (most recent first)
+    if (!combinedIndex.sessions.includes(sessionId)) {
+      combinedIndex.sessions.unshift(sessionId);
+      // Keep only the last MAX_LOG_ENTRIES sessions
+      if (combinedIndex.sessions.length > MAX_LOG_ENTRIES) {
+        const removed = combinedIndex.sessions.splice(MAX_LOG_ENTRIES);
+        for (const evictedId of removed) {
+          delete combinedIndex.logs[evictedId];
+        }
+      }
+    }
+
+    // Merge with any existing log IDs for this session (guards against duplicate
+    // calls for the same sessionId, even though pendingSessionLogs.delete above
+    // makes the second invocation a no-op in normal usage).
+    combinedIndex.logs[sessionId] = [
+      ...(combinedIndex.logs[sessionId] || []),
+      ...logIds
+    ];
+    await cacheSet('ai_log_combined_index', combinedIndex, AI_LOG_CACHE_TTL);
+    
+    console.log(`[Cache API] Session ${sessionId} index finalized with ${logIds.length} log entries`);
+  } catch (error) {
+    console.error('[Cache API] Failed to finalize session logs:', error);
   }
 }
 
@@ -6178,6 +6222,8 @@ async function handleGetAILogs(request, env) {
       const paginatedIds = allLogIds.slice(offset, offset + limit);
       
       // Fetch logs in parallel from Cache API
+      // New combined format: single entry per logId (type='combined')
+      // Old format: separate request + response entries (kept for backward compatibility)
       const logPromises = paginatedIds.flatMap(logId => [
         cacheGet(`ai_communication_log:${logId}`),
         cacheGet(`ai_communication_log:${logId}_response`)
@@ -6185,17 +6231,39 @@ async function handleGetAILogs(request, env) {
       
       const logData = await Promise.all(logPromises);
       
-      // Combine request and response logs
+      // Combine request and response logs (backward compatible with both formats)
       const logs = [];
       for (let i = 0; i < paginatedIds.length; i++) {
-        const requestLog = logData[i * 2];
-        const responseLog = logData[i * 2 + 1];
+        const primaryLog = logData[i * 2];
+        const legacyResponseLog = logData[i * 2 + 1];
         
-        if (requestLog) {
-          logs.push({
-            ...requestLog,
-            response: responseLog
-          });
+        if (primaryLog) {
+          if (primaryLog.type === 'combined') {
+            // New format: the primary entry already contains both request and response fields.
+            // Expose a nested `response` object so the admin panel sees the same shape as before.
+            logs.push({
+              ...primaryLog,
+              response: {
+                id: primaryLog.id,
+                timestamp: primaryLog.responseTimestamp || primaryLog.timestamp,
+                stepName: primaryLog.stepName,
+                type: 'response',
+                response: primaryLog.response,
+                responseLength: primaryLog.responseLength,
+                estimatedOutputTokens: primaryLog.estimatedOutputTokens,
+                duration: primaryLog.duration,
+                success: primaryLog.success,
+                error: primaryLog.error,
+                hasError: primaryLog.hasError
+              }
+            });
+          } else {
+            // Legacy format: merge separate request + response entries
+            logs.push({
+              ...primaryLog,
+              response: legacyResponseLog
+            });
+          }
         }
       }
       
