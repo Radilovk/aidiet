@@ -1787,16 +1787,20 @@ ${(() => {
   return lines.join('\n');
 })()}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
-6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
-   Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без "Закуска", без "Следобедна закуска" и без "Късна закуска"! Само Обяд и Вечеря (и евентуално едно друго основно хранене).' : ''}
+6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Нощна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
+   Нощна САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
+7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без "Закуска", без "Следобедна" и без "Нощна"! Само Обяд и Вечеря (и евентуално едно друго основно хранене).' : ''}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 `;
 
   // Build JSON format example with all days in the chunk
   // Note: Indentation and formatting are intentional for AI model readability
-  const mealTemplate = `{"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  // When the client does not eat breakfast, only Обяд and Вечеря are permitted
+  const allowedTypesList = (data.eatingHabits && data.eatingHabits.includes('Не закусвам'))
+    ? 'Обяд|Вечеря'
+    : 'Закуска|Обяд|Следобедна|Вечеря|Нощна';
+  const mealTemplate = `{"type": "${allowedTypesList}", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const dayTemplate = (dayNum) => `  "day${dayNum}": {
     "meals": [
       ${mealTemplate}
@@ -1856,7 +1860,7 @@ ${jsonExample.join(',\n')}
 {
   "dayN": {
     "meals": [
-      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+      {"type": "Закуска|Обяд|Следобедна|Вечеря|Нощна", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
     ],
     "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
   }
@@ -2013,7 +2017,7 @@ JSON ФОРМАТ:
 {
   "day1": {
     "meals": [
-      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
+      {"type": "Закуска|Обяд|Следобедна|Вечеря|Нощна", "name": "...", "time": "...", "calories": число, "macros": {...}},
       ...
     ]
   },
@@ -2099,7 +2103,7 @@ JSON ФОРМАТ:
 {
   "day1": {
     "meals": [
-      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
+      {"type": "Закуска|Обяд|Следобедна|Вечеря|Нощна", "name": "...", "time": "...", "calories": число, "macros": {...}},
       ...
     ]
   },
@@ -2940,18 +2944,21 @@ const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts b
 // limit per Worker invocation. With 1 correction the baseline is 46 (safe), and even with a
 // handful of transient Gemini retries we stay comfortably under the limit.
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
-const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
-const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
-// Maps AI-generated meal type variants to canonical allowed types
+const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна': 2, 'Вечеря': 3, 'Нощна': 4 }; // Chronological meal order
+const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна', 'Вечеря', 'Нощна']; // Valid meal types
+// Maps AI-generated meal type variants to canonical allowed types.
+// "Следобедна закуска" and "Късна закуска" are kept as aliases so that older cached
+// plans (which used the previous canonical names) are still normalised correctly.
 const MEAL_TYPE_ALIASES = {
-  'Междинно': 'Следобедна закуска',
-  'Междинна закуска': 'Следобедна закуска',
-  'Снак': 'Следобедна закуска',
-  'Снек': 'Следобедна закуска',
-  'Лека закуска': 'Следобедна закуска',
-  'Следобедна': 'Следобедна закуска',
-  'Предвечерна закуска': 'Късна закуска',
-  'Нощна закуска': 'Късна закуска',
+  'Следобедна закуска': 'Следобедна',  // legacy canonical name
+  'Късна закуска': 'Нощна',            // legacy canonical name
+  'Междинно': 'Следобедна',
+  'Междинна закуска': 'Следобедна',
+  'Снак': 'Следобедна',
+  'Снек': 'Следобедна',
+  'Лека закуска': 'Следобедна',
+  'Предвечерна закуска': 'Нощна',
+  'Нощна закуска': 'Нощна',
 };
 
 // Low glycemic index foods allowed in late-night snacks (GI < 55)
@@ -3238,11 +3245,11 @@ function validatePlan(plan, userData, substitutions = []) {
           if (!hasAfterDinnerJustification) {
             // No justification - apply strict rules for late-night snack only
             if (mealsAfterDinner.length > 1 || 
-                (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] !== 'Късна закуска')) {
+                (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] !== 'Нощна')) {
               const error = `Ден ${i}: Има хранения след вечеря (${mealsAfterDinnerTypes.join(', ')}) без обосновка в strategy.afterDinnerMealJustification. Моля, добави обосновка или премахни храненията след вечеря.`;
               errors.push(error);
               stepErrors.step2_strategy.push(error); // This is a strategy issue
-            } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Късна закуска') {
+            } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Нощна') {
               // Validate that late-night snack contains low GI foods
               const lateSnack = mealsAfterDinner[0];
               const snackDescription = (lateSnack.description || '').toLowerCase();
@@ -3291,7 +3298,7 @@ function validatePlan(plan, userData, substitutions = []) {
         });
         
         // Check for multiple afternoon snacks
-        const afternoonSnackCount = mealTypes.filter(type => type === 'Следобедна закуска').length;
+        const afternoonSnackCount = mealTypes.filter(type => type === 'Следобедна').length;
         if (afternoonSnackCount > 1) {
           const error = `Ден ${i}: Повече от 1 следобедна закуска (${afternoonSnackCount}) - разрешена е максимум 1`;
           errors.push(error);
@@ -3299,9 +3306,9 @@ function validatePlan(plan, userData, substitutions = []) {
         }
         
         // Check for multiple late-night snacks
-        const lateNightSnackCount = mealTypes.filter(type => type === 'Късна закуска').length;
+        const lateNightSnackCount = mealTypes.filter(type => type === 'Нощна').length;
         if (lateNightSnackCount > 1) {
-          const error = `Ден ${i}: Повече от 1 късна закуска (${lateNightSnackCount}) - разрешена е максимум 1`;
+          const error = `Ден ${i}: Повече от 1 Късна закуска (${lateNightSnackCount}) - разрешена е максимум 1`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
         }
@@ -3311,8 +3318,8 @@ function validatePlan(plan, userData, substitutions = []) {
         if (userData.eatingHabits && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам')) {
           const forbiddenWhenNoBreakfast = [
             { type: 'Закуска', msg: `Ден ${i}: Клиентът не закусва, но има "Закуска" в плана` },
-            { type: 'Следобедна закуска', msg: `Ден ${i}: Клиентът не закусва — "Следобедна закуска" е несъвместима с намаления прозорец на хранене` },
-            { type: 'Късна закуска', msg: `Ден ${i}: Клиентът не закусва — "Късна закуска" е несъвместима с намаления прозорец на хранене` }
+            { type: 'Следобедна', msg: `Ден ${i}: Клиентът не закусва — "Следобедна закуска" е несъвместима с намаления прозорец на хранене` },
+            { type: 'Нощна', msg: `Ден ${i}: Клиентът не закусва — "Късна закуска" е несъвместима с намаления прозорец на хранене` }
           ];
           forbiddenWhenNoBreakfast.forEach(({ type, msg }) => {
             if (mealTypes.includes(type)) {
@@ -3696,9 +3703,9 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
    - "Закуска" (сутрин)
    - "Обяд" (обед)
-   - "Следобедна закуска" (опционално, след обяд)
+   - "Следобедна" (опционално, след обяд)
    - "Вечеря" (вечер)
-   - "Късна закуска" (опционално, след вечеря - С ОБОСНОВКА!)
+   - "Нощна" (опционално, след вечеря - С ОБОСНОВКА!)
 
 2. БРОЙ ХРАНЕНИЯ: 1-5 на ден
    - ЗАДЪЛЖИТЕЛНО обоснови избора в strategy.mealCountJustification
