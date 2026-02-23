@@ -1322,7 +1322,10 @@ async function generateSimplifiedFallbackPlan(env, data) {
 
   const calculatedData = { bmr, tdee, recommendedCalories };
   const mealPlanResponse = await callAIModel(env, mealPlanPrompt, 3000, 'fallback_plan', null, data, calculatedData);
-  const weekPlan = JSON.parse(mealPlanResponse);
+  const weekPlan = parseAIResponse(mealPlanResponse);
+  if (weekPlan.error) {
+    throw new Error(`Failed to parse fallback meal plan: ${weekPlan.error}`);
+  }
   
   // Create minimal analysis and strategy for generateMealPlanSummaryPrompt()
   const analysis = {
