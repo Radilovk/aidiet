@@ -5816,27 +5816,34 @@ async function logAIRequest(env, stepName, requestData) {
     // ALWAYS store in Cache API (no KV quota impact!)
     await cacheSet(`ai_communication_log:${logId}`, logEntry, AI_LOG_CACHE_TTL);
     
-    // Get or create session index from Cache API
-    let sessionIndex = await cacheGet('ai_communication_session_index');
-    sessionIndex = sessionIndex || [];
-    
-    // Add sessionId to index if not already present
-    if (!sessionIndex.includes(sessionId)) {
-      sessionIndex.unshift(sessionId); // Add to beginning (most recent first)
-      
+    // Use a single combined index to track sessions and their log IDs.
+    // This replaces the previous two-entry approach (ai_communication_session_index +
+    // ai_session_logs:{sessionId}) with one cache read/write, reducing subrequests by 2
+    // per call and keeping total subrequests well below the Cloudflare 50-subrequest limit.
+    let combinedIndex = await cacheGet('ai_log_combined_index');
+    combinedIndex = combinedIndex || { sessions: [], logs: {} };
+
+    // Add sessionId to the ordered list if not already present (most recent first)
+    if (!combinedIndex.sessions.includes(sessionId)) {
+      combinedIndex.sessions.unshift(sessionId);
       // Keep only the last MAX_LOG_ENTRIES sessions
-      if (sessionIndex.length > MAX_LOG_ENTRIES) {
-        sessionIndex = sessionIndex.slice(0, MAX_LOG_ENTRIES);
+      if (combinedIndex.sessions.length > MAX_LOG_ENTRIES) {
+        const removed = combinedIndex.sessions.splice(MAX_LOG_ENTRIES);
+        // Remove log lists for evicted sessions from the combined index.
+        // Individual ai_communication_log:{logId} entries will expire naturally via their TTL.
+        for (const evictedId of removed) {
+          delete combinedIndex.logs[evictedId];
+        }
       }
-      
-      await cacheSet('ai_communication_session_index', sessionIndex, AI_LOG_CACHE_TTL);
     }
-    
-    // Add log to session's log list in Cache API
-    let sessionLogs = await cacheGet(`ai_session_logs:${sessionId}`);
-    sessionLogs = sessionLogs || [];
-    sessionLogs.push(logId);
-    await cacheSet(`ai_session_logs:${sessionId}`, sessionLogs, AI_LOG_CACHE_TTL);
+
+    // Append this log ID to the session's log list
+    if (!combinedIndex.logs[sessionId]) {
+      combinedIndex.logs[sessionId] = [];
+    }
+    combinedIndex.logs[sessionId].push(logId);
+
+    await cacheSet('ai_log_combined_index', combinedIndex, AI_LOG_CACHE_TTL);
     
     // HYBRID: If there's an error, ALSO store in KV for permanent debugging
     if (requestData.error && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
@@ -6145,17 +6152,17 @@ async function handleGetAILogs(request, env) {
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
     
-    // Get session index from Cache API
-    let sessionIndex = await cacheGet('ai_communication_session_index');
+    // Get combined index from Cache API (single entry replaces separate session index + per-session log lists)
+    let combinedIndex = await cacheGet('ai_log_combined_index');
     
-    if (sessionIndex && sessionIndex.length > 0) {
+    if (combinedIndex && combinedIndex.sessions && combinedIndex.sessions.length > 0) {
       // Session-based format (current)
-      const sessionIds = sessionIndex;
+      const sessionIds = combinedIndex.sessions;
       
       // Get all log IDs from ALL sessions (not just the latest one)
       const allLogIds = [];
       for (const sessionId of sessionIds) {
-        const sessionLogsData = await cacheGet(`ai_session_logs:${sessionId}`);
+        const sessionLogsData = combinedIndex.logs && combinedIndex.logs[sessionId];
         if (sessionLogsData) {
           allLogIds.push(...sessionLogsData);
         }
@@ -6227,10 +6234,10 @@ async function handleCleanupAILogs(request, env) {
     // AI logs are now in Cache API and automatically expire after 24 hours
     // This function manually clears all logs from cache
     
-    // Get session index from Cache API
-    let sessionIndex = await cacheGet('ai_communication_session_index');
+    // Get combined index from Cache API
+    let combinedIndex = await cacheGet('ai_log_combined_index');
     
-    if (!sessionIndex || sessionIndex.length === 0) {
+    if (!combinedIndex || !combinedIndex.sessions || combinedIndex.sessions.length === 0) {
       return jsonResponse({ 
         success: true, 
         message: 'No logs to cleanup', 
@@ -6241,8 +6248,8 @@ async function handleCleanupAILogs(request, env) {
     
     // Get all log IDs from all sessions
     const allLogIds = [];
-    for (const sessionId of sessionIndex) {
-      const sessionLogsData = await cacheGet(`ai_session_logs:${sessionId}`);
+    for (const sessionId of combinedIndex.sessions) {
+      const sessionLogsData = combinedIndex.logs && combinedIndex.logs[sessionId];
       if (sessionLogsData) {
         allLogIds.push(...sessionLogsData);
       }
@@ -6266,23 +6273,18 @@ async function handleCleanupAILogs(request, env) {
       );
     }
     
-    // Delete session logs
-    for (const sessionId of sessionIndex) {
-      deletePromises.push(cacheDelete(`ai_session_logs:${sessionId}`));
-    }
-    
-    // Delete session index
-    deletePromises.push(cacheDelete('ai_communication_session_index'));
+    // Delete the combined index
+    deletePromises.push(cacheDelete('ai_log_combined_index'));
     
     await Promise.all(deletePromises);
     
-    console.log(`[Cache API] Cleaned up ${allLogIds.length} log entries from ${sessionIndex.length} sessions`);
+    console.log(`[Cache API] Cleaned up ${allLogIds.length} log entries from ${combinedIndex.sessions.length} sessions`);
     
     return jsonResponse({ 
       success: true, 
-      message: `Successfully cleaned up ${allLogIds.length} log entries from ${sessionIndex.length} sessions`,
+      message: `Successfully cleaned up ${allLogIds.length} log entries from ${combinedIndex.sessions.length} sessions`,
       deletedCount: allLogIds.length,
-      sessionCount: sessionIndex.length,
+      sessionCount: combinedIndex.sessions.length,
       storageType: 'cache'
     }, 200);
   } catch (error) {
@@ -6298,10 +6300,10 @@ async function handleCleanupAILogs(request, env) {
 async function handleExportAILogs(request, env) {
   try {
     // AI logs are now in Cache API
-    // Get session index from Cache API
-    let sessionIndex = await cacheGet('ai_communication_session_index');
+    // Get combined index from Cache API
+    let combinedIndex = await cacheGet('ai_log_combined_index');
     
-    if (!sessionIndex || sessionIndex.length === 0) {
+    if (!combinedIndex || !combinedIndex.sessions || combinedIndex.sessions.length === 0) {
       return new Response('Няма налични логове за експорт.', {
         status: 200,
         headers: {
@@ -6314,10 +6316,10 @@ async function handleExportAILogs(request, env) {
       });
     }
     
-    // Export only the last (most recent) plan - sessionIndex[0] is most recent
-    const lastSessionId = sessionIndex[0];
+    // Export only the last (most recent) plan - sessions[0] is most recent
+    const lastSessionId = combinedIndex.sessions[0];
     
-    const allLogIds = await cacheGet(`ai_session_logs:${lastSessionId}`) || [];
+    const allLogIds = (combinedIndex.logs && combinedIndex.logs[lastSessionId]) || [];
     
     if (allLogIds.length === 0) {
       return new Response('Няма налични логове за експорт.', {
