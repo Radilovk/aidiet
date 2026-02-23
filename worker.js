@@ -1217,6 +1217,14 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       error: error,
       duration: Date.now() - startTime
     }, requestData);
+    
+    // For auto-sessions (no explicit sessionId provided), finalize the combined
+    // index immediately after this single call. Named sessions (plan generation)
+    // are finalized in bulk by generatePlanMultiStep / regenerateFromStep to
+    // keep Cache API subrequests to 2 per session rather than 2 per call.
+    if (!sessionId && requestData._effectiveSessionId) {
+      await finalizeAISessionLogs(env, requestData._effectiveSessionId);
+    }
   }
 
   return response;
@@ -2895,7 +2903,11 @@ const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermitt
 const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's clear reasoning and strategy)
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 // Note: DAILY_CALORIE_TOLERANCE and MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
-const MAX_CORRECTION_ATTEMPTS = 4; // Maximum number of AI correction attempts before failing (must be >= 0)
+const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts before failing.
+// Reduced from 4 to 1: each correction attempt generates up to 7 AI calls (fetch subrequests).
+// With 4 corrections the baseline alone was ~94 subrequests — well above Cloudflare's 50-subrequest
+// limit per Worker invocation. With 1 correction the baseline is 46 (safe), and even with a
+// handful of transient Gemini retries we stay comfortably under the limit.
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
@@ -5812,34 +5824,33 @@ function generateMockResponse(prompt) {
  * Tracks all communication between backend and AI model
  *
  * SUBREQUEST OPTIMIZATION: This function performs ZERO cache operations.
- * It only generates a logId, optionally tracks it in the in-memory
- * pendingSessionLogs map (for sessions where a sessionId is provided), and
- * returns the logId for use by logAIResponse.  The actual Cache API write
- * happens once in logAIResponse (combined request+response entry), and the
- * combined index is updated once per session by finalizeAISessionLogs().
- * This reduces Cache API subrequests from 4 per callAIModel call to 1,
- * keeping the total well below the Cloudflare 50-subrequest limit even when
- * the Gemini API needs multiple retries.
+ * It generates a logId, always tracks it in pendingSessionLogs under an
+ * effective session ID (either the provided sessionId or an auto-generated
+ * one for standalone calls like chat), and stores that effectiveSessionId
+ * back in requestData._effectiveSessionId so callAIModel can finalize
+ * auto-sessions immediately after the single call completes.
+ * Named sessions (plan generation) are finalized by generatePlanMultiStep /
+ * regenerateFromStep, keeping Cache API index updates at 1 per session.
  */
 async function logAIRequest(env, stepName, requestData) {
   try {
     // Generate unique log ID
     const logId = generateUniqueId('ai_log');
     
-    // Get sessionId from requestData
-    const sessionId = requestData.sessionId;
+    // Always use an effective session ID – auto-generate one for standalone
+    // calls (chat, fallback plan) that don't belong to a named session.
+    const effectiveSessionId = requestData.sessionId || generateUniqueId('auto_session');
     
-    // Track this logId under its session so finalizeAISessionLogs() can
-    // update the combined index with a single cache read+write at the end of
-    // the plan-generation flow instead of one read+write per AI call.
-    if (sessionId) {
-      if (!pendingSessionLogs.has(sessionId)) {
-        pendingSessionLogs.set(sessionId, []);
-      }
-      pendingSessionLogs.get(sessionId).push(logId);
+    // Store it so callAIModel can finalize auto-sessions in the finally block.
+    requestData._effectiveSessionId = effectiveSessionId;
+    
+    // Always track so every call is indexed in the combined session log.
+    if (!pendingSessionLogs.has(effectiveSessionId)) {
+      pendingSessionLogs.set(effectiveSessionId, []);
     }
+    pendingSessionLogs.get(effectiveSessionId).push(logId);
     
-    console.log(`[Cache API] AI request tracked: ${stepName} (${logId}, session: ${sessionId || 'none'})`);
+    console.log(`[Cache API] AI request tracked: ${stepName} (${logId}, session: ${effectiveSessionId})`);
     return logId;
   } catch (error) {
     console.error('[Cache API] Failed to track AI request:', error);
