@@ -1549,11 +1549,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
     mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
     keyPrinciples: (strategy.keyPrinciples || []).join('; '), // All principles from Step 2
-    foodsToInclude: (strategy.foodsToInclude || []).join(', '), // All preferred foods from Step 2
-    foodsToAvoid: (strategy.foodsToAvoid || []).join(', '), // All unwanted foods from Step 2
+    // Support both old (foodsToInclude/foodsToAvoid) and new (preferredFoodCategories/avoidFoodCategories) field names
+    foodsToInclude: (strategy.preferredFoodCategories || strategy.foodsToInclude || []).join(', '),
+    foodsToAvoid: (strategy.avoidFoodCategories || strategy.foodsToAvoid || []).join(', '),
     calorieDistribution: strategy.calorieDistribution || 'не е определено', // From Step 2
     macroDistribution: strategy.macroDistribution || 'не е определено', // From Step 2
-    weeklyScheme: strategy.weeklyScheme || null // Weekly structure from Step 2
+    weeklyScheme: strategy.weeklyScheme || null // Weekly structure from Step 2 (includes mealBreakdown per day)
   };
   
   // Extract macro information from Step 1 (analysis)
@@ -1631,7 +1632,13 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   const calStr = dayData.calories ? ` | ${dayData.calories} kcal` : '';
   const macroStr = (dayData.protein && dayData.carbs && dayData.fats)
     ? ` | Б:${dayData.protein}г В:${dayData.carbs}г М:${dayData.fats}г` : '';
-  return `${dayName}: ${dayData.meals} хранения${calStr}${macroStr} - ${dayData.description}`;
+  let mealBreakdownStr = '';
+  if (dayData.mealBreakdown && Array.isArray(dayData.mealBreakdown) && dayData.mealBreakdown.length > 0) {
+    mealBreakdownStr = '\n   ' + dayData.mealBreakdown.map(m =>
+      `${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`
+    ).join(' | ');
+  }
+  return `${dayName}: ${dayData.meals} хранения${calStr}${macroStr} - ${dayData.description}${mealBreakdownStr}`;
 }).join('\n')}` : ''}${data.additionalNotes ? `
 
 ВАЖНО - Потребителски бележки: ${data.additionalNotes}` : ''}
@@ -1722,6 +1729,11 @@ ${(() => {
     const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
       ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
     lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)`);
+    if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
+      dayTarget.mealBreakdown.forEach(m => {
+        lines.push(`     → ${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`);
+      });
+    }
   }
   return lines.join('\n');
 })()}
@@ -4686,13 +4698,13 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   "dietType": "текст",
   "weeklyMealPattern": "текст",
   "weeklyScheme": {
-    "monday": {"meals": число, "description": "текст"},
-    "tuesday": {"meals": число, "description": "текст"},
-    "wednesday": {"meals": число, "description": "текст"},
-    "thursday": {"meals": число, "description": "текст"},
-    "friday": {"meals": число, "description": "текст"},
-    "saturday": {"meals": число, "description": "текст"},
-    "sunday": {"meals": число, "description": "текст"}
+    "monday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "tuesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "wednesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "thursday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "friday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "saturday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
+    "sunday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]}
   },
   "breakfastStrategy": "текст",
   "calorieDistribution": "текст",
@@ -4704,8 +4716,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     "chronotypeGuidance": "текст"
   },
   "keyPrinciples": ["текст"],
-  "foodsToInclude": ["текст"],
-  "foodsToAvoid": ["текст"],
+  "preferredFoodCategories": ["хранителна категория (НЕ конкретна храна)"],
+  "avoidFoodCategories": ["хранителна категория за избягване (НЕ конкретна храна)"],
   "supplementRecommendations": ["текст"],
   "hydrationStrategy": "текст",
   "communicationStyle": {
@@ -4795,6 +4807,8 @@ ${data.additionalNotes}
      * Меланхолик: Детайлен, научно обоснован, емпатичен
 
 Върни JSON със стратегия:
+⚠️ ВАЖНО: Тази стъпка определя САМО подход, архитектура и рамка. НЕ давай конкретни примери с храни — конкретните продукти, грамажи и комбинации ще бъдат избрани в Стъпка 3!
+
 {
   "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
   "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
@@ -4806,13 +4820,45 @@ ${data.additionalNotes}
   "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
   "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'циклично фастинг', 'свободен уикенд', или традиционна схема с варииращи хранения)",
   "weeklyScheme": {
-    "monday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "tuesday":   {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "wednesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "thursday":  {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "friday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "saturday":  {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден"},
-    "sunday":    {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст за ден (включи свободно хранене ако е подходящо)"}
+    "monday":    {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [
+        {"type": "Закуска", "calories": число, "protein": число, "carbs": число, "fats": число},
+        {"type": "Обяд",    "calories": число, "protein": число, "carbs": число, "fats": число},
+        {"type": "Вечеря",  "calories": число, "protein": число, "carbs": число, "fats": число}
+      ]
+    },
+    "tuesday":   {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "wednesday": {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "thursday":  {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "friday":    {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "saturday":  {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    },
+    "sunday":    {
+      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
+      "description": "текст за ден (включи свободно хранене ако е подходящо)",
+      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
+    }
   },
   "breakfastStrategy": "текст - ако не закусва, какво се препоръчва вместо закуска",
   "calorieDistribution": "текст - как се разпределят калориите по дни и хранения",
@@ -4824,8 +4870,8 @@ ${data.additionalNotes}
     "chronotypeGuidance": "ВАЖНО (Issue #30): Обясни КАК хронотипът ${data.chronotype} влияе на времето на хранене - напр. 'Ранобудна птица: Закуска 07:00-08:00, Вечеря до 19:00' или 'Нощна птица: Първо хранене 12:00-13:00, Последно 22:00-23:00'"
   },
   "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2 специфичен за ${data.name}", "принцип 3 специфичен за ${data.name}"],
-  "foodsToInclude": ["храна 1 подходяща за ${data.name}", "храна 2 подходяща за ${data.name}", "храна 3 подходяща за ${data.name}"],
-  "foodsToAvoid": ["храна 1 неподходяща за ${data.name}", "храна 2 неподходяща за ${data.name}", "храна 3 неподходяща за ${data.name}"],
+  "preferredFoodCategories": ["хранителна категория/група 1 (НЕ конкретна храна — напр. 'Постни протеини', 'Пълнозърнести храни', 'Листни зеленчуци')", "категория 2", "категория 3"],
+  "avoidFoodCategories": ["хранителна категория/група за избягване 1 (НЕ конкретна храна — напр. 'Рафинирани захари', 'Ултрапреработени храни')", "категория 2", "категория 3"],
   "supplementRecommendations": [
     "Индивидуална добавка 1 (с дозировка и обосновка специфична за ${data.name})",
     "Индивидуална добавка 2 (с дозировка и обосновка специфична за ${data.name})",
@@ -4844,6 +4890,13 @@ ${data.additionalNotes}
     "Психологически съвет 3 за мотивация специфичен за профила на ${data.name}"
   ]
 }
+
+ПРАВИЛА ЗА ПОПЪЛВАНЕ НА weeklyScheme:
+- Сумата на mealBreakdown.calories ТРЯБВА да е равна на calories за деня
+- Сумата на mealBreakdown.protein ТРЯБВА да е равна на protein за деня
+- Сумата на mealBreakdown.carbs ТРЯБВА да е равна на carbs за деня
+- Сумата на mealBreakdown.fats ТРЯБВА да е равна на fats за деня
+- Броят обекти в mealBreakdown ТРЯБВА да е равен на meals за деня
 
 Създай персонализирана стратегия за ${data.name} базирана на техния уникален профил.`;
   
