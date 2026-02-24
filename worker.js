@@ -1011,13 +1011,26 @@ function extractBalancedJSON(text) {
 function parseAIResponse(response) {
   try {
     // Step 1: Try to extract JSON from markdown code blocks first
-    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
-    if (markdownJsonMatch) {
+    const markdownBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (markdownBlockMatch) {
+      const blockContent = markdownBlockMatch[1];
+      // Try parsing the full block content directly
       try {
-        const cleaned = sanitizeJSON(markdownJsonMatch[1]);
+        const cleaned = sanitizeJSON(blockContent);
         return JSON.parse(cleaned);
       } catch (e) {
-        console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
+        // Try to extract balanced JSON from within the block content
+        const jsonInBlock = extractBalancedJSON(blockContent);
+        if (jsonInBlock) {
+          try {
+            const cleaned = sanitizeJSON(jsonInBlock);
+            return JSON.parse(cleaned);
+          } catch (e2) {
+            console.warn('Failed to parse JSON from markdown block, trying other methods:', e2.message);
+          }
+        } else {
+          console.warn('Failed to extract JSON from markdown block, trying other methods:', e.message);
+        }
       }
     }
     
@@ -3304,22 +3317,6 @@ function validatePlan(plan, userData, substitutions = []) {
           const error = `Ден ${i}: Повече от 1 късна закуска (${lateNightSnackCount}) - разрешена е максимум 1`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
-        }
-        
-        // When the user does not eat breakfast, snacks are also forbidden
-        // (they contradict the reduced eating window implied by skipping breakfast)
-        if (userData.eatingHabits && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам')) {
-          const forbiddenWhenNoBreakfast = [
-            { type: 'Закуска', msg: `Ден ${i}: Клиентът не закусва, но има "Закуска" в плана` },
-            { type: 'Следобедна закуска', msg: `Ден ${i}: Клиентът не закусва — "Следобедна закуска" е несъвместима с намаления прозорец на хранене` },
-            { type: 'Късна закуска', msg: `Ден ${i}: Клиентът не закусва — "Късна закуска" е несъвместима с намаления прозорец на хранене` }
-          ];
-          forbiddenWhenNoBreakfast.forEach(({ type, msg }) => {
-            if (mealTypes.includes(type)) {
-              errors.push(msg);
-              stepErrors.step3_mealplan.push(msg);
-            }
-          });
         }
       }
     }
