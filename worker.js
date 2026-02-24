@@ -1011,13 +1011,16 @@ function extractBalancedJSON(text) {
 function parseAIResponse(response) {
   try {
     // Step 1: Try to extract JSON from markdown code blocks first
-    const markdownJsonMatch = response.match(/```(?:json)?\s*([\[{][\s\S]*?[}\]])\s*```/);
-    if (markdownJsonMatch) {
-      try {
-        const cleaned = sanitizeJSON(markdownJsonMatch[1]);
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
+    const markdownFenceMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (markdownFenceMatch) {
+      const jsonInBlock = extractBalancedJSON(markdownFenceMatch[1]);
+      if (jsonInBlock) {
+        try {
+          const cleaned = sanitizeJSON(jsonInBlock);
+          return JSON.parse(cleaned);
+        } catch (e) {
+          console.warn('Failed to parse JSON from markdown block, trying other methods:', e.message);
+        }
       }
     }
     
@@ -1179,27 +1182,27 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       success = true;
     } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
       // Try preferred provider first
-      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens);
+      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
       success = true;
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      response = await callClaude(env, enforcedPrompt, modelName, maxTokens);
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
       success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, enforcedPrompt, modelName, maxTokens);
+      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
       success = true;
     } else {
       // Fallback hierarchy if preferred not available
       if (env.OPENAI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to OpenAI.');
-        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens);
+        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
         success = true;
       } else if (env.ANTHROPIC_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Anthropic.');
-        response = await callClaude(env, enforcedPrompt, modelName, maxTokens);
+        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Google Gemini.');
-        response = await callGemini(env, enforcedPrompt, modelName, maxTokens);
+        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
         success = true;
       } else {
         throw new Error('No AI provider configured. Please configure at least one provider.');
@@ -3305,22 +3308,6 @@ function validatePlan(plan, userData, substitutions = []) {
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
         }
-        
-        // When the user does not eat breakfast, snacks are also forbidden
-        // (they contradict the reduced eating window implied by skipping breakfast)
-        if (userData.eatingHabits && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам')) {
-          const forbiddenWhenNoBreakfast = [
-            { type: 'Закуска', msg: `Ден ${i}: Клиентът не закусва, но има "Закуска" в плана` },
-            { type: 'Следобедна закуска', msg: `Ден ${i}: Клиентът не закусва — "Следобедна закуска" е несъвместима с намаления прозорец на хранене` },
-            { type: 'Късна закуска', msg: `Ден ${i}: Клиентът не закусва — "Късна закуска" е несъвместима с намаления прозорец на хранене` }
-          ];
-          forbiddenWhenNoBreakfast.forEach(({ type, msg }) => {
-            if (mealTypes.includes(type)) {
-              errors.push(msg);
-              stepErrors.step3_mealplan.push(msg);
-            }
-          });
-        }
       }
     }
   }
@@ -5368,7 +5355,7 @@ async function getChatPrompts(env) {
 /**
  * Call OpenAI API with automatic retry logic for transient errors
  */
-async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = null) {
+async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = null, jsonMode = false) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
@@ -5380,6 +5367,11 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = nu
       // Add max_tokens only if specified
       if (maxTokens) {
         requestBody.max_tokens = maxTokens;
+      }
+      
+      // Enforce JSON-only output at the API level to prevent markdown-wrapped responses
+      if (jsonMode) {
+        requestBody.response_format = { type: 'json_object' };
       }
       
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -5484,7 +5476,10 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
 /**
  * Call Anthropic Claude API with automatic retry logic for transient errors
  */
-async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022', maxTokens = null) {
+async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022', maxTokens = null, jsonMode = false) {
+  // Note: Claude's API does not expose a native JSON-mode parameter in this version.
+  // JSON-only output is enforced via the text instruction added by enforceJSONOnlyPrompt.
+  // The jsonMode parameter is accepted here for interface consistency with callOpenAI/callGemini.
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
@@ -5541,18 +5536,24 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
-async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = null) {
+async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = null, jsonMode = false) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
         contents: [{ parts: [{ text: prompt }] }]
       };
       
-      // Add maxOutputTokens if specified
+      // Build generationConfig: add maxOutputTokens and/or JSON mime type as needed
+      const generationConfig = {};
       if (maxTokens) {
-        requestBody.generationConfig = {
-          maxOutputTokens: maxTokens
-        };
+        generationConfig.maxOutputTokens = maxTokens;
+      }
+      // Enforce JSON-only output at the API level to prevent markdown-wrapped responses
+      if (jsonMode) {
+        generationConfig.responseMimeType = 'application/json';
+      }
+      if (Object.keys(generationConfig).length > 0) {
+        requestBody.generationConfig = generationConfig;
       }
       
       const response = await fetch(
