@@ -1104,25 +1104,21 @@
             const dietPlan = localStorage.getItem('dietPlan');
             const userId = localStorage.getItem('userId');
             
+            if (dietPlan && userId) {
+                // User has a plan - redirect directly to plan.html (replace so back-button skips this page)
+                window.location.replace('plan.html');
+                return;
+            }
+
             const myPlanBtn = document.getElementById('myPlanBtn');
             const startNowBtn = document.getElementById('startNowBtn');
             
-            if (dietPlan && userId) {
-                // User has a plan - show "Моят План" button
-                if (myPlanBtn) {
-                    myPlanBtn.style.display = 'inline-block';
-                }
-                if (startNowBtn) {
-                    startNowBtn.style.display = 'none';
-                }
-            } else {
-                // User doesn't have a plan - show "Започни Сега" button
-                if (myPlanBtn) {
-                    myPlanBtn.style.display = 'none';
-                }
-                if (startNowBtn) {
-                    startNowBtn.style.display = 'inline-block';
-                }
+            // User doesn't have a plan - show "Започни Сега" button
+            if (myPlanBtn) {
+                myPlanBtn.style.display = 'none';
+            }
+            if (startNowBtn) {
+                startNowBtn.style.display = 'inline-block';
             }
         });
         
