@@ -5098,21 +5098,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
       }
       
-      // Normalize array response: AI sometimes returns [{meals:[...],...},{meals:[...],...}]
-      // instead of {day3:{...}, day4:{...}}. Map array items to their expected day keys.
+      // If AI returns an array instead of {dayN:{...}}, remap by position.
       if (Array.isArray(chunkData)) {
-        const normalized = {};
-        chunkData.forEach((item, index) => {
-          const dayKey = `day${startDay + index}`;
-          if (item && (item.meals || item.dailyTotals)) {
-            normalized[dayKey] = item;
-          } else if (item && item[dayKey]) {
-            normalized[dayKey] = item[dayKey];
-          } else {
-            console.warn(`Chunk ${chunkIndex + 1}: array item at index ${index} has unrecognized structure, skipping. Keys:`, item ? Object.keys(item) : item);
-          }
-        });
-        chunkData = normalized;
+        chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
       }
       
       // Log the structure of chunkData for debugging
