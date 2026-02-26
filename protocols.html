@@ -1382,7 +1382,7 @@ VII. Инфузии и Стволови: 26.NAD+ IV(5/5 енергия+мозъ�
                 let protocol;
                 try {
                     // Extract JSON: try markdown code blocks first, then find outermost { } pair
-                    const codeBlockMatch = rawResponse.match(/\`\`\`(?:json)?\s*([\s\S]*?)\`\`\`/);
+                    const codeBlockMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
                     const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : rawResponse.trim();
                     protocol = JSON.parse(jsonStr.startsWith('{') ? jsonStr : jsonStr.match(/(\{[\s\S]*\})/)?.[1] || jsonStr);
                 } catch (parseErr) {
