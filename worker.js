@@ -2193,7 +2193,7 @@ JSON (ТОЧЕН ФОРМАТ):
   "summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}},
   "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["храна 1", "храна 2", "храна 3"],
-  "psychology": ${strategy.psychologicalSupport ? JSON.stringify(strategy.psychologicalSupport.slice(0, 3)) : '["съвет 1", "съвет 2"]'},
+  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
   "waterIntake": "${strategy.hydrationStrategy || '2-2.5л дневно'}",
   "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
 }

@@ -139,7 +139,25 @@
             transform: translateX(-3px);
         }
 
+        .home-btn {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 8px;
+            border-radius: 50%;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
+        .home-btn:hover {
+            background: var(--soft-red);
+            transform: scale(1.1);
+        }
 
         .theme-toggle-btn {
             background: var(--secondary-accent);
@@ -1852,6 +1870,7 @@
     <!-- Header -->
     <header>
         <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
+        <a href="index.html" class="home-btn" title="Начало"><i class="fas fa-home"></i></a>
         <h1>Моят Хранителен План</h1>
         <div style="display: flex; align-items: center; gap: 10px;">
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема">
@@ -4198,7 +4217,8 @@
                         summary: dietPlan.summary,
                         weekPlan: compactWeekPlan(dietPlan.weekPlan),
                         recommendations: dietPlan.recommendations,
-                        forbidden: dietPlan.forbidden
+                        forbidden: dietPlan.forbidden,
+                        communicationStyle: dietPlan.strategy?.communicationStyle
                     };
                     
                     optimizedUserData = {
