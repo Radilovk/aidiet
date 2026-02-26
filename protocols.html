@@ -994,7 +994,6 @@
                 nextBtn.style.display = 'none';
                 prevBtn.style.visibility = 'hidden';
             } else if (step === totalSteps - 1) {
-                nextBtn.textContent = '';
                 nextBtn.innerHTML = '🧬 Генерирай Протокол';
                 nextBtn.className = 'btn-generate';
                 nextBtn.style.display = '';
@@ -1258,7 +1257,7 @@ ${customPrompt ? 'ДОПЪЛНИТЕЛНИ ИНСТРУКЦИИ: ' + customPromp
                 let protocol;
                 try {
                     // Try to extract JSON from the response (handle markdown code blocks)
-                    const jsonMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)```/) || rawResponse.match(/(\{[\s\S]*\})/);
+                    const jsonMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)```/) || rawResponse.match(/(\{[\s\S]*?\})\s*$/);
                     if (jsonMatch) {
                         protocol = JSON.parse(jsonMatch[1]);
                     } else {
@@ -1275,7 +1274,7 @@ ${customPrompt ? 'ДОПЪЛНИТЕЛНИ ИНСТРУКЦИИ: ' + customPromp
                 // Save to history
                 const history = JSON.parse(localStorage.getItem('protocolHistory') || '[]');
                 history.unshift({ date: new Date().toISOString(), formData: formData, protocol: protocol });
-                if (history.length > 10) history.pop();
+                if (history.length > 10) history.splice(10);
                 localStorage.setItem('protocolHistory', JSON.stringify(history));
 
             } catch (err) {
