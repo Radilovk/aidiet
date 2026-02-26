@@ -1240,16 +1240,6 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
 async function generateChatPrompt(env, userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
   // Use FULL data for both modes to ensure precise, comprehensive analysis
   // No compromise on data completeness for individualization and quality
-  
-  // Extract communicationStyle from the plan (may be at top-level or under strategy)
-  const communicationStyle = userPlan?.communicationStyle || userPlan?.strategy?.communicationStyle;
-  const communicationSection = communicationStyle ? `
-НАСОКИ ЗА КОМУНИКАЦИЯ С КЛИЕНТА:
-- Темперамент: ${communicationStyle.temperament || 'не е определен'}
-- Тон: ${communicationStyle.tone || 'не е определен'}
-- Подход: ${communicationStyle.approach || 'не е определен'}
-- Насоки за чат: ${communicationStyle.chatGuidelines || 'не е определен'}
-` : '';
 
   // Base context with complete data
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
@@ -1259,19 +1249,26 @@ ${JSON.stringify(userData, null, 2)}
 
 ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
 ${JSON.stringify(userPlan, null, 2)}
-${communicationSection}
+
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 `;
 
   // Get mode-specific instructions from KV (with caching)
   const chatPrompts = await getChatPrompts(env);
+
+  // Extract chatGuidelines from the plan's communicationStyle (top-level or under strategy)
+  const commStyle = userPlan?.communicationStyle || userPlan?.strategy?.communicationStyle;
+  const commGuidelines = commStyle?.chatGuidelines || '';
+
   let modeInstructions = '';
-  
   if (mode === 'consultation') {
-    modeInstructions = chatPrompts.consultation;
+    // Replace {communicationStyle} placeholder with client-specific guidelines from the plan
+    modeInstructions = (chatPrompts.consultation || '').replace(/{communicationStyle}/g, commGuidelines);
   } else if (mode === 'modification') {
-    // Replace {goal} placeholder with actual user goal
-    modeInstructions = chatPrompts.modification.replace(/{goal}/g, userData.goal || 'твоята цел');
+    // Replace {goal} and {communicationStyle} placeholders
+    modeInstructions = (chatPrompts.modification || '')
+      .replace(/{goal}/g, userData.goal || 'твоята цел')
+      .replace(/{communicationStyle}/g, commGuidelines);
   }
 
   const fullPrompt = `${baseContext}
@@ -5263,6 +5260,7 @@ async function getChatPrompts(env) {
 5. Винаги поддържай мотивиращ тон.
 6. Форматирай отговорите си ясно - използвай нови редове за разделяне на мисли.
 7. Задавай максимум 1 въпрос на отговор.
+8. Адаптирай стила на комуникация към клиента: {communicationStyle}
 
 ПРИМЕРИ:
 - "Закуската съдържа овесени ядки с банан (350 калории). За промяна, активирай режима за промяна."
@@ -5346,7 +5344,8 @@ async function getChatPrompts(env) {
 - Форматирай ясно с нови редове и изброяване
 - Максимум 3-4 изречения
 - Максимум 1 въпрос
-- АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`
+- АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!
+- Адаптирай стила на комуникация към клиента: {communicationStyle}`
   };
 
   if (env.page_content) {
