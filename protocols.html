@@ -878,6 +878,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         // === ORIGINAL FILTERING & MODAL LOGIC ===
+        // Scope selects to #control-panel only so wizard selects don't trigger filtering
         const selects = document.querySelectorAll('#control-panel select');
         const resetBtn = document.getElementById('reset-btn');
         const sections = document.querySelectorAll('.category-section');
@@ -1160,6 +1161,7 @@ ${customPrompt ? 'ДОПЪЛНИТЕЛНИ ИНСТРУКЦИИ: ' + customPromp
                 const model = modelName || 'claude-sonnet-4-20250514';
                 const res = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
+                    // Note: direct browser access required per no-backend architecture; API key is admin-configured in localStorage
                     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
                     body: JSON.stringify({ model: model, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] })
                 });
@@ -1256,13 +1258,10 @@ ${customPrompt ? 'ДОПЪЛНИТЕЛНИ ИНСТРУКЦИИ: ' + customPromp
                 // Parse JSON from response
                 let protocol;
                 try {
-                    // Try to extract JSON from the response (handle markdown code blocks)
-                    const jsonMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)```/) || rawResponse.match(/(\{[\s\S]*?\})\s*$/);
-                    if (jsonMatch) {
-                        protocol = JSON.parse(jsonMatch[1]);
-                    } else {
-                        protocol = JSON.parse(rawResponse);
-                    }
+                    // Extract JSON: try markdown code blocks first, then find outermost { } pair
+                    const codeBlockMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
+                    const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : rawResponse.trim();
+                    protocol = JSON.parse(jsonStr.startsWith('{') ? jsonStr : jsonStr.match(/(\{[\s\S]*\})/)?.[1] || jsonStr);
                 } catch (parseErr) {
                     throw new Error('AI моделът не върна валиден JSON. Моля, опитайте отново.');
                 }

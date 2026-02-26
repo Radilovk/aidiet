@@ -1792,6 +1792,11 @@
 
             // Save selected tab to localStorage
             localStorage.setItem('selectedTab', tabName);
+
+            // Auto-load protocol settings when protocols tab is opened
+            if (tabName === 'protocols' && typeof loadProtocolSettings === 'function') {
+                loadProtocolSettings();
+            }
         }
 
         // Initialize tab on page load
@@ -5101,15 +5106,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 icon.className = 'fas fa-eye';
             }
         }
-
-        // Auto-load protocol settings when protocols tab is opened
-        const origSwitchTab = switchTab;
-        switchTab = function(tabName, evt) {
-            origSwitchTab(tabName, evt);
-            if (tabName === 'protocols') {
-                loadProtocolSettings();
-            }
-        };
     </script>
 </body>
 </html>
