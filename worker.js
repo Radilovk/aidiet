@@ -6467,10 +6467,22 @@ async function handleExportAILogs(request, env) {
     textContent += '\n';
     
     // Note: logData contains paired entries (request, response) for each log ID
-    // Each log ID maps to 2 entries in logData: [request at i*2, response at i*2+1]
+    // New combined format: single entry per logId (type='combined')
+    // Old format: separate request + response entries (kept for backward compatibility)
     for (let i = 0; i < allLogIds.length; i++) {
       const requestLog = logData[i * 2];
-      const responseLog = logData[i * 2 + 1];
+      const legacyResponseLog = logData[i * 2 + 1];
+      // For combined entries the response data is embedded in the primary log entry;
+      // fall back to the legacy separate response entry for older records.
+      const responseLog = requestLog?.type === 'combined' ? {
+        timestamp: requestLog.responseTimestamp || requestLog.timestamp,
+        success: requestLog.success,
+        duration: requestLog.duration,
+        responseLength: requestLog.responseLength,
+        estimatedOutputTokens: requestLog.estimatedOutputTokens,
+        error: requestLog.error,
+        response: requestLog.response
+      } : legacyResponseLog;
       
       if (requestLog) {
         textContent += '='.repeat(80) + '\n';
