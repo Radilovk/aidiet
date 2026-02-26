@@ -1103,15 +1103,20 @@
             
             const dietPlan = localStorage.getItem('dietPlan');
             const userId = localStorage.getItem('userId');
+            const myPlanBtn = document.getElementById('myPlanBtn');
+            const startNowBtn = document.getElementById('startNowBtn');
             
             if (dietPlan && userId) {
                 // User has a plan - redirect directly to plan.html (replace so back-button skips this page)
-                window.location.replace('plan.html');
+                // Skip redirect when the user intentionally navigated here (e.g. via the home button)
+                if (!new URLSearchParams(window.location.search).has('stay')) {
+                    window.location.replace('plan.html');
+                    return;
+                }
+                // User has a plan but chose to stay on index - show "My Plan" button
+                if (myPlanBtn) myPlanBtn.style.display = 'inline-block';
                 return;
             }
-
-            const myPlanBtn = document.getElementById('myPlanBtn');
-            const startNowBtn = document.getElementById('startNowBtn');
             
             // User doesn't have a plan - show "Започни Сега" button
             if (myPlanBtn) {

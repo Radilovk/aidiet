@@ -1241,6 +1241,16 @@ async function generateChatPrompt(env, userMessage, userData, userPlan, conversa
   // Use FULL data for both modes to ensure precise, comprehensive analysis
   // No compromise on data completeness for individualization and quality
   
+  // Extract communicationStyle from the plan (may be at top-level or under strategy)
+  const communicationStyle = userPlan?.communicationStyle || userPlan?.strategy?.communicationStyle;
+  const communicationSection = communicationStyle ? `
+НАСОКИ ЗА КОМУНИКАЦИЯ С КЛИЕНТА:
+- Темперамент: ${communicationStyle.temperament || 'не е определен'}
+- Тон: ${communicationStyle.tone || 'не е определен'}
+- Подход: ${communicationStyle.approach || 'не е определен'}
+- Насоки за чат: ${communicationStyle.chatGuidelines || 'не е определен'}
+` : '';
+
   // Base context with complete data
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
@@ -1249,7 +1259,7 @@ ${JSON.stringify(userData, null, 2)}
 
 ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
 ${JSON.stringify(userPlan, null, 2)}
-
+${communicationSection}
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 `;
 
