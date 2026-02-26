@@ -848,6 +848,9 @@
                 <button class="tab-btn" onclick="switchTab('features', event)">
                     <i class="fas fa-sliders-h"></i> Функции
                 </button>
+                <button class="tab-btn" onclick="switchTab('protocols', event)">
+                    <i class="fas fa-flask"></i> Протоколи
+                </button>
             </div>
 
             <!-- Configuration Tab -->
@@ -1637,6 +1640,86 @@
             </div>
             </div>
             <!-- End Features Tab -->
+
+            <!-- Protocols Tab -->
+            <div id="tab-protocols" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-flask"></i> Настройки на Протоколи</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Конфигурирайте AI модела и промпта за генериране на персонализирани хранителни протоколи на страницата protocols.html. Настройките се запазват в localStorage на браузъра (без бекенд).
+                </div>
+
+                <!-- Protocol AI Provider -->
+                <div class="form-group">
+                    <label for="protocolAiProvider">AI Провайдър за протоколи:</label>
+                    <select id="protocolAiProvider">
+                        <option value="openai">OpenAI</option>
+                        <option value="google">Google Gemini</option>
+                        <option value="anthropic">Anthropic Claude</option>
+                    </select>
+                </div>
+
+                <!-- Protocol AI Model -->
+                <div class="form-group">
+                    <label for="protocolAiModel">Име на AI модел:</label>
+                    <input type="text" id="protocolAiModel" placeholder="напр. gpt-4o-mini, gemini-2.0-flash, claude-sonnet-4-20250514">
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        Оставете празно за модел по подразбиране: OpenAI → gpt-4o-mini, Google → gemini-2.0-flash, Anthropic → claude-sonnet-4-20250514
+                    </small>
+                </div>
+
+                <!-- Protocol API Key -->
+                <div class="form-group">
+                    <label for="protocolApiKey">API Ключ:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="password" id="protocolApiKey" placeholder="Въведете API ключ за избрания провайдър" style="flex: 1;">
+                        <button class="btn" onclick="toggleProtocolApiKeyVisibility()" style="background: var(--accent-blue); white-space: nowrap;">
+                            <i class="fas fa-eye" id="protocolApiKeyIcon"></i>
+                        </button>
+                    </div>
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        ⚠️ Ключът се съхранява в localStorage на браузъра. Не се изпраща към бекенд.
+                    </small>
+                </div>
+
+                <!-- Protocol Prompt Template -->
+                <div class="form-group">
+                    <label for="protocolPromptTemplate">Допълнителни инструкции за AI промпта:</label>
+                    <textarea id="protocolPromptTemplate" rows="6" placeholder="Въведете допълнителни инструкции, които да се добавят към основния промпт при генериране на протоколи. Например: 'Фокусирай се повече на натурални добавки' или 'Препоръчвай само европейски марки'..."></textarea>
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        Тези инструкции се добавят към вградения промпт. Основният промпт включва анализ на клиентския профил и структуриран JSON отговор.
+                    </small>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                    <button class="btn" onclick="saveProtocolSettings()">
+                        <i class="fas fa-save"></i> Запази Настройки
+                    </button>
+                    <button class="btn" onclick="loadProtocolSettings()" style="background: var(--accent-blue);">
+                        <i class="fas fa-sync"></i> Презареди
+                    </button>
+                    <button class="btn" onclick="clearProtocolHistory()" style="background: var(--accent-light-red);">
+                        <i class="fas fa-trash"></i> Изчисти Историята
+                    </button>
+                </div>
+            </div>
+
+            <!-- Protocol History -->
+            <div class="card" style="margin-top: 20px;">
+                <h2><i class="fas fa-history"></i> История на генерираните протоколи</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Последните 10 генерирани протокола се запазват автоматично в localStorage.
+                </div>
+                <div id="protocolHistoryDisplay" style="padding: 15px; background: var(--soft-red); border-radius: 8px; min-height: 80px;">
+                    <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                        Натиснете "Презареди" за да видите историята на протоколите.
+                    </p>
+                </div>
+            </div>
+            </div>
+            <!-- End Protocols Tab -->
+
         </div>
     </div>
 
@@ -1669,7 +1752,7 @@
         // --- Tab Management ---
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features'];
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols'];
             if (!validTabs.includes(tabName)) {
                 console.error('Invalid tab name:', tabName);
                 return;
@@ -1715,7 +1798,7 @@
         function initializeTab() {
             const savedTab = localStorage.getItem('selectedTab') || 'configuration';
             // Validate saved tab to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features'];
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols'];
             const tabToLoad = validTabs.includes(savedTab) ? savedTab : 'configuration';
             
             const tabContents = document.querySelectorAll('.tab-content');
@@ -4945,6 +5028,87 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         function getShareIconSvg() {
             return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E";
         }
+
+        // --- Protocol Settings Management ---
+        function saveProtocolSettings() {
+            const config = {
+                provider: document.getElementById('protocolAiProvider').value,
+                modelName: document.getElementById('protocolAiModel').value.trim(),
+                apiKey: document.getElementById('protocolApiKey').value.trim(),
+                promptTemplate: document.getElementById('protocolPromptTemplate').value.trim()
+            };
+            localStorage.setItem('protocolConfig', JSON.stringify(config));
+            showSuccess('Настройките за протоколи са запазени успешно!');
+        }
+
+        function loadProtocolSettings() {
+            const config = JSON.parse(localStorage.getItem('protocolConfig') || '{}');
+            document.getElementById('protocolAiProvider').value = config.provider || 'openai';
+            document.getElementById('protocolAiModel').value = config.modelName || '';
+            document.getElementById('protocolApiKey').value = config.apiKey || '';
+            document.getElementById('protocolPromptTemplate').value = config.promptTemplate || '';
+            
+            // Load protocol history
+            loadProtocolHistory();
+            showSuccess('Настройките за протоколи са заредени.');
+        }
+
+        function loadProtocolHistory() {
+            const history = JSON.parse(localStorage.getItem('protocolHistory') || '[]');
+            const display = document.getElementById('protocolHistoryDisplay');
+            
+            if (history.length === 0) {
+                display.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма генерирани протоколи.</p>';
+                return;
+            }
+
+            let html = '';
+            history.forEach((entry, index) => {
+                const date = new Date(entry.date).toLocaleString('bg-BG');
+                const protocolName = entry.protocol && entry.protocol.protocolName ? entry.protocol.protocolName : 'Протокол #' + (index + 1);
+                const age = entry.formData ? entry.formData.age : '?';
+                const gender = entry.formData ? (entry.formData.gender === 'male' ? 'Мъж' : entry.formData.gender === 'female' ? 'Жена' : '?') : '?';
+                const budget = entry.formData ? entry.formData.budget : '?';
+                
+                html += `<div style="padding: 12px; margin-bottom: 10px; background: var(--white); border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <strong style="color: var(--text-dark);">${protocolName}</strong>
+                        <small style="color: var(--text-gray);">${date}</small>
+                    </div>
+                    <small style="color: var(--text-gray);">Възраст: ${age} | Пол: ${gender} | Бюджет: ${budget}</small>
+                </div>`;
+            });
+            display.innerHTML = html;
+        }
+
+        function clearProtocolHistory() {
+            if (confirm('Сигурни ли сте, че искате да изчистите историята на протоколите?')) {
+                localStorage.removeItem('protocolHistory');
+                loadProtocolHistory();
+                showSuccess('Историята на протоколите е изчистена.');
+            }
+        }
+
+        function toggleProtocolApiKeyVisibility() {
+            const input = document.getElementById('protocolApiKey');
+            const icon = document.getElementById('protocolApiKeyIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        // Auto-load protocol settings when protocols tab is opened
+        const origSwitchTab = switchTab;
+        switchTab = function(tabName, evt) {
+            origSwitchTab(tabName, evt);
+            if (tabName === 'protocols') {
+                loadProtocolSettings();
+            }
+        };
     </script>
 </body>
 </html>
