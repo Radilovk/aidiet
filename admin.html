@@ -5064,7 +5064,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
             let html = '';
             history.forEach((entry, index) => {
-                const date = new Date(entry.date).toLocaleString('bg-BG');
+                const parsedDate = new Date(entry.date);
+                const date = isNaN(parsedDate.getTime()) ? 'Неизвестна дата' : parsedDate.toLocaleString('bg-BG');
                 const protocolName = entry.protocol && entry.protocol.protocolName ? entry.protocol.protocolName : 'Протокол #' + (index + 1);
                 const age = entry.formData ? entry.formData.age : '?';
                 const gender = entry.formData ? (entry.formData.gender === 'male' ? 'Мъж' : entry.formData.gender === 'female' ? 'Жена' : '?') : '?';
