@@ -1818,7 +1818,8 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
 ${jsonExample.join(',\n')}
 }
 
-КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!`;
+КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!
+ЗАБРАНЕНО: НЕ връщай JSON масив []. Отговорът ТРЯБВА да е JSON обект {} с ключове "day${startDay}" ... "day${endDay}".`;
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -1865,11 +1866,11 @@ ${jsonExample.join(',\n')}
   }
 }
 
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []!`;
     }
     return prompt;
   }
-  
+
   return defaultPrompt;
 }
 
