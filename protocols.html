@@ -51,10 +51,86 @@
         .hidden-details { display: none; }
         .hidden-section { display: none; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        @media (max-width: 768px) { #control-panel { padding: 15px; position: static; } .control-group { min-width: 100%; } .modal { padding: 10px; } .modal-content { max-height: 95vh; margin-top: 0; } .modal-header { padding: 15px 20px; } .modal-body { padding: 20px; } .grid-container { grid-template-columns: 1fr; } }
+/* Personal Protocol Styles */
+.btn-create-protocol { padding: 12px 28px; background: linear-gradient(135deg, #10b981, #3b82f6); color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif; letter-spacing: 0.3px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.btn-create-protocol:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4); }
+.protocol-wizard { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); overflow-y: auto; padding: 20px; }
+.protocol-wizard.show { display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s ease; }
+.wizard-content { background: var(--card-bg); width: 100%; max-width: 700px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); position: relative; max-height: 90vh; display: flex; flex-direction: column; }
+.wizard-header { padding: 24px 30px; background: linear-gradient(135deg, #10b981, #3b82f6); color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; justify-content: space-between; align-items: center; }
+.wizard-header h2 { margin: 0; color: white; font-size: 1.3rem; border: none; padding: 0; background: none; -webkit-text-fill-color: white; }
+.wizard-body { padding: 30px; overflow-y: auto; }
+.wizard-progress { display: flex; gap: 4px; margin-bottom: 25px; }
+.wizard-progress .step-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--border-color); transition: background 0.3s; }
+.wizard-progress .step-dot.active { background: #10b981; }
+.wizard-progress .step-dot.completed { background: #3b82f6; }
+.wizard-step { display: none; }
+.wizard-step.active { display: block; }
+.wizard-step h3 { color: var(--primary); font-size: 1.1rem; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+.form-field { margin-bottom: 18px; }
+.form-field label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px; }
+.form-field input, .form-field select, .form-field textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; font-family: 'Inter', sans-serif; background: #fff; transition: border-color 0.2s; outline: none; }
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+.form-field textarea { resize: vertical; min-height: 80px; }
+.checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.checkbox-group label { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; background: #fff; }
+.checkbox-group label:hover { border-color: #10b981; }
+.checkbox-group input:checked + span { color: #10b981; font-weight: 600; }
+.checkbox-group label:has(input:checked) { border-color: #10b981; background: rgba(16,185,129,0.05); }
+.wizard-nav { display: flex; justify-content: space-between; padding: 20px 30px; border-top: 1px solid var(--border-color); }
+.wizard-nav button { padding: 10px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; font-size: 0.9rem; }
+.btn-prev { background: var(--text-light); color: #fff; }
+.btn-prev:hover { background: var(--primary); }
+.btn-next { background: #10b981; color: #fff; }
+.btn-next:hover { background: #059669; }
+.btn-generate { background: linear-gradient(135deg, #10b981, #3b82f6); color: #fff; padding: 12px 32px; }
+.btn-generate:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+.protocol-result { display: none; }
+.protocol-result.show { display: block; }
+.result-card { background: linear-gradient(135deg, rgba(16,185,129,0.05), rgba(59,130,246,0.05)); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+.result-card h4 { color: var(--primary); margin: 0 0 12px 0; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+.result-card p, .result-card ul { font-size: 0.9rem; color: var(--text-main); line-height: 1.7; }
+.result-card ul { padding-left: 20px; }
+.result-card li { margin-bottom: 6px; }
+.loading-spinner { display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 40px; }
+.loading-spinner .spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top: 4px solid #10b981; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+/* Dark Theme */
+[data-theme="dark"] { --primary: #e2e8f0; --accent: #60a5fa; --accent-hover: #93bbfd; --bg-color: #0f172a; --card-bg: #1e293b; --text-main: #cbd5e1; --text-light: #94a3b8; --success: #34d399; --warning: #fbbf24; --danger: #f87171; --border-color: #334155; --shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --shadow-md: 0 4px 6px rgba(0,0,0,0.4); --shadow-lg: 0 10px 15px rgba(0,0,0,0.5); }
+[data-theme="dark"] body { background-color: var(--bg-color); color: var(--text-main); }
+[data-theme="dark"] h1 { background: linear-gradient(90deg, #e2e8f0, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+[data-theme="dark"] #control-panel { background: rgba(30,41,59,0.95); }
+[data-theme="dark"] .control-group select { background: #1e293b; color: #cbd5e1; border-color: #475569; }
+[data-theme="dark"] .card { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .metrics-mini { background: #0f172a; border-color: #334155; }
+[data-theme="dark"] .metrics-mini div { background: #1e293b; border-color: #334155; color: #94a3b8; }
+[data-theme="dark"] .modal-content { background: #1e293b; }
+[data-theme="dark"] .detail-section { background: #0f172a; }
+[data-theme="dark"] .wizard-content { background: #1e293b; }
+[data-theme="dark"] .form-field input, [data-theme="dark"] .form-field select, [data-theme="dark"] .form-field textarea { background: #0f172a; color: #cbd5e1; border-color: #475569; }
+[data-theme="dark"] .checkbox-group label { background: #0f172a; color: #cbd5e1; border-color: #475569; }
+[data-theme="dark"] .checkbox-group label:has(input:checked) { border-color: #10b981; background: rgba(16,185,129,0.15); }
+[data-theme="dark"] .result-card { background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(59,130,246,0.1)); border-color: rgba(16,185,129,0.3); }
+.theme-toggle { position: fixed; bottom: 20px; right: 20px; z-index: 999; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--border-color); background: var(--card-bg); color: var(--text-main); cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); transition: all 0.3s; }
+.theme-toggle:hover { transform: scale(1.1); box-shadow: var(--shadow-lg); }
+.result-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.result-actions button { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+.btn-new-protocol { background: #10b981; color: #fff; }
+.btn-new-protocol:hover { background: #059669; }
+.btn-print { background: var(--accent); color: #fff; }
+.btn-print:hover { background: var(--accent-hover); }
+.btn-close-wizard { background: var(--text-light); color: #fff; }
+.btn-close-wizard:hover { background: var(--primary); }
+.validation-error { color: var(--danger); font-size: 0.8rem; margin-top: 4px; display: none; }
+.form-field.error input, .form-field.error select { border-color: var(--danger); }
+.form-field.error .validation-error { display: block; }
+@media print { .wizard-header, .wizard-nav, .wizard-progress, .result-actions, .theme-toggle { display: none !important; } .protocol-wizard { position: static; background: none; padding: 0; } .wizard-content { max-height: none; box-shadow: none; } .wizard-body { padding: 10px; } .result-card { break-inside: avoid; } }
+.api-config-banner { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 15px; font-size: 0.85rem; color: #92400e; display: flex; align-items: center; gap: 8px; }
+        @media (max-width: 768px) { #control-panel { padding: 15px; position: static; } .control-group { min-width: 100%; } .modal { padding: 10px; } .modal-content { max-height: 95vh; margin-top: 0; } .modal-header { padding: 15px 20px; } .modal-body { padding: 20px; } .grid-container { grid-template-columns: 1fr; } .btn-create-protocol { width: 100%; justify-content: center; } .wizard-content { max-height: 95vh; } .wizard-header { padding: 15px 20px; } .wizard-body { padding: 20px; } .wizard-nav { padding: 15px 20px; } }
     </style>
 </head>
 <body>
+<button class="theme-toggle" id="themeToggle" title="Смяна на тема" aria-label="Превключи тема">🌙</button>
 
 <div class="container">
     <h1>Обективен Справочник: 32 Протокола</h1>
@@ -98,6 +174,7 @@
             </div>
         </div>
         <button id="reset-btn">Изчисти</button>
+        <button class="btn-create-protocol" id="create-protocol-btn">🧬 Създай Личен Протокол</button>
     </div>
 
     <!-- Modal Container -->
@@ -108,6 +185,162 @@
                 <span class="close-btn">&times;</span>
             </div>
             <div class="modal-body" id="modal-body-content"></div>
+        </div>
+    </div>
+
+    <!-- Protocol Wizard -->
+    <div id="protocol-wizard" class="protocol-wizard">
+        <div class="wizard-content">
+            <div class="wizard-header">
+                <h2>🧬 Създаване на Личен Протокол</h2>
+                <span class="close-wizard">&times;</span>
+            </div>
+            <div class="wizard-body">
+                <div class="wizard-progress" id="wizard-progress"></div>
+
+                <!-- Step 1: Basic Info -->
+                <div class="wizard-step active" data-step="1">
+                    <h3>👤 Основна информация</h3>
+                    <div class="form-field">
+                        <label>Възраст</label>
+                        <input type="number" id="prot-age" min="16" max="100" placeholder="напр. 35">
+                    </div>
+                    <div class="form-field">
+                        <label>Пол</label>
+                        <select id="prot-gender">
+                            <option value="">-- Изберете --</option>
+                            <option value="male">Мъж</option>
+                            <option value="female">Жена</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Тегло (кг)</label>
+                        <input type="number" id="prot-weight" min="30" max="250" placeholder="напр. 75">
+                    </div>
+                    <div class="form-field">
+                        <label>Ниво на физическа активност</label>
+                        <select id="prot-activity">
+                            <option value="">-- Изберете --</option>
+                            <option value="sedentary">Заседнал начин на живот</option>
+                            <option value="light">Лека активност (1-2 пъти/седмица)</option>
+                            <option value="moderate">Умерена активност (3-4 пъти/седмица)</option>
+                            <option value="active">Активен (5+ пъти/седмица)</option>
+                            <option value="athlete">Атлет / Професионален спортист</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 2: Goals -->
+                <div class="wizard-step" data-step="2">
+                    <h3>🎯 Основни цели</h3>
+                    <div class="form-field">
+                        <label>Какви са основните Ви цели? (изберете една или повече)</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="prot-goals" value="anti-aging"><span>✨ Визуално подмладяване</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="muscle"><span>💪 Мускулна маса и сила</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="cognitive"><span>🧠 Когнитивна функция</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="energy"><span>⚡ Енергия и издръжливост</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="longevity"><span>🧬 Клетъчно дълголетие</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="immunity"><span>🛡️ Имунна система</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="sleep"><span>😴 Качество на съня</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="stress"><span>🧘 Управление на стреса</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="joints"><span>🦴 Стави и подвижност</span></label>
+                            <label><input type="checkbox" name="prot-goals" value="skin"><span>🌟 Здраве на кожата</span></label>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>Приоритет (кое е най-важно?)</label>
+                        <select id="prot-priority">
+                            <option value="">-- Изберете основен приоритет --</option>
+                            <option value="anti-aging">✨ Визуално подмладяване</option>
+                            <option value="muscle">💪 Мускулна маса и сила</option>
+                            <option value="cognitive">🧠 Когнитивна функция</option>
+                            <option value="energy">⚡ Енергия и издръжливост</option>
+                            <option value="longevity">🧬 Клетъчно дълголетие</option>
+                            <option value="immunity">🛡️ Имунна система</option>
+                            <option value="sleep">😴 Качество на съня</option>
+                            <option value="stress">🧘 Управление на стреса</option>
+                            <option value="joints">🦴 Стави и подвижност</option>
+                            <option value="skin">🌟 Здраве на кожата</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 3: Health Concerns -->
+                <div class="wizard-step" data-step="3">
+                    <h3>⚕️ Здравословно състояние</h3>
+                    <div class="form-field">
+                        <label>Имате ли някои от следните състояния?</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="prot-conditions" value="none"><span>Нямам оплаквания</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="joint-pain"><span>Ставни болки</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="fatigue"><span>Хронична умора</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="insomnia"><span>Безсъние</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="skin-issues"><span>Проблеми с кожата</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="hair-loss"><span>Косопад</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="brain-fog"><span>Мозъчна мъгла</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="digestion"><span>Храносмилателни проблеми</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="inflammation"><span>Хронично възпаление</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="hormonal"><span>Хормонален дисбаланс</span></label>
+                            <label><input type="checkbox" name="prot-conditions" value="autoimmune"><span>Автоимунно заболяване</span></label>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>Алергии или непоносимости (ако има)</label>
+                        <textarea id="prot-allergies" placeholder="напр. хистаминова непоносимост, алергия към морски дарове..."></textarea>
+                    </div>
+                    <div class="form-field">
+                        <label>Текущи медикаменти (ако има)</label>
+                        <textarea id="prot-medications" placeholder="напр. метформин, левотироксин..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Step 4: Budget & Preferences -->
+                <div class="wizard-step" data-step="4">
+                    <h3>💰 Бюджет и предпочитания</h3>
+                    <div class="form-field">
+                        <label>Месечен бюджет за хранителни добавки</label>
+                        <select id="prot-budget">
+                            <option value="">-- Изберете --</option>
+                            <option value="low">До €50/месец (Базов)</option>
+                            <option value="medium">€50-150/месец (Среден)</option>
+                            <option value="high">€150-300/месец (Висок)</option>
+                            <option value="premium">€300+/месец (Премиум)</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Предпочитана форма на прием</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="prot-forms" value="oral"><span>💊 Перорални (таблетки/капсули)</span></label>
+                            <label><input type="checkbox" name="prot-forms" value="powder"><span>🥤 Прахове</span></label>
+                            <label><input type="checkbox" name="prot-forms" value="liquid"><span>💧 Течни форми</span></label>
+                            <label><input type="checkbox" name="prot-forms" value="topical"><span>🧴 Локални (кремове/серуми)</span></label>
+                            <label><input type="checkbox" name="prot-forms" value="injection"><span>💉 Инжекционни</span></label>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>Текущи добавки които вземате (ако има)</label>
+                        <textarea id="prot-current-supplements" placeholder="напр. витамин D, омега-3, магнезий..."></textarea>
+                    </div>
+                    <div class="form-field">
+                        <label>Допълнителна информация</label>
+                        <textarea id="prot-notes" placeholder="Всяка допълнителна информация, която считате за важна..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Step 5: Loading & Result -->
+                <div class="wizard-step" data-step="5">
+                    <div id="protocol-loading" class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p style="color: var(--text-light); font-size: 0.9rem;">AI моделът анализира Вашите данни и създава персонализиран протокол...</p>
+                    </div>
+                    <div id="protocol-result" class="protocol-result"></div>
+                </div>
+            </div>
+            <div class="wizard-nav">
+                <button class="btn-prev" id="wizard-prev" style="visibility: hidden;">← Назад</button>
+                <button class="btn-next" id="wizard-next">Напред →</button>
+            </div>
         </div>
     </div>
 
@@ -675,7 +908,22 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const selects = document.querySelectorAll('select');
+        // === THEME TOGGLE ===
+        const themeToggle = document.getElementById('themeToggle');
+        const savedTheme = localStorage.getItem('protocolTheme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        themeToggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('protocolTheme', next);
+            themeToggle.textContent = next === 'dark' ? '☀️' : '🌙';
+        });
+
+        // === ORIGINAL FILTERING & MODAL LOGIC ===
+        // Scope selects to #control-panel only so wizard selects don't trigger filtering
+        const selects = document.querySelectorAll('#control-panel select');
         const resetBtn = document.getElementById('reset-btn');
         const sections = document.querySelectorAll('.category-section');
         const allCards = Array.from(document.querySelectorAll('.card'));
@@ -690,7 +938,7 @@
         const modal = document.getElementById('info-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalBody = document.getElementById('modal-body-content');
-        const closeBtn = document.querySelector('.close-btn');
+        const closeBtn = document.querySelector('#info-modal .close-btn');
 
         document.querySelectorAll('.btn-details').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -755,7 +1003,418 @@
 
         selects.forEach(s => s.addEventListener('change', updateView));
         resetBtn.addEventListener('click', () => { selects.forEach(s => s.value = s.options[0].value); updateView(); });
+
+        // === FORM VALIDATION ===
+        function clearValidation() {
+            wizard.querySelectorAll('.form-field.error').forEach(f => f.classList.remove('error'));
+        }
+
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            const formField = field.closest('.form-field');
+            if (!formField) return;
+            formField.classList.add('error');
+            let errorEl = formField.querySelector('.validation-error');
+            if (!errorEl) {
+                errorEl = document.createElement('div');
+                errorEl.className = 'validation-error';
+                formField.appendChild(errorEl);
+            }
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function validateStep(step) {
+            clearValidation();
+            let valid = true;
+            if (step === 1) {
+                const age = document.getElementById('prot-age').value;
+                const gender = document.getElementById('prot-gender').value;
+                const weight = document.getElementById('prot-weight').value;
+                const activity = document.getElementById('prot-activity').value;
+                if (!age || age < 16 || age > 100) { showFieldError('prot-age', 'Моля, въведете възраст (16-100)'); valid = false; }
+                if (!gender) { showFieldError('prot-gender', 'Моля, изберете пол'); valid = false; }
+                if (!weight || weight < 30 || weight > 250) { showFieldError('prot-weight', 'Моля, въведете тегло (30-250 кг)'); valid = false; }
+                if (!activity) { showFieldError('prot-activity', 'Моля, изберете ниво на активност'); valid = false; }
+            } else if (step === 2) {
+                const goals = wizard.querySelectorAll('input[name="prot-goals"]:checked');
+                if (goals.length === 0) {
+                    const checkboxGroup = wizard.querySelector('[data-step="2"] .checkbox-group');
+                    if (checkboxGroup) {
+                        let errorEl = checkboxGroup.parentElement.querySelector('.validation-error');
+                        if (!errorEl) {
+                            errorEl = document.createElement('div');
+                            errorEl.className = 'validation-error';
+                            checkboxGroup.parentElement.appendChild(errorEl);
+                        }
+                        errorEl.textContent = 'Моля, изберете поне една цел';
+                        errorEl.style.display = 'block';
+                        checkboxGroup.parentElement.classList.add('error');
+                    }
+                    valid = false;
+                }
+            } else if (step === 4) {
+                const budget = document.getElementById('prot-budget').value;
+                if (!budget) { showFieldError('prot-budget', 'Моля, изберете бюджет'); valid = false; }
+            }
+            return valid;
+        }
+
+        // === PROTOCOL WIZARD LOGIC ===
+        const wizard = document.getElementById('protocol-wizard');
+        const wizardSteps = wizard.querySelectorAll('.wizard-step');
+        const progressContainer = document.getElementById('wizard-progress');
+        const prevBtn = document.getElementById('wizard-prev');
+        const nextBtn = document.getElementById('wizard-next');
+        const totalSteps = wizardSteps.length;
+        let currentStep = 1;
+
+        // Build progress dots
+        for (let i = 0; i < totalSteps; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'step-dot' + (i === 0 ? ' active' : '');
+            progressContainer.appendChild(dot);
+        }
+
+        function showStep(step) {
+            currentStep = step;
+            wizardSteps.forEach(s => s.classList.remove('active'));
+            const activeStep = wizard.querySelector(`[data-step="${step}"]`);
+            if (activeStep) activeStep.classList.add('active');
+
+            // Update progress dots
+            progressContainer.querySelectorAll('.step-dot').forEach((dot, i) => {
+                dot.className = 'step-dot';
+                if (i + 1 < step) dot.classList.add('completed');
+                else if (i + 1 === step) dot.classList.add('active');
+            });
+
+            // Update nav buttons
+            prevBtn.style.visibility = step <= 1 ? 'hidden' : 'visible';
+            if (step === totalSteps) {
+                nextBtn.style.display = 'none';
+                prevBtn.style.visibility = 'hidden';
+            } else if (step === totalSteps - 1) {
+                nextBtn.innerHTML = '🧬 Генерирай Протокол';
+                nextBtn.className = 'btn-generate';
+                nextBtn.style.display = '';
+            } else {
+                nextBtn.textContent = 'Напред →';
+                nextBtn.className = 'btn-next';
+                nextBtn.style.display = '';
+            }
+        }
+
+        // Open wizard
+        document.getElementById('create-protocol-btn').addEventListener('click', () => {
+            currentStep = 1;
+            showStep(1);
+            clearValidation();
+            // Reset form
+            wizard.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(i => i.value = '');
+            wizard.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+            wizard.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+            document.getElementById('protocol-result').innerHTML = '';
+            document.getElementById('protocol-result').classList.remove('show');
+            document.getElementById('protocol-loading').style.display = 'flex';
+            wizard.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        });
+
+        // Close wizard
+        const closeWizard = () => { wizard.classList.remove('show'); document.body.style.overflow = 'auto'; };
+        wizard.querySelector('.close-wizard').addEventListener('click', closeWizard);
+        wizard.addEventListener('click', (e) => { if (e.target === wizard) closeWizard(); });
+
+        // Navigation
+        prevBtn.addEventListener('click', () => { if (currentStep > 1) { clearValidation(); showStep(currentStep - 1); } });
+        nextBtn.addEventListener('click', () => {
+            if (currentStep === totalSteps - 1) {
+                if (validateStep(currentStep)) {
+                    showStep(totalSteps);
+                    generateProtocol();
+                }
+            } else if (currentStep < totalSteps) {
+                if (validateStep(currentStep)) {
+                    showStep(currentStep + 1);
+                }
+            }
+        });
+
+        // Collect form data
+        function collectFormData() {
+            const getCheckedValues = (name) => Array.from(wizard.querySelectorAll(`input[name="${name}"]:checked`)).map(c => c.value);
+            return {
+                age: document.getElementById('prot-age').value,
+                gender: document.getElementById('prot-gender').value,
+                weight: document.getElementById('prot-weight').value,
+                activity: document.getElementById('prot-activity').value,
+                goals: getCheckedValues('prot-goals'),
+                priority: document.getElementById('prot-priority').value,
+                conditions: getCheckedValues('prot-conditions'),
+                allergies: document.getElementById('prot-allergies').value,
+                medications: document.getElementById('prot-medications').value,
+                budget: document.getElementById('prot-budget').value,
+                forms: getCheckedValues('prot-forms'),
+                currentSupplements: document.getElementById('prot-current-supplements').value,
+                notes: document.getElementById('prot-notes').value
+            };
+        }
+
+        // Build AI prompt
+        function buildProtocolPrompt(data) {
+            const protocolConfig = JSON.parse(localStorage.getItem('protocolConfig') || '{}');
+            const customPrompt = protocolConfig.promptTemplate || '';
+
+            const goalLabels = { 'anti-aging': 'Визуално подмладяване', 'muscle': 'Мускулна маса и сила', 'cognitive': 'Когнитивна функция', 'energy': 'Енергия и издръжливост', 'longevity': 'Клетъчно дълголетие', 'immunity': 'Имунна система', 'sleep': 'Качество на съня', 'stress': 'Управление на стреса', 'joints': 'Стави и подвижност', 'skin': 'Здраве на кожата' };
+            const conditionLabels = { 'none': 'Няма', 'joint-pain': 'Ставни болки', 'fatigue': 'Хронична умора', 'insomnia': 'Безсъние', 'skin-issues': 'Проблеми с кожата', 'hair-loss': 'Косопад', 'brain-fog': 'Мозъчна мъгла', 'digestion': 'Храносмилателни проблеми', 'inflammation': 'Хронично възпаление', 'hormonal': 'Хормонален дисбаланс', 'autoimmune': 'Автоимунно заболяване' };
+            const budgetLabels = { 'low': 'До €50/месец', 'medium': '€50-150/месец', 'high': '€150-300/месец', 'premium': '€300+/месец' };
+            const activityLabels = { 'sedentary': 'Заседнал', 'light': 'Лека активност', 'moderate': 'Умерена активност', 'active': 'Активен', 'athlete': 'Атлет' };
+            const formLabels = { 'oral': 'Перорални', 'powder': 'Прахове', 'liquid': 'Течни форми', 'topical': 'Локални', 'injection': 'Инжекционни' };
+            const genderLabels = { 'male': 'Мъж', 'female': 'Жена' };
+
+            const goals = data.goals.map(g => goalLabels[g] || g).join(', ') || 'Не е посочено';
+            const conditions = data.conditions.map(c => conditionLabels[c] || c).join(', ') || 'Не е посочено';
+            const forms = data.forms.map(f => formLabels[f] || f).join(', ') || 'Всички';
+
+            let prompt = `Ти си експерт нутрициолог и специалист по хранителни добавки и протоколи за регенерация. Създай ПЕРСОНАЛИЗИРАН хранителен протокол на български език за следния клиент:
+
+ПРОФИЛ НА КЛИЕНТА:
+- Възраст: ${data.age || 'Не е посочена'} години
+- Пол: ${genderLabels[data.gender] || 'Не е посочен'}
+- Тегло: ${data.weight || 'Не е посочено'} кг
+- Физическа активност: ${activityLabels[data.activity] || 'Не е посочена'}
+
+ЦЕЛИ: ${goals}
+ОСНОВЕН ПРИОРИТЕТ: ${goalLabels[data.priority] || 'Не е посочен'}
+
+ЗДРАВОСЛОВНО СЪСТОЯНИЕ: ${conditions}
+АЛЕРГИИ/НЕПОНОСИМОСТИ: ${data.allergies || 'Няма'}
+ТЕКУЩИ МЕДИКАМЕНТИ: ${data.medications || 'Няма'}
+
+БЮДЖЕТ: ${budgetLabels[data.budget] || 'Не е посочен'}
+ПРЕДПОЧИТАНИ ФОРМИ: ${forms}
+ТЕКУЩИ ДОБАВКИ: ${data.currentSupplements || 'Няма'}
+ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ: ${data.notes || 'Няма'}
+
+${customPrompt ? 'ДОПЪЛНИТЕЛНИ ИНСТРУКЦИИ: ' + customPrompt : ''}
+
+НАЛИЧЕН СПРАВОЧНИК ОТ 32 ВЕЩЕСТВА (избирай ОСНОВНО от тях):
+I. Перорални Структурни: 1.Колагенови пептиди(4/5 кожа,€300/г), 2.Хиалуронова к-на(4/5 хидратация,€200/г), 3.Астаксантин(4/5 UV,€250/г), 4.MSM(3/5 коса,€100/г)
+II. Клетъчно Дълголетие: 5.NMN/NR(5/5 енергия+ДНК,€600/г), 6.Сенолитици Фисетин/Кверцетин(5/5 детокс,€200/г), 7.Спермидин(5/5 автофагия,€400/г), 8.Ca-AKG(5/5 биовъзраст,€500/г)
+III. Перорални Иновации: 9.Уролитин А(4/5 мускули,€1000/г), 10.L-Ерготионеин(4/5 мозък,€500/г)
+IV. Топикални: 11.Ретиноиди(5/5 бръчки,€100/г), 12.Витамин С серум(4/5 блясък,€150/г)
+V. Трансдермални Пептиди: 13.GHK-Cu серум(5/5 лифтинг,€300/г), 14.Аргирелин(4/5 мимика,€150/г), 15.Екзозоми(5/5 регенерация,€1500/курс), 16.PDRN(4/5 плътност,€800/курс), 17.EGF(5/5 текстура,€400/г)
+VI. Инжекционни Пептиди: 18.Epitalon(5/5 теломери+сън,€400/курс), 19.Thymalin(5/5 имунитет,€200/курс), 20.MOTS-c(5/5 метаболизъм,€1000/курс), 21.Humanin(5/5 невро,€1000/курс), 22.BPC-157(5/5 травми,€500/курс), 23.TB-500(5/5 мускули,€600/курс), 24.GHK-Cu инж.(5/5 кожа+бели дроб,€400/курс), 25.CJC-1295+Ipamorelin(5/5 сън+мазнини,€1500/г)
+VII. Инфузии и Стволови: 26.NAD+ IV(5/5 енергия+мозък,€3000/курс), 27.Глутатион IV(5/5 детокс+кожа,€1000/курс), 28.Озонотерапия(5/5 кислород,€1000/курс), 29.BHRT пелети(5/5 хормони,€1000/г), 30.NAD+ пелети(5/5 стабилност,€2000/г), 31.Стволови клетки(5/5 регенерация,€10000+), 32.Плацентарен екстракт(4/5 кожа,€1500/курс)
+
+ВАЖНО: Протоколът ТРЯБВА да избира основно от горния справочник. Посочвай номера на веществото (напр. "#5 NMN") когато го препоръчваш. Можеш да добавяш и базови витамини/минерали извън списъка при нужда.
+
+ЗАДАЧА: Създай подробен, персонализиран протокол, който включва:
+
+1. **ОСНОВНИ ВЕЩЕСТВА** (3-5 продукта) - най-важните добавки за постигане на основните цели, с точни дозировки, време на прием и марка/тип ако е възможно.
+
+2. **ПОМОЩНИ ВЕЩЕСТВА** (2-4 продукта) - допълнителни добавки, които усилват ефекта на основните или адресират специфични здравословни проблеми.
+
+3. **СИНЕРГИЯ И КОМБИНАЦИИ** - обясни кои вещества работят заедно и защо, както и кои не трябва да се комбинират.
+
+4. **ДНЕВЕН ГРАФИК НА ПРИЕМ** - точна схема кога и как да се приемат веществата (сутрин на гладно, с храна, вечер и т.н.).
+
+5. **ОЧАКВАНА МЕСЕЧНА СТОЙНОСТ** - приблизителна оценка на месечните разходи.
+
+6. **ПРЕДУПРЕЖДЕНИЯ** - конкретни рискове и противопоказания за конкретния клиент.
+
+7. **ОЧАКВАНИ РЕЗУЛТАТИ** - какво може да очаква клиентът и в какъв времеви период.
+
+Отговори САМО с валиден JSON обект в следния формат:
+{
+  "protocolName": "Име на протокола",
+  "summary": "Кратко обобщение на протокола",
+  "mainSubstances": [{"name": "#N Име", "dosage": "Дозировка", "timing": "Кога и как", "purpose": "Защо", "monthlyPrice": "€XX"}],
+  "supportSubstances": [{"name": "#N Име", "dosage": "Дозировка", "timing": "Кога и как", "purpose": "Защо", "monthlyPrice": "€XX"}],
+  "synergies": [{"combination": "Вещество A + Вещество B", "effect": "Защо работят заедно"}],
+  "dailySchedule": {"morning_empty": ["Описание"], "morning_meal": ["Описание"], "lunch": ["Описание"], "evening": ["Описание"], "bedtime": ["Описание"]},
+  "monthlyBudget": "Обща приблизителна месечна стойност",
+  "warnings": ["Предупреждение 1", "Предупреждение 2"],
+  "expectedResults": {"shortTerm": "1-4 седмици", "mediumTerm": "1-3 месеца", "longTerm": "3-6 месеца"}
+}`;
+            return prompt;
+        }
+
+        // Call AI API
+        async function callProtocolAI(prompt) {
+            const config = JSON.parse(localStorage.getItem('protocolConfig') || '{}');
+            const provider = config.provider || 'openai';
+            const apiKey = config.apiKey || '';
+            const modelName = config.modelName || '';
+
+            if (!apiKey) {
+                throw new Error('API ключ не е конфигуриран. Моля, настройте го от Админ Панела (таб "Протоколи").');
+            }
+
+            if (provider === 'openai') {
+                const model = modelName || 'gpt-4o-mini';
+                const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({ model: model, messages: [{ role: 'user', content: prompt }], max_tokens: 4000, temperature: 0.7 })
+                });
+                if (!res.ok) { const err = await res.text(); throw new Error(`OpenAI грешка: ${res.status} - ${err}`); }
+                const json = await res.json();
+                return json.choices[0].message.content;
+            } else if (provider === 'google') {
+                const model = modelName || 'gemini-2.0-flash';
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4000, temperature: 0.7 } })
+                });
+                if (!res.ok) { const err = await res.text(); throw new Error(`Google AI грешка: ${res.status} - ${err}`); }
+                const json = await res.json();
+                return json.candidates[0].content.parts[0].text;
+            } else if (provider === 'anthropic') {
+                const model = modelName || 'claude-sonnet-4-20250514';
+                const res = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    // Note: direct browser access required per no-backend architecture; API key is admin-configured in localStorage
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+                    body: JSON.stringify({ model: model, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] })
+                });
+                if (!res.ok) { const err = await res.text(); throw new Error(`Anthropic грешка: ${res.status} - ${err}`); }
+                const json = await res.json();
+                return json.content[0].text;
+            } else {
+                throw new Error(`Непознат AI провайдър: ${provider}`);
+            }
+        }
+
+        // Render protocol result
+        function renderProtocol(protocol) {
+            let html = `<div class="result-card"><h4>📋 ${escapeHtml(protocol.protocolName)}</h4><p>${escapeHtml(protocol.summary)}</p></div>`;
+
+            // Main substances
+            html += `<div class="result-card"><h4>💊 Основни вещества</h4><ul>`;
+            (protocol.mainSubstances || []).forEach(s => {
+                html += `<li><strong>${escapeHtml(s.name)}</strong> — ${escapeHtml(s.dosage)}<br><em>Прием:</em> ${escapeHtml(s.timing)}<br><em>Цел:</em> ${escapeHtml(s.purpose)}<br><em>Цена:</em> ${escapeHtml(s.monthlyPrice)}</li>`;
+            });
+            html += `</ul></div>`;
+
+            // Support substances
+            html += `<div class="result-card"><h4>🔬 Помощни вещества</h4><ul>`;
+            (protocol.supportSubstances || []).forEach(s => {
+                html += `<li><strong>${escapeHtml(s.name)}</strong> — ${escapeHtml(s.dosage)}<br><em>Прием:</em> ${escapeHtml(s.timing)}<br><em>Цел:</em> ${escapeHtml(s.purpose)}<br><em>Цена:</em> ${escapeHtml(s.monthlyPrice)}</li>`;
+            });
+            html += `</ul></div>`;
+
+            // Synergies
+            if (protocol.synergies && protocol.synergies.length > 0) {
+                html += `<div class="result-card"><h4>🔗 Синергия и комбинации</h4><ul>`;
+                protocol.synergies.forEach(s => { html += `<li><strong>${escapeHtml(s.combination)}</strong> — ${escapeHtml(s.effect)}</li>`; });
+                html += `</ul></div>`;
+            }
+
+            // Daily schedule
+            if (protocol.dailySchedule) {
+                html += `<div class="result-card"><h4>📅 Дневен график на прием</h4>`;
+                const scheduleLabels = { morning_empty: '🌅 Сутрин на гладно', morning_meal: '🍳 Сутрин с храна', lunch: '🥗 Обяд', evening: '🌆 Вечер', bedtime: '🌙 Преди сън' };
+                for (const [key, label] of Object.entries(scheduleLabels)) {
+                    const items = protocol.dailySchedule[key];
+                    if (items && items.length > 0) {
+                        html += `<p><strong>${label}:</strong></p><ul>`;
+                        items.forEach(item => { html += `<li>${escapeHtml(item)}</li>`; });
+                        html += `</ul>`;
+                    }
+                }
+                html += `</div>`;
+            }
+
+            // Monthly budget
+            html += `<div class="result-card"><h4>💰 Месечен бюджет</h4><p><strong>${escapeHtml(protocol.monthlyBudget)}</strong></p></div>`;
+
+            // Warnings
+            if (protocol.warnings && protocol.warnings.length > 0) {
+                html += `<div class="result-card" style="border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.03);"><h4>⚠️ Предупреждения</h4><ul>`;
+                protocol.warnings.forEach(w => { html += `<li>${escapeHtml(w)}</li>`; });
+                html += `</ul></div>`;
+            }
+
+            // Expected results
+            if (protocol.expectedResults) {
+                html += `<div class="result-card"><h4>📈 Очаквани резултати</h4>`;
+                html += `<p><strong>1-4 седмици:</strong> ${escapeHtml(protocol.expectedResults.shortTerm || '')}</p>`;
+                html += `<p><strong>1-3 месеца:</strong> ${escapeHtml(protocol.expectedResults.mediumTerm || '')}</p>`;
+                html += `<p><strong>3-6 месеца:</strong> ${escapeHtml(protocol.expectedResults.longTerm || '')}</p>`;
+                html += `</div>`;
+            }
+
+            // Action buttons
+            html += `<div class="result-actions">
+                <button class="btn-new-protocol" onclick="document.getElementById('create-protocol-btn').click()">🧬 Нов Протокол</button>
+                <button class="btn-print" onclick="window.print()">🖨️ Принтирай</button>
+                <button class="btn-close-wizard" onclick="document.querySelector('.close-wizard').click()">✕ Затвори</button>
+            </div>`;
+
+            return html;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(String(text)));
+            return div.innerHTML;
+        }
+
+        // Generate protocol
+        async function generateProtocol() {
+            const loading = document.getElementById('protocol-loading');
+            const resultDiv = document.getElementById('protocol-result');
+            loading.style.display = 'flex';
+            resultDiv.classList.remove('show');
+            resultDiv.innerHTML = '';
+
+            try {
+                const formData = collectFormData();
+                const prompt = buildProtocolPrompt(formData);
+                const rawResponse = await callProtocolAI(prompt);
+
+                // Parse JSON from response
+                let protocol;
+                try {
+                    // Extract JSON: try markdown code blocks first, then find outermost { } pair
+                    const codeBlockMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
+                    const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : rawResponse.trim();
+                    protocol = JSON.parse(jsonStr.startsWith('{') ? jsonStr : jsonStr.match(/(\{[\s\S]*\})/)?.[1] || jsonStr);
+                } catch (parseErr) {
+                    throw new Error('AI моделът не върна валиден JSON. Моля, опитайте отново.');
+                }
+
+                loading.style.display = 'none';
+                resultDiv.innerHTML = renderProtocol(protocol);
+                resultDiv.classList.add('show');
+
+                // Save to history
+                const history = JSON.parse(localStorage.getItem('protocolHistory') || '[]');
+                history.unshift({ date: new Date().toISOString(), formData: formData, protocol: protocol });
+                if (history.length > 10) history.splice(10);
+                localStorage.setItem('protocolHistory', JSON.stringify(history));
+
+            } catch (err) {
+                loading.style.display = 'none';
+                resultDiv.innerHTML = `<div class="result-card" style="border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05);">
+                    <h4>❌ Грешка при генериране</h4>
+                    <p>${escapeHtml(err.message)}</p>
+                    <p style="margin-top: 10px; font-size: 0.85rem; color: var(--text-light);">Уверете се, че API ключът е конфигуриран правилно от Админ Панела → таб "Протоколи".</p>
+                </div>
+                <div class="result-actions">
+                    <button class="btn-new-protocol" onclick="document.getElementById('create-protocol-btn').click()">🧬 Опитай отново</button>
+                    <button class="btn-close-wizard" onclick="document.querySelector('.close-wizard').click()">✕ Затвори</button>
+                </div>`;
+                resultDiv.classList.add('show');
+            }
+        }
     });
 </script>
+
 </body>
 </html>
