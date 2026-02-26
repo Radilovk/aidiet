@@ -2059,7 +2059,7 @@
                     console.log('Subscribing to push notifications...');
                     
                     // Get VAPID public key from server
-                    const vapidResponse = await fetch('/api/push/vapid-public-key', {
+                    const vapidResponse = await fetch(`${WORKER_URL}/api/push/vapid-public-key`, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json'
@@ -2092,24 +2092,26 @@
                     console.log('Push subscription created:', subscription);
                     
                     // Send subscription to server
-                    const userId = localStorage.getItem('userId');
-                    if (userId) {
-                        const response = await fetch('/api/push/subscribe', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                userId: userId,
-                                subscription: subscription.toJSON()
-                            })
-                        });
-                        
-                        if (response.ok) {
-                            console.log('Subscription sent to server successfully');
-                        } else {
-                            console.error('Failed to send subscription to server');
-                        }
+                    let userId = localStorage.getItem('userId');
+                    if (!userId) {
+                        userId = 'user_' + (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '_' + Math.random().toString(36).substring(2, 11)));
+                        localStorage.setItem('userId', userId);
+                    }
+                    const response = await fetch(`${WORKER_URL}/api/push/subscribe`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: userId,
+                            subscription: subscription.toJSON()
+                        })
+                    });
+
+                    if (response.ok) {
+                        console.log('Subscription sent to server successfully');
+                    } else {
+                        console.error('Failed to send subscription to server');
                     }
                 } else {
                     console.log('Already subscribed to push notifications');
