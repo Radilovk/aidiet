@@ -1818,7 +1818,8 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
 ${jsonExample.join(',\n')}
 }
 
-КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!`;
+КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!
+ЗАБРАНЕНО: НЕ връщай JSON масив []. Отговорът ТРЯБВА да е JSON обект {} с ключове "day${startDay}" ... "day${endDay}".`;
   
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -1865,11 +1866,11 @@ ${jsonExample.join(',\n')}
   }
 }
 
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []!`;
     }
     return prompt;
   }
-  
+
   return defaultPrompt;
 }
 
@@ -5091,11 +5092,16 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       );
       
       const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
-      const chunkData = parseAIResponse(chunkResponse);
+      let chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
         const errorMsg = chunkData.error || 'Invalid response';
         throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
+      }
+      
+      // If AI returns an array instead of {dayN:{...}}, remap by position.
+      if (Array.isArray(chunkData)) {
+        chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
       }
       
       // Log the structure of chunkData for debugging
