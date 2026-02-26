@@ -5091,11 +5091,28 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       );
       
       const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
-      const chunkData = parseAIResponse(chunkResponse);
+      let chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
         const errorMsg = chunkData.error || 'Invalid response';
         throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
+      }
+      
+      // Normalize array response: AI sometimes returns [{meals:[...],...},{meals:[...],...}]
+      // instead of {day3:{...}, day4:{...}}. Map array items to their expected day keys.
+      if (Array.isArray(chunkData)) {
+        const normalized = {};
+        chunkData.forEach((item, index) => {
+          const dayKey = `day${startDay + index}`;
+          if (item && (item.meals || item.dailyTotals)) {
+            normalized[dayKey] = item;
+          } else if (item && item[dayKey]) {
+            normalized[dayKey] = item[dayKey];
+          } else {
+            console.warn(`Chunk ${chunkIndex + 1}: array item at index ${index} has unrecognized structure, skipping. Keys:`, item ? Object.keys(item) : item);
+          }
+        });
+        chunkData = normalized;
       }
       
       // Log the structure of chunkData for debugging
