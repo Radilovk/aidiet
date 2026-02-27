@@ -183,39 +183,8 @@ const LocalNotificationScheduler = {
      * Schedule notifications using best available method
      */
     async scheduleAll(preferences) {
-        console.log('[LocalScheduler] Starting scheduling process...');
-        
-        // Generate schedule
-        const schedule = this.generateSchedule(preferences, 7);
-        
-        if (schedule.length === 0) {
-            console.log('[LocalScheduler] No notifications to schedule');
-            return;
-        }
-        
-        // Clear existing pending notifications
-        await this.db.clearPending();
-        
-        // Store in IndexedDB
-        await this.db.addBatch(schedule);
-        
-        // Try to schedule with best available API
-        if (this.supportsShowTrigger) {
-            await this.scheduleWithTriggers(schedule);
-        } else if (this.supportsPeriodicSync) {
-            await this.setupPeriodicSync();
-        } else {
-            console.warn('[LocalScheduler] No advanced scheduling API available, using fallback');
-            await this.setupFallbackScheduling();
-        }
-        
-        // Update sync metadata
-        await this.db.updateSyncMetadata({
-            scheduledCount: schedule.length,
-            method: this.supportsShowTrigger ? 'triggers' : this.supportsPeriodicSync ? 'periodic-sync' : 'fallback'
-        });
-        
-        console.log('[LocalScheduler] Scheduling complete');
+        console.log('[LocalScheduler] Notifications are globally disabled. Skipping scheduling.');
+        return;
     },
     
     /**
@@ -291,37 +260,7 @@ const LocalNotificationScheduler = {
      * Called by Service Worker periodic sync or fallback
      */
     async checkAndShowDueNotifications() {
-        const dueNotifications = await this.db.getDueNotifications(5);
-        
-        if (dueNotifications.length === 0) {
-            console.log('[LocalScheduler] No notifications due');
-            return;
-        }
-        
-        console.log('[LocalScheduler] Found', dueNotifications.length, 'due notifications');
-        
-        const registration = await navigator.serviceWorker.ready;
-        
-        for (const notif of dueNotifications) {
-            try {
-                await registration.showNotification(notif.title, {
-                    body: notif.body,
-                    icon: notif.icon,
-                    badge: notif.icon,
-                    tag: `${notif.type}-${notif.id}`,
-                    data: notif.data,
-                    requireInteraction: notif.type === 'meal',
-                    vibrate: this.getVibrationPattern(notif.type)
-                });
-                
-                // Mark as shown
-                await this.db.markAsShown(notif.id);
-                
-                console.log('[LocalScheduler] Showed notification:', notif.type);
-            } catch (error) {
-                console.error('[LocalScheduler] Failed to show notification:', error);
-            }
-        }
+        console.log('[LocalScheduler] Notifications are globally disabled. Skipping due notification check.');
     },
     
     /**
