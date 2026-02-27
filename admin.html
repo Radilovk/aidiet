@@ -1646,7 +1646,7 @@
             <div class="card">
                 <h2><i class="fas fa-flask"></i> Настройки на Протоколи</h2>
                 <div class="info-box">
-                    <strong>Информация:</strong> Конфигурирайте AI модела и промпта за генериране на персонализирани хранителни протоколи на страницата protocols.html. Настройките се запазват в localStorage на браузъра (без бекенд).
+                    <strong>Информация:</strong> Конфигурирайте AI модела за генериране на персонализирани хранителни протоколи. Доставчикът и моделът се запазват в бекенда (KV). API ключът се запазва в localStorage на браузъра.
                 </div>
 
                 <!-- Protocol AI Provider -->
@@ -1678,7 +1678,7 @@
                         </button>
                     </div>
                     <small style="color: var(--text-gray); display: block; margin-top: 5px;">
-                        ⚠️ Ключът се съхранява в localStorage на браузъра. Не се изпраща към бекенд.
+                        ⚠️ Ключът се съхранява в localStorage на браузъра. Не се изпраща към бекенд. Доставчикът и моделът се запазват в бекенда.
                     </small>
                 </div>
 
@@ -1821,6 +1821,11 @@
                     button.classList.add('active');
                 }
             });
+
+            // Load protocol settings if protocols tab is active on page load
+            if (tabToLoad === 'protocols' && typeof loadProtocolSettings === 'function') {
+                loadProtocolSettings();
+            }
         }
 
         // Initialize tab when dashboard is shown
@@ -2757,6 +2762,15 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             if (config.correctionPrompt) {
                                 document.getElementById('correctionPrompt').value = config.correctionPrompt;
                                 localStorage.setItem('adminCorrectionPrompt', config.correctionPrompt);
+                            }
+                            // Load protocol AI config from server
+                            if (config.protocolProvider) {
+                                document.getElementById('protocolAiProvider').value = config.protocolProvider;
+                                localStorage.setItem('protocolAiProvider', config.protocolProvider);
+                            }
+                            if (config.protocolModelName != null) {
+                                document.getElementById('protocolAiModel').value = config.protocolModelName || '';
+                                localStorage.setItem('protocolAiModelName', config.protocolModelName || '');
                             }
                             return; // Successfully loaded from server
                         }
@@ -5035,7 +5049,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         // --- Protocol Settings Management ---
-        function saveProtocolSettings() {
+        async function saveProtocolSettings() {
             const config = {
                 provider: document.getElementById('protocolAiProvider').value,
                 modelName: document.getElementById('protocolAiModel').value.trim(),
@@ -5043,6 +5057,22 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 promptTemplate: document.getElementById('protocolPromptTemplate').value.trim()
             };
             localStorage.setItem('protocolConfig', JSON.stringify(config));
+
+            // Save provider and model to KV backend for persistence across browsers
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-protocol-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider: config.provider, modelName: config.modelName })
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                invalidateConfigCache();
+            } catch (serverError) {
+                console.warn('Could not save protocol config to server:', serverError);
+            }
+
             showSuccess('Настройките за протоколи са запазени успешно!');
         }
 
@@ -5055,7 +5085,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             
             // Load protocol history
             loadProtocolHistory();
-            showSuccess('Настройките за протоколи са заредени.');
         }
 
         function loadProtocolHistory() {

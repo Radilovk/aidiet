@@ -1242,15 +1242,35 @@ VII. Инфузии и Стволови: 26.NAD+ IV(5/5 енергия+мозъ�
             return prompt;
         }
 
-        // Call AI API
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+
+        // Call AI API - tries worker backend first, falls back to direct API call
         async function callProtocolAI(prompt) {
+            // Try worker backend first (uses server-stored provider/model config)
+            try {
+                const res = await fetch(WORKER_URL + '/api/generate-protocol', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && json.response) {
+                        return json.response;
+                    }
+                }
+            } catch (workerError) {
+                console.warn('Worker backend unavailable, trying direct API call:', workerError);
+            }
+
+            // Fallback: direct API call using localStorage config (requires API key)
             const config = JSON.parse(localStorage.getItem('protocolConfig') || '{}');
             const provider = config.provider || 'openai';
             const apiKey = config.apiKey || '';
             const modelName = config.modelName || '';
 
             if (!apiKey) {
-                throw new Error('API ключ не е конфигуриран. Моля, настройте го от Админ Панела (таб "Протоколи").');
+                throw new Error('API ключ не е конфигуриран. Моля, настройте го от Админ Панела (таб "Протоколи") или проверете настройките на worker-а.');
             }
 
             if (provider === 'openai') {
@@ -1277,7 +1297,6 @@ VII. Инфузии и Стволови: 26.NAD+ IV(5/5 енергия+мозъ�
                 const model = modelName || 'claude-sonnet-4-20250514';
                 const res = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
-                    // Note: direct browser access required per no-backend architecture; API key is admin-configured in localStorage
                     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
                     body: JSON.stringify({ model: model, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] })
                 });

@@ -6175,6 +6175,78 @@ async function handleSaveModel(request, env) {
 }
 
 /**
+ * Admin: Save protocol AI config (provider, model) to KV
+ */
+async function handleSaveProtocolConfig(request, env) {
+  try {
+    const { provider, modelName } = await request.json();
+
+    if (!provider) {
+      return jsonResponse({ error: 'Missing provider' }, 400);
+    }
+
+    if (!['openai', 'google', 'anthropic'].includes(provider)) {
+      return jsonResponse({ error: 'Invalid provider type' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    await Promise.all([
+      env.page_content.put('admin_protocol_provider', provider),
+      env.page_content.put('admin_protocol_model_name', modelName || '')
+    ]);
+
+    return jsonResponse({ success: true, message: 'Protocol config saved successfully' });
+  } catch (error) {
+    console.error('Error saving protocol config:', error);
+    return jsonResponse({ error: 'Failed to save protocol config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Generate a protocol using the stored AI provider/model config
+ */
+async function handleGenerateProtocol(request, env) {
+  try {
+    const { prompt } = await request.json();
+
+    if (!prompt) {
+      return jsonResponse({ error: 'Missing prompt' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const [savedProvider, savedModelName] = await Promise.all([
+      env.page_content.get('admin_protocol_provider'),
+      env.page_content.get('admin_protocol_model_name')
+    ]);
+
+    const provider = savedProvider || 'openai';
+    const modelName = savedModelName || '';
+
+    let response;
+    if (provider === 'openai' && env.OPENAI_API_KEY) {
+      response = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', 4000, false);
+    } else if (provider === 'google' && env.GEMINI_API_KEY) {
+      response = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', 4000, false);
+    } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
+      response = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', 4000, false);
+    } else {
+      return jsonResponse({ error: 'AI provider not configured or API key missing' }, 503);
+    }
+
+    return jsonResponse({ success: true, response });
+  } catch (error) {
+    console.error('Error generating protocol:', error);
+    return jsonResponse({ error: 'Failed to generate protocol: ' + error.message }, 500);
+  }
+}
+
+/**
  * Admin: Get admin configuration from KV
  */
 async function handleGetConfig(request, env) {
@@ -6195,7 +6267,9 @@ async function handleGetConfig(request, env) {
       strategyPrompt,
       mealPlanPrompt,
       summaryPrompt,
-      correctionPrompt
+      correctionPrompt,
+      protocolProvider,
+      protocolModelName
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -6207,7 +6281,9 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_strategy_prompt'),
       env.page_content.get('admin_meal_plan_prompt'),
       env.page_content.get('admin_summary_prompt'),
-      env.page_content.get('admin_correction_prompt')
+      env.page_content.get('admin_correction_prompt'),
+      env.page_content.get('admin_protocol_provider'),
+      env.page_content.get('admin_protocol_model_name')
     ]);
     
     return jsonResponse({ 
@@ -6222,7 +6298,9 @@ async function handleGetConfig(request, env) {
       strategyPrompt,
       mealPlanPrompt,
       summaryPrompt,
-      correctionPrompt
+      correctionPrompt,
+      protocolProvider: protocolProvider || null,
+      protocolModelName: protocolModelName || null
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -8055,6 +8133,10 @@ export default {
         return await handleGetDefaultPrompt(request, env);
       } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
         return await handleSaveModel(request, env);
+      } else if (url.pathname === '/api/admin/save-protocol-config' && request.method === 'POST') {
+        return await handleSaveProtocolConfig(request, env);
+      } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {
+        return await handleGenerateProtocol(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
         return await handleGetConfig(request, env);
       } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
