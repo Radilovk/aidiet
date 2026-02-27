@@ -24,7 +24,7 @@ JSON (ТОЧЕН ФОРМАТ):
 }
 
 ЗАДЪЛЖИТЕЛНО:
-- recommendations: МИН 5 конкретни храни подходящи за {goal} и диета "{dietType}"
-- forbidden: МИН 3 храни неподходящи за {keyProblems} и текущия план
-- supplements: конкретни добавки с дозировка, съобразени с психопрофила ({temperament}), цел ({goal}) и медикаменти ({medications})
-- psychology: адаптирани към темперамента и психологическия профил на {name}
+- recommendations:  10 конкретни типове храни, не конкретни ястия, хранителни продукти подходящи за {goal},  диета "{dietType}", {keyProblems},  Медикаменти: {medications} , не попадат в {dynamicBlacklistSection}, и не е задължително да бъдат в {dynamicWhitelistSection}
+- forbidden:  10 конкретни типове храни, хранителни продукти подходящи, не ястия за {goal},  диета "{dietType}", {keyProblems},  Медикаменти: {medications} , без значение дали са в {dynamicBlacklistSection}
+- supplements: конкретни 3 добавки с дозировка, съобразени с {psychologicalProfile},{temperament},{keyProblems}, цел ({goal}) и медикаменти ({medications})
+- psychology:  съвети 3 бр адаптирани към {psychologicalProfile}, ({temperament}), цел ({goal}), сън, ниво на стрес, ниво на активност, пол, {keyProblems} на {name}
