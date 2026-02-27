@@ -1,6 +1,9 @@
 // Service Worker for NutriPlan PWA
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
+
+// GLOBAL NOTIFICATION KILL SWITCH - set to true to disable ALL notifications
+const NOTIFICATIONS_DISABLED = true;
 const CACHE_NAME = 'nutriplan-v2';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
@@ -138,6 +141,10 @@ self.addEventListener('fetch', (event) => {
 
 // Push notification event
 self.addEventListener('push', (event) => {
+  if (NOTIFICATIONS_DISABLED) {
+    console.log('[SW] Notifications are globally disabled. Ignoring push event.');
+    return;
+  }
   console.log('[SW] Push notification received');
   console.log('[SW] event.data:', event.data);
   
@@ -293,6 +300,11 @@ self.addEventListener('notificationclick', (event) => {
 // Frequency controlled by browser (typically every 12-24 hours minimum)
 self.addEventListener('periodicsync', (event) => {
   console.log('[SW] Periodic sync event:', event.tag);
+  
+  if (NOTIFICATIONS_DISABLED) {
+    console.log('[SW] Notifications are globally disabled. Ignoring periodic sync.');
+    return;
+  }
   
   if (event.tag === 'check-notifications') {
     event.waitUntil(checkAndShowDueNotifications());
