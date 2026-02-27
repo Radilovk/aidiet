@@ -5,6 +5,30 @@
 ⚠️ ВАЖНО: Базовите изчисления (bmr, tdee, baselineMacros) са ВЕЧЕ ИЗЧИСЛЕНИ от бекенда.
 НЕ ги преизчислявай по формула. Използвай ги като база и ги коригирай само чрез корекционни проценти.
 
+════════════════════════════════════════════
+КРИТИЧНИ ПРАВИЛА (ЗАДЪЛЖИТЕЛНИ)
+1) ИЗТОЧНИК НА ИСТИНА ЗА ЕНЕРГИЯ:
+   - Единствената база за финалните калории е backendCalculations.tdee.
+   - bmr от бекенда се използва само за correctedMetabolism.realBMR (не се променя).
+
+2) ЗАБРАНА ЗА КОПИРАНЕ НА ГОТОВИ ФИНАЛНИ СТОЙНОСТИ:
+   - Ако backendCalculations съдържа recommendedCalories / macroRatios / macroGrams:
+     а) НЕ ги използвай за сметки;
+     б) НЕ ги преписвай като финален резултат;
+     в) финалните recommendedCalories и макроси се изчисляват наново по правилата по-долу.
+
+3) РЕД НА ИЗЧИСЛЕНИЯТА (КРИТИЧНО):
+   - Първо определяш факторите и процентите (Стъпки 1–3)
+   - После изчисляваш recommendedCalories и correctedMetabolism.realTDEE (Стъпка 4)
+   - Накрая изчисляваш macroRatios и macroGrams от финалните recommendedCalories (Стъпка 5)
+
+4) КОНСИСТЕНТНОСТ (ПРЕДИ ДА ВЪРНЕШ JSON):
+   - correctedMetabolism.realTDEE ТРЯБВА да е точно равно на recommendedCalories.
+   - recommendedCalories ТРЯБВА да е равно на:
+     max( round(tdee × (1 + totalAdjustmentPercent/100)), {MIN_RECOMMENDED_CALORIES} )
+   - macroGrams ТРЯБВА да са изчислени от recommendedCalories по формулите от Стъпка 5.
+════════════════════════════════════════════
+
 ═══ КЛИЕНТСКИ ДАННИ ═══
 {userData}
 
@@ -16,7 +40,7 @@
 ═══ ТВОЯТА ЗАДАЧА - СТРУКТУРИРАН АНАЛИЗ ═══
 
 СТЪПКА 1: ТЕМПЕРАМЕНТ
-Определи темперамента базирано на: age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity.
+Определи предполагаем темперамента базирано на: age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity.
 - Попълни temperament само ако вероятността е >{TEMPERAMENT_CONFIDENCE_THRESHOLD}%. Иначе остави празно.
 - Типове: Холерик, Сангвиник, Флегматик, Меланхолик
 → Резултат: psychoProfile.temperament, psychoProfile.probability
@@ -25,7 +49,7 @@
 Базирай анализа на темперамента (Стъпка 1) + : age, gender, goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
 → Резултат: psychologicalProfile (детайлен текстов анализ)
 
-СТЪПКА 3: КОРЕКЦИИ НА БАЗОВИТЕ ИЗЧИСЛЕНИЯ
+СТЪПКА 3: КОРЕКЦИИ НА БАЗОВИТЕ ИЗЧИСЛЕНИЯ (САМО ПРОЦЕНТИ — БЕЗ КАЛОРИИ)
 Определи процентна корекция на TDEE за всяка категория:
 
 3а. clinicalAdjustmentPercent — клинична корекция
@@ -35,7 +59,7 @@
 
 3б. metabolicAdjustmentPercent — метаболитна корекция
   Базирай на: sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил (Стъпка 2), темперамент (Стъпка 1), additionalNotes
-  Пример: хронически стрес + лош сън → -5%, оптимален сън + нисък стрес → +2
+  Пример: хроничен стрес + лош сън → -5%, оптимален сън + нисък стрес → +2
   Диапазон: -10% до +5%
 
 3в. goalAdjustmentPercent — корекция спрямо цел
@@ -44,45 +68,56 @@
   Диапазон: -20% до +15%
 
 ⚠️ ЗАДЪЛЖИТЕЛНО: Сумата от трите корекции НЕ трябва да надвишава -25% (безопасен максимален дефицит).
-Ако сборът е под -25%, ограничи goalAdjustmentPercent така, че total = клинично + метаболитно + цел ≥ -25%.
+Ако сборът е под -25%, ограничи САМО goalAdjustmentPercent така, че:
+clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent = -25%.
 
-→ Резултат: correctedMetabolism (с clinicalAdjustmentPercent, metabolicAdjustmentPercent, goalAdjustmentPercent)
+→ Резултат: correctedMetabolism (clinicalAdjustmentPercent, metabolicAdjustmentPercent, goalAdjustmentPercent)
 
-СТЪПКА 4: ФИНАЛНИ КАЛОРИИ
+СТЪПКА 4: ФИНАЛНИ КАЛОРИИ (СМЯТАШ ГИ СЛЕД СТЪПКА 3)
 totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent
 (ограничи на минимум -25%)
+
 Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
 
-⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под {MIN_RECOMMENDED_CALORIES} kcal (безопасен минимум).
-Ако формулата даде по-малко, задай recommendedCalories = {MIN_RECOMMENDED_CALORIES} kcal и посочи в correctedMetabolism.correction причината.
+⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под {MIN_RECOMMENDED_CALORIES} kcal.
+Ако формулата даде по-малко:
+- recommendedCalories = {MIN_RECOMMENDED_CALORIES}
+- correctedMetabolism.correction = "Повдигнато до минималния безопасен праг."
+Иначе:
+- recommendedCalories = Final_Calories
+- correctedMetabolism.correction = "Корекция по проценти спрямо клинични/метаболитни/целеви критерии."
 
-correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
-correctedMetabolism.realTDEE = Final_Calories
-→ Резултат: recommendedCalories, correctedMetabolism.realBMR, realTDEE, correctionPercent
+correctedMetabolism.realBMR = bmr (BMR от бекенда остава непроменен)
+correctedMetabolism.realTDEE = recommendedCalories
+correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
 
-СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати, Фибри)
+⚠️ ЗАДЪЛЖИТЕЛНО: correctedMetabolism.realTDEE == recommendedCalories
+
+СТЪПКА 5: ФИНАЛНИ МАКРОСИ (СМЯТАШ ГИ НАКРАЯ — САМО ОТ recommendedCalories)
 Определи оптималното разпределение базирано на:
 - темперамент (Стъпка 1) и психопрофил (Стъпка 2)
 - хранителни навици: eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol
 - клинични данни: medicalConditions, medications
 
-Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на recommendedCalories от Стъпка 4):
+Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на recommendedCalories):
   protein_g  = round(recommendedCalories × protein% / 100 / 4)
   fats_g     = round(recommendedCalories × fats% / 100 / 9)
   carbs_g    = round(recommendedCalories × carbs% / 100 / 4)
 
 Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ recommendedCalories (разлика ≤ 15 kcal е ок)
-Ако не, коригирай carbs_g: carbs_g = round((recommendedCalories - protein_g×4 - fats_g×9) / 4)
+Ако не: коригирай carbs_g:
+  carbs_g = round((recommendedCalories - protein_g×4 - fats_g×9) / 4)
 
-⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ {MIN_FAT_GRAMS}г за хормонална функция.
-Ако формулата дава по-малко, увеличи fats% и намали carbs%.
+⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ {MIN_FAT_GRAMS} г за хормонална функция.
+Ако формулата дава по-малко, увеличи fats% и намали carbs%, после преизчисли грамовете.
 
-Фибри: {FIBER_MIN_GRAMS}-{FIBER_MAX_GRAMS}г дневно (коригирай по пол, възраст, медицински условия).
+Фибри: {FIBER_MIN_GRAMS}-{FIBER_MAX_GRAMS} г дневно (коригирай по пол, възраст, медицински условия).
 → Резултат: macroRatios (%), macroGrams (g)
 
 СТЪПКА 6: ДАННИ ЗА СТРАНИЦАТА С АНАЛИЗ (за фронтенда — непроменени)
 
-А. BMI: Изчисли BMI = weight / (height/100)². Категория: Поднормено (<18.5), Нормално (18.5-25), Наднормено (25-30), Затлъстяване (>30)
+А. BMI: Ако bmi е подаден от бекенда — използвай него; иначе изчисли BMI = weight / (height/100)².
+Категория: Поднормено (<18.5), Нормално (18.5-25), Наднормено (25-30), Затлъстяване (>30)
 
 Б. ФИЗИОЛОГИЧНА ФАЗА: Млад възрастен (18-30), Зряла възраст (31-50), Средна възраст (51-65), Напреднала възраст (65+)
 
@@ -105,7 +140,7 @@ correctedMetabolism.realTDEE = Final_Calories
    - Спрямо: activityScore {combinedScore}/10, диетична история ({dietHistory}), хронотип ({chronotype}), стрес ({stressLevel})
    - Определи: Бавен/Среден/Бърз, Адаптивност: Ниска/Средна/Висока
 
-З. КРИТИЧНИ ПРОБЛЕМИ (3-6): само Borderline/Risky/Critical severity, КРИТИЧНО и ПЛАШЕЩО описание
+З. КРИТИЧНИ Проблеми "keyProblems" ( изброй между 3 и 6): само Borderline/Risky/Critical severity, КРИТИЧНО и ПЛАШЕЩО описание
 
 И. ЗДРАВОСЛОВНО СЪСТОЯНИЕ: скала 0-100, ЗАНИЖЕНО с {HEALTH_STATUS_UNDERESTIMATE_PERCENT}% за мотивация
 
@@ -114,7 +149,9 @@ correctedMetabolism.realTDEE = Final_Calories
 Л. ПРОГНОЗА ОПТИМИСТИЧНА (12 месеца): след подобряване на всички проблеми
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
+Върни САМО този JSON (без допълнителен текст). Ако използваш ограда, използвай точно ```json ... ```.
 
+```json
 {
   "bmi": число,
   "bmiCategory": "текст категория",
@@ -205,5 +242,3 @@ correctedMetabolism.realTDEE = Final_Calories
     }
   ]
 }
-
-Бъди КОНКРЕТЕН за {name}. Обяснявай ЗАЩО и КАК с конкретни данни от профила.
