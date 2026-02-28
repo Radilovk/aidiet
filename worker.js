@@ -1917,15 +1917,16 @@ async function generateMealPlanPrompt(data, analysis, strategy, env, errorPreven
     bmr = calculateBMR(data);
   }
   
-  // Parse recommended calories from analysis or calculate from TDEE
+  // Parse recommended calories from analysis (Final_Calories preferred, recommendedCalories for backward compat)
   let recommendedCalories;
-  if (analysis.recommendedCalories) {
-    // If recommendedCalories is already a number, use it directly
-    if (typeof analysis.recommendedCalories === 'number') {
-      recommendedCalories = Math.round(analysis.recommendedCalories);
+  const finalCaloriesSource = analysis.Final_Calories || analysis.recommendedCalories;
+  if (finalCaloriesSource) {
+    // If Final_Calories is already a number, use it directly
+    if (typeof finalCaloriesSource === 'number') {
+      recommendedCalories = Math.round(finalCaloriesSource);
     } else {
-      // Try to extract numeric value from analysis.recommendedCalories
-      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+      // Try to extract numeric value from Final_Calories
+      const caloriesMatch = String(finalCaloriesSource).match(/\d+/);
       recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
     }
   }
@@ -3336,8 +3337,8 @@ function validatePlan(plan, userData, substitutions = []) {
   
   // 7. Check for goal-plan alignment (Step 2 - Strategy issue)
   // 7a. Minimum calorie safety floor (medical requirement)
-  if (plan.analysis && plan.analysis.recommendedCalories) {
-    const recCal = parseInt(plan.analysis.recommendedCalories) || 0;
+  if (plan.analysis && (plan.analysis.Final_Calories || plan.analysis.recommendedCalories)) {
+    const recCal = parseInt(plan.analysis.Final_Calories || plan.analysis.recommendedCalories) || 0;
     const calFloor = userData.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
     if (recCal > 0 && recCal < calFloor) {
       const error = `Препоръчителните калории (${recCal} kcal) са под безопасния минимум (${calFloor} kcal за ${userData.gender})`;
@@ -3852,11 +3853,12 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       }
       
       let recommendedCalories;
-      if (analysis.recommendedCalories) {
-        if (typeof analysis.recommendedCalories === 'number') {
-          recommendedCalories = Math.round(analysis.recommendedCalories);
+      const finalCaloriesSource = analysis.Final_Calories || analysis.recommendedCalories;
+      if (finalCaloriesSource) {
+        if (typeof finalCaloriesSource === 'number') {
+          recommendedCalories = Math.round(finalCaloriesSource);
         } else {
-          const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+          const caloriesMatch = String(finalCaloriesSource).match(/\d+/);
           recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
         }
       }
@@ -4329,7 +4331,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   "bmiCategory": "текст",
   "bmr": число,
   "tdee": число,
-  "recommendedCalories": число,
+  "Final_Calories": число,
   "macroRatios": {
     "protein": число,
     "carbs": число,
@@ -4503,8 +4505,8 @@ ${data.additionalNotes}
   Диапазон: -10% до +5%
 
 3в. goalAdjustmentPercent — корекция спрямо цел
-  Базирай само на: goal, additionalNotes (ако засяга целта)
-  Пример: Отслабване → -15 до -20, Поддръжка → 0, Покачване на мускулна маса → +10
+  Вземи предвид: goal, lossKg, bmi (от анализа), dietHistory, психопрофил и метаболитна реактивност (Стъпки 1–2), additionalNotes
+  Използвай собствената си клинична преценка, за да определиш процента, аргументирано съобразен с желаната цел и реалния индивидуален потенциал на клиента.
   Диапазон: -20% до +15%
 
 ⚠️ ЗАДЪЛЖИТЕЛНО: Сумата от трите корекции НЕ трябва да надвишава -25% (безопасен максимален дефицит).
@@ -4518,25 +4520,26 @@ totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent 
 Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
 
 ⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal (безопасен минимум за ${data.gender}).
-Ако формулата даде по-малко, задай recommendedCalories = ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal и посочи в correctedMetabolism.correction причината.
+Ако формулата даде по-малко, задай Final_Calories = ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal и посочи в correctedMetabolism.correction причината.
 
 correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
 correctedMetabolism.realTDEE = Final_Calories
-→ Резултат: recommendedCalories, correctedMetabolism.realBMR, realTDEE, correctionPercent
+→ Резултат: Final_Calories, correctedMetabolism.realBMR, realTDEE, correctionPercent
 
 СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати, Фибри)
 Определи оптималното разпределение базирано на:
+- желана цел и желан резултат (goal, lossKg) — адаптирай разпределението съобразно индивидуалния профил и анализа от Стъпки 1–2
 - темперамент (Стъпка 1) и психопрофил (Стъпка 2)
 - хранителни навици: eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol
 - клинични данни: medicalConditions, medications
 
-Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на recommendedCalories от Стъпка 4):
-  protein_g  = round(recommendedCalories × protein% / 100 / 4)
-  fats_g     = round(recommendedCalories × fats% / 100 / 9)
-  carbs_g    = round(recommendedCalories × carbs% / 100 / 4)
+Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на Final_Calories от Стъпка 4):
+  protein_g  = round(Final_Calories × protein% / 100 / 4)
+  fats_g     = round(Final_Calories × fats% / 100 / 9)
+  carbs_g    = round(Final_Calories × carbs% / 100 / 4)
 
-Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ recommendedCalories (разлика ≤ 15 kcal е ок)
-Ако не, коригирай carbs_g: carbs_g = round((recommendedCalories - protein_g×4 - fats_g×9) / 4)
+Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ Final_Calories (разлика ≤ 15 kcal е ок)
+Ако не, коригирай carbs_g: carbs_g = round((Final_Calories - protein_g×4 - fats_g×9) / 4)
 
 ⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ ${Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG)}г (${MIN_FAT_GRAMS_PER_KG}г/кг × ${data.weight}кг) за хормонална функция.
 Ако формулата дава по-малко, увеличи fats% и намали carbs%.
@@ -4584,7 +4587,7 @@ correctedMetabolism.realTDEE = Final_Calories
   "bmiCategory": "текст категория",
   "bmr": число,
   "tdee": число,
-  "recommendedCalories": число,
+  "Final_Calories": число,
   "macroRatios": {
     "protein": число процент,
     "carbs": число процент,
@@ -4677,12 +4680,12 @@ correctedMetabolism.realTDEE = Final_Calories
 
 /**
  * Build compact analysis object with only the required fields for step 3 (meal plan chunks).
- * Only these fields from step 1 AI response are passed to step 3: bmr, recommendedCalories, macroRatios, macroGrams.
+ * Only these fields from step 1 AI response are passed to step 3: bmr, Final_Calories, macroRatios, macroGrams.
  */
 function buildCompactAnalysisForStep3(analysis) {
   return {
     bmr: analysis.bmr || null,
-    recommendedCalories: analysis.recommendedCalories || null,
+    Final_Calories: analysis.Final_Calories || analysis.recommendedCalories || null,
     macroRatios: analysis.macroRatios || null,
     macroGrams: analysis.macroGrams || null
   };
@@ -4690,12 +4693,12 @@ function buildCompactAnalysisForStep3(analysis) {
 
 /**
  * Build compact analysis object with only the required fields for step 4 (summary).
- * Only these fields from step 1 AI response are passed to step 4: bmr, recommendedCalories, psychoProfile, psychologicalProfile, keyProblems, nutritionalDeficiencies.
+ * Only these fields from step 1 AI response are passed to step 4: bmr, Final_Calories, psychoProfile, psychologicalProfile, keyProblems, nutritionalDeficiencies.
  */
 function buildCompactAnalysisForStep4(analysis) {
   return {
     bmr: analysis.bmr || null,
-    recommendedCalories: analysis.recommendedCalories || null,
+    Final_Calories: analysis.Final_Calories || analysis.recommendedCalories || null,
     psychoProfile: analysis.psychoProfile || null,
     psychologicalProfile: analysis.psychologicalProfile || null,
     keyProblems: analysis.keyProblems || [],
@@ -4856,7 +4859,7 @@ ${data.additionalNotes}
    - Определи за всеки ден: колко хранения, кога И целевите калории/макроси
    - Базова цел: ${analysisCompact.realTDEE || 'от анализа'} kcal/ден
    - Дните МОЖЕ да имат различни калории и макроси спрямо:
-     * Тренировъчни дни (+10-15%) vs. почивни дни (-10-15%)
+     * Тренировъчни дни vs. почивни дни (варирай по собствена преценка)
      * Дни с интермитентно гладуване (намалени) vs. зареждащи дни (увеличени)
      * Свободно хранене (леко завишени) след което лека вечеря
    - ЗАДЪЛЖИТЕЛНО: Средните калории за седмицата ≈ ${analysisCompact.realTDEE || 'препоръчителните калории'} kcal/ден
@@ -5065,13 +5068,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   }
   
   let recommendedCalories;
-  if (analysis.recommendedCalories) {
-    // If recommendedCalories is already a number, use it directly
-    if (typeof analysis.recommendedCalories === 'number') {
-      recommendedCalories = Math.round(analysis.recommendedCalories);
+  const finalCaloriesSource = analysis.Final_Calories || analysis.recommendedCalories;
+  if (finalCaloriesSource) {
+    // If Final_Calories is already a number, use it directly
+    if (typeof finalCaloriesSource === 'number') {
+      recommendedCalories = Math.round(finalCaloriesSource);
     } else {
       // Otherwise, extract from string
-      const caloriesMatch = String(analysis.recommendedCalories).match(/\d+/);
+      const caloriesMatch = String(finalCaloriesSource).match(/\d+/);
       recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
     }
   }
