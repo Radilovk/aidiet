@@ -2951,8 +2951,8 @@ const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts b
 // limit per Worker invocation. With 1 correction the baseline is 46 (safe), and even with a
 // handful of transient Gemini retries we stay comfortably under the limit.
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
-const MEAL_ORDER_MAP = { 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
-const ALLOWED_MEAL_TYPES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
+const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
+const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   'Междинно': 'Следобедна закуска',
@@ -3174,7 +3174,10 @@ function validatePlan(plan, userData, substitutions = []) {
         let mealsWithoutMacros = 0;
         day.meals.forEach((meal, mealIndex) => {
           if (!meal.macros || !meal.macros.protein || !meal.macros.carbs || !meal.macros.fats) {
-            mealsWithoutMacros++;
+            // Beverages ("Напитка") don't require macronutrients - skip them
+            if (meal.type !== 'Напитка') {
+              mealsWithoutMacros++;
+            }
           } else {
             // Validate macro accuracy: protein×4 + carbs×4 + fats×9 should ≈ calories
             const calculatedCalories = 
