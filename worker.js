@@ -1639,11 +1639,18 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
   }
   
+  // Build medical details section for meal plan prompt
+  const medicalDetailsSection = [
+    data['medicalConditions_Алергии'] ? `Алергии (ВАЖНО - избягвай): ${data['medicalConditions_Алергии']}` : '',
+    data['medicalConditions_Автоимунно'] ? `Автоимунно: ${data['medicalConditions_Автоимунно']}` : '',
+    data.medicalConditions_other ? `Друго медицинско: ${data.medicalConditions_other}` : ''
+  ].filter(Boolean).join('\n');
+
   let defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
 
 === ПРОФИЛ ===
-Цел: ${data.goal} | BMR: ${bmr} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}
-Стрес: ${data.stressLevel} | Сън: ${data.sleepHours}ч | Хронотип: ${data.chronotype}${previousDaysContext}
+Цел: ${data.goal}${data.goal_other ? ` (${data.goal_other})` : ''} | BMR: ${bmr} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}
+Стрес: ${data.stressLevel} | Сън: ${data.sleepHours}ч | Хронотип: ${data.chronotype}${medicalDetailsSection ? `\n${medicalDetailsSection}` : ''}${previousDaysContext}
 
 === ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
 Макро съотношения: ${analysisCompact.macroRatios}
@@ -1828,6 +1835,10 @@ ${jsonExample.join(',\n')}
       dynamicBlacklistSection,
       dietLove: data.dietLove || 'няма',
       dietDislike: data.dietDislike || 'няма',
+      goal_other: data.goal_other || '',
+      medicalConditions_other: data.medicalConditions_other || '',
+      medicalConditions_allergy_details: data['medicalConditions_Алергии'] || '',
+      medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
       MEAL_NAME_FORMAT_INSTRUCTIONS
@@ -2153,12 +2164,21 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   // Extract health analysis context for supplement recommendations
   const healthContext = {
     keyProblems: (analysis.keyProblems || []).map(p => `${p.title} (${p.severity})`).join('; '),
-    allergies: data.allergies || 'няма',
-    medications: data.medications || 'няма',
-    medicalHistory: data.medicalHistory || 'няма',
+    allergies: (data.medicalConditions || []).includes('Алергии')
+      ? (data['medicalConditions_Алергии'] || 'Да (без детайли)')
+      : 'няма',
+    medications: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'не приема',
+    medicalConditions: JSON.stringify(data.medicalConditions || []),
+    medicalConditions_other: data.medicalConditions_other || '',
     deficiencies: (analysis.nutritionalDeficiencies || []).join(', ') || 'няма установени'
   };
   
+  // Build extra health context lines for summary prompt
+  const extraHealthContext = [
+    healthContext.allergies !== 'няма' ? `Алергии: ${healthContext.allergies}` : '',
+    healthContext.medicalConditions_other ? `Друго медицинско: ${healthContext.medicalConditions_other}` : ''
+  ].filter(Boolean).join(' | ');
+
   const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план на ${data.name}.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
@@ -2169,7 +2189,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
 ПСИХОЛОГИЧЕСКИ ПРОФИЛ: ${(analysis.psychologicalProfile || '').substring(0, 300)}
 ТИП ДИЕТА: ${strategy.dietType || strategy.dietaryModifier || 'балансирана'}
 
-ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Медикаменти: ${healthContext.medications}${dynamicWhitelistSection}${dynamicBlacklistSection}
+ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Медикаменти: ${healthContext.medications}${extraHealthContext ? ` | ${extraHealthContext}` : ''}${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 ⚠️ ВАЖНО: supplements се дават на базата на ВСИЧКИ данни по-горе БЕЗ опасни взаимодействия с медикаментите.
 
@@ -2209,6 +2229,8 @@ JSON (ТОЧЕН ФОРМАТ):
       keyProblems: healthContext.keyProblems || 'няма',
       allergies: healthContext.allergies,
       medications: healthContext.medications,
+      medicalConditions: healthContext.medicalConditions,
+      medicalConditions_other: healthContext.medicalConditions_other,
       psychologicalSupport: JSON.stringify(psychologicalSupport.slice(0, 3)),
       hydrationStrategy: hydrationStrategy,
       temperament: analysis.psychoProfile?.temperament || 'не е определен',
@@ -4270,15 +4292,23 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
       stressLevel: data.stressLevel,
       waterIntake: data.waterIntake || 'неизвестен',
       medicalConditions: JSON.stringify(data.medicalConditions || []),
+      medicalConditions_other: data.medicalConditions_other || '',
+      medicalConditions_allergy_details: data['medicalConditions_Алергии'] || '',
+      medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
       medications: data.medications,
       medicationsDetails: data.medicationsDetails || '',
       medicationsText: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'Не приема',
       eatingHabits: JSON.stringify(data.eatingHabits || []),
       foodCravings: JSON.stringify(data.foodCravings || []),
+      foodCravings_other: data.foodCravings_other || '',
       foodTriggers: JSON.stringify(data.foodTriggers || []),
+      foodTriggers_other: data.foodTriggers_other || '',
       compensationMethods: JSON.stringify(data.compensationMethods || []),
+      compensationMethods_other: data.compensationMethods_other || '',
       socialComparison: data.socialComparison || '',
       dietHistory: data.dietHistory || '',
+      dietPreference_other: data.dietPreference_other || '',
+      goal_other: data.goal_other || '',
       additionalNotes: data.additionalNotes || '',
       additionalNotesSection,
       TEMPERAMENT_CONFIDENCE_THRESHOLD,
@@ -4435,8 +4465,16 @@ ${JSON.stringify({
   dietType: data.dietType,
   dietResult: data.dietResult,
   dietPreference: data.dietPreference,
+  dietPreference_other: data.dietPreference_other || undefined,
   dietDislike: data.dietDislike,
   dietLove: data.dietLove,
+  goal_other: data.goal_other || undefined,
+  foodCravings_other: data.foodCravings_other || undefined,
+  foodTriggers_other: data.foodTriggers_other || undefined,
+  compensationMethods_other: data.compensationMethods_other || undefined,
+  medicalConditions_other: data.medicalConditions_other || undefined,
+  medicalConditions_allergy_details: data['medicalConditions_Алергии'] || undefined,
+  medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || undefined,
   additionalNotes: data.additionalNotes
 }, null, 2)}
 
@@ -4731,6 +4769,11 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       dietPreference_other: data.dietPreference_other || '',
       dietDislike: data.dietDislike || '',
       dietLove: data.dietLove || '',
+      goal_other: data.goal_other || '',
+      medicalConditions: JSON.stringify(data.medicalConditions || []),
+      medicalConditions_other: data.medicalConditions_other || '',
+      medicalConditions_allergy_details: data['medicalConditions_Алергии'] || '',
+      medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
       additionalNotes: data.additionalNotes || '',
       additionalNotesSection,
       eatingHabits: JSON.stringify(data.eatingHabits || []),
@@ -4820,6 +4863,10 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
 ${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : ''}
 - Не обича/непоносимост: ${data.dietDislike || 'Няма'}
 - Любими храни: ${data.dietLove || 'Няма'}
+${data['medicalConditions_Алергии'] ? `- Детайли за алергии: ${data['medicalConditions_Алергии']}` : ''}
+${data['medicalConditions_Автоимунно'] ? `- Детайли за автоимунно: ${data['medicalConditions_Автоимунно']}` : ''}
+${data.medicalConditions_other ? `- Друго медицинско: ${data.medicalConditions_other}` : ''}
+${data.goal_other ? `- Уточнение за цел: ${data.goal_other}` : ''}
 
 ${data.additionalNotes ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦІЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══
 ${data.additionalNotes}
