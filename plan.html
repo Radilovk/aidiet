@@ -3525,9 +3525,9 @@
                 bsEl = document.createElement('div');
                 bsEl.className = 'breakfast-note';
                 if (bs.length > BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD) {
-                    bsEl.innerHTML = `<details><summary>☕ Препоръка за закуска</summary>${escapeHtmlWithBreaks(bs)}</details>`;
+                    bsEl.innerHTML = `<details><summary>☕ Сутрешен детокс и хидратация</summary>${escapeHtmlWithBreaks(bs)}</details>`;
                 } else {
-                    bsEl.innerHTML = `☕ <strong>Препоръка за закуска:</strong> ${escapeHtmlWithBreaks(bs)}`;
+                    bsEl.innerHTML = `☕ <strong>Сутрешен детокс и хидратация:</strong> ${escapeHtmlWithBreaks(bs)}`;
                 }
             }
 
@@ -3871,7 +3871,7 @@
             mTitle.textContent = title;
             
             // Display description as-is (contains ingredient weights from AI)
-            mDesc.textContent = description;
+            mDesc.innerHTML = escapeHtmlWithBreaks(description);
             mBenefit.textContent = benefit;
             
             // Handle macronutrient visualization
