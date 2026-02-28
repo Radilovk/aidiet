@@ -1143,6 +1143,16 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
 }
 
 /**
+ * Detect whether the user's additional notes explicitly request a free-eating day.
+ * Returns true when the notes contain "свободно хранене" or "свободен ден".
+ */
+function detectsFreeMealRequest(additionalNotes) {
+  if (!additionalNotes) return false;
+  // Match common Bulgarian forms: свободно/свободното/свободни хранене/ден/дни
+  return /свободн[оиa]\s+хранен|свободен\s+ден|свободни\s+дни/i.test(additionalNotes);
+}
+
+/**
  * Call AI model with load monitoring
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
@@ -4860,6 +4870,13 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   }
   
   // Build default prompt with optional error prevention comment
+  const userRequestedFreeMeal = detectsFreeMealRequest(data.additionalNotes);
+  const freeMealPromptInstruction = userRequestedFreeMeal
+    ? '⚠️ ЗАДЪЛЖИТЕЛНО: Потребителят ИЗРИЧНО е поискал свободно хранене в бележките. freeDayNumber ТРЯБВА да е число 1-7 (НЕ null)!'
+    : '- Ако е подходящо според психопрофил, ВКЛЮЧИ свободно хранене';
+  const freeDayNumberRule = userRequestedFreeMeal
+    ? 'ЗАДЪЛЖИТЕЛНО число 1-7 (НЕ null — потребителят е поискал свободно хранене)'
+    : 'или null ако не е подходящо';
   let defaultPrompt = '';
   
   if (errorPreventionComment) {
@@ -4926,7 +4943,7 @@ ${data.additionalNotes}
       - Обясни в mealTiming защо това е подходящо
    
    b) СВОБОДНО ХРАНЕНЕ/ЛЮБИМА ХРАНА:
-      - Ако е подходящо според психопрофил, ВКЛЮЧИ свободно хранене
+      ${freeMealPromptInstruction}
       - Избери НАЙ-ПОДХОДЯЩИЯ ден (1=Понеделник ... 7=Неделя) според профила — НЕ задължително неделя
       - Запиши избрания ден в полето "freeDayNumber" (число 1-7)
       - След свободното хранене: ЛЕКА ВЕЧЕРЯ
@@ -5031,7 +5048,7 @@ ${data.additionalNotes}
 }
 
 ПРАВИЛА ЗА ПОПЪЛВАНЕ:
-- freeDayNumber: число 1-7 (1=Понеделник, 7=Неделя) за деня на свободно хранене — или null ако не е подходящо
+- freeDayNumber: число 1-7 (1=Понеделник, 7=Неделя) за деня на свободно хранене — ${freeDayNumberRule}
 - ПРАВИЛА ЗА weeklyScheme:
 - Сумата на mealBreakdown.calories ТРЯБВА да е равна на calories за деня
 - Сумата на mealBreakdown.protein ТРЯБВА да е равна на protein за деня
