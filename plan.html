@@ -344,7 +344,26 @@
             transform: scale(0.98);
         }
 
-        .meal-info {
+        .breakfast-note {
+            background: var(--soft-red);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: var(--text-dark);
+            border-left: 4px solid var(--primary-red);
+        }
+        .breakfast-note summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-red);
+            list-style: none;
+        }
+        .breakfast-note summary::-webkit-details-marker { display: none; }
+        .breakfast-note summary::after { content: ' ▼'; font-size: 0.7em; }
+        .breakfast-note details[open] summary::after { content: ' ▲'; }
+
+
             flex: 1;
             position: relative;
             z-index: 1;
@@ -3477,6 +3496,20 @@
                 mealCard.appendChild(infoBtn);
                 mealContainer.appendChild(mealCard);
             });
+
+            // Show breakfast strategy recommendation if set in Step 2
+            const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
+            if (bs) {
+                const BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD = 80;
+                const bsEl = document.createElement('div');
+                bsEl.className = 'breakfast-note';
+                if (bs.length > BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD) {
+                    bsEl.innerHTML = `<details><summary>☕ Препоръка за закуска</summary>${escapeHtmlWithBreaks(bs)}</details>`;
+                } else {
+                    bsEl.innerHTML = `☕ <strong>Препоръка за закуска:</strong> ${escapeHtmlWithBreaks(bs)}`;
+                }
+                mealContainer.appendChild(bsEl);
+            }
         }
 
         // --- Helper function to format text with bullet points ---
