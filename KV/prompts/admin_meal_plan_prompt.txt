@@ -99,7 +99,7 @@ WHITELIST: {dynamicWhitelistSection}{dynamicBlacklistSection}
 
 === ИЗИСКВАНИЯ ===
 1. Разпределение на калории: Използвай mealBreakdown от Стъпка 2 за всяко хранене — то задава ТОЧНИТЕ целеви калории и макроси за всяко хранене от деня
-2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
+2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null
 3. Калории: protein×4 + carbs×4 + fats×9
 4. Целеви дневни калории (от стъпка 2): адаптирани по дни от Седмичната структура горе (±{DAILY_CALORIE_TOLERANCE} kcal OK)
 5. Брой хранения: {strategyData.mealCountJustification}
