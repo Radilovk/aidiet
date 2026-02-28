@@ -3512,9 +3512,8 @@
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 
-            // Determine if this is the free day (from strategy)
-            const freeDayNum = dietPlan.strategy && dietPlan.strategy.freeDayNumber;
-            const isFreeDay = freeDayNum != null && Number(freeDayNum) === dayNum;
+            // Check if the current day has a free eating meal (determined by AI in step 2)
+            const hasFreeMeal = dayData.meals.some(meal => meal.type === 'Свободно хранене');
 
             // Build breakfast-note element if strategy includes one
             const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
@@ -3537,8 +3536,8 @@
                 bsEl = null; // already added, don't append again later
             }
 
-            // Show animated reward banner for free day
-            if (isFreeDay) {
+            // Show animated reward banner only when the day contains a free eating meal
+            if (hasFreeMeal) {
                 const banner = document.createElement('div');
                 banner.className = 'free-day-banner';
                 banner.innerHTML = '<span class="free-day-icon">🏆</span><div class="free-day-title">Свободно хранене!</div><div class="free-day-subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
@@ -3546,31 +3545,41 @@
             }
 
             dayData.meals.forEach((meal) => {
+                const isFreeMeal = meal.type === 'Свободно хранене';
                 const mealCard = document.createElement('div');
-                mealCard.className = isFreeDay ? 'meal-card free-day' : 'meal-card';
+                mealCard.className = isFreeMeal ? 'meal-card free-day' : 'meal-card';
                 
                 // Create button element separately to handle click with meal data
                 const infoBtn = document.createElement('button');
                 infoBtn.className = 'info-btn';
                 infoBtn.innerHTML = '<i class="fas fa-info"></i>';
                 infoBtn.onclick = function() {
-                    openModal(
-                        meal.name, 
-                        meal.description || '', 
-                        meal.benefits || '',
-                        isFreeDay ? null : (meal.macros || null)
-                    );
+                    if (isFreeMeal) {
+                        openModal(
+                            'Свободно хранене',
+                            'Можеш свободно да консумираш любимата си храна.\n\nВажно: Любимата храна може да бъде консумирана след прием на зеленолистна салата, поръсена със семена или смлени ядки, поправена със зехтин и лимонов сок.',
+                            'Насладете се на любимата си храна — заслужихте го! 🏆',
+                            null
+                        );
+                    } else {
+                        openModal(
+                            meal.name, 
+                            meal.description || '', 
+                            meal.benefits || '',
+                            meal.macros || null
+                        );
+                    }
                 };
                 
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
-                // On free day: omit calories and macros display
-                const weightLine = isFreeDay
-                    ? `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}</div>`
+                // For free eating meals: omit calories and macros display
+                const weightLine = isFreeMeal
+                    ? `<div class="meal-weight"><i class="fas fa-utensils"></i> Любима храна по избор</div>`
                     : `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${meal.calories ? ` • ${Math.round(meal.calories)} kcal` : ''}</div>`;
                 mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
-                    <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
+                    <div class="meal-name">${isFreeMeal ? 'Свободно хранене' : escapeHtmlWithBreaks(meal.name)}</div>
                     ${weightLine}
                 `;
                 

@@ -1130,6 +1130,19 @@ function generateUserId(data) {
 }
 
 /**
+ * Build the free-eating meal instruction for step 3 prompts.
+ * Returns a non-empty string when the strategy includes a free day and the
+ * given day range covers that day; otherwise returns an empty string.
+ */
+function buildFreeMealInstruction(strategy, startDay, endDay) {
+  const freeDayNumber = strategy && strategy.freeDayNumber;
+  if (freeDayNumber == null) return '';
+  const dayNum = Number(freeDayNumber);
+  if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
+  return `\nСВОБОДНО ХРАНЕНЕ (Ден ${dayNum}): На ден ${dayNum} ЗАМЕНИ обяда с хранене от тип "Свободно хранене". Използвай ТОЧНО: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}. НЕ добавяй calories и НЕ добавяй macros за това хранене. Останалите хранения (закуска, вечеря) за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.`;
+}
+
+/**
  * Call AI model with load monitoring
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
@@ -1783,14 +1796,14 @@ ${(() => {
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
 6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без "Закуска", без "Следобедна закуска" и без "Късна закуска"! Само Обяд и Вечеря (и евентуално едно друго основно хранене).' : ''}
+7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без "Закуска", без "Следобедна закуска" и без "Късна закуска"! Само Обяд и Вечеря (и евентуално едно друго основно хранене).' : ''}${buildFreeMealInstruction(strategy, startDay, endDay)}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 `;
 
   // Build JSON format example with all days in the chunk
   // Note: Indentation and formatting are intentional for AI model readability
-  const mealTemplate = `{"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const mealTemplate = `{"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const dayTemplate = (dayNum) => `  "day${dayNum}": {
     "meals": [
       ${mealTemplate}
@@ -2091,7 +2104,7 @@ ${dietaryModifier === 'Веган' ? '→ Без животински [PRO], и�
 - ${strategy.mealCount || 3} хранения ПО РЕДА НА ХРАНЕНЕ (Закуска първо, после Обяд, след това Вечеря...)
 - Прилагай правилата за комбиниране
 - Всяко ястие с name, time, calories, macros (protein, carbs, fats, fiber)
-- Седмично мислене: РАЗНООБРАЗИЕ между дните
+- Седмично мислене: РАЗНООБРАЗИЕ между дните${buildFreeMealInstruction(strategy, 1, 7)}
 
 ${errorPreventionComment ? `\n=== КОРЕКЦИИ НА ГРЕШКИ ===\n${errorPreventionComment}\n` : ''}
 
@@ -2099,7 +2112,7 @@ JSON ФОРМАТ:
 {
   "day1": {
     "meals": [
-      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
+      {"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
       ...
     ]
   },
@@ -2951,8 +2964,8 @@ const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts b
 // limit per Worker invocation. With 1 correction the baseline is 46 (safe), and even with a
 // handful of transient Gemini retries we stay comfortably under the limit.
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
-const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
-const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
+const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Свободно хранене': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
+const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Свободно хранене', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   'Междинно': 'Следобедна закуска',
@@ -3174,8 +3187,8 @@ function validatePlan(plan, userData, substitutions = []) {
         let mealsWithoutMacros = 0;
         day.meals.forEach((meal, mealIndex) => {
           if (!meal.macros || !meal.macros.protein || !meal.macros.carbs || !meal.macros.fats) {
-            // Beverages ("Напитка") don't require macronutrients - skip them
-            if (meal.type !== 'Напитка') {
+            // Beverages ("Напитка") and free meals ("Свободно хранене") don't require macronutrients - skip them
+            if (meal.type !== 'Напитка' && meal.type !== 'Свободно хранене') {
               mealsWithoutMacros++;
             }
           } else {
@@ -3215,8 +3228,10 @@ function validatePlan(plan, userData, substitutions = []) {
         }
         
         // Validate daily calorie totals
+        // Free eating meals ("Свободно хранене") don't have calories - skip the minimum check for days with free eating
+        const hasFreeEatingMeal = day.meals.some(meal => meal.type === 'Свободно хранене');
         const dayCalories = day.meals.reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
-        if (dayCalories < MIN_DAILY_CALORIES) {
+        if (!hasFreeEatingMeal && dayCalories < MIN_DAILY_CALORIES) {
           const error = `Ден ${i} има само ${dayCalories} калории - твърде малко`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
