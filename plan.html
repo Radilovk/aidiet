@@ -363,51 +363,6 @@
         .breakfast-note summary::after { content: ' ▼'; font-size: 0.7em; }
         .breakfast-note details[open] summary::after { content: ' ▲'; }
 
-        .free-day-banner {
-            background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
-            border-radius: var(--radius);
-            padding: 20px 16px;
-            margin-bottom: 16px;
-            text-align: center;
-            border: 2px solid #f59e0b;
-        }
-        [data-theme="dark"] .free-day-banner {
-            background: linear-gradient(135deg, #292116 0%, #2d2510 100%);
-            border-color: #d97706;
-        }
-        .free-day-icon {
-            font-size: 3rem;
-            display: block;
-            animation: free-day-bounce 1.2s ease-in-out infinite;
-        }
-        @keyframes free-day-bounce {
-            0%, 100% { transform: translateY(0) scale(1); }
-            40%       { transform: translateY(-10px) scale(1.12); }
-            60%       { transform: translateY(-6px) scale(1.06); }
-        }
-        .free-day-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #b45309;
-            margin: 8px 0 4px;
-        }
-        [data-theme="dark"] .free-day-title { color: #fbbf24; }
-        .free-day-subtitle {
-            font-size: 0.85rem;
-            color: #92400e;
-            opacity: 0.85;
-        }
-        [data-theme="dark"] .free-day-subtitle { color: #d97706; }
-        .meal-card.free-day .meal-weight {
-            background: #fef3c7;
-            color: #b45309;
-            box-shadow: none;
-        }
-        [data-theme="dark"] .meal-card.free-day .meal-weight {
-            background: #292116;
-            color: #fbbf24;
-        }
-
 
             flex: 1;
             position: relative;
@@ -3512,42 +3467,9 @@
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 
-            // Determine if this is the free day (from strategy)
-            const freeDayNum = dietPlan.strategy && dietPlan.strategy.freeDayNumber;
-            const isFreeDay = freeDayNum != null && Number(freeDayNum) === dayNum;
-
-            // Build breakfast-note element if strategy includes one
-            const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
-            const skipsBreakfast = userData && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
-            let bsEl = null;
-            if (bs) {
-                const BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD = 80;
-                bsEl = document.createElement('div');
-                bsEl.className = 'breakfast-note';
-                if (bs.length > BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD) {
-                    bsEl.innerHTML = `<details><summary>☕ Препоръка за закуска</summary>${escapeHtmlWithBreaks(bs)}</details>`;
-                } else {
-                    bsEl.innerHTML = `☕ <strong>Препоръка за закуска:</strong> ${escapeHtmlWithBreaks(bs)}`;
-                }
-            }
-
-            // If client skips breakfast, show breakfast-note BEFORE meal cards
-            if (bsEl && skipsBreakfast) {
-                mealContainer.appendChild(bsEl);
-                bsEl = null; // already added, don't append again later
-            }
-
-            // Show animated reward banner for free day
-            if (isFreeDay) {
-                const banner = document.createElement('div');
-                banner.className = 'free-day-banner';
-                banner.innerHTML = '<span class="free-day-icon">🏆</span><div class="free-day-title">Свободно хранене!</div><div class="free-day-subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
-                mealContainer.appendChild(banner);
-            }
-
             dayData.meals.forEach((meal) => {
                 const mealCard = document.createElement('div');
-                mealCard.className = isFreeDay ? 'meal-card free-day' : 'meal-card';
+                mealCard.className = 'meal-card';
                 
                 // Create button element separately to handle click with meal data
                 const infoBtn = document.createElement('button');
@@ -3558,20 +3480,16 @@
                         meal.name, 
                         meal.description || '', 
                         meal.benefits || '',
-                        isFreeDay ? null : (meal.macros || null)
+                        meal.macros || null
                     );
                 };
                 
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
-                // On free day: omit calories and macros display
-                const weightLine = isFreeDay
-                    ? `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}</div>`
-                    : `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${meal.calories ? ` • ${Math.round(meal.calories)} kcal` : ''}</div>`;
                 mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
                     <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
-                    ${weightLine}
+                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${meal.calories ? ` • ${Math.round(meal.calories)} kcal` : ''}</div>
                 `;
                 
                 mealCard.appendChild(mealInfo);
@@ -3579,8 +3497,17 @@
                 mealContainer.appendChild(mealCard);
             });
 
-            // Show breakfast-note after meals (only when client does NOT skip breakfast)
-            if (bsEl) {
+            // Show breakfast strategy recommendation if set in Step 2
+            const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
+            if (bs) {
+                const BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD = 80;
+                const bsEl = document.createElement('div');
+                bsEl.className = 'breakfast-note';
+                if (bs.length > BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD) {
+                    bsEl.innerHTML = `<details><summary>☕ Препоръка за закуска</summary>${escapeHtmlWithBreaks(bs)}</details>`;
+                } else {
+                    bsEl.innerHTML = `☕ <strong>Препоръка за закуска:</strong> ${escapeHtmlWithBreaks(bs)}`;
+                }
                 mealContainer.appendChild(bsEl);
             }
         }
