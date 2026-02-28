@@ -1639,30 +1639,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
   }
   
-  // Extract meal pattern from strategy
-  let mealPlanGuidance = '';
-  if (strategy && strategy.mealTiming) {
-    const timing = strategy.mealTiming;
-    mealPlanGuidance = `
-=== СЕДМИЧНА СТРУКТУРА НА ХРАНЕНЕ ===
-ВАЖНО: Създай хранения според стратегията и хронотипа на клиента.
-
-Седмичен модел: ${strategy.weeklyMealPattern || 'Стандартен модел'}
-Структура: ${timing.pattern || 'Консистентна структура'}
-Прозорци на гладуване: ${timing.fastingWindows || 'няма'}
-Гъвкавост: ${timing.flexibility || 'Модерирана'}
-Насоки за хронотип (${data.chronotype}): ${timing.chronotypeGuidance || 'Адаптирай според енергийните пикове'}
-
-Брой хранения: ${strategy.mealCountJustification || 'Определи според профила (обикновено 2-4 хранения)'}
-
-ВАЖНО:
-- Генерирай хранения според горната структура и целевите калории (${recommendedCalories} kcal/ден)
-- Сборът на калориите за деня ТРЯБВА да е приблизително ${recommendedCalories} kcal
-- Адаптирай времето и размера на храненията според хронотипа
-- Ако има интермитентно гладуване, спазвай прозорците на хранене
-`;
-  }
-  
   let defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
 
 === ПРОФИЛ ===
@@ -1773,6 +1749,7 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 • Без странни комбинации - общоприети кулинарни норми
 • Шаблон D не е "прегрешение" - нормална част от менюто (напр. уикенд), винаги балансиран със салата
 • Адаптивност: Ако категория не може да се попълни → автоматично премини към позволена алтернатива
+• В едно хранене ако има едно от следните, другите отпадат: ориз, картофи, хляб
 
 === ИЗИСКВАНИЯ ===
 1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
@@ -2175,7 +2152,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   
   // Extract health analysis context for supplement recommendations
   const healthContext = {
-    keyProblems: (analysis.keyProblems || []).map(p => `${p.problem} (${p.severity})`).join('; '),
+    keyProblems: (analysis.keyProblems || []).map(p => `${p.title} (${p.severity})`).join('; '),
     allergies: data.allergies || 'няма',
     medications: data.medications || 'няма',
     medicalHistory: data.medicalHistory || 'няма',
