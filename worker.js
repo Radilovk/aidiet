@@ -3171,31 +3171,11 @@ function validatePlan(plan, userData, substitutions = []) {
           stepErrors.step3_mealplan.push(error);
         }
         
-        // Validate that meals have macros; auto-estimate when missing to avoid correction loop
+        // Validate that meals have macros
         let mealsWithoutMacros = 0;
-        const planMacroRatios = plan.analysis && plan.analysis.macroRatios ? plan.analysis.macroRatios : {};
-        const rawProteinPct = Number(planMacroRatios.protein) || 30;
-        const rawCarbsPct   = Number(planMacroRatios.carbs)   || 40;
-        const rawFatsPct    = Number(planMacroRatios.fats)     || 30;
-        // Normalise so the three percentages always sum to 100
-        const macroTotal = rawProteinPct + rawCarbsPct + rawFatsPct || 100;
-        const defaultProteinPct = rawProteinPct / macroTotal * 100;
-        const defaultCarbsPct   = rawCarbsPct   / macroTotal * 100;
-        const defaultFatsPct    = rawFatsPct    / macroTotal * 100;
         day.meals.forEach((meal, mealIndex) => {
           if (!meal.macros || !meal.macros.protein || !meal.macros.carbs || !meal.macros.fats) {
-            const kcal = parseInt(meal.calories) || 0;
-            if (kcal > 0) {
-              // Estimate macros from declared calories using plan's macro percentages.
-              // Standard caloric densities: protein=4 kcal/g, carbs=4 kcal/g, fats=9 kcal/g
-              meal.macros = meal.macros || {};
-              meal.macros.protein = meal.macros.protein || String(Math.round(kcal * defaultProteinPct / 100 / 4));
-              meal.macros.carbs   = meal.macros.carbs   || String(Math.round(kcal * defaultCarbsPct   / 100 / 4));
-              meal.macros.fats    = meal.macros.fats    || String(Math.round(kcal * defaultFatsPct    / 100 / 9));
-              warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type || '?'}): автоизчислени макроси от ${kcal} kcal (${Math.round(defaultProteinPct)}/${Math.round(defaultCarbsPct)}/${Math.round(defaultFatsPct)}%)`);
-            } else {
-              mealsWithoutMacros++;
-            }
+            mealsWithoutMacros++;
           } else {
             // Validate macro accuracy: protein×4 + carbs×4 + fats×9 should ≈ calories
             const calculatedCalories = 
@@ -3504,36 +3484,10 @@ function validatePlan(plan, userData, substitutions = []) {
   }
   
   // 11. Check for plan justification (Step 2 - Strategy issue)
-  // Auto-extend when present but too short to avoid triggering a correction loop
-  if (!plan.strategy || !plan.strategy.planJustification) {
+  if (!plan.strategy || !plan.strategy.planJustification || plan.strategy.planJustification.length < 100) {
     const error = 'Липсва детайлна обосновка защо планът е индивидуален (минимум 100 символа)';
     errors.push(error);
     stepErrors.step2_strategy.push(error);
-  } else if (plan.strategy.planJustification.length < 100) {
-    const name   = (userData && userData.name)   || '';
-    const age    = (userData && userData.age)    || '';
-    const gender = (userData && userData.gender) || '';
-    const goal   = (userData && userData.goal)   || '';
-    const weight = (userData && userData.weight) || '';
-    const dietPreference = (userData && userData.dietPreference) || '';
-    const extension = [
-      name            ? `Клиент: ${name}`                    : '',
-      age             ? `Възраст: ${age} г.`                 : '',
-      gender          ? `Пол: ${gender}`                     : '',
-      goal            ? `Цел: ${goal}`                       : '',
-      weight          ? `Тегло: ${weight} кг`                : '',
-      dietPreference  ? `Диета: ${dietPreference}`           : ''
-    ].filter(Boolean).join(', ');
-    if (extension) {
-      plan.strategy.planJustification += ` (${extension})`;
-      warnings.push('strategy.planJustification е допълнена автоматично за да достигне минималната дължина от 100 символа');
-    }
-    // Re-check after extension; only error if still too short
-    if (plan.strategy.planJustification.length < 100) {
-      const error = 'Липсва детайлна обосновка защо планът е индивидуален (минимум 100 символа)';
-      errors.push(error);
-      stepErrors.step2_strategy.push(error);
-    }
   }
   
   // 11a. Check for welcome message (Step 2 - Strategy issue)
