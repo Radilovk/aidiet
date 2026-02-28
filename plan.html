@@ -3467,6 +3467,37 @@
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 
+            // Show breakfast strategy recommendation BEFORE meals (it's about breakfast, so it comes first)
+            const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
+            const STRATEGY_NOTE_COLLAPSE_THRESHOLD = 80;
+            if (bs) {
+                const bsEl = document.createElement('div');
+                bsEl.className = 'breakfast-note';
+                if (bs.length > STRATEGY_NOTE_COLLAPSE_THRESHOLD) {
+                    bsEl.innerHTML = `<details><summary>☕ Препоръка за закуска</summary>${escapeHtmlWithBreaks(bs)}</details>`;
+                } else {
+                    bsEl.innerHTML = `☕ <strong>Препоръка за закуска:</strong> ${escapeHtmlWithBreaks(bs)}`;
+                }
+                mealContainer.appendChild(bsEl);
+            }
+
+            // Show Sunday free meal note if set in strategy (day 7 = Sunday)
+            if (dayNum === 7) {
+                const sundayDesc = dietPlan.strategy && dietPlan.strategy.weeklyScheme &&
+                    dietPlan.strategy.weeklyScheme.sunday && dietPlan.strategy.weeklyScheme.sunday.description;
+                if (sundayDesc && /свободно/i.test(sundayDesc)) {
+                    const freeEl = document.createElement('div');
+                    freeEl.className = 'breakfast-note';
+                    freeEl.style.borderLeftColor = '#f59e0b';
+                    if (sundayDesc.length > STRATEGY_NOTE_COLLAPSE_THRESHOLD) {
+                        freeEl.innerHTML = `<details><summary>🎉 Свободно хранене в неделя</summary>${escapeHtmlWithBreaks(sundayDesc)}</details>`;
+                    } else {
+                        freeEl.innerHTML = `🎉 <strong>Свободно хранене:</strong> ${escapeHtmlWithBreaks(sundayDesc)}`;
+                    }
+                    mealContainer.appendChild(freeEl);
+                }
+            }
+
             dayData.meals.forEach((meal) => {
                 const mealCard = document.createElement('div');
                 mealCard.className = 'meal-card';
@@ -3496,20 +3527,6 @@
                 mealCard.appendChild(infoBtn);
                 mealContainer.appendChild(mealCard);
             });
-
-            // Show breakfast strategy recommendation if set in Step 2
-            const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
-            if (bs) {
-                const BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD = 80;
-                const bsEl = document.createElement('div');
-                bsEl.className = 'breakfast-note';
-                if (bs.length > BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD) {
-                    bsEl.innerHTML = `<details><summary>☕ Препоръка за закуска</summary>${escapeHtmlWithBreaks(bs)}</details>`;
-                } else {
-                    bsEl.innerHTML = `☕ <strong>Препоръка за закуска:</strong> ${escapeHtmlWithBreaks(bs)}`;
-                }
-                mealContainer.appendChild(bsEl);
-            }
         }
 
         // --- Helper function to format text with bullet points ---
