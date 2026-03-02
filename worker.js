@@ -1143,29 +1143,10 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
 }
 
 /**
- * Try fallback providers when the preferred provider is rate-limited (429).
- * Attempts providers in order: OpenAI → Anthropic → Gemini, skipping excludeProvider.
- * @param {object} env - Environment object with API keys
- * @param {string} prompt - The prompt to send
- * @param {number|null} maxTokens - Max tokens
- * @param {boolean} jsonMode - Whether to enforce JSON mode
- * @param {string} excludeProvider - The provider that was rate-limited (to skip)
- * @returns {Promise<string>} Response text from a fallback provider
+ * Call AI model with load monitoring
+ * Goal: Monitor request sizes to ensure no single request is overloaded
+ * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
  */
-async function callFallbackProviderOnRateLimit(env, prompt, maxTokens, jsonMode, excludeProvider) {
-  if (excludeProvider !== 'openai' && env.OPENAI_API_KEY) {
-    console.warn(`${excludeProvider} rate limited (429). Falling back to OpenAI.`);
-    return await callOpenAI(env, prompt, null, maxTokens, jsonMode);
-  } else if (excludeProvider !== 'anthropic' && env.ANTHROPIC_API_KEY) {
-    console.warn(`${excludeProvider} rate limited (429). Falling back to Anthropic.`);
-    return await callClaude(env, prompt, null, maxTokens, jsonMode);
-  } else if (excludeProvider !== 'google' && env.GEMINI_API_KEY) {
-    console.warn(`${excludeProvider} rate limited (429). Falling back to Gemini.`);
-    return await callGemini(env, prompt, null, maxTokens, jsonMode);
-  }
-  return null; // No fallback available
-}
-
 async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null, userData = null, calculatedData = null, skipJSONEnforcement = false) {
   // Apply strict JSON-only enforcement to reduce unnecessary output
   // Skip enforcement for chat requests where plain text responses are expected
@@ -1213,36 +1194,15 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       response = generateMockResponse(enforcedPrompt);
       success = true;
     } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
-      // Try preferred provider first; fall back on rate limit
-      try {
-        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-        success = true;
-      } catch (providerErr) {
-        const fallback = providerErr.message && providerErr.message.includes('429')
-          ? await callFallbackProviderOnRateLimit(env, enforcedPrompt, maxTokens, !skipJSONEnforcement, 'openai')
-          : null;
-        if (fallback !== null) { response = fallback; success = true; } else { throw providerErr; }
-      }
+      // Try preferred provider first
+      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      success = true;
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      try {
-        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-        success = true;
-      } catch (providerErr) {
-        const fallback = providerErr.message && providerErr.message.includes('429')
-          ? await callFallbackProviderOnRateLimit(env, enforcedPrompt, maxTokens, !skipJSONEnforcement, 'anthropic')
-          : null;
-        if (fallback !== null) { response = fallback; success = true; } else { throw providerErr; }
-      }
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      try {
-        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-        success = true;
-      } catch (providerErr) {
-        const fallback = providerErr.message && providerErr.message.includes('429')
-          ? await callFallbackProviderOnRateLimit(env, enforcedPrompt, maxTokens, !skipJSONEnforcement, 'google')
-          : null;
-        if (fallback !== null) { response = fallback; success = true; } else { throw providerErr; }
-      }
+      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      success = true;
     } else {
       // Fallback hierarchy if preferred not available
       if (env.OPENAI_API_KEY) {
@@ -1870,13 +1830,17 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
     jsonExample.push(dayTemplate(i));
   }
 
+  const freeMealReminder = (freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && freeDayNumForTemplate >= startDay && freeDayNumForTemplate <= endDay)
+    ? `\nСВОБОДНО ХРАНЕНЕ (ден ${freeDayNumForTemplate}): {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — ЗАДЪЛЖИТЕЛНО БЕЗ calories и macros!`
+    : '';
+
   defaultPrompt += `
 JSON ФОРМАТ (дни ${startDay}-${endDay}):
 {
 ${jsonExample.join(',\n')}
 }
 
-КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!
+КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!${freeMealReminder}
 ЗАБРАНЕНО: НЕ връщай JSON масив []. Отговорът ТРЯБВА да е JSON обект {} с ключове "day${startDay}" ... "day${endDay}".`;
   
   // If custom prompt exists, use it; otherwise use default
