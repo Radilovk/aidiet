@@ -1139,7 +1139,7 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
   if (freeDayNumber == null) return '';
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
-  return `\nСВОБОДНО ХРАНЕНЕ (Ден ${dayNum}): На ден ${dayNum} ЗАМЕНИ обяда с хранене от тип "Свободно хранене". Използвай ТОЧНО: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}. НЕ добавяй calories и НЕ добавяй macros за това хранене. Останалите хранения (закуска, вечеря) за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.`;
+  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: Вместо обяд ДОБАВИ хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nЗакуска и вечеря за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: сумирай САМО от хранения с calories (без свободното хранене).`;
 }
 
 /**
@@ -1778,16 +1778,23 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 4. Целеви дневни калории (от стъпка 2):
 ${(() => {
   const lines = [];
+  const freeDayNumInCalories = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
   for (let d = startDay; d <= endDay; d++) {
     const key = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme && strategy.weeklyScheme[key];
     const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
     const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
       ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
-    lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)`);
+    const isFreeDayLine = freeDayNumInCalories !== null && !isNaN(freeDayNumInCalories) && d === freeDayNumInCalories;
+    const freeDayNote = isFreeDayLine ? ' ← ДЕН С СВОБОДНО ХРАНЕНЕ (dailyTotals само от хранения с calories)' : '';
+    lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)${freeDayNote}`);
     if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
       dayTarget.mealBreakdown.forEach(m => {
-        lines.push(`     → ${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`);
+        if (m.type === 'Свободно хранене') {
+          lines.push(`     → ${m.type}: без фиксирана калорийна цел (свободен избор — без calories/macros в JSON)`);
+        } else {
+          lines.push(`     → ${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`);
+        }
       });
     }
   }
@@ -1803,18 +1810,30 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 
   // Build JSON format example with all days in the chunk
   // Note: Indentation and formatting are intentional for AI model readability
-  const mealTemplate = `{"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "описание", "benefits": "ползи", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
-  const dayTemplate = (dayNum) => `  "day${dayNum}": {
+  const freeDayNumForTemplate = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
+  const mealTemplate = `{"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const freeMealEntry = `{"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}`;
+  const dayTemplate = (dayNum) => {
+    const isFreeDayHere = freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && dayNum === freeDayNumForTemplate;
+    const mealsContent = isFreeDayHere
+      ? `${mealTemplate},\n      ${freeMealEntry},\n      ${mealTemplate}`
+      : mealTemplate;
+    return `  "day${dayNum}": {
     "meals": [
-      ${mealTemplate}
+      ${mealsContent}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }`;
+  };
   
   const jsonExample = [];
   for (let i = startDay; i <= endDay; i++) {
     jsonExample.push(dayTemplate(i));
   }
+
+  const freeMealReminder = (freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && freeDayNumForTemplate >= startDay && freeDayNumForTemplate <= endDay)
+    ? `\nСВОБОДНО ХРАНЕНЕ (ден ${freeDayNumForTemplate}): {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — ЗАДЪЛЖИТЕЛНО БЕЗ calories и macros!`
+    : '';
   
   defaultPrompt += `
 JSON ФОРМАТ (дни ${startDay}-${endDay}):
@@ -1822,7 +1841,7 @@ JSON ФОРМАТ (дни ${startDay}-${endDay}):
 ${jsonExample.join(',\n')}
 }
 
-КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!
+КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!${freeMealReminder}
 ЗАБРАНЕНО: НЕ връщай JSON масив []. Отговорът ТРЯБВА да е JSON обект {} с ключове "day${startDay}" ... "day${endDay}".`;
   
   // If custom prompt exists, use it; otherwise use default
