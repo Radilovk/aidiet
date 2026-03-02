@@ -1143,10 +1143,29 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
 }
 
 /**
- * Call AI model with load monitoring
- * Goal: Monitor request sizes to ensure no single request is overloaded
- * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
+ * Try fallback providers when the preferred provider is rate-limited (429).
+ * Attempts providers in order: OpenAI → Anthropic → Gemini, skipping excludeProvider.
+ * @param {object} env - Environment object with API keys
+ * @param {string} prompt - The prompt to send
+ * @param {number|null} maxTokens - Max tokens
+ * @param {boolean} jsonMode - Whether to enforce JSON mode
+ * @param {string} excludeProvider - The provider that was rate-limited (to skip)
+ * @returns {Promise<string>} Response text from a fallback provider
  */
+async function callFallbackProviderOnRateLimit(env, prompt, maxTokens, jsonMode, excludeProvider) {
+  if (excludeProvider !== 'openai' && env.OPENAI_API_KEY) {
+    console.warn(`${excludeProvider} rate limited (429). Falling back to OpenAI.`);
+    return await callOpenAI(env, prompt, null, maxTokens, jsonMode);
+  } else if (excludeProvider !== 'anthropic' && env.ANTHROPIC_API_KEY) {
+    console.warn(`${excludeProvider} rate limited (429). Falling back to Anthropic.`);
+    return await callClaude(env, prompt, null, maxTokens, jsonMode);
+  } else if (excludeProvider !== 'google' && env.GEMINI_API_KEY) {
+    console.warn(`${excludeProvider} rate limited (429). Falling back to Gemini.`);
+    return await callGemini(env, prompt, null, maxTokens, jsonMode);
+  }
+  return null; // No fallback available
+}
+
 async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null, userData = null, calculatedData = null, skipJSONEnforcement = false) {
   // Apply strict JSON-only enforcement to reduce unnecessary output
   // Skip enforcement for chat requests where plain text responses are expected
@@ -1194,15 +1213,36 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       response = generateMockResponse(enforcedPrompt);
       success = true;
     } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
-      // Try preferred provider first
-      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-      success = true;
+      // Try preferred provider first; fall back on rate limit
+      try {
+        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+        success = true;
+      } catch (providerErr) {
+        const fallback = providerErr.message && providerErr.message.includes('429')
+          ? await callFallbackProviderOnRateLimit(env, enforcedPrompt, maxTokens, !skipJSONEnforcement, 'openai')
+          : null;
+        if (fallback !== null) { response = fallback; success = true; } else { throw providerErr; }
+      }
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-      success = true;
+      try {
+        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+        success = true;
+      } catch (providerErr) {
+        const fallback = providerErr.message && providerErr.message.includes('429')
+          ? await callFallbackProviderOnRateLimit(env, enforcedPrompt, maxTokens, !skipJSONEnforcement, 'anthropic')
+          : null;
+        if (fallback !== null) { response = fallback; success = true; } else { throw providerErr; }
+      }
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-      success = true;
+      try {
+        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+        success = true;
+      } catch (providerErr) {
+        const fallback = providerErr.message && providerErr.message.includes('429')
+          ? await callFallbackProviderOnRateLimit(env, enforcedPrompt, maxTokens, !skipJSONEnforcement, 'google')
+          : null;
+        if (fallback !== null) { response = fallback; success = true; } else { throw providerErr; }
+      }
     } else {
       // Fallback hierarchy if preferred not available
       if (env.OPENAI_API_KEY) {
@@ -5537,7 +5577,10 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
       }
       
       // Calculate delay with exponential backoff
-      const delay = initialDelay * Math.pow(2, attempt);
+      // For rate limiting (429), use much longer base delay (minimum 30 seconds)
+      const isRateLimit = errorMessage.includes('429');
+      const baseDelay = isRateLimit ? Math.max(initialDelay, 30000) : initialDelay;
+      const delay = baseDelay * Math.pow(2, attempt);
       // Log retry without exposing sensitive data (API keys, tokens, auth credentials)
       const safeErrorMessage = errorMessage.replace(/(?:key|token|auth|bearer)[=:]\s*[^\s&]+/gi, (match) => {
         return match.split(/[=:]/)[0] + '=***';
