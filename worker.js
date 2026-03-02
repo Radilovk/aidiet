@@ -1785,8 +1785,7 @@ ${(() => {
     const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
     const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
       ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
-    const isFreeDayLine = freeDayNumInCalories !== null && !isNaN(freeDayNumInCalories) && d === freeDayNumInCalories;
-    const freeDayNote = isFreeDayLine ? ' ← ДЕН С СВОБОДНО ХРАНЕНЕ (dailyTotals само от хранения с calories)' : '';
+    const freeDayNote = (freeDayNumInCalories !== null && !isNaN(freeDayNumInCalories) && d === freeDayNumInCalories) ? ' ← ДЕН С СВОБОДНО ХРАНЕНЕ (dailyTotals само от хранения с calories)' : '';
     lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)${freeDayNote}`);
     if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
       dayTarget.mealBreakdown.forEach(m => {
@@ -1831,17 +1830,13 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
     jsonExample.push(dayTemplate(i));
   }
 
-  const freeMealReminder = (freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && freeDayNumForTemplate >= startDay && freeDayNumForTemplate <= endDay)
-    ? `\nСВОБОДНО ХРАНЕНЕ (ден ${freeDayNumForTemplate}): {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — ЗАДЪЛЖИТЕЛНО БЕЗ calories и macros!`
-    : '';
-  
   defaultPrompt += `
 JSON ФОРМАТ (дни ${startDay}-${endDay}):
 {
 ${jsonExample.join(',\n')}
 }
 
-КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!${freeMealReminder}
+КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!
 ЗАБРАНЕНО: НЕ връщай JSON масив []. Отговорът ТРЯБВА да е JSON обект {} с ключове "day${startDay}" ... "day${endDay}".`;
   
   // If custom prompt exists, use it; otherwise use default
@@ -1873,7 +1868,8 @@ ${jsonExample.join(',\n')}
       medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
-      MEAL_NAME_FORMAT_INSTRUCTIONS
+      MEAL_NAME_FORMAT_INSTRUCTIONS,
+      freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay)
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
