@@ -5541,10 +5541,7 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
       }
       
       // Calculate delay with exponential backoff
-      // For rate limiting (429), use much longer base delay (minimum 30 seconds)
-      const isRateLimit = errorMessage.includes('429');
-      const baseDelay = isRateLimit ? Math.max(initialDelay, 30000) : initialDelay;
-      const delay = baseDelay * Math.pow(2, attempt);
+      const delay = initialDelay * Math.pow(2, attempt);
       // Log retry without exposing sensitive data (API keys, tokens, auth credentials)
       const safeErrorMessage = errorMessage.replace(/(?:key|token|auth|bearer)[=:]\s*[^\s&]+/gi, (match) => {
         return match.split(/[=:]/)[0] + '=***';
