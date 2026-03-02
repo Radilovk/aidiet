@@ -1143,6 +1143,19 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
 }
 
 /**
+ * Enforce that freeDayNumber is always 6 (Saturday) or 7 (Sunday).
+ * If the AI returned a weekday number (1-5), clamp it to 7 (Sunday).
+ */
+function enforceWeekendFreeDay(strategy) {
+  if (!strategy || strategy.freeDayNumber == null) return;
+  const d = Number(strategy.freeDayNumber);
+  if (!isNaN(d) && (d < 6 || d > 7)) {
+    strategy.freeDayNumber = 7;
+  }
+}
+
+
+/**
  * Call AI model with load monitoring
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
@@ -3842,6 +3855,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
       strategy = parseAIResponse(strategyResponse);
+      enforceWeekendFreeDay(strategy);
       
       if (!strategy || strategy.error) {
         throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
@@ -4120,6 +4134,7 @@ async function generatePlanMultiStep(env, data) {
       console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
       strategy = parseAIResponse(strategyResponse);
+      enforceWeekendFreeDay(strategy);
       
       if (!strategy || strategy.error) {
         const errorMsg = strategy.error || 'Невалиден формат на отговор';
@@ -4956,8 +4971,8 @@ ${data.additionalNotes}
    
    b) СВОБОДНО ХРАНЕНЕ/ЛЮБИМА ХРАНА:
       - Ако е подходящо според психопрофил, ВКЛЮЧИ свободно хранене
-      - Избери НАЙ-ПОДХОДЯЩИЯ ден (1=Понеделник ... 7=Неделя) според профила — НЕ задължително неделя
-      - Запиши избрания ден в полето "freeDayNumber" (число 1-7)
+      - Свободното хранене е ЗАДЪЛЖИТЕЛНО в събота (6) или неделя (7) — НИКОГА в делник!
+      - Запиши избрания ден в полето "freeDayNumber" (6 за Събота или 7 за Неделя)
       - В mealBreakdown за деня на свободното хранене: ЗАДЪЛЖИТЕЛНО замени обяда с {"type": "Свободно хранене"} БЕЗ полета calories/macros
       - След свободното хранене: ЛЕКА ВЕЧЕРЯ (с нормални калории и макроси)
       - Обясни стратегическата стойност на това
@@ -5061,7 +5076,7 @@ ${data.additionalNotes}
 }
 
 ПРАВИЛА ЗА ПОПЪЛВАНЕ:
-- freeDayNumber: число 1-7 (1=Понеделник, 7=Неделя) за деня на свободно хранене — или null ако не е подходящо
+- freeDayNumber: 6 (Събота) или 7 (Неделя) за деня на свободно хранене — НИКОГА делник; null ако не е подходящо
 - СВОБОДЕН ДЕН: В mealBreakdown за деня с freeDayNumber, обядът ТРЯБВА да е {"type": "Свободно хранене"} БЕЗ calories/macros; останалите хранения имат нормални калории/макроси; dailyTotals включва само хранения с calories
 
 Създай персонализирана стратегия за ${data.name} базирана на техния уникален профил.`;
