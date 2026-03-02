@@ -1873,7 +1873,8 @@ ${jsonExample.join(',\n')}
       medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
-      MEAL_NAME_FORMAT_INSTRUCTIONS
+      MEAL_NAME_FORMAT_INSTRUCTIONS,
+      freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay)
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
