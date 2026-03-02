@@ -1830,17 +1830,13 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
     jsonExample.push(dayTemplate(i));
   }
 
-  const freeMealReminder = (freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && freeDayNumForTemplate >= startDay && freeDayNumForTemplate <= endDay)
-    ? `\nСВОБОДНО ХРАНЕНЕ (ден ${freeDayNumForTemplate}): {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — ЗАДЪЛЖИТЕЛНО БЕЗ calories и macros!`
-    : '';
-
   defaultPrompt += `
 JSON ФОРМАТ (дни ${startDay}-${endDay}):
 {
 ${jsonExample.join(',\n')}
 }
 
-КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!${freeMealReminder}
+КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!
 ЗАБРАНЕНО: НЕ връщай JSON масив []. Отговорът ТРЯБВА да е JSON обект {} с ключове "day${startDay}" ... "day${endDay}".`;
   
   // If custom prompt exists, use it; otherwise use default
