@@ -1139,7 +1139,7 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
   if (freeDayNumber == null) return '';
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
-  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: Вместо обяд ДОБАВИ хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nЗакуска и вечеря за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: сумирай САМО от хранения с calories (без свободното хранене).`;
+  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ обяда (Обяд НЕ се генерира!) с хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nЗакуска и вечеря за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: сумирай САМО от хранения с calories (без свободното хранене).`;
 }
 
 /**
@@ -1800,7 +1800,8 @@ ${(() => {
   return lines.join('\n');
 })()}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
-6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
+6. Ред: Закуска → Обяд (или Свободно хранене в деня с freeDayNumber — НЕ и двете!) → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
+   СВОБОДЕН ДЕН: Свободно хранене ЗАМЕСТВА Обяда — НЕ е допълнително хранене! Типът е "Свободно хранене", НЕ "Обяд".
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
 7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без "Закуска", без "Следобедна закуска" и без "Късна закуска"! Само Обяд и Вечеря (и евентуално едно друго основно хранене).' : ''}${buildFreeMealInstruction(strategy, startDay, endDay)}
 
@@ -1810,12 +1811,14 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
   // Build JSON format example with all days in the chunk
   // Note: Indentation and formatting are intentional for AI model readability
   const freeDayNumForTemplate = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
-  const mealTemplate = `{"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const mealTemplate = `{"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const freeMealEntry = `{"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}`;
+  const breakfastTemplate = `{"type": "Закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const dinnerTemplate = `{"type": "Следобедна закуска|Вечеря", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const dayTemplate = (dayNum) => {
     const isFreeDayHere = freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && dayNum === freeDayNumForTemplate;
     const mealsContent = isFreeDayHere
-      ? `${mealTemplate},\n      ${freeMealEntry},\n      ${mealTemplate}`
+      ? `${breakfastTemplate},\n      ${freeMealEntry},\n      ${dinnerTemplate}`
       : mealTemplate;
     return `  "day${dayNum}": {
     "meals": [
