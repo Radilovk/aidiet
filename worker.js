@@ -1703,7 +1703,9 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   let mealBreakdownStr = '';
   if (dayData.mealBreakdown && Array.isArray(dayData.mealBreakdown) && dayData.mealBreakdown.length > 0) {
     mealBreakdownStr = '\n   ' + dayData.mealBreakdown.map(m =>
-      `${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`
+      m.type === 'Свободно хранене'
+        ? 'Свободно хранене (без калории/макроси)'
+        : `${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`
     ).join(' | ');
   }
   return `${dayName}: ${dayData.meals} хранения${calStr}${macroStr} - ${dayData.description}${mealBreakdownStr}`;
@@ -4961,6 +4963,7 @@ ${data.additionalNotes}
    - Сумата на mealBreakdown.carbs ТРЯБВА да е равна на дневния carbs
    - Сумата на mealBreakdown.fats ТРЯБВА да е равна на дневните fats
    - Броят обекти в mealBreakdown ТРЯБВА да е равен на meals за деня
+   - ИЗКЛЮЧЕНИЕ за свободния ден: обектът {"type": "Свободно хранене"} в mealBreakdown НЯМА calories/macros — сумирай само останалите хранения
 
 3. СПЕЦИАЛНИ СЛУЧАИ:
    a) Ако клиентът НЕ ЗАКУСВА:
