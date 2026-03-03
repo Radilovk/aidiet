@@ -3512,8 +3512,26 @@
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 
-            // Check if the current day has a free eating meal (determined by AI in step 2)
+            // Check if the current day has a free eating meal (determined by AI in step 3)
             const hasFreeMeal = dayData.meals.some(meal => meal.type === 'Свободно хранене');
+
+            // Use freeDayNumber from strategy as the specific key for the free eating day
+            const strategyFreeDayNumber = dietPlan.strategy && dietPlan.strategy.freeDayNumber != null
+                ? Number(dietPlan.strategy.freeDayNumber) : null;
+            const isFreeDayByStrategy = strategyFreeDayNumber !== null && strategyFreeDayNumber === dayNum;
+
+            // If strategy marks this as free day but AI didn't generate the free meal entry, inject it at the lunch slot
+            let effectiveMeals = dayData.meals;
+            if (isFreeDayByStrategy && !hasFreeMeal) {
+                const freeMealEntry = {type: 'Свободно хранене', name: 'Свободно хранене', weight: '-'};
+                const lunchIdx = effectiveMeals.findIndex(m => m.type === 'Обяд');
+                if (lunchIdx >= 0) {
+                    effectiveMeals = [...effectiveMeals.slice(0, lunchIdx), freeMealEntry, ...effectiveMeals.slice(lunchIdx + 1)];
+                } else {
+                    effectiveMeals = [...effectiveMeals.slice(0, 1), freeMealEntry, ...effectiveMeals.slice(1)];
+                }
+            }
+            const effectiveHasFreeMeal = hasFreeMeal || isFreeDayByStrategy;
 
             // Build breakfast-note element if strategy includes one
             const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
@@ -3537,14 +3555,14 @@
             }
 
             // Show animated reward banner only when the day contains a free eating meal
-            if (hasFreeMeal) {
+            if (effectiveHasFreeMeal) {
                 const banner = document.createElement('div');
                 banner.className = 'free-day-banner';
                 banner.innerHTML = '<span class="free-day-icon">🏆</span><div class="free-day-title">Свободно хранене!</div><div class="free-day-subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
                 mealContainer.appendChild(banner);
             }
 
-            dayData.meals.forEach((meal) => {
+            effectiveMeals.forEach((meal) => {
                 const isFreeMeal = meal.type === 'Свободно хранене';
                 const mealCard = document.createElement('div');
                 mealCard.className = isFreeMeal ? 'meal-card free-day' : 'meal-card';

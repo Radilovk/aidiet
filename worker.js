@@ -1139,8 +1139,21 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
   if (freeDayNumber == null) return '';
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
-  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: Вместо обяд ДОБАВИ хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nЗакуска и вечеря за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: сумирай САМО от хранения с calories (без свободното хранене).`;
+  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ обяда (Обяд НЕ се генерира!) с хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nЗакуска и вечеря за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: сумирай САМО от хранения с calories (без свободното хранене).`;
 }
+
+/**
+ * Enforce that freeDayNumber is always 6 (Saturday) or 7 (Sunday).
+ * If the AI returned a weekday number (1-5), clamp it to 7 (Sunday).
+ */
+function enforceWeekendFreeDay(strategy) {
+  if (!strategy || strategy.freeDayNumber == null) return;
+  const d = Number(strategy.freeDayNumber);
+  if (!isNaN(d) && (d < 6 || d > 7)) {
+    strategy.freeDayNumber = 7;
+  }
+}
+
 
 /**
  * Call AI model with load monitoring
@@ -1690,7 +1703,9 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
   let mealBreakdownStr = '';
   if (dayData.mealBreakdown && Array.isArray(dayData.mealBreakdown) && dayData.mealBreakdown.length > 0) {
     mealBreakdownStr = '\n   ' + dayData.mealBreakdown.map(m =>
-      `${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`
+      m.type === 'Свободно хранене'
+        ? 'Свободно хранене (без калории/макроси)'
+        : `${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`
     ).join(' | ');
   }
   return `${dayName}: ${dayData.meals} хранения${calStr}${macroStr} - ${dayData.description}${mealBreakdownStr}`;
@@ -1773,7 +1788,7 @@ WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 === ИЗИСКВАНИЯ ===
 1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
-2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие
+2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
 3. Калории: protein×4 + carbs×4 + fats×9
 4. Целеви дневни калории (от стъпка 2):
 ${(() => {
@@ -1800,7 +1815,8 @@ ${(() => {
   return lines.join('\n');
 })()}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
-6. Ред: Закуска → Обяд → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
+6. Ред: Закуска → Обяд (или Свободно хранене в деня с freeDayNumber — НЕ и двете!) → (Следобедна) → Вечеря → (Късна само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
+   СВОБОДЕН ДЕН: Свободно хранене ЗАМЕСТВА Обяда — НЕ е допълнително хранене! Типът е "Свободно хранене", НЕ "Обяд".
    Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
 7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - без "Закуска", без "Следобедна закуска" и без "Късна закуска"! Само Обяд и Вечеря (и евентуално едно друго основно хранене).' : ''}${buildFreeMealInstruction(strategy, startDay, endDay)}
 
@@ -1812,10 +1828,12 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
   const freeDayNumForTemplate = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
   const mealTemplate = `{"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const freeMealEntry = `{"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}`;
+  const breakfastTemplate = `{"type": "Закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const dinnerTemplate = `{"type": "Следобедна закуска|Вечеря", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const dayTemplate = (dayNum) => {
     const isFreeDayHere = freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && dayNum === freeDayNumForTemplate;
     const mealsContent = isFreeDayHere
-      ? `${mealTemplate},\n      ${freeMealEntry},\n      ${mealTemplate}`
+      ? `${breakfastTemplate},\n      ${freeMealEntry},\n      ${dinnerTemplate}`
       : mealTemplate;
     return `  "day${dayNum}": {
     "meals": [
@@ -1883,7 +1901,7 @@ ${jsonExample.join(',\n')}
 {
   "dayN": {
     "meals": [
-      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+      {"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
     ],
     "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
   }
@@ -3839,6 +3857,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
       strategy = parseAIResponse(strategyResponse);
+      enforceWeekendFreeDay(strategy);
       
       if (!strategy || strategy.error) {
         throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
@@ -4117,6 +4136,7 @@ async function generatePlanMultiStep(env, data) {
       console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
       strategy = parseAIResponse(strategyResponse);
+      enforceWeekendFreeDay(strategy);
       
       if (!strategy || strategy.error) {
         const errorMsg = strategy.error || 'Невалиден формат на отговор';
@@ -4908,11 +4928,21 @@ ${data.additionalNotes}
 ВАЖНО: Калориите вече са финално изчислени в анализа. Не ги преизчислявай.
 Използвай препоръчителните калории (${analysisCompact.realTDEE || 'от анализа'} kcal) директно.
 
-⚠️ КЛЮЧОВО: Тази стъпка определя САМО подход, архитектура и рамка. НЕ давай конкретни примери с храни — конкретните продукти, грамажи и комбинации ще бъдат избрани в Стъпка 3!
+⚠️ КЛЮЧОВО: Тази стъпка определя САМО тип диета приложима за клиента и подход, архитектура и рамка. НЕ давай конкретни примери с храни — конкретните продукти, грамажи и комбинации ще бъдат избрани в Стъпка 3!
 
 ═══ СПЕЦИАЛНИ ИЗИСКВАНИЯ ЗА СЕДМИЧНА СХЕМА ═══
 
-1. ОПРЕДЕЛЯНЕ НА СЕДМИЧНА СХЕМА И РАЗПРЕДЕЛЕНИЕ НА КАЛОРИИ:
+1. ОПРЕДЕЛЯНЕ НА тип диета ( ако не е определена от клиента), СЕДМИЧНА СХЕМА И РАЗПРЕДЕЛЕНИЕ НА КАЛОРИИ:
+- определи тип диета спрямо целта, здравословно състояние, overeatingFrequency, diet History, chronotype, ако не е изрично отбелязана в "dietPreference". Избери подходяща от следния списък и се аргументирай кратко: " 
+Отслабване: Средиземноморска диета, DASH, Периодично гладуване (16/8).
+Антиейджинг: MIND диета, Диета на „Сините зони", Средиземноморска.
+Сърдечно-съдови: DASH диета, Средиземноморска, Портфолио диета.
+Автоимунни: Автоимунен палео протокол (AIP), Противовъзпалителна диета.
+Балансирани: Флекситарианство, Нордическа диета, Харвардска чиния.
+Детокс: Диета с високо съдържание на фибри, Чисто хранене (Clean Eating).
+Мускулно укрепване: Високопротеинов режим, Целево калорийно хранене.
+Менопауза: Средиземноморска диета, Нисковъглехидратна/Нисък гликемичен индекс.
+Емоционално хранене: Осъзнато хранене (Mindful Eating), Интуитивно хранене."
    - Определи за всеки ден: колко хранения, кога И целевите калории/макроси
    - Базова цел: ${analysisCompact.realTDEE || 'от анализа'} kcal/ден
    - Дните МОЖЕ да имат различни калории и макроси спрямо:
@@ -4933,18 +4963,21 @@ ${data.additionalNotes}
    - Сумата на mealBreakdown.carbs ТРЯБВА да е равна на дневния carbs
    - Сумата на mealBreakdown.fats ТРЯБВА да е равна на дневните fats
    - Броят обекти в mealBreakdown ТРЯБВА да е равен на meals за деня
+   - ИЗКЛЮЧЕНИЕ за свободния ден: обектът {"type": "Свободно хранене"} в mealBreakdown НЯМА calories/macros — сумирай само останалите хранения
 
 3. СПЕЦИАЛНИ СЛУЧАИ:
    a) Ако клиентът НЕ ЗАКУСВА:
-      - Закуската ОТПАДА
+      - Закуската (сутрешното Хранене) Отпада.
       - ПРЕПОРЪЧАЙ вместо нея: вода с лимон, зелен чай, айран, или друга подходяща напитка
-      - Обясни в mealTiming защо това е подходящо
+      - ако в eatingHabits е отбелязано, че клиентът не закусва, се премахва само сутрешното хранене, но се допуска следобедна закуска или късна закуска.
+б) План с по-малко от 3 хранения дневно да се избягва. Той е допустим само и единствено, ако има реална причина за това.
    
    b) СВОБОДНО ХРАНЕНЕ/ЛЮБИМА ХРАНА:
       - Ако е подходящо според психопрофил, ВКЛЮЧИ свободно хранене
-      - Избери НАЙ-ПОДХОДЯЩИЯ ден (1=Понеделник ... 7=Неделя) според профила — НЕ задължително неделя
-      - Запиши избрания ден в полето "freeDayNumber" (число 1-7)
-      - След свободното хранене: ЛЕКА ВЕЧЕРЯ
+      - Свободното хранене е ЗАДЪЛЖИТЕЛНО в събота (6) или неделя (7) — НИКОГА в делник!
+      - Запиши избрания ден в полето "freeDayNumber" (6 за Събота или 7 за Неделя)
+      - В mealBreakdown за деня на свободното хранене: ЗАДЪЛЖИТЕЛНО замени обяда с {"type": "Свободно хранене"} БЕЗ полета calories/macros
+      - След свободното хранене: ЛЕКА ВЕЧЕРЯ (с нормални калории и макроси)
       - Обясни стратегическата стойност на това
    
    c) ФАСТИНГ И ЦИКЛИЧНИ СХЕМИ:
@@ -5009,7 +5042,7 @@ ${data.additionalNotes}
     },
     "sunday":    {
       "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
-      "description": "текст за ден (включи свободно хранене ако е подходящо)",
+      "description": "текст за ден",
       "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
     }
   },
@@ -5046,13 +5079,8 @@ ${data.additionalNotes}
 }
 
 ПРАВИЛА ЗА ПОПЪЛВАНЕ:
-- freeDayNumber: число 1-7 (1=Понеделник, 7=Неделя) за деня на свободно хранене — или null ако не е подходящо
-- ПРАВИЛА ЗА weeklyScheme:
-- Сумата на mealBreakdown.calories ТРЯБВА да е равна на calories за деня
-- Сумата на mealBreakdown.protein ТРЯБВА да е равна на protein за деня
-- Сумата на mealBreakdown.carbs ТРЯБВА да е равна на carbs за деня
-- Сумата на mealBreakdown.fats ТРЯБВА да е равна на fats за деня
-- Броят обекти в mealBreakdown ТРЯБВА да е равен на meals за деня
+- freeDayNumber: 6 (Събота) или 7 (Неделя) за деня на свободно хранене — НИКОГА делник; null ако не е подходящо
+- СВОБОДЕН ДЕН: В mealBreakdown за деня с freeDayNumber, обядът ТРЯБВА да е {"type": "Свободно хранене"} БЕЗ calories/macros; останалите хранения имат нормални калории/макроси; dailyTotals включва само хранения с calories
 
 Създай персонализирана стратегия за ${data.name} базирана на техния уникален профил.`;
   
