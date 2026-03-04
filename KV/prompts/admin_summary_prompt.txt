@@ -1,5 +1,7 @@
 Стъпка 4: Финални препоръки за 7-дневния хранителен план на {name}.
 
+Ти си експертен клиничен диетолог, ендокринолог и психолог. Тази стъпка поема изцяло аналитичната отговорност за препоръки за хранителни добавки, психологическа подкрепа и конкретни позволени/забранени храни.
+
 КЛИЕНТ: {name}, Цел: {goal}, BMR: {bmr}
 Препоръчителни калории: {recommendedCalories} kcal/ден | Реални средни: {avgCalories} kcal/ден
 Макроси (средни): Белтъчини {avgProtein}г, Въглехидрати {avgCarbs}г, Мазнини {avgFats}г
@@ -11,20 +13,18 @@
 ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Медикаменти: {medications}
 {dynamicWhitelistSection}{dynamicBlacklistSection}
 
-⚠️ ВАЖНО: supplements се дават на базата на ВСИЧКИ данни по-горе БЕЗ опасни взаимодействия с медикаментите.
-
 JSON (ТОЧЕН ФОРМАТ):
 {
   "summary": {"bmr": {bmr}, "dailyCalories": {avgCalories}, "macros": {"protein": {avgProtein}, "carbs": {avgCarbs}, "fats": {avgFats}}},
   "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["храна 1", "храна 2", "храна 3"],
-  "psychology": {psychologicalSupport},
+  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
   "waterIntake": "{hydrationStrategy}",
   "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
 }
 
 ЗАДЪЛЖИТЕЛНО:
-- recommendations:  10 конкретни типове храни, не конкретни ястия, хранителни продукти подходящи за {goal},  диета "{dietType}", {keyProblems},  Медикаменти: {medications} , не попадат в {dynamicBlacklistSection}, и не е задължително да бъдат в {dynamicWhitelistSection}
-- forbidden:  10 конкретни типове храни, хранителни продукти подходящи, не ястия за {goal},  диета "{dietType}", {keyProblems},  Медикаменти: {medications} , без значение дали са в {dynamicBlacklistSection}
-- supplements: конкретни 3 добавки с дозировка, съобразени с {psychologicalProfile},{temperament},{keyProblems}, цел ({goal}) и медикаменти ({medications})
-- psychology:  съвети 3 бр адаптирани към {psychologicalProfile}, ({temperament}), цел ({goal}), сън, ниво на стрес, ниво на активност, пол, {keyProblems} на {name}
+- recommendations: 10 конкретни типове храни (не ястия), подходящи за {goal}, диета "{dietType}", {keyProblems}, медикаменти: {medications} — да не попадат в {dynamicBlacklistSection}
+- forbidden: 10 конкретни типове храни (не ястия), неподходящи за {goal}, диета "{dietType}", {keyProblems}, медикаменти: {medications} — да не противоречат на {dynamicWhitelistSection}
+- supplements: минимум 3 конкретни добавки с дозировка и кратка обосновка, съобразени с {psychologicalProfile}, {temperament}, {keyProblems}, цел ({goal}) и медикаменти ({medications}) — БЕЗ опасни взаимодействия с медикаментите
+- psychology: минимум 3 персонализирани психологически съвета, адаптирани към {psychologicalProfile}, ({temperament}), цел ({goal}), сън, ниво на стрес, ниво на активност, пол и {keyProblems} на {name}
