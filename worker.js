@@ -2016,8 +2016,6 @@ ${modLines.join('\n')}
     keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '),
     foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '),
     foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', '),
-    psychologicalSupport: (strategy.psychologicalSupport || []).slice(0, 3),
-    supplementRecommendations: (strategy.supplementRecommendations || []).slice(0, 3),
     hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
   };
   
@@ -2227,6 +2225,8 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
 
   const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план на ${data.name}.
 
+Ти си експертен клиничен диетолог, ендокринолог и психолог. Тази стъпка поема изцяло аналитичната отговорност за препоръки за хранителни добавки, психологическа подкрепа и конкретни позволени/забранени храни.
+
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
 Препоръчителни калории: ${recommendedCalories} kcal/ден | Реални средни: ${avgCalories} kcal/ден
 Макроси (средни): Белтъчини ${avgProtein}г, Въглехидрати ${avgCarbs}г, Мазнини ${avgFats}г
@@ -2236,8 +2236,6 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
 ТИП ДИЕТА: ${strategy.dietType || strategy.dietaryModifier || 'балансирана'}
 
 ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Медикаменти: ${healthContext.medications}${extraHealthContext ? ` | ${extraHealthContext}` : ''}${dynamicWhitelistSection}${dynamicBlacklistSection}
-
-⚠️ ВАЖНО: supplements се дават на базата на ВСИЧКИ данни по-горе БЕЗ опасни взаимодействия с медикаментите.
 
 JSON (ТОЧЕН ФОРМАТ):
 {
@@ -2250,10 +2248,10 @@ JSON (ТОЧЕН ФОРМАТ):
 }
 
 ЗАДЪЛЖИТЕЛНО:
-- recommendations: МИН 5 конкретни храни подходящи за ${data.goal} и диета "${strategy.dietType || strategy.dietaryModifier || 'балансирана'}"
-- forbidden: МИН 3 храни неподходящи за ${healthContext.keyProblems || 'общи рискове'} и текущия план
-- supplements: конкретни добавки с дозировка, съобразени с психопрофила (${analysis.psychoProfile?.temperament || 'неопределен'}), цел (${data.goal}) и медикаменти (${healthContext.medications})
-- psychology: адаптирани към темперамента и психологическия профил на ${data.name}`;
+- recommendations: МИН 10 конкретни типове храни (не ястия) подходящи за ${data.goal} и диета "${strategy.dietType || strategy.dietaryModifier || 'балансирана'}" — да не попадат в динамичния черен списък
+- forbidden: МИН 10 конкретни типове храни (не ястия) неподходящи за ${healthContext.keyProblems || 'общи рискове'} и текущия план — да не противоречат на динамичния бял списък
+- supplements: минимум 3 конкретни добавки с дозировка и кратка обосновка, съобразени с психопрофила (${analysis.psychoProfile?.temperament || 'неопределен'}), цел (${data.goal}) и медикаменти (${healthContext.medications}) — БЕЗ опасни взаимодействия с медикаментите
+- psychology: минимум 3 персонализирани психологически съвета, адаптирани към темперамента и психологическия профил на ${data.name}`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -4878,15 +4876,13 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   "keyPrinciples": ["текст"],
   "preferredFoodCategories": ["хранителна категория (НЕ конкретна храна)"],
   "avoidFoodCategories": ["хранителна категория за избягване (НЕ конкретна храна)"],
-  "supplementRecommendations": ["текст"],
   "hydrationStrategy": "текст",
   "communicationStyle": {
     "temperament": "текст",
     "tone": "текст",
     "approach": "текст",
     "chatGuidelines": "текст"
-  },
-  "psychologicalSupport": ["текст"]
+  }
 }
 
 ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
@@ -5059,23 +5055,13 @@ ${data.additionalNotes}
   "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2", "принцип 3"],
   "preferredFoodCategories": ["хранителна категория/група 1 (НЕ конкретна храна — напр. 'Постни протеини', 'Пълнозърнести храни')", "категория 2", "категория 3"],
   "avoidFoodCategories": ["хранителна категория/група за избягване 1 (НЕ конкретна храна — напр. 'Рафинирани захари', 'Ултрапреработени храни')", "категория 2", "категория 3"],
-  "supplementRecommendations": [
-    "Индивидуална добавка 1 (с дозировка и обосновка за ${data.name})",
-    "Индивидуална добавка 2",
-    "Индивидуална добавка 3"
-  ],
   "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name}",
   "communicationStyle": {
     "temperament": "определен темперамент от анализа (ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%)",
     "tone": "тон на комуникация според психопрофил",
     "approach": "подход към комуникация с клиента",
     "chatGuidelines": "насоки как AI асистентът трябва да общува с ${data.name}"
-  },
-  "psychologicalSupport": [
-    "Психологически съвет 1 базиран на профила на ${data.name}",
-    "Психологически съвет 2",
-    "Психологически съвет 3 за мотивация"
-  ]
+  }
 }
 
 ПРАВИЛА ЗА ПОПЪЛВАНЕ:
