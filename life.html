@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="NutriPlan Life - Вашият пътеводител към балансиран и здравословен начин на живот.">
+    <meta name="theme-color" content="#0d1b2a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriPlan Life">
+    <link rel="canonical" href="https://biocode.website/life.html">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    <title>NutriPlan Life – Балансиран Живот</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===================== VARIABLES ===================== */
+        :root {
+            --glow-green:  #00ff88;
+            --glow-blue:   #00c6ff;
+            --glow-purple: #a855f7;
+            --glow-teal:   #06b6d4;
+            --glass-bg:    rgba(255, 255, 255, 0.07);
+            --glass-border:rgba(255, 255, 255, 0.15);
+            --glass-shadow:0 8px 32px rgba(0, 0, 0, 0.4);
+            --text-primary:#f0f4f8;
+            --text-muted:  rgba(200, 220, 240, 0.75);
+            --radius-lg:   20px;
+            --radius-xl:   28px;
+            --safe-top:    env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left:   env(safe-area-inset-left, 0px);
+            --safe-right:  env(safe-area-inset-right, 0px);
+        }
+
+        /* ===================== RESET ===================== */
+        *, *::before, *::after {
+            margin: 0; padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #060d16;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ===================== ANIMATED BACKGROUND ===================== */
+        .bg-gradient {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 10%,  rgba(0,198,255,0.18) 0%, transparent 65%),
+                radial-gradient(ellipse 60% 50% at 80% 80%,  rgba(0,255,136,0.14) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 70% at 60% 30%,  rgba(168,85,247,0.12) 0%, transparent 65%),
+                linear-gradient(135deg, #060d16 0%, #0a1628 40%, #0d2035 70%, #060d16 100%);
+            animation: bgPulse 12s ease-in-out infinite alternate;
+        }
+        @keyframes bgPulse {
+            0%   { opacity: 1; filter: hue-rotate(0deg); }
+            100% { opacity: 0.9; filter: hue-rotate(20deg); }
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            animation: float linear infinite;
+        }
+        @keyframes float {
+            0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+            10%  { opacity: 0.6; }
+            90%  { opacity: 0.3; }
+            100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+        }
+
+        /* ===================== LAYOUT ===================== */
+        .page-wrapper {
+            position: relative;
+            z-index: 1;
+            padding-top: calc(80px + var(--safe-top));
+            padding-bottom: calc(60px + var(--safe-bottom));
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 calc(24px + var(--safe-left));
+        }
+
+        /* ===================== NAVIGATION ===================== */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            padding: calc(16px + var(--safe-top)) 5% 16px;
+            background: rgba(6, 13, 22, 0.55);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.35rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            width: 36px; height: 36px;
+            filter: drop-shadow(0 0 8px var(--glow-green));
+        }
+        .nav-logo span { color: var(--glow-green); }
+
+        .nav-links { display: flex; gap: 8px; }
+        .nav-link {
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+        }
+        .nav-link:hover {
+            color: var(--text-primary);
+            border-color: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.07);
+        }
+        .nav-link.active {
+            color: var(--glow-green);
+            border-color: rgba(0,255,136,0.35);
+            background: rgba(0,255,136,0.08);
+            box-shadow: 0 0 14px rgba(0,255,136,0.2);
+        }
+
+        /* ===================== GLASS MIXIN (reuse) ===================== */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* ===================== HERO ===================== */
+        .hero {
+            padding: 60px 0 50px;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--glow-teal);
+            border: 1px solid rgba(6,182,212,0.4);
+            background: rgba(6,182,212,0.08);
+            margin-bottom: 24px;
+            box-shadow: 0 0 20px rgba(6,182,212,0.15);
+        }
+
+        .hero h1 {
+            font-size: clamp(2.4rem, 6vw, 4.5rem);
+            font-weight: 800;
+            line-height: 1.12;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+        }
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, var(--glow-green) 0%, var(--glow-blue) 50%, var(--glow-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 20px rgba(0,198,255,0.4));
+        }
+
+        .hero-desc {
+            font-size: 1.1rem;
+            font-weight: 300;
+            color: var(--text-muted);
+            max-width: 620px;
+            margin: 0 auto 40px;
+            line-height: 1.75;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            padding: 14px 36px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            background: linear-gradient(135deg, var(--glow-green), var(--glow-blue));
+            color: #060d16;
+            box-shadow: 0 0 30px rgba(0,255,136,0.35);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 50px rgba(0,255,136,0.55);
+        }
+
+        .btn-glass {
+            padding: 14px 36px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.18);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .btn-glass:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        /* ===================== STATS BAR ===================== */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin: 48px 0;
+        }
+        .stat-item {
+            padding: 24px 20px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stat-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+        }
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .stat-label {
+            font-size: 0.82rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        /* ===================== SECTION HEADER ===================== */
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .section-header h2 {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            font-weight: 300;
+            max-width: 550px;
+            margin: 0 auto;
+        }
+        .section-divider {
+            width: 60px; height: 3px;
+            border-radius: 3px;
+            margin: 14px auto 0;
+            background: linear-gradient(90deg, var(--glow-green), var(--glow-blue));
+            box-shadow: 0 0 12px rgba(0,198,255,0.5);
+        }
+
+        /* ===================== WELLNESS GRID ===================== */
+        .wellness-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 80px;
+        }
+
+        .wellness-card {
+            border-radius: var(--radius-xl);
+            padding: 32px 28px;
+            position: relative;
+            overflow: hidden;
+            cursor: default;
+            transition: transform 0.35s cubic-bezier(.25,.8,.25,1),
+                        box-shadow 0.35s ease,
+                        border-color 0.35s ease;
+        }
+        .wellness-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle at 70% 20%, rgba(255,255,255,0.04) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .wellness-card:hover {
+            transform: translateY(-8px) scale(1.01);
+        }
+
+        /* Individual card accent colours */
+        .card-activity  { --card-glow: var(--glow-green);  border-color: rgba(0,255,136,0.22) !important; }
+        .card-nutrition { --card-glow: #ffbb33;             border-color: rgba(255,187,51,0.22)  !important; }
+        .card-mental    { --card-glow: var(--glow-purple);  border-color: rgba(168,85,247,0.22) !important; }
+        .card-sleep     { --card-glow: #6ee7f7;             border-color: rgba(110,231,247,0.22) !important; }
+        .card-hydration { --card-glow: var(--glow-blue);   border-color: rgba(0,198,255,0.22)  !important; }
+        .card-supplements { --card-glow: #f472b6;          border-color: rgba(244,114,182,0.22) !important; }
+
+        .wellness-card:hover {
+            box-shadow:
+                var(--glass-shadow),
+                0 0 40px -8px var(--card-glow, rgba(0,198,255,0.3));
+        }
+
+        .card-icon-wrap {
+            width: 68px; height: 68px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 22px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .wellness-card:hover .card-icon-wrap {
+            box-shadow: 0 0 28px var(--card-glow, rgba(0,198,255,0.4));
+            transform: scale(1.08);
+        }
+
+        .card-icon {
+            width: 38px; height: 38px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 6px var(--card-glow, rgba(0,198,255,0.5)));
+            transition: filter 0.3s ease;
+        }
+        .wellness-card:hover .card-icon {
+            filter: drop-shadow(0 0 12px var(--card-glow, rgba(0,198,255,0.7)));
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        .card-desc {
+            font-size: 0.92rem;
+            font-weight: 300;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .card-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .tag {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+        }
+
+        /* ===================== PRINCIPLES SECTION ===================== */
+        .principles-section {
+            margin-bottom: 80px;
+        }
+        .principles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .principle-card {
+            border-radius: var(--radius-lg);
+            padding: 28px 24px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            transition: transform 0.3s ease;
+        }
+        .principle-card:hover { transform: translateY(-4px); }
+        .principle-num {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--glow-green), var(--glow-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            flex-shrink: 0;
+            min-width: 44px;
+        }
+        .principle-content h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .principle-content p {
+            font-size: 0.875rem;
+            font-weight: 300;
+            line-height: 1.65;
+            color: var(--text-muted);
+        }
+
+        /* ===================== CTA BANNER ===================== */
+        .cta-banner {
+            border-radius: var(--radius-xl);
+            padding: 56px 48px;
+            text-align: center;
+            margin-bottom: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 70% 80% at 50% 50%, rgba(0,255,136,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .cta-banner h2 {
+            font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+        .cta-banner p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 32px;
+            font-weight: 300;
+        }
+
+        /* ===================== FOOTER ===================== */
+        footer {
+            padding: calc(24px + var(--safe-bottom)) 5% 24px;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        footer a {
+            color: var(--glow-green);
+            text-decoration: none;
+        }
+        footer a:hover { text-decoration: underline; }
+
+        /* ===================== RESPONSIVE ===================== */
+        @media (max-width: 640px) {
+            .wellness-grid { grid-template-columns: 1fr; }
+            .hero-cta { flex-direction: column; align-items: center; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+            .cta-banner { padding: 36px 24px; }
+            .nav-links .nav-link:not(.active) { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Animated Background -->
+<div class="bg-gradient"></div>
+<div class="particles" id="particles"></div>
+
+<!-- Navigation -->
+<nav>
+    <a href="./index.html" class="nav-logo">
+        <img id="nav-logo-img" src="./icon-192x192.svg" alt="NutriPlan" class="nav-logo-icon">
+        Nutri<span>Plan</span>
+    </a>
+    <div class="nav-links">
+        <a href="./index.html" class="nav-link">Начало</a>
+        <a href="./plan.html" class="nav-link">Моят План</a>
+        <a href="./profile.html" class="nav-link">Профил</a>
+        <a href="./life.html" class="nav-link active">Life</a>
+    </div>
+</nav>
+
+<!-- Page Wrapper -->
+<div class="page-wrapper">
+    <div class="container">
+
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-badge">
+                <img id="hero-badge-icon" src="" alt="" style="width:16px;height:16px;display:none;">
+                ✦ NutriPlan Life
+            </div>
+            <h1>
+                Твоят пътеводител към<br>
+                <span class="gradient-text">балансиран живот</span>
+            </h1>
+            <p class="hero-desc">
+                Модерна лаборатория за здраве. Комбинираме наука и природа,
+                за да ти помогнем да изградиш устойчиви навици – по-малко усилия, повече резултати.
+            </p>
+            <div class="hero-cta">
+                <a href="./questionnaire.html" class="btn-primary">
+                    <img id="cta-icon" src="" alt="" style="width:18px;height:18px;display:none;">
+                    Започни сега
+                </a>
+                <a href="./plan.html" class="btn-glass">
+                    Виж моя план
+                </a>
+            </div>
+        </section>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item glass">
+                <div class="stat-number" style="color: var(--glow-green);">7</div>
+                <div class="stat-label">Стъпков AI анализ</div>
+            </div>
+            <div class="stat-item glass">
+                <div class="stat-number" style="color: var(--glow-blue);">30+</div>
+                <div class="stat-label">Критерия за оценка</div>
+            </div>
+            <div class="stat-item glass">
+                <div class="stat-number" style="color: var(--glow-purple);">24/7</div>
+                <div class="stat-label">AI консултант</div>
+            </div>
+            <div class="stat-item glass">
+                <div class="stat-number" style="color: #ffbb33;">100%</div>
+                <div class="stat-label">Персонализирано</div>
+            </div>
+        </div>
+
+        <!-- Wellness Cards -->
+        <section style="margin-bottom: 80px;">
+            <div class="section-header">
+                <h2>Стълбовете на здравето</h2>
+                <p>Шест ключови области, балансирани заедно за оптимално благосъстояние.</p>
+                <div class="section-divider"></div>
+            </div>
+
+            <div class="wellness-grid">
+
+                <!-- Activity -->
+                <div class="wellness-card glass card-activity">
+                    <div class="card-icon-wrap">
+                        <img id="icon-activity" class="card-icon" src="" alt="Активност"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                        <svg viewBox="0 0 24 24" fill="none" class="card-icon" style="display:none; color:var(--glow-green);">
+                            <circle cx="12" cy="4" r="2" fill="currentColor"/>
+                            <path d="M10 9h4l2 5-3-1v6H11v-6L8 14l2-5z" fill="currentColor"/>
+                            <path d="M6 9l2 2M18 9l-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Активен живот</h3>
+                    <p class="card-desc">Движението е лекарство. Персонализирани препоръки за физическа активност, съобразени с твоите цели и начин на живот.</p>
+                    <div class="card-tags">
+                        <span class="tag">Фитнес</span>
+                        <span class="tag">Ходене</span>
+                        <span class="tag">Йога</span>
+                    </div>
+                </div>
+
+                <!-- Nutrition -->
+                <div class="wellness-card glass card-nutrition">
+                    <div class="card-icon-wrap">
+                        <img id="icon-nutrition" class="card-icon" src="" alt="Хранене"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                        <svg viewBox="0 0 24 24" fill="none" class="card-icon" style="display:none; color:#ffbb33;">
+                            <path d="M12 2C8 2 5 6 5 10c0 3.5 2 6 5 7v3h4v-3c3-1 5-3.5 5-7 0-4-3-8-7-8z" fill="currentColor"/>
+                            <path d="M10 10h4M10 13h2" stroke="#060d16" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Балансирано хранене</h3>
+                    <p class="card-desc">Храненето е основата. 7-дневни персонализирани планове с точни калории, макроси и рецепти за твоя тип тяло.</p>
+                    <div class="card-tags">
+                        <span class="tag">Макроси</span>
+                        <span class="tag">Рецепти</span>
+                        <span class="tag">Калории</span>
+                    </div>
+                </div>
+
+                <!-- Mental Health -->
+                <div class="wellness-card glass card-mental">
+                    <div class="card-icon-wrap">
+                        <img id="icon-mental" class="card-icon" src="" alt="Психично здраве"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                        <svg viewBox="0 0 24 24" fill="none" class="card-icon" style="display:none; color:var(--glow-purple);">
+                            <path d="M12 3C9 3 6 5.5 6 9c0 2 .8 3.7 2 5l1 1v4h6v-4l1-1c1.2-1.3 2-3 2-5 0-3.5-3-6-6-6z" fill="currentColor" opacity=".9"/>
+                            <path d="M9 18h6" stroke="#060d16" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Психично здраве</h3>
+                    <p class="card-desc">Умът и тялото са едно. Техники за управление на стрес, медитация и ментална устойчивост, интегрирани в ежедневието.</p>
+                    <div class="card-tags">
+                        <span class="tag">Медитация</span>
+                        <span class="tag">Стрес</span>
+                        <span class="tag">Дишане</span>
+                    </div>
+                </div>
+
+                <!-- Sleep -->
+                <div class="wellness-card glass card-sleep">
+                    <div class="card-icon-wrap">
+                        <img id="icon-sleep" class="card-icon" src="" alt="Сън"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                        <svg viewBox="0 0 24 24" fill="none" class="card-icon" style="display:none; color:#6ee7f7;">
+                            <path d="M21 12.8A9 9 0 0 1 11.2 3a7 7 0 1 0 9.8 9.8z" fill="currentColor"/>
+                            <circle cx="16" cy="7" r="1" fill="currentColor" opacity=".6"/>
+                            <circle cx="19" cy="10" r=".7" fill="currentColor" opacity=".4"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Качествен сън</h3>
+                    <p class="card-desc">Сънят е суперсила. Научи се да оптимизираш циклите на съня, за да се събуждаш отпочинал и зареден с енергия всяка сутрин.</p>
+                    <div class="card-tags">
+                        <span class="tag">Ритъм</span>
+                        <span class="tag">Регенерация</span>
+                        <span class="tag">Рутина</span>
+                    </div>
+                </div>
+
+                <!-- Hydration -->
+                <div class="wellness-card glass card-hydration">
+                    <div class="card-icon-wrap">
+                        <img id="icon-hydration" class="card-icon" src="" alt="Хидратация"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                        <svg viewBox="0 0 24 24" fill="none" class="card-icon" style="display:none; color:var(--glow-blue);">
+                            <path d="M12 3L7 10.5a5 5 0 1 0 10 0L12 3z" fill="currentColor"/>
+                            <path d="M9 15a3 3 0 0 0 3 2" stroke="#060d16" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Хидратация</h3>
+                    <p class="card-desc">Водата е живот. Персонализиран дневен прием на вода, напомняния и съвети за оптимална хидратация спрямо активността ти.</p>
+                    <div class="card-tags">
+                        <span class="tag">Вода</span>
+                        <span class="tag">Електролити</span>
+                        <span class="tag">Напомняния</span>
+                    </div>
+                </div>
+
+                <!-- Supplements -->
+                <div class="wellness-card glass card-supplements">
+                    <div class="card-icon-wrap">
+                        <img id="icon-supplements" class="card-icon" src="" alt="Добавки"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                        <svg viewBox="0 0 24 24" fill="none" class="card-icon" style="display:none; color:#f472b6;">
+                            <rect x="9" y="2" width="6" height="10" rx="3" fill="currentColor"/>
+                            <rect x="9" y="12" width="6" height="10" rx="3" fill="currentColor" opacity=".6"/>
+                            <line x1="9" y1="12" x2="15" y2="12" stroke="#060d16" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Добавки & витамини</h3>
+                    <p class="card-desc">Умните добавки в правилното количество и момент. Само доказани препоръки, основани на твоя здравен профил и цели.</p>
+                    <div class="card-tags">
+                        <span class="tag">Витамини</span>
+                        <span class="tag">Минерали</span>
+                        <span class="tag">Адаптогени</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Principles -->
+        <section class="principles-section">
+            <div class="section-header">
+                <h2>Нашите принципи</h2>
+                <p>Основани на науката, вдъхновени от природата.</p>
+                <div class="section-divider"></div>
+            </div>
+            <div class="principles-grid">
+                <div class="principle-card glass">
+                    <div class="principle-num">01</div>
+                    <div class="principle-content">
+                        <h3>Персонализация</h3>
+                        <p>Всяка препоръка е съобразена с твоите уникални биологични показатели, цели и начин на живот.</p>
+                    </div>
+                </div>
+                <div class="principle-card glass">
+                    <div class="principle-num">02</div>
+                    <div class="principle-content">
+                        <h3>Научна база</h3>
+                        <p>Само доказани методи и подходи, преминали клинично валидиране и мета-анализи.</p>
+                    </div>
+                </div>
+                <div class="principle-card glass">
+                    <div class="principle-num">03</div>
+                    <div class="principle-content">
+                        <h3>Устойчивост</h3>
+                        <p>Малки, постепенни промени, изградени в трайни навици – без екстремни диети или бързи решения.</p>
+                    </div>
+                </div>
+                <div class="principle-card glass">
+                    <div class="principle-num">04</div>
+                    <div class="principle-content">
+                        <h3>Прозрачност</h3>
+                        <p>Обясняваме всяка препоръка. Знаеш защо правиш нещо, не само как.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Banner -->
+        <div class="cta-banner glass">
+            <h2>Готов да трансформираш живота си?</h2>
+            <p>Попълни нашия детайлен въпросник и получи персонализиран план за следващите 7 дни.</p>
+            <div class="hero-cta">
+                <a href="./questionnaire.html" class="btn-primary">Започни безплатно</a>
+                <a href="./profile.html" class="btn-glass">Виж профила си</a>
+            </div>
+        </div>
+
+    </div><!-- /.container -->
+</div><!-- /.page-wrapper -->
+
+<footer>
+    <p>© 2025 NutriPlan &nbsp;·&nbsp;
+       <a href="./index.html">Начало</a> &nbsp;·&nbsp;
+       <a href="./life.html">Life</a> &nbsp;·&nbsp;
+       <a href="./plan.html">Моят план</a>
+    </p>
+</footer>
+
+<script>
+    /* ========= Particle System ========= */
+    (function() {
+        const container = document.getElementById('particles');
+        const colours = ['rgba(0,255,136,0.5)', 'rgba(0,198,255,0.5)', 'rgba(168,85,247,0.4)', 'rgba(255,187,51,0.4)'];
+        const count = 28;
+        for (let i = 0; i < count; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 5 + 2;
+            const colour = colours[Math.floor(Math.random() * colours.length)];
+            p.style.cssText = `
+                width:${size}px; height:${size}px;
+                left:${Math.random()*100}%;
+                background:${colour};
+                animation-duration:${Math.random()*18+12}s;
+                animation-delay:${Math.random()*15}s;
+                filter:blur(${size > 5 ? 1 : 0}px);
+            `;
+            container.appendChild(p);
+        }
+    })();
+
+    /* ========= Load Custom Icons from localStorage ========= */
+    const ICON_KEYS = [
+        'nav-logo', 'hero-badge-icon', 'cta-icon',
+        'icon-activity', 'icon-nutrition', 'icon-mental',
+        'icon-sleep', 'icon-hydration', 'icon-supplements'
+    ];
+
+    function loadCustomIcons() {
+        ICON_KEYS.forEach(key => {
+            const stored = localStorage.getItem('life_image_' + key);
+            const el = document.getElementById(key);
+            if (!el) return;
+            if (stored) {
+                el.src = stored;
+                el.style.display = 'block';
+                // If fallback SVG sibling exists, hide it
+                if (el.nextElementSibling && el.nextElementSibling.tagName === 'svg') {
+                    el.nextElementSibling.style.display = 'none';
+                }
+            } else {
+                // Use inline SVG fallback (already in HTML)
+                el.style.display = 'none';
+                if (el.nextElementSibling && el.nextElementSibling.tagName === 'svg') {
+                    el.nextElementSibling.style.display = 'block';
+                }
+                // Special case: nav logo uses existing app icon
+                if (key === 'nav-logo') {
+                    el.src = './icon-192x192.svg';
+                    el.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    loadCustomIcons();
+
+    // Try to fetch fresh images from KV backend and update localStorage cache
+    fetch('/api/admin/life-images')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (!data || !data.images) return;
+            let updated = false;
+            Object.entries(data.images).forEach(([key, dataUrl]) => {
+                if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+                    localStorage.setItem('life_image_' + key, dataUrl);
+                    updated = true;
+                }
+            });
+            if (updated) loadCustomIcons();
+        })
+        .catch(() => {/* backend not available – localStorage fallback used */});
+</script>
+</body>
+</html>
