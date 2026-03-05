@@ -4774,6 +4774,11 @@ function buildCompactAnalysis(analysis) {
     realTDEE: analysis.correctedMetabolism?.realTDEE || null,
     psychoProfile: analysis.psychoProfile || null,
     temperament: analysis.psychoProfile?.temperament || '',
+    // Macro targets from Step 1 — forwarded to Step 2 so the strategy AI uses the
+    // same protein/carbs/fats targets that were derived from the individualised analysis
+    // rather than inventing its own values.
+    macroRatios: analysis.macroRatios || null,
+    macroGrams: analysis.macroGrams || null,
     // add1: допълнителна специфична информация по преценка на администратора.
     // Пример как трябва да изглежда попълненото поле:
     // add1: 'Клиентът е преминал медицинска консултация на 20.02.2026 – препоръчан е нисък прием на натрий. Алергия към ядки потвърдена от лекар.'
@@ -4803,6 +4808,14 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       bmi: analysisCompact.bmi,
       realBMR: analysisCompact.realBMR,
       realTDEE: analysisCompact.realTDEE,
+      macroGrams: JSON.stringify(analysisCompact.macroGrams || {}),
+      macroRatios: JSON.stringify(analysisCompact.macroRatios || {}),
+      macroProteinG: analysisCompact.macroGrams?.protein || 0,
+      macroCarbsG: analysisCompact.macroGrams?.carbs || 0,
+      macroFatsG: analysisCompact.macroGrams?.fats || 0,
+      macroProteinPct: analysisCompact.macroRatios?.protein || 0,
+      macroCarbsPct: analysisCompact.macroRatios?.carbs || 0,
+      macroFatsPct: analysisCompact.macroRatios?.fats || 0,
       psychoProfile: JSON.stringify(analysisCompact.psychoProfile),
       temperament: analysisCompact.temperament,
       temperamentProbability: analysisCompact.psychoProfile?.probability || 0,
@@ -4896,7 +4909,10 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
 - BMI: ${analysisCompact.bmi || 'не е изчислен'}
 - BMR: ${analysisCompact.realBMR || 'не е изчислен'} kcal/ден (базов метаболизъм)
 - Препоръчителни калории (след всички корекции): ${analysisCompact.realTDEE || 'не е изчислен'} kcal/ден
+- Макро цели (от Стъпка 1): Белтъчини ${analysisCompact.macroGrams?.protein || '—'}г | Въглехидрати ${analysisCompact.macroGrams?.carbs || '—'}г | Мазнини ${analysisCompact.macroGrams?.fats || '—'}г
 - Темперамент: ${analysisCompact.temperament || 'Не определен'} (${analysisCompact.psychoProfile?.probability || 0}% вероятност)
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Използвай горните макро цели (белтъчини/въглехидрати/мазнини) при попълване на weeklyScheme. Средните стойности за седмицата трябва да съответстват на тези таргети.
 
 ПРЕДПОЧИТАНИЯ:
 - Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
@@ -4908,12 +4924,12 @@ ${data['medicalConditions_Автоимунно'] ? `- Детайли за авт
 ${data.medicalConditions_other ? `- Друго медицинско: ${data.medicalConditions_other}` : ''}
 ${data.goal_other ? `- Уточнение за цел: ${data.goal_other}` : ''}
 
-${data.additionalNotes ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦІЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══
+${data.additionalNotes ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══
 ${data.additionalNotes}
 ═══════════════════════════════════════════════════════════════
 ` : ''}
-ВАЖНО: Калориите вече са финално изчислени в анализа. Не ги преизчислявай.
-Използвай препоръчителните калории (${analysisCompact.realTDEE || 'от анализа'} kcal) директно.
+ВАЖНО: Калориите и макросите вече са финално изчислени в анализа. Не ги преизчислявай.
+Използвай препоръчителните калории (${analysisCompact.realTDEE || 'от анализа'} kcal) и макросите директно.
 
 ⚠️ КЛЮЧОВО: Тази стъпка определя САМО тип диета приложима за клиента и подход, архитектура и рамка. НЕ давай конкретни примери с храни — конкретните продукти, грамажи и комбинации ще бъдат избрани в Стъпка 3!
 
@@ -4931,7 +4947,7 @@ ${data.additionalNotes}
 Менопауза: Средиземноморска диета, Нисковъглехидратна/Нисък гликемичен индекс.
 Емоционално хранене: Осъзнато хранене (Mindful Eating), Интуитивно хранене."
    - Определи за всеки ден: колко хранения, кога И целевите калории/макроси
-   - Базова цел: ${analysisCompact.realTDEE || 'от анализа'} kcal/ден
+   - Базова цел: ${analysisCompact.realTDEE || 'от анализа'} kcal/ден | Б: ${analysisCompact.macroGrams?.protein || '—'}г | Въг: ${analysisCompact.macroGrams?.carbs || '—'}г | М: ${analysisCompact.macroGrams?.fats || '—'}г
    - Дните МОЖЕ да имат различни калории и макроси спрямо:
      * Тренировъчни дни vs. почивни дни (варирай по собствена преценка)
      * Дни с интермитентно гладуване (намалени) vs. зареждащи дни (увеличени)
