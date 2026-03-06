@@ -3834,6 +3834,9 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
+      
+      // Backend validation: correct any arithmetic errors in Final_Calories / macroGrams
+      analysis = validateAndCorrectAnalysisCalories(analysis, data);
     } else {
       // Reuse existing analysis
       analysis = existingPlan.analysis;
@@ -3860,6 +3863,8 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (!strategy || strategy.error) {
         throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
       }
+      // Apply any macro adjustments from the regenerated Step 2
+      analysis = applyStrategyMacroAdjustments(analysis, strategy);
     } else {
       // Reuse existing strategy
       strategy = existingPlan.strategy;
@@ -4110,6 +4115,9 @@ async function generatePlanMultiStep(env, data) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
+      
+      // Backend validation: correct any arithmetic errors in Final_Calories / macroGrams
+      analysis = validateAndCorrectAnalysisCalories(analysis, data);
     } catch (error) {
       console.error('Analysis step failed:', error);
       throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
@@ -4148,6 +4156,10 @@ async function generatePlanMultiStep(env, data) {
     }
     
     console.log('Multi-step generation: Strategy complete (2/3)');
+    
+    // Apply any macro adjustments from Step 2 before passing analysis to Step 3.
+    // The strategy may have revised the macro ratios to match the chosen diet type.
+    analysis = applyStrategyMacroAdjustments(analysis, strategy);
     
     // Step 3: Generate detailed meal plan
     // Use progressive generation if enabled (multiple smaller requests)
@@ -4477,11 +4489,19 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   }
   
   defaultPrompt += `Ти си експертен клиничен диетолог, ендокринолог и психолог.
+ЗАДАЧА: Структуриран анализ + финални калории и макроси за клиента.
+⚠️ Базовите стойности (bmr, tdee) са ИЗЧИСЛЕНИ ОТ БЕКЕНДА. НЕ ги преизчислявай.
 
-ТВОЯТА ЗАДАЧА: Направи структуриран анализ и изчисли финалните препоръчителни калории и макроси за клиента.
-
-⚠️ ВАЖНО: Базовите изчисления (bmr, tdee, baselineMacros) са ВЕЧЕ ИЗЧИСЛЕНИ от бекенда.
-НЕ ги преизчислявай по формула. Използвай ги като база и ги коригирай само чрез корекционни проценти.
+════════════════════════
+ЗАДЪЛЖИТЕЛНИ ПРАВИЛА:
+1) Базата за калории = backendCalculations.tdee (единствен източник на истина).
+2) НЕ копирай recommendedCalories/macroRatios/macroGrams от backendCalculations.
+3) Ред: Стъпки 1–3 (проценти) → Стъпка 4 (Final_Calories) → Стъпка 5 (макроси).
+4) КОНСИСТЕНТНОСТ (провери преди JSON):
+   • Final_Calories = max( round(tdee × (1 + totalAdj%/100)), ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} )
+   • correctedMetabolism.realTDEE == Final_Calories (задължително!)
+   • macroGrams изчислени от Final_Calories по формулите от Стъпка 5.
+════════════════════════
 
 ═══ КЛИЕНТСКИ ДАННИ ═══
 ${JSON.stringify({
@@ -4529,8 +4549,7 @@ ${JSON.stringify({
   additionalNotes: data.additionalNotes
 }, null, 2)}
 
-═══ БАЗОВИ ИЗЧИСЛЕНИЯ ОТ БЕКЕНДА (НЕ преизчислявай) ═══
-Забележка: safeDeficit е само справочна стойност — базата за ТВОИТЕ корекции е tdee.
+═══ БЕКЕНД ИЗЧИСЛЕНИЯ (не ги преизчислявай — базата е tdee) ═══
 ${JSON.stringify({
   activityScore: activityData,
   bmr: bmr,
@@ -4545,203 +4564,181 @@ ${data.additionalNotes}
 ═══════════════════════════════════════════════════════════════
 ` : ''}
 
-═══ ТВОЯТА ЗАДАЧА - СТРУКТУРИРАН АНАЛИЗ ═══
+═══ СТРУКТУРИРАН АНАЛИЗ ═══
 
 СТЪПКА 1: ТЕМПЕРАМЕНТ
-Определи темперамента базирано на: age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity.
-- Попълни temperament само ако вероятността е >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%. Иначе остави празно.
-- Типове: Холерик, Сангвиник, Флегматик, Меланхолик
-→ Резултат: psychoProfile.temperament, psychoProfile.probability
+Определи темперамент (Холерик/Сангвиник/Флегматик/Меланхолик) само ако вероятността е >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%.
+Базирай на: age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity.
+→ psychoProfile.temperament, psychoProfile.probability
 
 СТЪПКА 2: ПСИХОПРОФИЛ
-Базирай анализа на темперамента (Стъпка 1) + : age, gender, goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
-→ Резултат: psychologicalProfile (детайлен текстов анализ)
+Базирай на темперамента (Стъпка 1) + goal, lossKg, eatingHabits, foodCravings, foodTriggers, drinksSweet, drinksAlcohol, dietHistory, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
+→ psychologicalProfile (детайлен текстов анализ)
 
-СТЪПКА 3: КОРЕКЦИИ НА БАЗОВИТЕ ИЗЧИСЛЕНИЯ
-Определи процентна корекция на TDEE за всяка категория:
-
-3а. clinicalAdjustmentPercent — клинична корекция
-  Базирай само на: medicalConditions, medications (additionalNotes само ако е пряко клинично/медицинско)
-  Пример: хипотиреоидизъм → -8%, диабет Тип 2 → -5%, без диагноза → 0
-  Диапазон: -15% до +5%
-
-3б. metabolicAdjustmentPercent — метаболитна корекция
-  Базирай на: sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил (Стъпка 2), темперамент (Стъпка 1), additionalNotes
-  Пример: хронически стрес + лош сън → -5%, оптимален сън + нисък стрес → +2
-  Диапазон: -10% до +5%
-
-3в. goalAdjustmentPercent — корекция спрямо цел
-  Вземи предвид: goal, lossKg, bmi (от анализа), dietHistory, психопрофил и метаболитна реактивност (Стъпки 1–2), additionalNotes
-  Използвай собствената си клинична преценка, за да определиш процента, аргументирано съобразен с желаната цел и реалния индивидуален потенциал на клиента.
-  Диапазон: -20% до +15%
-
-⚠️ ЗАДЪЛЖИТЕЛНО: Сумата от трите корекции НЕ трябва да надвишава -25% (безопасен максимален дефицит).
-Ако сборът е под -25%, ограничи goalAdjustmentPercent така, че total = клинично + метаболитно + цел ≥ -25%.
-
-→ Резултат: correctedMetabolism (с clinicalAdjustmentPercent, metabolicAdjustmentPercent, goalAdjustmentPercent)
+СТЪПКА 3: КОРЕКЦИОННИ ПРОЦЕНТИ (само %, без калории)
+3а. clinicalAdjustmentPercent [-15% до +5%]: medicalConditions, medications.
+    Примери: хипотиреоидизъм→-8%, IBD→-3 до -5%, диабет Т2→-5%, без диагноза→0.
+3б. metabolicAdjustmentPercent [-10% до +5%]: sportActivity, sleepHours, stressLevel, темперамент, психопрофил.
+    Примери: хроничен стрес+лош сън→-5%, оптимален сън+нисък стрес→+2%.
+3в. goalAdjustmentPercent [-20% до +15%]: goal, lossKg, bmi, dietHistory, психопрофил.
+⚠️ 3а+3б+3в ≥ -25% (ако < -25%, ограничи goalAdjustmentPercent до: -25% - 3а - 3б).
+→ correctedMetabolism (трите корекции)
 
 СТЪПКА 4: ФИНАЛНИ КАЛОРИИ
-totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent
-(ограничи на минимум -25%)
-Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
+totalAdj% = 3а + 3б + 3в  (ограничи до min -25%)
+Final_Calories = max( round(tdee × (1 + totalAdj%/100)), ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} )
+correctedMetabolism.realBMR = bmr (непроменен)
+correctedMetabolism.realTDEE = Final_Calories  ← ЗАДЪЛЖИТЕЛНО равни!
+correctedMetabolism.correctionPercent = "<totalAdj>%"
 
-⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal (безопасен минимум за ${data.gender}).
-Ако формулата даде по-малко, задай Final_Calories = ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal и посочи в correctedMetabolism.correction причината.
+СТЪПКА 5: ФИНАЛНИ МАКРОСИ (само от Final_Calories)
+Определи % разпределение според: goal, lossKg, psychoProfile, medicalConditions, eatingHabits, foodCravings.
+Формули:
+  protein_g = round(Final_Calories × protein% / 100 / 4)
+  fats_g    = round(Final_Calories × fats%    / 100 / 9)  [min ${Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG)}г!]
+  carbs_g   = round((Final_Calories - protein_g×4 - fats_g×9) / 4)
+Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ Final_Calories (разлика ≤ 15 kcal).
+Фибри: ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г/ден (по пол, възраст, медицински условия).
+→ macroRatios (%), macroGrams (g)
 
-correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
-correctedMetabolism.realTDEE = Final_Calories
-→ Резултат: Final_Calories, correctedMetabolism.realBMR, realTDEE, correctionPercent
-
-СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати, Фибри)
-Определи оптималното разпределение базирано на:
-- желана цел и желан резултат (goal, lossKg) — адаптирай разпределението съобразно индивидуалния профил и анализа от Стъпки 1–2
-- темперамент (Стъпка 1) и психопрофил (Стъпка 2)
-- хранителни навици: eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol
-- клинични данни: medicalConditions, medications
-
-Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на Final_Calories от Стъпка 4):
-  protein_g  = round(Final_Calories × protein% / 100 / 4)
-  fats_g     = round(Final_Calories × fats% / 100 / 9)
-  carbs_g    = round(Final_Calories × carbs% / 100 / 4)
-
-Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ Final_Calories (разлика ≤ 15 kcal е ок)
-Ако не, коригирай carbs_g: carbs_g = round((Final_Calories - protein_g×4 - fats_g×9) / 4)
-
-⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ ${Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG)}г (${MIN_FAT_GRAMS_PER_KG}г/кг × ${data.weight}кг) за хормонална функция.
-Ако формулата дава по-малко, увеличи fats% и намали carbs%.
-
-Фибри: ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г дневно (коригирай по пол, възраст, медицински условия).
-→ Резултат: macroRatios (%), macroGrams (g)
-
-СТЪПКА 6: ДАННИ ЗА СТРАНИЦАТА С АНАЛИЗ (за фронтенда — непроменени)
-
-А. BMI: Изчисли BMI = weight / (height/100)². Категория: Поднормено (<18.5), Нормално (18.5-25), Наднормено (25-30), Затлъстяване (>30)
-
-Б. ФИЗИОЛОГИЧНА ФАЗА: Млад възрастен (18-30), Зряла възраст (31-50), Средна възраст (51-65), Напреднала възраст (65+)
-
-В. ДНЕВЕН ВОДЕН ДЕФИЦИТ:
-   - Нужда: ${waterMin} до ${waterMax} литра дневно
-   - Текущ прием: ${data.waterIntake || 'неизвестен'}
-   - Изчисли дефицит и влияние върху липолизата
-
-Г. ОТРИЦАТЕЛНИ ЗДРАВОСЛОВНИ ФАКТОРИ (тежест 1-3):
-   - Медицински: ${JSON.stringify(data.medicalConditions || [])}
-   - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
-
-Д. ПРЕЧЕЩИ ФАКТОРИ ЗА ЦЕЛТА (тежест 1-3):
-   - Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч / прекъсвания: ${data.sleepInterrupt}
-   - Навици: ${JSON.stringify(data.eatingHabits || [])}, Тригери: ${JSON.stringify(data.foodTriggers || [])}
-
-Е. СУМАРЕН РИСК: Припокриващи се фактори от Г и Д → СУМИРАЙ тежестта
-
-Ж. РЕАКТИВНОСТ НА МЕТАБОЛИЗМА:
-   - Спрямо: activityScore ${activityData.combinedScore}/10, диетична история (${data.dietHistory}), хронотип (${data.chronotype}), стрес (${data.stressLevel})
-   - Определи: Бавен/Среден/Бърз, Адаптивност: Ниска/Средна/Висока
-
-З. КРИТИЧНИ ПРОБЛЕМИ (3-6): само Borderline/Risky/Critical severity, КРИТИЧНО и ПЛАШЕЩО описание
-
-И. ЗДРАВОСЛОВНО СЪСТОЯНИЕ: скала 0-100, ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}% за мотивация
-
-К. ПРОГНОЗА ПЕСИМИСТИЧНА (12 месеца): ако продължи по същия начин
-
-Л. ПРОГНОЗА ОПТИМИСТИЧНА (12 месеца): след подобряване на всички проблеми
+СТЪПКА 6: АНАЛИЗ ДАННИ (за фронтенда)
+• BMI = weight/(height/100)² | Поднормено <18.5 / Нормално 18.5-25 / Наднормено 25-30 / Затлъстяване >30
+• Физиологична фаза: 18-30 Млад / 31-50 Зряла / 51-65 Средна / 65+ Напреднала
+• Воден дефицит: нужда ${waterMin}-${waterMax}л, текущ прием ${data.waterIntake || 'неизвестен'}, дефицит и влияние върху липолизата.
+• Отрицателни здравни фактори (тежест 1-3): ${JSON.stringify(data.medicalConditions || [])} | лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
+• Пречещи фактори за целта (тежест 1-3): стрес ${data.stressLevel}, сън ${data.sleepHours}ч/${data.sleepInterrupt}, навици ${JSON.stringify(data.eatingHabits || [])}, тригери ${JSON.stringify(data.foodTriggers || [])}
+• Сумарен риск: сумирай тежестите на припокриващи се фактори.
+• Метаболитна реактивност: Бавен/Среден/Бърз + Адаптивност Ниска/Средна/Висока (по activityScore ${activityData.combinedScore}/10, dietHistory ${data.dietHistory}, хронотип ${data.chronotype}, стрес ${data.stressLevel}).
+• Ключови проблеми "keyProblems" (3-6): само Borderline/Risky/Critical severity, КРИТИЧНО и ПЛАШЕЩО описание.
+• Здравен статус 0-100 (ЗАНИЖЕН с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}% за мотивация).
+• Прогноза песимистична 12м: ако продължи по същия начин.
+• Прогноза оптимистична 12м: след подобряване на всички проблеми.
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
 
 {
-  "bmi": число,
-  "bmiCategory": "текст категория",
-  "bmr": число,
-  "tdee": число,
-  "Final_Calories": число,
-  "macroRatios": {
-    "protein": число процент,
-    "carbs": число процент,
-    "fats": число процент,
-    "fiber": число грамове дневно
-  },
-  "macroGrams": {
-    "protein": число грамове,
-    "carbs": число грамове,
-    "fats": число грамове
-  },
-  "activityLevel": "ниво 1-10 и описание",
-  "physiologicalPhase": "фаза според възраст и влияние",
-  "waterDeficit": {
-    "dailyNeed": "литри дневно",
-    "currentIntake": "текущ прием",
-    "deficit": "дефицит в литри",
-    "impactOnLipolysis": "влияние върху отслабването"
-  },
-  "negativeHealthFactors": [
-    {
-      "factor": "фактор",
-      "severity": число 1-3,
-      "description": "описание"
-    }
-  ],
-  "hinderingFactors": [
-    {
-      "factor": "фактор",
-      "severity": число 1-3,
-      "description": "описание"
-    }
-  ],
-  "cumulativeRiskScore": "сума на припокриващи се фактори",
-  "psychoProfile": {
-    "temperament": "тип (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност)",
-    "probability": число процент
-  },
-  "metabolicReactivity": {
-    "speed": "Бавен/Среден/Бърз",
-    "adaptability": "Ниска/Средна/Висока"
-  },
+  "bmi": 0,
+  "bmiCategory": "",
+  "bmr": 0,
+  "tdee": 0,
+  "Final_Calories": 0,
+  "macroRatios": {"protein": 0, "carbs": 0, "fats": 0, "fiber": 0},
+  "macroGrams": {"protein": 0, "carbs": 0, "fats": 0},
+  "activityLevel": "",
+  "physiologicalPhase": "",
+  "waterDeficit": {"dailyNeed": "", "currentIntake": "", "deficit": "", "impactOnLipolysis": ""},
+  "negativeHealthFactors": [{"factor": "", "severity": 1, "description": ""}],
+  "hinderingFactors": [{"factor": "", "severity": 1, "description": ""}],
+  "cumulativeRiskScore": "",
+  "psychoProfile": {"temperament": "", "probability": 0},
+  "metabolicReactivity": {"speed": "", "adaptability": ""},
   "correctedMetabolism": {
-    "realBMR": число,
-    "realTDEE": число,
-    "clinicalAdjustmentPercent": число,
-    "metabolicAdjustmentPercent": число,
-    "goalAdjustmentPercent": число,
-    "correction": "описание на корекцията",
-    "correctionPercent": "+/-X%"
+    "realBMR": 0, "realTDEE": 0,
+    "clinicalAdjustmentPercent": 0, "metabolicAdjustmentPercent": 0, "goalAdjustmentPercent": 0,
+    "correction": "", "correctionPercent": ""
   },
-  "metabolicProfile": "анализ на метаболитния профил",
-  "healthRisks": ["риск 1", "риск 2", "риск 3"],
-  "nutritionalNeeds": ["нужда 1", "нужда 2", "нужда 3"],
-  "psychologicalProfile": "детайлен анализ на психологическия профил",
-  "successChance": число (-100 до 100),
-  "currentHealthStatus": {
-    "score": число 0-100 (ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}%),
-    "description": "текущо състояние",
-    "keyIssues": ["проблем 1", "проблем 2"]
-  },
-  "forecastPessimistic": {
-    "timeframe": "12 месеца",
-    "weight": "прогнозно тегло",
-    "health": "прогнозно здраве",
-    "risks": ["риск 1", "риск 2", "риск 3", "риск 4", "риск 5"]
-  },
-  "forecastOptimistic": {
-    "timeframe": "12 месеца",
-    "weight": "прогнозно тегло",
-    "health": "прогнозно здраве",
-    "improvements": ["подобрение 1", "подобрение 2", "подобрение 3", "подобрение 4", "подобрение 5"]
-  },
+  "metabolicProfile": "",
+  "healthRisks": ["", "", ""],
+  "nutritionalNeeds": ["", "", ""],
+  "psychologicalProfile": "",
+  "successChance": 0,
+  "currentHealthStatus": {"score": 0, "description": "", "keyIssues": [""]},
+  "forecastPessimistic": {"timeframe": "12 месеца", "weight": "", "health": "", "risks": ["", "", "", "", ""]},
+  "forecastOptimistic": {"timeframe": "12 месеца", "weight": "", "health": "", "improvements": ["", "", "", "", ""]},
   "keyProblems": [
-    {
-      "title": "заглавие (кратко)",
-      "description": "КРИТИЧНО и ПЛАШЕЩО описание защо е проблем",
-      "severity": "Borderline/Risky/Critical",
-      "severityValue": число 0-100,
-      "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical",
-      "impact": "въздействие върху здравето и целта"
-    }
+    {"title": "", "description": "", "severity": "Borderline/Risky/Critical", "severityValue": 0, "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical", "impact": ""}
   ]
 }
 
 Бъди КОНКРЕТЕН за ${data.name}. Обяснявай ЗАЩО и КАК с конкретни данни от профила.`;
   
   return defaultPrompt;
+}
+
+/**
+ * Validate and correct the AI's calorie and macro calculations from Step 1 (Analysis).
+ *
+ * The AI may miscalculate Final_Calories or macroGrams despite explicit instructions.
+ * The backend re-derives the correct values from:
+ *   - The AI's own reported adjustment percentages (clinical + metabolic + goal)
+ *   - The backend-calculated TDEE (which is the authoritative energy base)
+ *
+ * If a discrepancy > 10 kcal is found the values are silently corrected so that
+ * downstream steps (strategy, meal plan, summary) always receive consistent data.
+ */
+function validateAndCorrectAnalysisCalories(analysis, data) {
+  if (!analysis || typeof analysis !== 'object') return analysis;
+
+  const corrMeta = analysis.correctedMetabolism;
+  if (!corrMeta) return analysis;
+
+  // Re-derive backend TDEE so we don't rely on whatever the AI echoed back
+  const activityData = calculateUnifiedActivityScore(data);
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const calorieFloor = data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
+  const minFatGrams = Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG);
+
+  // Read adjustment percentages that the AI reported
+  const clinicalAdj  = parseFloat(corrMeta.clinicalAdjustmentPercent)  || 0;
+  const metabolicAdj = parseFloat(corrMeta.metabolicAdjustmentPercent) || 0;
+  const goalAdj      = parseFloat(corrMeta.goalAdjustmentPercent)      || 0;
+
+  // Total adjustment capped at the hard safety limit
+  let totalAdj = clinicalAdj + metabolicAdj + goalAdj;
+  if (totalAdj < -25) totalAdj = -25;
+
+  // Correct Final_Calories using the authoritative formula
+  let correctFinalCalories = Math.round(tdee * (1 + totalAdj / 100));
+  if (correctFinalCalories < calorieFloor) correctFinalCalories = calorieFloor;
+
+  const aiCalories = parseInt(analysis.Final_Calories) || 0;
+  if (Math.abs(aiCalories - correctFinalCalories) > 10) {
+    console.warn(
+      `[Step1 validation] Final_Calories mismatch — AI: ${aiCalories}, correct: ${correctFinalCalories} ` +
+      `(tdee=${tdee}, adj=${totalAdj}%). Correcting.`
+    );
+    analysis.Final_Calories = correctFinalCalories;
+    if (corrMeta) corrMeta.realTDEE = correctFinalCalories;
+  }
+
+  // Validate macroGrams against the (possibly corrected) Final_Calories
+  const finalCal   = analysis.Final_Calories;
+  const macroRatios = analysis.macroRatios;
+  const macroGrams  = analysis.macroGrams;
+
+  if (macroRatios && macroGrams && finalCal > 0) {
+    const pPct = parseFloat(macroRatios.protein) || 0;
+    const cPct = parseFloat(macroRatios.carbs)   || 0;
+    const fPct = parseFloat(macroRatios.fats)    || 0;
+    const ratioSum = pPct + cPct + fPct;
+
+    // Only correct if the ratios look like percentages (sum 50–110)
+    if (ratioSum >= 50 && ratioSum <= 110) {
+      const aiProtein = parseInt(macroGrams.protein) || 0;
+      const aiCarbs   = parseInt(macroGrams.carbs)   || 0;
+      const aiFats    = parseInt(macroGrams.fats)    || 0;
+      const aiMacroCals = aiProtein * 4 + aiCarbs * 4 + aiFats * 9;
+
+      if (Math.abs(aiMacroCals - finalCal) > 15) {
+        const correctProtein = Math.round(finalCal * pPct / 100 / 4);
+        const correctFats    = Math.max(Math.round(finalCal * fPct / 100 / 9), minFatGrams);
+        const correctCarbs   = Math.round((finalCal - correctProtein * 4 - correctFats * 9) / 4);
+
+        console.warn(
+          `[Step1 validation] macroGrams mismatch — macro cals: ${aiMacroCals}, Final_Calories: ${finalCal}. ` +
+          `Correcting to P:${correctProtein}g C:${correctCarbs}g F:${correctFats}g.`
+        );
+        analysis.macroGrams = {
+          protein: correctProtein,
+          carbs:   correctCarbs,
+          fats:    correctFats
+        };
+      }
+    }
+  }
+
+  return analysis;
 }
 
 /**
@@ -4783,11 +4780,74 @@ function buildCompactAnalysis(analysis) {
     realTDEE: analysis.correctedMetabolism?.realTDEE || null,
     psychoProfile: analysis.psychoProfile || null,
     temperament: analysis.psychoProfile?.temperament || '',
+    // Macro targets from Step 1 — forwarded to Step 2 so the strategy AI uses the
+    // same protein/carbs/fats targets that were derived from the individualised analysis
+    // rather than inventing its own values.
+    macroRatios: analysis.macroRatios || null,
+    macroGrams: analysis.macroGrams || null,
     // add1: допълнителна специфична информация по преценка на администратора.
     // Пример как трябва да изглежда попълненото поле:
     // add1: 'Клиентът е преминал медицинска консултация на 20.02.2026 – препоръчан е нисък прием на натрий. Алергия към ядки потвърдена от лекар.'
     add1: ''
   };
+}
+
+/**
+ * Apply macro adjustments returned by Step 2 strategy.
+ * Step 1 macros are a baseline; Step 2 may override them to match the chosen diet type
+ * (e.g. Keto requires high fat / low carb, different from the generic Step 1 ratios).
+ * Returns a shallow-cloned analysis with updated macroGrams and recalculated macroRatios,
+ * or the original analysis unchanged if the adjustment is absent or invalid.
+ */
+function applyStrategyMacroAdjustments(analysis, strategy) {
+  if (!strategy || !strategy.adjustedMacroGrams) return analysis;
+  const adj = strategy.adjustedMacroGrams;
+
+  const protein = parseFloat(adj.protein);
+  const carbs   = parseFloat(adj.carbs);
+  const fats    = parseFloat(adj.fats);
+
+  if (!isFinite(protein) || !isFinite(carbs) || !isFinite(fats) ||
+      protein <= 0 || carbs < 0 || fats <= 0) {
+    console.warn('[Strategy] adjustedMacroGrams has invalid values — keeping Step 1 macros');
+    return analysis;
+  }
+
+  const finalCal = analysis.correctedMetabolism?.realTDEE || analysis.Final_Calories;
+  const adjCals  = protein * 4 + carbs * 4 + fats * 9;
+
+  // Reject if the adjusted macro calories deviate more than 15% from the calorie target
+  if (finalCal && Math.abs(adjCals - finalCal) > finalCal * 0.15) {
+    console.warn(
+      `[Strategy] adjustedMacroGrams calorie check failed: adjusted=${adjCals} kcal, target=${finalCal} kcal — keeping Step 1 macros`
+    );
+    return analysis;
+  }
+
+  console.log(
+    `[Strategy] Applying macro adjustment from Step 2: ` +
+    `P=${Math.round(protein)}g C=${Math.round(carbs)}g F=${Math.round(fats)}g ` +
+    `(was P=${analysis.macroGrams?.protein} C=${analysis.macroGrams?.carbs} F=${analysis.macroGrams?.fats})`
+  );
+
+  const updated = { ...analysis };
+  updated.macroGrams = {
+    protein: Math.round(protein),
+    carbs:   Math.round(carbs),
+    fats:    Math.round(fats)
+  };
+
+  // Recalculate macroRatios so they stay in sync with the adjusted grams
+  if (finalCal && finalCal > 0) {
+    updated.macroRatios = {
+      ...(analysis.macroRatios || {}),
+      protein: Math.round(protein * 4 / finalCal * 100),
+      carbs:   Math.round(carbs   * 4 / finalCal * 100),
+      fats:    Math.round(fats    * 9 / finalCal * 100)
+    };
+  }
+
+  return updated;
 }
 
 async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
@@ -4812,6 +4872,14 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       bmi: analysisCompact.bmi,
       realBMR: analysisCompact.realBMR,
       realTDEE: analysisCompact.realTDEE,
+      macroGrams: JSON.stringify(analysisCompact.macroGrams || {}),
+      macroRatios: JSON.stringify(analysisCompact.macroRatios || {}),
+      macroProteinG: analysisCompact.macroGrams?.protein || 0,
+      macroCarbsG: analysisCompact.macroGrams?.carbs || 0,
+      macroFatsG: analysisCompact.macroGrams?.fats || 0,
+      macroProteinPct: analysisCompact.macroRatios?.protein || 0,
+      macroCarbsPct: analysisCompact.macroRatios?.carbs || 0,
+      macroFatsPct: analysisCompact.macroRatios?.fats || 0,
       psychoProfile: JSON.stringify(analysisCompact.psychoProfile),
       temperament: analysisCompact.temperament,
       temperamentProbability: analysisCompact.psychoProfile?.probability || 0,
@@ -4864,8 +4932,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     "saturday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
     "sunday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]}
   },
+  "adjustedMacroGrams": null,
   "breakfastStrategy": "текст",
-  "calorieDistribution": "текст",
   "macroDistribution": "текст",
   "mealTiming": {
     "pattern": "текст",
@@ -4905,7 +4973,10 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
 - BMI: ${analysisCompact.bmi || 'не е изчислен'}
 - BMR: ${analysisCompact.realBMR || 'не е изчислен'} kcal/ден (базов метаболизъм)
 - Препоръчителни калории (след всички корекции): ${analysisCompact.realTDEE || 'не е изчислен'} kcal/ден
+- Макро цели (от Стъпка 1, ОТПРАВНА ТОЧКА): Белтъчини ${analysisCompact.macroGrams?.protein || '—'}г | Въглехидрати ${analysisCompact.macroGrams?.carbs || '—'}г | Мазнини ${analysisCompact.macroGrams?.fats || '—'}г
 - Темперамент: ${analysisCompact.temperament || 'Не определен'} (${analysisCompact.psychoProfile?.probability || 0}% вероятност)
+
+⚠️ Макро целите от Стъпка 1 са ОТПРАВНА ТОЧКА — адаптирай ги ако избраният тип диета изисква различно разпределение (напр. Кето = повече мазнини/по-малко въглехидрати). Ако адаптираш, върни коригираните стойности в adjustedMacroGrams.
 
 ПРЕДПОЧИТАНИЯ:
 - Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
@@ -4917,12 +4988,12 @@ ${data['medicalConditions_Автоимунно'] ? `- Детайли за авт
 ${data.medicalConditions_other ? `- Друго медицинско: ${data.medicalConditions_other}` : ''}
 ${data.goal_other ? `- Уточнение за цел: ${data.goal_other}` : ''}
 
-${data.additionalNotes ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦІЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══
+${data.additionalNotes ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══
 ${data.additionalNotes}
 ═══════════════════════════════════════════════════════════════
 ` : ''}
-ВАЖНО: Калориите вече са финално изчислени в анализа. Не ги преизчислявай.
-Използвай препоръчителните калории (${analysisCompact.realTDEE || 'от анализа'} kcal) директно.
+ВАЖНО: Калориите са финално изчислени в анализа. Не ги преизчислявай.
+Използвай препоръчителните калории (${analysisCompact.realTDEE || 'от анализа'} kcal) директно. Макросите са ОТПРАВНА ТОЧКА от Стъпка 1 — адаптирай ако диетата изисква различно разпределение и върни коригираните в adjustedMacroGrams.
 
 ⚠️ КЛЮЧОВО: Тази стъпка определя САМО тип диета приложима за клиента и подход, архитектура и рамка. НЕ давай конкретни примери с храни — конкретните продукти, грамажи и комбинации ще бъдат избрани в Стъпка 3!
 
@@ -4940,7 +5011,7 @@ ${data.additionalNotes}
 Менопауза: Средиземноморска диета, Нисковъглехидратна/Нисък гликемичен индекс.
 Емоционално хранене: Осъзнато хранене (Mindful Eating), Интуитивно хранене."
    - Определи за всеки ден: колко хранения, кога И целевите калории/макроси
-   - Базова цел: ${analysisCompact.realTDEE || 'от анализа'} kcal/ден
+   - Базова цел: ${analysisCompact.realTDEE || 'от анализа'} kcal/ден | Б: ${analysisCompact.macroGrams?.protein || '—'}г | Въг: ${analysisCompact.macroGrams?.carbs || '—'}г | М: ${analysisCompact.macroGrams?.fats || '—'}г (адаптируеми)
    - Дните МОЖЕ да имат различни калории и макроси спрямо:
      * Тренировъчни дни vs. почивни дни (варирай по собствена преценка)
      * Дни с интермитентно гладуване (намалени) vs. зареждащи дни (увеличени)
@@ -5043,7 +5114,7 @@ ${data.additionalNotes}
     }
   },
   "freeDayNumber": null,
-  "breakfastStrategy": "текст - ако не закусва, какво се препоръчва вместо закуска",
+  "adjustedMacroGrams": null,
   "calorieDistribution": "текст - как се разпределят калориите по дни и хранения",
   "macroDistribution": "текст - как се разпределят макросите според дни/хранения",
   "mealTiming": {
@@ -5067,6 +5138,7 @@ ${data.additionalNotes}
 ПРАВИЛА ЗА ПОПЪЛВАНЕ:
 - freeDayNumber: 6 (Събота) или 7 (Неделя) за деня на свободно хранене — НИКОГА делник; null ако не е подходящо
 - СВОБОДЕН ДЕН: В mealBreakdown за деня с freeDayNumber, обядът ТРЯБВА да е {"type": "Свободно хранене"} БЕЗ calories/macros; останалите хранения имат нормални калории/макроси; dailyTotals включва само хранения с calories
+- adjustedMacroGrams: попълни само ако избраната диета изисква различни макроси от Стъпка 1 (напр. {"protein": 130, "carbs": 50, "fats": 90} за Кето); null ако не е нужна корекция; сумата protein×4 + carbs×4 + fats×9 трябва да е близка до ${analysisCompact.realTDEE || 'препоръчителните калории'}
 
 Създай персонализирана стратегия за ${data.name} базирана на техния уникален профил.`;
   
