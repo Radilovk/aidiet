@@ -3370,6 +3370,11 @@
                 const justification = dietPlan.strategy.planJustification || welcomeMessage;
                 localStorage.setItem('planJustification', justification);
                 
+                // Store longTermStrategy for display in profile
+                if (dietPlan.strategy.longTermStrategy) {
+                    localStorage.setItem('longTermStrategy', dietPlan.strategy.longTermStrategy);
+                }
+                
                 // Show welcome modal only on first visit
                 if (!hasSeenJustification || hasSeenJustification !== 'true') {
                     const welcomeMessageElement = document.getElementById('aiWelcomeMessage');

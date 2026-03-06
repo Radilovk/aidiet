@@ -867,7 +867,6 @@ function removeInternalJustifications(plan) {
   
   // Remove internal justification fields that are only for validation
   if (cleanPlan.strategy) {
-    delete cleanPlan.strategy.longTermStrategy;
     delete cleanPlan.strategy.mealCountJustification;
     delete cleanPlan.strategy.afterDinnerMealJustification;
   }

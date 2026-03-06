@@ -965,6 +965,22 @@
             </div>
         </div>
 
+        <!-- Long Term Strategy (Collapsible) -->
+        <div class="plan-justification-container" id="longTermStrategyContainer" style="display: none;">
+            <div class="plan-justification-header" onclick="toggleLongTermStrategy()">
+                <div class="plan-justification-title">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Дългосрочна стратегия на плана</span>
+                </div>
+                <i class="fas fa-chevron-down plan-justification-toggle" id="longTermStrategyToggle"></i>
+            </div>
+            <div class="plan-justification-content" id="longTermStrategyContent">
+                <div class="plan-justification-body">
+                    <p id="longTermStrategyText">Зареждане...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Basic Info Section -->
         <div class="form-section">
             <div class="section-title">
@@ -1259,6 +1275,38 @@
                 }
             } catch (error) {
                 console.error('Error loading plan justification:', error);
+            }
+        }
+
+        function toggleLongTermStrategy() {
+            const content = document.getElementById('longTermStrategyContent');
+            const toggle = document.getElementById('longTermStrategyToggle');
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                toggle.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                toggle.classList.add('open');
+            }
+        }
+
+        function loadLongTermStrategy() {
+            try {
+                const longTermStrategy = localStorage.getItem('longTermStrategy') || '';
+                const container = document.getElementById('longTermStrategyContainer');
+                const textElement = document.getElementById('longTermStrategyText');
+                
+                if (longTermStrategy.trim() !== '') {
+                    textElement.textContent = longTermStrategy;
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading long term strategy:', error);
+                const container = document.getElementById('longTermStrategyContainer');
+                if (container) container.style.display = 'none';
             }
         }
 
@@ -1743,6 +1791,7 @@
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
             loadPlanJustification(); // Load plan justification for profile
+            loadLongTermStrategy(); // Load long term strategy for profile
         });
 
         // --- PWA Install Banner Functionality ---
