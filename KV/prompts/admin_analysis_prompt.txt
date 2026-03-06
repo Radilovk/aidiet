@@ -18,7 +18,7 @@
 → psychoProfile.temperament, psychoProfile.probability
 
 СТЪПКА 2: ПСИХОПРОФИЛ
-Анализирай на база темперамент (Стъпка 1) + goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
+Анализирай на база темперамент (Стъпка 1) + age, gender, goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
 → psychologicalProfile (детайлен текстов анализ)
 
 СТЪПКА 3: КОРЕКЦИИ НА TDEE (само проценти — без калории)
@@ -47,14 +47,22 @@ Final_Calories = round( tdee × (1 + totalAdjustmentPercent / 100) )
 ПРИМЕР: tdee=2000, totalAdjustmentPercent=-25% → Final_Calories = round(2000 × 0.75) = 1500
 ПРИМЕР: tdee=2127, totalAdjustmentPercent=-25% → Final_Calories = round(2127 × 0.75) = 1595
 
-⚠️ Минимум {MIN_RECOMMENDED_CALORIES} kcal. Ако формулата даде по-малко → Final_Calories = {MIN_RECOMMENDED_CALORIES}.
+⚠️ Минимум {MIN_RECOMMENDED_CALORIES} kcal. Ако формулата даде по-малко:
+- Final_Calories = {MIN_RECOMMENDED_CALORIES}
+- correctedMetabolism.correction = "Повдигнато до минималния безопасен праг."
+Иначе:
+- correctedMetabolism.correction = "Корекция по проценти спрямо клинични/метаболитни/целеви критерии."
 
 correctedMetabolism.realBMR = bmr (непроменен)
 correctedMetabolism.realTDEE = Final_Calories  ← задължително равно на Final_Calories
 correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
 
 СТЪПКА 5: ФИНАЛНИ МАКРОСИ (изчисли само от Final_Calories)
-Определи разпределение по: goal, lossKg, темперамент, психопрофил, eatingHabits, foodCravings, foodTriggers, drinksSweet, drinksAlcohol, medicalConditions, medications.
+Определи оптималното разпределение базирано на:
+- цел и резултат (goal, lossKg) — адаптирай съобразно индивидуалния профил и анализа от Стъпки 1–2
+- темперамент (Стъпка 1) и психопрофил (Стъпка 2)
+- хранителни навици: eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol
+- клинични данни: medicalConditions, medications
 
 Формули:
   protein_g = round(Final_Calories × protein% / 100 / 4)
