@@ -2214,7 +2214,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
     medications: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'не приема',
     medicalConditions: JSON.stringify(data.medicalConditions || []),
     medicalConditions_other: data.medicalConditions_other || '',
-    deficiencies: (analysis.nutritionalDeficiencies || []).join(', ') || 'няма установени'
+    deficiencies: (analysis.nutritionalNeeds || analysis.nutritionalDeficiencies || []).join(', ') || 'няма установени'
   };
   
   // Build extra health context lines for summary prompt
@@ -4759,7 +4759,7 @@ function buildCompactAnalysisForStep3(analysis) {
 
 /**
  * Build compact analysis object with only the required fields for step 4 (summary).
- * Only these fields from step 1 AI response are passed to step 4: bmr, Final_Calories, psychoProfile, psychologicalProfile, keyProblems, nutritionalDeficiencies.
+ * Only these fields from step 1 AI response are passed to step 4: bmr, Final_Calories, psychoProfile, psychologicalProfile, keyProblems, nutritionalNeeds.
  */
 function buildCompactAnalysisForStep4(analysis) {
   return {
@@ -4768,13 +4768,13 @@ function buildCompactAnalysisForStep4(analysis) {
     psychoProfile: analysis.psychoProfile || null,
     psychologicalProfile: analysis.psychologicalProfile || null,
     keyProblems: analysis.keyProblems || [],
-    nutritionalDeficiencies: analysis.nutritionalDeficiencies || []
+    nutritionalNeeds: analysis.nutritionalNeeds || analysis.nutritionalDeficiencies || []
   };
 }
 
 /**
  * Build compact analysis object with only the required fields for step 2.
- * Only these fields from step 1 AI response are passed to step 2: bmi, realBMR, realTDEE, psychoProfile, temperament.
+ * Only these fields from step 1 AI response are passed to step 2: bmi, realBMR, realTDEE, psychoProfile, temperament, macroGrams, macroRatios.
  */
 function buildCompactAnalysis(analysis) {
   return {
@@ -4783,6 +4783,8 @@ function buildCompactAnalysis(analysis) {
     realTDEE: analysis.correctedMetabolism?.realTDEE || null,
     psychoProfile: analysis.psychoProfile || null,
     temperament: analysis.psychoProfile?.temperament || '',
+    macroGrams: analysis.macroGrams || null,
+    macroRatios: analysis.macroRatios || null,
     // add1: допълнителна специфична информация по преценка на администратора.
     // Пример как трябва да изглежда попълненото поле:
     // add1: 'Клиентът е преминал медицинска консултация на 20.02.2026 – препоръчан е нисък прием на натрий. Алергия към ядки потвърдена от лекар.'
@@ -4812,6 +4814,12 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       bmi: analysisCompact.bmi,
       realBMR: analysisCompact.realBMR,
       realTDEE: analysisCompact.realTDEE,
+      macroProteinG: analysisCompact.macroGrams?.protein ?? null,
+      macroCarbsG: analysisCompact.macroGrams?.carbs ?? null,
+      macroFatsG: analysisCompact.macroGrams?.fats ?? null,
+      macroProteinPct: analysisCompact.macroRatios?.protein ?? null,
+      macroCarbsPct: analysisCompact.macroRatios?.carbs ?? null,
+      macroFatsPct: analysisCompact.macroRatios?.fats ?? null,
       psychoProfile: JSON.stringify(analysisCompact.psychoProfile),
       temperament: analysisCompact.temperament,
       temperamentProbability: analysisCompact.psychoProfile?.probability || 0,

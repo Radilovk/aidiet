@@ -136,7 +136,8 @@ correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
   "cumulativeRiskScore": "сума на припокриващи се фактори",
   "psychoProfile": {
     "temperament": "тип (само ако >{TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност)",
-    "probability": число процент
+    "probability": число процент,
+    "reasoning": "кратко обяснение защо е определен този темперамент"
   },
   "metabolicReactivity": {
     "speed": "Бавен/Среден/Бърз",
