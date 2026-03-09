@@ -6,11 +6,12 @@
     <title>XBody Ability</title>
     
     <link rel="manifest" href="xbody-manifest.json">
-    <meta name="theme-color" content="#ff0000">
+    <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="XBody">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         body, html {
@@ -18,9 +19,10 @@
             padding: 0;
             height: 100%;
             width: 100%;
-            background-color: #ffffff; /* Бял фон */
-            overflow-y: auto; /* Позволява скролване на графика */
+            background-color: #ffffff;
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         iframe {
             width: 100%;
@@ -28,9 +30,163 @@
             border: none;
             display: block;
         }
+
+        /* ── PWA Install Modal ── */
+        .pwa-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 9000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            animation: fadeInOverlay 0.3s ease;
+        }
+        .pwa-modal-overlay.hidden { display: none; }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .pwa-modal {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            padding: 32px 28px 24px;
+            max-width: 420px;
+            width: 100%;
+            position: relative;
+            animation: scaleInModal 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+
+        @keyframes scaleInModal {
+            from { transform: scale(0.85); opacity: 0; }
+            to   { transform: scale(1);    opacity: 1; }
+        }
+
+        .pwa-modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 22px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .pwa-modal-close:hover { color: #111827; }
+
+        .pwa-modal-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            margin: 0 auto 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            display: block;
+        }
+
+        .pwa-modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 8px;
+        }
+
+        .pwa-modal-subtitle {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin: 0 0 24px;
+            line-height: 1.5;
+        }
+
+        /* Install button */
+        .pwa-install-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            background: #111827;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+            margin-bottom: 10px;
+        }
+        .pwa-install-btn:hover  { background: #1f2937; transform: translateY(-1px); }
+        .pwa-install-btn:active { transform: translateY(0); }
+
+        /* Dismiss link */
+        .pwa-dismiss-link {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 6px 12px;
+            transition: color 0.2s;
+        }
+        .pwa-dismiss-link:hover { color: #6b7280; }
+
+        /* iOS instructions block */
+        .pwa-ios-steps {
+            text-align: left;
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 20px;
+        }
+        .pwa-ios-steps ol {
+            margin: 0;
+            padding-left: 20px;
+            color: #374151;
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+        .pwa-ios-share-icon {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            margin: 0 2px;
+        }
     </style>
 </head>
 <body>
+
+    <!-- PWA Install Modal -->
+    <div class="pwa-modal-overlay hidden" id="pwaModalOverlay">
+        <div class="pwa-modal" role="dialog" aria-modal="true" aria-labelledby="pwaModalTitle">
+            <button class="pwa-modal-close" id="pwaModalClose" aria-label="Затвори">✕</button>
+            <img src="icon-192.png" class="pwa-modal-icon" alt="XBody икона">
+            <h2 class="pwa-modal-title" id="pwaModalTitle">Инсталирай XBody</h2>
+            <p class="pwa-modal-subtitle" id="pwaModalSubtitle">Добави приложението към началния екран за бърз достъп</p>
+
+            <!-- iOS step-by-step instructions (shown only on iOS) -->
+            <div class="pwa-ios-steps" id="pwaIosSteps" style="display:none;">
+                <ol>
+                    <li>Натисни бутона <img id="pwaShareIcon" class="pwa-ios-share-icon" alt="Споделяне"> <strong>Споделяне</strong> в долната лента</li>
+                    <li>Избери <strong>„Добави към начален екран"</strong></li>
+                    <li>Натисни <strong>„Добавяне"</strong></li>
+                </ol>
+            </div>
+
+            <button class="pwa-install-btn" id="pwaInstallBtn">
+                <i class="fas fa-download"></i>
+                <span id="pwaInstallBtnText">Инсталирай сега</span>
+            </button>
+            <button class="pwa-dismiss-link" id="pwaModalDismiss">По-късно</button>
+        </div>
+    </div>
 
     <iframe src="https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189" 
             allow="payment" 
@@ -40,11 +196,140 @@
     <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript"></script>
 
     <script>
+        /* ── Service Worker ── */
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('xbody-sw.js');
             });
         }
+
+        /* ── PWA Install Logic ── */
+        (function () {
+            const DISMISS_KEY  = 'xbody_pwa_dismissed';
+            const DISMISS_DAYS = 7;
+            const MS_PER_DAY   = 86400000;
+
+            // Platform detection
+            const ua        = navigator.userAgent;
+            const isIOS     = /iPhone|iPad|iPod/i.test(ua);
+            const isAndroid = /Android/i.test(ua);
+            const isSafari  = /Safari/i.test(ua) && !/Chrome/i.test(ua);
+            const isMobile  = isIOS || isAndroid;
+
+            // Check if already running as installed PWA
+            function isStandalone() {
+                return window.matchMedia('(display-mode: standalone)').matches ||
+                       (('standalone' in navigator) && navigator.standalone === true);
+            }
+
+            // Check if user dismissed recently
+            function wasDismissedRecently() {
+                const t = localStorage.getItem(DISMISS_KEY);
+                if (!t) return false;
+                return (Date.now() - parseInt(t, 10)) < DISMISS_DAYS * MS_PER_DAY;
+            }
+
+            // iOS share-icon SVG data URL (blue arrow-up)
+            function shareIconSrc() {
+                return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E";
+            }
+
+            /* DOM refs */
+            const overlay    = document.getElementById('pwaModalOverlay');
+            const closeBtn   = document.getElementById('pwaModalClose');
+            const dismissBtn = document.getElementById('pwaModalDismiss');
+            const installBtn = document.getElementById('pwaInstallBtn');
+            const subtitle   = document.getElementById('pwaModalSubtitle');
+            const iosSteps   = document.getElementById('pwaIosSteps');
+            const shareIcon  = document.getElementById('pwaShareIcon');
+
+            let deferredPrompt = null;
+            let modalShown     = false; // guard against showing the modal twice
+
+            // Helper: update button icon class and label text
+            function setBtn(iconClass, label) {
+                const icon = installBtn.querySelector('i');
+                const span = installBtn.querySelector('span');
+                if (icon) icon.className = iconClass;
+                if (span) span.textContent = label;
+            }
+
+            function showModal() {
+                if (modalShown) return;
+                modalShown = true;
+                overlay.classList.remove('hidden');
+            }
+
+            function hideModal(permanent) {
+                overlay.classList.add('hidden');
+                if (permanent) {
+                    localStorage.setItem(DISMISS_KEY, Date.now().toString());
+                }
+            }
+
+            /* Close / dismiss */
+            closeBtn.addEventListener('click',   () => hideModal(true));
+            dismissBtn.addEventListener('click', () => hideModal(true));
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) hideModal(true);
+            });
+
+            /* ── iOS Safari: show step-by-step instructions ── */
+            if (isIOS && isSafari && !isStandalone() && !wasDismissedRecently()) {
+                shareIcon.src = shareIconSrc();
+                iosSteps.style.display = 'block';
+                subtitle.textContent = 'Следвай стъпките по-долу, за да добавиш XBody към началния екран:';
+                setBtn('fab fa-apple', 'Разбрах!');
+                installBtn.addEventListener('click', () => hideModal(true));
+                setTimeout(showModal, 1500);
+                return; // iOS Safari never fires beforeinstallprompt
+            }
+
+            /* ── Android / Desktop: native one-tap install via beforeinstallprompt ── */
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+
+                if (!isStandalone() && !wasDismissedRecently()) {
+                    subtitle.textContent = 'Натисни „Инсталирай сега" за автоматична инсталация';
+                    setBtn('fas fa-download', 'Инсталирай сега');
+                    showModal();
+                }
+            });
+
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    hideModal(outcome === 'accepted');
+                } else {
+                    const msg = isAndroid
+                        ? 'Отвори менюто на браузъра (⋮) и избери „Инсталирай приложение" или „Добави към начален екран".'
+                        : 'Потърси иконата (⊕) в адресната лента и кликни „Инсталирай".';
+                    alert(msg);
+                    hideModal(false);
+                }
+            });
+
+            /* ── Fallback: beforeinstallprompt didn't fire after 2.5 s ── */
+            if (!isStandalone() && !wasDismissedRecently()) {
+                setTimeout(() => {
+                    if (deferredPrompt || isStandalone()) return; // native prompt already handled
+                    if (isAndroid) {
+                        subtitle.textContent = 'Отвори менюто (⋮) на браузъра и избери „Инсталирай приложение"';
+                        setBtn('fab fa-android', 'Как да инсталирам?');
+                    } else {
+                        subtitle.textContent = 'Потърси иконата (⊕) в адресната лента на браузъра и кликни „Инсталирай"';
+                        setBtn('fas fa-desktop', 'Как да инсталирам?');
+                    }
+                    showModal();
+                }, 2500);
+            }
+
+            /* Hide modal once app is installed */
+            window.addEventListener('appinstalled', () => hideModal(true));
+        })();
     </script>
 </body>
 </html>
