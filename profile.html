@@ -329,6 +329,209 @@
             color: var(--text-dark);
         }
 
+        /* --- Strategy Preview Body --- */
+        .strategy-preview-body {
+            padding: 16px 20px 20px;
+            background: white;
+        }
+
+        [data-theme="dark"] .strategy-preview-body {
+            background: var(--card-bg);
+        }
+
+        .strategy-preview-text {
+            color: var(--text-dark);
+            line-height: 1.65;
+            margin: 0 0 10px;
+            font-size: 0.95rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .strategy-see-more-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: var(--primary-red);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .strategy-see-more-btn:hover {
+            opacity: 0.75;
+        }
+
+        /* --- Strategy Modal --- */
+        .strategy-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .strategy-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .strategy-modal-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 560px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            transform: translateY(28px) scale(0.95);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .strategy-modal-overlay.active .strategy-modal-card {
+            transform: translateY(0) scale(1);
+        }
+
+        .strategy-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 20px 16px;
+            background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
+            flex-shrink: 0;
+        }
+
+        .strategy-modal-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .strategy-modal-title i {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .strategy-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #ffffff;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .strategy-modal-close:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .strategy-modal-body {
+            overflow-y: auto;
+            padding: 20px;
+            flex: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .strategy-modal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .strategy-modal-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .strategy-modal-body::-webkit-scrollbar-thumb {
+            background: var(--primary-red);
+            border-radius: 3px;
+            opacity: 0.5;
+        }
+
+        .strategy-section {
+            margin-bottom: 22px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--soft-red);
+        }
+
+        .strategy-section:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .strategy-section-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary-red);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .strategy-section-text {
+            color: var(--text-dark);
+            line-height: 1.7;
+            margin: 0;
+            font-size: 0.95rem;
+            white-space: pre-line;
+        }
+
+        .strategy-modal-footer {
+            padding: 16px 20px;
+            border-top: 2px solid var(--soft-red);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 480px) {
+            .strategy-modal-card {
+                max-height: 92vh;
+                border-radius: 16px;
+            }
+
+            .strategy-modal-header {
+                padding: 16px 16px 14px;
+            }
+
+            .strategy-modal-body {
+                padding: 16px;
+            }
+
+            .strategy-modal-footer {
+                padding: 14px 16px;
+            }
+        }
+
         .section-title {
             font-size: 1.2rem;
             font-weight: 700;
@@ -949,98 +1152,75 @@
 
         <div id="alertContainer"></div>
 
-        <!-- Plan Justification (Collapsible) -->
-        <div class="plan-justification-container" id="planJustificationContainer" style="display: none;">
-            <div class="plan-justification-header" onclick="togglePlanJustification()">
+        <!-- Unified Strategy Panel -->
+        <div class="plan-justification-container" id="strategyPanelContainer" style="display: none;">
+            <div class="plan-justification-header" onclick="openStrategyModal()">
                 <div class="plan-justification-title">
                     <i class="fas fa-award"></i>
-                    <span>Защо този план е създаден специално за вас</span>
+                    <span>Вашата хранителна стратегия</span>
                 </div>
-                <i class="fas fa-chevron-down plan-justification-toggle" id="planJustificationToggle"></i>
+                <i class="fas fa-chevron-right plan-justification-toggle"></i>
             </div>
-            <div class="plan-justification-content" id="planJustificationContent">
-                <div class="plan-justification-body">
-                    <p id="planJustificationProfileText">Зареждане...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Long Term Strategy (Collapsible) -->
-        <div class="plan-justification-container" id="longTermStrategyContainer" style="display: none;">
-            <div class="plan-justification-header" onclick="toggleLongTermStrategy()">
-                <div class="plan-justification-title">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Дългосрочна стратегия на плана</span>
-                </div>
-                <i class="fas fa-chevron-down plan-justification-toggle" id="longTermStrategyToggle"></i>
-            </div>
-            <div class="plan-justification-content" id="longTermStrategyContent">
-                <div class="plan-justification-body">
-                    <p id="longTermStrategyText">Зареждане...</p>
-                </div>
+            <div class="strategy-preview-body">
+                <p id="strategyPreviewText" class="strategy-preview-text"></p>
+                <button class="strategy-see-more-btn" onclick="openStrategyModal()">... виж повече</button>
             </div>
         </div>
 
-        <!-- Meal Count Justification (Collapsible) -->
-        <div class="plan-justification-container" id="mealCountJustificationContainer" style="display: none;">
-            <div class="plan-justification-header" onclick="toggleSection('mealCountJustificationContent', 'mealCountJustificationToggle')">
-                <div class="plan-justification-title">
-                    <i class="fas fa-utensils"></i>
-                    <span>Брой хранения</span>
+        <!-- Strategy Detail Modal -->
+        <div class="strategy-modal-overlay" id="strategyModal" onclick="handleStrategyModalClick(event)">
+            <div class="strategy-modal-card" id="strategyModalCard">
+                <div class="strategy-modal-header">
+                    <div class="strategy-modal-title">
+                        <i class="fas fa-award"></i>
+                        <span>Вашата хранителна стратегия</span>
+                    </div>
+                    <button class="strategy-modal-close" onclick="closeStrategyModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <i class="fas fa-chevron-down plan-justification-toggle" id="mealCountJustificationToggle"></i>
-            </div>
-            <div class="plan-justification-content" id="mealCountJustificationContent">
-                <div class="plan-justification-body">
-                    <p id="mealCountJustificationText">Зареждане...</p>
+                <div class="strategy-modal-body" id="strategyModalBody">
+                    <div class="strategy-section" id="strategySection_welcome" style="display:none">
+                        <div class="strategy-section-title">
+                            <i class="fas fa-award"></i> Защо този план е създаден специално за вас
+                        </div>
+                        <p id="strategyText_welcome" class="strategy-section-text"></p>
+                    </div>
+                    <div class="strategy-section" id="strategySection_longTerm" style="display:none">
+                        <div class="strategy-section-title">
+                            <i class="fas fa-chart-line"></i> Дългосрочна стратегия на плана
+                        </div>
+                        <p id="strategyText_longTerm" class="strategy-section-text"></p>
+                    </div>
+                    <div class="strategy-section" id="strategySection_mealCount" style="display:none">
+                        <div class="strategy-section-title">
+                            <i class="fas fa-utensils"></i> Брой хранения
+                        </div>
+                        <p id="strategyText_mealCount" class="strategy-section-text"></p>
+                    </div>
+                    <div class="strategy-section" id="strategySection_afterDinner" style="display:none">
+                        <div class="strategy-section-title">
+                            <i class="fas fa-moon"></i> Хранения след вечеря
+                        </div>
+                        <p id="strategyText_afterDinner" class="strategy-section-text"></p>
+                    </div>
+                    <div class="strategy-section" id="strategySection_modifier" style="display:none">
+                        <div class="strategy-section-title">
+                            <i class="fas fa-leaf"></i> Диетичен подход
+                        </div>
+                        <p id="strategyText_modifier" class="strategy-section-text"></p>
+                    </div>
+                    <div class="strategy-section" id="strategySection_hydration" style="display:none">
+                        <div class="strategy-section-title">
+                            <i class="fas fa-tint"></i> Хидратация
+                        </div>
+                        <p id="strategyText_hydration" class="strategy-section-text"></p>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- After Dinner Meal Justification (Collapsible) -->
-        <div class="plan-justification-container" id="afterDinnerMealContainer" style="display: none;">
-            <div class="plan-justification-header" onclick="toggleSection('afterDinnerMealContent', 'afterDinnerMealToggle')">
-                <div class="plan-justification-title">
-                    <i class="fas fa-moon"></i>
-                    <span>Хранения след вечеря</span>
-                </div>
-                <i class="fas fa-chevron-down plan-justification-toggle" id="afterDinnerMealToggle"></i>
-            </div>
-            <div class="plan-justification-content" id="afterDinnerMealContent">
-                <div class="plan-justification-body">
-                    <p id="afterDinnerMealText">Зареждане...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modifier Reasoning / Dietary Approach (Collapsible) -->
-        <div class="plan-justification-container" id="modifierReasoningContainer" style="display: none;">
-            <div class="plan-justification-header" onclick="toggleSection('modifierReasoningContent', 'modifierReasoningToggle')">
-                <div class="plan-justification-title">
-                    <i class="fas fa-leaf"></i>
-                    <span>Диетичен подход</span>
-                </div>
-                <i class="fas fa-chevron-down plan-justification-toggle" id="modifierReasoningToggle"></i>
-            </div>
-            <div class="plan-justification-content" id="modifierReasoningContent">
-                <div class="plan-justification-body">
-                    <p id="modifierReasoningText">Зареждане...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Hydration Strategy (Collapsible) -->
-        <div class="plan-justification-container" id="hydrationStrategyContainer" style="display: none;">
-            <div class="plan-justification-header" onclick="toggleSection('hydrationStrategyContent', 'hydrationStrategyToggle')">
-                <div class="plan-justification-title">
-                    <i class="fas fa-tint"></i>
-                    <span>Хидратация</span>
-                </div>
-                <i class="fas fa-chevron-down plan-justification-toggle" id="hydrationStrategyToggle"></i>
-            </div>
-            <div class="plan-justification-content" id="hydrationStrategyContent">
-                <div class="plan-justification-body">
-                    <p id="hydrationStrategyText">Зареждане...</p>
+                <div class="strategy-modal-footer">
+                    <button class="btn btn-primary" onclick="closeStrategyModal()">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </button>
                 </div>
             </div>
         </div>
@@ -1311,99 +1491,72 @@
             window.location.href = 'plan.html';
         }
 
-        // --- Plan Justification ---
-        function togglePlanJustification() {
-            const content = document.getElementById('planJustificationContent');
-            const toggle = document.getElementById('planJustificationToggle');
-            
-            if (content.classList.contains('open')) {
-                content.classList.remove('open');
-                toggle.classList.remove('open');
-            } else {
-                content.classList.add('open');
-                toggle.classList.add('open');
-            }
-        }
-
-        function loadPlanJustification() {
+        // --- Strategy Panel ---
+        function loadStrategyPanel() {
             try {
-                const welcomeMessage = localStorage.getItem('welcomeMessage');
-                const justification = localStorage.getItem('planJustification');
-                const text = (welcomeMessage && welcomeMessage.trim()) || (justification && justification.trim()) || '';
-                const container = document.getElementById('planJustificationContainer');
-                const textElement = document.getElementById('planJustificationProfileText');
-                
-                if (text && text.trim() !== '') {
-                    textElement.textContent = text;
+                const fields = [
+                    { key: 'welcomeMessage', fallback: 'planJustification', sectionId: 'strategySection_welcome', textId: 'strategyText_welcome' },
+                    { key: 'longTermStrategy', sectionId: 'strategySection_longTerm', textId: 'strategyText_longTerm' },
+                    { key: 'mealCountJustification', sectionId: 'strategySection_mealCount', textId: 'strategyText_mealCount' },
+                    { key: 'afterDinnerMealJustification', sectionId: 'strategySection_afterDinner', textId: 'strategyText_afterDinner' },
+                    { key: 'modifierReasoning', sectionId: 'strategySection_modifier', textId: 'strategyText_modifier' },
+                    { key: 'hydrationStrategy', sectionId: 'strategySection_hydration', textId: 'strategyText_hydration' }
+                ];
+
+                let previewText = '';
+                let hasAnyContent = false;
+
+                fields.forEach(function(field) {
+                    let value = (localStorage.getItem(field.key) || '').trim();
+                    if (!value && field.fallback) {
+                        value = (localStorage.getItem(field.fallback) || '').trim();
+                    }
+                    const section = document.getElementById(field.sectionId);
+                    const textEl = document.getElementById(field.textId);
+                    if (value && section && textEl) {
+                        textEl.textContent = value;
+                        section.style.display = 'block';
+                        hasAnyContent = true;
+                        if (!previewText) previewText = value;
+                    } else if (section) {
+                        section.style.display = 'none';
+                    }
+                });
+
+                const container = document.getElementById('strategyPanelContainer');
+                const previewEl = document.getElementById('strategyPreviewText');
+                if (hasAnyContent && container && previewEl) {
+                    previewEl.textContent = previewText;
                     container.style.display = 'block';
-                } else {
+                } else if (container) {
                     container.style.display = 'none';
                 }
             } catch (error) {
-                console.error('Error loading plan justification:', error);
-            }
-        }
-
-        function toggleLongTermStrategy() {
-            const content = document.getElementById('longTermStrategyContent');
-            const toggle = document.getElementById('longTermStrategyToggle');
-            
-            if (content.classList.contains('open')) {
-                content.classList.remove('open');
-                toggle.classList.remove('open');
-            } else {
-                content.classList.add('open');
-                toggle.classList.add('open');
-            }
-        }
-
-        function loadLongTermStrategy() {
-            try {
-                const longTermStrategy = localStorage.getItem('longTermStrategy') || '';
-                const container = document.getElementById('longTermStrategyContainer');
-                const textElement = document.getElementById('longTermStrategyText');
-                
-                if (longTermStrategy.trim() !== '') {
-                    textElement.textContent = longTermStrategy;
-                    container.style.display = 'block';
-                } else {
-                    container.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Error loading long term strategy:', error);
-                const container = document.getElementById('longTermStrategyContainer');
+                console.error('Error loading strategy panel:', error);
+                const container = document.getElementById('strategyPanelContainer');
                 if (container) container.style.display = 'none';
             }
         }
 
-        function toggleSection(contentId, toggleId) {
-            const content = document.getElementById(contentId);
-            const toggle = document.getElementById(toggleId);
-            if (!content || !toggle) return;
-            if (content.classList.contains('open')) {
-                content.classList.remove('open');
-                toggle.classList.remove('open');
-            } else {
-                content.classList.add('open');
-                toggle.classList.add('open');
+        function openStrategyModal() {
+            const modal = document.getElementById('strategyModal');
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
             }
         }
 
-        function loadStrategyField(storageKey, containerId, textId) {
-            try {
-                const value = (localStorage.getItem(storageKey) || '').trim();
-                const container = document.getElementById(containerId);
-                const textElement = document.getElementById(textId);
-                if (value) {
-                    textElement.textContent = value;
-                    container.style.display = 'block';
-                } else {
-                    container.style.display = 'none';
-                }
-            } catch (error) {
-                console.error(`Error loading ${storageKey}:`, error);
-                const container = document.getElementById(containerId);
-                if (container) container.style.display = 'none';
+        function closeStrategyModal() {
+            const modal = document.getElementById('strategyModal');
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function handleStrategyModalClick(event) {
+            if (event.target === document.getElementById('strategyModal')) {
+                closeStrategyModal();
             }
         }
 
@@ -1890,12 +2043,7 @@
             initializeTheme();
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
-            loadPlanJustification(); // Load plan justification for profile
-            loadLongTermStrategy(); // Load long term strategy for profile
-            loadStrategyField('mealCountJustification', 'mealCountJustificationContainer', 'mealCountJustificationText');
-            loadStrategyField('afterDinnerMealJustification', 'afterDinnerMealContainer', 'afterDinnerMealText');
-            loadStrategyField('modifierReasoning', 'modifierReasoningContainer', 'modifierReasoningText');
-            loadStrategyField('hydrationStrategy', 'hydrationStrategyContainer', 'hydrationStrategyText');
+            loadStrategyPanel(); // Load unified strategy panel
         });
 
         // --- PWA Install Banner Functionality ---
