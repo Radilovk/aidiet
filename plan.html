@@ -3369,9 +3369,23 @@
                 localStorage.setItem('planJustification', justification);
                 localStorage.setItem('welcomeMessage', welcomeMessage);
 
-                // Store longTermStrategy for display in profile
+                // Store all strategy detail fields for display in profile
                 if (strategy.longTermStrategy) {
                     localStorage.setItem('longTermStrategy', strategy.longTermStrategy);
+                }
+                if (strategy.mealCountJustification) {
+                    localStorage.setItem('mealCountJustification', strategy.mealCountJustification);
+                }
+                if (strategy.afterDinnerMealJustification && strategy.afterDinnerMealJustification !== 'Не са необходими') {
+                    localStorage.setItem('afterDinnerMealJustification', strategy.afterDinnerMealJustification);
+                } else {
+                    localStorage.removeItem('afterDinnerMealJustification');
+                }
+                if (strategy.modifierReasoning) {
+                    localStorage.setItem('modifierReasoning', strategy.modifierReasoning);
+                }
+                if (strategy.hydrationStrategy) {
+                    localStorage.setItem('hydrationStrategy', strategy.hydrationStrategy);
                 }
 
                 // Show welcome modal only on first load of a newly generated plan

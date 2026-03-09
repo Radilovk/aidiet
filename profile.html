@@ -981,6 +981,70 @@
             </div>
         </div>
 
+        <!-- Meal Count Justification (Collapsible) -->
+        <div class="plan-justification-container" id="mealCountJustificationContainer" style="display: none;">
+            <div class="plan-justification-header" onclick="toggleSection('mealCountJustificationContent', 'mealCountJustificationToggle')">
+                <div class="plan-justification-title">
+                    <i class="fas fa-utensils"></i>
+                    <span>Брой хранения</span>
+                </div>
+                <i class="fas fa-chevron-down plan-justification-toggle" id="mealCountJustificationToggle"></i>
+            </div>
+            <div class="plan-justification-content" id="mealCountJustificationContent">
+                <div class="plan-justification-body">
+                    <p id="mealCountJustificationText">Зареждане...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- After Dinner Meal Justification (Collapsible) -->
+        <div class="plan-justification-container" id="afterDinnerMealContainer" style="display: none;">
+            <div class="plan-justification-header" onclick="toggleSection('afterDinnerMealContent', 'afterDinnerMealToggle')">
+                <div class="plan-justification-title">
+                    <i class="fas fa-moon"></i>
+                    <span>Хранения след вечеря</span>
+                </div>
+                <i class="fas fa-chevron-down plan-justification-toggle" id="afterDinnerMealToggle"></i>
+            </div>
+            <div class="plan-justification-content" id="afterDinnerMealContent">
+                <div class="plan-justification-body">
+                    <p id="afterDinnerMealText">Зареждане...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modifier Reasoning / Dietary Approach (Collapsible) -->
+        <div class="plan-justification-container" id="modifierReasoningContainer" style="display: none;">
+            <div class="plan-justification-header" onclick="toggleSection('modifierReasoningContent', 'modifierReasoningToggle')">
+                <div class="plan-justification-title">
+                    <i class="fas fa-leaf"></i>
+                    <span>Диетичен подход</span>
+                </div>
+                <i class="fas fa-chevron-down plan-justification-toggle" id="modifierReasoningToggle"></i>
+            </div>
+            <div class="plan-justification-content" id="modifierReasoningContent">
+                <div class="plan-justification-body">
+                    <p id="modifierReasoningText">Зареждане...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hydration Strategy (Collapsible) -->
+        <div class="plan-justification-container" id="hydrationStrategyContainer" style="display: none;">
+            <div class="plan-justification-header" onclick="toggleSection('hydrationStrategyContent', 'hydrationStrategyToggle')">
+                <div class="plan-justification-title">
+                    <i class="fas fa-tint"></i>
+                    <span>Хидратация</span>
+                </div>
+                <i class="fas fa-chevron-down plan-justification-toggle" id="hydrationStrategyToggle"></i>
+            </div>
+            <div class="plan-justification-content" id="hydrationStrategyContent">
+                <div class="plan-justification-body">
+                    <p id="hydrationStrategyText">Зареждане...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Basic Info Section -->
         <div class="form-section">
             <div class="section-title">
@@ -1308,6 +1372,37 @@
             } catch (error) {
                 console.error('Error loading long term strategy:', error);
                 const container = document.getElementById('longTermStrategyContainer');
+                if (container) container.style.display = 'none';
+            }
+        }
+
+        function toggleSection(contentId, toggleId) {
+            const content = document.getElementById(contentId);
+            const toggle = document.getElementById(toggleId);
+            if (!content || !toggle) return;
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                toggle.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                toggle.classList.add('open');
+            }
+        }
+
+        function loadStrategyField(storageKey, containerId, textId) {
+            try {
+                const value = (localStorage.getItem(storageKey) || '').trim();
+                const container = document.getElementById(containerId);
+                const textElement = document.getElementById(textId);
+                if (value) {
+                    textElement.textContent = value;
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            } catch (error) {
+                console.error(`Error loading ${storageKey}:`, error);
+                const container = document.getElementById(containerId);
                 if (container) container.style.display = 'none';
             }
         }
@@ -1797,6 +1892,10 @@
             loadAnalysis(); // REQUIREMENT 1: Load analysis
             loadPlanJustification(); // Load plan justification for profile
             loadLongTermStrategy(); // Load long term strategy for profile
+            loadStrategyField('mealCountJustification', 'mealCountJustificationContainer', 'mealCountJustificationText');
+            loadStrategyField('afterDinnerMealJustification', 'afterDinnerMealContainer', 'afterDinnerMealText');
+            loadStrategyField('modifierReasoning', 'modifierReasoningContainer', 'modifierReasoningText');
+            loadStrategyField('hydrationStrategy', 'hydrationStrategyContainer', 'hydrationStrategyText');
         });
 
         // --- PWA Install Banner Functionality ---
