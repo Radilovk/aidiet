@@ -1949,6 +1949,9 @@
                     localStorage.setItem('userId', result.userId);
                     localStorage.setItem('userData', JSON.stringify(answers));
                     
+                    // Reset justification flag so modal shows on first load of new plan
+                    localStorage.removeItem('hasSeenPlanJustification');
+                    
                     // Clear the saved questionnaire answers since plan was generated successfully
                     localStorage.removeItem('questionnaireAnswers');
                     
