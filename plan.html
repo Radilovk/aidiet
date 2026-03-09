@@ -1798,90 +1798,6 @@
             vertical-align: middle;
         }
 
-        /* === PLAN JUSTIFICATION SECTION === */
-        .plan-justification-block {
-            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
-            border-radius: var(--radius);
-            margin-bottom: 24px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            animation: fadeIn 0.6s ease;
-        }
-
-        .plan-justification-block .plan-justification-header {
-            padding: 24px 20px;
-            color: #ffffff;
-            cursor: default;
-        }
-
-        .plan-just-icon-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 16px;
-            font-size: 1.15rem;
-            font-weight: 700;
-        }
-
-        .plan-just-icon-row i {
-            font-size: 2rem;
-            flex-shrink: 0;
-        }
-
-        .plan-just-welcome {
-            line-height: 1.8;
-            font-size: 1rem;
-            opacity: 0.95;
-            white-space: pre-line;
-            margin-bottom: 20px;
-        }
-
-        .plan-just-fields {
-            display: grid;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
-            padding: 16px;
-        }
-
-        .plan-just-field {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            padding: 12px 16px;
-        }
-
-        .plan-just-field-label {
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            opacity: 0.75;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .plan-just-field-value {
-            font-size: 0.95rem;
-            line-height: 1.7;
-            opacity: 0.95;
-        }
-
-        @media (max-width: 480px) {
-            .plan-justification-block .plan-justification-header {
-                padding: 18px 16px;
-            }
-
-            .plan-just-welcome {
-                font-size: 0.93rem;
-            }
-
-            .plan-just-field-value {
-                font-size: 0.88rem;
-            }
-        }
-
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2087,18 +2003,6 @@
             </div>
         </div>
         
-        <!-- PLAN JUSTIFICATION SECTION - Always shown after plan generation -->
-        <div id="planJustificationSection" class="plan-justification-block" style="display:none;">
-            <div class="plan-justification-header">
-                <div class="plan-just-icon-row">
-                    <i class="fas fa-award"></i>
-                    <span id="planJustHeaderTitle">Вашият Персонализиран План</span>
-                </div>
-                <div id="planJustWelcomeText" class="plan-just-welcome"></div>
-                <div class="plan-just-fields" id="planJustFields" style="display:none;"></div>
-            </div>
-        </div>
-
         <!-- MEAL PLAN SECTION -->
         <div id="mealContainer">
             <!-- Примерно съдържание (ще се замести от JSON logic) -->
@@ -3432,7 +3336,7 @@
             }
         }
 
-        // Display plan justification section - always shown after plan generation
+        // Store welcome message and plan justification; show modal on first load of new plan
         function displayPlanJustification() {
             try {
                 if (!dietPlan || !dietPlan.strategy) {
@@ -3463,63 +3367,14 @@
                 // Store for use in profile page (keep planJustification for profile)
                 const justification = strategy.planJustification || welcomeMessage;
                 localStorage.setItem('planJustification', justification);
+                localStorage.setItem('welcomeMessage', welcomeMessage);
 
                 // Store longTermStrategy for display in profile
                 if (strategy.longTermStrategy) {
                     localStorage.setItem('longTermStrategy', strategy.longTermStrategy);
                 }
 
-                // Always populate and show the inline plan justification section
-                const section = document.getElementById('planJustificationSection');
-                const welcomeEl = document.getElementById('planJustWelcomeText');
-                const fieldsEl = document.getElementById('planJustFields');
-                const titleEl = document.getElementById('planJustHeaderTitle');
-
-                if (section && welcomeEl && fieldsEl) {
-                    if (titleEl && userData && userData.name) {
-                        titleEl.textContent = `Вашият Персонализиран План, ${userData.name}`;
-                    }
-
-                    welcomeEl.textContent = welcomeMessage;
-
-                    // Build additional analysis fields
-                    const fields = [];
-
-                    if (strategy.planJustification && strategy.planJustification !== welcomeMessage) {
-                        fields.push({ icon: 'fa-bullseye', label: 'Обосновка на плана', value: strategy.planJustification });
-                    }
-                    if (strategy.longTermStrategy) {
-                        fields.push({ icon: 'fa-chart-line', label: 'Дългосрочна стратегия', value: strategy.longTermStrategy });
-                    }
-                    if (strategy.mealCountJustification) {
-                        fields.push({ icon: 'fa-utensils', label: 'Брой хранения', value: strategy.mealCountJustification });
-                    }
-                    if (strategy.afterDinnerMealJustification && strategy.afterDinnerMealJustification !== 'Не са необходими') {
-                        fields.push({ icon: 'fa-moon', label: 'Хранения след вечеря', value: strategy.afterDinnerMealJustification });
-                    }
-                    if (strategy.modifierReasoning) {
-                        fields.push({ icon: 'fa-leaf', label: 'Диетичен подход', value: strategy.modifierReasoning });
-                    }
-                    if (strategy.hydrationStrategy) {
-                        fields.push({ icon: 'fa-tint', label: 'Хидратация', value: strategy.hydrationStrategy });
-                    }
-
-                    if (fields.length > 0) {
-                        fieldsEl.innerHTML = fields.map(f =>
-                            `<div class="plan-just-field">` +
-                                `<div class="plan-just-field-label"><i class="fas ${f.icon}"></i> ${f.label}</div>` +
-                                `<div class="plan-just-field-value">${f.value}</div>` +
-                            `</div>`
-                        ).join('');
-                        fieldsEl.style.display = '';
-                    } else {
-                        fieldsEl.style.display = 'none';
-                    }
-
-                    section.style.display = '';
-                }
-
-                // Show welcome modal on first visit
+                // Show welcome modal only on first load of a newly generated plan
                 const hasSeenJustification = localStorage.getItem('hasSeenPlanJustification');
                 if (!hasSeenJustification || hasSeenJustification !== 'true') {
                     const welcomeMessageElement = document.getElementById('aiWelcomeMessage');

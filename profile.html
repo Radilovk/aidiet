@@ -1263,12 +1263,14 @@
 
         function loadPlanJustification() {
             try {
+                const welcomeMessage = localStorage.getItem('welcomeMessage');
                 const justification = localStorage.getItem('planJustification');
+                const text = (welcomeMessage && welcomeMessage.trim()) || (justification && justification.trim()) || '';
                 const container = document.getElementById('planJustificationContainer');
                 const textElement = document.getElementById('planJustificationProfileText');
                 
-                if (justification && justification.trim() !== '') {
-                    textElement.textContent = justification;
+                if (text && text.trim() !== '') {
+                    textElement.textContent = text;
                     container.style.display = 'block';
                 } else {
                     container.style.display = 'none';
@@ -1582,6 +1584,9 @@
                     if (result.userId) {
                         localStorage.setItem('userId', result.userId);
                     }
+
+                    // Reset justification flag so modal shows on first load of regenerated plan
+                    localStorage.removeItem('hasSeenPlanJustification');
 
                     showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
                     
