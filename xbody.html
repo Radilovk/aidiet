@@ -24,9 +24,21 @@
             -webkit-overflow-scrolling: touch;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
+        body {
+            /* Push content below the iOS notch / status-bar safe area so that
+               the top of the iframe is not hidden in an inactive touch zone.
+               constant() is the legacy form used by iOS 11.0–11.1; env() is
+               used by iOS 11.2+ and all other modern browsers. */
+            padding-top: constant(safe-area-inset-top);
+            padding-top: env(safe-area-inset-top);
+        }
         iframe {
             width: 100%;
+            /* Subtract the safe-area top inset so the iframe still fills the
+               remaining viewport height without creating a gap at the bottom.
+               The plain 100vh acts as a fallback for browsers without env() support. */
             min-height: 100vh;
+            min-height: calc(100vh - env(safe-area-inset-top));
             border: none;
             display: block;
         }
