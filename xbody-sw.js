@@ -1,6 +1,6 @@
 // Service Worker for XBody Ability PWA
 // Minimal, isolated from the NutriPlan service worker
-const CACHE_NAME = 'xbody-v2';
+const CACHE_NAME = 'xbody-v3';
 const STATIC_CACHE = [
   'xbody.html',
   'xbody-manifest.json',
