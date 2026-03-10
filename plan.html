@@ -442,11 +442,12 @@
         }
 
         .meal-dessert {
-            font-size: 0.8rem;
-            color: var(--primary-red);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #b45309;
             margin-top: 4px;
-            opacity: 0.85;
         }
+        [data-theme="dark"] .meal-dessert { color: #fbbf24; }
 
         .modal-dessert {
             margin-top: 12px;
@@ -3637,9 +3638,11 @@
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
                 // For free eating meals: omit calories and macros display
+                // Combine meal calories with separate dessert calories (if dessert has own calories field)
+                const totalMealCalories = (meal.calories || 0) + ((meal.dessert && meal.dessert.calories) ? (meal.dessert.calories || 0) : 0);
                 const weightLine = isFreeMeal
                     ? `<div class="meal-weight"><i class="fas fa-utensils"></i> Любима храна по избор</div>`
-                    : `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${meal.calories ? ` • ${Math.round(meal.calories)} kcal` : ''}</div>`;
+                    : `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${totalMealCalories ? ` • ${Math.round(totalMealCalories)} kcal` : ''}</div>`;
                 mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
                     <div class="meal-name">${isFreeMeal ? 'Свободно хранене' : escapeHtmlWithBreaks(meal.name)}</div>
@@ -3940,7 +3943,17 @@
         }
 
         function openModal(title, description, benefit, macros, dessert) {
-            mTitle.textContent = title;
+            // Strip dessert name from title to avoid duplication with the mDessert section below
+            let displayTitle = title;
+            if (dessert && dessert.name) {
+                const escapedDessertName = dessert.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                displayTitle = displayTitle
+                    .replace(new RegExp('[,+\\s]+' + escapedDessertName + '.*$', 'i'), '')
+                    .replace(/[,+\s]+$/, '')
+                    .trim();
+                if (!displayTitle) displayTitle = title;
+            }
+            mTitle.textContent = displayTitle;
             
             // Display description as-is (contains ingredient weights from AI)
             mDesc.innerHTML = escapeHtmlWithBreaks(description);
@@ -3964,13 +3977,27 @@
             }
             
             // Handle macronutrient visualization
+            // Merge dessert macros into the total if the dessert has separate macros
             const macroBreakdown = document.getElementById('macroBreakdown');
             const macroBar = document.getElementById('macroBar');
             const macroLegend = document.getElementById('macroLegend');
             
-            if (macros && (macros.protein || macros.carbs || macros.fats || macros.fiber)) {
+            let effectiveMacros = macros;
+            if (dessert && dessert.macros) {
+                const dm = dessert.macros;
+                effectiveMacros = effectiveMacros
+                    ? {
+                        protein: (parseInt(macros.protein) || 0) + (parseInt(dm.protein) || 0),
+                        carbs:   (parseInt(macros.carbs)   || 0) + (parseInt(dm.carbs)   || 0),
+                        fats:    (parseInt(macros.fats)    || 0) + (parseInt(dm.fats)    || 0),
+                        fiber:   (parseInt(macros.fiber)   || 0) + (parseInt(dm.fiber)   || 0)
+                    }
+                    : dm;
+            }
+
+            if (effectiveMacros && (effectiveMacros.protein || effectiveMacros.carbs || effectiveMacros.fats || effectiveMacros.fiber)) {
                 // Parse numeric values using helper function
-                const { protein, carbs, fats, fiber } = parseMacronutrients(macros);
+                const { protein, carbs, fats, fiber } = parseMacronutrients(effectiveMacros);
                 
                 // Calculate total and percentages
                 const total = protein + carbs + fats + fiber;
