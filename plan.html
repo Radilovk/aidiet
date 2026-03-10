@@ -3976,7 +3976,7 @@
                     ? ` • ${escapeHtmlWithBreaks(dessert.weight)}`
                     : '';
                 const descHtml = dessert.description
-                    ? `<span class="meal-dessert-desc">${escapeHtmlWithBreaks(dessert.description)}</span>`
+                    ? `<span class="meal-dessert-desc">- ${escapeHtmlWithBreaks(dessert.description)}</span>`
                     : '';
                 dessertEl.innerHTML = `<i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(dessert.name)}${weightHtml}${descHtml}`;
                 mDesc.insertAdjacentElement('afterend', dessertEl);
