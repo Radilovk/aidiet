@@ -120,5 +120,9 @@ JSON ФОРМАТ (дни {startDay}-{endDay}):
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }
 }
+ВАЖНО - "dessert" поле за Обяд (само при нужда от сладко, вж. правило 7):
+{"type": "Обяд", "name": "...", "weight": "Xg", "description": "...", "benefits": "...",
+ "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X},
+ "dessert": {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "..."}}
 
 Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals!
