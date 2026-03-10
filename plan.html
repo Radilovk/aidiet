@@ -441,6 +441,31 @@
             box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
         }
 
+        .meal-dessert {
+            font-size: 0.8rem;
+            color: var(--primary-red);
+            margin-top: 4px;
+            opacity: 0.85;
+        }
+
+        .modal-dessert {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: var(--soft-red, #fff3f3);
+            font-size: 0.9rem;
+        }
+
+        .modal-dessert-weight {
+            color: var(--text-muted, #888);
+        }
+
+        .modal-dessert-desc {
+            display: block;
+            color: var(--text-muted, #888);
+            font-size: 0.85rem;
+        }
+
         .info-btn {
             width: 44px;
             height: 44px;
@@ -3603,7 +3628,8 @@
                             meal.name, 
                             meal.description || '', 
                             meal.benefits || '',
-                            meal.macros || null
+                            meal.macros || null,
+                            meal.dessert || null
                         );
                     }
                 };
@@ -3617,7 +3643,7 @@
                 mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
                     <div class="meal-name">${isFreeMeal ? 'Свободно хранене' : escapeHtmlWithBreaks(meal.name)}</div>
-                    ${weightLine}
+                    ${weightLine}${meal.dessert ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> ${escapeHtmlWithBreaks(meal.dessert.name)} • ${escapeHtmlWithBreaks(meal.dessert.weight)}</div>` : ''}
                 `;
                 
                 mealCard.appendChild(mealInfo);
@@ -3913,12 +3939,29 @@
             return item;
         }
 
-        function openModal(title, description, benefit, macros) {
+        function openModal(title, description, benefit, macros, dessert) {
             mTitle.textContent = title;
             
             // Display description as-is (contains ingredient weights from AI)
             mDesc.innerHTML = escapeHtmlWithBreaks(description);
             mBenefit.textContent = benefit;
+            
+            // Render dessert component section if present
+            const existingDessertSection = document.getElementById('mDessert');
+            if (existingDessertSection) existingDessertSection.remove();
+            if (dessert && dessert.name) {
+                const dessertEl = document.createElement('div');
+                dessertEl.id = 'mDessert';
+                dessertEl.className = 'modal-dessert';
+                const weightHtml = dessert.weight
+                    ? ` <span class="modal-dessert-weight">• ${escapeHtmlWithBreaks(dessert.weight)}</span>`
+                    : '';
+                const descHtml = dessert.description
+                    ? `<span class="modal-dessert-desc">${escapeHtmlWithBreaks(dessert.description)}</span>`
+                    : '';
+                dessertEl.innerHTML = `<strong><i class="fas fa-cookie-bite" style="color:var(--primary-red,#c0392b);margin-right:6px;"></i>Десерт:</strong> ${escapeHtmlWithBreaks(dessert.name)}${weightHtml}${descHtml}`;
+                mBenefit.parentNode.insertAdjacentElement('afterend', dessertEl);
+            }
             
             // Handle macronutrient visualization
             const macroBreakdown = document.getElementById('macroBreakdown');

@@ -115,7 +115,7 @@ JSON ФОРМАТ (дни {startDay}-{endDay}):
 {
   "day{startDay}": {
     "meals": [
-      {"type": "Закуска|Обяд|Десерт|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+      {"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }

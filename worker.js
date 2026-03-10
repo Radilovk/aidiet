@@ -1828,7 +1828,7 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
   // Build JSON format example with all days in the chunk
   // Note: Indentation and formatting are intentional for AI model readability
   const freeDayNumForTemplate = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
-  const mealTemplate = `{"type": "Закуска|Обяд|Десерт|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const mealTemplate = `{"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const freeMealEntry = `{"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}`;
   const breakfastTemplate = `{"type": "Закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const dinnerTemplate = `{"type": "Следобедна закуска|Вечеря", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
@@ -1904,7 +1904,7 @@ ${jsonExample.join(',\n')}
 {
   "dayN": {
     "meals": [
-      {"type": "Закуска|Обяд|Десерт|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+      {"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
     ],
     "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
   }
@@ -2064,7 +2064,7 @@ JSON ФОРМАТ:
 {
   "day1": {
     "meals": [
-      {"type": "Закуска|Обяд|Десерт|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
+      {"type": "Закуска|Обяд|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
       ...
     ]
   },
@@ -2150,7 +2150,7 @@ JSON ФОРМАТ:
 {
   "day1": {
     "meals": [
-      {"type": "Закуска|Обяд|Десерт|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
+      {"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "time": "...", "calories": число, "macros": {...}},
       ...
     ]
   },
@@ -3002,10 +3002,10 @@ const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts b
 // limit per Worker invocation. With 1 correction the baseline is 46 (safe), and even with a
 // handful of transient Gemini retries we stay comfortably under the limit.
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
-const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Свободно хранене': 1, 'Десерт': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
-const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Свободно хранене', 'Десерт', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
-// Instruction injected into prompts when the user craves sweets: carb-free lunch + chocolate dessert
-const SWEETS_CRAVING_RULE_TEXT = '\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗА ОБЯД: без въглехидратни храни ([ENG] деактивирана само за Обяда) — само [PRO] + [VOL] + [FAT]. ЗАДЪЛЖИТЕЛНО добавяй след всеки Обяд отделен запис с тип "Десерт": точно 30г пълномаслен шоколад с лешници (изчисли калории и макроси за 30г). Типът "Десерт" е позволен и разрешен.';
+const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Свободно хранене': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
+const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Свободно хранене', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
+// Instruction injected into prompts when the user craves sweets: carb-free lunch + chocolate dessert component
+const SWEETS_CRAVING_RULE_TEXT = '\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗА ОБЯД: без въглехидратни храни ([ENG] деактивирана само за Обяда) — само [PRO] + [VOL] + [FAT]. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд поле "dessert" (финален компонент, НЕ отделно хранене): {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "..."}. Включи калориите и макросите на шоколада (30г ≈ 168 kcal, protein: 2г, carbs: 14г, fats: 12г, fiber: 1г) в общите калории и макроси на обяда.';
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   'Междинно': 'Следобедна закуска',
