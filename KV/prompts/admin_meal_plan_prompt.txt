@@ -107,7 +107,7 @@ WHITELIST: {dynamicWhitelistSection}{dynamicBlacklistSection}
    СВОБОДЕН ДЕН: Свободно хранене ЗАМЕСТВА Обяда — НЕ е допълнително хранене! Типът е "Свободно хранене", НЕ "Обяд".
    ВАЖНО: Ако навиците {userData.eatingHabits} включват "Не закусвам" - НЕ слагай "Закуска". Допуска се "Следобедна закуска" или "Късна закуска"!
    Когато клиентът закусва: Късна закуска САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс {MAX_LATE_SNACK_CALORIES} kcal)
-7. Разнообразие: Различни ястия от предишните дни{freeMealInstruction}
+7. Разнообразие: Различни ястия от предишните дни{sweetsCravingRule}{freeMealInstruction}
 
 {MEAL_NAME_FORMAT_INSTRUCTIONS}
 
@@ -115,7 +115,7 @@ JSON ФОРМАТ (дни {startDay}-{endDay}):
 {
   "day{startDay}": {
     "meals": [
-      {"type": "Закуска|Обяд|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
+      {"type": "Закуска|Обяд|Десерт|Свободно хранене|Следобедна закуска|Вечеря|Късна закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}
     ],
     "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
   }
