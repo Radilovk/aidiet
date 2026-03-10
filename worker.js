@@ -2192,6 +2192,15 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
           totalCarbs += (parseInt(meal.macros.carbs) || 0);
           totalFats += (parseInt(meal.macros.fats) || 0);
         }
+        // Include separate dessert calories/macros if the AI tracked them independently
+        if (meal.dessert && meal.dessert.calories) {
+          totalCalories += (parseInt(meal.dessert.calories) || 0);
+        }
+        if (meal.dessert && meal.dessert.macros) {
+          totalProtein += (parseInt(meal.dessert.macros.protein) || 0);
+          totalCarbs += (parseInt(meal.dessert.macros.carbs) || 0);
+          totalFats += (parseInt(meal.dessert.macros.fats) || 0);
+        }
       });
       dayCount++;
     }
@@ -3005,7 +3014,7 @@ const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests -
 const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Свободно хранене': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Свободно хранене', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 // Instruction injected into prompts when the user craves sweets: carb-free lunch + chocolate dessert component
-const SWEETS_CRAVING_RULE_TEXT = '\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗА ОБЯД: без въглехидратни храни ([ENG] деактивирана само за Обяда) — само [PRO] + [VOL] + [FAT]. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд поле "dessert" (финален компонент, НЕ отделно хранене): {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "..."}. Включи калориите и макросите на шоколада (30г ≈ 168 kcal, protein: 2г, carbs: 14г, fats: 12г, fiber: 1г) в общите калории и макроси на обяда. ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — избери само от: кисело мляко, ядки, скир или протеинов шейк (според подбраната диета).';
+const SWEETS_CRAVING_RULE_TEXT = '\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗА ОБЯД: без въглехидратни храни ([ENG] деактивирана само за Обяда) — само [PRO] + [VOL] + [FAT]. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд поле "dessert" (финален компонент, НЕ отделно хранене): {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}. НЕ включвай наименованието на десерта в полето "name" на обяда. Десертните калории и макроси са отделни от тези на обяда — НЕ ги включвай в meal.calories и meal.macros; те се следят само чрез dessert.calories и dessert.macros. ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — избери само от: кисело мляко, ядки, скир или протеинов шейк (според подбраната диета).';
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   'Междинно': 'Следобедна закуска',
@@ -3279,7 +3288,11 @@ function validatePlan(plan, userData, substitutions = []) {
         // Validate daily calorie totals
         // Free eating meals ("Свободно хранене") don't have calories - skip the minimum check for days with free eating
         const hasFreeEatingMeal = day.meals.some(meal => meal.type === 'Свободно хранене');
-        const dayCalories = day.meals.reduce((sum, meal) => sum + (parseInt(meal.calories) || 0), 0);
+        const dayCalories = day.meals.reduce((sum, meal) => {
+          const mealCal = parseInt(meal.calories) || 0;
+          const dessertCal = (meal.dessert && parseInt(meal.dessert.calories)) || 0;
+          return sum + mealCal + dessertCal;
+        }, 0);
         if (!hasFreeEatingMeal && dayCalories < MIN_DAILY_CALORIES) {
           const error = `Ден ${i} има само ${dayCalories} калории - твърде малко`;
           errors.push(error);
@@ -5119,6 +5132,12 @@ function calculateAverageMacrosFromPlan(weekPlan) {
             totalProtein += parseInt(meal.macros.protein) || 0;
             totalCarbs += parseInt(meal.macros.carbs) || 0;
             totalFats += parseInt(meal.macros.fats) || 0;
+          }
+          // Include separate dessert macros if the AI tracked them independently
+          if (meal.dessert && meal.dessert.macros) {
+            totalProtein += parseInt(meal.dessert.macros.protein) || 0;
+            totalCarbs += parseInt(meal.dessert.macros.carbs) || 0;
+            totalFats += parseInt(meal.dessert.macros.fats) || 0;
           }
         });
       }
