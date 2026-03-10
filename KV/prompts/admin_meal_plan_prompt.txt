@@ -123,6 +123,7 @@ JSON ФОРМАТ (дни {startDay}-{endDay}):
 ВАЖНО - "dessert" поле за Обяд (само при нужда от сладко, вж. правило 7):
 {"type": "Обяд", "name": "...", "weight": "Xg", "description": "...", "benefits": "...",
  "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X},
- "dessert": {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "..."}}
+ "dessert": {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}}
+ПРАВИЛА ЗА ДЕСЕРТ: (1) НЕ включвай наименованието на десерта в "name" на обяда — то се изписва само чрез "dessert.name". (2) "meal.calories" и "meal.macros" са САМО за основното ястие без десерта. (3) "dailyTotals.calories" трябва да включва и калориите на десерта (сумирай meal.calories + dessert.calories за деня).
 
 Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals!
