@@ -3638,8 +3638,8 @@
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
                 // For free eating meals: omit calories and macros display
-                // Combine meal calories with separate dessert calories (if dessert has own calories field)
-                const totalMealCalories = (meal.calories || 0) + ((meal.dessert && meal.dessert.calories) ? (meal.dessert.calories || 0) : 0);
+                // meal.calories already includes the dessert contribution (dessert is part of the meal)
+                const totalMealCalories = meal.calories || 0;
                 const weightLine = isFreeMeal
                     ? `<div class="meal-weight"><i class="fas fa-utensils"></i> Любима храна по избор</div>`
                     : `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${totalMealCalories ? ` • ${Math.round(totalMealCalories)} kcal` : ''}</div>`;
@@ -3977,23 +3977,12 @@
             }
             
             // Handle macronutrient visualization
-            // Merge dessert macros into the total if the dessert has separate macros
+            // meal.macros already includes the dessert contribution (dessert is part of the meal)
             const macroBreakdown = document.getElementById('macroBreakdown');
             const macroBar = document.getElementById('macroBar');
             const macroLegend = document.getElementById('macroLegend');
             
-            let effectiveMacros = macros;
-            if (dessert && dessert.macros) {
-                const dm = dessert.macros;
-                effectiveMacros = effectiveMacros
-                    ? {
-                        protein: (parseInt(macros.protein) || 0) + (parseInt(dm.protein) || 0),
-                        carbs:   (parseInt(macros.carbs)   || 0) + (parseInt(dm.carbs)   || 0),
-                        fats:    (parseInt(macros.fats)    || 0) + (parseInt(dm.fats)    || 0),
-                        fiber:   (parseInt(macros.fiber)   || 0) + (parseInt(dm.fiber)   || 0)
-                    }
-                    : dm;
-            }
+            const effectiveMacros = macros;
 
             if (effectiveMacros && (effectiveMacros.protein || effectiveMacros.carbs || effectiveMacros.fats || effectiveMacros.fiber)) {
                 // Parse numeric values using helper function
