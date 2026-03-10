@@ -99,7 +99,7 @@ WHITELIST: {dynamicWhitelistSection}{dynamicBlacklistSection}
 
 === ИЗИСКВАНИЯ ===
 1. Разпределение на калории: Използвай mealBreakdown от Стъпка 2 за всяко хранене — то задава ТОЧНИТЕ целеви калории и макроси за всяко хранене от деня
-2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
+2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно или null (Изключения: "Свободно хранене" — без calories/macros полета; при правило 7 "Нужда от сладко" Обяд е без въглехидрати → carbs: 0 е ПРАВИЛНО и ЗАДЪЛЖИТЕЛНО)
 3. Калории: protein×4 + carbs×4 + fats×9
 4. Целеви дневни калории (от стъпка 2): адаптирани по дни от Седмичната структура горе (±{DAILY_CALORIE_TOLERANCE} kcal OK)
 5. Брой хранения: {strategyData.mealCountJustification}
@@ -122,7 +122,7 @@ JSON ФОРМАТ (дни {startDay}-{endDay}):
 }
 ВАЖНО - "dessert" поле за Обяд (само при нужда от сладко, вж. правило 7):
 {"type": "Обяд", "name": "...", "weight": "Xg", "description": "...", "benefits": "...",
- "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X},
+ "calories": X, "macros": {"protein": X, "carbs": 0, "fats": X, "fiber": X},
  "dessert": {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}}
 ПРАВИЛА ЗА ДЕСЕРТ: (1) НЕ включвай наименованието на десерта в "name" на обяда — то се изписва само чрез "dessert.name". (2) "meal.calories" и "meal.macros" са САМО за основното ястие без десерта. (3) "dailyTotals.calories" трябва да включва и калориите на десерта (сумирай meal.calories + dessert.calories за деня).
 
