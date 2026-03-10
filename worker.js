@@ -1616,7 +1616,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     }
   }
 
-  // Build sweets craving rule: for users who crave sweets, lunch is carb-free and followed by a chocolate dessert
+  // Build sweets craving rule: for users who crave sweets, lunch includes a chocolate dessert (counted as part of the meal)
   const sweetsCravingRule = userHasSweetsCraving(data.foodCravings) ? SWEETS_CRAVING_RULE_TEXT : '';
 
   // Build previous days context for variety (compact - only meal names)
@@ -1833,8 +1833,8 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
   const breakfastTemplate = `{"type": "Закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const dinnerTemplate = `{"type": "Следобедна закуска|Вечеря", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   // When user craves sweets, show an explicit Lunch example with the dessert sub-field
-  // so the AI has a concrete JSON format to follow (carbs=0, dessert as nested object)
-  const lunchWithDessertTemplate = `{"type": "Обяд", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": 0, "fats": X, "fiber": X}, "dessert": {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}}`;
+  // so the AI has a concrete JSON format to follow (dessert macros are INCLUDED in meal totals)
+  const lunchWithDessertTemplate = `{"type": "Обяд", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}, "dessert": {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}}`;
   const hasSweetsCraving = !!sweetsCravingRule;
   const dayTemplate = (dayNum) => {
     const isFreeDayHere = freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && dayNum === freeDayNumForTemplate;
@@ -2200,15 +2200,6 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
           totalProtein += (parseInt(meal.macros.protein) || 0);
           totalCarbs += (parseInt(meal.macros.carbs) || 0);
           totalFats += (parseInt(meal.macros.fats) || 0);
-        }
-        // Include separate dessert calories/macros if the AI tracked them independently
-        if (meal.dessert && meal.dessert.calories) {
-          totalCalories += (parseInt(meal.dessert.calories) || 0);
-        }
-        if (meal.dessert && meal.dessert.macros) {
-          totalProtein += (parseInt(meal.dessert.macros.protein) || 0);
-          totalCarbs += (parseInt(meal.dessert.macros.carbs) || 0);
-          totalFats += (parseInt(meal.dessert.macros.fats) || 0);
         }
       });
       dayCount++;
@@ -3022,8 +3013,8 @@ const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts b
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Свободно хранене': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Свободно хранене', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
-// Instruction injected into prompts when the user craves sweets: carb-free lunch + chocolate dessert component
-const SWEETS_CRAVING_RULE_TEXT = '\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗА ОБЯД: без въглехидратни храни ([ENG] деактивирана само за Обяда) — само [PRO] + [VOL] + [FAT]. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд поле "dessert" (финален компонент, НЕ отделно хранене): {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}. НЕ включвай наименованието на десерта в полето "name" на обяда. Десертните калории и макроси са отделни от тези на обяда — НЕ ги включвай в meal.calories и meal.macros; те се следят само чрез dessert.calories и dessert.macros. ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — избери само от: кисело мляко, ядки, скир или протеинов шейк (според подбраната диета).';
+// Instruction injected into prompts when the user craves sweets: add a chocolate dessert as part of the lunch
+const SWEETS_CRAVING_RULE_TEXT = '\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд поле "dessert" (финален компонент на обяда, НЕ отделно хранене — само за визуализация): {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}. НЕ включвай наименованието на десерта в полето "name" на обяда. ВАЖНО: Калориите и макросите на десерта СА ВКЛЮЧЕНИ в meal.calories и meal.macros на Обяда — смятай ги заедно като едно хранене. ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — избери само от: кисело мляко, ядки, скир или протеинов шейк (според подбраната диета).';
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   'Междинно': 'Следобедна закуска',
@@ -3255,7 +3246,7 @@ function validatePlan(plan, userData, substitutions = []) {
         day.meals.forEach((meal, mealIndex) => {
           if (!meal.macros || meal.macros.protein == null || meal.macros.carbs == null || meal.macros.fats == null) {
             // Beverages ("Напитка") and free meals ("Свободно хранене") don't require macronutrients - skip them
-            // Note: use == null (not falsy check) so that explicitly-zero values (e.g. carbs=0 on a keto/sweets-craving lunch) are treated as valid
+            // Note: use == null (not falsy check) so that explicitly-zero values (e.g. carbs=0 on a keto day) are treated as valid
             if (meal.type !== 'Напитка' && meal.type !== 'Свободно хранене') {
               mealsWithoutMacros++;
             }
@@ -3300,8 +3291,7 @@ function validatePlan(plan, userData, substitutions = []) {
         const hasFreeEatingMeal = day.meals.some(meal => meal.type === 'Свободно хранене');
         const dayCalories = day.meals.reduce((sum, meal) => {
           const mealCal = parseInt(meal.calories) || 0;
-          const dessertCal = (meal.dessert && parseInt(meal.dessert.calories)) || 0;
-          return sum + mealCal + dessertCal;
+          return sum + mealCal;
         }, 0);
         if (!hasFreeEatingMeal && dayCalories < MIN_DAILY_CALORIES) {
           const error = `Ден ${i} има само ${dayCalories} калории - твърде малко`;
@@ -5142,12 +5132,6 @@ function calculateAverageMacrosFromPlan(weekPlan) {
             totalProtein += parseInt(meal.macros.protein) || 0;
             totalCarbs += parseInt(meal.macros.carbs) || 0;
             totalFats += parseInt(meal.macros.fats) || 0;
-          }
-          // Include separate dessert macros if the AI tracked them independently
-          if (meal.dessert && meal.dessert.macros) {
-            totalProtein += parseInt(meal.dessert.macros.protein) || 0;
-            totalCarbs += parseInt(meal.dessert.macros.carbs) || 0;
-            totalFats += parseInt(meal.dessert.macros.fats) || 0;
           }
         });
       }
