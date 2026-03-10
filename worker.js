@@ -1832,11 +1832,20 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
   const freeMealEntry = `{"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}`;
   const breakfastTemplate = `{"type": "Закуска", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   const dinnerTemplate = `{"type": "Следобедна закуска|Вечеря", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  // When user craves sweets, show an explicit Lunch example with the dessert sub-field
+  // so the AI has a concrete JSON format to follow (carbs=0, dessert as nested object)
+  const lunchWithDessertTemplate = `{"type": "Обяд", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": 0, "fats": X, "fiber": X}, "dessert": {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}}`;
+  const hasSweetsCraving = !!sweetsCravingRule;
   const dayTemplate = (dayNum) => {
     const isFreeDayHere = freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && dayNum === freeDayNumForTemplate;
-    const mealsContent = isFreeDayHere
-      ? `${breakfastTemplate},\n      ${freeMealEntry},\n      ${dinnerTemplate}`
-      : mealTemplate;
+    let mealsContent;
+    if (isFreeDayHere) {
+      mealsContent = `${breakfastTemplate},\n      ${freeMealEntry},\n      ${dinnerTemplate}`;
+    } else if (hasSweetsCraving) {
+      mealsContent = `${breakfastTemplate},\n      ${lunchWithDessertTemplate},\n      ${dinnerTemplate}`;
+    } else {
+      mealsContent = mealTemplate;
+    }
     return `  "day${dayNum}": {
     "meals": [
       ${mealsContent}
@@ -3244,8 +3253,9 @@ function validatePlan(plan, userData, substitutions = []) {
         // Validate that meals have macros
         let mealsWithoutMacros = 0;
         day.meals.forEach((meal, mealIndex) => {
-          if (!meal.macros || !meal.macros.protein || !meal.macros.carbs || !meal.macros.fats) {
+          if (!meal.macros || meal.macros.protein == null || meal.macros.carbs == null || meal.macros.fats == null) {
             // Beverages ("Напитка") and free meals ("Свободно хранене") don't require macronutrients - skip them
+            // Note: use == null (not falsy check) so that explicitly-zero values (e.g. carbs=0 on a keto/sweets-craving lunch) are treated as valid
             if (meal.type !== 'Напитка' && meal.type !== 'Свободно хранене') {
               mealsWithoutMacros++;
             }
