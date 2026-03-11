@@ -3025,7 +3025,10 @@ const FIXED_DESSERT = {
   macros: { protein: 2, carbs: 14, fats: 12, fiber: 1 }
 };
 
-// Replaces "dessert": true markers left by the AI with the full fixed dessert object.
+// Replaces "dessert": true markers left by the AI with the full fixed dessert object
+// and adds the dessert's calories and macros to the meal totals so they are counted
+// in the daily budget. The AI sets meal.calories = food only (no dessert); the
+// backend adds FIXED_DESSERT values here to guarantee deterministic counting.
 // Accepts any truthy non-object value ("true", 1, true) in case the AI wraps the boolean in quotes.
 function injectFixedDesserts(weekPlan) {
   for (const dayKey of Object.keys(weekPlan)) {
@@ -3034,6 +3037,15 @@ function injectFixedDesserts(weekPlan) {
       for (const meal of day.meals) {
         if (meal.dessert && typeof meal.dessert !== 'object') {
           meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros } };
+          // Add dessert nutritional values to the meal so they count in dailyTotals
+          meal.calories = (parseInt(meal.calories) || 0) + FIXED_DESSERT.calories;
+          if (meal.macros) {
+            meal.macros = { ...meal.macros };
+            meal.macros.protein = (parseInt(meal.macros.protein) || 0) + FIXED_DESSERT.macros.protein;
+            meal.macros.carbs   = (parseInt(meal.macros.carbs)   || 0) + FIXED_DESSERT.macros.carbs;
+            meal.macros.fats    = (parseInt(meal.macros.fats)    || 0) + FIXED_DESSERT.macros.fats;
+            meal.macros.fiber   = (parseInt(meal.macros.fiber)   || 0) + FIXED_DESSERT.macros.fiber;
+          }
         }
       }
     }
@@ -3041,9 +3053,10 @@ function injectFixedDesserts(weekPlan) {
 }
 
 // Instruction injected into prompts when the user craves sweets: add a chocolate dessert as part of the lunch.
-// The AI sets "dessert": true only; backend injects the full fixed product via injectFixedDesserts().
+// The AI sets "dessert": true only and sets meal.calories = food portion only (WITHOUT dessert);
+// the backend adds the fixed dessert object and its calories via injectFixedDesserts().
 // Nutritional values are taken from FIXED_DESSERT to keep them in sync.
-const SWEETS_CRAVING_RULE_TEXT = `\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд (САМО обяд, НЕ друго хранене) поле "dessert": true — десертът е финален компонент на обяда, не отделно хранене. НЕ включвай наименованието на десерта в полето "name" на обяда. Добавяй ${FIXED_DESSERT.calories} ккал, ${FIXED_DESSERT.macros.protein}г белтъчини, ${FIXED_DESSERT.macros.carbs}г въглехидрати, ${FIXED_DESSERT.macros.fats}г мазнини, ${FIXED_DESSERT.macros.fiber}г фибри КЪМ meal.calories и meal.macros на Обяда (десертът е включен в тоталите). ПРИ ОБЯД С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб в обяда. ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — само кисело мляко, ядки, скир или протеинов шейк.`;
+const SWEETS_CRAVING_RULE_TEXT = `\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд (САМО обяд, НЕ друго хранене) поле "dessert": true — десертът е финален компонент на обяда, не отделно хранене. НЕ включвай наименованието на десерта в полето "name" на обяда. meal.calories и meal.macros на Обяда = САМО основното ядене (БЕЗ десерта) — бекендът автоматично ще добави ${FIXED_DESSERT.calories} ккал (${FIXED_DESSERT.macros.protein}г белтъчини, ${FIXED_DESSERT.macros.carbs}г въглехидрати, ${FIXED_DESSERT.macros.fats}г мазнини). Планирай обяда с ~${FIXED_DESSERT.calories} ккал по-малко от обичайното, за да остане дневният бюджет непроменен след добавяне на десерта. ПРИ ОБЯД С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб в обяда. ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — само кисело мляко, ядки, скир или протеинов шейк.`;
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   'Междинно': 'Следобедна закуска',
@@ -4546,8 +4559,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
 ТВОЯТА ЗАДАЧА: Направи структуриран анализ и изчисли финалните препоръчителни калории и макроси за клиента.
 
 ⚠️ ВАЖНО: Базовите изчисления (bmr, tdee) са ВЕЧЕ ИЗЧИСЛЕНИ от бекенда.
-НЕ ги преизчислявай по формула. Копирай ги ТОЧНО в JSON отговора (bmr=${bmr}, tdee=${tdee}).
-Използвай ги като база и ги коригирай само чрез корекционни проценти.
+НЕ ги преизчислявай по формула. Използвай ги като отправна точка и ги коригирай само чрез корекционни проценти.
 
 ═══ КЛИЕНТСКИ ДАННИ ═══
 ${JSON.stringify({
@@ -4649,14 +4661,12 @@ ${data.additionalNotes}
 СТЪПКА 4: ФИНАЛНИ КАЛОРИИ
 totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent
 (ограничи на минимум -25%)
-Final_Calories = round(${tdee} × (1 + totalAdjustmentPercent / 100))
-
-⚠️ Използвай ТОЧНО tdee=${tdee} от бекенда в горната формула — не го преизчислявай!
+Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
 
 ⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal (безопасен минимум за ${data.gender}).
 Ако формулата даде по-малко, задай Final_Calories = ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal и посочи в correctedMetabolism.correction причината.
 
-correctedMetabolism.realBMR = ${bmr}  ← ТОЧНО от бекенда, непроменен
+correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
 correctedMetabolism.realTDEE = Final_Calories
 → Резултат: Final_Calories, correctedMetabolism.realBMR, realTDEE, correctionPercent
 
@@ -4719,8 +4729,8 @@ correctedMetabolism.realTDEE = Final_Calories
 {
   "bmi": число,
   "bmiCategory": "текст категория",
-  "bmr": ${bmr},
-  "tdee": ${tdee},
+  "bmr": число,
+  "tdee": число,
   "Final_Calories": число,
   "macroRatios": {
     "protein": число процент,
@@ -4765,7 +4775,7 @@ correctedMetabolism.realTDEE = Final_Calories
     "adaptability": "Ниска/Средна/Висока"
   },
   "correctedMetabolism": {
-    "realBMR": ${bmr},
+    "realBMR": число,
     "realTDEE": число,
     "clinicalAdjustmentPercent": число,
     "metabolicAdjustmentPercent": число,
