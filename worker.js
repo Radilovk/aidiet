@@ -4898,6 +4898,18 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       additionalNotesSection,
       eatingHabits: JSON.stringify(data.eatingHabits || []),
       chronotype: data.chronotype || 'Среден тип',
+      overeatingFrequency: data.overeatingFrequency || '',
+      foodCravings: JSON.stringify(data.foodCravings || []),
+      foodCravings_other: data.foodCravings_other || '',
+      foodTriggers: JSON.stringify(data.foodTriggers || []),
+      foodTriggers_other: data.foodTriggers_other || '',
+      compensationMethods: JSON.stringify(data.compensationMethods || []),
+      compensationMethods_other: data.compensationMethods_other || '',
+      drinksSweet: data.drinksSweet || '',
+      drinksAlcohol: data.drinksAlcohol || '',
+      dietHistory: data.dietHistory || '',
+      stressLevel: data.stressLevel || '',
+      sleepHours: data.sleepHours || '',
       TEMPERAMENT_CONFIDENCE_THRESHOLD
     });
     
