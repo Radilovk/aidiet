@@ -1834,7 +1834,7 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
   const dinnerTemplate = `{"type": "Следобедна закуска|Вечеря", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
   // When user craves sweets, show an explicit Lunch example with the dessert sub-field
   // so the AI has a concrete JSON format to follow (dessert macros are INCLUDED in meal totals)
-  const lunchWithDessertTemplate = `{"type": "Обяд", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}, "dessert": {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}}`;
+  const lunchWithDessertTemplate = `{"type": "Обяд", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}, "dessert": true}`;
   const hasSweetsCraving = !!sweetsCravingRule;
   const dayTemplate = (dayNum) => {
     const isFreeDayHere = freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && dayNum === freeDayNumForTemplate;
@@ -3013,8 +3013,33 @@ const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts b
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Свободно хранене': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Свободно хранене', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
-// Instruction injected into prompts when the user craves sweets: add a chocolate dessert as part of the lunch
-const SWEETS_CRAVING_RULE_TEXT = '\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд поле "dessert" (финален компонент на обяда, НЕ отделно хранене — само за визуализация): {"name": "Пълномаслен шоколад с лешници", "weight": "30г", "description": "...", "calories": 168, "macros": {"protein": 2, "carbs": 14, "fats": 12, "fiber": 1}}. НЕ включвай наименованието на десерта в полето "name" на обяда. ВАЖНО: Калориите и макросите на десерта СА ВКЛЮЧЕНИ в meal.calories и meal.macros на Обяда — смятай ги заедно като едно хранене. ПРИ ОБЯД С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб в обяда (десертът осигурява въглехидратния компонент). ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — избери само от: кисело мляко, ядки, скир или протеинов шейк (според подбраната диета).';
+// Fixed dessert object injected by the backend for users who crave sweets.
+// The AI only sets "dessert": true on the lunch meal; injectFixedDesserts() replaces it with this object.
+const FIXED_DESSERT = {
+  name: 'Пълномаслен шоколад с лешници',
+  weight: '30г',
+  description: 'Насладете се на 2 реда млечен или черен шоколад с цели лешници.',
+  calories: 168,
+  macros: { protein: 2, carbs: 14, fats: 12, fiber: 1 }
+};
+
+// Replaces "dessert": true markers left by the AI with the full fixed dessert object.
+function injectFixedDesserts(weekPlan) {
+  for (const dayKey of Object.keys(weekPlan)) {
+    const day = weekPlan[dayKey];
+    if (day && day.meals) {
+      for (const meal of day.meals) {
+        if (meal.dessert === true) {
+          meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros } };
+        }
+      }
+    }
+  }
+}
+
+// Instruction injected into prompts when the user craves sweets: add a chocolate dessert as part of the lunch.
+// The AI sets "dessert": true only; backend injects the full fixed product via injectFixedDesserts().
+const SWEETS_CRAVING_RULE_TEXT = '\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд поле "dessert": true (финален компонент на обяда, НЕ отделно хранене — само за визуализация). НЕ включвай наименованието на десерта в полето "name" на обяда. ВАЖНО: Добавяй 168 ккал, 2г белтъчини, 14г въглехидрати, 12г мазнини, 1г фибри КЪМ meal.calories и meal.macros на Обяда (десертът е включен в тоталите). ПРИ ОБЯД С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб в обяда (десертът осигурява въглехидратния компонент). ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — избери само от: кисело мляко, ядки, скир или протеинов шейк (според подбраната диета).';
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   'Междинно': 'Следобедна закуска',
@@ -3912,6 +3937,8 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         if (!mealPlan || mealPlan.error) {
           throw new Error(`Регенерацията на хранителния план се провали: ${mealPlan?.error || 'Невалиден формат'}`);
         }
+        // Replace any "dessert": true markers with the fixed dessert object
+        if (mealPlan.weekPlan) injectFixedDesserts(mealPlan.weekPlan);
       }
     } else if (earliestErrorStep === 'step4_final') {
       // Step 4: Final validation errors (summary, recommendations, forbidden, supplements, etc.)
@@ -4208,6 +4235,8 @@ async function generatePlanMultiStep(env, data) {
           console.error('AI Response preview (first 1000 chars):', mealPlanResponse?.substring(0, 1000));
           throw new Error(`Хранителният план не можа да бъде създаден: ${errorMsg}`);
         }
+        // Replace any "dessert": true markers with the fixed dessert object
+        if (mealPlan.weekPlan) injectFixedDesserts(mealPlan.weekPlan);
       } catch (error) {
         console.error('Meal plan step failed:', error);
         throw new Error(`Стъпка 3 (Хранителен план): ${error.message}`);
@@ -5247,6 +5276,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response. Available keys: ${Object.keys(chunkData).join(', ')}`);
         }
       }
+      // Replace any "dessert": true markers with the fixed dessert object
+      injectFixedDesserts(weekPlan);
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
