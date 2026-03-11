@@ -3024,12 +3024,13 @@ const FIXED_DESSERT = {
 };
 
 // Replaces "dessert": true markers left by the AI with the full fixed dessert object.
+// Accepts any truthy non-object value ("true", 1, true) in case the AI wraps the boolean in quotes.
 function injectFixedDesserts(weekPlan) {
   for (const dayKey of Object.keys(weekPlan)) {
     const day = weekPlan[dayKey];
     if (day && day.meals) {
       for (const meal of day.meals) {
-        if (meal.dessert === true) {
+        if (meal.dessert && typeof meal.dessert !== 'object') {
           meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros } };
         }
       }
