@@ -1617,7 +1617,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   }
 
   // Build sweets craving rule: for users who crave sweets, lunch includes a chocolate dessert (counted as part of the meal)
-  const sweetsCravingRule = userHasSweetsCraving(data.foodCravings) ? SWEETS_CRAVING_RULE_TEXT : '';
+  const sweetsCravingRule = userHasSweetsCraving(data.foodCravings) && strategy?.includeDessert !== false ? SWEETS_CRAVING_RULE_TEXT : '';
 
   // Build previous days context for variety (compact - only meal names)
   let previousDaysContext = '';
@@ -2018,7 +2018,7 @@ ${modLines.join('\n')}
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
 
   // Build sweets craving rule for legacy prompt
-  const sweetsCravingRuleLegacy = userHasSweetsCraving(data.foodCravings) ? SWEETS_CRAVING_RULE_TEXT : '';
+  const sweetsCravingRuleLegacy = userHasSweetsCraving(data.foodCravings) && strategy?.includeDessert !== false ? SWEETS_CRAVING_RULE_TEXT : '';
   
   // Fetch dynamic whitelist and blacklist from KV storage
   const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
@@ -4898,6 +4898,18 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       additionalNotesSection,
       eatingHabits: JSON.stringify(data.eatingHabits || []),
       chronotype: data.chronotype || 'Среден тип',
+      overeatingFrequency: data.overeatingFrequency || '',
+      foodCravings: JSON.stringify(data.foodCravings || []),
+      foodCravings_other: data.foodCravings_other || '',
+      foodTriggers: JSON.stringify(data.foodTriggers || []),
+      foodTriggers_other: data.foodTriggers_other || '',
+      compensationMethods: JSON.stringify(data.compensationMethods || []),
+      compensationMethods_other: data.compensationMethods_other || '',
+      drinksSweet: data.drinksSweet || '',
+      drinksAlcohol: data.drinksAlcohol || '',
+      dietHistory: data.dietHistory || '',
+      stressLevel: data.stressLevel || '',
+      sleepHours: data.sleepHours || '',
       TEMPERAMENT_CONFIDENCE_THRESHOLD
     });
     
@@ -5112,6 +5124,7 @@ ${data.additionalNotes}
     }
   },
   "freeDayNumber": null,
+  "includeDessert": true,
   "breakfastStrategy": "текст - ако не закусва, какво се препоръчва вместо закуска",
   "calorieDistribution": "текст - как се разпределят калориите по дни и хранения",
   "macroDistribution": "текст - как се разпределят макросите според дни/хранения",
