@@ -53,6 +53,7 @@
             --footer-padding-v: 12px;
             --footer-padding-h: 20px;
             --footer-input-gap: 8px;
+            --footer-content-gap: 24px; /* Gap between question card and footer */
             --footer-button-min-height: 44px;
             --wrapper-padding-default: 140px;
             --wrapper-padding-compact: 120px;
@@ -92,6 +93,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden; /* Prevent scrolling, we handle it internally */
+            overscroll-behavior-y: none; /* Prevent iOS rubber-band scroll bleed */
             padding-bottom: 0; /* Fixed footer handles spacing */
             transition: background-color 0.3s ease, color 0.3s ease;
         }
@@ -127,6 +129,7 @@
         /* --- MAIN CONTAINER --- */
         .question-wrapper {
             flex: 1;
+            min-height: 0; /* Required for flex children to shrink and allow overflow-y scrolling */
             position: relative;
             padding: 20px;
             padding-bottom: var(--wrapper-padding-default); /* Default padding for footer */
@@ -136,6 +139,7 @@
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            overscroll-behavior-y: contain; /* Contain scroll within wrapper, prevent body bounce */
             scroll-padding-bottom: var(--wrapper-padding-default); /* Ensure scroll area accounts for fixed footer */
         }
         
@@ -1121,8 +1125,9 @@
             progressBar.style.width = `${percent}%`;
             stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${currentQueue.length}`;
             
-            // Animation out
-            container.innerHTML = ''; 
+            // Clear content and reset scroll position to top
+            container.scrollTop = 0;
+            container.innerHTML = '';
 
             const card = document.createElement('div');
             card.className = 'question-card';
@@ -1149,12 +1154,18 @@
         }
         
         // --- FOOTER POSITIONING HELPERS ---
+        let _footerTimerId = null;
         function positionFooterBelowContent() {
+            // Cancel any pending positioning from a previous render
+            if (_footerTimerId !== null) {
+                clearTimeout(_footerTimerId);
+            }
             // Wait for DOM to render - using CSS variable for delay
             const delay = parseInt(getComputedStyle(document.documentElement)
                 .getPropertyValue('--footer-position-delay-ms')) || 50;
             
-            setTimeout(() => {
+            _footerTimerId = setTimeout(() => {
+                _footerTimerId = null;
                 const card = document.querySelector('.question-card');
                 const footer = document.querySelector('.nav-footer');
                 
@@ -1162,7 +1173,8 @@
                     const cardRect = card.getBoundingClientRect();
                     const footerHeight = footer.offsetHeight;
                     const viewportHeight = window.innerHeight;
-                    const gap = 24;
+                    const gap = parseInt(getComputedStyle(document.documentElement)
+                        .getPropertyValue('--footer-content-gap')) || 24;
                     
                     const idealFooterTop = cardRect.bottom + gap;
                     
