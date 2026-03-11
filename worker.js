@@ -96,19 +96,6 @@ const MIN_RECOMMENDED_CALORIES_FEMALE = 1200; // Hard floor - minimum safe calor
 const MIN_RECOMMENDED_CALORIES_MALE = 1500;   // Hard floor - minimum safe calories for men
 const MIN_FAT_GRAMS_PER_KG = 0.7; // Minimum dietary fat for hormonal function (g/kg body weight)
 
-// Calorie validation tolerance – Final_Calories is accepted if it deviates by ≤ this value
-// from the value recalculated from the declared adjustment percentages.
-const CALORIE_CORRECTION_TOLERANCE = 50; // kcal
-
-// Adjustment percentage ranges for AI analysis (used in validateAndCorrectAnalysisCalories)
-const CLINICAL_ADJUSTMENT_MIN = -15; // e.g. hypothyroidism → -8%, no diagnosis → 0
-const CLINICAL_ADJUSTMENT_MAX = 5;
-const METABOLIC_ADJUSTMENT_MIN = -10; // e.g. chronic stress + poor sleep → -5%
-const METABOLIC_ADJUSTMENT_MAX = 5;
-const GOAL_ADJUSTMENT_MIN = -20; // e.g. weight-loss deficit
-const GOAL_ADJUSTMENT_MAX = 15;  // e.g. muscle-mass surplus
-const MAX_TOTAL_CALORIE_DEFICIT = -25; // Total adjustment must not exceed -25%
-
 // Analysis Configuration
 const WATER_PER_KG_MULTIPLIER = 0.035; // Liters per kg body weight
 const BASE_WATER_NEED_LITERS = 0.5; // Base water need in liters
@@ -502,118 +489,6 @@ function calculateSafeDeficit(tdee, goal) {
     maxDeficitCalories,
     note: 'AI може да коригира при специални стратегии (напр. интермитентно гладуване)'
   };
-}
-
-/**
- * Validate and correct AI-generated calorie and macro calculations from Step 1 analysis.
- *
- * Ensures that:
- * 1. bmr and tdee match backend deterministic calculations (AI must not recalculate these)
- * 2. Adjustment percentages are within declared ranges and total ≥ -25% cap
- * 3. Final_Calories is consistent with tdee × (1 + totalAdjustment/100)
- * 4. Final_Calories meets the minimum calorie floor (safety)
- * 5. Macro grams are recalculated if they don't match Final_Calories
- *
- * @param {Object} analysis - AI analysis result from Step 1
- * @param {Object} data - User input data
- * @returns {Object} Corrected analysis object. Always use the returned value (the function
- *   returns the original object on early exit, but callers should rely on the return value).
- */
-function validateAndCorrectAnalysisCalories(analysis, data) {
-  if (!analysis || analysis.error) return analysis;
-
-  // Helper: extract a numeric value from a number or a numeric string.
-  const toNum = (v) => typeof v === 'number' ? v : (parseInt(String(v || '')) || null);
-
-  const backendBmr = calculateBMR(data);
-  const activityData = calculateUnifiedActivityScore(data);
-  const backendTdee = calculateTDEE(backendBmr, activityData.combinedScore);
-  const calorieFloor = data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
-
-  // 1. Correct BMR: backend Mifflin-St Jeor is authoritative
-  const aiBmr = toNum(analysis.bmr);
-  if (!aiBmr || Math.abs(aiBmr - backendBmr) > backendBmr * 0.05) {
-    console.log(`validateAndCorrectAnalysisCalories: BMR corrected ${aiBmr} → ${backendBmr}`);
-    analysis.bmr = backendBmr;
-  }
-
-  // 2. Correct TDEE: backend unified-activity-score calculation is authoritative
-  const aiTdee = toNum(analysis.tdee);
-  if (!aiTdee || Math.abs(aiTdee - backendTdee) > backendTdee * 0.05) {
-    console.log(`validateAndCorrectAnalysisCalories: TDEE corrected ${aiTdee} → ${backendTdee}`);
-    analysis.tdee = backendTdee;
-  }
-  const tdee = analysis.tdee;
-
-  // 3. Validate and correct adjustment percentages (if correctedMetabolism is present)
-  if (analysis.correctedMetabolism) {
-    const cm = analysis.correctedMetabolism;
-
-    // Clamp each percentage to its declared range
-    const clinical = Math.max(CLINICAL_ADJUSTMENT_MIN, Math.min(CLINICAL_ADJUSTMENT_MAX, Number(cm.clinicalAdjustmentPercent) || 0));
-    const metabolic = Math.max(METABOLIC_ADJUSTMENT_MIN, Math.min(METABOLIC_ADJUSTMENT_MAX, Number(cm.metabolicAdjustmentPercent) || 0));
-    let goal = Math.max(GOAL_ADJUSTMENT_MIN, Math.min(GOAL_ADJUSTMENT_MAX, Number(cm.goalAdjustmentPercent) || 0));
-
-    let total = clinical + metabolic + goal;
-
-    // Enforce maximum deficit cap
-    if (total < MAX_TOTAL_CALORIE_DEFICIT) {
-      goal = MAX_TOTAL_CALORIE_DEFICIT - clinical - metabolic;
-      total = MAX_TOTAL_CALORIE_DEFICIT;
-      console.log(`validateAndCorrectAnalysisCalories: Adjustment total capped to ${MAX_TOTAL_CALORIE_DEFICIT}%`);
-    }
-
-    // Write back validated percentages
-    cm.clinicalAdjustmentPercent = clinical;
-    cm.metabolicAdjustmentPercent = metabolic;
-    cm.goalAdjustmentPercent = goal;
-    cm.correctionPercent = `${total >= 0 ? '+' : ''}${total}%`;
-
-    // 4. Recalculate Final_Calories from validated percentages
-    const expectedCalories = Math.max(calorieFloor, Math.round(tdee * (1 + total / 100)));
-    const aiCalories = toNum(analysis.Final_Calories);
-
-    if (!aiCalories || Math.abs(aiCalories - expectedCalories) > CALORIE_CORRECTION_TOLERANCE) {
-      console.log(`validateAndCorrectAnalysisCalories: Final_Calories corrected ${aiCalories} → ${expectedCalories}`);
-      analysis.Final_Calories = expectedCalories;
-    }
-
-    // Keep realBMR/realTDEE in sync
-    cm.realBMR = analysis.bmr;
-    cm.realTDEE = analysis.Final_Calories;
-  } else {
-    // No correctedMetabolism – validate Final_Calories directly
-    const aiCalories = toNum(analysis.Final_Calories);
-
-    if (!aiCalories) {
-      const deficitData = calculateSafeDeficit(tdee, data.goal);
-      analysis.Final_Calories = Math.max(calorieFloor, deficitData.targetCalories);
-      console.log(`validateAndCorrectAnalysisCalories: Final_Calories missing, set to ${analysis.Final_Calories}`);
-    } else if (aiCalories < calorieFloor) {
-      console.log(`validateAndCorrectAnalysisCalories: Final_Calories raised from ${aiCalories} to floor ${calorieFloor}`);
-      analysis.Final_Calories = calorieFloor;
-    }
-  }
-
-  // 5. Validate macro grams – recalculate from ratios and Final_Calories if they diverge
-  const finalCals = analysis.Final_Calories;
-  if (finalCals && analysis.macroRatios && analysis.macroGrams) {
-    const grams = analysis.macroGrams;
-    const macroCalories = (grams.protein || 0) * 4 + (grams.carbs || 0) * 4 + (grams.fats || 0) * 9;
-
-    if (Math.abs(macroCalories - finalCals) > CALORIE_CORRECTION_TOLERANCE) {
-      const ratios = analysis.macroRatios;
-      const proteinPct = (ratios.protein || 30) / 100;
-      const fatsPct = (ratios.fats || 30) / 100;
-      const newProtein = Math.round(finalCals * proteinPct / 4);
-      const newFats = Math.round(finalCals * fatsPct / 9);
-      const newCarbs = Math.max(0, Math.round((finalCals - newProtein * 4 - newFats * 9) / 4));
-      console.log(`validateAndCorrectAnalysisCalories: Macros recalculated for Final_Calories=${finalCals}`);
-      analysis.macroGrams = { protein: newProtein, fats: newFats, carbs: newCarbs };
-    }
-  }
-
-  return analysis;
 }
 
 /**
@@ -4019,9 +3894,6 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
-
-      // Validate and correct AI-calculated calorie values against deterministic backend values
-      analysis = validateAndCorrectAnalysisCalories(analysis, data);
     } else {
       // Reuse existing analysis
       analysis = existingPlan.analysis;
@@ -4301,9 +4173,6 @@ async function generatePlanMultiStep(env, data) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
-
-      // Validate and correct AI-calculated calorie values against deterministic backend values
-      analysis = validateAndCorrectAnalysisCalories(analysis, data);
     } catch (error) {
       console.error('Analysis step failed:', error);
       throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
@@ -4676,8 +4545,9 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
 
 ТВОЯТА ЗАДАЧА: Направи структуриран анализ и изчисли финалните препоръчителни калории и макроси за клиента.
 
-⚠️ ВАЖНО: Базовите изчисления (bmr, tdee, baselineMacros) са ВЕЧЕ ИЗЧИСЛЕНИ от бекенда.
-НЕ ги преизчислявай по формула. Използвай ги като база и ги коригирай само чрез корекционни проценти.
+⚠️ ВАЖНО: Базовите изчисления (bmr, tdee) са ВЕЧЕ ИЗЧИСЛЕНИ от бекенда.
+НЕ ги преизчислявай по формула. Копирай ги ТОЧНО в JSON отговора (bmr=${bmr}, tdee=${tdee}).
+Използвай ги като база и ги коригирай само чрез корекционни проценти.
 
 ═══ КЛИЕНТСКИ ДАННИ ═══
 ${JSON.stringify({
@@ -4779,12 +4649,14 @@ ${data.additionalNotes}
 СТЪПКА 4: ФИНАЛНИ КАЛОРИИ
 totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent
 (ограничи на минимум -25%)
-Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
+Final_Calories = round(${tdee} × (1 + totalAdjustmentPercent / 100))
+
+⚠️ Използвай ТОЧНО tdee=${tdee} от бекенда в горната формула — не го преизчислявай!
 
 ⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal (безопасен минимум за ${data.gender}).
 Ако формулата даде по-малко, задай Final_Calories = ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal и посочи в correctedMetabolism.correction причината.
 
-correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
+correctedMetabolism.realBMR = ${bmr}  ← ТОЧНО от бекенда, непроменен
 correctedMetabolism.realTDEE = Final_Calories
 → Резултат: Final_Calories, correctedMetabolism.realBMR, realTDEE, correctionPercent
 
@@ -4847,8 +4719,8 @@ correctedMetabolism.realTDEE = Final_Calories
 {
   "bmi": число,
   "bmiCategory": "текст категория",
-  "bmr": число,
-  "tdee": число,
+  "bmr": ${bmr},
+  "tdee": ${tdee},
   "Final_Calories": число,
   "macroRatios": {
     "protein": число процент,
@@ -4893,7 +4765,7 @@ correctedMetabolism.realTDEE = Final_Calories
     "adaptability": "Ниска/Средна/Висока"
   },
   "correctedMetabolism": {
-    "realBMR": число,
+    "realBMR": ${bmr},
     "realTDEE": число,
     "clinicalAdjustmentPercent": число,
     "metabolicAdjustmentPercent": число,
