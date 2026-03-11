@@ -3652,7 +3652,7 @@
                 mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
                     <div class="meal-name">${isFreeMeal ? 'Свободно хранене' : escapeHtmlWithBreaks(meal.name)}</div>
-                    ${weightLine}${meal.dessert && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}
+                    ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}${weightLine}
                 `;
                 
                 mealCard.appendChild(mealInfo);
@@ -3976,7 +3976,7 @@
                     ? ` • ${escapeHtmlWithBreaks(dessert.weight)}`
                     : '';
                 const descHtml = dessert.description
-                    ? `<span class="meal-dessert-desc">${escapeHtmlWithBreaks(dessert.description)}</span>`
+                    ? `<span class="meal-dessert-desc">- ${escapeHtmlWithBreaks(dessert.description)}</span>`
                     : '';
                 dessertEl.innerHTML = `<i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(dessert.name)}${weightHtml}${descHtml}`;
                 mDesc.insertAdjacentElement('afterend', dessertEl);
