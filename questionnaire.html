@@ -311,7 +311,7 @@
 
         /* --- FOOTER NAVIGATION --- */
         .nav-footer {
-            padding: var(--footer-padding-v) var(--footer-padding-h);
+            padding: var(--footer-padding-v) var(--footer-padding-h) calc(var(--footer-padding-v) + var(--safe-area-inset-bottom)) var(--footer-padding-h);
             background: var(--card-bg);
             display: flex;
             justify-content: space-between;
@@ -978,7 +978,6 @@
 
         // --- JSON DATA (Inserted directly from your file) ---
         const rawQuestions = [
-            { "id": "secBasics", "type": "section", "sectionTitle": "Основни данни" },
             { "id": "name", "text": "Въведете вашето име:", "type": "text", "options": [] },
             { "id": "gender", "text": "Моля, изберете вашия пол:", "type": "radio", "options": ["Мъж", "Жена"] },
             { "id": "age", "text": "Въведете вашата възраст:", "type": "number", "options": [] },
@@ -986,18 +985,15 @@
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
             { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] } },
-            { "id": "secLifestyle", "type": "section", "sectionTitle": "Сън, ритъм и активност" },
             { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
             { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
             { "id": "chronotype", "text": "Вашият хронотип:", "type": "radio", "options": ["Сутрешен", "Вечерен", "Неутрален"] },
             { "id": "dailyActivityLevel", "text": "Ниво на активност през деня:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
             { "id": "stressLevel", "text": "Ниво на стрес:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
             { "id": "sportActivity", "text": "Ниво на спортна активност:", "type": "radio", "options": ["Висока (5–7 дни седмично)", "Средна (2–4 дни седмично)", "Ниска (1–2 дни седмично)", "Никаква (0 дни седмично)"] },
-            { "id": "secHydration", "type": "section", "sectionTitle": "Прием на течности" },
             { "id": "waterIntake", "text": "Колко вода пиете дневно?", "type": "radio", "options": ["под 1 л", "1–1.5 л", "1.5–2 л", "над 2 л"] },
             { "id": "drinksSweet", "text": "Сокове, газирани напитки, фрешове:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
             { "id": "drinksAlcohol", "text": "Напитки с алкохолно съдържание:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
-            { "id": "secEating", "type": "section", "sectionTitle": "Хранене и поведение" },
             { "id": "weightChange", "text": "Имали ли сте рязко покачване на теглото или отслабване в последната една година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и как се справихте с промяната?", "type": "textarea", "options": [] }] } },
             { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
             { "id": "overeatingFrequency", "text": "Колко често ядете повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
@@ -1006,14 +1002,11 @@
             { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна", "Нито една"], "negativeOption": "Нито една" },
             { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true, "negativeOption": "Не" },
             { "id": "socialComparison", "text": "Колко често се сравнявате с други хора (вкл. социални мрежи)?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
-            { "id": "secPreferences", "type": "section", "sectionTitle": "Хранителни предпочитания" },
             { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго", "Нямам предпочитания"], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
             { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [], "optional": true },
             { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
-            { "id": "secMedical", "type": "section", "sectionTitle": "Медицинско състояние" },
             { "id": "medicalConditions", "text": "Имате ли някое от следните медицински състояния?", "type": "checkbox", "options": ["Инсулинова резистентност", "Диабет", "Хашимото", "Депресия", "Тревожност", "IBS", "IBD", "Алергии", "Автоимунно", "Рефлукс", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам", "specialDetailOptions": ["Алергии", "Автоимунно"] },
             { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
-            { "id": "secExtra", "type": "section", "sectionTitle": "Допълнителна информация" },
             { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [] }
         ];
 
@@ -1087,11 +1080,7 @@
         function jumpToLastStep() {
             hideQuickCompleteBanner();
             
-            // Find the last non-section question
             let lastQuestionIndex = currentQueue.length - 1;
-            while (lastQuestionIndex >= 0 && currentQueue[lastQuestionIndex].type === 'section') {
-                lastQuestionIndex--;
-            }
             
             if (lastQuestionIndex >= 0) {
                 // Process all branching logic to build the full queue
@@ -1113,11 +1102,6 @@
                 
                 // Jump to the last question
                 currentIndex = currentQueue.length - 1;
-                
-                // If the last item is a section, go to the one before it
-                if (currentQueue[currentIndex].type === 'section' && currentIndex > 0) {
-                    currentIndex--;
-                }
                 
                 renderStep();
             }
@@ -1147,89 +1131,57 @@
             const isInputOnly = INPUT_ONLY_TYPES.includes(step.type);
             container.classList.toggle('compact', isInputOnly);
 
-            if (step.type === 'section') {
-                renderSectionTitle(card, step);
-                nextBtn.textContent = 'Продължи';
-                nextBtn.removeAttribute('disabled');
-                // Auto-advance logic could go here, but manual is safer UX
-            } else {
-                renderQuestion(card, step);
-                nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
-                validateInput(); // Check if already answered (when going back)
-            }
+            renderQuestion(card, step);
+            nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
+            validateInput(); // Check if already answered (when going back)
 
             container.appendChild(card);
             
-            // Position footer for compact layout (modern-input screens)
-            if (isInputOnly) {
-                positionFooterBelowInput();
-            } else {
-                resetFooterPosition();
-            }
+            // Position footer just below question content
+            positionFooterBelowContent();
             
             // Manage Buttons
             prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
             
-            if(currentIndex === currentQueue.length - 1 && step.type !== 'section') {
+            if(currentIndex === currentQueue.length - 1) {
                 nextBtn.innerHTML = 'Завърши <i class="fas fa-check"></i>';
             }
         }
         
         // --- FOOTER POSITIONING HELPERS ---
-        function positionFooterBelowInput() {
+        function positionFooterBelowContent() {
             // Wait for DOM to render - using CSS variable for delay
             const delay = parseInt(getComputedStyle(document.documentElement)
                 .getPropertyValue('--footer-position-delay-ms')) || 50;
             
             setTimeout(() => {
-                const input = document.querySelector('.modern-input');
+                const card = document.querySelector('.question-card');
                 const footer = document.querySelector('.nav-footer');
                 
-                if (input && footer) {
-                    // Get input position relative to viewport
-                    const inputRect = input.getBoundingClientRect();
+                if (card && footer) {
+                    const cardRect = card.getBoundingClientRect();
+                    const footerHeight = footer.offsetHeight;
+                    const viewportHeight = window.innerHeight;
+                    const gap = 24;
                     
-                    // Get gap from CSS variable
-                    const gap = parseInt(getComputedStyle(document.documentElement)
-                        .getPropertyValue('--footer-input-gap')) || 8;
+                    const idealFooterTop = cardRect.bottom + gap;
                     
-                    // Calculate position: input bottom + gap
-                    const footerTop = inputRect.bottom + gap;
-                    
-                    // Position footer below input
-                    footer.style.position = 'fixed';
-                    footer.style.top = footerTop + 'px';
-                    footer.style.bottom = 'auto';
+                    if (idealFooterTop + footerHeight <= viewportHeight) {
+                        // Content fits above viewport bottom — position footer right after content
+                        footer.style.position = 'fixed';
+                        footer.style.top = idealFooterTop + 'px';
+                        footer.style.bottom = 'auto';
+                    } else {
+                        // Content too long — keep footer anchored to bottom
+                        footer.style.position = 'fixed';
+                        footer.style.top = 'auto';
+                        footer.style.bottom = '0';
+                    }
                 }
             }, delay);
         }
-        
-        function resetFooterPosition() {
-            const footer = document.querySelector('.nav-footer');
-            if (footer) {
-                footer.style.position = 'fixed';
-                footer.style.top = 'auto';
-                footer.style.bottom = '0';
-            }
-        }
 
         // --- RENDER HELPERS ---
-        function renderSectionTitle(card, step) {
-            let icon = 'fa-list-ul';
-            if(step.id.includes('Basics')) icon = 'fa-user';
-            if(step.id.includes('Lifestyle')) icon = 'fa-bed';
-            if(step.id.includes('Hydration')) icon = 'fa-tint';
-            if(step.id.includes('Eating')) icon = 'fa-utensils';
-            if(step.id.includes('Medical')) icon = 'fa-heartbeat';
-
-            card.innerHTML = `
-                <div class="section-title-screen">
-                    <div class="section-icon"><i class="fas ${icon}"></i></div>
-                    <h2 class="section-title-text">${step.sectionTitle}</h2>
-                </div>
-            `;
-        }
-
         function renderQuestion(card, step) {
             const h2 = document.createElement('h2');
             h2.className = 'q-text';
@@ -1520,10 +1472,6 @@
 
         function validateInput() {
             const step = currentQueue[currentIndex];
-            if(step.type === 'section') {
-                nextBtn.disabled = false;
-                return;
-            }
 
             const val = answers[step.id];
             
