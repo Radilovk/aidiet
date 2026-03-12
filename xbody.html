@@ -24,24 +24,40 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         body {
-            /* In PWA standalone mode iOS overlays the status bar (top) and the
-               home-indicator bar (bottom) on top of the app viewport when
-               viewport-fit=cover is set.  Apply safe-area insets as padding so
-               no iframe content ever slides under those system UI elements.
-               constant() = iOS 11.0–11.1 legacy form; env() = iOS 11.2+ and all
-               other modern browsers.  box-sizing keeps the body exactly 100 %
-               tall after padding is added.
-
-               overflow-y: auto overrides the shared overflow:hidden from the
-               body,html rule — this allows the body to scroll when Acuity's
-               embed script resizes the iframe taller than the viewport (the
-               html element keeps overflow:hidden so only the body scrolls).
-               -webkit-overflow-scrolling:touch enables iOS momentum scrolling.
-               overscroll-behavior-y:none stops bounce/pull-to-refresh from
-               leaking out to the system on both iOS and Android. */
-            overflow-y: auto;
+            /* position:fixed prevents iOS from rubber-band-scrolling the body
+               itself.  All actual scrolling is delegated to
+               #acuity-scroll-container below, which is a dedicated overflow
+               container – this pattern is the most reliable way to keep touch
+               scrolling working inside a cross-origin iframe across all iOS
+               browsers (Safari, Chrome, Firefox) in both standalone PWA mode
+               and normal browser tabs. */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+        /* Dedicated scroll container.
+           Using an explicit overflow-y:scroll div (rather than body-level
+           scrolling) avoids a well-known iOS WebKit bug where
+           -webkit-overflow-scrolling:touch is silently dropped for iframes
+           inside a body that has overflow:auto.  touch-action:pan-y tells the
+           browser that this element handles vertical touch scrolling so it
+           should not suppress those events. */
+        #acuity-scroll-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow-y: scroll;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: none;
+            touch-action: pan-y;
+            /* Safe-area padding keeps content away from iOS status bar (top)
+               and home-indicator bar (bottom).
+               constant() = iOS 11.0–11.1; env() = iOS 11.2+ and all others. */
             padding-top: constant(safe-area-inset-top);
             padding-top: env(safe-area-inset-top);
             padding-bottom: constant(safe-area-inset-bottom);
@@ -50,15 +66,52 @@
         }
         iframe {
             width: 100%;
-            height: 100%;
-            /* min-height ensures the iframe fills the safe-area viewport even
-               when embed.js has not yet reported a content height (avoids a
-               momentary collapsed iframe on slow connections).
-               constant() = iOS 11.0-11.1 legacy form; env() overrides on 11.2+. */
+            /* Do NOT set height:100% here – inside a scroll container that
+               would clamp the iframe to the visible viewport height instead of
+               letting it grow to the full content height.  Acuity's embed.js
+               sets an explicit pixel height via inline style; min-height fills
+               the screen during the initial load before embed.js fires. */
             min-height: calc(100vh - constant(safe-area-inset-top) - constant(safe-area-inset-bottom));
             min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
             border: none;
             display: block;
+        }
+
+        /* ── Back navigation button ── */
+        #back-btn {
+            position: fixed;
+            /* Sit just below the iOS status bar (safe-area-inset-top) */
+            top: calc(constant(safe-area-inset-top) + 10px);
+            top: calc(env(safe-area-inset-top, 0px) + 10px);
+            left: 12px;
+            z-index: 500;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.16);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #374151;
+            font-size: 15px;
+            /* Initially invisible and non-interactive; shown by JS */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.12s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #back-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #back-btn:active {
+            transform: scale(0.90);
         }
 
         /* ── PWA Install Modal ── */
@@ -218,10 +271,19 @@
         </div>
     </div>
 
-    <iframe src="https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189" 
-            allow="payment" 
-            frameBorder="0">
-    </iframe>
+    <!-- Back navigation button: hidden on the Acuity home/initial page,
+         shown on all subsequent booking steps (JS controls visibility) -->
+    <button id="back-btn" aria-label="Назад">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <!-- Dedicated scroll container – see CSS comments above -->
+    <div id="acuity-scroll-container">
+        <iframe src="https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189"
+                allow="payment"
+                frameBorder="0">
+        </iframe>
+    </div>
     
     <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript"></script>
 
@@ -359,6 +421,102 @@
 
             /* Hide modal once app is installed */
             window.addEventListener('appinstalled', () => hideModal(true));
+        })();
+
+        /* ── Back navigation button ── */
+        (function () {
+            const btn        = document.getElementById('back-btn');
+            const frame      = document.querySelector('iframe');
+            if (!btn || !frame) return;
+
+            // Store the original src so we can hard-reset the iframe if needed.
+            const originalSrc = frame.src;
+
+            let navDepth = 0; // depth > 0 → button visible
+
+            function setVisible(v) {
+                btn.classList.toggle('visible', !!v);
+            }
+
+            /* ── Strategy A: parent-window history ──────────────────────────
+               Acuity's embed may call window.parent.history.pushState() as
+               the user moves through booking steps.  pushState fires no event
+               so we poll history.length.  We use 1 s – low enough to feel
+               responsive, high enough not to waste CPU. */
+            const baseLen = window.history.length;
+            let prevLen   = baseLen;
+
+            function syncFromHistory() {
+                const cur = window.history.length;
+                if (cur === prevLen) return;
+                navDepth = Math.max(0, cur - baseLen);
+                prevLen  = cur;
+                setVisible(navDepth > 0);
+            }
+
+            window.addEventListener('popstate', () => {
+                navDepth = Math.max(0, window.history.length - baseLen);
+                prevLen  = window.history.length;
+                setVisible(navDepth > 0);
+            });
+
+            setInterval(syncFromHistory, 1000);
+
+            /* ── Strategy B: Acuity postMessage height changes ──────────────
+               Acuity's embed.js forwards "setHeight" messages from the SPA
+               inside the iframe.  Each booking step (calendar → time-slot
+               selector → client-info form → confirmation) has a noticeably
+               different content height.  100 px was chosen because real-world
+               measurements of the Acuity flow show ~150–400 px differences
+               between steps, while normal content reflows within a single page
+               are typically < 60 px.  Adjust if a custom Acuity layout differs
+               significantly. */
+            let homeHeight  = null;
+            let msgNavDepth = 0;
+            const HEIGHT_DELTA = 100; // px – minimum change to count as new page
+
+            window.addEventListener('message', (e) => {
+                if (!e.data || typeof e.data !== 'object') return;
+                if (e.data.action !== 'setHeight' && e.data.action !== 'resize') return;
+                const h = Number(e.data.height);
+                if (!h || !Number.isFinite(h) || h <= 0) return;
+
+                if (homeHeight === null) {
+                    homeHeight = h; // first message = home-page baseline
+                    return;
+                }
+
+                const atHome = Math.abs(h - homeHeight) < HEIGHT_DELTA;
+                msgNavDepth  = atHome ? 0 : 1;
+
+                // Only use message-depth when parent history hasn't kicked in
+                if (navDepth === 0) setVisible(msgNavDepth > 0);
+            });
+
+            /* ── Back button click ──────────────────────────────────────────
+               Prefer parent history (Strategy A); fall back to iframe history;
+               last resort: reload the iframe to the original src. */
+            btn.addEventListener('click', () => {
+                if (window.history.length > baseLen) {
+                    window.history.back();
+                    return;
+                }
+                try {
+                    frame.contentWindow.history.back();
+                } catch (_) {
+                    // Cross-origin history access denied – hard-reset the frame
+                    frame.src = originalSrc;
+                    navDepth    = 0;
+                    msgNavDepth = 0;
+                    homeHeight  = null; // re-baseline on next setHeight message
+                    setVisible(false);
+                    return;
+                }
+                // Optimistically reduce depth while waiting for height update
+                navDepth    = Math.max(0, navDepth    - 1);
+                msgNavDepth = Math.max(0, msgNavDepth - 1);
+                setVisible(navDepth > 0 || msgNavDepth > 0);
+            });
         })();
     </script>
 </body>
