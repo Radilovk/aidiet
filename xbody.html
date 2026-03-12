@@ -105,6 +105,9 @@
             pointer-events: none;
             transition: opacity 0.25s ease, transform 0.12s ease;
             -webkit-tap-highlight-color: transparent;
+            /* Eliminates the 300 ms tap delay on iOS without disabling zoom
+               for the rest of the page. */
+            touch-action: manipulation;
         }
         #back-btn.visible {
             opacity: 1;
@@ -257,7 +260,7 @@
             <!-- iOS step-by-step instructions (shown only on iOS) -->
             <div class="pwa-ios-steps" id="pwaIosSteps" style="display:none;">
                 <ol>
-                    <li>Натисни бутона <img id="pwaShareIcon" class="pwa-ios-share-icon" alt="Споделяне"> <strong>Споделяне</strong> в долната лента</li>
+                    <li>Натисни иконата <img id="pwaShareIcon" class="pwa-ios-share-icon" alt="Споделяне"> <strong>Споделяне</strong> в лентата на браузъра</li>
                     <li>Избери <strong>„Добави към начален екран"</strong></li>
                     <li>Натисни <strong>„Добавяне"</strong></li>
                 </ol>
@@ -295,6 +298,26 @@
             });
         }
 
+        /* ── iOS scroll-container recovery on app resume ──────────────────────
+           When an iOS PWA (or an iOS browser tab) returns from the background,
+           WebKit sometimes freezes the overflow:scroll layer that drives the
+           Acuity iframe.  The user can see the content but can no longer scroll.
+           Nudging scrollTop by 1 px and immediately restoring it forces WebKit
+           to re-evaluate the compositing layer without any visible jump.
+           50 ms is the minimum delay observed to give WebKit enough time to
+           commit the first scrollTop mutation before we restore the value;
+           shorter values (< 16 ms) are absorbed by the rendering pipeline and
+           the nudge has no effect. */
+        var WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS = 50;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) return;
+            var sc = document.getElementById('acuity-scroll-container');
+            if (!sc) return;
+            var saved = sc.scrollTop;
+            sc.scrollTop = saved + 1;
+            setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
+        });
+
         /* ── PWA Install Logic ── */
         (function () {
             const DISMISS_KEY  = 'xbody_pwa_dismissed';
@@ -302,11 +325,16 @@
             const MS_PER_DAY   = 86400000;
 
             // Platform detection
-            const ua        = navigator.userAgent;
-            const isIOS     = /iPhone|iPad|iPod/i.test(ua);
+            const ua = navigator.userAgent;
+            // iPadOS 13+ identifies itself as "Macintosh" in UA; distinguish it
+            // from a real Mac by checking for touch support.
+            const isIOS     = /iPhone|iPad|iPod/i.test(ua) ||
+                              (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
             const isAndroid = /Android/i.test(ua);
-            const isSafari  = /Safari/i.test(ua) && !/Chrome/i.test(ua);
-            const isMobile  = isIOS || isAndroid;
+            // CriOS = Chrome for iOS, FxiOS = Firefox for iOS – both report
+            // "Safari" in their UA so we need to exclude them explicitly.
+            const isSafari  = /Safari/i.test(ua) && !/Chrome/i.test(ua) &&
+                              !/CriOS/i.test(ua)  && !/FxiOS/i.test(ua);
 
             // Check if already running as installed PWA
             function isStandalone() {
@@ -366,15 +394,19 @@
                 if (e.target === overlay) hideModal(true);
             });
 
-            /* ── iOS Safari: show step-by-step instructions ── */
-            if (isIOS && isSafari && !isStandalone() && !wasDismissedRecently()) {
+            /* ── iOS (all browsers): show step-by-step Add-to-Home-Screen guide ──
+               On iOS every browser (Safari, Chrome, Firefox) uses the same
+               share-sheet mechanism to add a page to the Home Screen.
+               beforeinstallprompt is never fired on iOS, so we show the guide
+               for every iOS browser when the app is not yet installed. */
+            if (isIOS && !isStandalone() && !wasDismissedRecently()) {
                 shareIcon.src = shareIconSrc();
                 iosSteps.style.display = 'block';
                 subtitle.textContent = 'Следвай стъпките по-долу, за да добавиш XBody към началния екран:';
                 setBtn('fab fa-apple', 'Разбрах!');
                 installBtn.addEventListener('click', () => hideModal(true));
                 setTimeout(showModal, 1500);
-                return; // iOS Safari never fires beforeinstallprompt
+                return; // iOS never fires beforeinstallprompt
             }
 
             /* ── Android / Desktop: native one-tap install via beforeinstallprompt ── */
@@ -474,9 +506,25 @@
             let homeHeight  = null;
             let msgNavDepth = 0;
             const HEIGHT_DELTA = 100; // px – minimum change to count as new page
+            // NOTE: this heuristic is calibrated for the default Acuity booking
+            // flow where step-to-step height differences are 150–400 px.  If the
+            // Acuity layout is customised (e.g. a compact theme or a multi-column
+            // responsive breakpoint), the threshold may need adjustment.
 
             window.addEventListener('message', (e) => {
                 if (!e.data || typeof e.data !== 'object') return;
+
+                // "loaded" fires when Acuity finishes rendering its initial
+                // (home) view — e.g. after the user taps Back all the way to
+                // the start or after the iframe is hard-reset.  Use it to
+                // reset all depth counters and hide the back button reliably.
+                if (e.data.action === 'loaded') {
+                    homeHeight  = null; // re-baseline on next setHeight
+                    msgNavDepth = 0;
+                    if (navDepth === 0) setVisible(false);
+                    return;
+                }
+
                 if (e.data.action !== 'setHeight' && e.data.action !== 'resize') return;
                 const h = Number(e.data.height);
                 if (!h || !Number.isFinite(h) || h <= 0) return;
