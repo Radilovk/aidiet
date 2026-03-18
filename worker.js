@@ -1439,6 +1439,7 @@ async function getDynamicFoodListsSections(env) {
   }
   let dynamicWhitelist = [];
   let dynamicBlacklist = [];
+  let dynamicMainlist = [];
   
   try {
     if (env && env.page_content) {
@@ -1451,9 +1452,14 @@ async function getDynamicFoodListsSections(env) {
       if (blacklistData) {
         dynamicBlacklist = JSON.parse(blacklistData);
       }
+
+      const mainlistData = await env.page_content.get('food_mainlist');
+      if (mainlistData) {
+        dynamicMainlist = JSON.parse(mainlistData);
+      }
     }
   } catch (error) {
-    console.error('Error loading whitelist/blacklist from KV:', error);
+    console.error('Error loading whitelist/blacklist/mainlist from KV:', error);
   }
   
   // Normalize blacklist entries: backward-compat with old string[] format
@@ -1466,6 +1472,18 @@ async function getDynamicFoodListsSections(env) {
     .filter(e => e.mode === 'substitute' && e.substitute)
     .map(e => ({ detect: e.item, replace: e.substitute }))
     .sort((a, b) => b.detect.length - a.detect.length);
+
+  // Build mainlist section — strict enforcement: AI MUST use only these foods
+  let dynamicMainlistSection = '';
+  if (dynamicMainlist.length > 0) {
+    // Keep the joined list compact; truncate if it would be excessively long
+    const joined = dynamicMainlist.join(', ');
+    const MAX_MAINLIST_CHARS = 1500;
+    const displayList = joined.length > MAX_MAINLIST_CHARS
+      ? joined.slice(0, MAX_MAINLIST_CHARS) + '… [списъкът е съкратен]'
+      : joined;
+    dynamicMainlistSection = `\nОСНОВЕН СПИСЪК ХРАНИ (ЗАДЪЛЖИТЕЛНО): Използвай САМО тези продукти: ${displayList}. Изключение: единствено при категорична медицинска противопоказност (алергия, заболяване) на конкретния потребител.`;
+  }
 
   // Build dynamic whitelist section if there are custom items
   let dynamicWhitelistSection = '';
@@ -1489,7 +1507,7 @@ async function getDynamicFoodListsSections(env) {
   }
   
   // Cache the result
-  const result = { dynamicWhitelistSection, dynamicBlacklistSection, dynamicSubstitutions };
+  const result = { dynamicWhitelistSection, dynamicBlacklistSection, dynamicMainlistSection, dynamicSubstitutions };
   foodListsCache = result;
   foodListsCacheTime = now;
   
@@ -1658,14 +1676,16 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   };
   
   // Use cached food lists if provided, otherwise fetch (optimization)
-  let dynamicWhitelistSection, dynamicBlacklistSection;
+  let dynamicWhitelistSection, dynamicBlacklistSection, dynamicMainlistSection;
   if (cachedFoodLists) {
     dynamicWhitelistSection = cachedFoodLists.dynamicWhitelistSection;
     dynamicBlacklistSection = cachedFoodLists.dynamicBlacklistSection;
+    dynamicMainlistSection = cachedFoodLists.dynamicMainlistSection || '';
   } else {
     const foodLists = await getDynamicFoodListsSections(env);
     dynamicWhitelistSection = foodLists.dynamicWhitelistSection;
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
+    dynamicMainlistSection = foodLists.dynamicMainlistSection || '';
   }
   
   // Build medical details section for meal plan prompt
@@ -1780,7 +1800,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
 
 HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
 РЯДКО (≤2x/седмица): бекон, пуешка шунка
-WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
+${dynamicMainlistSection ? dynamicMainlistSection + '\n' : ''}WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 ПРАВИЛА ЗА ИЗХОД:
 • Естествен български език - БЕЗ технически кодове ([PRO], [ENG])
@@ -1890,6 +1910,7 @@ ${jsonExample.join(',\n')}
       previousDaysContext,
       dynamicWhitelistSection,
       dynamicBlacklistSection,
+      dynamicMainlistSection,
       dietLove: data.dietLove || 'няма',
       dietDislike: data.dietDislike || 'няма',
       goal_other: data.goal_other || '',
@@ -7035,11 +7056,117 @@ async function handleRemoveFromWhitelist(request, env) {
 }
 
 /**
- * Web Push Protocol Implementation
- * 
- * Helper functions to implement Web Push protocol with VAPID authentication
- * without external dependencies, using Web Crypto API available in Cloudflare Workers.
+ * Mainlist Management: Get mainlist from KV storage.
+ * Returns a flat string array of approved food products.
  */
+async function handleGetMainlist(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ success: true, mainlist: [] });
+    }
+    const mainlistData = await env.page_content.get('food_mainlist');
+    const mainlist = mainlistData ? JSON.parse(mainlistData) : [];
+    return jsonResponse({ success: true, mainlist }, 200, {
+      cacheControl: 'private, max-age=300'
+    });
+  } catch (error) {
+    console.error('Error getting mainlist:', error);
+    return jsonResponse({ error: `Failed to get mainlist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Management: Bulk-replace mainlist with a new set of items.
+ * Accepts { items: string[] } — the full new list.
+ */
+async function handleSetMainlist(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const data = await request.json();
+    const items = (data.items || [])
+      .map(i => (typeof i === 'string' ? i.trim().toLowerCase() : ''))
+      .filter(Boolean);
+    await env.page_content.put('food_mainlist', JSON.stringify(items));
+    invalidateFoodListsCache();
+    return jsonResponse({ success: true, mainlist: items });
+  } catch (error) {
+    console.error('Error setting mainlist:', error);
+    return jsonResponse({ error: `Failed to set mainlist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Management: Add a single item to the mainlist.
+ * Accepts { item: string }.
+ */
+async function handleAddToMainlist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const mainlistData = await env.page_content.get('food_mainlist');
+    let mainlist = mainlistData ? JSON.parse(mainlistData) : [];
+    if (!mainlist.includes(item)) {
+      mainlist.push(item);
+      await env.page_content.put('food_mainlist', JSON.stringify(mainlist));
+      invalidateFoodListsCache();
+    }
+    return jsonResponse({ success: true, mainlist });
+  } catch (error) {
+    console.error('Error adding to mainlist:', error);
+    return jsonResponse({ error: `Failed to add to mainlist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Management: Remove a single item from the mainlist.
+ * Accepts { item: string }.
+ */
+async function handleRemoveFromMainlist(request, env) {
+  try {
+    const data = await request.json();
+    const item = data.item?.trim()?.toLowerCase();
+    if (!item) {
+      return jsonResponse({ error: 'Item is required' }, 400);
+    }
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const mainlistData = await env.page_content.get('food_mainlist');
+    let mainlist = mainlistData ? JSON.parse(mainlistData) : [];
+    mainlist = mainlist.filter(i => i !== item);
+    await env.page_content.put('food_mainlist', JSON.stringify(mainlist));
+    invalidateFoodListsCache();
+    return jsonResponse({ success: true, mainlist });
+  } catch (error) {
+    console.error('Error removing from mainlist:', error);
+    return jsonResponse({ error: `Failed to remove from mainlist: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Management: Clear the entire mainlist.
+ */
+async function handleClearMainlist(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    await env.page_content.put('food_mainlist', JSON.stringify([]));
+    invalidateFoodListsCache();
+    return jsonResponse({ success: true, mainlist: [] });
+  } catch (error) {
+    console.error('Error clearing mainlist:', error);
+    return jsonResponse({ error: `Failed to clear mainlist: ${error.message}` }, 500);
+  }
+}
 
 /**
  * Convert base64url string to Uint8Array
@@ -8339,6 +8466,16 @@ export default {
         return await handleAddToWhitelist(request, env);
       } else if (url.pathname === '/api/admin/remove-from-whitelist' && request.method === 'POST') {
         return await handleRemoveFromWhitelist(request, env);
+      } else if (url.pathname === '/api/admin/get-mainlist' && request.method === 'GET') {
+        return await handleGetMainlist(request, env);
+      } else if (url.pathname === '/api/admin/set-mainlist' && request.method === 'POST') {
+        return await handleSetMainlist(request, env);
+      } else if (url.pathname === '/api/admin/add-to-mainlist' && request.method === 'POST') {
+        return await handleAddToMainlist(request, env);
+      } else if (url.pathname === '/api/admin/remove-from-mainlist' && request.method === 'POST') {
+        return await handleRemoveFromMainlist(request, env);
+      } else if (url.pathname === '/api/admin/clear-mainlist' && request.method === 'POST') {
+        return await handleClearMainlist(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
