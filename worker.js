@@ -2043,8 +2043,8 @@ ${modLines.join('\n')}
   // Build sweets craving rule for legacy prompt
   const sweetsCravingRuleLegacy = userHasSweetsCraving(data.foodCravings) && strategy?.includeDessert !== false ? SWEETS_CRAVING_RULE_TEXT : '';
   
-  // Fetch dynamic whitelist and blacklist from KV storage
-  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
+  // Fetch dynamic whitelist, blacklist and mainlist from KV storage
+  const { dynamicWhitelistSection, dynamicBlacklistSection, dynamicMainlistSection } = await getDynamicFoodListsSections(env);
   
   // Create compact strategy (no full JSON)
   const strategyCompact = {
@@ -2076,6 +2076,7 @@ ${modLines.join('\n')}
       modificationsSection: modificationsSection,
       dynamicWhitelistSection: dynamicWhitelistSection,
       dynamicBlacklistSection: dynamicBlacklistSection,
+      dynamicMainlistSection: dynamicMainlistSection || '',
       errorPreventionComment: errorPreventionComment || '',
       mealCount: strategy.mealCount || 3,
       medicalConditions: JSON.stringify(data.medicalConditions || []),
@@ -2138,7 +2139,7 @@ BMR (изчислен): ${bmr} kcal
 
 ${modificationsSection}
 
-${dynamicWhitelistSection}
+${dynamicMainlistSection ? dynamicMainlistSection + '\n' : ''}${dynamicWhitelistSection}
 ${dynamicBlacklistSection}
 
 === ADLE v5.1 - АРХИТЕКТУРА НА ХРАНЕНЕТО ===
@@ -2241,8 +2242,8 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   const foodsToInclude = strategy.foodsToInclude || [];
   const foodsToAvoid = strategy.foodsToAvoid || [];
   
-  // Fetch dynamic whitelist and blacklist from KV storage (FIX: was missing from summary step)
-  const { dynamicWhitelistSection, dynamicBlacklistSection } = await getDynamicFoodListsSections(env);
+  // Fetch dynamic whitelist, blacklist and mainlist from KV storage (FIX: was missing from summary step)
+  const { dynamicWhitelistSection, dynamicBlacklistSection, dynamicMainlistSection } = await getDynamicFoodListsSections(env);
   
   // Extract health analysis context for supplement recommendations
   const healthContext = {
@@ -2274,7 +2275,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
 ПСИХОЛОГИЧЕСКИ ПРОФИЛ: ${(analysis.psychologicalProfile || '').substring(0, 300)}
 ТИП ДИЕТА: ${strategy.dietType || strategy.dietaryModifier || 'балансирана'}
 
-ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Медикаменти: ${healthContext.medications}${extraHealthContext ? ` | ${extraHealthContext}` : ''}${dynamicWhitelistSection}${dynamicBlacklistSection}
+ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Медикаменти: ${healthContext.medications}${extraHealthContext ? ` | ${extraHealthContext}` : ''}${dynamicMainlistSection ? '\n' + dynamicMainlistSection : ''}${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 JSON (ТОЧЕН ФОРМАТ):
 {
@@ -2307,6 +2308,7 @@ JSON (ТОЧЕН ФОРМАТ):
       avgFats: avgFats,
       dynamicWhitelistSection: dynamicWhitelistSection,
       dynamicBlacklistSection: dynamicBlacklistSection,
+      dynamicMainlistSection: dynamicMainlistSection || '',
       name: data.name,
       goal: data.goal,
       keyProblems: healthContext.keyProblems || 'няма',
