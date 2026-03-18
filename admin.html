@@ -1572,6 +1572,49 @@
                 </div>
             </div>
 
+            <!-- Mainlist Management -->
+            <div class="card">
+                <h2><i class="fas fa-list-ul"></i> Основен Списък с Храни (Mainlist)</h2>
+                <div class="info-box" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                    <strong>Важно:</strong> Основният списък е <strong>задължителен</strong> — AI-то ще генерира планове САМО от тези хранителни продукти. Изключение се допуска единствено при категорична медицинска противопоказност (алергия или заболяване) на конкретния потребител.
+                </div>
+                <div class="form-group">
+                    <label>Текущ Основен Списък:</label>
+                    <div id="mainlistDisplay" style="padding: 15px; background: #fffbe6; border-radius: 8px; margin-bottom: 15px; min-height: 80px; border: 1px solid #ffc107;">
+                        <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                            Натиснете "Опресни Списъка", за да видите основния списък.
+                        </p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Масово качване на списък (всяка храна на нов ред или разделени със запетая):</label>
+                    <textarea id="mainlistBulkInput" rows="6" placeholder="Пример:&#10;пилешки гърди&#10;сьомга&#10;броколи, спанак, морков&#10;кисело мляко&#10;овесени ядки" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.95em; resize: vertical;"></textarea>
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        Въведете храните на български. Поддържа нов ред или запетая като разделител. <strong>Качването замества целия текущ списък.</strong>
+                    </small>
+                    <div style="margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn" onclick="uploadMainlist()" style="background: #ffc107; color: #212529;">
+                            <i class="fas fa-upload"></i> Качи Списъка
+                        </button>
+                        <button class="btn" onclick="clearMainlist()" style="background: var(--accent-light-red);">
+                            <i class="fas fa-trash"></i> Изчисти Всичко
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Добави отделна храна:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="mainlistInput" placeholder="Напр: пилешки гърди" style="flex: 1;">
+                        <button class="btn" onclick="addToMainlist()" style="background: #ffc107; color: #212529;">
+                            <i class="fas fa-plus"></i> Добави
+                        </button>
+                    </div>
+                </div>
+                <button class="btn" onclick="loadMainlist()" style="background: var(--accent-blue); margin-top: 10px;">
+                    <i class="fas fa-sync"></i> Опресни Списъка
+                </button>
+            </div>
+
             <!-- Blacklist Management -->
             <div class="card">
                 <h2><i class="fas fa-ban"></i> Управление на Черен Списък с Храни</h2>
@@ -1849,6 +1892,7 @@
             config: 5 * 60 * 1000,        // 5 minutes for config data
             blacklist: 5 * 60 * 1000,     // 5 minutes for blacklist
             whitelist: 5 * 60 * 1000,     // 5 minutes for whitelist
+            mainlist: 5 * 60 * 1000,      // 5 minutes for mainlist
             reports: 2 * 60 * 1000,       // 2 minutes for reports (more dynamic)
             defaultPrompts: 30 * 60 * 1000, // 30 minutes for default prompts (rarely change)
             aiLogs: 1 * 60 * 1000         // 1 minute for AI logs (frequently updated)
@@ -1942,6 +1986,11 @@
         function invalidateWhitelistCache() {
             apiCache.clear('admin:whitelist');
             console.log('[Cache] Invalidated whitelist cache');
+        }
+
+        function invalidateMainlistCache() {
+            apiCache.clear('admin:mainlist');
+            console.log('[Cache] Invalidated mainlist cache');
         }
 
         function invalidateReportsCache() {
@@ -3816,6 +3865,145 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 currentWhitelist.splice(index, 1);
                 displayWhitelist();
                 showSuccess(`"${item}" е премахната локално от белия списък!`);
+            }
+        }
+
+        // ============================================================================
+        // MAINLIST MANAGEMENT
+        // ============================================================================
+        let currentMainlist = [];
+
+        async function loadMainlist() {
+            try {
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-mainlist',
+                    'admin:mainlist',
+                    CACHE_CONFIG.mainlist
+                );
+                currentMainlist = result.mainlist || [];
+                displayMainlist();
+                showSuccess('Основният списък е зареден успешно!');
+            } catch (error) {
+                console.error('Error loading mainlist:', error);
+                currentMainlist = [];
+                displayMainlist();
+                showError('Не може да се зареди основният списък. Моля, опитайте отново.');
+            }
+        }
+
+        function displayMainlist() {
+            const container = document.getElementById('mainlistDisplay');
+            if (currentMainlist.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-gray); text-align: center;">Основният списък е празен — AI-то може да избира от всички разрешени хранителни продукти.</p>';
+                return;
+            }
+            const itemsHTML = currentMainlist.map((item, index) => `
+                <div style="display: inline-flex; align-items: center; background: #fff3cd; color: #856404; border: 1px solid #ffc107; padding: 5px 11px; border-radius: 20px; gap: 7px; font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                    <span>${escapeHtml(item)}</span>
+                    <button onclick="removeFromMainlist(${index})" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; opacity: 0.7;" title="Премахни">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>`).join('');
+            container.innerHTML = `<div style="display: flex; flex-wrap: wrap; gap: 8px;">${itemsHTML}</div>
+                <p style="margin-top: 10px; font-size: 0.85em; color: var(--text-gray);">Общо: <strong>${currentMainlist.length}</strong> продукта</p>`;
+        }
+
+        async function uploadMainlist() {
+            const textarea = document.getElementById('mainlistBulkInput');
+            const raw = textarea.value.trim();
+            if (!raw) { showError('Моля, въведете поне един хранителен продукт.'); return; }
+            // Split by newline or comma, trim, lowercase, remove empty
+            const items = raw.split(/[\n,]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+            if (items.length === 0) { showError('Не са намерени валидни продукти.'); return; }
+            if (!confirm(`Ще замените целия основен списък с ${items.length} продукта. Продължавате?`)) return;
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/set-mainlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                if (!response.ok) throw new Error('Failed to set mainlist');
+                const result = await response.json();
+                currentMainlist = result.mainlist || items;
+                invalidateMainlistCache();
+                displayMainlist();
+                textarea.value = '';
+                showSuccess(`Основният списък е обновен с ${currentMainlist.length} продукта!`);
+            } catch (error) {
+                console.error('Error uploading mainlist:', error);
+                currentMainlist = items;
+                displayMainlist();
+                textarea.value = '';
+                showSuccess(`Основният списък е обновен локално с ${items.length} продукта!`);
+            }
+        }
+
+        async function addToMainlist() {
+            const input = document.getElementById('mainlistInput');
+            const item = input.value.trim().toLowerCase();
+            if (!item) { showError('Моля, въведете наименование на храна.'); return; }
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/add-to-mainlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item })
+                });
+                if (!response.ok) throw new Error('Failed to add to mainlist');
+                const result = await response.json();
+                currentMainlist = result.mainlist || [...currentMainlist, item];
+                invalidateMainlistCache();
+                displayMainlist();
+                input.value = '';
+                showSuccess(`"${item}" е добавена в основния списък!`);
+            } catch (error) {
+                console.error('Error adding to mainlist:', error);
+                if (!currentMainlist.includes(item)) currentMainlist.push(item);
+                displayMainlist();
+                input.value = '';
+                showSuccess(`"${item}" е добавена локално!`);
+            }
+        }
+
+        async function removeFromMainlist(index) {
+            const item = currentMainlist[index];
+            if (!confirm(`Сигурни ли сте, че искате да премахнете "${item}" от основния списък?`)) return;
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/remove-from-mainlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item })
+                });
+                if (!response.ok) throw new Error('Failed to remove from mainlist');
+                const result = await response.json();
+                currentMainlist = result.mainlist || currentMainlist.filter((_, i) => i !== index);
+                invalidateMainlistCache();
+                displayMainlist();
+                showSuccess(`"${item}" е премахната от основния списък!`);
+            } catch (error) {
+                console.error('Error removing from mainlist:', error);
+                currentMainlist.splice(index, 1);
+                displayMainlist();
+                showSuccess(`"${item}" е премахната локално!`);
+            }
+        }
+
+        async function clearMainlist() {
+            if (!confirm('Сигурни ли сте, че искате да изчистите целия основен списък? Това ще позволи на AI-то да избира свободно.')) return;
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/clear-mainlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) throw new Error('Failed to clear mainlist');
+                currentMainlist = [];
+                invalidateMainlistCache();
+                displayMainlist();
+                showSuccess('Основният списък е изчистен!');
+            } catch (error) {
+                console.error('Error clearing mainlist:', error);
+                currentMainlist = [];
+                displayMainlist();
+                showSuccess('Основният списък е изчистен локално!');
             }
         }
 
