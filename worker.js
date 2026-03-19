@@ -1440,6 +1440,7 @@ async function getDynamicFoodListsSections(env) {
   let dynamicWhitelist = [];
   let dynamicBlacklist = [];
   let dynamicMainlist = [];
+  let mainlistEnabled = true; // default: enabled
   
   try {
     if (env && env.page_content) {
@@ -1457,9 +1458,19 @@ async function getDynamicFoodListsSections(env) {
       if (mainlistData) {
         dynamicMainlist = JSON.parse(mainlistData);
       }
+
+      const mainlistEnabledData = await env.page_content.get('food_mainlist_enabled');
+      if (mainlistEnabledData !== null) {
+        mainlistEnabled = mainlistEnabledData !== 'false';
+      }
     }
   } catch (error) {
     console.error('Error loading whitelist/blacklist/mainlist from KV:', error);
+  }
+
+  // Deactivate mainlist if explicitly disabled
+  if (!mainlistEnabled) {
+    dynamicMainlist = [];
   }
   
   // Normalize blacklist entries: backward-compat with old string[] format
@@ -1485,9 +1496,11 @@ async function getDynamicFoodListsSections(env) {
     dynamicMainlistSection = `\nОСНОВЕН СПИСЪК ХРАНИ (ЗАДЪЛЖИТЕЛНО): Използвай САМО тези продукти: ${displayList}. Изключение: единствено при категорична медицинска противопоказност (алергия, заболяване) на конкретния потребител.`;
   }
 
-  // Build dynamic whitelist section if there are custom items
+  // Build dynamic whitelist section — suppressed when mainlist is active (mainlist takes exclusive priority).
+  // Note: checking dynamicMainlist.length === 0 is sufficient because a disabled mainlist is already
+  // cleared to [] at the 'Deactivate mainlist if explicitly disabled' block above.
   let dynamicWhitelistSection = '';
-  if (dynamicWhitelist.length > 0) {
+  if (dynamicWhitelist.length > 0 && dynamicMainlist.length === 0) {
     dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
   }
   
@@ -1740,8 +1753,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
 Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
 МОДИФИКАТОР (Диетичен филтър): "${dietaryModifier}"
-Модификаторът филтрира кои храни са ПОЗВОЛЕНИ от универсалната база.
-
+Модификаторът филтрира кои храни са ПОЗВОЛЕНИ от универсалната база.${dynamicMainlistSection}
 УНИВЕРСАЛНА БАЗА ОТ РЕСУРСИ (Категории храни):
 [PRO] БЕЛТЪК - Основен градивен елемент:
   • Животински: месо (пилешко, говеждо, свинско), риба, яйца, млечни (сирене, извара, кисело мляко)
@@ -1800,7 +1812,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
 
 HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
 РЯДКО (≤2x/седмица): бекон, пуешка шунка
-${dynamicMainlistSection ? dynamicMainlistSection + '\n' : ''}WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
+${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 ПРАВИЛА ЗА ИЗХОД:
 • Естествен български език - БЕЗ технически кодове ([PRO], [ENG])
@@ -7171,6 +7183,140 @@ async function handleClearMainlist(request, env) {
 }
 
 /**
+ * Mainlist Management: Get enabled status.
+ */
+async function handleGetMainlistStatus(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ success: true, enabled: true });
+    }
+    const val = await env.page_content.get('food_mainlist_enabled');
+    const enabled = val === null ? true : val !== 'false';
+    return jsonResponse({ success: true, enabled }, 200, { cacheControl: 'no-cache' });
+  } catch (error) {
+    console.error('Error getting mainlist status:', error);
+    return jsonResponse({ error: `Failed to get mainlist status: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Management: Enable or disable the mainlist enforcement.
+ * Accepts { enabled: boolean }.
+ */
+async function handleSetMainlistEnabled(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const data = await request.json();
+    const enabled = data.enabled !== false && data.enabled !== 'false';
+    await env.page_content.put('food_mainlist_enabled', enabled ? 'true' : 'false');
+    invalidateFoodListsCache();
+    return jsonResponse({ success: true, enabled });
+  } catch (error) {
+    console.error('Error setting mainlist enabled:', error);
+    return jsonResponse({ error: `Failed to set mainlist status: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Presets: Get list of saved preset names.
+ */
+async function handleGetMainlistPresets(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ success: true, presets: [] });
+    }
+    const raw = await env.page_content.get('food_mainlist_presets');
+    const presets = raw ? Object.keys(JSON.parse(raw)) : [];
+    return jsonResponse({ success: true, presets }, 200, { cacheControl: 'no-cache' });
+  } catch (error) {
+    console.error('Error getting mainlist presets:', error);
+    return jsonResponse({ error: `Failed to get presets: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Presets: Save current mainlist as a named preset.
+ * Accepts { name: string }.
+ */
+async function handleSaveMainlistPreset(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const data = await request.json();
+    const name = (data.name || '').trim();
+    if (!name) return jsonResponse({ error: 'Preset name is required' }, 400);
+    const mainlistData = await env.page_content.get('food_mainlist');
+    const mainlist = mainlistData ? JSON.parse(mainlistData) : [];
+    const raw = await env.page_content.get('food_mainlist_presets');
+    const presets = raw ? JSON.parse(raw) : {};
+    presets[name] = mainlist;
+    await env.page_content.put('food_mainlist_presets', JSON.stringify(presets));
+    return jsonResponse({ success: true, presets: Object.keys(presets) });
+  } catch (error) {
+    console.error('Error saving mainlist preset:', error);
+    return jsonResponse({ error: `Failed to save preset: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Presets: Load a named preset as the active mainlist and enable it.
+ * Accepts { name: string }.
+ */
+async function handleLoadMainlistPreset(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const data = await request.json();
+    const name = (data.name || '').trim();
+    if (!name) return jsonResponse({ error: 'Preset name is required' }, 400);
+    const raw = await env.page_content.get('food_mainlist_presets');
+    const presets = raw ? JSON.parse(raw) : {};
+    if (!(name in presets)) return jsonResponse({ error: `Preset "${name}" not found` }, 404);
+    const items = presets[name];
+    if (!Array.isArray(items)) {
+      return jsonResponse({ error: `Preset "${name}" has invalid format` }, 400);
+    }
+    if (items.length === 0) {
+      return jsonResponse({ error: `Preset "${name}" is empty and cannot be loaded` }, 400);
+    }
+    await env.page_content.put('food_mainlist', JSON.stringify(items));
+    await env.page_content.put('food_mainlist_enabled', 'true');
+    invalidateFoodListsCache();
+    return jsonResponse({ success: true, mainlist: items, enabled: true });
+  } catch (error) {
+    console.error('Error loading mainlist preset:', error);
+    return jsonResponse({ error: `Failed to load preset: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Mainlist Presets: Delete a named preset.
+ * Accepts { name: string }.
+ */
+async function handleDeleteMainlistPreset(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const data = await request.json();
+    const name = (data.name || '').trim();
+    if (!name) return jsonResponse({ error: 'Preset name is required' }, 400);
+    const raw = await env.page_content.get('food_mainlist_presets');
+    const presets = raw ? JSON.parse(raw) : {};
+    delete presets[name];
+    await env.page_content.put('food_mainlist_presets', JSON.stringify(presets));
+    return jsonResponse({ success: true, presets: Object.keys(presets) });
+  } catch (error) {
+    console.error('Error deleting mainlist preset:', error);
+    return jsonResponse({ error: `Failed to delete preset: ${error.message}` }, 500);
+  }
+}
+
+/**
  * Convert base64url string to Uint8Array
  */
 function base64UrlToUint8Array(base64String) {
@@ -8478,6 +8624,18 @@ export default {
         return await handleRemoveFromMainlist(request, env);
       } else if (url.pathname === '/api/admin/clear-mainlist' && request.method === 'POST') {
         return await handleClearMainlist(request, env);
+      } else if (url.pathname === '/api/admin/get-mainlist-status' && request.method === 'GET') {
+        return await handleGetMainlistStatus(request, env);
+      } else if (url.pathname === '/api/admin/set-mainlist-enabled' && request.method === 'POST') {
+        return await handleSetMainlistEnabled(request, env);
+      } else if (url.pathname === '/api/admin/get-mainlist-presets' && request.method === 'GET') {
+        return await handleGetMainlistPresets(request, env);
+      } else if (url.pathname === '/api/admin/save-mainlist-preset' && request.method === 'POST') {
+        return await handleSaveMainlistPreset(request, env);
+      } else if (url.pathname === '/api/admin/load-mainlist-preset' && request.method === 'POST') {
+        return await handleLoadMainlistPreset(request, env);
+      } else if (url.pathname === '/api/admin/delete-mainlist-preset' && request.method === 'POST') {
+        return await handleDeleteMainlistPreset(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {

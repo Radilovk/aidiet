@@ -1578,6 +1578,37 @@
                 <div class="info-box" style="background: #fff3cd; border-left: 4px solid #ffc107;">
                     <strong>Важно:</strong> Основният списък е <strong>задължителен</strong> — AI-то ще генерира планове САМО от тези хранителни продукти. Изключение се допуска единствено при категорична медицинска противопоказност (алергия или заболяване) на конкретния потребител.
                 </div>
+
+                <!-- Toggle -->
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 15px; background: var(--white); border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 15px;">
+                    <div>
+                        <h3 style="margin: 0 0 4px 0; font-size: 1em;"><i class="fas fa-toggle-on"></i> Активиране на Mainlist</h3>
+                        <p style="color: var(--text-gray); margin: 0;">Статус: <strong id="mainlistStatusText" style="color: var(--text-gray);">Проверява се…</strong></p>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button id="enableMainlistBtn" class="btn" onclick="toggleMainlistEnabled(true)" style="background: #28a745;">
+                            <i class="fas fa-check"></i> Включи
+                        </button>
+                        <button id="disableMainlistBtn" class="btn" onclick="toggleMainlistEnabled(false)" style="background: #dc3545;">
+                            <i class="fas fa-times"></i> Изключи
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Saved Presets -->
+                <div style="padding: 12px 15px; background: var(--white); border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 15px;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 1em;"><i class="fas fa-bookmark"></i> Запазени Шаблони (Presets)</h3>
+                    <div id="mainlistPresetsContainer" style="margin-bottom: 10px; min-height: 30px;">
+                        <p style="color: var(--text-gray); margin: 0; font-size: 0.9em;">Зареждане…</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <input type="text" id="presetNameInput" placeholder="Име на шаблон" style="flex: 1; min-width: 160px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9em;">
+                        <button class="btn" onclick="saveMainlistPreset()" style="background: #ffc107; color: #212529; white-space: nowrap;">
+                            <i class="fas fa-save"></i> Запази текущия
+                        </button>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Текущ Основен Списък:</label>
                     <div id="mainlistDisplay" style="padding: 15px; background: #fffbe6; border-radius: 8px; margin-bottom: 15px; min-height: 80px; border: 1px solid #ffc107;">
@@ -2750,6 +2781,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             document.getElementById('adminDashboard').style.display = 'block';
             loadSettings();
             loadStats();
+            // Load mainlist status and presets on dashboard open
+            loadMainlistStatus();
+            loadMainlistPresets();
             // Note: Blacklist, whitelist, and logging status are now loaded on-demand
             // when the user clicks the respective "Refresh" buttons to reduce backend load
         }
@@ -4004,6 +4038,163 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 currentMainlist = [];
                 displayMainlist();
                 showSuccess('Основният списък е изчистен локално!');
+            }
+        }
+
+        // Mainlist toggle enable/disable
+        async function loadMainlistStatus() {
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-mainlist-status');
+                const result = await response.json();
+                updateMainlistStatusUI(result.enabled !== false);
+            } catch (error) {
+                console.error('Error loading mainlist status:', error);
+            }
+        }
+
+        function updateMainlistStatusUI(enabled) {
+            const statusText = document.getElementById('mainlistStatusText');
+            const enableBtn = document.getElementById('enableMainlistBtn');
+            const disableBtn = document.getElementById('disableMainlistBtn');
+            if (!statusText) return;
+            if (enabled) {
+                statusText.textContent = 'Активен ✓';
+                statusText.style.color = '#28a745';
+                enableBtn.disabled = true;
+                enableBtn.style.opacity = '0.5';
+                disableBtn.disabled = false;
+                disableBtn.style.opacity = '1';
+            } else {
+                statusText.textContent = 'Неактивен ✗';
+                statusText.style.color = '#dc3545';
+                enableBtn.disabled = false;
+                enableBtn.style.opacity = '1';
+                disableBtn.disabled = true;
+                disableBtn.style.opacity = '0.5';
+            }
+        }
+
+        async function toggleMainlistEnabled(enable) {
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/set-mainlist-enabled', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: enable })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    updateMainlistStatusUI(result.enabled);
+                    showSuccess(enable ? 'Mainlist е ВКЛЮЧЕН — AI ще използва само тези продукти!' : 'Mainlist е ИЗКЛЮЧЕН — AI може да избира свободно.');
+                } else {
+                    showError('Грешка: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error toggling mainlist:', error);
+                showError('Грешка при промяна на статуса: ' + error.message);
+            }
+        }
+
+        // Mainlist presets
+        async function loadMainlistPresets() {
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-mainlist-presets');
+                const result = await response.json();
+                displayMainlistPresets(result.presets || []);
+            } catch (error) {
+                console.error('Error loading mainlist presets:', error);
+                displayMainlistPresets([]);
+            }
+        }
+
+        function displayMainlistPresets(presets) {
+            const container = document.getElementById('mainlistPresetsContainer');
+            if (!container) return;
+            if (presets.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-gray); margin: 0; font-size: 0.9em;">Няма запазени шаблони.</p>';
+                return;
+            }
+            container.innerHTML = presets.map(name => `
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: #e8f4fd; border: 1px solid #3b82f6; border-radius: 20px; padding: 4px 10px; margin: 3px; font-size: 0.88em;">
+                    <span>${escapeHtml(name)}</span>
+                    <button data-preset-load="${escapeHtml(name)}" style="background: none; border: none; color: #3b82f6; cursor: pointer; padding: 0;" title="Зареди шаблона"><i class="fas fa-download"></i></button>
+                    <button data-preset-delete="${escapeHtml(name)}" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0;" title="Изтрий шаблона"><i class="fas fa-times"></i></button>
+                </div>`).join('');
+            // Event delegation on the container
+            container.onclick = (e) => {
+                const loadBtn = e.target.closest('[data-preset-load]');
+                const delBtn = e.target.closest('[data-preset-delete]');
+                if (loadBtn) loadMainlistPreset(loadBtn.dataset.presetLoad);
+                if (delBtn) deleteMainlistPreset(delBtn.dataset.presetDelete);
+            };
+        }
+
+        async function saveMainlistPreset() {
+            const nameInput = document.getElementById('presetNameInput');
+            const name = nameInput.value.trim();
+            if (!name) { showError('Моля, въведете име за шаблона.'); return; }
+            if (currentMainlist.length === 0) { showError('Основният списък е празен — няма какво да се запази.'); return; }
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-mainlist-preset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    displayMainlistPresets(result.presets || []);
+                    nameInput.value = '';
+                    showSuccess(`Шаблон "${name}" е запазен!`);
+                } else {
+                    showError('Грешка: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving preset:', error);
+                showError('Грешка при запазване на шаблона: ' + error.message);
+            }
+        }
+
+        async function loadMainlistPreset(name) {
+            if (!confirm(`Ще замените текущия mainlist с шаблона "${name}" и ще го активирате. Продължавате?`)) return;
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/load-mainlist-preset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    currentMainlist = result.mainlist || [];
+                    invalidateMainlistCache();
+                    displayMainlist();
+                    updateMainlistStatusUI(true);
+                    showSuccess(`Шаблон "${name}" е зареден и mainlist е активиран!`);
+                } else {
+                    showError('Грешка: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error loading preset:', error);
+                showError('Грешка при зареждане на шаблона: ' + error.message);
+            }
+        }
+
+        async function deleteMainlistPreset(name) {
+            if (!confirm(`Сигурни ли сте, че искате да изтриете шаблона "${name}"?`)) return;
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/delete-mainlist-preset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    displayMainlistPresets(result.presets || []);
+                    showSuccess(`Шаблон "${name}" е изтрит!`);
+                } else {
+                    showError('Грешка: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error deleting preset:', error);
+                showError('Грешка при изтриване на шаблона: ' + error.message);
             }
         }
 
