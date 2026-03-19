@@ -1485,9 +1485,9 @@ async function getDynamicFoodListsSections(env) {
     dynamicMainlistSection = `\nОСНОВЕН СПИСЪК ХРАНИ (ЗАДЪЛЖИТЕЛНО): Използвай САМО тези продукти: ${displayList}. Изключение: единствено при категорична медицинска противопоказност (алергия, заболяване) на конкретния потребител.`;
   }
 
-  // Build dynamic whitelist section if there are custom items
+  // Build dynamic whitelist section — suppressed when mainlist is active (mainlist takes exclusive priority)
   let dynamicWhitelistSection = '';
-  if (dynamicWhitelist.length > 0) {
+  if (dynamicWhitelist.length > 0 && dynamicMainlist.length === 0) {
     dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
   }
   
@@ -1800,7 +1800,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
 
 HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
 РЯДКО (≤2x/седмица): бекон, пуешка шунка
-${dynamicMainlistSection ? dynamicMainlistSection + '\n' : ''}WHITELIST: ${dynamicWhitelistSection}${dynamicBlacklistSection}
+${dynamicMainlistSection || dynamicWhitelistSection}${dynamicBlacklistSection}
 
 ПРАВИЛА ЗА ИЗХОД:
 • Естествен български език - БЕЗ технически кодове ([PRO], [ENG])
