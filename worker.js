@@ -1496,7 +1496,9 @@ async function getDynamicFoodListsSections(env) {
     dynamicMainlistSection = `\nОСНОВЕН СПИСЪК ХРАНИ (ЗАДЪЛЖИТЕЛНО): Използвай САМО тези продукти: ${displayList}. Изключение: единствено при категорична медицинска противопоказност (алергия, заболяване) на конкретния потребител.`;
   }
 
-  // Build dynamic whitelist section — suppressed when mainlist is active (mainlist takes exclusive priority)
+  // Build dynamic whitelist section — suppressed when mainlist is active (mainlist takes exclusive priority).
+  // Note: checking dynamicMainlist.length === 0 is sufficient because a disabled mainlist is already
+  // cleared to [] at the 'Deactivate mainlist if explicitly disabled' block above.
   let dynamicWhitelistSection = '';
   if (dynamicWhitelist.length > 0 && dynamicMainlist.length === 0) {
     dynamicWhitelistSection = `\n\nАДМИН WHITELIST (ПРИОРИТЕТНИ ХРАНИ ОТ АДМИН ПАНЕЛ):\n- ${dynamicWhitelist.join('\n- ')}\nТези храни са допълнително одобрени и трябва да се предпочитат при възможност.`;
@@ -1751,8 +1753,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
 Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
 
 МОДИФИКАТОР (Диетичен филтър): "${dietaryModifier}"
-Модификаторът филтрира кои храни са ПОЗВОЛЕНИ от универсалната база.
-
+Модификаторът филтрира кои храни са ПОЗВОЛЕНИ от универсалната база.${dynamicMainlistSection}
 УНИВЕРСАЛНА БАЗА ОТ РЕСУРСИ (Категории храни):
 [PRO] БЕЛТЪК - Основен градивен елемент:
   • Животински: месо (пилешко, говеждо, свинско), риба, яйца, млечни (сирене, извара, кисело мляко)
@@ -1811,7 +1812,7 @@ ${Object.keys(strategyCompact.weeklyScheme).map(day => {
 
 HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
 РЯДКО (≤2x/седмица): бекон, пуешка шунка
-${dynamicMainlistSection}${dynamicWhitelistSection}${dynamicBlacklistSection}
+${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 ПРАВИЛА ЗА ИЗХОД:
 • Естествен български език - БЕЗ технически кодове ([PRO], [ENG])
