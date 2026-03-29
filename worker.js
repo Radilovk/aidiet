@@ -8557,6 +8557,86 @@ async function sendPushNotificationToUser(userId, message, env) {
   }
 }
 
+// ===================== Life Page Image Management =====================
+
+const LIFE_IMAGE_ALLOWED_KEYS = new Set([
+  'nav-logo', 'icon-activity', 'icon-nutrition',
+  'icon-mental', 'icon-sleep', 'icon-hydration', 'icon-supplements'
+]);
+
+/**
+ * GET /api/admin/life-images
+ * Returns all custom life page images stored in KV.
+ */
+async function handleGetLifeImages(request, env) {
+  if (!env.page_content) {
+    return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+  }
+  const raw = await env.page_content.get('life_images');
+  const images = raw ? JSON.parse(raw) : {};
+  return jsonResponse({ images });
+}
+
+/**
+ * POST /api/admin/save-life-image
+ * Body: { key: string, dataUrl: string }
+ * Saves one life page image (base64 data URL) to KV.
+ * Max 2 MB per image.
+ */
+async function handleSaveLifeImage(request, env) {
+  if (!env.page_content) {
+    return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+  }
+  const { key, dataUrl } = await request.json();
+
+  if (!key || !LIFE_IMAGE_ALLOWED_KEYS.has(key)) {
+    return jsonResponse({ error: 'Невалиден ключ на изображение.' }, 400);
+  }
+  if (!dataUrl || !dataUrl.startsWith('data:image/')) {
+    return jsonResponse({ error: 'Невалиден формат на изображение. Очаква се data URL (image/*).' }, 400);
+  }
+  // Enforce 2 MB limit (base64 overhead factor is approximately 4/3 ≈ 1.34; use 1.4 for safety margin)
+  const BASE64_OVERHEAD_FACTOR = 1.4;
+  if (dataUrl.length > 2 * 1024 * 1024 * BASE64_OVERHEAD_FACTOR) {
+    return jsonResponse({ error: 'Изображението надвишава 2 MB.' }, 400);
+  }
+
+  const raw = await env.page_content.get('life_images');
+  const images = raw ? JSON.parse(raw) : {};
+  images[key] = dataUrl;
+  await env.page_content.put('life_images', JSON.stringify(images));
+  return jsonResponse({ success: true });
+}
+
+/**
+ * POST /api/admin/delete-life-image
+ * Body: { key: string }
+ * Removes one (or all when key === '*') life page image from KV.
+ */
+async function handleDeleteLifeImage(request, env) {
+  if (!env.page_content) {
+    return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+  }
+  const { key } = await request.json();
+
+  if (!key) {
+    return jsonResponse({ error: 'Липсва ключ.' }, 400);
+  }
+  if (key !== '*' && !LIFE_IMAGE_ALLOWED_KEYS.has(key)) {
+    return jsonResponse({ error: 'Невалиден ключ на изображение.' }, 400);
+  }
+
+  if (key === '*') {
+    await env.page_content.put('life_images', JSON.stringify({}));
+  } else {
+    const raw = await env.page_content.get('life_images');
+    const images = raw ? JSON.parse(raw) : {};
+    delete images[key];
+    await env.page_content.put('life_images', JSON.stringify(images));
+  }
+  return jsonResponse({ success: true });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -8666,6 +8746,12 @@ export default {
         return await handleGetClientsList(request, env);
       } else if (url.pathname === '/api/admin/get-client-data' && request.method === 'GET') {
         return await handleGetClientData(request, env);
+      } else if (url.pathname === '/api/admin/life-images' && request.method === 'GET') {
+        return await handleGetLifeImages(request, env);
+      } else if (url.pathname === '/api/admin/save-life-image' && request.method === 'POST') {
+        return await handleSaveLifeImage(request, env);
+      } else if (url.pathname === '/api/admin/delete-life-image' && request.method === 'POST') {
+        return await handleDeleteLifeImage(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }

@@ -851,6 +851,9 @@
                 <button class="tab-btn" onclick="switchTab('protocols', event)">
                     <i class="fas fa-flask"></i> Протоколи
                 </button>
+                <button class="tab-btn" onclick="switchTab('life', event)">
+                    <i class="fas fa-leaf"></i> Life
+                </button>
             </div>
 
             <!-- Configuration Tab -->
@@ -1794,6 +1797,40 @@
             </div>
             <!-- End Protocols Tab -->
 
+            <!-- Life Tab -->
+            <div id="tab-life" class="tab-content">
+
+            <!-- Life Page Images -->
+            <div class="card">
+                <h2><i class="fas fa-leaf"></i> Управление на изображения – Life страница</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Заменете иконите и изображенията на <a href="./life.html" target="_blank" style="color:var(--primary-red);">life.html</a> с персонализирани файлове.
+                    Поддържат се SVG, PNG, JPG, ICO и WebP. Изображенията се запазват в браузъра (localStorage) и се зареждат автоматично при отваряне на Life страницата.
+                </div>
+
+                <div id="lifeImagesGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-bottom:20px;">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                    <button class="btn" onclick="resetAllLifeImages()" style="background:var(--accent-light-red);">
+                        <i class="fas fa-trash"></i> Изчисти всички
+                    </button>
+                    <button class="btn" onclick="renderLifeImagesGrid()" style="background:var(--accent-blue);">
+                        <i class="fas fa-sync"></i> Презареди
+                    </button>
+                    <button class="btn" onclick="syncLifeImagesFromServer()" style="background:#6f42c1;">
+                        <i class="fas fa-cloud-download-alt"></i> Синхронизирай от сървъра
+                    </button>
+                    <a href="./life.html" target="_blank" class="btn" style="background:var(--primary-red);">
+                        <i class="fas fa-external-link-alt"></i> Отвори Life страница
+                    </a>
+                </div>
+            </div>
+
+            </div>
+            <!-- End Life Tab -->
+
         </div>
     </div>
 
@@ -1826,7 +1863,7 @@
         // --- Tab Management ---
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols'];
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols', 'life'];
             if (!validTabs.includes(tabName)) {
                 console.error('Invalid tab name:', tabName);
                 return;
@@ -1871,13 +1908,18 @@
             if (tabName === 'protocols' && typeof loadProtocolSettings === 'function') {
                 loadProtocolSettings();
             }
+
+            // Auto-render life images grid when life tab is opened
+            if (tabName === 'life' && typeof renderLifeImagesGrid === 'function') {
+                renderLifeImagesGrid();
+            }
         }
 
         // Initialize tab on page load
         function initializeTab() {
             const savedTab = localStorage.getItem('selectedTab') || 'configuration';
             // Validate saved tab to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols'];
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols', 'life'];
             const tabToLoad = validTabs.includes(savedTab) ? savedTab : 'configuration';
             
             const tabContents = document.querySelectorAll('.tab-content');
@@ -5514,6 +5556,178 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 icon.className = 'fas fa-eye';
             }
         }
+
+        // ===================== Life Page Image Management =====================
+
+        const LIFE_ICON_DEFS = [
+            { key: 'nav-logo',        label: 'Лого (навигация)',           accept: 'image/*,.svg' },
+            { key: 'icon-activity',   label: 'Активен живот – икона',      accept: 'image/*,.svg' },
+            { key: 'icon-nutrition',  label: 'Балансирано хранене – икона',accept: 'image/*,.svg' },
+            { key: 'icon-mental',     label: 'Психично здраве – икона',    accept: 'image/*,.svg' },
+            { key: 'icon-sleep',      label: 'Качествен сън – икона',      accept: 'image/*,.svg' },
+            { key: 'icon-hydration',  label: 'Хидратация – икона',         accept: 'image/*,.svg' },
+            { key: 'icon-supplements',label: 'Добавки & витамини – икона', accept: 'image/*,.svg' },
+        ];
+
+        function renderLifeImagesGrid() {
+            const grid = document.getElementById('lifeImagesGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            LIFE_ICON_DEFS.forEach(def => {
+                const stored = localStorage.getItem('life_image_' + def.key);
+                const hasCustom = !!stored;
+
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    padding:18px;
+                    border-radius:12px;
+                    border:1px solid #e0e0e0;
+                    background:var(--white);
+                    display:flex;
+                    flex-direction:column;
+                    gap:10px;
+                `;
+
+                const preview = document.createElement('div');
+                preview.style.cssText = 'height:80px;display:flex;align-items:center;justify-content:center;background:var(--soft-red);border-radius:8px;overflow:hidden;';
+
+                if (hasCustom) {
+                    const img = document.createElement('img');
+                    img.src = stored;
+                    img.alt = def.label;
+                    img.style.cssText = 'max-height:64px;max-width:64px;object-fit:contain;';
+                    preview.appendChild(img);
+                } else {
+                    preview.innerHTML = '<span style="color:var(--text-gray);font-size:0.8rem;">Стандартна SVG</span>';
+                }
+
+                const label = document.createElement('div');
+                label.style.cssText = 'font-size:0.875rem;font-weight:600;color:var(--text-dark);';
+                label.textContent = def.label;
+
+                const statusBadge = document.createElement('span');
+                statusBadge.style.cssText = `
+                    display:inline-block;
+                    padding:2px 10px;
+                    border-radius:20px;
+                    font-size:0.72rem;
+                    font-weight:600;
+                    background:${hasCustom ? '#d4edda' : '#f8f9fa'};
+                    color:${hasCustom ? '#28a745' : '#6c757d'};
+                    border:1px solid ${hasCustom ? '#c3e6cb' : '#dee2e6'};
+                `;
+                statusBadge.textContent = hasCustom ? 'Персонализирана' : 'По подразбиране';
+
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = def.accept;
+                fileInput.style.display = 'none';
+                fileInput.id = 'life_file_' + def.key;
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) {
+                        showError('Файлът е твърде голям. Максималният размер е 2MB.');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const dataUrl = ev.target.result;
+                        // Sanitize: only allow data URLs with image MIME types
+                        if (!dataUrl.startsWith('data:image/')) {
+                            showError('Невалиден тип файл. Моля, качете само изображения (SVG, PNG, JPG, ICO, WebP).');
+                            return;
+                        }
+                        localStorage.setItem('life_image_' + def.key, dataUrl);
+                        // Persist to KV backend (best-effort, non-blocking)
+                        fetch('/api/admin/save-life-image', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: def.key, dataUrl })
+                        }).catch(() => {/* ignore network errors */});
+                        showSuccess('Изображението за "' + def.label + '" е запазено.');
+                        renderLifeImagesGrid();
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                const btnRow = document.createElement('div');
+                btnRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+
+                const uploadBtn = document.createElement('button');
+                uploadBtn.className = 'btn';
+                uploadBtn.style.cssText = 'padding:8px 16px;font-size:0.82rem;';
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Качи';
+                uploadBtn.onclick = function() { fileInput.click(); };
+
+                btnRow.appendChild(fileInput);
+                btnRow.appendChild(uploadBtn);
+
+                if (hasCustom) {
+                    const resetBtn = document.createElement('button');
+                    resetBtn.className = 'btn';
+                    resetBtn.style.cssText = 'padding:8px 16px;font-size:0.82rem;background:var(--accent-light-red);';
+                    resetBtn.innerHTML = '<i class="fas fa-undo"></i> Нулирай';
+                    resetBtn.onclick = function() {
+                        localStorage.removeItem('life_image_' + def.key);
+                        // Remove from KV backend (best-effort)
+                        fetch('/api/admin/delete-life-image', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: def.key })
+                        }).catch(() => {/* ignore */});
+                        showSuccess('"' + def.label + '" е нулирана към стандартната икона.');
+                        renderLifeImagesGrid();
+                    };
+                    btnRow.appendChild(resetBtn);
+                }
+
+                card.appendChild(preview);
+                card.appendChild(label);
+                card.appendChild(statusBadge);
+                card.appendChild(btnRow);
+                grid.appendChild(card);
+            });
+        }
+
+        function resetAllLifeImages() {
+            if (!confirm('Сигурни ли сте, че искате да нулирате всички изображения на Life страницата?')) return;
+            LIFE_ICON_DEFS.forEach(def => {
+                localStorage.removeItem('life_image_' + def.key);
+            });
+            // Remove all from KV backend (best-effort)
+            fetch('/api/admin/delete-life-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: '*' })
+            }).catch(() => {/* ignore */});
+            showSuccess('Всички изображения на Life страницата са нулирани към стандартните.');
+            renderLifeImagesGrid();
+        }
+
+        async function syncLifeImagesFromServer() {
+            try {
+                const resp = await fetch('/api/admin/life-images');
+                if (!resp.ok) throw new Error('Server error');
+                const { images } = await resp.json();
+                if (images && typeof images === 'object') {
+                    let count = 0;
+                    Object.entries(images).forEach(([key, dataUrl]) => {
+                        if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+                            localStorage.setItem('life_image_' + key, dataUrl);
+                            count++;
+                        }
+                    });
+                    showSuccess('Синхронизирани ' + count + ' изображения от сървъра.');
+                    renderLifeImagesGrid();
+                }
+            } catch (e) {
+                showError('Неуспешна синхронизация от сървъра: ' + e.message);
+            }
+        }
+
+        // Auto-render life images grid when life tab is opened is handled in switchTab above.
     </script>
 </body>
 </html>
