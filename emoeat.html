@@ -991,6 +991,345 @@
                 padding: 0 20px 5px;
             }
         }
+
+        /* AI Analysis Results Styles */
+        .archetype-card {
+            background: linear-gradient(135deg, var(--primary-light), var(--card-bg));
+            border-radius: var(--radius);
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 2px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .archetype-card.secondary {
+            border-color: var(--accent-cool);
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), var(--card-bg));
+        }
+
+        .archetype-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .archetype-card.secondary .archetype-badge {
+            background: var(--accent-cool);
+        }
+
+        .archetype-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .archetype-desc {
+            color: var(--text-gray);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .confidence-bar {
+            margin-top: 12px;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .confidence-bar {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--primary);
+            transition: width 1s ease;
+        }
+
+        .archetype-card.secondary .confidence-fill {
+            background: var(--accent-cool);
+        }
+
+        .cross-pattern-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            padding: 18px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--accent-warm);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cross-pattern-title {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cross-pattern-questions {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .q-badge {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .cross-pattern-insight {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .insight-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        .insight-quote {
+            background: var(--primary-light);
+            border-left: 3px solid var(--primary);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+            color: var(--text-dark);
+            margin: 10px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .insight-analysis {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+
+        .strategy-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .strategy-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .strategy-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .strategy-trigger {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            color: var(--text-dark);
+        }
+
+        .strategy-trigger strong {
+            color: var(--accent-warm);
+        }
+
+        .strategy-method {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .practical-steps {
+            list-style: none;
+            padding: 0;
+        }
+
+        .practical-steps li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .practical-steps li::before {
+            content: '✓';
+            color: var(--accent-green);
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .emergency-card {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), var(--card-bg));
+            border: 2px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .emergency-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #EF4444;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .emergency-desc {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .emergency-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] .emergency-step {
+            border-bottom-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .emergency-step:last-child {
+            border-bottom: none;
+        }
+
+        .emergency-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #EF4444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .emergency-duration {
+            color: #EF4444;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .hidden-message-card {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: var(--radius);
+            padding: 30px;
+            margin-bottom: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hidden-message-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .hidden-message-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .hidden-message-text {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            font-style: italic;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 25px 0 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        .error-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 30px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .error-card i {
+            font-size: 2.5rem;
+            color: var(--accent-warm);
+            margin-bottom: 15px;
+        }
+
+        .error-card p {
+            color: var(--text-gray);
+            margin-bottom: 20px;
+        }
     </style>
     <script>
         // Apply saved theme
@@ -1133,8 +1472,8 @@
                         <i class="fas fa-brain"></i>
                     </div>
                 </div>
-                <h3 class="loading-title">Анализираме вашите отговори...</h3>
-                <p class="loading-subtitle">Създаваме персонализиран терапевтичен план</p>
+                <h3 class="loading-title" id="loadingTitle">Анализираме вашите отговори...</h3>
+                <p class="loading-subtitle" id="loadingSubtitle">Създаваме персонализиран терапевтичен план</p>
             </div>
         </div>
 
@@ -1405,7 +1744,7 @@
             }
         }
 
-        function goNext() {
+        async function goNext() {
             if (currentScreen === 'welcome') {
                 currentScreen = 'question';
                 currentQuestionIndex = 0;
@@ -1416,7 +1755,7 @@
                     currentQuestionIndex++;
                     renderQuestion();
                 } else {
-                    // Finish questionnaire
+                    // Finish questionnaire — call AI backend
                     currentScreen = 'loading';
                     showScreen('loadingScreen');
 
@@ -1424,13 +1763,51 @@
                     localStorage.setItem('emoeat_answers', JSON.stringify(answers));
                     localStorage.setItem('emoeat_completed', new Date().toISOString());
 
-                    // Simulate analysis and show results
-                    setTimeout(() => {
+                    // Update loading messages progressively
+                    const loadingMessages = [
+                        { title: 'Анализираме вашите отговори...', sub: 'Идентифициране на емоционални модели' },
+                        { title: 'Кръстосан анализ на модели...', sub: 'Търсим скрити връзки между отговорите' },
+                        { title: 'Изграждане на вашия профил...', sub: 'Персонализиране на терапевтични стратегии' }
+                    ];
+                    let msgIndex = 0;
+                    const msgInterval = setInterval(() => {
+                        msgIndex++;
+                        if (msgIndex < loadingMessages.length) {
+                            const lt = document.getElementById('loadingTitle');
+                            const ls = document.getElementById('loadingSubtitle');
+                            if (lt) lt.textContent = loadingMessages[msgIndex].title;
+                            if (ls) ls.textContent = loadingMessages[msgIndex].sub;
+                        }
+                    }, 3000);
+
+                    try {
+                        const response = await fetch('/api/generate-emoeat-analysis', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ answers: answers })
+                        });
+
+                        clearInterval(msgInterval);
+                        const result = await response.json();
+
+                        if (result.success && result.analysis) {
+                            localStorage.setItem('emoeat_analysis', JSON.stringify(result.analysis));
+                            currentScreen = 'results';
+                            generateAIResults(result.analysis);
+                            showScreen('resultsScreen');
+                            updateProgress();
+                        } else {
+                            throw new Error(result.error || 'Неуспешен анализ');
+                        }
+                    } catch (err) {
+                        clearInterval(msgInterval);
+                        console.error('EmoEat AI error:', err);
+                        // Fallback to local analysis
                         currentScreen = 'results';
-                        generateResults();
+                        generateFallbackResults();
                         showScreen('resultsScreen');
                         updateProgress();
-                    }, 2500);
+                    }
                 }
             }
 
@@ -1439,248 +1816,150 @@
         }
 
         // ============================================
-        // RESULTS GENERATION
+        // HTML ESCAPING (XSS prevention for AI content)
         // ============================================
-        function generateResults() {
-            const resultsScreen = document.getElementById('resultsScreen');
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(String(text)));
+            return div.innerHTML;
+        }
 
-            // Analyze patterns from answers
-            const patterns = analyzePatterns();
+        // ============================================
+        // AI-POWERED RESULTS GENERATION
+        // ============================================
+        function generateAIResults(analysis) {
+            const resultsScreen = document.getElementById('resultsScreen');
+            const d = analysis.dominantArchetype || {};
+            const s = analysis.secondaryArchetype || {};
+            const crossPatterns = analysis.crossPatterns || [];
+            const insights = analysis.personalInsights || [];
+            const strategies = analysis.therapeuticStrategies || [];
+            const emergency = analysis.emergencyProtocol || {};
+            const hidden = analysis.hiddenMessage || '';
 
             resultsScreen.innerHTML = `
                 <div class="results-screen">
                     <div class="results-header">
                         <div class="results-icon">
-                            <i class="fas fa-check"></i>
+                            <i class="fas fa-fingerprint"></i>
                         </div>
-                        <h2 class="results-title">Вашият Емоционален Профил</h2>
-                        <p class="results-subtitle">Персонализиран анализ на базата на вашите отговори</p>
+                        <h2 class="results-title">Вашият Дълбинен Емоционален Профил</h2>
+                        <p class="results-subtitle">AI-базиран индивидуализиран анализ на вашите отговори</p>
                     </div>
 
-                    <!-- Emotional Patterns -->
-                    <div class="profile-card">
-                        <div class="profile-header">
-                            <div class="profile-avatar">
-                                <i class="fas fa-user-circle"></i>
-                            </div>
-                            <div class="profile-info">
-                                <h3>Идентифицирани Модели</h3>
-                                <p>Подсъзнателни тригери за емоционално хранене</p>
-                            </div>
-                        </div>
+                    ${hidden ? `
+                    <div class="hidden-message-card">
+                        <div class="hidden-message-icon"><i class="fas fa-key"></i></div>
+                        <div class="hidden-message-text">${escapeHtml(hidden)}</div>
+                    </div>
+                    ` : ''}
 
-                        <div class="pattern-section">
-                            <h4 class="pattern-title">
-                                <i class="fas fa-fingerprint"></i>
-                                Вашите Емоционални Модели
-                            </h4>
-                            <div class="pattern-grid">
-                                ${patterns.map(p => `
-                                    <div class="pattern-item">
-                                        <div class="pattern-icon ${p.iconClass}">
-                                            <i class="fas ${p.icon}"></i>
-                                        </div>
-                                        <div class="pattern-content">
-                                            <h4>${p.title}</h4>
-                                            <p>${p.description}</p>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
+                    <!-- Archetypes -->
+                    <div class="section-title"><i class="fas fa-masks-theater"></i> Вашите Емоционални Архетипи</div>
+
+                    <div class="archetype-card">
+                        <div class="archetype-badge"><i class="fas fa-crown"></i> Доминантен Архетип</div>
+                        <div class="archetype-name">${escapeHtml(d.name || 'Неопределен')}</div>
+                        <div class="archetype-desc">${escapeHtml(d.description || '')}</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${Math.min(100, d.confidence || 0)}%"></div>
                         </div>
+                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">${d.confidence || 0}% съвпадение</div>
                     </div>
 
-                    <!-- Therapy Section -->
-                    <div class="therapy-section">
-                        <div class="therapy-header">
-                            <h3><i class="fas fa-hand-holding-heart"></i> Терапевтични Стратегии</h3>
-                            <p>Практически методи за справяне в реално време</p>
+                    ${s.name ? `
+                    <div class="archetype-card secondary">
+                        <div class="archetype-badge"><i class="fas fa-layer-group"></i> Вторичен Архетип</div>
+                        <div class="archetype-name">${escapeHtml(s.name)}</div>
+                        <div class="archetype-desc">${escapeHtml(s.description || '')}</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${Math.min(100, s.confidence || 0)}%"></div>
                         </div>
-                        <div class="therapy-content">
-                            <div class="therapy-tabs">
-                                <button type="button" class="therapy-tab active" onclick="switchTherapyTab(event, 'halt')">HALT</button>
-                                <button type="button" class="therapy-tab" onclick="switchTherapyTab(event, 'rain')">RAIN</button>
-                                <button type="button" class="therapy-tab" onclick="switchTherapyTab(event, 'cbt')">CBT/DBT</button>
-                            </div>
-
-                            <!-- HALT Panel -->
-                            <div class="therapy-panel active" id="panel-halt">
-                                <div class="method-card">
-                                    <div class="method-title">
-                                        <i class="fas fa-hand-paper"></i>
-                                        Методът HALT – Спри и Анализирай
-                                    </div>
-                                    <p style="color: var(--text-gray); margin-bottom: 15px; font-size: 0.9rem;">
-                                        Преди да посегнете автоматично към храна, задайте си тези 4 въпроса:
-                                    </p>
-                                    <div class="method-letters">
-                                        <div class="letter-item">
-                                            <div class="letter-badge">H</div>
-                                            <div class="letter-content">
-                                                <h5>Hungry – Гладен ли съм физически?</h5>
-                                                <p>Усещам ли реална празнота в стомаха, къркорене, спад в енергията? Ако не – апетитът е породен от емоция.</p>
-                                            </div>
-                                        </div>
-                                        <div class="letter-item">
-                                            <div class="letter-badge">A</div>
-                                            <div class="letter-content">
-                                                <h5>Angry – Ядосан ли съм?</h5>
-                                                <p>Има ли неизразен гняв, който ме кара да търся нещо хрупкаво? Канализирайте енергията в дишане или комуникация.</p>
-                                            </div>
-                                        </div>
-                                        <div class="letter-item">
-                                            <div class="letter-badge">L</div>
-                                            <div class="letter-content">
-                                                <h5>Lonely – Самотен ли съм?</h5>
-                                                <p>Изпитвам ли нужда от свързаност? Решението е обаждане на приятел, не хладилникът.</p>
-                                            </div>
-                                        </div>
-                                        <div class="letter-item">
-                                            <div class="letter-badge">T</div>
-                                            <div class="letter-content">
-                                                <h5>Tired – Уморен ли съм?</h5>
-                                                <p>Умората се маскира като глад за захар. Решението е почивка или хидратация.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- RAIN Panel -->
-                            <div class="therapy-panel" id="panel-rain">
-                                <div class="method-card">
-                                    <div class="method-title">
-                                        <i class="fas fa-cloud-rain"></i>
-                                        Техниката RAIN – Радикално Състрадание
-                                    </div>
-                                    <p style="color: var(--text-gray); margin-bottom: 15px; font-size: 0.9rem;">
-                                        Когато импулсът за преяждане е вече налице, използвайте тази практика:
-                                    </p>
-                                    <div class="method-letters">
-                                        <div class="letter-item">
-                                            <div class="letter-badge" style="background: #06B6D4;">R</div>
-                                            <div class="letter-content">
-                                                <h5>Recognize – Разпознай</h5>
-                                                <p>Спрете и поставете етикет на емоцията: "Разпознавам, че изпитвам силна тревожност."</p>
-                                            </div>
-                                        </div>
-                                        <div class="letter-item">
-                                            <div class="letter-badge" style="background: #06B6D4;">A</div>
-                                            <div class="letter-content">
-                                                <h5>Allow – Позволи</h5>
-                                                <p>Позволете на емоцията просто да съществува, без да се борите с нея. Кажете си: "Мога да позволя това."</p>
-                                            </div>
-                                        </div>
-                                        <div class="letter-item">
-                                            <div class="letter-badge" style="background: #06B6D4;">I</div>
-                                            <div class="letter-content">
-                                                <h5>Investigate – Изследвай</h5>
-                                                <p>Къде в тялото усещате емоцията? Какво е вярването зад нея? Изследвайте с любопитство, не с осъждане.</p>
-                                            </div>
-                                        </div>
-                                        <div class="letter-item">
-                                            <div class="letter-badge" style="background: #06B6D4;">N</div>
-                                            <div class="letter-content">
-                                                <h5>Nurture – Подхрани</h5>
-                                                <p>Вие не сте вашата емоция. Подхранете себе си със състрадание – утехата, която търсите в храната.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- CBT/DBT Panel -->
-                            <div class="therapy-panel" id="panel-cbt">
-                                <div class="technique-card">
-                                    <div class="technique-header">
-                                        <span class="technique-badge">CBT</span>
-                                        <span class="technique-title">Когнитивен Дневник</span>
-                                    </div>
-                                    <p style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 15px;">
-                                        Записвайте следната последователност преди всяко емоционално хранене:
-                                    </p>
-                                    <div class="technique-steps">
-                                        <div class="technique-step">
-                                            <div class="step-number">1</div>
-                                            <div class="step-content">
-                                                <h5>Тригер</h5>
-                                                <p>Какво точно се случи преди импулса? (напр. критика от шефа)</p>
-                                            </div>
-                                        </div>
-                                        <div class="technique-step">
-                                            <div class="step-number">2</div>
-                                            <div class="step-content">
-                                                <h5>Автоматична мисъл</h5>
-                                                <p>Каква мисъл изникна? (напр. "Аз съм некомпетентен")</p>
-                                            </div>
-                                        </div>
-                                        <div class="technique-step">
-                                            <div class="step-number">3</div>
-                                            <div class="step-content">
-                                                <h5>Емоция</h5>
-                                                <p>Какво почувствахте? (напр. срам, тревожност)</p>
-                                            </div>
-                                        </div>
-                                        <div class="technique-step">
-                                            <div class="step-number">4</div>
-                                            <div class="step-content">
-                                                <h5>Алтернативна мисъл</h5>
-                                                <p>Каква е реалистичната алтернатива? (напр. "Една грешка не ме определя")</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="technique-card">
-                                    <div class="technique-header">
-                                        <span class="technique-badge" style="background: #FCE7F3; color: #EC4899;">DBT</span>
-                                        <span class="technique-title">Противоположно Действие</span>
-                                    </div>
-                                    <p style="color: var(--text-gray); font-size: 0.9rem;">
-                                        Когато емоцията диктува изолация, срам и скрито хранене – съзнателно изберете противоположното: търсене на социален контакт, обаждане на приятел, излизане на светлина.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">${s.confidence || 0}% съвпадение</div>
                     </div>
+                    ` : ''}
 
-                    <!-- Mindful Eating -->
-                    <div class="mindful-section">
-                        <h3 class="mindful-title">
-                            <i class="fas fa-leaf"></i>
-                            Протокол за Осъзнато Хранене
-                        </h3>
-                        <div class="mindful-steps">
-                            <div class="mindful-step">
-                                <div class="mindful-number">1</div>
-                                <div class="mindful-content">
-                                    <h4>Деконструкция на Средата</h4>
-                                    <p>Изключете телевизора, оставете телефона. Сервирайте храната в чиния и я аранжирайте красиво. Никога не яжте директно от опаковката.</p>
-                                </div>
+                    <!-- Cross Patterns -->
+                    ${crossPatterns.length > 0 ? `
+                    <div class="section-title"><i class="fas fa-project-diagram"></i> Кръстосани Модели</div>
+                    ${crossPatterns.map(cp => `
+                        <div class="cross-pattern-card">
+                            <div class="cross-pattern-title">
+                                <i class="fas fa-link" style="color: var(--accent-warm);"></i>
+                                ${escapeHtml(cp.title || '')}
                             </div>
-                            <div class="mindful-step">
-                                <div class="mindful-number">2</div>
-                                <div class="mindful-content">
-                                    <h4>Радикално Сензорно Ангажиране</h4>
-                                    <p>Представете си, че виждате храната за първи път. Разгледайте цветовете, текстурата. Поднесете към носа и вдишайте аромата.</p>
-                                </div>
+                            <div class="cross-pattern-questions">
+                                ${(cp.questions || []).map(q => `<span class="q-badge">В${q}</span>`).join('')}
                             </div>
-                            <div class="mindful-step">
-                                <div class="mindful-number">3</div>
-                                <div class="mindful-content">
-                                    <h4>Интероцептивно Сканиране</h4>
-                                    <p>Оставете приборите между хапките. Питайте се: "Как се променя вкусът?" Когато удоволствието спадне – това е сигнал за ситост.</p>
-                                </div>
-                            </div>
-                            <div class="mindful-step">
-                                <div class="mindful-number">4</div>
-                                <div class="mindful-content">
-                                    <h4>Рефлексия След Хранене</h4>
-                                    <p>Обърнете внимание на усещанията. Ако се появи вина – използвайте RAIN за неутрализиране. Приемете, че всички храни имат своето място.</p>
-                                </div>
-                            </div>
+                            <div class="cross-pattern-insight">${escapeHtml(cp.insight || '')}</div>
                         </div>
+                    `).join('')}
+                    ` : ''}
+
+                    <!-- Personal Insights -->
+                    ${insights.length > 0 ? `
+                    <div class="section-title"><i class="fas fa-lightbulb"></i> Лични Прозрения</div>
+                    ${insights.map(ins => `
+                        <div class="insight-card">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <i class="fas ${escapeHtml(ins.icon || 'fa-eye')}" style="color: var(--primary); font-size: 1.1rem;"></i>
+                                <strong style="color: var(--text-dark);">${escapeHtml(ins.title || '')}</strong>
+                            </div>
+                            ${ins.quote ? `<div class="insight-quote">"${escapeHtml(ins.quote)}"</div>` : ''}
+                            <div class="insight-analysis">${escapeHtml(ins.analysis || '')}</div>
+                        </div>
+                    `).join('')}
+                    ` : ''}
+
+                    <!-- Therapeutic Strategies -->
+                    ${strategies.length > 0 ? `
+                    <div class="section-title"><i class="fas fa-hand-holding-heart"></i> Персонализирани Терапевтични Стратегии</div>
+                    ${strategies.map(st => `
+                        <div class="strategy-card">
+                            <div class="strategy-header">
+                                <div class="strategy-icon">
+                                    <i class="fas ${escapeHtml(st.icon || 'fa-shield-alt')}"></i>
+                                </div>
+                                <div>
+                                    <strong style="color: var(--text-dark);">${escapeHtml(st.title || '')}</strong>
+                                </div>
+                            </div>
+                            ${st.trigger ? `
+                            <div class="strategy-trigger">
+                                <strong>Тригер:</strong> ${escapeHtml(st.trigger)}
+                            </div>
+                            ` : ''}
+                            <div class="strategy-method">${escapeHtml(st.method || '')}</div>
+                            ${(st.practicalSteps && st.practicalSteps.length > 0) ? `
+                            <ul class="practical-steps">
+                                ${st.practicalSteps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}
+                            </ul>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                    ` : ''}
+
+                    <!-- Emergency Protocol -->
+                    ${emergency.steps && emergency.steps.length > 0 ? `
+                    <div class="section-title"><i class="fas fa-exclamation-triangle" style="color: #EF4444;"></i> Спешен Протокол</div>
+                    <div class="emergency-card">
+                        <div class="emergency-title">
+                            <i class="fas fa-bolt"></i>
+                            ${escapeHtml(emergency.title || 'Спешен Протокол за Кризисен Момент')}
+                        </div>
+                        <div class="emergency-desc">${escapeHtml(emergency.description || '')}</div>
+                        ${emergency.steps.map(es => `
+                            <div class="emergency-step">
+                                <div class="emergency-num">${es.step || ''}</div>
+                                <div>
+                                    <div style="color: var(--text-dark); font-size: 0.95rem;">${escapeHtml(es.action || '')}</div>
+                                    ${es.duration ? `<div class="emergency-duration"><i class="fas fa-clock"></i> ${escapeHtml(es.duration)}</div>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
+                    ` : ''}
 
                     <!-- Actions -->
                     <div class="action-buttons">
@@ -1696,6 +1975,108 @@
                 </div>
             `;
         }
+
+        // ============================================
+        // FALLBACK RESULTS (when AI is unavailable)
+        // ============================================
+        function generateFallbackResults() {
+            const resultsScreen = document.getElementById('resultsScreen');
+            const patterns = analyzePatterns();
+
+            resultsScreen.innerHTML = `
+                <div class="results-screen">
+                    <div class="results-header">
+                        <div class="results-icon" style="background: var(--accent-warm);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h2 class="results-title">Базов Емоционален Профил</h2>
+                        <p class="results-subtitle">AI анализът не е наличен в момента — показваме базова оценка</p>
+                    </div>
+
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="profile-avatar"><i class="fas fa-user-circle"></i></div>
+                            <div class="profile-info">
+                                <h3>Идентифицирани Модели</h3>
+                                <p>Базова оценка на емоционалните тригери</p>
+                            </div>
+                        </div>
+                        <div class="pattern-section">
+                            <div class="pattern-grid">
+                                ${patterns.map(p => `
+                                    <div class="pattern-item">
+                                        <div class="pattern-icon ${p.iconClass}">
+                                            <i class="fas ${p.icon}"></i>
+                                        </div>
+                                        <div class="pattern-content">
+                                            <h4>${escapeHtml(p.title)}</h4>
+                                            <p>${escapeHtml(p.description)}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="error-card">
+                        <i class="fas fa-robot"></i>
+                        <p>За пълния AI анализ с дълбоки персонализирани прозрения, моля опитайте отново по-късно.</p>
+                        <button class="btn-primary" onclick="retryAIAnalysis()">
+                            <i class="fas fa-sync"></i> Опитай AI Анализ Отново
+                        </button>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-secondary" onclick="saveAndShare()">
+                            <i class="fas fa-download"></i>
+                            Запази Базовите Резултати
+                        </button>
+                        <button class="btn-secondary" onclick="restartQuestionnaire()">
+                            <i class="fas fa-redo"></i>
+                            Започни Отначало
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function retryAIAnalysis() {
+            currentScreen = 'loading';
+            showScreen('loadingScreen');
+            document.getElementById('navFooter').style.display = 'none';
+            const lt = document.getElementById('loadingTitle');
+            const ls = document.getElementById('loadingSubtitle');
+            if (lt) lt.textContent = 'Повторен опит за AI анализ...';
+            if (ls) ls.textContent = 'Свързваме се със сървъра';
+
+            try {
+                const response = await fetch('/api/generate-emoeat-analysis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers: answers })
+                });
+                const result = await response.json();
+                if (result.success && result.analysis) {
+                    localStorage.setItem('emoeat_analysis', JSON.stringify(result.analysis));
+                    currentScreen = 'results';
+                    generateAIResults(result.analysis);
+                    showScreen('resultsScreen');
+                    updateProgress();
+                } else {
+                    throw new Error(result.error || 'Неуспешен анализ');
+                }
+            } catch (err) {
+                console.error('Retry failed:', err);
+                currentScreen = 'results';
+                generateFallbackResults();
+                showScreen('resultsScreen');
+                updateProgress();
+            }
+        }
+
+        // ============================================
+        // ORIGINAL PATTERN ANALYSIS (used as fallback)
+        // ============================================
 
         function analyzePatterns() {
             const patterns = [];
@@ -1813,9 +2194,11 @@
         }
 
         function saveAndShare() {
+            const savedAnalysis = localStorage.getItem('emoeat_analysis');
             const data = {
                 answers: answers,
                 completedAt: localStorage.getItem('emoeat_completed'),
+                analysis: savedAnalysis ? JSON.parse(savedAnalysis) : null,
                 patterns: analyzePatterns()
             };
 
@@ -1838,6 +2221,7 @@
                 currentScreen = 'welcome';
                 localStorage.removeItem('emoeat_answers');
                 localStorage.removeItem('emoeat_completed');
+                localStorage.removeItem('emoeat_analysis');
 
                 document.getElementById('navFooter').style.display = 'flex';
                 showScreen('welcomeScreen');
