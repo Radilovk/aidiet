@@ -386,6 +386,41 @@
             margin-top: 8px;
         }
 
+        /* Quick Response Buttons */
+        .quick-responses {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+
+        .quick-btn {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            background: var(--card-bg);
+            color: var(--primary);
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .quick-btn:hover {
+            background: var(--primary-light);
+        }
+
+        .quick-btn:active {
+            background: var(--primary);
+            color: white;
+        }
+
+        [data-theme="dark"] .quick-btn {
+            border-color: var(--primary);
+            background: var(--input-bg);
+        }
+
         /* Interpretation Box */
         .interpretation-box {
             background: linear-gradient(135deg, var(--primary-light), rgba(236, 72, 153, 0.1));
@@ -1384,7 +1419,7 @@
                 </div>
                 <h2 class="welcome-title">Разкрийте Подсъзнателните Ви Хранителни Тригери</h2>
                 <p class="welcome-subtitle">
-                    Този специализиран въпросник използва проективни техники, за да разкрие дълбоките емоционални причини зад вашите хранителни навици и да ви предостави персонализирани терапевтични стратегии.
+                    Този въпросник използва проективни техники за разкриване на емоционалните причини зад хранителните ви навици. Довършете изреченията спонтанно – достатъчни са дори 2-3 думи!
                 </p>
 
                 <div class="welcome-features">
@@ -1393,8 +1428,8 @@
                             <i class="fas fa-eye"></i>
                         </div>
                         <div class="feature-text">
-                            <h3>15 Проективни Въпроса</h3>
-                            <p>Недовършени изречения, които разкриват подсъзнателни модели</p>
+                            <h3>15 Бързи Въпроса</h3>
+                            <p>Довършете изречения с няколко думи – лесно и бързо</p>
                         </div>
                     </div>
                     <div class="feature-card">
@@ -1402,8 +1437,8 @@
                             <i class="fas fa-lightbulb"></i>
                         </div>
                         <div class="feature-text">
-                            <h3>Клинична Интерпретация</h3>
-                            <p>Всеки отговор се анализира за емоционални дефицити</p>
+                            <h3>Персонализиран Анализ</h3>
+                            <p>AI анализира вашите отговори за скрити модели</p>
                         </div>
                     </div>
                     <div class="feature-card">
@@ -1411,8 +1446,8 @@
                             <i class="fas fa-hand-holding-heart"></i>
                         </div>
                         <div class="feature-text">
-                            <h3>Терапевтични Методи</h3>
-                            <p>CBT, DBT, HALT, RAIN и осъзнато хранене</p>
+                            <h3>Няма "Грешни" Отговори</h3>
+                            <p>Ако въпросът не се отнася за вас – просто го посочете</p>
                         </div>
                     </div>
                     <div class="feature-card">
@@ -1442,15 +1477,22 @@
                         <span id="categoryText">Емоционална Идентификация</span>
                     </span>
                     <h2 class="question-text" id="questionText">Зареждане...</h2>
-                    <p class="question-hint" id="questionHint">Отговорете спонтанно с първата мисъл, която ви идва наум</p>
+                    <p class="question-hint" id="questionHint">Довършете изречението спонтанно. Достатъчни са 2-3 думи, напр. "спокойствие", "страх и тревога", "нищо особено"</p>
                 </div>
 
                 <textarea
                     class="answer-input"
                     id="answerInput"
-                    placeholder="Напишете вашия отговор тук..."
+                    placeholder="Довършете изречението с няколко думи..."
                     oninput="handleAnswerInput()"
                 ></textarea>
+                
+                <div class="quick-responses">
+                    <button type="button" class="quick-btn" onclick="setQuickResponse('Не се отнася за мен')">Не се отнася за мен</button>
+                    <button type="button" class="quick-btn" onclick="setQuickResponse('Нямам такъв опит')">Нямам такъв опит</button>
+                    <button type="button" class="quick-btn" onclick="setQuickResponse('Не зная')">Не зная</button>
+                </div>
+                
                 <div class="char-counter"><span id="charCount">0</span> символа</div>
 
                 <div class="interpretation-box" id="interpretationBox" style="display: none;">
@@ -1686,7 +1728,7 @@
             } else if (currentScreen === 'question') {
                 btnBack.style.visibility = 'visible';
                 const answer = answers[questions[currentQuestionIndex].id] || '';
-                btnNext.disabled = answer.trim().length < 3;
+                btnNext.disabled = answer.trim().length < 2;
 
                 if (currentQuestionIndex === questions.length - 1) {
                     btnNext.innerHTML = 'Завърши <i class="fas fa-check"></i>';
@@ -1728,8 +1770,17 @@
             const interpBox = document.getElementById('interpretationBox');
             interpBox.style.display = input.value.length > 10 ? 'block' : 'none';
 
-            // Update button state
-            btnNext.disabled = input.value.trim().length < 3;
+            // Update button state - minimum 2 characters (allows short answers like "да", "не")
+            btnNext.disabled = input.value.trim().length < 2;
+        }
+
+        // Quick response button handler
+        function setQuickResponse(text) {
+            const input = document.getElementById('answerInput');
+            input.value = text;
+            handleAnswerInput();
+            // Focus back to input in case user wants to add more
+            input.focus();
         }
 
         function goBack() {
