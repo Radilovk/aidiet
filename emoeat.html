@@ -1779,12 +1779,16 @@
             }
 
             // Always add real need pattern
+            const MAX_DESCRIPTION_LENGTH = 80;
             if (realNeed.length > 5) {
+                const truncatedNeed = realNeed.length > MAX_DESCRIPTION_LENGTH
+                    ? realNeed.substring(0, MAX_DESCRIPTION_LENGTH) + '...'
+                    : realNeed;
                 patterns.push({
                     icon: 'fa-star',
                     iconClass: 'heart',
                     title: 'Реална Нужда',
-                    description: `Идентифицирахте какво всъщност търсите: "${realNeed.substring(0, 80)}${realNeed.length > 80 ? '...' : ''}"`
+                    description: `Идентифицирахте какво всъщност търсите: "${truncatedNeed}"`
                 });
             }
 
@@ -1792,11 +1796,14 @@
         }
 
         function switchTherapyTab(event, tabId) {
+            // Use currentTarget for button clicks to ensure we get the clicked button
+            const clickedTab = event.currentTarget || event.target;
+
             // Update tabs
             document.querySelectorAll('.therapy-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            event.target.classList.add('active');
+            clickedTab.classList.add('active');
 
             // Update panels
             document.querySelectorAll('.therapy-panel').forEach(panel => {

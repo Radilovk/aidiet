@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="NutriPlan">
-    
+
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/">
@@ -17,14 +17,14 @@
     <meta property="og:description" content="Комплексна здравна платформа с екип от специалисти. Персонализиран план за хранене, психология, добавки и активности чрез 7-степенен AI анализ с 30+ критерия.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
-    
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://biocode.website/">
     <meta name="twitter:title" content="NutriPlan - Твоят Персонален Режим">
     <meta name="twitter:description" content="Комплексна здравна платформа с екип от специалисти. Персонализиран план за хранене, психология, добавки и активности чрез 7-степенен AI анализ с 30+ критерия.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
-    
+
     <link rel="canonical" href="https://biocode.website/">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
@@ -34,7 +34,7 @@
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+
     <style>
         :root {
             --primary-red: #10b981;
@@ -281,6 +281,33 @@
         .feature-card h3 { margin-bottom: 10px; font-size: 1.2rem; }
         .feature-card p { color: var(--text-gray); font-size: 0.95rem; line-height: 1.6; }
 
+        /* EmoEat Feature Card Styles */
+        .feature-card.emoeat-card {
+            background: linear-gradient(135deg, #EDE9FE, #FCE7F3);
+            border: 2px solid #8B5CF6;
+        }
+        .feature-card.emoeat-card a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .feature-card.emoeat-card .icon-box {
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+        }
+        .feature-card.emoeat-card .icon-box i {
+            color: white;
+        }
+        .feature-card.emoeat-card h3 {
+            color: #6D28D9;
+        }
+        [data-theme="dark"] .feature-card.emoeat-card {
+            background: linear-gradient(135deg, #2E1065, #831843);
+            border-color: #A78BFA;
+        }
+        [data-theme="dark"] .feature-card.emoeat-card h3 {
+            color: #C4B5FD;
+        }
+
         /* --- STEPS SECTION --- */
         .steps {
             padding: 80px 5%;
@@ -342,16 +369,16 @@
         /* --- RESPONSIVE --- */
         /* Mobile-first design - optimize for mobile browsers only */
         @media (max-width: 768px) {
-            .hero { 
-                flex-direction: column; 
-                text-align: center; 
+            .hero {
+                flex-direction: column;
+                text-align: center;
                 padding-top: 120px;
                 padding-bottom: 30px;
             }
             .hero h1 { font-size: 2.2rem; line-height: 1.3; }
             .hero p { font-size: 1rem; }
-            .cta-group { 
-                justify-content: center; 
+            .cta-group {
+                justify-content: center;
                 flex-direction: column;
                 width: 100%;
                 max-width: 300px;
@@ -788,14 +815,14 @@
             function applyColorScheme() {
                 const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
                 const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-                
+
                 // Handle custom color scheme
                 if (savedScheme === 'custom') {
                     const customColors = localStorage.getItem('customColors');
                     if (customColors) {
                         const colors = JSON.parse(customColors);
                         const root = document.documentElement;
-                        
+
                         if (currentTheme === 'dark') {
                             // Use slightly lighter versions for dark theme
                             root.style.setProperty('--primary-red', lightenColor(colors.primary, 20));
@@ -809,7 +836,7 @@
                     }
                 } else {
                     const colors = colorSchemes[savedScheme]?.[currentTheme];
-                    
+
                     if (colors) {
                         const root = document.documentElement;
                         Object.keys(colors).forEach(key => {
@@ -818,7 +845,7 @@
                     }
                 }
             }
-            
+
             // Helper functions for color manipulation
             function lightenColor(hex, percent) {
                 // Parse hex color to integer
@@ -835,7 +862,7 @@
                     (B < 255 ? B < 1 ? 0 : B : 255))
                     .toString(16).slice(1);
             }
-            
+
             function darkenColor(hex, percent) {
                 // Parse hex color to integer
                 const num = parseInt(hex.replace('#', ''), 16);
@@ -921,7 +948,7 @@
                         <div class="screen-meal-title">Риба на скара</div>
                         <div class="screen-meal-amount">300 гр.</div>
                     </div>
-                    
+
                     <div class="fab-mock"><i class="fas fa-comment"></i></div>
                 </div>
             </div>
@@ -981,10 +1008,10 @@
                 <h3>Научен Подход</h3>
                 <p>Базирано на знания от хиляди медицински учебници и последни научни изследвания.</p>
             </div>
-            <div class="feature-card" style="background: linear-gradient(135deg, #EDE9FE, #FCE7F3); border: 2px solid #8B5CF6;">
-                <a href="emoeat.html" style="text-decoration: none; color: inherit; display: block;">
-                    <div class="icon-box" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);"><i class="fas fa-heart-pulse" style="color: white;"></i></div>
-                    <h3 style="color: #6D28D9;">Емоционално Хранене</h3>
+            <div class="feature-card emoeat-card">
+                <a href="emoeat.html">
+                    <div class="icon-box"><i class="fas fa-heart-pulse"></i></div>
+                    <h3>Емоционално Хранене</h3>
                     <p>Разкрий подсъзнателните тригери и получи персонализирани терапевтични стратегии (CBT, DBT, HALT, RAIN).</p>
                 </a>
             </div>
@@ -1081,7 +1108,7 @@
     <script>
         // Worker URL configuration
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
-        
+
         // --- Theme Management ---
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -1107,12 +1134,12 @@
         // --- Check for existing plan and show appropriate button ---
         window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
-            
+
             const dietPlan = localStorage.getItem('dietPlan');
             const userId = localStorage.getItem('userId');
             const myPlanBtn = document.getElementById('myPlanBtn');
             const startNowBtn = document.getElementById('startNowBtn');
-            
+
             if (dietPlan && userId) {
                 // User has a plan - redirect directly to plan.html (replace so back-button skips this page)
                 // Skip redirect when the user intentionally navigated here (e.g. via the home button)
@@ -1124,7 +1151,7 @@
                 if (myPlanBtn) myPlanBtn.style.display = 'inline-block';
                 return;
             }
-            
+
             // User doesn't have a plan - show "Започни Сега" button
             if (myPlanBtn) {
                 myPlanBtn.style.display = 'none';
@@ -1133,7 +1160,7 @@
                 startNowBtn.style.display = 'inline-block';
             }
         });
-        
+
         // --- Scroll Reveal Animation Logic ---
         window.addEventListener('scroll', reveal);
 
@@ -1156,7 +1183,7 @@
         reveal();
 
         // --- PWA Service Worker Registration ---
-        
+
         /**
          * Platform Detection Utility
          */
@@ -1171,7 +1198,7 @@
                 return /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent);
             },
             isPWA: () => {
-                return window.matchMedia('(display-mode: standalone)').matches || 
+                return window.matchMedia('(display-mode: standalone)').matches ||
                        window.navigator.standalone === true;
             },
             supportsNotifications: () => {
@@ -1200,7 +1227,7 @@
                 return { show: false };
             }
         };
-        
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 // Check platform compatibility first
@@ -1208,15 +1235,15 @@
                 if (compatWarning.show) {
                     console.warn('[Platform]', compatWarning.message);
                 }
-                
+
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('Service Worker registered:', registration);
-                        
+
                         // Check if push notifications are supported and request permission
                         if ('PushManager' in window && 'Notification' in window) {
                             // Only prompt if platform supports it
-                            if (PlatformDetector.supportsNotifications() && 
+                            if (PlatformDetector.supportsNotifications() &&
                                 (!PlatformDetector.isIOS() || PlatformDetector.isPWA())) {
                                 checkNotificationPermission(registration);
                             } else if (compatWarning.show) {
@@ -1232,7 +1259,7 @@
                     });
             });
         }
-        
+
         // --- Push Notifications ---
         async function checkNotificationPermission(registration) {
             // Display user ID for debugging/testing purposes
@@ -1244,7 +1271,7 @@
                 console.log('ℹ️  Use this ID in the Admin Panel to send test notifications');
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             }
-            
+
             // Check actual subscription status from service worker
             try {
                 const existingSubscription = await registration.pushManager.getSubscription();
@@ -1256,7 +1283,7 @@
             } catch (error) {
                 console.error('❌ Error checking subscription:', error);
             }
-            
+
             // Check if already granted
             if (Notification.permission === 'granted') {
                 console.log('📱 Notification permission already granted');
@@ -1268,14 +1295,14 @@
                 }, 5000); // Wait 5 seconds after page load
             }
         }
-        
+
         async function showNotificationPrompt(registration) {
             // Show a custom prompt before requesting browser permission
             const shouldAsk = confirm(
                 '🔔 Искате ли да получавате напомняния за храна, вода и съобщения от вашия AI консултант?\n\n' +
                 'Това ще ви помогне да следвате плана си по-лесно.'
             );
-            
+
             if (shouldAsk) {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
@@ -1284,13 +1311,13 @@
                 }
             }
         }
-        
+
         async function subscribeToPushNotifications(registration) {
             try {
                 // Get VAPID public key from server
                 const vapidResponse = await fetch(`${WORKER_URL}/api/push/vapid-public-key`);
                 const vapidData = await vapidResponse.json();
-                
+
                 if (!vapidData.success || vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
                     console.warn('❌ VAPID keys not configured on server');
                     console.info('ℹ️ To enable push notifications, the administrator needs to:');
@@ -1299,7 +1326,7 @@
                     console.info('3. See PUSH_NOTIFICATIONS_SETUP.md for detailed instructions');
                     return;
                 }
-                
+
                 // Validate VAPID key format (should be base64url, typically 87-88 characters)
                 if (!vapidData.publicKey || vapidData.publicKey.length < 80) {
                     console.error('❌ Invalid VAPID public key format received from server');
@@ -1308,7 +1335,7 @@
                     console.info('Example: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBrYhQzj_0sS5kVwfg3A');
                     return;
                 }
-                
+
                 // Convert VAPID key from base64url to Uint8Array
                 const urlBase64ToUint8Array = (base64String) => {
                     try {
@@ -1326,25 +1353,25 @@
                         throw new Error('Failed to decode VAPID key: ' + e.message);
                     }
                 };
-                
+
                 // Get or generate user ID before subscribing
                 let userId = localStorage.getItem('userId');
                 if (!userId) {
                     userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
                     localStorage.setItem('userId', userId);
                 }
-                
+
                 console.log('📱 Subscribing to push notifications...');
                 console.log('Your User ID:', userId);
-                
+
                 // Subscribe to push notifications
                 const subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
                 });
-                
+
                 console.log('✅ Push subscription created successfully');
-                
+
                 // Send subscription to server
                 const response = await fetch(`${WORKER_URL}/api/push/subscribe`, {
                     method: 'POST',
@@ -1356,7 +1383,7 @@
                         subscription: subscription.toJSON()
                     })
                 });
-                
+
                 const result = await response.json();
                 if (result.success) {
                     console.log('✅ Successfully subscribed to push notifications');
@@ -1368,7 +1395,7 @@
                 }
             } catch (error) {
                 console.error('❌ Error subscribing to push notifications:', error);
-                
+
                 // Provide specific error guidance
                 if (error.name === 'InvalidAccessError' || error.message.includes('applicationServerKey')) {
                     console.error('🔧 The VAPID public key configured on the server is invalid or malformed');
@@ -1386,7 +1413,7 @@
         // --- PWA Helper Functions ---
         // Check if app is running in standalone mode
         function isInStandaloneMode() {
-            return window.matchMedia('(display-mode: standalone)').matches || 
+            return window.matchMedia('(display-mode: standalone)').matches ||
                    (('standalone' in window.navigator) && (window.navigator.standalone));
         }
 
@@ -1397,12 +1424,12 @@
 
         // --- Push Notifications Support ---
         let deferredPrompt;
-        
+
         // Constants
         const INSTALL_BANNER_DISMISS_DAYS = 7; // Number of days before showing banner again
         const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
         const PWA_DEBUG = true; // Set to true for debugging PWA installation issues
-        
+
         // Console styling constants
         const CONSOLE_STYLES = {
             SUCCESS: 'color: #10b981; font-weight: bold; font-size: 14px',
@@ -1412,7 +1439,7 @@
             SEPARATOR_WARNING: 'color: #f59e0b',
             SEPARATOR_INFO: 'color: #3b82f6'
         };
-        
+
         // Installation instruction texts
         const INSTALL_INSTRUCTIONS = {
             DESKTOP: 'За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."',
@@ -1420,7 +1447,7 @@
             IOS: 'За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)',
             MOBILE_GENERIC: 'За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието'
         };
-        
+
         // Helper function to check if banner was recently dismissed
         function wasBannerRecentlyDismissed() {
             const dismissedTime = localStorage.getItem('installBannerDismissed');
@@ -1434,7 +1461,7 @@
             }
             return false;
         }
-        
+
         // Detect device type
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isAndroid = /Android/i.test(navigator.userAgent);
@@ -1445,7 +1472,7 @@
         const isFirefox = /Firefox/i.test(navigator.userAgent);
         const isOpera = /OPR|Opera/i.test(navigator.userAgent);
         const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
-        
+
         // Get browser name and icon for display
         function getBrowserInfo() {
             if (isChrome && isAndroid) return { name: 'Chrome', icon: 'fab fa-chrome' };
@@ -1458,14 +1485,14 @@
             if (isSamsung) return { name: 'Samsung Internet', icon: 'fas fa-mobile-alt' };
             return { name: 'Browser', icon: 'fas fa-globe' };
         }
-        
+
         // Update banner icon based on platform
         function updateBannerIcon() {
             const iconEl = document.getElementById('installBannerIcon');
             if (!iconEl) return;
-            
+
             let iconClass = 'fas fa-mobile-alt';
-            
+
             if (isAndroid) {
                 iconClass = 'fab fa-android';
             } else if (isIOS) {
@@ -1473,15 +1500,15 @@
             } else if (!isMobile) {
                 iconClass = 'fas fa-desktop';
             }
-            
+
             iconEl.innerHTML = `<i class="${iconClass}"></i>`;
         }
-        
+
         // Update browser badge
         function updateBrowserBadge(showBrowser = true) {
             const browserBadge = document.getElementById('installBannerBrowser');
             const browserText = document.getElementById('installBannerBrowserText');
-            
+
             if (browserBadge && browserText && showBrowser) {
                 const browserInfo = getBrowserInfo();
                 browserText.textContent = browserInfo.name;
@@ -1494,16 +1521,16 @@
                 browserBadge.style.display = 'none';
             }
         }
-        
+
         // Capture the beforeinstallprompt event
         window.addEventListener('beforeinstallprompt', (e) => {
             if (PWA_DEBUG) console.log('beforeinstallprompt fired');
             e.preventDefault();
             deferredPrompt = e;
-            
+
             // Update banner text for Chrome/Edge with native prompt
             updateInstallBannerForNativePrompt();
-            
+
             // Show the install banner only if not recently dismissed
             if (!wasBannerRecentlyDismissed()) {
                 showInstallBanner();
@@ -1521,64 +1548,64 @@
                 if (PWA_DEBUG) console.error('Install banner element not found');
             }
         }
-        
+
         // Update banner text for native prompt availability
         function updateInstallBannerForNativePrompt() {
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
                 const titleEl = document.getElementById('installBannerTitle');
                 const textEl = document.getElementById('installBannerText');
-                
+
                 if (titleEl) titleEl.textContent = '🎉 Готово за инсталация!';
                 if (textEl) textEl.textContent = 'Натисни "Инсталирай" за бърза инсталация на приложението';
-                
+
                 updateBannerIcon();
                 updateBrowserBadge(true);
             }
         }
-        
+
         // Update banner text for manual installation
         function updateInstallBannerForManual() {
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
                 const titleEl = document.getElementById('installBannerTitle');
                 const textEl = document.getElementById('installBannerText');
-                
+
                 if (titleEl) titleEl.textContent = '📱 Инсталирай NutriPlan';
                 if (textEl) textEl.textContent = 'Натисни "Инсталирай" за инструкции';
-                
+
                 updateBannerIcon();
                 updateBrowserBadge(true);
             }
         }
-        
+
         // Show platform-specific install guidance if beforeinstallprompt doesn't fire
         function showPlatformInstallGuidance() {
             if (PWA_DEBUG) console.log('showPlatformInstallGuidance() called');
-            
+
             // Don't show if already dismissed recently
             if (wasBannerRecentlyDismissed()) {
                 if (PWA_DEBUG) console.log('Banner was recently dismissed, not showing');
                 return;
             }
-            
+
             // Don't show if already installed
             if (isInStandaloneMode()) {
                 if (PWA_DEBUG) console.log('App already installed (standalone mode), not showing banner');
                 return;
             }
-            
+
             const installBanner = document.getElementById('installBanner');
             if (!installBanner) {
                 if (PWA_DEBUG) console.error('Install banner element not found!');
                 return;
             }
-            
+
             // Update banner content based on platform
             const titleEl = document.getElementById('installBannerTitle');
             const textEl = document.getElementById('installBannerText');
             const installBtn = document.getElementById('installBtn');
-            
+
             if (PWA_DEBUG) {
                 console.log('Platform detection:', {
                     isMobile,
@@ -1593,11 +1620,11 @@
                     userAgent: navigator.userAgent
                 });
             }
-            
+
             // Update icon and browser badge
             updateBannerIcon();
             updateBrowserBadge(true);
-            
+
             if (!isMobile && (isChrome || isEdge)) {
                 // Desktop Chrome/Edge - guide to address bar
                 const browserName = isChrome ? 'Chrome' : 'Edge';
@@ -1676,29 +1703,29 @@
                 installBanner.classList.remove('show');
             }
         }
-        
+
         // Trigger install prompt (reusable function)
         async function triggerInstallPrompt() {
             if (!deferredPrompt) {
                 if (PWA_DEBUG) console.log('No deferred prompt available');
                 return false;
             }
-            
+
             try {
                 // Show the install prompt
                 if (PWA_DEBUG) console.log('Triggering install prompt');
                 deferredPrompt.prompt();
-                
+
                 // Wait for the user to respond to the prompt
                 const { outcome } = await deferredPrompt.userChoice;
                 if (PWA_DEBUG) console.log(`User response to the install prompt: ${outcome}`);
-                
+
                 // Hide the banner
                 hideInstallBanner();
-                
+
                 // Clear the deferred prompt
                 deferredPrompt = null;
-                
+
                 return outcome === 'accepted';
             } catch (error) {
                 if (PWA_DEBUG) console.error('Error triggering install prompt:', error);
@@ -1733,7 +1760,7 @@
         if (dismissInstallBtn) {
             dismissInstallBtn.addEventListener('click', () => {
                 hideInstallBanner();
-                
+
                 // Store dismissal in localStorage (to not show again for 7 days)
                 localStorage.setItem('installBannerDismissed', Date.now().toString());
             });
@@ -1745,7 +1772,7 @@
             hideInstallBanner();
             deferredPrompt = null;
         });
-        
+
         // --- iOS-SPECIFIC BANNER LOGIC ---
         // Function to show iOS install banner
         function showIosInstallBanner() {
@@ -1754,7 +1781,7 @@
             if (isIOS && !isInStandaloneMode() && !hasDismissed) {
                 const iosBanner = document.getElementById('ios-banner');
                 const shareIconImg = document.getElementById('ios-share-icon-img');
-                
+
                 if (iosBanner) {
                     // Set the share icon SVG
                     if (shareIconImg) {
@@ -1782,7 +1809,7 @@
                 showIosInstallBanner();
             }, 3000); // Show after 3 seconds on iOS
         }
-        
+
         // Don't show fallback guidance - only show banner when beforeinstallprompt fires
         // This ensures automatic installation prompt instead of manual instructions
         window.addEventListener('load', () => {
@@ -1797,7 +1824,7 @@
                     }
                 }, 2000); // Show after 2 seconds to allow beforeinstallprompt to fire first
             }
-            
+
             setTimeout(() => {
                 // Only log for debugging - don't show manual instructions
                 if (!deferredPrompt && !isInStandaloneMode()) {
@@ -1807,12 +1834,12 @@
                     }
                 }
             }, 2000);
-            
+
             // For Android Chrome/Edge: Continue waiting for beforeinstallprompt
             if (isAndroid && (isChrome || isEdge)) {
                 let engagementStartTime = Date.now();
                 let hasInteracted = false;
-                
+
                 // Track user interaction
                 const interactionEvents = ['click', 'touchstart', 'scroll', 'keydown'];
                 const markInteraction = () => {
@@ -1821,11 +1848,11 @@
                         if (PWA_DEBUG) console.log('User interaction detected, starting engagement timer');
                     }
                 };
-                
+
                 interactionEvents.forEach(event => {
                     document.addEventListener(event, markInteraction, { once: true, passive: true });
                 });
-                
+
                 // Check again after 32 seconds if user has interacted
                 setTimeout(() => {
                     if (hasInteracted && !deferredPrompt && !isInStandaloneMode()) {
@@ -1853,7 +1880,7 @@
                     const isAndroid = /Android/i.test(navigator.userAgent);
                     const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
                     const isEdge = /Edg/i.test(navigator.userAgent);
-                    
+
                     if (!deferredPrompt) {
                         console.log('PWA Debug: beforeinstallprompt has not fired yet');
                         console.log('PWA Debug: Checking installability criteria:');
@@ -1862,13 +1889,13 @@
                         console.log('- Manifest link:', document.querySelector('link[rel="manifest"]') ? 'Found' : 'Missing');
                         console.log('- Platform:', isMobile ? 'Mobile' : 'Desktop');
                         console.log('- Browser:', isChrome ? 'Chrome' : (isEdge ? 'Edge' : 'Other'));
-                        
+
                         // Check if already installed
                         if (isInStandaloneMode()) {
                             console.log('- Already installed: Yes (running as standalone app)');
                         } else {
                             console.log('- Already installed: No');
-                            
+
                             // Different explanations for desktop vs mobile
                             if (!isMobile && (isChrome || isEdge)) {
                                 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
@@ -1945,11 +1972,11 @@
 
             const permission = Notification.permission;
             console.log('Notification permission:', permission);
-            
+
             const notificationSection = document.getElementById('notificationSection');
             const enableBtn = document.getElementById('enableNotificationsBtn');
             const statusDiv = document.getElementById('notificationStatus');
-            
+
             if (!notificationSection || !enableBtn || !statusDiv) {
                 return;
             }
@@ -1972,12 +1999,12 @@
         // Handle enable notifications button click
         async function handleEnableNotifications() {
             const result = await requestNotificationPermission();
-            
+
             if (result) {
                 // Update UI
                 const enableBtn = document.getElementById('enableNotificationsBtn');
                 const statusDiv = document.getElementById('notificationStatus');
-                
+
                 if (enableBtn && statusDiv) {
                     enableBtn.classList.add('hidden');
                     statusDiv.textContent = '✓ Известията са включени успешно!';
@@ -2044,14 +2071,14 @@
             };
 
             const message = contextMessages[context] || contextMessages['action'];
-            
+
             // This gives user context before showing browser permission dialog
             const userWantsNotifications = confirm(message);
-            
+
             if (userWantsNotifications) {
                 return await requestNotificationPermission();
             }
-            
+
             return false;
         }
 
@@ -2059,13 +2086,13 @@
         async function subscribeToPushNotifications() {
             try {
                 const registration = await navigator.serviceWorker.ready;
-                
+
                 // Check if already subscribed
                 let subscription = await registration.pushManager.getSubscription();
-                
+
                 if (!subscription) {
                     console.log('Subscribing to push notifications...');
-                    
+
                     // Get VAPID public key from server
                     const vapidResponse = await fetch(`${WORKER_URL}/api/push/vapid-public-key`, {
                         method: 'GET',
@@ -2073,32 +2100,32 @@
                             'Content-Type': 'application/json'
                         }
                     });
-                    
+
                     if (!vapidResponse.ok) {
                         throw new Error('Failed to get VAPID public key');
                     }
-                    
+
                     const vapidData = await vapidResponse.json();
                     const publicKey = vapidData.publicKey;
-                    
+
                     // Check if VAPID key is configured
                     if (publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
                         console.warn('VAPID keys not configured on server. Push notifications will not work fully.');
                         console.info('To enable push notifications, configure VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables.');
                         return;
                     }
-                    
+
                     // Convert VAPID key from base64 to Uint8Array
                     const applicationServerKey = urlBase64ToUint8Array(publicKey);
-                    
+
                     // Subscribe to push
                     subscription = await registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: applicationServerKey
                     });
-                    
+
                     console.log('Push subscription created:', subscription);
-                    
+
                     // Send subscription to server
                     let userId = localStorage.getItem('userId');
                     if (!userId) {
