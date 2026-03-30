@@ -1498,9 +1498,9 @@
                         </div>
                         <div class="therapy-content">
                             <div class="therapy-tabs">
-                                <button class="therapy-tab active" onclick="switchTherapyTab('halt')">HALT</button>
-                                <button class="therapy-tab" onclick="switchTherapyTab('rain')">RAIN</button>
-                                <button class="therapy-tab" onclick="switchTherapyTab('cbt')">CBT/DBT</button>
+                                <button type="button" class="therapy-tab active" onclick="switchTherapyTab(event, 'halt')">HALT</button>
+                                <button type="button" class="therapy-tab" onclick="switchTherapyTab(event, 'rain')">RAIN</button>
+                                <button type="button" class="therapy-tab" onclick="switchTherapyTab(event, 'cbt')">CBT/DBT</button>
                             </div>
 
                             <!-- HALT Panel -->
@@ -1791,7 +1791,7 @@
             return patterns.slice(0, 4); // Max 4 patterns
         }
 
-        function switchTherapyTab(tabId) {
+        function switchTherapyTab(event, tabId) {
             // Update tabs
             document.querySelectorAll('.therapy-tab').forEach(tab => {
                 tab.classList.remove('active');
