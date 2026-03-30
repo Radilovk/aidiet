@@ -40,6 +40,13 @@
    - Използва се за коригиране на невалидни планове
    - Използва се в: Validation error flow
 
+### Емоционално хранене
+
+8. **admin_emoeat_prompt.txt** - AI анализ на емоционалното хранене
+   - Входни данни: 15 отговора от проективен въпросник за емоционално хранене
+   - Изходни данни: Дълбок индивидуализиран психологически профил с архетипи, кръстосани модели, лични прозрения, терапевтични стратегии и спешен протокол
+   - Използва се в: `generateEmoeatPrompt()` / `handleGenerateEmoeatAnalysis()`
+
 ## Формат на промптовете
 
 Всички промптове използват `{placeholders}` с точкова нотация за достъп до вложени обекти:
@@ -73,6 +80,9 @@
 Изчислени: `{bmr}`, `{recommendedCalories}`, `{avgCalories}`, `{avgProtein}`, `{avgCarbs}`, `{avgFats}`
 Потребителски: `{name}`, `{goal}`, `{medications}`, `{allergies}`
 Динамични списъци: `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
+
+#### EmoEat – `admin_emoeat_prompt.txt`
+Отговори от въпросника: `{answer1}` до `{answer15}` (свободен текст от 15 въпроса за емоционално хранене)
 
 **ВАЖНО**: Промптовете съдържат placeholders `{varName}` и `{obj.field}` (точкова нотация), които се заместват при runtime. Те НЕ са JavaScript template literals.
 

@@ -6252,7 +6252,8 @@ function getPromptKVKey(type) {
     'strategy': 'admin_strategy_prompt',
     'meal_plan': 'admin_meal_plan_prompt',
     'summary': 'admin_summary_prompt',
-    'plan': 'admin_plan_prompt'
+    'plan': 'admin_plan_prompt',
+    'emoeat': 'admin_emoeat_prompt'
   };
   
   return keyMap[type] || 'admin_plan_prompt';
@@ -6319,13 +6320,14 @@ async function handleGetDefaultPrompt(request, env) {
       'summary': 'admin_summary_prompt',
       'consultation': 'admin_consultation_prompt',
       'modification': 'admin_modification_prompt',
-      'correction': 'admin_correction_prompt'
+      'correction': 'admin_correction_prompt',
+      'emoeat': 'admin_emoeat_prompt'
     };
     
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat` 
       }, 400);
     }
     
@@ -6464,6 +6466,97 @@ async function handleGenerateProtocol(request, env) {
 }
 
 /**
+ * Generate EmoEat emotional eating analysis using AI
+ * Takes 15 questionnaire answers and returns deeply personalized psychological analysis
+ */
+async function generateEmoeatPrompt(answers, env) {
+  const customPrompt = await getCustomPrompt(env, 'admin_emoeat_prompt');
+
+  if (customPrompt) {
+    const variables = {};
+    for (let i = 1; i <= 15; i++) {
+      variables[`answer${i}`] = (answers[i] || '').trim() || '(без отговор)';
+    }
+    return replacePromptVariables(customPrompt, variables);
+  }
+
+  // Inline fallback if KV prompt not available
+  let answersBlock = '';
+  const labels = [
+    'Глад на Сърцето', 'Скрито Хранене', 'Глад на Главата',
+    'Лишение и Контрол', 'Вътрешен Монолог', 'Граница на Ситостта',
+    'Емоционално Изтръпване', 'Конфликт и Апетит', 'Детска Носталгия',
+    'Стимулация и Апатия', 'Самонаказание', 'Бягство от Реалността',
+    'Вътрешен Критик', 'Функция на Диетата', 'Реална Нужда'
+  ];
+  for (let i = 1; i <= 15; i++) {
+    answersBlock += `${i}. ${labels[i - 1]}: ${(answers[i] || '').trim() || '(без отговор)'}\n`;
+  }
+
+  return `Ти си клиничен психолог, специализиран в хранителни разстройства и емоционално хранене.
+Анализирай тези 15 отговора от проективен въпросник за емоционално хранене.
+Направи ДЪЛБОК, ИНДИВИДУАЛИЗИРАН анализ. Цитирай КОНКРЕТНИ думи от отговорите.
+
+ОТГОВОРИ:
+${answersBlock}
+Отговори САМО с валиден JSON:
+{
+  "dominantArchetype": {"name": "string", "confidence": number, "description": "string"},
+  "secondaryArchetype": {"name": "string", "confidence": number, "description": "string"},
+  "crossPatterns": [{"title": "string", "questions": [1,2], "insight": "string"}],
+  "personalInsights": [{"icon": "fa-icon", "title": "string", "quote": "цитат от отговор", "analysis": "string", "sourceQuestion": 1}],
+  "therapeuticStrategies": [{"icon": "fa-icon", "title": "string", "trigger": "string", "method": "string", "practicalSteps": ["string"]}],
+  "emergencyProtocol": {"title": "string", "description": "string", "steps": [{"step": 1, "action": "string", "duration": "string"}]},
+  "hiddenMessage": "string"
+}
+ЗАДЪЛЖИТЕЛНО: crossPatterns мин.3, personalInsights мин.5, therapeuticStrategies мин.5, emergencyProtocol мин.3 стъпки. Цитирай конкретни думи. Език: Български.`;
+}
+
+async function handleGenerateEmoeatAnalysis(request, env) {
+  try {
+    const data = await request.json();
+
+    if (!data.answers || typeof data.answers !== 'object') {
+      return jsonResponse({ error: 'Липсват отговори от въпросника' }, 400);
+    }
+
+    // Validate that at least some answers exist
+    const answeredCount = Object.values(data.answers).filter(a => a && String(a).trim().length > 0).length;
+    if (answeredCount < 5) {
+      return jsonResponse({ error: 'Моля, отговорете на поне 5 въпроса за пълноценен анализ' }, 400);
+    }
+
+    const prompt = await generateEmoeatPrompt(data.answers, env);
+
+    const EMOEAT_TOKEN_LIMIT = 4000;
+    const aiResponse = await callAIModel(
+      env,
+      prompt,
+      EMOEAT_TOKEN_LIMIT,
+      'emoeat_analysis',
+      null,
+      null,
+      null
+    );
+
+    const parsed = parseAIResponse(aiResponse);
+
+    if (!parsed || !parsed.dominantArchetype) {
+      console.error('handleGenerateEmoeatAnalysis: Failed to parse AI response');
+      return jsonResponse({
+        error: 'Анализът не можа да бъде генериран. Моля, опитайте отново.',
+        rawResponse: typeof aiResponse === 'string' ? aiResponse.substring(0, 200) : null
+      }, 500);
+    }
+
+    return jsonResponse({ success: true, analysis: parsed });
+  } catch (error) {
+    console.error('Error generating emoeat analysis:', error);
+    return jsonResponse({ error: 'Грешка при генериране на анализа: ' + error.message }, 500);
+  }
+}
+
+/**
  * Admin: Get admin configuration from KV
  */
 async function handleGetConfig(request, env) {
@@ -6486,7 +6579,8 @@ async function handleGetConfig(request, env) {
       summaryPrompt,
       correctionPrompt,
       protocolProvider,
-      protocolModelName
+      protocolModelName,
+      emoeatPrompt
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -6500,7 +6594,8 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_summary_prompt'),
       env.page_content.get('admin_correction_prompt'),
       env.page_content.get('admin_protocol_provider'),
-      env.page_content.get('admin_protocol_model_name')
+      env.page_content.get('admin_protocol_model_name'),
+      env.page_content.get('admin_emoeat_prompt')
     ]);
     
     return jsonResponse({ 
@@ -6517,7 +6612,8 @@ async function handleGetConfig(request, env) {
       summaryPrompt,
       correctionPrompt,
       protocolProvider: protocolProvider || null,
-      protocolModelName: protocolModelName || null
+      protocolModelName: protocolModelName || null,
+      emoeatPrompt
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -8594,6 +8690,8 @@ export default {
         return await handleSaveProtocolConfig(request, env);
       } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {
         return await handleGenerateProtocol(request, env);
+      } else if (url.pathname === '/api/generate-emoeat-analysis' && request.method === 'POST') {
+        return await handleGenerateEmoeatAnalysis(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
         return await handleGetConfig(request, env);
       } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
