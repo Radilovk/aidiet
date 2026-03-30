@@ -1612,6 +1612,7 @@
         let currentQuestionIndex = 0;
         let answers = {};
         const MIN_REQUIRED_ANSWERS = 5; // Must match backend validation in handleGenerateEmoeatAnalysis
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
         // ============================================
         // DOM ELEMENTS
@@ -1782,7 +1783,7 @@
                     }, 3000);
 
                     try {
-                        const response = await fetch('/api/generate-emoeat-analysis', {
+                        const response = await fetch(`${WORKER_URL}/api/generate-emoeat-analysis`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ answers: answers })
@@ -2075,7 +2076,7 @@
             if (ls) ls.textContent = 'Свързваме се със сървъра';
 
             try {
-                const response = await fetch('/api/generate-emoeat-analysis', {
+                const response = await fetch(`${WORKER_URL}/api/generate-emoeat-analysis`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ answers: answers })
