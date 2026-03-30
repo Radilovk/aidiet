@@ -1487,10 +1487,10 @@
                     oninput="handleAnswerInput()"
                 ></textarea>
                 
-                <div class="quick-responses">
-                    <button type="button" class="quick-btn" onclick="setQuickResponse('Не се отнася за мен')">Не се отнася за мен</button>
-                    <button type="button" class="quick-btn" onclick="setQuickResponse('Нямам такъв опит')">Нямам такъв опит</button>
-                    <button type="button" class="quick-btn" onclick="setQuickResponse('Не зная')">Не зная</button>
+                <div class="quick-responses" role="group" aria-label="Бързи отговори">
+                    <button type="button" class="quick-btn" onclick="setQuickResponse('Не се отнася за мен')" aria-label="Отговори: Не се отнася за мен">Не се отнася за мен</button>
+                    <button type="button" class="quick-btn" onclick="setQuickResponse('Нямам такъв опит')" aria-label="Отговори: Нямам такъв опит">Нямам такъв опит</button>
+                    <button type="button" class="quick-btn" onclick="setQuickResponse('Не зная')" aria-label="Отговори: Не зная">Не зная</button>
                 </div>
                 
                 <div class="char-counter"><span id="charCount">0</span> символа</div>
@@ -1774,7 +1774,12 @@
             btnNext.disabled = input.value.trim().length < 2;
         }
 
-        // Quick response button handler
+        /**
+         * Sets a quick response in the answer input field.
+         * Used by quick response buttons for users who want to indicate
+         * that a question doesn't apply to them.
+         * @param {string} text - The response text to insert
+         */
         function setQuickResponse(text) {
             const input = document.getElementById('answerInput');
             input.value = text;
