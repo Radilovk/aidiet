@@ -1611,6 +1611,7 @@
         let currentScreen = 'welcome'; // welcome, question, loading, results
         let currentQuestionIndex = 0;
         let answers = {};
+        const MIN_REQUIRED_ANSWERS = 5; // Must match backend validation in handleGenerateEmoeatAnalysis
 
         // ============================================
         // DOM ELEMENTS
@@ -2053,6 +2054,18 @@
         }
 
         async function retryAIAnalysis() {
+            // Ensure answers are available — fall back to localStorage if in-memory state is empty
+            if (!answers || Object.keys(answers).length === 0) {
+                const savedAnswers = localStorage.getItem('emoeat_answers');
+                if (savedAnswers) {
+                    try {
+                        answers = JSON.parse(savedAnswers);
+                    } catch (e) {
+                        answers = {};
+                    }
+                }
+            }
+
             currentScreen = 'loading';
             showScreen('loadingScreen');
             document.getElementById('navFooter').style.display = 'none';
@@ -2251,9 +2264,35 @@
             if (savedAnswers) {
                 try {
                     answers = JSON.parse(savedAnswers);
-                    // Could offer to resume here
                 } catch (e) {
                     answers = {};
+                }
+            }
+
+            // If the user previously completed the questionnaire, restore their results screen
+            const completed = localStorage.getItem('emoeat_completed');
+            if (completed) {
+                const savedAnalysis = localStorage.getItem('emoeat_analysis');
+                if (savedAnalysis) {
+                    try {
+                        const analysis = JSON.parse(savedAnalysis);
+                        currentScreen = 'results';
+                        generateAIResults(analysis);
+                        showScreen('resultsScreen');
+                        updateProgress();
+                        return;
+                    } catch (e) {
+                        // Saved analysis is corrupt — fall through to fallback
+                    }
+                }
+
+                // Completed but no valid AI analysis saved — show fallback with retry button
+                if (answers && Object.keys(answers).length >= MIN_REQUIRED_ANSWERS) {
+                    currentScreen = 'results';
+                    generateFallbackResults();
+                    showScreen('resultsScreen');
+                    updateProgress();
+                    return;
                 }
             }
 
