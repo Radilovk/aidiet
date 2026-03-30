@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Професионален въпросник за емоционално хранене - разкрийте подсъзнателните тригери и получете персонализирани терапевтични стратегии за справяне.">
+    <meta name="theme-color" content="#8B5CF6">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EmoEat">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://biocode.website/emoeat.html">
+    <meta property="og:title" content="Въпросник за Емоционално Хранене">
+    <meta property="og:description" content="Разкрийте подсъзнателните тригери и получете персонализирани терапевтични стратегии за справяне с емоционалното хранене.">
+    <meta property="og:image" content="https://biocode.website/icon-512x512.png">
+    <meta property="og:locale" content="bg_BG">
+
+    <link rel="canonical" href="https://biocode.website/emoeat.html">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    <title>Въпросник за Емоционално Хранене</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            /* Purple theme for emotional/psychological content */
+            --primary: #8B5CF6;
+            --primary-hover: #7C3AED;
+            --primary-light: #EDE9FE;
+            --primary-dark: #6D28D9;
+            --accent-warm: #F59E0B;
+            --accent-cool: #06B6D4;
+            --accent-rose: #EC4899;
+            --accent-green: #10B981;
+            --text-dark: #1F2937;
+            --text-gray: #6B7280;
+            --text-light: #9CA3AF;
+            --bg-color: #FAFAFA;
+            --card-bg: #FFFFFF;
+            --input-bg: #F9FAFB;
+            --shadow: 0 10px 40px rgba(139, 92, 246, 0.15);
+            --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.05);
+            --radius: 20px;
+            --radius-sm: 12px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+            /* Safe area insets for mobile devices */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --primary: #A78BFA;
+            --primary-hover: #8B5CF6;
+            --primary-light: #2E1065;
+            --primary-dark: #C4B5FD;
+            --text-dark: #F3F4F6;
+            --text-gray: #9CA3AF;
+            --text-light: #6B7280;
+            --bg-color: #0F0F1A;
+            --card-bg: #1A1A2E;
+            --input-bg: #252540;
+            --shadow: 0 10px 40px rgba(167, 139, 250, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Header */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--card-bg);
+            padding: calc(15px + var(--safe-area-inset-top)) 20px 15px;
+            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-rose));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+        }
+
+        .header-text h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .header-text p {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+        }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--input-bg);
+            color: var(--text-gray);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Progress */
+        .progress-section {
+            padding: 20px 20px 0;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .progress-track {
+            height: 8px;
+            background: var(--input-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--accent-rose));
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .progress-step {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .progress-percent {
+            font-size: 0.85rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Main Container */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            padding-bottom: calc(100px + var(--safe-area-inset-bottom));
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .welcome-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-rose));
+            border-radius: 30px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            box-shadow: 0 15px 35px rgba(139, 92, 246, 0.3);
+        }
+
+        .welcome-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+
+        .welcome-subtitle {
+            font-size: 1rem;
+            color: var(--text-gray);
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .welcome-features {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            padding: 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            text-align: left;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        .feature-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .feature-icon.purple { background: var(--primary-light); color: var(--primary); }
+        .feature-icon.rose { background: #FCE7F3; color: var(--accent-rose); }
+        .feature-icon.amber { background: #FEF3C7; color: var(--accent-warm); }
+        .feature-icon.teal { background: #CCFBF1; color: var(--accent-cool); }
+
+        [data-theme="dark"] .feature-icon.rose { background: #831843; }
+        [data-theme="dark"] .feature-icon.amber { background: #78350F; }
+        [data-theme="dark"] .feature-icon.teal { background: #134E4A; }
+
+        .feature-text h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .feature-text p {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .privacy-note {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 20px;
+        }
+
+        /* Question Screen */
+        .question-screen {
+            padding: 10px 0;
+        }
+
+        .question-header {
+            margin-bottom: 25px;
+        }
+
+        .question-category {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .question-hint {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* Answer Input */
+        .answer-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 18px;
+            font-size: 1rem;
+            line-height: 1.6;
+            border: 2px solid var(--input-bg);
+            background: var(--card-bg);
+            color: var(--text-dark);
+            border-radius: var(--radius-sm);
+            resize: none;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+        }
+
+        .answer-input::placeholder {
+            color: var(--text-light);
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+
+        /* Interpretation Box */
+        .interpretation-box {
+            background: linear-gradient(135deg, var(--primary-light), rgba(236, 72, 153, 0.1));
+            border-radius: var(--radius-sm);
+            padding: 18px;
+            margin-top: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .interpretation-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .interpretation-text {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* Results Screen */
+        .results-screen {
+            padding: 20px 0;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .results-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-cool));
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+        }
+
+        .results-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-gray);
+        }
+
+        /* Profile Card */
+        .profile-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--input-bg);
+        }
+
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent-rose));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .profile-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .profile-info p {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        /* Emotional Patterns */
+        .pattern-section {
+            margin-bottom: 25px;
+        }
+
+        .pattern-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+        }
+
+        .pattern-title i {
+            color: var(--primary);
+        }
+
+        .pattern-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .pattern-item {
+            background: var(--input-bg);
+            border-radius: var(--radius-sm);
+            padding: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .pattern-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .pattern-icon.heart { background: #FCE7F3; color: #EC4899; }
+        .pattern-icon.brain { background: #EDE9FE; color: #8B5CF6; }
+        .pattern-icon.shield { background: #D1FAE5; color: #10B981; }
+        .pattern-icon.fire { background: #FEF3C7; color: #F59E0B; }
+
+        [data-theme="dark"] .pattern-icon.heart { background: #831843; }
+        [data-theme="dark"] .pattern-icon.brain { background: #4C1D95; }
+        [data-theme="dark"] .pattern-icon.shield { background: #064E3B; }
+        [data-theme="dark"] .pattern-icon.fire { background: #78350F; }
+
+        .pattern-content h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .pattern-content p {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        /* Therapy Section */
+        .therapy-section {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .therapy-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 20px;
+            color: white;
+        }
+
+        .therapy-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .therapy-header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .therapy-content {
+            padding: 20px;
+        }
+
+        /* Therapy Tabs */
+        .therapy-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .therapy-tab {
+            flex-shrink: 0;
+            padding: 10px 18px;
+            border-radius: 25px;
+            border: none;
+            background: var(--input-bg);
+            color: var(--text-gray);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .therapy-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .therapy-tab:hover:not(.active) {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Therapy Panel */
+        .therapy-panel {
+            display: none;
+        }
+
+        .therapy-panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .technique-card {
+            background: var(--input-bg);
+            border-radius: var(--radius-sm);
+            padding: 18px;
+            margin-bottom: 15px;
+        }
+
+        .technique-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .technique-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .technique-badge {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .technique-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .technique-steps {
+            margin-top: 15px;
+        }
+
+        .technique-step {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h5 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 3px;
+        }
+
+        .step-content p {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.5;
+        }
+
+        /* HALT & RAIN Cards */
+        .method-card {
+            background: linear-gradient(135deg, var(--card-bg), var(--primary-light));
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(139, 92, 246, 0.15);
+        }
+
+        .method-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .method-letters {
+            display: grid;
+            gap: 12px;
+        }
+
+        .letter-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .letter-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .letter-content h5 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 2px;
+        }
+
+        .letter-content p {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.5;
+        }
+
+        /* Mindful Eating Section */
+        .mindful-section {
+            background: linear-gradient(135deg, #D1FAE5, #CCFBF1);
+            border-radius: var(--radius);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        [data-theme="dark"] .mindful-section {
+            background: linear-gradient(135deg, #064E3B, #134E4A);
+        }
+
+        .mindful-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #059669;
+            margin-bottom: 20px;
+        }
+
+        [data-theme="dark"] .mindful-title {
+            color: #34D399;
+        }
+
+        .mindful-steps {
+            display: grid;
+            gap: 15px;
+        }
+
+        .mindful-step {
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            padding: 18px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .mindful-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10B981, #06B6D4);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .mindful-content h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 5px;
+        }
+
+        .mindful-content p {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.5;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: grid;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--primary);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--primary);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-light);
+        }
+
+        /* Fixed Footer Navigation */
+        .nav-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            padding: 15px 20px calc(15px + var(--safe-area-inset-bottom));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.08);
+            z-index: 100;
+        }
+
+        .btn-nav {
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-back {
+            border: none;
+            background: transparent;
+            color: var(--text-gray);
+        }
+
+        .btn-back:hover {
+            color: var(--text-dark);
+        }
+
+        .btn-next {
+            border: none;
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-next:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-next:disabled {
+            background: var(--input-bg);
+            color: var(--text-light);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Loading Animation */
+        .loading-screen {
+            text-align: center;
+            padding: 50px 0;
+        }
+
+        .loading-animation {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+
+        .loading-circle {
+            width: 100%;
+            height: 100%;
+            border: 4px solid var(--input-bg);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+        }
+
+        .loading-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .welcome-title {
+                font-size: 1.5rem;
+            }
+
+            .question-text {
+                font-size: 1.15rem;
+            }
+
+            .therapy-tabs {
+                margin: 0 -20px 20px;
+                padding: 0 20px 5px;
+            }
+        }
+    </style>
+    <script>
+        // Apply saved theme
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } else {
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-heart-pulse"></i>
+                </div>
+                <div class="header-text">
+                    <h1>Емоционално Хранене</h1>
+                    <p>Психологическа самооценка</p>
+                </div>
+            </div>
+            <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Смени темата" aria-label="Смени темата">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Progress -->
+    <div class="progress-section">
+        <div class="progress-track">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <div class="progress-info">
+            <span class="progress-step" id="stepIndicator">Начало</span>
+            <span class="progress-percent" id="progressPercent">0%</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <!-- Welcome Screen -->
+        <div class="screen active" id="welcomeScreen">
+            <div class="welcome-screen">
+                <div class="welcome-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h2 class="welcome-title">Разкрийте Подсъзнателните Ви Хранителни Тригери</h2>
+                <p class="welcome-subtitle">
+                    Този специализиран въпросник използва проективни техники, за да разкрие дълбоките емоционални причини зад вашите хранителни навици и да ви предостави персонализирани терапевтични стратегии.
+                </p>
+
+                <div class="welcome-features">
+                    <div class="feature-card">
+                        <div class="feature-icon purple">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h3>15 Проективни Въпроса</h3>
+                            <p>Недовършени изречения, които разкриват подсъзнателни модели</p>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon rose">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h3>Клинична Интерпретация</h3>
+                            <p>Всеки отговор се анализира за емоционални дефицити</p>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon amber">
+                            <i class="fas fa-hand-holding-heart"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h3>Терапевтични Методи</h3>
+                            <p>CBT, DBT, HALT, RAIN и осъзнато хранене</p>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon teal">
+                            <i class="fas fa-route"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h3>Персонален План</h3>
+                            <p>Практически стратегии за справяне в реално време</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="privacy-note">
+                    <i class="fas fa-shield-alt"></i>
+                    Всички отговори са поверителни и се съхраняват само локално
+                </p>
+            </div>
+        </div>
+
+        <!-- Question Screens (Generated by JS) -->
+        <div class="screen" id="questionScreen">
+            <div class="question-screen">
+                <div class="question-header">
+                    <span class="question-category" id="questionCategory">
+                        <i class="fas fa-heart"></i>
+                        <span id="categoryText">Емоционална Идентификация</span>
+                    </span>
+                    <h2 class="question-text" id="questionText">Зареждане...</h2>
+                    <p class="question-hint" id="questionHint">Отговорете спонтанно с първата мисъл, която ви идва наум</p>
+                </div>
+
+                <textarea
+                    class="answer-input"
+                    id="answerInput"
+                    placeholder="Напишете вашия отговор тук..."
+                    oninput="handleAnswerInput()"
+                ></textarea>
+                <div class="char-counter"><span id="charCount">0</span> символа</div>
+
+                <div class="interpretation-box" id="interpretationBox" style="display: none;">
+                    <div class="interpretation-title">
+                        <i class="fas fa-info-circle"></i>
+                        Защо този въпрос е важен
+                    </div>
+                    <p class="interpretation-text" id="interpretationText"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div class="screen" id="loadingScreen">
+            <div class="loading-screen">
+                <div class="loading-animation">
+                    <div class="loading-circle"></div>
+                    <div class="loading-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                </div>
+                <h3 class="loading-title">Анализираме вашите отговори...</h3>
+                <p class="loading-subtitle">Създаваме персонализиран терапевтичен план</p>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div class="screen" id="resultsScreen">
+            <!-- Content injected by JS -->
+        </div>
+    </main>
+
+    <!-- Navigation Footer -->
+    <div class="nav-footer" id="navFooter">
+        <button type="button" class="btn-nav btn-back" id="btnBack" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i> Назад
+        </button>
+        <button type="button" class="btn-nav btn-next" id="btnNext" onclick="goNext()" disabled>
+            Напред <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <script>
+        // ============================================
+        // QUESTIONNAIRE DATA
+        // ============================================
+        const questions = [
+            {
+                id: 1,
+                category: "Глад на Сърцето",
+                icon: "fa-heart",
+                text: "Когато се чувствам напълно изтощен/а и сам/а вечер, първата храна, която изниква в съзнанието ми, е...",
+                interpretation: "Идентифицира феномена \"глад на сърцето\". Разкрива специфичния комфортен стимул (обикновено сладък или кремообразен), използван за компенсиране на липсата на емоционална свързаност, окситоцин и топлина."
+            },
+            {
+                id: 2,
+                category: "Скрито Хранене",
+                icon: "fa-eye-slash",
+                text: "Ако трябва да бъда напълно честен/на, мисълта да ям скришно (когато никой не ме вижда) предизвиква в мен усещане за...",
+                interpretation: "Изследва наличието на дълбок срам, стигма и потенциална загуба на контрол. Скритото хранене е ключов индикатор за подсъзнателна патология на храненето и присъствие на травма."
+            },
+            {
+                id: 3,
+                category: "Глад на Главата",
+                icon: "fa-head-side-brain",
+                text: "Когато агресивно дъвча нещо изключително хрупкаво и твърдо, усещам как в тялото ми...",
+                interpretation: "Тества за потиснат гняв, микроагресии и хронична фрустрация. Оценява доколко използвате челюстната мускулатура за акустично и физическо освобождаване на напрежение (\"глад на главата\")."
+            },
+            {
+                id: 4,
+                category: "Лишение и Контрол",
+                icon: "fa-ban",
+                text: "Усещането за напълно празен стомах ме кара да се чувствам...",
+                interpretation: "Разкрива дълбокото отношение към лишението. За някои празнотата е символ на перфекционизъм и контрол, докато за други е тригер за екзистенциална паника и страх от изоставяне."
+            },
+            {
+                id: 5,
+                category: "Вътрешен Монолог",
+                icon: "fa-comments",
+                text: "Ако храната можеше да ми говори в моменти на силен стрес, тя би ми казала...",
+                interpretation: "Проективна персонификация на храната. Показва каква роля играе храната във вътрешния монолог на психиката – дали е строг съдник, безусловно приемащ приятел, или наказващ авторитет."
+            },
+            {
+                id: 6,
+                category: "Граница на Ситостта",
+                icon: "fa-utensils",
+                text: "Най-трудният момент да спра да се храня, дори когато вече усещам физическа ситост, е когато...",
+                interpretation: "Изследва границата между физиологичната ситост и емоционалната празнота. Индикира тригерите за компулсивно преяждане и неспособността за интероцептивна саморегулация."
+            },
+            {
+                id: 7,
+                category: "Емоционално Изтръпване",
+                icon: "fa-cloud",
+                text: "Чувството на физическа преялост (болезнена тежест в стомаха) всъщност ми помага да...",
+                interpretation: "Анализира парадоксалното използване на физическия дискомфорт като механизъм за емоционално изтръпване. Изключително често се използва при оцелели от травма за заглушаване на натрапчиви мисли."
+            },
+            {
+                id: 8,
+                category: "Конфликт и Апетит",
+                icon: "fa-bolt",
+                text: "Когато съм изправен/а пред неизбежен конфликт или труден разговор, апетитът ми...",
+                interpretation: "Индикатор за реакцията на автономната нервна система (\"борба или бягство\"). Помага да се разграничи дали силните емоции биологично потискат храненето, или го използвате като защитен щит."
+            },
+            {
+                id: 9,
+                category: "Детска Носталгия",
+                icon: "fa-baby",
+                text: "Любимата ми, най-успокояваща храна от детството ми носи усещането за...",
+                interpretation: "Изследва носталгията, психологическата регресия и търсенето на базова сигурност. Разкрива какви първични нужди (напр. майчина безусловна грижа) несъзнателно се опитвате да пресъздадете чрез храната."
+            },
+            {
+                id: 10,
+                category: "Стимулация и Апатия",
+                icon: "fa-fire-alt",
+                text: "Силното желание за пикантни или изключително солени храни при мен се появява, когато животът ми изглежда...",
+                interpretation: "Оценява нуждата от стимулация при състояния на апатия, бърнаут или скука. Пикантното символизира търсене на \"събуждане\", а соленото често корелира с надбъбречно изтощение."
+            },
+            {
+                id: 11,
+                category: "Самонаказание",
+                icon: "fa-balance-scale",
+                text: "Наказанието и строгото лишение от определени \"лоши\" храни в ума ми са свързани с вярването, че аз съм...",
+                interpretation: "Разкрива дълбоко вкоренени дисфункционални вярвания от диетичната култура, усещането за собствена (без)стойност и подсъзнателната склонност към морално самонаказание."
+            },
+            {
+                id: 12,
+                category: "Бягство от Реалността",
+                icon: "fa-running",
+                text: "Храната доминира мислите ми абсолютно най-силно, когато се опитвам отчаяно да избягам от...",
+                interpretation: "Идентифицира конкретните житейски ситуации, травми или отговорности, които служат като катализатор за обсесивно мислене и планиране на храненията."
+            },
+            {
+                id: 13,
+                category: "Вътрешен Критик",
+                icon: "fa-user-slash",
+                text: "Моят вътрешен критик обикновено се появява и започва да ме обижда веднага след като изям...",
+                interpretation: "Изследва токсичния цикъл на срам и вина, който поддържа емоционалното хранене. Показва кои специфични храни са категоризирани като \"забранени\" и генерират последващ психологически дистрес."
+            },
+            {
+                id: 14,
+                category: "Функция на Диетата",
+                icon: "fa-scale-balanced",
+                text: "Ако премахна контрола върху теглото и външния си вид като цел номер едно, храната би се превърнала в...",
+                interpretation: "Отделя изкуствено физическия образ от храненето, за да разкрие истинската емоционална функция на хроничните диети (например осигуряване на илюзия за контрол над един иначе хаотичен живот)."
+            },
+            {
+                id: 15,
+                category: "Реална Нужда",
+                icon: "fa-star",
+                text: "За да се почувствам наистина удовлетворен/а, защитен/а и спокоен/на днес, без да използвам абсолютно никаква храна, аз всъщност се нуждая от...",
+                interpretation: "Положителен проективен въпрос, насочен към финално идентифициране на реалния дефицит (адекватна почивка, внимание, интимност, поставяне на здравословни граници), който храната неуспешно се опитва да запълни."
+            }
+        ];
+
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        let currentScreen = 'welcome'; // welcome, question, loading, results
+        let currentQuestionIndex = 0;
+        let answers = {};
+
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const progressBar = document.getElementById('progressBar');
+        const stepIndicator = document.getElementById('stepIndicator');
+        const progressPercent = document.getElementById('progressPercent');
+        const btnBack = document.getElementById('btnBack');
+        const btnNext = document.getElementById('btnNext');
+
+        // ============================================
+        // THEME MANAGEMENT
+        // ============================================
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            const icon = document.querySelector('.theme-toggle i');
+            icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        // Initialize theme icon
+        (function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const icon = document.querySelector('.theme-toggle i');
+            if (icon) {
+                icon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        })();
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function updateProgress() {
+            let progress = 0;
+            let stepText = 'Начало';
+
+            if (currentScreen === 'welcome') {
+                progress = 0;
+                stepText = 'Начало';
+            } else if (currentScreen === 'question') {
+                progress = ((currentQuestionIndex + 1) / questions.length) * 90;
+                stepText = `Въпрос ${currentQuestionIndex + 1} от ${questions.length}`;
+            } else if (currentScreen === 'loading') {
+                progress = 95;
+                stepText = 'Анализиране...';
+            } else if (currentScreen === 'results') {
+                progress = 100;
+                stepText = 'Резултати';
+            }
+
+            progressBar.style.width = progress + '%';
+            stepIndicator.textContent = stepText;
+            progressPercent.textContent = Math.round(progress) + '%';
+        }
+
+        function updateNavButtons() {
+            if (currentScreen === 'welcome') {
+                btnBack.style.visibility = 'hidden';
+                btnNext.disabled = false;
+                btnNext.innerHTML = 'Започни <i class="fas fa-arrow-right"></i>';
+            } else if (currentScreen === 'question') {
+                btnBack.style.visibility = 'visible';
+                const answer = answers[questions[currentQuestionIndex].id] || '';
+                btnNext.disabled = answer.trim().length < 3;
+
+                if (currentQuestionIndex === questions.length - 1) {
+                    btnNext.innerHTML = 'Завърши <i class="fas fa-check"></i>';
+                } else {
+                    btnNext.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
+                }
+            } else if (currentScreen === 'loading' || currentScreen === 'results') {
+                document.getElementById('navFooter').style.display = 'none';
+            }
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQuestionIndex];
+
+            document.getElementById('questionCategory').innerHTML = `
+                <i class="fas ${q.icon}"></i>
+                <span>${q.category}</span>
+            `;
+            document.getElementById('questionText').textContent = q.text;
+            document.getElementById('interpretationText').textContent = q.interpretation;
+
+            const input = document.getElementById('answerInput');
+            input.value = answers[q.id] || '';
+            document.getElementById('charCount').textContent = input.value.length;
+
+            // Show interpretation after typing
+            const interpBox = document.getElementById('interpretationBox');
+            interpBox.style.display = input.value.length > 10 ? 'block' : 'none';
+        }
+
+        function handleAnswerInput() {
+            const input = document.getElementById('answerInput');
+            const q = questions[currentQuestionIndex];
+            answers[q.id] = input.value;
+
+            document.getElementById('charCount').textContent = input.value.length;
+
+            // Show interpretation after some typing
+            const interpBox = document.getElementById('interpretationBox');
+            interpBox.style.display = input.value.length > 10 ? 'block' : 'none';
+
+            // Update button state
+            btnNext.disabled = input.value.trim().length < 3;
+        }
+
+        function goBack() {
+            if (currentScreen === 'question' && currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion();
+                updateProgress();
+                updateNavButtons();
+            } else if (currentScreen === 'question' && currentQuestionIndex === 0) {
+                currentScreen = 'welcome';
+                showScreen('welcomeScreen');
+                updateProgress();
+                updateNavButtons();
+            }
+        }
+
+        function goNext() {
+            if (currentScreen === 'welcome') {
+                currentScreen = 'question';
+                currentQuestionIndex = 0;
+                showScreen('questionScreen');
+                renderQuestion();
+            } else if (currentScreen === 'question') {
+                if (currentQuestionIndex < questions.length - 1) {
+                    currentQuestionIndex++;
+                    renderQuestion();
+                } else {
+                    // Finish questionnaire
+                    currentScreen = 'loading';
+                    showScreen('loadingScreen');
+
+                    // Save answers to localStorage
+                    localStorage.setItem('emoeat_answers', JSON.stringify(answers));
+                    localStorage.setItem('emoeat_completed', new Date().toISOString());
+
+                    // Simulate analysis and show results
+                    setTimeout(() => {
+                        currentScreen = 'results';
+                        generateResults();
+                        showScreen('resultsScreen');
+                        updateProgress();
+                    }, 2500);
+                }
+            }
+
+            updateProgress();
+            updateNavButtons();
+        }
+
+        // ============================================
+        // RESULTS GENERATION
+        // ============================================
+        function generateResults() {
+            const resultsScreen = document.getElementById('resultsScreen');
+
+            // Analyze patterns from answers
+            const patterns = analyzePatterns();
+
+            resultsScreen.innerHTML = `
+                <div class="results-screen">
+                    <div class="results-header">
+                        <div class="results-icon">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <h2 class="results-title">Вашият Емоционален Профил</h2>
+                        <p class="results-subtitle">Персонализиран анализ на базата на вашите отговори</p>
+                    </div>
+
+                    <!-- Emotional Patterns -->
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="profile-avatar">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="profile-info">
+                                <h3>Идентифицирани Модели</h3>
+                                <p>Подсъзнателни тригери за емоционално хранене</p>
+                            </div>
+                        </div>
+
+                        <div class="pattern-section">
+                            <h4 class="pattern-title">
+                                <i class="fas fa-fingerprint"></i>
+                                Вашите Емоционални Модели
+                            </h4>
+                            <div class="pattern-grid">
+                                ${patterns.map(p => `
+                                    <div class="pattern-item">
+                                        <div class="pattern-icon ${p.iconClass}">
+                                            <i class="fas ${p.icon}"></i>
+                                        </div>
+                                        <div class="pattern-content">
+                                            <h4>${p.title}</h4>
+                                            <p>${p.description}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Therapy Section -->
+                    <div class="therapy-section">
+                        <div class="therapy-header">
+                            <h3><i class="fas fa-hand-holding-heart"></i> Терапевтични Стратегии</h3>
+                            <p>Практически методи за справяне в реално време</p>
+                        </div>
+                        <div class="therapy-content">
+                            <div class="therapy-tabs">
+                                <button class="therapy-tab active" onclick="switchTherapyTab('halt')">HALT</button>
+                                <button class="therapy-tab" onclick="switchTherapyTab('rain')">RAIN</button>
+                                <button class="therapy-tab" onclick="switchTherapyTab('cbt')">CBT/DBT</button>
+                            </div>
+
+                            <!-- HALT Panel -->
+                            <div class="therapy-panel active" id="panel-halt">
+                                <div class="method-card">
+                                    <div class="method-title">
+                                        <i class="fas fa-hand-paper"></i>
+                                        Методът HALT – Спри и Анализирай
+                                    </div>
+                                    <p style="color: var(--text-gray); margin-bottom: 15px; font-size: 0.9rem;">
+                                        Преди да посегнете автоматично към храна, задайте си тези 4 въпроса:
+                                    </p>
+                                    <div class="method-letters">
+                                        <div class="letter-item">
+                                            <div class="letter-badge">H</div>
+                                            <div class="letter-content">
+                                                <h5>Hungry – Гладен ли съм физически?</h5>
+                                                <p>Усещам ли реална празнота в стомаха, къркорене, спад в енергията? Ако не – апетитът е породен от емоция.</p>
+                                            </div>
+                                        </div>
+                                        <div class="letter-item">
+                                            <div class="letter-badge">A</div>
+                                            <div class="letter-content">
+                                                <h5>Angry – Ядосан ли съм?</h5>
+                                                <p>Има ли неизразен гняв, който ме кара да търся нещо хрупкаво? Канализирайте енергията в дишане или комуникация.</p>
+                                            </div>
+                                        </div>
+                                        <div class="letter-item">
+                                            <div class="letter-badge">L</div>
+                                            <div class="letter-content">
+                                                <h5>Lonely – Самотен ли съм?</h5>
+                                                <p>Изпитвам ли нужда от свързаност? Решението е обаждане на приятел, не хладилникът.</p>
+                                            </div>
+                                        </div>
+                                        <div class="letter-item">
+                                            <div class="letter-badge">T</div>
+                                            <div class="letter-content">
+                                                <h5>Tired – Уморен ли съм?</h5>
+                                                <p>Умората се маскира като глад за захар. Решението е почивка или хидратация.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- RAIN Panel -->
+                            <div class="therapy-panel" id="panel-rain">
+                                <div class="method-card">
+                                    <div class="method-title">
+                                        <i class="fas fa-cloud-rain"></i>
+                                        Техниката RAIN – Радикално Състрадание
+                                    </div>
+                                    <p style="color: var(--text-gray); margin-bottom: 15px; font-size: 0.9rem;">
+                                        Когато импулсът за преяждане е вече налице, използвайте тази практика:
+                                    </p>
+                                    <div class="method-letters">
+                                        <div class="letter-item">
+                                            <div class="letter-badge" style="background: #06B6D4;">R</div>
+                                            <div class="letter-content">
+                                                <h5>Recognize – Разпознай</h5>
+                                                <p>Спрете и поставете етикет на емоцията: "Разпознавам, че изпитвам силна тревожност."</p>
+                                            </div>
+                                        </div>
+                                        <div class="letter-item">
+                                            <div class="letter-badge" style="background: #06B6D4;">A</div>
+                                            <div class="letter-content">
+                                                <h5>Allow – Позволи</h5>
+                                                <p>Позволете на емоцията просто да съществува, без да се борите с нея. Кажете си: "Мога да позволя това."</p>
+                                            </div>
+                                        </div>
+                                        <div class="letter-item">
+                                            <div class="letter-badge" style="background: #06B6D4;">I</div>
+                                            <div class="letter-content">
+                                                <h5>Investigate – Изследвай</h5>
+                                                <p>Къде в тялото усещате емоцията? Какво е вярването зад нея? Изследвайте с любопитство, не с осъждане.</p>
+                                            </div>
+                                        </div>
+                                        <div class="letter-item">
+                                            <div class="letter-badge" style="background: #06B6D4;">N</div>
+                                            <div class="letter-content">
+                                                <h5>Nurture – Подхрани</h5>
+                                                <p>Вие не сте вашата емоция. Подхранете себе си със състрадание – утехата, която търсите в храната.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CBT/DBT Panel -->
+                            <div class="therapy-panel" id="panel-cbt">
+                                <div class="technique-card">
+                                    <div class="technique-header">
+                                        <span class="technique-badge">CBT</span>
+                                        <span class="technique-title">Когнитивен Дневник</span>
+                                    </div>
+                                    <p style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 15px;">
+                                        Записвайте следната последователност преди всяко емоционално хранене:
+                                    </p>
+                                    <div class="technique-steps">
+                                        <div class="technique-step">
+                                            <div class="step-number">1</div>
+                                            <div class="step-content">
+                                                <h5>Тригер</h5>
+                                                <p>Какво точно се случи преди импулса? (напр. критика от шефа)</p>
+                                            </div>
+                                        </div>
+                                        <div class="technique-step">
+                                            <div class="step-number">2</div>
+                                            <div class="step-content">
+                                                <h5>Автоматична мисъл</h5>
+                                                <p>Каква мисъл изникна? (напр. "Аз съм некомпетентен")</p>
+                                            </div>
+                                        </div>
+                                        <div class="technique-step">
+                                            <div class="step-number">3</div>
+                                            <div class="step-content">
+                                                <h5>Емоция</h5>
+                                                <p>Какво почувствахте? (напр. срам, тревожност)</p>
+                                            </div>
+                                        </div>
+                                        <div class="technique-step">
+                                            <div class="step-number">4</div>
+                                            <div class="step-content">
+                                                <h5>Алтернативна мисъл</h5>
+                                                <p>Каква е реалистичната алтернатива? (напр. "Една грешка не ме определя")</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="technique-card">
+                                    <div class="technique-header">
+                                        <span class="technique-badge" style="background: #FCE7F3; color: #EC4899;">DBT</span>
+                                        <span class="technique-title">Противоположно Действие</span>
+                                    </div>
+                                    <p style="color: var(--text-gray); font-size: 0.9rem;">
+                                        Когато емоцията диктува изолация, срам и скрито хранене – съзнателно изберете противоположното: търсене на социален контакт, обаждане на приятел, излизане на светлина.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mindful Eating -->
+                    <div class="mindful-section">
+                        <h3 class="mindful-title">
+                            <i class="fas fa-leaf"></i>
+                            Протокол за Осъзнато Хранене
+                        </h3>
+                        <div class="mindful-steps">
+                            <div class="mindful-step">
+                                <div class="mindful-number">1</div>
+                                <div class="mindful-content">
+                                    <h4>Деконструкция на Средата</h4>
+                                    <p>Изключете телевизора, оставете телефона. Сервирайте храната в чиния и я аранжирайте красиво. Никога не яжте директно от опаковката.</p>
+                                </div>
+                            </div>
+                            <div class="mindful-step">
+                                <div class="mindful-number">2</div>
+                                <div class="mindful-content">
+                                    <h4>Радикално Сензорно Ангажиране</h4>
+                                    <p>Представете си, че виждате храната за първи път. Разгледайте цветовете, текстурата. Поднесете към носа и вдишайте аромата.</p>
+                                </div>
+                            </div>
+                            <div class="mindful-step">
+                                <div class="mindful-number">3</div>
+                                <div class="mindful-content">
+                                    <h4>Интероцептивно Сканиране</h4>
+                                    <p>Оставете приборите между хапките. Питайте се: "Как се променя вкусът?" Когато удоволствието спадне – това е сигнал за ситост.</p>
+                                </div>
+                            </div>
+                            <div class="mindful-step">
+                                <div class="mindful-number">4</div>
+                                <div class="mindful-content">
+                                    <h4>Рефлексия След Хранене</h4>
+                                    <p>Обърнете внимание на усещанията. Ако се появи вина – използвайте RAIN за неутрализиране. Приемете, че всички храни имат своето място.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="action-buttons">
+                        <button class="btn-primary" onclick="saveAndShare()">
+                            <i class="fas fa-download"></i>
+                            Запази Резултатите
+                        </button>
+                        <button class="btn-secondary" onclick="restartQuestionnaire()">
+                            <i class="fas fa-redo"></i>
+                            Започни Отначало
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function analyzePatterns() {
+            const patterns = [];
+
+            // Analyze based on specific answers
+            const heartHunger = answers[1] || '';
+            const secretEating = answers[2] || '';
+            const headHunger = answers[3] || '';
+            const emptiness = answers[4] || '';
+            const innerVoice = answers[5] || '';
+            const satiety = answers[6] || '';
+            const numbing = answers[7] || '';
+            const conflict = answers[8] || '';
+            const childhood = answers[9] || '';
+            const spicy = answers[10] || '';
+            const punishment = answers[11] || '';
+            const escape = answers[12] || '';
+            const innerCritic = answers[13] || '';
+            const dietFunction = answers[14] || '';
+            const realNeed = answers[15] || '';
+
+            // Heart Hunger Pattern
+            if (heartHunger.toLowerCase().includes('сладко') ||
+                heartHunger.toLowerCase().includes('шоколад') ||
+                heartHunger.toLowerCase().includes('сладолед') ||
+                heartHunger.toLowerCase().includes('кремообразно')) {
+                patterns.push({
+                    icon: 'fa-heart',
+                    iconClass: 'heart',
+                    title: 'Глад на Сърцето',
+                    description: 'Търсите утеха чрез сладки и кремообразни храни – сигнал за липса на емоционална свързаност.'
+                });
+            }
+
+            // Head Hunger Pattern
+            if (headHunger.toLowerCase().includes('освобождаване') ||
+                headHunger.toLowerCase().includes('облекчение') ||
+                headHunger.toLowerCase().includes('напрежение')) {
+                patterns.push({
+                    icon: 'fa-brain',
+                    iconClass: 'brain',
+                    title: 'Глад на Главата',
+                    description: 'Използвате хрупкави храни за физическо освобождаване на напрежение и потиснат гняв.'
+                });
+            }
+
+            // Emotional Numbing Pattern
+            if (numbing.toLowerCase().includes('забрав') ||
+                numbing.toLowerCase().includes('изключ') ||
+                numbing.toLowerCase().includes('изтръпв') ||
+                numbing.toLowerCase().includes('спир')) {
+                patterns.push({
+                    icon: 'fa-cloud',
+                    iconClass: 'shield',
+                    title: 'Емоционално Изтръпване',
+                    description: 'Използвате физическия дискомфорт от преяждането за заглушаване на болезнени емоции.'
+                });
+            }
+
+            // Control/Punishment Pattern
+            if (punishment.toLowerCase().includes('слаб') ||
+                punishment.toLowerCase().includes('недостоен') ||
+                punishment.toLowerCase().includes('лош') ||
+                punishment.toLowerCase().includes('провал')) {
+                patterns.push({
+                    icon: 'fa-balance-scale',
+                    iconClass: 'fire',
+                    title: 'Самонаказание',
+                    description: 'Дълбоки вярвания от диетичната култура водят до морализиране на храната и самонаказание.'
+                });
+            }
+
+            // Default patterns if none detected
+            if (patterns.length === 0) {
+                patterns.push({
+                    icon: 'fa-search',
+                    iconClass: 'brain',
+                    title: 'Емоционална Връзка с Храната',
+                    description: 'Храната играе роля в емоционалната ви регулация – продължете да изследвате тези връзки.'
+                });
+            }
+
+            // Always add real need pattern
+            if (realNeed.length > 5) {
+                patterns.push({
+                    icon: 'fa-star',
+                    iconClass: 'heart',
+                    title: 'Реална Нужда',
+                    description: `Идентифицирахте какво всъщност търсите: "${realNeed.substring(0, 80)}${realNeed.length > 80 ? '...' : ''}"`
+                });
+            }
+
+            return patterns.slice(0, 4); // Max 4 patterns
+        }
+
+        function switchTherapyTab(tabId) {
+            // Update tabs
+            document.querySelectorAll('.therapy-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update panels
+            document.querySelectorAll('.therapy-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.getElementById('panel-' + tabId).classList.add('active');
+        }
+
+        function saveAndShare() {
+            const data = {
+                answers: answers,
+                completedAt: localStorage.getItem('emoeat_completed'),
+                patterns: analyzePatterns()
+            };
+
+            // Create downloadable JSON
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `emoeat-profile-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('Вашият профил е запазен успешно!');
+        }
+
+        function restartQuestionnaire() {
+            if (confirm('Сигурни ли сте, че искате да започнете отначало? Текущите отговори ще бъдат изтрити.')) {
+                answers = {};
+                currentQuestionIndex = 0;
+                currentScreen = 'welcome';
+                localStorage.removeItem('emoeat_answers');
+                localStorage.removeItem('emoeat_completed');
+
+                document.getElementById('navFooter').style.display = 'flex';
+                showScreen('welcomeScreen');
+                updateProgress();
+                updateNavButtons();
+            }
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        function init() {
+            // Check for saved progress
+            const savedAnswers = localStorage.getItem('emoeat_answers');
+            if (savedAnswers) {
+                try {
+                    answers = JSON.parse(savedAnswers);
+                    // Could offer to resume here
+                } catch (e) {
+                    answers = {};
+                }
+            }
+
+            updateProgress();
+            updateNavButtons();
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
