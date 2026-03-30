@@ -1804,7 +1804,7 @@
                         console.error('EmoEat AI error:', err);
                         // Fallback to local analysis
                         currentScreen = 'results';
-                        generateFallbackResults();
+                        generateFallbackResults(err.message);
                         showScreen('resultsScreen');
                         updateProgress();
                     }
@@ -1991,9 +1991,10 @@
         // ============================================
         // FALLBACK RESULTS (when AI is unavailable)
         // ============================================
-        function generateFallbackResults() {
+        function generateFallbackResults(errorMsg) {
             const resultsScreen = document.getElementById('resultsScreen');
             const patterns = analyzePatterns();
+            const displayError = errorMsg ? escapeHtml(errorMsg) : '';
 
             resultsScreen.innerHTML = `
                 <div class="results-screen">
@@ -2032,7 +2033,8 @@
 
                     <div class="error-card">
                         <i class="fas fa-robot"></i>
-                        <p>За пълния AI анализ с дълбоки персонализирани прозрения, моля опитайте отново по-късно.</p>
+                        <p>За пълния AI анализ с дълбоки персонализирани прозрения, моля опитайте отново.</p>
+                        ${displayError ? `<p style="font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">${displayError}</p>` : ''}
                         <button class="btn-primary" onclick="retryAIAnalysis()">
                             <i class="fas fa-sync"></i> Опитай AI Анализ Отново
                         </button>
@@ -2080,7 +2082,7 @@
             } catch (err) {
                 console.error('Retry failed:', err);
                 currentScreen = 'results';
-                generateFallbackResults();
+                generateFallbackResults(err.message);
                 showScreen('resultsScreen');
                 updateProgress();
             }
@@ -2251,9 +2253,25 @@
             if (savedAnswers) {
                 try {
                     answers = JSON.parse(savedAnswers);
-                    // Could offer to resume here
                 } catch (e) {
                     answers = {};
+                }
+            }
+
+            // If a completed AI analysis exists, show results directly
+            const savedAnalysis = localStorage.getItem('emoeat_analysis');
+            if (savedAnalysis) {
+                try {
+                    const analysis = JSON.parse(savedAnalysis);
+                    if (analysis && analysis.dominantArchetype) {
+                        currentScreen = 'results';
+                        generateAIResults(analysis);
+                        showScreen('resultsScreen');
+                        updateProgress();
+                        return;
+                    }
+                } catch (e) {
+                    localStorage.removeItem('emoeat_analysis');
                 }
             }
 
