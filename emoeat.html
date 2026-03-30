@@ -1825,6 +1825,18 @@
             return div.innerHTML;
         }
 
+        function sanitizeIconClass(icon) {
+            if (!icon || typeof icon !== 'string') return 'fa-circle';
+            // Only allow valid FontAwesome class patterns: fa-word or fa-word-word
+            const cleaned = icon.replace(/[^a-zA-Z0-9-]/g, '');
+            return /^fa-[a-z][a-z0-9-]*$/.test(cleaned) ? cleaned : 'fa-circle';
+        }
+
+        function safeConfidence(value) {
+            const num = Number(value);
+            return (isFinite(num) && num >= 0) ? Math.min(100, num) : 0;
+        }
+
         // ============================================
         // AI-POWERED RESULTS GENERATION
         // ============================================
@@ -1863,9 +1875,9 @@
                         <div class="archetype-name">${escapeHtml(d.name || 'Неопределен')}</div>
                         <div class="archetype-desc">${escapeHtml(d.description || '')}</div>
                         <div class="confidence-bar">
-                            <div class="confidence-fill" style="width: ${Math.min(100, d.confidence || 0)}%"></div>
+                            <div class="confidence-fill" style="width: ${safeConfidence(d.confidence)}%"></div>
                         </div>
-                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">${d.confidence || 0}% съвпадение</div>
+                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">${safeConfidence(d.confidence)}% съвпадение</div>
                     </div>
 
                     ${s.name ? `
@@ -1874,9 +1886,9 @@
                         <div class="archetype-name">${escapeHtml(s.name)}</div>
                         <div class="archetype-desc">${escapeHtml(s.description || '')}</div>
                         <div class="confidence-bar">
-                            <div class="confidence-fill" style="width: ${Math.min(100, s.confidence || 0)}%"></div>
+                            <div class="confidence-fill" style="width: ${safeConfidence(s.confidence)}%"></div>
                         </div>
-                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">${s.confidence || 0}% съвпадение</div>
+                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">${safeConfidence(s.confidence)}% съвпадение</div>
                     </div>
                     ` : ''}
 
@@ -1903,7 +1915,7 @@
                     ${insights.map(ins => `
                         <div class="insight-card">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <i class="fas ${escapeHtml(ins.icon || 'fa-eye')}" style="color: var(--primary); font-size: 1.1rem;"></i>
+                                <i class="fas ${sanitizeIconClass(ins.icon)}" style="color: var(--primary); font-size: 1.1rem;"></i>
                                 <strong style="color: var(--text-dark);">${escapeHtml(ins.title || '')}</strong>
                             </div>
                             ${ins.quote ? `<div class="insight-quote">"${escapeHtml(ins.quote)}"</div>` : ''}
@@ -1919,7 +1931,7 @@
                         <div class="strategy-card">
                             <div class="strategy-header">
                                 <div class="strategy-icon">
-                                    <i class="fas ${escapeHtml(st.icon || 'fa-shield-alt')}"></i>
+                                    <i class="fas ${sanitizeIconClass(st.icon)}"></i>
                                 </div>
                                 <div>
                                     <strong style="color: var(--text-dark);">${escapeHtml(st.title || '')}</strong>
