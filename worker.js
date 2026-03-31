@@ -149,6 +149,46 @@ const ERROR_MESSAGES = {
   VAPID_KEY_FAILED: 'Неуспешно получаване на VAPID ключ'
 };
 
+// Default goal hacks - used as fallback when KV is empty
+// Managed via admin panel at /admin.html -> Features -> Хакове по Цел
+const DEFAULT_GOAL_HACKS = {
+  "Отслабване": [
+    "Разходка 10 мин след хранене — понижава кръвната захар и подобрява храносмилането",
+    "Пий чаша вода 20 мин преди хранене — намалява апетита",
+    "Започни с белтък и зеленчуци, остави въглехидратите за края",
+    "Използвай по-малки чинии (20см вместо 28см) — намалява приема с 20-25%",
+    "Кафе 30 мин преди тренировка (без захар) — увеличава изгарянето на мазнини"
+  ],
+  "Покачване на мускулна маса": [
+    "Консумирай 20-40г белтък на всяко хранене",
+    "Яж въглехидрати след тренировка — подобрява възстановяването",
+    "Добави казеин преди сън — за нощно възстановяване",
+    "Пий поне 3л вода на ден — за мускулен растеж",
+    "Яж на всеки 3-4 часа — поддържа положителен азотен баланс"
+  ],
+  "Подобряване на здравето": [
+    "Яж разнообразни цветни зеленчуци всеки ден",
+    "Включи ферментирали храни (кисело мляко, кисело зеле)",
+    "Ограничи преработените храни",
+    "Пий зелен чай вместо кафе след обяд",
+    "Яж мазна риба 2-3 пъти седмично"
+  ],
+  "Антиейджинг": [
+    "Включи храни богати на колаген (костен бульон)",
+    "Яж боровинки и други тъмни плодове — антиоксиданти",
+    "Практикувай периодично гладуване 16:8 — стимулира автофагия",
+    "Ограничи захарта — намалява гликацията",
+    "Включи зехтин extra virgin — полифеноли"
+  ],
+  "Друго": [
+    "Яж балансирано и разнообразно",
+    "Слушай сигналите на тялото си",
+    "Планирай храненията предварително",
+    "Готви у дома колкото е възможно",
+    "Не пропускай хранения"
+  ]
+};
+
 // Day name translations for weekly scheme display
 const DAY_NAMES_BG = {
   monday: 'Понеделник',
@@ -1485,45 +1525,6 @@ async function generateSimplifiedFallbackPlan(env, data) {
  * @returns {string[]} - Array of hacks for the goal
  */
 async function getGoalHacks(goal, env) {
-  // Default hacks for each goal (fallback if KV is empty)
-  const defaultHacks = {
-    "Отслабване": [
-      "Разходка 10 мин след хранене — понижава кръвната захар с до 30%",
-      "Пий чаша вода 20 мин преди хранене — намалява апетита",
-      "Започни с белтък и зеленчуци, остави въглехидратите за края",
-      "Използвай по-малки чинии (20см вместо 28см) — намалява приема с 20-25%",
-      "Кафе 30 мин преди тренировка (без захар) — увеличава изгарянето на мазнини"
-    ],
-    "Покачване на мускулна маса": [
-      "Консумирай 20-40г белтък на всяко хранене",
-      "Яж въглехидрати след тренировка — подобрява възстановяването",
-      "Добави казеин преди сън — за нощно възстановяване",
-      "Пий поне 3л вода на ден — за мускулен растеж",
-      "Яж на всеки 3-4 часа — поддържа положителен азотен баланс"
-    ],
-    "Подобряване на здравето": [
-      "Яж разнообразни цветни зеленчуци всеки ден",
-      "Включи ферментирали храни (кисело мляко, кисело зеле)",
-      "Ограничи преработените храни",
-      "Пий зелен чай вместо кафе след обяд",
-      "Яж мазна риба 2-3 пъти седмично"
-    ],
-    "Антиейджинг": [
-      "Включи храни богати на колаген (костен бульон)",
-      "Яж боровинки и други тъмни плодове — антиоксиданти",
-      "Практикувай периодично гладуване 16:8 — стимулира автофагия",
-      "Ограничи захарта — намалява гликацията",
-      "Включи зехтин extra virgin — полифеноли"
-    ],
-    "Друго": [
-      "Яж балансирано и разнообразно",
-      "Слушай сигналите на тялото си",
-      "Планирай храненията предварително",
-      "Готви у дома колкото е възможно",
-      "Не пропускай хранения"
-    ]
-  };
-
   try {
     if (env && env.page_content) {
       // Try to get hacks from KV storage
@@ -1531,13 +1532,13 @@ async function getGoalHacks(goal, env) {
       if (goalHacksData) {
         const allHacks = JSON.parse(goalHacksData);
         // Find hacks for the specific goal (case-insensitive match)
-        const normalizedGoal = goal?.trim().toLowerCase();
+        const normalizedGoal = goal?.trim().toLowerCase() || '';
         for (const [key, hacks] of Object.entries(allHacks)) {
           if (key.toLowerCase() === normalizedGoal) {
             return hacks;
           }
-          // Partial match for goals containing the key
-          if (normalizedGoal?.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedGoal)) {
+          // Partial match for goals containing the key (only if normalizedGoal is not empty)
+          if (normalizedGoal && (normalizedGoal.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedGoal))) {
             return hacks;
           }
         }
@@ -1551,18 +1552,18 @@ async function getGoalHacks(goal, env) {
     console.error('Error fetching goal hacks from KV:', error);
   }
 
-  // Fallback to default hacks
-  const normalizedGoal = goal?.trim().toLowerCase();
-  for (const [key, hacks] of Object.entries(defaultHacks)) {
+  // Fallback to default hacks (defined as constant at top of file)
+  const normalizedGoal = goal?.trim().toLowerCase() || '';
+  for (const [key, hacks] of Object.entries(DEFAULT_GOAL_HACKS)) {
     if (key.toLowerCase() === normalizedGoal) {
       return hacks;
     }
-    if (normalizedGoal?.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedGoal)) {
+    if (normalizedGoal && (normalizedGoal.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedGoal))) {
       return hacks;
     }
   }
   
-  return defaultHacks["Друго"] || [];
+  return DEFAULT_GOAL_HACKS["Друго"] || [];
 }
 
 /**
@@ -7908,45 +7909,10 @@ async function handleRemoveGoalHack(request, env) {
 
 /**
  * Get default goal hacks (used as fallback)
+ * Returns the DEFAULT_GOAL_HACKS constant defined at the top of the file
  */
 function getDefaultGoalHacks() {
-  return {
-    "Отслабване": [
-      "Разходка 10 мин след хранене — понижава кръвната захар с до 30%",
-      "Пий чаша вода 20 мин преди хранене — намалява апетита",
-      "Започни с белтък и зеленчуци, остави въглехидратите за края",
-      "Използвай по-малки чинии (20см вместо 28см) — намалява приема с 20-25%",
-      "Кафе 30 мин преди тренировка (без захар) — увеличава изгарянето на мазнини"
-    ],
-    "Покачване на мускулна маса": [
-      "Консумирай 20-40г белтък на всяко хранене",
-      "Яж въглехидрати след тренировка — подобрява възстановяването",
-      "Добави казеин преди сън — за нощно възстановяване",
-      "Пий поне 3л вода на ден — за мускулен растеж",
-      "Яж на всеки 3-4 часа — поддържа положителен азотен баланс"
-    ],
-    "Подобряване на здравето": [
-      "Яж разнообразни цветни зеленчуци всеки ден",
-      "Включи ферментирали храни (кисело мляко, кисело зеле)",
-      "Ограничи преработените храни",
-      "Пий зелен чай вместо кафе след обяд",
-      "Яж мазна риба 2-3 пъти седмично"
-    ],
-    "Антиейджинг": [
-      "Включи храни богати на колаген (костен бульон)",
-      "Яж боровинки и други тъмни плодове — антиоксиданти",
-      "Практикувай периодично гладуване 16:8 — стимулира автофагия",
-      "Ограничи захарта — намалява гликацията",
-      "Включи зехтин extra virgin — полифеноли"
-    ],
-    "Друго": [
-      "Яж балансирано и разнообразно",
-      "Слушай сигналите на тялото си",
-      "Планирай храненията предварително",
-      "Готви у дома колкото е възможно",
-      "Не пропускай хранения"
-    ]
-  };
+  return DEFAULT_GOAL_HACKS;
 }
 
 /**
