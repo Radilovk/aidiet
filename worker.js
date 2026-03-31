@@ -432,14 +432,15 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
     }
   }
   
-  // Age adjustment - older adults need more protein
-  // Research shows 1.0-1.2 g/kg minimum for adults >50 years
+  // Age adjustment - older adults need more protein to prevent sarcopenia
+  // Research: PROT-AGE Study Group recommends 1.0-1.2 g/kg minimum for adults >65 years
+  // Bauer et al. (2013) JAMDA: higher protein needs in older adults
   if (age >= 65) {
-    proteinPerKg = Math.max(proteinPerKg, 1.2);
-    proteinPerKg *= 1.1; // 10% increase for seniors
+    proteinPerKg = Math.max(proteinPerKg, 1.2); // Ensure minimum 1.2 g/kg base
+    proteinPerKg = proteinPerKg * 1.1; // Then add 10% increase (e.g., 1.2 → 1.32)
   } else if (age >= 50) {
-    proteinPerKg = Math.max(proteinPerKg, 1.0);
-    proteinPerKg *= 1.05; // 5% increase for middle-aged
+    proteinPerKg = Math.max(proteinPerKg, 1.0); // Ensure minimum 1.0 g/kg base  
+    proteinPerKg = proteinPerKg * 1.05; // Then add 5% increase (e.g., 1.0 → 1.05)
   }
   
   // Adjust for goal
@@ -3437,7 +3438,15 @@ function validatePlan(plan, userData, substitutions = []) {
           (plan.analysis && (plan.analysis.Final_Calories || plan.analysis.recommendedCalories)) ||
           (plan.summary && plan.summary.dailyCalories);
         if (targetDailyCalories && !hasFreeEatingMeal) {
-          const targetCal = parseFloat(String(targetDailyCalories).match(/\d+/)?.[0]) || 0;
+          // Handle both numeric and string formats (e.g., "1800 kcal" or 1800)
+          let targetCal = 0;
+          if (typeof targetDailyCalories === 'number') {
+            targetCal = targetDailyCalories;
+          } else if (typeof targetDailyCalories === 'string') {
+            const match = targetDailyCalories.match(/(\d+(?:\.\d+)?)/);
+            targetCal = match ? parseFloat(match[1]) : 0;
+          }
+          
           if (targetCal > 0) {
             const maxAllowedCalories = targetCal * (1 + MAX_DAILY_CALORIE_EXCESS_PERCENT);
             if (dayCalories > maxAllowedCalories) {
@@ -3610,6 +3619,22 @@ function validatePlan(plan, userData, substitutions = []) {
         errors.push(error);
         stepErrors.step2_strategy.push(error);
       }
+      
+      // Check carb percentage for diabetics
+      // ADA (American Diabetes Association) recommends individualized approach, typically 45-50% or lower
+      // Warning threshold: >50% (allows flexibility while flagging potentially problematic plans)
+      if (plan.analysis && plan.analysis.macroRatios && plan.analysis.macroRatios.carbs) {
+        const carbPercent = parseFloat(plan.analysis.macroRatios.carbs) || 0;
+        if (carbPercent > 50) {
+          warnings.push(`При диабет: Въглехидратите (${carbPercent}%) са над 50%. Препоръчва се 45-50% или по-ниско за по-добър гликемичен контрол.`);
+        }
+      }
+    }
+    
+    // Check for hypertension + high sodium warning
+    if (userData.medicalConditions.includes('Хипертония') || userData.medicalConditions.includes('Високо кръвно')) {
+      // Warning only - specific foods handled by AI
+      console.log('Info: Hypertension detected - ensure low sodium recommendations in plan');
     }
     
     // Check for IBS/IBD + raw fiber heavy plan
@@ -3627,6 +3652,22 @@ function validatePlan(plan, userData, substitutions = []) {
       if (modifier.toLowerCase().includes('високовъглехидратно') || modifier.toLowerCase().includes('балансирано')) {
         console.log('Warning: PCOS detected - should prefer lower carb approach');
       }
+      
+      // Validate carb percentage for PCOS
+      // Research suggests lower-carb diets (35-45%) can improve insulin sensitivity in PCOS
+      // Warning threshold: >45% (allows moderate carb intake while flagging high-carb plans)
+      if (plan.analysis && plan.analysis.macroRatios && plan.analysis.macroRatios.carbs) {
+        const carbPercent = parseFloat(plan.analysis.macroRatios.carbs) || 0;
+        if (carbPercent > 45) {
+          warnings.push(`При PCOS: Въглехидратите (${carbPercent}%) са над 45%. Ниско-въглехидратен подход (35-45%) може да подобри инсулиновата чувствителност.`);
+        }
+      }
+    }
+    
+    // Check for thyroid conditions + specific dietary needs
+    if (userData.medicalConditions.includes('Хипотиреоидизъм') || userData.medicalConditions.includes('Thyroid')) {
+      // Iodine and selenium are important - just log for now
+      console.log('Info: Hypothyroidism detected - ensure adequate iodine and selenium');
     }
     
     // Check for anemia + vegetarian diet without iron supplementation (Step 4 - Final validation)

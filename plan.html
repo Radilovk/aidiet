@@ -3995,11 +3995,14 @@
                 const { protein, carbs, fats, fiber } = parseMacronutrients(effectiveMacros);
                 
                 // Calculate total calories from macros for accurate percentage visualization
-                // Protein: 4 kcal/g, Carbs: 4 kcal/g, Fats: 9 kcal/g, Fiber: ~2 kcal/g (mostly indigestible)
+                // Standard Atwater factors: Protein: 4 kcal/g, Carbs: 4 kcal/g, Fats: 9 kcal/g
+                // Fiber: Using 2 kcal/g as a visualization average. Scientific note: soluble fiber
+                // provides 2-4 kcal/g via fermentation, insoluble fiber provides ~0 kcal/g.
+                // The 2 kcal/g approximation is commonly used in nutrition labeling (EU/FDA guidelines).
                 const proteinCal = protein * 4;
                 const carbsCal = carbs * 4;
                 const fatsCal = fats * 9;
-                const fiberCal = fiber * 2; // Fiber provides ~2 kcal/g
+                const fiberCal = fiber * 2;
                 const totalCal = proteinCal + carbsCal + fatsCal + fiberCal;
                 
                 if (totalCal > 0) {
