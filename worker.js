@@ -6557,6 +6557,116 @@ async function handleGenerateEmoeatAnalysis(request, env) {
 }
 
 /**
+ * Generate personalized longevity protocol based on user wizard data
+ */
+async function generateLongevityPrompt(wizardData, userPrompt) {
+  const defaultPrompt = `Ти си експерт по дълголетие и анти-ейджинг медицина. Базираш се на научни изследвания за mTOR, AMPK, NAD+, съртуини, автофагия, митофагия, сенолитика и хормезис.
+
+ВХОДНИ ДАННИ ОТ ПОТРЕБИТЕЛЯ:
+${userPrompt}
+
+Допълнителни данни от въпросника:
+- Възраст: ${wizardData.age || 'не е посочена'}
+- Пол: ${wizardData.gender === 'male' ? 'мъж' : wizardData.gender === 'female' ? 'жена' : 'не е посочен'}
+- Ниво на активност: ${wizardData.activityLevel || 'не е посочено'}
+- Симптоми: ${(wizardData.symptoms || []).join(', ') || 'няма'}
+- Текущо гладуване: ${wizardData.fasting || 'не практикува'}
+- Студови процедури: ${wizardData.coldExposure || 'не практикува'}
+- Силови тренировки: ${wizardData.strengthTraining || 'не тренира'}
+- Сън: ${wizardData.sleepHours || 7} часа
+- Цели: ${(wizardData.goals || []).join(', ') || 'общо дълголетие'}
+- Готовност за промени: ${wizardData.commitment || 5}/10
+- Бюджет за добавки: ${wizardData.budget || 'среден'}
+
+ИНСТРУКЦИИ:
+1. Създай персонализиран протокол за дълголетие базиран на горните данни.
+2. Фокусирай се върху 6-те основни функции: Енергия (AMPK), Почистване (Автофагия), Защита (NRF2), Код (ДНК репарация), Структура (Кости/Мускули), Детокс (Сенолиза).
+3. Препоръчай конкретни поведенчески промени, добавки и маркери за проследяване.
+
+ОТГОВОРИ В СЛЕДНИЯ JSON ФОРМАТ (САМО JSON, БЕЗ ДРУГИ ТЕКСТ):
+{
+  "lifestyle": [
+    {
+      "icon": "fas fa-clock",
+      "title": "Кратко заглавие",
+      "description": "Детайлно описание на препоръката"
+    }
+  ],
+  "supplements": [
+    {
+      "name": "Име на добавката",
+      "dose": "Доза и честота",
+      "reason": "Защо е нужна",
+      "priority": "Висок/Среден/Нисък"
+    }
+  ],
+  "markers": [
+    {
+      "name": "Име на маркера",
+      "target": "Целева стойност",
+      "frequency": "Колко често да се измерва"
+    }
+  ],
+  "timeline": "HTML текст с времева линия за въвеждане на промените"
+}`;
+
+  return defaultPrompt;
+}
+
+async function handleGenerateLongevityProtocol(request, env) {
+  try {
+    const data = await request.json();
+    const wizardData = data.wizardData || {};
+    const userPrompt = data.prompt || '';
+
+    if (!userPrompt && !wizardData.age) {
+      return jsonResponse({ error: 'Липсват данни от въпросника' }, 400);
+    }
+
+    const prompt = await generateLongevityPrompt(wizardData, userPrompt);
+    const LONGEVITY_TOKEN_LIMIT = 4000;
+
+    // Get AI provider settings (reuse protocol settings)
+    const [savedProvider, savedModelName] = await Promise.all([
+      env.page_content?.get('admin_protocol_provider'),
+      env.page_content?.get('admin_protocol_model_name')
+    ]);
+
+    const provider = savedProvider || 'openai';
+    const modelName = savedModelName || '';
+
+    let aiResponse;
+    if (provider === 'openai' && env.OPENAI_API_KEY) {
+      aiResponse = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', LONGEVITY_TOKEN_LIMIT, true);
+    } else if (provider === 'google' && env.GEMINI_API_KEY) {
+      aiResponse = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', LONGEVITY_TOKEN_LIMIT, true);
+    } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
+      aiResponse = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', LONGEVITY_TOKEN_LIMIT, true);
+    } else {
+      return jsonResponse({ error: 'AI provider not configured' }, 503);
+    }
+
+    // Parse AI response
+    const parsed = parseAIResponse(aiResponse);
+    
+    if (parsed && (parsed.lifestyle || parsed.supplements)) {
+      return jsonResponse({ success: true, protocol: parsed });
+    } else {
+      // Return raw response if parsing fails
+      return jsonResponse({ 
+        success: false, 
+        error: 'Отговорът не може да бъде обработен',
+        rawResponse: aiResponse 
+      }, 200);
+    }
+
+  } catch (error) {
+    console.error('Error generating longevity protocol:', error);
+    return jsonResponse({ error: 'Грешка при генериране на протокола: ' + error.message }, 500);
+  }
+}
+
+/**
  * Admin: Get admin configuration from KV
  */
 async function handleGetConfig(request, env) {
@@ -8692,6 +8802,8 @@ export default {
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === '/api/generate-emoeat-analysis' && request.method === 'POST') {
         return await handleGenerateEmoeatAnalysis(request, env);
+      } else if (url.pathname === '/api/generate-longevity-protocol' && request.method === 'POST') {
+        return await handleGenerateLongevityProtocol(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
         return await handleGetConfig(request, env);
       } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
