@@ -2147,6 +2147,19 @@
                 </div>
             </div>
 
+            <!-- 5. Хакове за ускоряване на резултатите -->
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-bolt"></i> Хакове за резултати</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner" id="hacksContent">
+                        <p style="color: var(--text-light); font-style: italic;">Практични съвети за ускоряване на резултатите...</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -3700,12 +3713,14 @@
         // --- Helper: Normalize array to exactly 3 items ---
         const DEFAULT_MESSAGES = {
             psychology: 'Консултирайте се с диетолог за допълнителни съвети',
-            supplements: 'Консултирайте се с лекар преди приемане на нови добавки'
+            supplements: 'Консултирайте се с лекар преди приемане на нови добавки',
+            hacks: 'Практични съвети за ускоряване на резултатите...'
         };
         
         const ICON_CLASSES = {
             psychology: 'fa-brain',
-            supplements: 'fa-pills'
+            supplements: 'fa-pills',
+            hacks: 'fa-bolt'
         };
         
         function normalizeToThreeItems(data, fieldName, defaultMessage) {
@@ -3788,6 +3803,9 @@
 
             // Update supplements section
             renderSupplements();
+
+            // Update hacks section
+            renderHacks();
         }
 
         // --- Render Psychology ---
@@ -3867,6 +3885,46 @@
                 supplementsContent.innerHTML = supplementsHTML;
             } else {
                 supplementsContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.supplements}</p>`;
+            }
+        }
+
+        // --- Render Hacks ---
+        function renderHacks() {
+            const hacksContent = document.getElementById('hacksContent');
+            if (!hacksContent) return;
+
+            if (dietPlan.hacks) {
+                let hacksHTML = '';
+                
+                // Try to normalize to array
+                const normalized = normalizeToThreeItems(
+                    dietPlan.hacks,
+                    'hacks',
+                    DEFAULT_MESSAGES.hacks
+                );
+                
+                if (normalized) {
+                    // Successfully normalized to array - use info-list style
+                    hacksHTML = '<ul class="info-list">';
+                    normalized.forEach((hack, index) => {
+                        const item = generateListItem(hack, 'hacks', index);
+                        if (item) {
+                            // Wrap item content with icon
+                            const cleanItem = item.replace('<li>', '').replace('</li>', '');
+                            hacksHTML += `<li><i class="fas fa-bolt" style="color: var(--primary-accent); margin-right: 8px;"></i>${cleanItem}</li>`;
+                        }
+                    });
+                    hacksHTML += '</ul>';
+                } else if (typeof dietPlan.hacks === 'string') {
+                    // Fallback to string formatting
+                    hacksHTML = formatContentWithBulletPoints(dietPlan.hacks, ICON_CLASSES.hacks);
+                } else {
+                    hacksHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.hacks}</p>`;
+                }
+                
+                hacksContent.innerHTML = hacksHTML;
+            } else {
+                hacksContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.hacks}</p>`;
             }
         }
 

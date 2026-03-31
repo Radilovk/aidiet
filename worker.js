@@ -1446,6 +1446,7 @@ async function generateSimplifiedFallbackPlan(env, data) {
   const psychology = summaryData.psychology || strategy.psychologicalSupport;
   const waterIntake = summaryData.waterIntake || strategy.hydrationStrategy;
   const supplements = summaryData.supplements || strategy.supplementRecommendations;
+  const hacks = summaryData.hacks || [];
   
   // Update strategy with AI-generated values
   strategy.foodsToInclude = recommendations;
@@ -1467,7 +1468,8 @@ async function generateSimplifiedFallbackPlan(env, data) {
     forbidden,
     psychology,
     waterIntake,
-    supplements
+    supplements,
+    hacks
   };
   
   return plan;
@@ -2330,7 +2332,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
 
   const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план на ${data.name}.
 
-Ти си експертен клиничен диетолог, ендокринолог и психолог. Тази стъпка поема изцяло аналитичната отговорност за препоръки за хранителни добавки, психологическа подкрепа и конкретни позволени/забранени храни.
+Ти си експертен клиничен диетолог, ендокринолог, психолог и специалист по поведенческа промяна. Тази стъпка поема изцяло аналитичната отговорност за препоръки за хранителни добавки, психологическа подкрепа, практични "хакове" и конкретни позволени/забранени храни.
 
 КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
 Препоръчителни калории: ${recommendedCalories} kcal/ден | Реални средни: ${avgCalories} kcal/ден
@@ -2347,16 +2349,18 @@ JSON (ТОЧЕН ФОРМАТ):
   "summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}},
   "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
   "forbidden": ["храна 1", "храна 2", "храна 3"],
-  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
+  "psychology": ["съвет 1", "съвет 2", "съвет 3", "съвет 4"],
   "waterIntake": "${strategy.hydrationStrategy || '2-2.5л дневно'}",
-  "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
+  "supplements": ["добавка 1", "добавка 2", "добавка 3", "добавка 4"],
+  "hacks": ["хак 1", "хак 2", "хак 3", "хак 4", "хак 5"]
 }
 
 ЗАДЪЛЖИТЕЛНО:
 - recommendations: МИН 10 конкретни типове храни (не ястия) подходящи за ${data.goal} и диета "${strategy.dietType || strategy.dietaryModifier || 'балансирана'}" — да не попадат в динамичния черен списък
 - forbidden: МИН 10 конкретни типове храни (не ястия) неподходящи за ${healthContext.keyProblems || 'общи рискове'} и текущия план — да не противоречат на динамичния бял списък
-- supplements: минимум 3 конкретни добавки с дозировка и кратка обосновка, съобразени с психопрофила (${analysis.psychoProfile?.temperament || 'неопределен'}), цел (${data.goal}) и медикаменти (${healthContext.medications}) — БЕЗ опасни взаимодействия с медикаментите
-- psychology: минимум 3 персонализирани психологически съвета, адаптирани към темперамента и психологическия профил на ${data.name}`;
+- supplements: минимум 4 научно-базирани добавки (Име — Дозировка — Време на прием — Защо), съобразени с психопрофила (${analysis.psychoProfile?.temperament || 'неопределен'}), цел (${data.goal}) и медикаменти (${healthContext.medications}) — БЕЗ опасни взаимодействия с медикаментите
+- psychology: минимум 4 ДЪЛБОКИ и персонализирани съвета с конкретни психологически техники, адаптирани към темперамента (${analysis.psychoProfile?.temperament || 'неопределен'}) и психологическия профил на ${data.name}
+- hacks: минимум 5 практични, действени и научно доказани "хакове" за ускоряване на резултатите (метаболитни, за ситост, за сън, за контрол на желания)`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -2408,7 +2412,8 @@ JSON (ТОЧЕН ФОРМАТ):
   "forbidden": ["текст"],
   "psychology": ["текст"],
   "waterIntake": "текст",
-  "supplements": ["текст"]
+  "supplements": ["текст"],
+  "hacks": ["текст"]
 }
 
 ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
@@ -4270,7 +4275,8 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
           forbidden: summaryData.forbidden || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
           psychology: summaryData.psychology || strategy.psychologicalSupport || ['Бъдете последователни'],
           waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
-          supplements: summaryData.supplements || strategy.supplementRecommendations || []
+          supplements: summaryData.supplements || strategy.supplementRecommendations || [],
+          hacks: summaryData.hacks || []
         };
       }
       
@@ -4284,7 +4290,8 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         forbidden: existingPlan.forbidden,
         psychology: existingPlan.psychology,
         waterIntake: existingPlan.waterIntake,
-        supplements: existingPlan.supplements
+        supplements: existingPlan.supplements,
+        hacks: existingPlan.hacks || []
       };
       console.log('Reusing existing meal plan');
     }
@@ -5572,7 +5579,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       forbidden: summaryData.forbidden || strategy.foodsToAvoid || [],
       psychology: summaryData.psychology || strategy.psychologicalSupport || [],
       waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
-      supplements: summaryData.supplements || strategy.supplementRecommendations || []
+      supplements: summaryData.supplements || strategy.supplementRecommendations || [],
+      hacks: summaryData.hacks || []
     };
   } catch (error) {
     console.error('Summary generation failed:', error);
