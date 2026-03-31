@@ -1017,7 +1017,19 @@
         <div class="tab-nav">
             <button class="tab-btn active" data-tab="education">
                 <i class="fas fa-graduation-cap"></i>
-                <span>Образование</span>
+                <span>Основи</span>
+            </button>
+            <button class="tab-btn" data-tab="mechanisms">
+                <i class="fas fa-cogs"></i>
+                <span>Механизми</span>
+            </button>
+            <button class="tab-btn" data-tab="markers">
+                <i class="fas fa-vial"></i>
+                <span>Маркери</span>
+            </button>
+            <button class="tab-btn" data-tab="lifestyle">
+                <i class="fas fa-heart"></i>
+                <span>Живот</span>
             </button>
             <button class="tab-btn" data-tab="protocol">
                 <i class="fas fa-flask"></i>
@@ -1025,11 +1037,518 @@
             </button>
         </div>
 
-        <!-- Education Tab Content -->
+        <!-- Education Tab Content - ОСНОВИ -->
         <div id="education" class="tab-content active">
+            
+            <!-- СЕКЦИЯ 1: КАКВО Е СТАРЕЕНЕ -->
+            <div class="edu-section">
+                <h2 class="section-title"><i class="fas fa-question-circle"></i> Какво е Стареене?</h2>
+                
+                <!-- Intro Card -->
+                <div class="intro-card" style="background: linear-gradient(135deg, var(--primary-light), var(--accent-gold-light)); border-radius: var(--radius); padding: 24px; margin-bottom: 24px;">
+                    <div style="display: flex; align-items: flex-start; gap: 16px;">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary), var(--accent-gold)); border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-hourglass-half" style="font-size: 1.5rem; color: white;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-dark); margin-bottom: 8px;">Определение за Стареене</h3>
+                            <p style="color: var(--text-dark); line-height: 1.7; margin-bottom: 12px;">
+                                <strong>Стареенето</strong> е прогресивно натрупване на увреждания на молекулярно, клетъчно и тъканно ниво, което води до загуба на функционалност, увеличена уязвимост към болести и накрая — до смърт.
+                            </p>
+                            <p style="color: var(--text-gray); font-size: 0.9rem; font-style: italic;">
+                                „Стареенето не е болест, а биологичен процес, който обаче може да бъде забавен, модифициран и частично обърнат." — Дейвид Синклеър, Harvard Medical School
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chronological vs Biological Age -->
+                <div class="edu-card expanded" id="card-age-types">
+                    <div class="edu-card-header" onclick="toggleCard('age-types')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                            <i class="fas fa-birthday-cake"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>Хронологична vs. Биологична Възраст</h3>
+                            <p>Защо годините в паспорта не са всичко</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="comparison-boxes" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                            <div style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 16px; border-left: 4px solid #6366f1;">
+                                <h4 style="color: #6366f1; font-size: 0.9rem; margin-bottom: 8px;"><i class="fas fa-calendar-alt"></i> Хронологична Възраст</h4>
+                                <p style="font-size: 0.9rem; color: var(--text-dark); line-height: 1.6;">
+                                    Времето от раждането до момента. Измерва се в години, месеци и дни. <strong>Неизменна</strong> — не може да се промени.
+                                </p>
+                            </div>
+                            <div style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 16px; border-left: 4px solid var(--accent-green);">
+                                <h4 style="color: var(--accent-green); font-size: 0.9rem; margin-bottom: 8px;"><i class="fas fa-dna"></i> Биологична Възраст</h4>
+                                <p style="font-size: 0.9rem; color: var(--text-dark); line-height: 1.6;">
+                                    Реалното състояние на тялото ви на клетъчно ниво. Определя се от епигенетични часовници, теломерна дължина и биомаркери. <strong>Може да се промени!</strong>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">💡 Пример</div>
+                            <div class="edu-detail-text">
+                                Човек на 50 години с нездравословен начин на живот може да има биологична възраст 65 г. Обратно — 60-годишен с оптимални навици може да има биологична възраст 45 г. Разликата се нарича <strong>„възрастово ускорение"</strong> (pace of aging).
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🔬 Как се измерва биологичната възраст?</div>
+                            <div class="edu-detail-text">
+                                <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.8;">
+                                    <li><strong>Епигенетични часовници</strong> — DNA метилационни тестове (Horvath Clock, GrimAge, DunedinPACE)</li>
+                                    <li><strong>Теломерна дължина</strong> — защитните „капачки" на хромозомите</li>
+                                    <li><strong>Биомаркери</strong> — CRP, HbA1c, инсулин, хомоцистеин и др.</li>
+                                    <li><strong>Функционални тестове</strong> — сила на захват, скорост на ходене, VO2max</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Key Concepts -->
+                <div class="edu-card" id="card-concepts">
+                    <div class="edu-card-header" onclick="toggleCard('concepts')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>Основни Концепции</h3>
+                            <p>Ключови термини, които ще срещнете</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="concepts-grid" style="display: grid; gap: 12px;">
+                            <div class="concept-item" style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: var(--primary);">Healthspan (Здравожитие)</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Периодът от живота, прекаран в добро здраве, без хронични болести и увреждания. Целта не е просто да живеем дълго, а да живеем <em>здраво</em> дълго.</p>
+                            </div>
+                            <div class="concept-item" style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: var(--primary);">Lifespan (Продължителност на живота)</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Общата продължителност на живота — от раждане до смърт. Средната за България е ~75 г., но здравожитието е само ~63 г.</p>
+                            </div>
+                            <div class="concept-item" style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: var(--primary);">Compression of Morbidity</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">„Сбиване" на периода на болести в края на живота в по-кратък интервал. Идеалът: да сме здрави до края и да имаме само 1-2 седмици влошаване.</p>
+                            </div>
+                            <div class="concept-item" style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: var(--primary);">Senescence (Клетъчно стареене)</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Състояние, в което клетките спират да се делят, но не умират. Те секретират възпалителни молекули (SASP) и ускоряват стареенето на съседни клетки.</p>
+                            </div>
+                            <div class="concept-item" style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: var(--primary);">Inflammaging (Възпало-стареене)</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Хронично нискостепенно възпаление, характерно за стареенето. Измерва се чрез маркери като CRP, IL-6, TNF-α. Основен двигател на всички възрастови болести.</p>
+                            </div>
+                            <div class="concept-item" style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: var(--primary);">Hormesis (Хормезис)</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Благоприятен отговор на умерен стрес. Примери: студени душове, гладуване, упражнения. Малката „доза" стрес активира защитните механизми на тялото.</p>
+                            </div>
+                            <div class="concept-item" style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: var(--primary);">Autophagy (Автофагия)</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Буквално „самоизяждане" — клетъчен процес на рециклиране на повредени протеини и органели. Ключов за дълголетието. Активира се чрез гладуване.</p>
+                            </div>
+                            <div class="concept-item" style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: var(--primary);">Epigenetics (Епигенетика)</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Промени в генната експресия без промяна в ДНК секвенцията. „Софтуерът" върху „хардуера" (ДНК). Епигенетичният шум е ключова причина за стареенето.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- СЕКЦИЯ 2: НИВА НА СТАРЕЕНЕ -->
+            <div class="edu-section" style="margin-top: 30px;">
+                <h2 class="section-title"><i class="fas fa-layer-group"></i> Нивата на Стареене</h2>
+                <p style="color: var(--text-gray); margin-bottom: 20px;">Стареенето протича едновременно на множество нива — от молекулите до целия организъм. Разбирането на всяко ниво помага да таргетираме интервенциите правилно.</p>
+                
+                <!-- Levels Timeline Visual -->
+                <div class="levels-visual" style="background: var(--card-bg); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+                    <div class="level-flow" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center;">
+                        <div class="level-box" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+                            <i class="fas fa-atom"></i> Молекулно
+                        </div>
+                        <i class="fas fa-arrow-right" style="color: var(--text-light);"></i>
+                        <div class="level-box" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+                            <i class="fas fa-microscope"></i> Клетъчно
+                        </div>
+                        <i class="fas fa-arrow-right" style="color: var(--text-light);"></i>
+                        <div class="level-box" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+                            <i class="fas fa-grip-horizontal"></i> Тъканно
+                        </div>
+                        <i class="fas fa-arrow-right" style="color: var(--text-light);"></i>
+                        <div class="level-box" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+                            <i class="fas fa-lungs"></i> Органно
+                        </div>
+                        <i class="fas fa-arrow-right" style="color: var(--text-light);"></i>
+                        <div class="level-box" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+                            <i class="fas fa-user"></i> Системно
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Level 1: Molecular -->
+                <div class="edu-card" id="card-molecular">
+                    <div class="edu-card-header" onclick="toggleCard('molecular')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                            <i class="fas fa-atom"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>1. Молекулно/Биохимично Ниво</h3>
+                            <p>Увреждания на ДНК, протеини и липиди</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧬 ДНК Увреждания</div>
+                            <div class="edu-detail-text">
+                                Ежедневно всяка клетка получава 10,000-100,000 ДНК увреждания от реактивни кислородни видове (ROS), UV лъчи, токсини. С възрастта репаративните системи стават по-бавни и грешки се натрупват.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🔄 Протеинна Агрегация</div>
+                            <div class="edu-detail-text">
+                                Протеините губят правилната си форма (misfolding) и се слепват в агрегати. Примери: амилоид-бета при Алцхаймер, алфа-синуклеин при Паркинсон. Автофагията ги изчиства.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">💥 Оксидативен Стрес</div>
+                            <div class="edu-detail-text">
+                                Дисбаланс между свободни радикали (ROS) и антиоксидантна защита. ROS увреждат мембраните, протеините и ДНК. Източник: дишане, възпаление, тежки метали, радиация.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🍬 Гликация (AGEs)</div>
+                            <div class="edu-detail-text">
+                                Захарите се свързват неензимно с протеини, образувайки „крайни продукти на напреднала гликация" (AGEs). Те правят тъканите твърди и възпалени. Кожата губи еластичност, артериите се втвърдяват.
+                            </div>
+                        </div>
+                        <div class="molecule-tags" style="margin-top: 12px;">
+                            <span class="molecule-tag" style="background: #ef4444;">ДНК мутации</span>
+                            <span class="molecule-tag" style="background: #ef4444;">ROS</span>
+                            <span class="molecule-tag" style="background: #ef4444;">AGEs</span>
+                            <span class="molecule-tag" style="background: #ef4444;">Липофусцин</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Level 2: Cellular -->
+                <div class="edu-card" id="card-cellular">
+                    <div class="edu-card-header" onclick="toggleCard('cellular')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-microscope"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>2. Клетъчно Ниво</h3>
+                            <p>Сенесцентни клетки, митохондриална дисфункция</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧟 Сенесцентни Клетки („Зомби Клетки")</div>
+                            <div class="edu-detail-text">
+                                Клетки, които са спрели да се делят, но не умират. Те секретират SASP (senescence-associated secretory phenotype) — коктейл от възпалителни цитокини, протеази и растежни фактори, който „заразява" съседните здрави клетки.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚡ Митохондриална Дисфункция</div>
+                            <div class="edu-detail-text">
+                                Митохондриите — „електроцентралите" на клетката — стават по-малко ефективни. Произвеждат по-малко ATP и повече ROS. Броят им намалява, мтДНК натрупва мутации. Резултат: умора, загуба на мускулна маса.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">📏 Скъсяване на Теломерите</div>
+                            <div class="edu-detail-text">
+                                Теломерите са защитни „капачки" в края на хромозомите. При всяко клетъчно делене те се скъсяват. Когато станат критично къси, клетката влиза в сенесценция или апоптоза. Теломеразата може да ги удължи, но е активна само в стволовите клетки.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🔋 Изчерпване на Стволовите Клетки</div>
+                            <div class="edu-detail-text">
+                                Стволовите клетки регенерират тъканите. С възрастта техният брой и функционалност намаляват. Костният мозък произвежда по-малко кръвни клетки, кожата се възстановява по-бавно.
+                            </div>
+                        </div>
+                        <div class="molecule-tags" style="margin-top: 12px;">
+                            <span class="molecule-tag" style="background: #f59e0b;">Сенесцентни клетки</span>
+                            <span class="molecule-tag" style="background: #f59e0b;">мтДНК мутации</span>
+                            <span class="molecule-tag" style="background: #f59e0b;">Теломери</span>
+                            <span class="molecule-tag" style="background: #f59e0b;">SASP</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Level 3: Tissue -->
+                <div class="edu-card" id="card-tissue">
+                    <div class="edu-card-header" onclick="toggleCard('tissue')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-grip-horizontal"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>3. Тъканно Ниво</h3>
+                            <p>Фиброза, загуба на матрикс, нарушена комуникация</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🕸️ Разрушаване на Извънклетъчния Матрикс (ECM)</div>
+                            <div class="edu-detail-text">
+                                Колагенът, еластинът и хиалуроновата киселина деградират. Кожата губи еластичност и хидратация. Ставите стават по-скованени. Артериите — по-твърди.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🔥 Хронично Възпаление в Тъканите</div>
+                            <div class="edu-detail-text">
+                                SASP от сенесцентните клетки, плюс активирани имунни клетки, създават персистиращо нискостепенно възпаление. Увреждат здравата тъкан и нарушават регенерацията.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">💀 Фиброза</div>
+                            <div class="edu-detail-text">
+                                Натрупване на неорганизиран съединителен тъкан вместо нормална функционална тъкан. Сърцето, белите дробове, черният дроб и бъбреците постепенно се „цикатризират".
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">📡 Нарушена Междуклетъчна Комуникация</div>
+                            <div class="edu-detail-text">
+                                Хормоналните сигнали (инсулин, IGF-1, хормони на щитовидната жлеза) се променят. Рецепторите стават по-малко чувствителни. Клетките „не чуват" правилно сигналите.
+                            </div>
+                        </div>
+                        <div class="molecule-tags" style="margin-top: 12px;">
+                            <span class="molecule-tag" style="background: #10b981;">Колаген</span>
+                            <span class="molecule-tag" style="background: #10b981;">Фиброза</span>
+                            <span class="molecule-tag" style="background: #10b981;">IL-6</span>
+                            <span class="molecule-tag" style="background: #10b981;">TNF-α</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Level 4: Organ -->
+                <div class="edu-card" id="card-organ">
+                    <div class="edu-card-header" onclick="toggleCard('organ')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                            <i class="fas fa-lungs"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>4. Органно Ниво</h3>
+                            <p>Функционален спад на жизнените органи</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="organ-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <div style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: #ef4444;"><i class="fas fa-heart"></i> Сърце</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Сърдечният мускул се уплътнява, диастолната функция се влошава. Макс. пулс спада ~1 удар/година след 20.</p>
+                            </div>
+                            <div style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: #3b82f6;"><i class="fas fa-brain"></i> Мозък</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Обемът намалява ~0.5%/год след 40. Натрупване на амилоид и тау. Когнитивният спад е видим от 50+.</p>
+                            </div>
+                            <div style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: #10b981;"><i class="fas fa-lungs"></i> Бели Дробове</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">VO2max спада ~10% на декада. Еластичността намалява, алвеоларната повърхност се смалява.</p>
+                            </div>
+                            <div style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: #f59e0b;"><i class="fas fa-filter"></i> Бъбреци</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">GFR спада ~1 mL/min/год след 30. Способността за филтриране и концентриране намалява.</p>
+                            </div>
+                            <div style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: #8b5cf6;"><i class="fas fa-bone"></i> Скелет</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Пик на костна маса на ~30 г. След това загуба ~1%/год при жените (по-бързо след менопауза).</p>
+                            </div>
+                            <div style="background: var(--input-bg); border-radius: var(--radius-sm); padding: 14px;">
+                                <strong style="color: #ec4899;"><i class="fas fa-dumbbell"></i> Мускули</strong>
+                                <p style="font-size: 0.85rem; color: var(--text-gray); margin-top: 4px;">Саркопения: загуба на 3-8% мускулна маса на декада след 30. Ускорява се драстично след 60.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Level 5: Systemic -->
+                <div class="edu-card" id="card-systemic">
+                    <div class="edu-card-header" onclick="toggleCard('systemic')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>5. Системно/Комплексно Ниво</h3>
+                            <p>Взаимодействие между системите, хомеостаза</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🔄 Ендокринна Дисфункция</div>
+                            <div class="edu-detail-text">
+                                Хормоналните оси (HPA, HPG, HPT) губят баланс. Спад на тестостерон, естроген, растежен хормон, DHEA. Повишен кортизол. Инсулинова резистентност.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🛡️ Имунно Стареене (Immunosenescence)</div>
+                            <div class="edu-detail-text">
+                                Имунната система става едновременно по-слаба (срещу патогени) и по-хиперактивна (срещу собственото тяло). Повече автоимунност, по-малко способност да се борим с инфекции и рак.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚡ Загуба на Хомеостатичен Резерв</div>
+                            <div class="edu-detail-text">
+                                Тялото става по-малко способно да се адаптира към стрес (болест, травма, промяна в температурата). Възстановяването отнема повече време. Малки смущения водят до големи последици.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧠 Невроендокринни Промени</div>
+                            <div class="edu-detail-text">
+                                Циркадният ритъм се нарушава. Мелатонинът спада. Сънят става фрагментиран. Автономната нервна система губи баланс между симпатикус и парасимпатикус.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🦠 Микробиомни Промени</div>
+                            <div class="edu-detail-text">
+                                Чревната флора става по-малко разнообразна. Увеличават се провъзпалителните бактерии. Намаляват бутират-продуциращите. „Изтичащо черво" (leaky gut) увеличава системното възпаление.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- СЕКЦИЯ 3: 12 HALLMARKS OF AGING -->
+            <div class="edu-section" style="margin-top: 30px;">
+                <h2 class="section-title"><i class="fas fa-fingerprint"></i> 12 Белега на Стареенето (Hallmarks)</h2>
+                <p style="color: var(--text-gray); margin-bottom: 20px;">През 2013 г. учените идентифицираха 9 ключови белези на стареенето, обновени до 12 през 2023 г. Те са взаимосвързани и формират „мрежата на стареенето".</p>
+                
+                <div class="hallmarks-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    
+                    <!-- Primary Hallmarks -->
+                    <div style="grid-column: 1 / -1; margin-bottom: 8px;">
+                        <h4 style="color: var(--accent-red); font-size: 0.9rem;"><i class="fas fa-exclamation-triangle"></i> ПЪРВИЧНИ (Причини за увреждане)</h4>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #ef4444;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #ef4444; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">1</span>
+                            <strong style="color: var(--text-dark);">Геномна Нестабилност</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Натрупване на ДНК мутации (точкови, делеции, хромозомни аберации) от ROS, радиация, грешки при репликация.</p>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #ef4444;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #ef4444; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">2</span>
+                            <strong style="color: var(--text-dark);">Теломерно Скъсяване</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Прогресивно скъсяване на защитните краища на хромозомите при всяко делене. Hayflick лимит.</p>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #ef4444;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #ef4444; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">3</span>
+                            <strong style="color: var(--text-dark);">Епигенетични Промени</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Промени в ДНК метилацията, хистоновите модификации и хроматиновото ремоделиране. „Шум" в епигенома.</p>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #ef4444;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #ef4444; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">4</span>
+                            <strong style="color: var(--text-dark);">Загуба на Протеостаза</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Нарушен контрол на качеството на протеините — неправилно нагъване, агрегация. Слаба автофагия и убиквитин-протеазомна система.</p>
+                    </div>
+                    
+                    <!-- Antagonistic Hallmarks -->
+                    <div style="grid-column: 1 / -1; margin-top: 16px; margin-bottom: 8px;">
+                        <h4 style="color: var(--accent-warm); font-size: 0.9rem;"><i class="fas fa-balance-scale"></i> АНТАГОНИСТИЧНИ (Отговор на увреждането)</h4>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #f59e0b;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #f59e0b; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">5</span>
+                            <strong style="color: var(--text-dark);">Дерегулирано Сензиране на Хранителни Вещества</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Нарушения в Инсулин/IGF-1, mTOR, AMPK и съртуините. Хроничният излишък активира mTOR и потиска автофагията.</p>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #f59e0b;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #f59e0b; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">6</span>
+                            <strong style="color: var(--text-dark);">Митохондриална Дисфункция</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Намалена ефективност на дихателната верига, повече ROS, мтДНК мутации, нарушен биогенезис и митофагия.</p>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #f59e0b;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #f59e0b; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">7</span>
+                            <strong style="color: var(--text-dark);">Клетъчно Стареене (Сенесценция)</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Необратимо спиране на клетъчния цикъл + секреция на SASP. Първоначално защитен механизъм, после става вреден.</p>
+                    </div>
+                    
+                    <!-- Integrative Hallmarks -->
+                    <div style="grid-column: 1 / -1; margin-top: 16px; margin-bottom: 8px;">
+                        <h4 style="color: var(--accent-green); font-size: 0.9rem;"><i class="fas fa-puzzle-piece"></i> ИНТЕГРАТИВНИ (Системни последици)</h4>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #10b981; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">8</span>
+                            <strong style="color: var(--text-dark);">Изчерпване на Стволовите Клетки</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Намален брой и функционалност на стволовите клетки. По-бавна регенерация на тъканите.</p>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #10b981; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">9</span>
+                            <strong style="color: var(--text-dark);">Нарушена Междуклетъчна Комуникация</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Хронично възпаление (inflammaging), нарушена ендокринна сигнализация, промени в екстрацелуларния матрикс.</p>
+                    </div>
+                    
+                    <!-- New 2023 Hallmarks -->
+                    <div style="grid-column: 1 / -1; margin-top: 16px; margin-bottom: 8px;">
+                        <h4 style="color: #8b5cf6; font-size: 0.9rem;"><i class="fas fa-star"></i> НОВИ (2023)</h4>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #8b5cf6;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #8b5cf6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">10</span>
+                            <strong style="color: var(--text-dark);">Дисбиоза на Микробиома</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Промени в чревната флора — намалено разнообразие, повече патогени, по-малко бутират. „Изтичащо черво".</p>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #8b5cf6;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #8b5cf6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">11</span>
+                            <strong style="color: var(--text-dark);">Хронично Възпаление</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Inflammaging — нискостепенно стерилно възпаление без патоген. Измерва се чрез CRP, IL-6, TNF-α.</p>
+                    </div>
+                    
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #8b5cf6;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #8b5cf6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">12</span>
+                            <strong style="color: var(--text-dark);">Нарушена Макроавтофагия</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Намалена способност за „самопочистване" на клетките. Натрупване на протеинови агрегати и дефектни органели.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mechanisms Tab Content -->
+        <div id="mechanisms" class="tab-content">
             <!-- 6 Core Functions -->
             <div class="edu-section">
-                <h2 class="section-title"><i class="fas fa-cube"></i> 6 Основни Функции на Дълголетието</h2>
+                <h2 class="section-title"><i class="fas fa-cube"></i> 6 Ключови Функции за Дълголетие</h2>
+                <p style="color: var(--text-gray); margin-bottom: 20px;">Тези 6 функции са основните „лостове", които можем да контролираме за забавяне на стареенето.</p>
 
                 <!-- Energy -->
                 <div class="edu-card" id="card-energy">
@@ -1038,139 +1557,197 @@
                             <i class="fas fa-bolt"></i>
                         </div>
                         <div class="edu-card-title">
-                            <h3>Енергия (AMPK / mTOR)</h3>
-                            <p>Активиране на енергийния сензор и автофагия</p>
+                            <h3>1. Енергия (AMPK / mTOR)</h3>
+                            <p>Баланс между растеж и ремонт</p>
                         </div>
                         <i class="fas fa-chevron-down edu-expand-icon"></i>
                     </div>
                     <div class="edu-card-content">
                         <div class="edu-detail">
-                            <div class="edu-detail-label">🎯 Цел</div>
-                            <div class="edu-detail-text">Балансиране на енергийните сензори: активиране на AMPK (дефицит/ремонт) и потискане на mTOR (растеж/стареене).</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
-                            <div class="edu-detail-text">Периодично гладуване (16:8 или 24h), нисковъглехидратно хранене, високоинтензивни интервални тренировки (HIIT).</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
-                            <div class="edu-detail-text">AMPK ↑ / mTOR ↓ → Стартиране на автофагия, подобряване на инсулиновата чувствителност, горене на мазнини.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
-                            <div class="molecule-tags">
-                                <span class="molecule-tag">Метформин</span>
-                                <span class="molecule-tag">Берберин</span>
-                                <span class="molecule-tag">Спермидин</span>
+                            <div class="edu-detail-label">🔬 Научен Контекст</div>
+                            <div class="edu-detail-text">
+                                <strong>AMPK</strong> (AMP-активирана протеин киназа) — енергийният сензор на клетката. Активира се при дефицит на ATP и стартира катаболни процеси: горене на мазнини, автофагия, митохондриален биогенезис.<br><br>
+                                <strong>mTOR</strong> (mechanistic Target Of Rapamycin) — главният регулатор на растежа. При изобилие от хранителни вещества стимулира синтез на протеини. Хроничната хиперактивация ускорява стареенето.
                             </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚖️ Баланс AMPK ↔ mTOR</div>
+                            <div class="edu-detail-text">
+                                <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.8;">
+                                    <li><strong>AMPK ↑ / mTOR ↓:</strong> Автофагия, клетъчен ремонт, инсулинова чувствителност, дълголетие</li>
+                                    <li><strong>AMPK ↓ / mTOR ↑:</strong> Растеж, мускулен синтез, но и ускорено стареене, рак</li>
+                                </ul>
+                                Целта е <em>циклично</em> редуване — периоди на потискане на mTOR (гладуване) с периоди на активация (хранене, тренировки).
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏃 Практически Активатори на AMPK</div>
+                            <div class="edu-detail-text">
+                                • Периодично гладуване (16:8, 18:6, OMAD)<br>
+                                • HIIT тренировки (изчерпват ATP)<br>
+                                • Студена експозиция<br>
+                                • Ниски въглехидрати (кетогенна диета)<br>
+                                • Зелен чай (EGCG), Берберин, Метформин
+                            </div>
+                        </div>
+                        <div class="molecule-tags">
+                            <span class="molecule-tag">Метформин</span>
+                            <span class="molecule-tag">Берберин</span>
+                            <span class="molecule-tag">EGCG</span>
+                            <span class="molecule-tag">Ресвератрол</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Cleansing -->
+                <!-- Autophagy -->
                 <div class="edu-card" id="card-cleanse">
                     <div class="edu-card-header" onclick="toggleCard('cleanse')">
                         <div class="edu-icon cleanse">
                             <i class="fas fa-recycle"></i>
                         </div>
                         <div class="edu-card-title">
-                            <h3>Почистване (Автофагия / Митофагия)</h3>
-                            <p>Клетъчно рециклиране и премахване на дефектни митохондрии</p>
+                            <h3>2. Почистване (Автофагия / Митофагия)</h3>
+                            <p>Клетъчно рециклиране и премахване на боклуци</p>
                         </div>
                         <i class="fas fa-chevron-down edu-expand-icon"></i>
                     </div>
                     <div class="edu-card-content">
                         <div class="edu-detail">
-                            <div class="edu-detail-label">🎯 Цел</div>
-                            <div class="edu-detail-text">Активиране на клетъчния „чистач" — автофагия за рециклиране на повредени протеини и митофагия за премахване на дефектни митохондрии.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
-                            <div class="edu-detail-text">Пропускане на хранения, удължено гладуване (24-72h), консумация на ферментирали храни и пшеничен зародиш.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
-                            <div class="edu-detail-text">Автофагия (ликвидация на клетъчни „боклуци") + Митофагия (селективно премахване на увредени митохондрии).</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
-                            <div class="molecule-tags">
-                                <span class="molecule-tag">Спермидин</span>
-                                <span class="molecule-tag">Уролитин А</span>
-                                <span class="molecule-tag">Рапамицин</span>
+                            <div class="edu-detail-label">🔬 Научен Контекст</div>
+                            <div class="edu-detail-text">
+                                <strong>Автофагия</strong> (от гр. „самоизяждане") е клетъчен процес, при който лизозомите разграждат и рециклират повредени протеини, органели и патогени. Нобелова награда 2016 за Йошинори Осуми.<br><br>
+                                <strong>Митофагия</strong> — специализирана автофагия за премахване на дефектни митохондрии. Критична за поддържане на енергийния метаболизъм.
                             </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⏰ Кога се активира автофагията?</div>
+                            <div class="edu-detail-text">
+                                <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.8;">
+                                    <li><strong>12-16 часа гладуване:</strong> Начално активиране</li>
+                                    <li><strong>24-48 часа:</strong> Пълна активация</li>
+                                    <li><strong>48-72 часа:</strong> Пикова автофагия</li>
+                                </ul>
+                                <em>Важно:</em> Автофагията се СПИРА веднага при прием на протеини или въглехидрати!
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧪 Активатори на Автофагия</div>
+                            <div class="edu-detail-text">
+                                • Удължено гладуване (24-72h)<br>
+                                • Спермидин (пшеничен зародиш, сирене, гъби)<br>
+                                • Ресвератрол (грозде, вино)<br>
+                                • Рапамицин (фармакологичен — само под контрол!)<br>
+                                • Уролитин А (от нар, чрез чревен микробиом)
+                            </div>
+                        </div>
+                        <div class="molecule-tags">
+                            <span class="molecule-tag">Спермидин</span>
+                            <span class="molecule-tag">Уролитин А</span>
+                            <span class="molecule-tag">Рапамицин</span>
+                            <span class="molecule-tag">Ресвератрол</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Protection -->
+                <!-- Protection / NRF2 -->
                 <div class="edu-card" id="card-protect">
                     <div class="edu-card-header" onclick="toggleCard('protect')">
                         <div class="edu-icon protect">
                             <i class="fas fa-shield-alt"></i>
                         </div>
                         <div class="edu-card-title">
-                            <h3>Защита (NRF2 / Хормезис)</h3>
-                            <p>Активиране на антиоксидантните системи</p>
+                            <h3>3. Защита (NRF2 / Хормезис)</h3>
+                            <p>Антиоксидантна защита чрез умерен стрес</p>
                         </div>
                         <i class="fas fa-chevron-down edu-expand-icon"></i>
                     </div>
                     <div class="edu-card-content">
                         <div class="edu-detail">
-                            <div class="edu-detail-label">🎯 Цел</div>
-                            <div class="edu-detail-text">Стимулиране на NRF2 пътя — главният регулатор на антиоксидантната защита и детоксикацията.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
-                            <div class="edu-detail-text">Студени душове, ледени бани, сауна, консумация на кръстоцветни зеленчуци (броколи, карфиол), умерен физически стрес.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
-                            <div class="edu-detail-text">Хормезис — благоприятен отговор на умерен стрес. NRF2 активира глутатион редуктаза и хем оксигеназа-1.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
-                            <div class="molecule-tags">
-                                <span class="molecule-tag">PQQ</span>
-                                <span class="molecule-tag">Куркумин</span>
-                                <span class="molecule-tag">Сулфорафан</span>
+                            <div class="edu-detail-label">🔬 Научен Контекст</div>
+                            <div class="edu-detail-text">
+                                <strong>NRF2</strong> (Nuclear factor erythroid 2-related factor 2) — главният регулатор на антиоксидантните гени. Активира над 500 гена за детоксикация, възстановяване и възпаление.<br><br>
+                                <strong>Хормезис</strong> — принцип, при който малки дози стрес предизвикват адаптивен отговор, който прави организма по-устойчив.
                             </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚡ Примери за Хормезис</div>
+                            <div class="edu-detail-text">
+                                <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.8;">
+                                    <li><strong>Студена експозиция:</strong> Студени душове, криотерапия → Heat shock proteins</li>
+                                    <li><strong>Топлинен стрес:</strong> Сауна (4-7x седмично) → 40% по-нисък риск от сърдечна смърт</li>
+                                    <li><strong>Физически стрес:</strong> Упражнения → митохондриален биогенезис</li>
+                                    <li><strong>Фитохимикали:</strong> Сулфорафан (броколи), куркумин, зелен чай</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🥦 NRF2 Активатори от Храната</div>
+                            <div class="edu-detail-text">
+                                • Сулфорафан (броколи, кейл, карфиол) — най-мощен!<br>
+                                • Куркумин (куркума + черен пипер)<br>
+                                • EGCG (зелен чай)<br>
+                                • Ресвератрол (грозде, боровинки)<br>
+                                • Кверцетин (лук, ябълки)
+                            </div>
+                        </div>
+                        <div class="molecule-tags">
+                            <span class="molecule-tag">Сулфорафан</span>
+                            <span class="molecule-tag">Куркумин</span>
+                            <span class="molecule-tag">PQQ</span>
+                            <span class="molecule-tag">Астаксантин</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- DNA Code -->
+                <!-- DNA / Sirtuins -->
                 <div class="edu-card" id="card-dna">
                     <div class="edu-card-header" onclick="toggleCard('dna')">
                         <div class="edu-icon dna">
                             <i class="fas fa-dna"></i>
                         </div>
                         <div class="edu-card-title">
-                            <h3>Код (ДНК Репарация / Съртуини)</h3>
-                            <p>Поддържане на геномната стабилност</p>
+                            <h3>4. Код (ДНК Репарация / Съртуини)</h3>
+                            <p>Защита на генома и епигенетична стабилност</p>
                         </div>
                         <i class="fas fa-chevron-down edu-expand-icon"></i>
                     </div>
                     <div class="edu-card-content">
                         <div class="edu-detail">
-                            <div class="edu-detail-label">🎯 Цел</div>
-                            <div class="edu-detail-text">Защита на ДНК от мутации, активиране на съртуините (SIRT1-7) и поддържане на правилния циркаден ритъм.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
-                            <div class="edu-detail-text">Качествен сън (7-9 часа), медитация, избягване на синя светлина вечер, консумация на горски плодове.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
-                            <div class="edu-detail-text">ДНК репарация, активиране на NAD+-зависими съртуини, епигенетична настройка, забавяне на теломерното скъсяване.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
-                            <div class="molecule-tags">
-                                <span class="molecule-tag">NMN / NR</span>
-                                <span class="molecule-tag">Ресвератрол</span>
-                                <span class="molecule-tag">Мелатонин</span>
+                            <div class="edu-detail-label">🔬 Научен Контекст</div>
+                            <div class="edu-detail-text">
+                                <strong>Съртуини</strong> (SIRT1-7) са NAD+-зависими ензими, които регулират ДНК репарацията, метаболизма и възпалението. Наричат ги „гените на дълголетието".<br><br>
+                                <strong>NAD+</strong> (никотинамид аденин динуклеотид) е критичен кофактор за съртуините. Нивата му спадат с ~50% между 40 и 60 г.
                             </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧬 7-те Съртуина</div>
+                            <div class="edu-detail-text">
+                                <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.6;">
+                                    <li><strong>SIRT1:</strong> Метаболизъм, инсулинова чувствителност, циркаден ритъм</li>
+                                    <li><strong>SIRT2:</strong> Клетъчен цикъл, миелинизация</li>
+                                    <li><strong>SIRT3:</strong> Митохондриална функция, ROS защита</li>
+                                    <li><strong>SIRT4:</strong> Инсулинова секреция</li>
+                                    <li><strong>SIRT5:</strong> Урея цикъл, метаболизъм</li>
+                                    <li><strong>SIRT6:</strong> ДНК репарация, теломерна поддръжка</li>
+                                    <li><strong>SIRT7:</strong> рДНК транскрипция</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">💊 Как да повишим NAD+?</div>
+                            <div class="edu-detail-text">
+                                • <strong>NMN</strong> (никотинамид мононуклеотид) — 250-500 mg сутрин<br>
+                                • <strong>NR</strong> (никотинамид рибозид) — алтернатива на NMN<br>
+                                • <strong>Ресвератрол</strong> — активатор на SIRT1<br>
+                                • Упражнения, гладуване, студова експозиция<br>
+                                • Качествен сън (7-8 часа)
+                            </div>
+                        </div>
+                        <div class="molecule-tags">
+                            <span class="molecule-tag">NMN</span>
+                            <span class="molecule-tag">NR</span>
+                            <span class="molecule-tag">Ресвератрол</span>
+                            <span class="molecule-tag">Птеростилбен</span>
                         </div>
                     </div>
                 </div>
@@ -1182,151 +1759,172 @@
                             <i class="fas fa-bone"></i>
                         </div>
                         <div class="edu-card-title">
-                            <h3>Структура (Кости, Мускули, Колаген)</h3>
-                            <p>Поддържане на физическата интегритет</p>
+                            <h3>5. Структура (Мускули, Кости, Колаген)</h3>
+                            <p>Поддържане на физическата функционалност</p>
                         </div>
                         <i class="fas fa-chevron-down edu-expand-icon"></i>
                     </div>
                     <div class="edu-card-content">
                         <div class="edu-detail">
-                            <div class="edu-detail-label">🎯 Цел</div>
-                            <div class="edu-detail-text">Предотвратяване на саркопения (загуба на мускули), остеопороза и поддържане на колагеновия синтез.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
-                            <div class="edu-detail-text">Силови тренировки 2-3 пъти седмично, високопротеинова диета (1.6-2.2 г/кг), достатъчен витамин D.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
-                            <div class="edu-detail-text">Механично напрежение → костна и мускулна хипертрофия, синтез на колаген и извънклетъчен матрикс.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
-                            <div class="molecule-tags">
-                                <span class="molecule-tag">АКГ</span>
-                                <span class="molecule-tag">Магнезий</span>
-                                <span class="molecule-tag">Колаген</span>
-                                <span class="molecule-tag">Креатин</span>
+                            <div class="edu-detail-label">💪 Саркопения — Тихият Убиец</div>
+                            <div class="edu-detail-text">
+                                <strong>Саркопения</strong> е възрастовата загуба на мускулна маса и сила. Започва от 30 г. (~3-8% на декада) и ускорява драстично след 60.<br><br>
+                                <strong>Последици:</strong> Падания, фрактури, загуба на независимост, инсулинова резистентност, смъртност.
                             </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🦴 Остеопороза</div>
+                            <div class="edu-detail-text">
+                                Пик на костна маса: ~30 г. След това губим ~1% годишно (жени: ускорено след менопауза). Критично: достатъчен витамин D (60-80 ng/mL), K2, магнезий, силови упражнения.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏋️ Протокол за Запазване на Структурата</div>
+                            <div class="edu-detail-text">
+                                <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.8;">
+                                    <li><strong>Силови тренировки:</strong> 2-4x седмично, съставни упражнения</li>
+                                    <li><strong>Протеин:</strong> 1.6-2.2 г/кг телесно тегло</li>
+                                    <li><strong>Креатин:</strong> 3-5 г/ден (научно доказан!)</li>
+                                    <li><strong>Витамин D + K2:</strong> 4000-5000 IU + 200 mcg MK-7</li>
+                                    <li><strong>Колаген:</strong> 10-15 г/ден + Витамин C</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="molecule-tags">
+                            <span class="molecule-tag">Креатин</span>
+                            <span class="molecule-tag">Колаген</span>
+                            <span class="molecule-tag">HMB</span>
+                            <span class="molecule-tag">Витамин D3+K2</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Detox / Senolysis -->
+                <!-- Senolysis -->
                 <div class="edu-card" id="card-detox">
                     <div class="edu-card-header" onclick="toggleCard('detox')">
                         <div class="edu-icon detox">
                             <i class="fas fa-biohazard"></i>
                         </div>
                         <div class="edu-card-title">
-                            <h3>Детокс (Сенолиза / Зомби Клетки)</h3>
-                            <p>Елиминиране на стареещи клетки и SASP</p>
+                            <h3>6. Сенолиза (Елиминиране на Зомби Клетки)</h3>
+                            <p>Почистване на сенесцентни клетки</p>
                         </div>
                         <i class="fas fa-chevron-down edu-expand-icon"></i>
                     </div>
                     <div class="edu-card-content">
                         <div class="edu-detail">
-                            <div class="edu-detail-label">🎯 Цел</div>
-                            <div class="edu-detail-text">Премахване на „зомби клетки" (senescent cells), които са спрели да се делят, но излъчват токсичен SASP коктейл.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
-                            <div class="edu-detail-text">Консумация на горски плодове (ягоди, боровинки), кръстоцветни зеленчуци и лук. Периодични сенолитични курсове.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
-                            <div class="edu-detail-text">Сенолиза — предизвикване на апоптоза (програмирана клетъчна смърт) в стареещите клетки. Спиране на Inflammaging.</div>
-                        </div>
-                        <div class="edu-detail">
-                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
-                            <div class="molecule-tags">
-                                <span class="molecule-tag">Фисетин</span>
-                                <span class="molecule-tag">Кверцетин</span>
-                                <span class="molecule-tag">Куркумин</span>
+                            <div class="edu-detail-label">🧟 Какво са Сенесцентните Клетки?</div>
+                            <div class="edu-detail-text">
+                                „Зомби клетките" са клетки, които са спрели да се делят (поради ДНК увреждания, теломерно скъсяване или онкогенен стрес), но не умират. Вместо това секретират <strong>SASP</strong> — коктейл от възпалителни цитокини, протеази и растежни фактори.<br><br>
+                                <strong>Проблемът:</strong> SASP „заразява" съседните здрави клетки, причинява хронично възпаление и ускорява стареенето на цялата тъкан.
                             </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">💀 Какво съдържа SASP?</div>
+                            <div class="edu-detail-text">
+                                • Възпалителни цитокини: IL-6, IL-1β, IL-8<br>
+                                • Хемокини: MCP-1, CXCL1<br>
+                                • Протеази: MMP-3, MMP-9 (разрушават ECM)<br>
+                                • Растежни фактори: VEGF, TGF-β
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">💊 Сенолитици — Какво представляват?</div>
+                            <div class="edu-detail-text">
+                                <strong>Сенолитици</strong> са молекули, които селективно убиват сенесцентните клетки, оставяйки здравите клетки непокътнати.<br><br>
+                                <strong>Популярен протокол:</strong><br>
+                                • <strong>Фисетин:</strong> 1000-1500 mg за 2-3 последователни дни, веднъж месечно<br>
+                                • <strong>Кверцетин + Дазатиниб:</strong> За по-агресивен подход (под лекарски контрол)
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🍓 Естествени Източници на Фисетин</div>
+                            <div class="edu-detail-text">
+                                Ягоди (160 µg/g), ябълки, кака, лук, краставици, грозде. <em>Проблем:</em> За терапевтична доза са нужни 5-8 кг ягоди! Затова добавките са по-практични.
+                            </div>
+                        </div>
+                        <div class="molecule-tags">
+                            <span class="molecule-tag">Фисетин</span>
+                            <span class="molecule-tag">Кверцетин</span>
+                            <span class="molecule-tag">Дазатиниб</span>
+                            <span class="molecule-tag">Навитоклакс</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Biomarkers Section -->
-            <div class="markers-section">
-                <h2 class="section-title"><i class="fas fa-microscope"></i> Ключови Биомаркери</h2>
-                <div class="markers-grid">
-                    <div class="marker-card">
-                        <div class="marker-icon info">
-                            <i class="fas fa-fire-alt"></i>
+            <!-- Causes Section -->
+            <div class="edu-section" style="margin-top: 30px;">
+                <h2 class="section-title"><i class="fas fa-exclamation-triangle"></i> Причини за Стареене</h2>
+                <p style="color: var(--text-gray); margin-bottom: 20px;">Има множество теории защо остаряваме. Днес знаем, че стареенето е многофакторен процес с няколко основни причинни категории.</p>
+
+                <div class="causes-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Primary Damage -->
+                    <div style="background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-radiation" style="color: white; font-size: 1.2rem;"></i>
+                            </div>
+                            <h4 style="color: var(--text-dark); font-size: 1.05rem;">Първични Увреждания</h4>
                         </div>
-                        <div class="marker-info">
-                            <h4>hs-CRP (C-реактивен протеин)</h4>
-                            <p>Маркер за системно възпаление (Inflammaging)</p>
-                        </div>
-                        <div class="marker-values">
-                            <div class="marker-deficit">Дефицит: &gt;1.0 mg/L</div>
-                            <div class="marker-optimal">Оптимум: &lt;0.5 mg/L</div>
-                        </div>
+                        <ul style="color: var(--text-gray); font-size: 0.9rem; line-height: 1.8; padding-left: 20px;">
+                            <li><strong>ДНК мутации</strong> от ROS, UV, токсини</li>
+                            <li><strong>Оксидативен стрес</strong> — дисбаланс ROS/антиоксиданти</li>
+                            <li><strong>Гликация (AGEs)</strong> — захарни кръстосани връзки</li>
+                            <li><strong>Митохондриални мутации</strong></li>
+                        </ul>
                     </div>
 
-                    <div class="marker-card">
-                        <div class="marker-icon warning">
-                            <i class="fas fa-cookie-bite"></i>
+                    <!-- Response Mechanisms -->
+                    <div style="background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-shield-alt" style="color: white; font-size: 1.2rem;"></i>
+                            </div>
+                            <h4 style="color: var(--text-dark); font-size: 1.05rem;">Антагонистични Отговори</h4>
                         </div>
-                        <div class="marker-info">
-                            <h4>HbA1c (Гликиран хемоглобин)</h4>
-                            <p>Показател за гликация и контрол на кръвната захар</p>
-                        </div>
-                        <div class="marker-values">
-                            <div class="marker-deficit">Дефицит: &gt;5.4%</div>
-                            <div class="marker-optimal">Оптимум: 4.8-5.2%</div>
-                        </div>
+                        <ul style="color: var(--text-gray); font-size: 0.9rem; line-height: 1.8; padding-left: 20px;">
+                            <li><strong>Сенесценция</strong> — спиране на опасни клетки</li>
+                            <li><strong>mTOR хиперактивация</strong> — растеж вместо ремонт</li>
+                            <li><strong>Възпаление</strong> — защита, станала хронична</li>
+                            <li><strong>Митохондриална дисфункция</strong></li>
+                        </ul>
                     </div>
 
-                    <div class="marker-card">
-                        <div class="marker-icon success">
-                            <i class="fas fa-dna"></i>
+                    <!-- Systemic Decline -->
+                    <div style="background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-project-diagram" style="color: white; font-size: 1.2rem;"></i>
+                            </div>
+                            <h4 style="color: var(--text-dark); font-size: 1.05rem;">Интегративен Спад</h4>
                         </div>
-                        <div class="marker-info">
-                            <h4>Хомоцистеин</h4>
-                            <p>Маркер за метилация и ДНК увреждания</p>
-                        </div>
-                        <div class="marker-values">
-                            <div class="marker-deficit">Дефицит: &gt;10 µmol/L</div>
-                            <div class="marker-optimal">Оптимум: &lt;7 µmol/L</div>
-                        </div>
-                    </div>
-
-                    <div class="marker-card">
-                        <div class="marker-icon info">
-                            <i class="fas fa-syringe"></i>
-                        </div>
-                        <div class="marker-info">
-                            <h4>Инсулин на гладно</h4>
-                            <p>Показател за инсулинова чувствителност</p>
-                        </div>
-                        <div class="marker-values">
-                            <div class="marker-deficit">Дефицит: &gt;6 µIU/mL</div>
-                            <div class="marker-optimal">Оптимум: &lt;4 µIU/mL</div>
-                        </div>
+                        <ul style="color: var(--text-gray); font-size: 0.9rem; line-height: 1.8; padding-left: 20px;">
+                            <li><strong>Изчерпване на стволови клетки</strong></li>
+                            <li><strong>Хормонален дисбаланс</strong></li>
+                            <li><strong>Микробиомна дисбиоза</strong></li>
+                            <li><strong>Нарушена междуклетъчна комуникация</strong></li>
+                        </ul>
                     </div>
                 </div>
             </div>
 
             <!-- Comparison Table -->
             <div class="edu-section" style="margin-top: 30px;">
-                <h2 class="section-title"><i class="fas fa-balance-scale"></i> Фарма vs. Натурално</h2>
+                <h2 class="section-title"><i class="fas fa-balance-scale"></i> Фарма vs. Натурални Интервенции</h2>
                 <div style="background: var(--card-bg); border-radius: var(--radius); padding: 20px; overflow-x: auto;">
                     <table class="comparison-table">
                         <thead>
                             <tr>
-                                <th>Път</th>
+                                <th>Механизъм</th>
                                 <th>Фармакологичен</th>
                                 <th>Естествен</th>
-                                <th>Ефективност</th>
+                                <th>Ефективност*</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td><strong>mTOR</strong></td>
+                                <td><strong>mTOR инхибиция</strong></td>
                                 <td>Рапамицин</td>
                                 <td>Гладуване 3-5 дни</td>
                                 <td>
@@ -1337,18 +1935,18 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td><strong>AMPK</strong></td>
+                                <td><strong>AMPK активация</strong></td>
                                 <td>Метформин</td>
                                 <td>HIIT + Ниски въглехидрати</td>
                                 <td>
                                     <div class="effectiveness-bar">
                                         <div class="effectiveness-fill" style="width: 100%;"></div>
                                     </div>
-                                    <small>100-110% ✓</small>
+                                    <small>100%+ ✓</small>
                                 </td>
                             </tr>
                             <tr>
-                                <td><strong>NAD+</strong></td>
+                                <td><strong>NAD+ повишаване</strong></td>
                                 <td>NMN / NR</td>
                                 <td>Zone 2 кардио + Сън</td>
                                 <td>
@@ -1380,12 +1978,644 @@
                                     <small>10-15%</small>
                                 </td>
                             </tr>
+                            <tr>
+                                <td><strong>NRF2 активация</strong></td>
+                                <td>Сулфорафан (Prostaphane)</td>
+                                <td>Броколи кълнове</td>
+                                <td>
+                                    <div class="effectiveness-bar">
+                                        <div class="effectiveness-fill" style="width: 70%;"></div>
+                                    </div>
+                                    <small>60-80%</small>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                     <p style="margin-top: 15px; font-size: 0.85rem; color: var(--text-gray);">
-                        <i class="fas fa-lightbulb" style="color: var(--accent-gold);"></i>
-                        <strong>Златната среда:</strong> 80% начин на живот (глад, студ, тежести, сън) + 20% таргетирани добавки (NMN, Фисетин, Магнезий).
+                        *Естествените интервенции са % от ефекта на фармакологичните. <strong>Препоръка:</strong> 80% начин на живот + 20% таргетирани добавки.
                     </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Markers Tab Content -->
+        <div id="markers" class="tab-content">
+            <div class="edu-section">
+                <h2 class="section-title"><i class="fas fa-microscope"></i> Биомаркери за Стареене</h2>
+                <p style="color: var(--text-gray); margin-bottom: 20px;">Измерването на правилните биомаркери позволява да проследите биологичната си възраст и ефекта от интервенциите.</p>
+
+                <!-- Inflammation Markers -->
+                <h3 style="color: var(--text-dark); font-size: 1.1rem; margin: 24px 0 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Възпаление</span>
+                    Inflammaging Маркери
+                </h3>
+                <div class="markers-grid">
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                            <i class="fas fa-fire-alt"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>hs-CRP (Високочувствителен CRP)</h4>
+                            <p>Най-достъпният маркер за системно възпаление. Произвежда се от черния дроб при възпаление.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &gt;1.0 mg/L</div>
+                            <div class="marker-optimal">Оптимум: &lt;0.5 mg/L</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                            <i class="fas fa-wind"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>IL-6 (Интерлевкин-6)</h4>
+                            <p>Ключов провъзпалителен цитокин. Повишава се с възрастта и при хронични заболявания.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &gt;5 pg/mL</div>
+                            <div class="marker-optimal">Оптимум: &lt;2 pg/mL</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Фибриноген</h4>
+                            <p>Протеин на кръвосъсирването и остро-фазов реактант. Повишен при хронично възпаление.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &gt;400 mg/dL</div>
+                            <div class="marker-optimal">Оптимум: 200-300 mg/dL</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metabolic Markers -->
+                <h3 style="color: var(--text-dark); font-size: 1.1rem; margin: 30px 0 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: #f59e0b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Метаболизъм</span>
+                    Гликация и Инсулинова Чувствителност
+                </h3>
+                <div class="markers-grid">
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-cookie-bite"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>HbA1c (Гликиран хемоглобин)</h4>
+                            <p>Показва средната кръвна захар за последните 3 месеца. Маркер за гликационен стрес.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &gt;5.6%</div>
+                            <div class="marker-optimal">Оптимум: 4.8-5.2%</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-syringe"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Инсулин на гладно</h4>
+                            <p>Ранен маркер за инсулинова резистентност — много по-рано от глюкозата!</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &gt;8 µIU/mL</div>
+                            <div class="marker-optimal">Оптимум: 2-5 µIU/mL</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>HOMA-IR</h4>
+                            <p>Изчислен индекс за инсулинова резистентност (Глюкоза × Инсулин / 405).</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &gt;2.5</div>
+                            <div class="marker-optimal">Оптимум: &lt;1.0</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-chart-area"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Триглицериди / HDL съотношение</h4>
+                            <p>Прост и мощен маркер за метаболитно здраве и инсулинова чувствителност.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &gt;3.0</div>
+                            <div class="marker-optimal">Оптимум: &lt;1.5</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DNA/Epigenetic Markers -->
+                <h3 style="color: var(--text-dark); font-size: 1.1rem; margin: 30px 0 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: #8b5cf6; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">ДНК / Епигенетика</span>
+                    Маркери за Геномно Здраве
+                </h3>
+                <div class="markers-grid">
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                            <i class="fas fa-dna"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Хомоцистеин</h4>
+                            <p>Маркер за метилация и В-витаминен статус. Високите нива увреждат съдовете и ДНК.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &gt;12 µmol/L</div>
+                            <div class="marker-optimal">Оптимум: 5-7 µmol/L</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Епигенетични Часовници</h4>
+                            <p>DNA метилационни тестове (GrimAge, DunedinPACE) — „златен стандарт" за биологична възраст.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Ускорено стареене</div>
+                            <div class="marker-optimal">Биовъзраст &lt; хроно</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                            <i class="fas fa-ruler-horizontal"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Теломерна Дължина</h4>
+                            <p>Защитните краища на хромозомите. По-дългите теломери = по-бавно стареене (но не винаги!).</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Къси за възрастта</div>
+                            <div class="marker-optimal">Дълги за възрастта</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nutrient Markers -->
+                <h3 style="color: var(--text-dark); font-size: 1.1rem; margin: 30px 0 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Нутриенти</span>
+                    Ключови Витамини и Минерали
+                </h3>
+                <div class="markers-grid">
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-sun"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Витамин D (25-OH)</h4>
+                            <p>Критичен за имунитет, кости, мускули, настроение. 70% от българите са дефицитни!</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Дефицит: &lt;30 ng/mL</div>
+                            <div class="marker-optimal">Оптимум: 60-80 ng/mL</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-magnet"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>RBC Магнезий</h4>
+                            <p>Вътреклетъчен магнезий (по-точен от серумен). Кофактор за 300+ ензими.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Дефицит: &lt;5.0 mg/dL</div>
+                            <div class="marker-optimal">Оптимум: 6.0-6.5 mg/dL</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-fish"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Omega-3 Index</h4>
+                            <p>% EPA+DHA в мембраните на еритроцитите. Кардио- и невро-протективен.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Риск: &lt;4%</div>
+                            <div class="marker-optimal">Оптимум: 8-12%</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-vial"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Феритин</h4>
+                            <p>Депо на желязото. Твърде високото ниво е провъзпалително и прооксидативно!</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Нисък: &lt;30 ng/mL</div>
+                            <div class="marker-optimal">Оптимум: 50-150 ng/mL</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Functional Markers -->
+                <h3 style="color: var(--text-dark); font-size: 1.1rem; margin: 30px 0 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Функционални</span>
+                    Тестове без Кръв
+                </h3>
+                <div class="markers-grid">
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                            <i class="fas fa-fist-raised"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Сила на Захват (Grip Strength)</h4>
+                            <p>Силен предиктор за смъртност и функционален капацитет. Измерва се с динамометър.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Слаб: &lt;26 кг (М), &lt;18 кг (Ж)</div>
+                            <div class="marker-optimal">Силен: &gt;40 кг (М), &gt;25 кг (Ж)</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                            <i class="fas fa-running"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>VO2max</h4>
+                            <p>Максимален кислороден прием. Златен стандарт за кардиореспираторен фитнес.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Нисък за възрастта</div>
+                            <div class="marker-optimal">Горен квартил за възрастта</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                            <i class="fas fa-walking"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Скорост на Ходене</h4>
+                            <p>Прост, но мощен предиктор за смъртност и когнитивен спад.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Бавно: &lt;0.8 м/с</div>
+                            <div class="marker-optimal">Добро: &gt;1.2 м/с</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>HRV (Heart Rate Variability)</h4>
+                            <p>Вариабилност на сърдечния ритъм. Показва баланса на автономната нервна система.</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Нисък RMSSD</div>
+                            <div class="marker-optimal">Висок RMSSD за възрастта</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testing Panel Recommendation -->
+                <div style="background: linear-gradient(135deg, var(--primary-light), var(--accent-gold-light)); border-radius: var(--radius); padding: 24px; margin-top: 30px;">
+                    <h4 style="color: var(--text-dark); margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-clipboard-list" style="color: var(--primary);"></i>
+                        Препоръчителен Годишен Панел
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div>
+                            <strong style="color: var(--primary); font-size: 0.9rem;">Основни</strong>
+                            <ul style="font-size: 0.85rem; color: var(--text-gray); margin-top: 8px; padding-left: 18px; line-height: 1.8;">
+                                <li>hs-CRP</li>
+                                <li>HbA1c</li>
+                                <li>Инсулин на гладно</li>
+                                <li>Липиден профил (разширен)</li>
+                                <li>Пълна кръвна картина</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong style="color: var(--primary); font-size: 0.9rem;">Нутриенти</strong>
+                            <ul style="font-size: 0.85rem; color: var(--text-gray); margin-top: 8px; padding-left: 18px; line-height: 1.8;">
+                                <li>Витамин D (25-OH)</li>
+                                <li>Витамин B12</li>
+                                <li>Хомоцистеин</li>
+                                <li>Феритин</li>
+                                <li>RBC Магнезий</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong style="color: var(--primary); font-size: 0.9rem;">Разширени</strong>
+                            <ul style="font-size: 0.85rem; color: var(--text-gray); margin-top: 8px; padding-left: 18px; line-height: 1.8;">
+                                <li>Omega-3 Index</li>
+                                <li>IGF-1</li>
+                                <li>DHEA-S</li>
+                                <li>Цистатин C (бъбречна ф.)</li>
+                                <li>АпоВ (по-добър от LDL)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lifestyle Tab Content -->
+        <div id="lifestyle" class="tab-content">
+            <div class="edu-section">
+                <h2 class="section-title"><i class="fas fa-heart"></i> Начин на Живот за Дълголетие</h2>
+                <p style="color: var(--text-gray); margin-bottom: 20px;">80% от дълголетието се определя от начина на живот. Тези 5 стълба са основата на всяка анти-ейджинг стратегия.</p>
+
+                <!-- Pillar 1: Nutrition -->
+                <div class="edu-card expanded" id="card-nutrition">
+                    <div class="edu-card-header" onclick="toggleCard('nutrition')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>1. Хранене</h3>
+                            <p>Какво, кога и колко ядем</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🥗 Противовъзпалителна Диета</div>
+                            <div class="edu-detail-text">
+                                <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.8;">
+                                    <li><strong>Зеленчуци:</strong> 7-10 порции/ден, разнообразни цветове</li>
+                                    <li><strong>Протеин:</strong> 1.2-1.6 г/кг (по-високо при силови тренировки)</li>
+                                    <li><strong>Здравословни мазнини:</strong> Зехтин, авокадо, ядки, риба</li>
+                                    <li><strong>Ограничаване:</strong> Захар, рафинирани въглехидрати, трансмазнини, обработени храни</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⏰ Периодично Гладуване</div>
+                            <div class="edu-detail-text">
+                                <strong>16:8 (Time-Restricted Eating):</strong> Ядете в прозорец от 8 часа, 16 часа пост. Най-устойчив и ефективен за повечето хора.<br><br>
+                                <strong>Ползи:</strong> Автофагия, инсулинова чувствителност, AMPK активация, редукция на inflammaging.<br><br>
+                                <strong>Напреднали:</strong> OMAD (едно хранене на ден), 24h пост 1-2x месечно, 3-5 дневен пост 1-2x годишно.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🔑 Топ Longevity Храни</div>
+                            <div class="edu-detail-text">
+                                • <strong>Кръстоцветни:</strong> Броколи, карфиол, кейл (сулфорафан)<br>
+                                • <strong>Горски плодове:</strong> Боровинки, ягоди (антоцианини, фисетин)<br>
+                                • <strong>Мастна риба:</strong> Сьомга, сардини, скумрия (Omega-3)<br>
+                                • <strong>Ядки:</strong> Орехи, бадеми (здравословни мазнини)<br>
+                                • <strong>Ферментирали:</strong> Кисело зеле, кимчи, кефир (пробиотици)<br>
+                                • <strong>Зехтин Extra Virgin:</strong> Полифеноли, олеокантал
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pillar 2: Movement -->
+                <div class="edu-card" id="card-movement">
+                    <div class="edu-card-header" onclick="toggleCard('movement')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>2. Движение</h3>
+                            <p>Силови, кардио, мобилност</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏋️ Силови Тренировки (ЗАДЪЛЖИТЕЛНИ!)</div>
+                            <div class="edu-detail-text">
+                                <strong>Защо:</strong> Единственият начин да предотвратим саркопенията. Мускулите са „орган" за метаболитно здраве, инсулинова чувствителност и дълголетие.<br><br>
+                                <strong>Колко:</strong> 2-4 пъти седмично, 45-60 минути<br>
+                                <strong>Какво:</strong> Съставни упражнения (клек, мъртва тяга, натиск, гребане)<br>
+                                <strong>Интензивност:</strong> Прогресивно натоварване — увеличавайте тежестите!
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">❤️ Zone 2 Кардио</div>
+                            <div class="edu-detail-text">
+                                <strong>Какво:</strong> Нискоинтензивно кардио (60-70% от макс. пулс) — бързо ходене, бягане, колело, плуване.<br>
+                                <strong>Колко:</strong> 150-180 минути седмично (3-4 сесии по 45-60 мин)<br>
+                                <strong>Ползи:</strong> Митохондриален биогенезис, метаболитна гъвкавост, кардиоваскуларно здраве, VO2max.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚡ HIIT (Високоинтензивни Интервали)</div>
+                            <div class="edu-detail-text">
+                                <strong>Какво:</strong> Кратки (10-30 сек) максимални усилия с възстановяване.<br>
+                                <strong>Колко:</strong> 1-2 пъти седмично, 15-20 минути<br>
+                                <strong>Ползи:</strong> AMPK активация, автофагия, повишаване на VO2max.
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧘 Мобилност и Баланс</div>
+                            <div class="edu-detail-text">
+                                • <strong>Разтягане / Йога:</strong> 10-15 мин/ден за гъвкавост<br>
+                                • <strong>Баланс:</strong> Критичен за предотвратяване на падания с възрастта<br>
+                                • <strong>NEAT:</strong> Non-Exercise Activity Thermogenesis — повече ходене, стоене, движение през деня
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pillar 3: Sleep -->
+                <div class="edu-card" id="card-sleep">
+                    <div class="edu-card-header" onclick="toggleCard('sleep')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                            <i class="fas fa-moon"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>3. Сън</h3>
+                            <p>Възстановяване и ДНК репарация</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">😴 Защо Сънят е Критичен?</div>
+                            <div class="edu-detail-text">
+                                <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.8;">
+                                    <li><strong>Глимфатична система:</strong> Мозъкът се „изчиства" от токсини (амилоид-бета) само по време на сън</li>
+                                    <li><strong>ДНК репарация:</strong> 80% от възстановителните процеси са през нощта</li>
+                                    <li><strong>Хормонален баланс:</strong> Растежен хормон, тестостерон, мелатонин</li>
+                                    <li><strong>Консолидация на паметта:</strong> Преминаване от краткосрочна в дългосрочна</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🎯 Оптимални Параметри</div>
+                            <div class="edu-detail-text">
+                                • <strong>Продължителност:</strong> 7-9 часа (индивидуално)<br>
+                                • <strong>Качество:</strong> 20-25% дълбок сън, 20-25% REM<br>
+                                • <strong>Латентност:</strong> Заспиване до 15 минути<br>
+                                • <strong>Консистентност:</strong> Еднакво време за лягане/ставане
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">💡 Протокол за Перфектен Сън</div>
+                            <div class="edu-detail-text">
+                                <strong>Сутрин:</strong><br>
+                                • Слънчева светлина 10-30 мин в първия час<br>
+                                • Кафе само до 12:00-14:00<br><br>
+                                <strong>Вечер:</strong><br>
+                                • Синя светлина блокери след залез<br>
+                                • Последно хранене 3 часа преди сън<br>
+                                • Хладна стая (18-20°C)<br>
+                                • Магнезий глицинат 400mg преди лягане<br>
+                                • Опционално: Мелатонин 0.3-1mg (при jet lag)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pillar 4: Stress -->
+                <div class="edu-card" id="card-stress">
+                    <div class="edu-card-header" onclick="toggleCard('stress')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #ec4899, #be185d);">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>4. Стрес и Ум</h3>
+                            <p>Психическо здраве и кортизол</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚠️ Хроничният Стрес Убива</div>
+                            <div class="edu-detail-text">
+                                <strong>Ефекти на хроничния кортизол:</strong><br>
+                                • Разрушаване на хипокампуса (памет)<br>
+                                • Инсулинова резистентност<br>
+                                • Потискане на имунната система<br>
+                                • Ускоряване на теломерното скъсяване<br>
+                                • Увеличаване на висцералната мазнина
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧘 Техники за Управление на Стреса</div>
+                            <div class="edu-detail-text">
+                                • <strong>Медитация:</strong> 10-20 мин/ден (доказано намалява inflammaging)<br>
+                                • <strong>Дихателни упражнения:</strong> Box breathing, 4-7-8, Wim Hof<br>
+                                • <strong>Журналистика:</strong> Записване на мисли, благодарност<br>
+                                • <strong>Природа:</strong> Време навън, горски бани (shinrin-yoku)<br>
+                                • <strong>Социални връзки:</strong> Качествено време с близки
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧠 Когнитивна Стимулация</div>
+                            <div class="edu-detail-text">
+                                • Учене на нови умения (език, инструмент, танц)<br>
+                                • Четене, пъзели, стратегически игри<br>
+                                • Социални взаимодействия<br>
+                                • Физически упражнения (невропластичност!)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pillar 5: Environment -->
+                <div class="edu-card" id="card-environment">
+                    <div class="edu-card-header" onclick="toggleCard('environment')">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>5. Среда и Токсини</h3>
+                            <p>Минимизиране на вредни експозиции</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🚫 Избягвайте</div>
+                            <div class="edu-detail-text">
+                                • <strong>Тютюнопушене:</strong> Най-големият предотвратим ускорител на стареенето<br>
+                                • <strong>Алкохол:</strong> Без „безопасна доза" — всяка е вредна<br>
+                                • <strong>Замърсен въздух:</strong> Въздушен пречиствател в дома<br>
+                                • <strong>Пластмаси:</strong> BPA, фталати — ендокринни разрушители<br>
+                                • <strong>Пестициди:</strong> Органични продукти когато е възможно
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">☀️ Хормезис Стресори</div>
+                            <div class="edu-detail-text">
+                                • <strong>Студена експозиция:</strong> Студен душ 2-3 мин, ледени бани<br>
+                                • <strong>Топлинна експозиция:</strong> Сауна 15-20 мин, 4-7x седмично<br>
+                                • <strong>Хипоксия:</strong> Височинни тренировки, задържане на дъха<br>
+                                • <strong>Слънчева светлина:</strong> Умерена експозиция за витамин D
+                            </div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🤝 Социални Връзки</div>
+                            <div class="edu-detail-text">
+                                <strong>Факт:</strong> Социалната изолация увеличава смъртността колкото пушенето на 15 цигари/ден!<br><br>
+                                • Поддържайте близки отношения<br>
+                                • Участвайте в общности (клубове, групи)<br>
+                                • Имайте „цел" и смисъл в живота (ikigai)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Protocol Summary -->
+            <div class="edu-section" style="margin-top: 30px;">
+                <h2 class="section-title"><i class="fas fa-calendar-day"></i> Примерен Дневен Протокол</h2>
+                
+                <div style="background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm);">
+                    <div class="daily-protocol" style="display: grid; gap: 16px;">
+                        <!-- Morning -->
+                        <div style="background: var(--primary-light); border-radius: var(--radius-sm); padding: 16px;">
+                            <h4 style="color: var(--primary); margin-bottom: 12px;"><i class="fas fa-sun"></i> Сутрин (6:00 - 10:00)</h4>
+                            <ul style="color: var(--text-dark); font-size: 0.9rem; line-height: 1.8; padding-left: 20px;">
+                                <li>Слънчева светлина 10-30 мин (без очила)</li>
+                                <li>Студен душ 2-3 минути</li>
+                                <li>Добавки: NMN 250mg, Витамин D 5000 IU + K2</li>
+                                <li>Упражнения (силови или Zone 2 кардио)</li>
+                                <li>Първо хранене: 10:00-12:00 (ако 16:8)</li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Afternoon -->
+                        <div style="background: var(--accent-gold-light); border-radius: var(--radius-sm); padding: 16px;">
+                            <h4 style="color: #b45309; margin-bottom: 12px;"><i class="fas fa-cloud-sun"></i> Следобед (12:00 - 18:00)</h4>
+                            <ul style="color: var(--text-dark); font-size: 0.9rem; line-height: 1.8; padding-left: 20px;">
+                                <li>Основно хранене с много зеленчуци и протеин</li>
+                                <li>Кратка разходка след хранене (10-15 мин)</li>
+                                <li>Когнитивна работа (пик на концентрация)</li>
+                                <li>Последен прием на кофеин до 14:00</li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Evening -->
+                        <div style="background: rgba(139, 92, 246, 0.1); border-radius: var(--radius-sm); padding: 16px;">
+                            <h4 style="color: #6d28d9; margin-bottom: 12px;"><i class="fas fa-moon"></i> Вечер (18:00 - 22:00)</h4>
+                            <ul style="color: var(--text-dark); font-size: 0.9rem; line-height: 1.8; padding-left: 20px;">
+                                <li>Последно хранене до 18:00-19:00</li>
+                                <li>Синя светлина блокери след залез слънце</li>
+                                <li>Релаксация: четене, медитация, журналиране</li>
+                                <li>Магнезий глицинат 400mg преди сън</li>
+                                <li>Сън: 22:00-23:00 (цел: 7-8 часа)</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
