@@ -400,23 +400,57 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   const weight = parseFloat(data.weight) || 70;
   const gender = data.gender;
   const goal = data.goal || '';
+  const age = parseFloat(data.age) || 30;
   
   // Base protein needs (g/kg body weight)
+  // Evidence-based ranges from ISSN Position Stand on Protein (2017)
   // Women generally need slightly less due to lower muscle mass
   // Men need more for muscle maintenance/growth
+  // Age affects protein needs - older adults need more to prevent sarcopenia
   let proteinPerKg;
   if (gender === 'Мъж') {
-    proteinPerKg = activityScore >= 7 ? 2.0 : activityScore >= 5 ? 1.6 : 1.2;
+    // Men: 1.2-2.2 g/kg based on activity level
+    if (activityScore >= 8) {
+      proteinPerKg = 2.2; // Athletes/very active
+    } else if (activityScore >= 7) {
+      proteinPerKg = 2.0;
+    } else if (activityScore >= 5) {
+      proteinPerKg = 1.6;
+    } else {
+      proteinPerKg = 1.2;
+    }
   } else { // Жена
-    proteinPerKg = activityScore >= 7 ? 1.8 : activityScore >= 5 ? 1.4 : 1.0;
+    // Women: 1.0-2.0 g/kg based on activity level
+    if (activityScore >= 8) {
+      proteinPerKg = 2.0; // Athletes/very active
+    } else if (activityScore >= 7) {
+      proteinPerKg = 1.8;
+    } else if (activityScore >= 5) {
+      proteinPerKg = 1.4;
+    } else {
+      proteinPerKg = 1.0;
+    }
+  }
+  
+  // Age adjustment - older adults need more protein
+  // Research shows 1.0-1.2 g/kg minimum for adults >50 years
+  if (age >= 65) {
+    proteinPerKg = Math.max(proteinPerKg, 1.2);
+    proteinPerKg *= 1.1; // 10% increase for seniors
+  } else if (age >= 50) {
+    proteinPerKg = Math.max(proteinPerKg, 1.0);
+    proteinPerKg *= 1.05; // 5% increase for middle-aged
   }
   
   // Adjust for goal
   if (goal.includes('Мускулна маса')) {
     proteinPerKg *= 1.2;
   } else if (goal.includes('Отслабване')) {
-    proteinPerKg *= 1.1; // Slightly more protein to preserve muscle
+    proteinPerKg *= 1.15; // Higher protein during weight loss to preserve muscle (was 1.1)
   }
+  
+  // Cap protein at safe upper limit (2.5 g/kg for most people)
+  proteinPerKg = Math.min(proteinPerKg, 2.5);
   
   // Calculate protein grams needed
   const proteinGrams = weight * proteinPerKg;
@@ -427,13 +461,20 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   const proteinCalories = proteinGrams * 4;
   const proteinPercent = Math.round((proteinCalories / estimatedCalories) * 100);
   
+  // Ensure protein doesn't exceed 40% of total calories (safety limit)
+  const cappedProteinPercent = Math.min(proteinPercent, 40);
+  
   // Distribute remaining calories between carbs and fats
   // Higher activity = more carbs for energy
   // Lower activity = more fats for satiety
-  const remainingPercent = 100 - proteinPercent;
+  const remainingPercent = 100 - cappedProteinPercent;
   let carbsPercent, fatsPercent;
   
-  if (activityScore >= 7) {
+  if (activityScore >= 8) {
+    // Very high activity: maximize carbs for performance
+    carbsPercent = Math.round(remainingPercent * 0.65);
+    fatsPercent = remainingPercent - carbsPercent;
+  } else if (activityScore >= 7) {
     // Very active: prioritize carbs for energy
     carbsPercent = Math.round(remainingPercent * 0.6);
     fatsPercent = remainingPercent - carbsPercent;
@@ -447,14 +488,21 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
     fatsPercent = remainingPercent - carbsPercent;
   }
   
+  // Ensure minimum 20% fats for hormonal function
+  if (fatsPercent < 20) {
+    const fatAdjustment = 20 - fatsPercent;
+    fatsPercent = 20;
+    carbsPercent -= fatAdjustment;
+  }
+  
   // Ensure ratios sum to exactly 100%
-  const total = proteinPercent + carbsPercent + fatsPercent;
+  const total = cappedProteinPercent + carbsPercent + fatsPercent;
   if (total !== 100) {
     fatsPercent += (100 - total); // Adjust fats to make it exactly 100
   }
   
   return {
-    protein: proteinPercent,
+    protein: cappedProteinPercent,
     carbs: carbsPercent,
     fats: fatsPercent,
     proteinGramsPerKg: Math.round(proteinPerKg * 10) / 10
@@ -775,7 +823,11 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
+const MAX_DAILY_CALORIE_EXCESS_PERCENT = 0.10; // Maximum 10% above target calories allowed
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
+// Macro validation tolerances - tightened for precision (Issue: macro accuracy)
+const MACRO_CALORIE_TOLERANCE_PERCENT = 0.05; // 5% tolerance (reduced from 10%)
+const MACRO_CALORIE_TOLERANCE_MIN = 30; // Minimum 30 kcal tolerance (reduced from 50)
 
 /**
  * Cache API helper functions for AI logging
@@ -2231,11 +2283,11 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   Object.keys(weekPlan).forEach(dayKey => {
     if (weekPlan[dayKey] && weekPlan[dayKey].meals) {
       weekPlan[dayKey].meals.forEach(meal => {
-        totalCalories += (parseInt(meal.calories) || 0);
+        totalCalories += (parseFloat(meal.calories) || 0);
         if (meal.macros) {
-          totalProtein += (parseInt(meal.macros.protein) || 0);
-          totalCarbs += (parseInt(meal.macros.carbs) || 0);
-          totalFats += (parseInt(meal.macros.fats) || 0);
+          totalProtein += (parseFloat(meal.macros.protein) || 0);
+          totalCarbs += (parseFloat(meal.macros.carbs) || 0);
+          totalFats += (parseFloat(meal.macros.fats) || 0);
         }
       });
       dayCount++;
@@ -3073,13 +3125,14 @@ function injectFixedDesserts(weekPlan) {
         if (meal.dessert && typeof meal.dessert !== 'object') {
           meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros } };
           // Add dessert nutritional values to the meal so they count in dailyTotals
-          meal.calories = (parseInt(meal.calories) || 0) + FIXED_DESSERT.calories;
+          // Use parseFloat for precision (avoid truncation with parseInt)
+          meal.calories = Math.round((parseFloat(meal.calories) || 0) + FIXED_DESSERT.calories);
           if (meal.macros) {
             meal.macros = { ...meal.macros };
-            meal.macros.protein = (parseInt(meal.macros.protein) || 0) + FIXED_DESSERT.macros.protein;
-            meal.macros.carbs   = (parseInt(meal.macros.carbs)   || 0) + FIXED_DESSERT.macros.carbs;
-            meal.macros.fats    = (parseInt(meal.macros.fats)    || 0) + FIXED_DESSERT.macros.fats;
-            meal.macros.fiber   = (parseInt(meal.macros.fiber)   || 0) + FIXED_DESSERT.macros.fiber;
+            meal.macros.protein = Math.round((parseFloat(meal.macros.protein) || 0) + FIXED_DESSERT.macros.protein);
+            meal.macros.carbs   = Math.round((parseFloat(meal.macros.carbs)   || 0) + FIXED_DESSERT.macros.carbs);
+            meal.macros.fats    = Math.round((parseFloat(meal.macros.fats)    || 0) + FIXED_DESSERT.macros.fats);
+            meal.macros.fiber   = Math.round((parseFloat(meal.macros.fiber)   || 0) + FIXED_DESSERT.macros.fiber);
           }
         }
       }
@@ -3329,17 +3382,19 @@ function validatePlan(plan, userData, substitutions = []) {
             }
           } else {
             // Validate macro accuracy: protein×4 + carbs×4 + fats×9 should ≈ calories
+            // Use parseFloat for precision (avoid truncation with parseInt)
             const calculatedCalories = 
-              (parseInt(meal.macros.protein) || 0) * 4 + 
-              (parseInt(meal.macros.carbs) || 0) * 4 + 
-              (parseInt(meal.macros.fats) || 0) * 9;
-            const declaredCalories = parseInt(meal.calories) || 0;
+              (parseFloat(meal.macros.protein) || 0) * 4 + 
+              (parseFloat(meal.macros.carbs) || 0) * 4 + 
+              (parseFloat(meal.macros.fats) || 0) * 9;
+            const declaredCalories = parseFloat(meal.calories) || 0;
             const difference = Math.abs(calculatedCalories - declaredCalories);
             
-            // Allow 10% tolerance or minimum 50 kcal difference
-            const tolerance = Math.max(50, declaredCalories * 0.1);
+            // Tightened tolerance: 5% or minimum 30 kcal (was 10%/50 kcal)
+            // This ensures better precision for calorie tracking
+            const tolerance = Math.max(MACRO_CALORIE_TOLERANCE_MIN, declaredCalories * MACRO_CALORIE_TOLERANCE_PERCENT);
             if (difference > tolerance && declaredCalories > 0) {
-              warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Макросите не съвпадат с калориите. Изчислени: ${calculatedCalories} kcal, Декларирани: ${declaredCalories} kcal (разлика: ${difference} kcal)`);
+              warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Макросите не съвпадат с калориите. Изчислени: ${Math.round(calculatedCalories)} kcal, Декларирани: ${Math.round(declaredCalories)} kcal (разлика: ${Math.round(difference)} kcal, толеранс: ${Math.round(tolerance)} kcal)`);
             }
             
             // Validate portion sizes (weight field)
@@ -3367,13 +3422,29 @@ function validatePlan(plan, userData, substitutions = []) {
         // Free eating meals ("Свободно хранене") don't have calories - skip the minimum check for days with free eating
         const hasFreeEatingMeal = day.meals.some(meal => meal.type === 'Свободно хранене');
         const dayCalories = day.meals.reduce((sum, meal) => {
-          const mealCal = parseInt(meal.calories) || 0;
+          const mealCal = parseFloat(meal.calories) || 0;
           return sum + mealCal;
         }, 0);
         if (!hasFreeEatingMeal && dayCalories < MIN_DAILY_CALORIES) {
-          const error = `Ден ${i} има само ${dayCalories} калории - твърде малко`;
+          const error = `Ден ${i} има само ${Math.round(dayCalories)} калории - твърде малко`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
+        }
+        
+        // NEW: Validate daily calories against target (maximum calorie check)
+        // Extract target daily calories from plan analysis or summary
+        const targetDailyCalories = 
+          (plan.analysis && (plan.analysis.Final_Calories || plan.analysis.recommendedCalories)) ||
+          (plan.summary && plan.summary.dailyCalories);
+        if (targetDailyCalories && !hasFreeEatingMeal) {
+          const targetCal = parseFloat(String(targetDailyCalories).match(/\d+/)?.[0]) || 0;
+          if (targetCal > 0) {
+            const maxAllowedCalories = targetCal * (1 + MAX_DAILY_CALORIE_EXCESS_PERCENT);
+            if (dayCalories > maxAllowedCalories) {
+              const excessPercent = Math.round(((dayCalories / targetCal) - 1) * 100);
+              warnings.push(`Ден ${i}: Калориите (${Math.round(dayCalories)} kcal) надвишават целта с ${excessPercent}% (цел: ${Math.round(targetCal)} kcal, макс: ${Math.round(maxAllowedCalories)} kcal)`);
+            }
+          }
         }
         
         // Auto-normalize known meal type aliases before any type-based checks.
@@ -3667,6 +3738,74 @@ function validatePlan(plan, userData, substitutions = []) {
       const error = `Анализът съдържа ${normalProblems.length} "Normal" проблеми, които не трябва да се показват`;
       errors.push(error);
       stepErrors.step1_analysis.push(error);
+    }
+  }
+  
+  // 11b. Cumulative weekly macro/calorie validation (NEW - ensures precision across entire plan)
+  // Validates that average daily macros match target ratios and total weekly calories are on track
+  if (plan.weekPlan && plan.analysis) {
+    let totalWeeklyCalories = 0;
+    let totalWeeklyProtein = 0;
+    let totalWeeklyCarbs = 0;
+    let totalWeeklyFats = 0;
+    let countedDays = 0;
+    
+    Object.keys(plan.weekPlan).forEach(dayKey => {
+      const day = plan.weekPlan[dayKey];
+      if (day && day.meals && Array.isArray(day.meals)) {
+        const hasFreeEating = day.meals.some(m => m.type === 'Свободно хранене');
+        if (!hasFreeEating) {
+          day.meals.forEach(meal => {
+            totalWeeklyCalories += parseFloat(meal.calories) || 0;
+            if (meal.macros) {
+              totalWeeklyProtein += parseFloat(meal.macros.protein) || 0;
+              totalWeeklyCarbs += parseFloat(meal.macros.carbs) || 0;
+              totalWeeklyFats += parseFloat(meal.macros.fats) || 0;
+            }
+          });
+          countedDays++;
+        }
+      }
+    });
+    
+    if (countedDays > 0) {
+      const avgDailyCalories = totalWeeklyCalories / countedDays;
+      const avgDailyProtein = totalWeeklyProtein / countedDays;
+      const avgDailyCarbs = totalWeeklyCarbs / countedDays;
+      const avgDailyFats = totalWeeklyFats / countedDays;
+      
+      // Calculate average macro percentages from actual meals
+      const avgTotalMacroCal = (avgDailyProtein * 4) + (avgDailyCarbs * 4) + (avgDailyFats * 9);
+      const avgProteinPercent = avgTotalMacroCal > 0 ? Math.round((avgDailyProtein * 4 / avgTotalMacroCal) * 100) : 0;
+      const avgCarbsPercent = avgTotalMacroCal > 0 ? Math.round((avgDailyCarbs * 4 / avgTotalMacroCal) * 100) : 0;
+      const avgFatsPercent = avgTotalMacroCal > 0 ? Math.round((avgDailyFats * 9 / avgTotalMacroCal) * 100) : 0;
+      
+      // Compare against target ratios from analysis
+      const targetMacros = plan.analysis.macroRatios || {};
+      const targetProteinPercent = parseFloat(targetMacros.protein) || 0;
+      const targetCarbsPercent = parseFloat(targetMacros.carbs) || 0;
+      const targetFatsPercent = parseFloat(targetMacros.fats) || 0;
+      
+      // Validate macro ratio accuracy (±7% tolerance for weekly average)
+      const WEEKLY_MACRO_TOLERANCE_PERCENT = 7;
+      if (targetProteinPercent > 0 && Math.abs(avgProteinPercent - targetProteinPercent) > WEEKLY_MACRO_TOLERANCE_PERCENT) {
+        warnings.push(`Седмично макро отклонение: Средни белтъчини ${avgProteinPercent}% vs цел ${targetProteinPercent}% (разлика ${Math.abs(avgProteinPercent - targetProteinPercent)}%)`);
+      }
+      if (targetCarbsPercent > 0 && Math.abs(avgCarbsPercent - targetCarbsPercent) > WEEKLY_MACRO_TOLERANCE_PERCENT) {
+        warnings.push(`Седмично макро отклонение: Средни въглехидрати ${avgCarbsPercent}% vs цел ${targetCarbsPercent}% (разлика ${Math.abs(avgCarbsPercent - targetCarbsPercent)}%)`);
+      }
+      if (targetFatsPercent > 0 && Math.abs(avgFatsPercent - targetFatsPercent) > WEEKLY_MACRO_TOLERANCE_PERCENT) {
+        warnings.push(`Седмично макро отклонение: Средни мазнини ${avgFatsPercent}% vs цел ${targetFatsPercent}% (разлика ${Math.abs(avgFatsPercent - targetFatsPercent)}%)`);
+      }
+      
+      // Validate average daily calories against target
+      const targetCalories = parseFloat(plan.analysis.Final_Calories || plan.analysis.recommendedCalories) || 0;
+      if (targetCalories > 0) {
+        const calorieDiffPercent = Math.abs((avgDailyCalories - targetCalories) / targetCalories * 100);
+        if (calorieDiffPercent > 8) { // 8% tolerance for weekly average
+          warnings.push(`Седмично отклонение на калориите: Средно ${Math.round(avgDailyCalories)} kcal/ден vs цел ${Math.round(targetCalories)} kcal (${Math.round(calorieDiffPercent)}% разлика)`);
+        }
+      }
     }
   }
   
@@ -5225,9 +5364,9 @@ function calculateAverageMacrosFromPlan(weekPlan) {
         dayCount++;
         day.meals.forEach(meal => {
           if (meal.macros) {
-            totalProtein += parseInt(meal.macros.protein) || 0;
-            totalCarbs += parseInt(meal.macros.carbs) || 0;
-            totalFats += parseInt(meal.macros.fats) || 0;
+            totalProtein += parseFloat(meal.macros.protein) || 0;
+            totalCarbs += parseFloat(meal.macros.carbs) || 0;
+            totalFats += parseFloat(meal.macros.fats) || 0;
           }
         });
       }

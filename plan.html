@@ -3994,14 +3994,19 @@
                 // Parse numeric values using helper function
                 const { protein, carbs, fats, fiber } = parseMacronutrients(effectiveMacros);
                 
-                // Calculate total and percentages
-                const total = protein + carbs + fats + fiber;
+                // Calculate total calories from macros for accurate percentage visualization
+                // Protein: 4 kcal/g, Carbs: 4 kcal/g, Fats: 9 kcal/g, Fiber: ~2 kcal/g (mostly indigestible)
+                const proteinCal = protein * 4;
+                const carbsCal = carbs * 4;
+                const fatsCal = fats * 9;
+                const fiberCal = fiber * 2; // Fiber provides ~2 kcal/g
+                const totalCal = proteinCal + carbsCal + fatsCal + fiberCal;
                 
-                if (total > 0) {
-                    const proteinPercent = (protein / total) * 100;
-                    const carbsPercent = (carbs / total) * 100;
-                    const fatsPercent = (fats / total) * 100;
-                    const fiberPercent = (fiber / total) * 100;
+                if (totalCal > 0) {
+                    const proteinPercent = (proteinCal / totalCal) * 100;
+                    const carbsPercent = (carbsCal / totalCal) * 100;
+                    const fatsPercent = (fatsCal / totalCal) * 100;
+                    const fiberPercent = (fiberCal / totalCal) * 100;
                     
                     // Build stacked bar using helper function
                     macroBar.innerHTML = '';
