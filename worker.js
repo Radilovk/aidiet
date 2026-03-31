@@ -864,7 +864,7 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
-const MAX_DAILY_CALORIE_EXCESS_PERCENT = 0.10; // Maximum 10% above target calories allowed
+const MAX_DAILY_CALORIE_EXCESS_PERCENT = 0.25; // Maximum 25% above target calories allowed (relaxed for individualized strategies)
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 // Macro validation tolerances - tightened for precision (Issue: macro accuracy)
 const MACRO_CALORIE_TOLERANCE_PERCENT = 0.05; // 5% tolerance (reduced from 10%)
@@ -3875,13 +3875,11 @@ function validatePlan(plan, userData, substitutions = []) {
     }
   }
   
-  // 11b. Cumulative weekly macro/calorie validation (NEW - ensures precision across entire plan)
-  // Validates that average daily macros match target ratios and total weekly calories are on track
+  // 11b. Weekly calorie validation (sanity check only)
+  // Validates weekly calorie totals for extreme deviations only
+  // Macro ratios are NOT validated - AI determines optimal distribution per individual strategy
   if (plan.weekPlan && plan.analysis) {
     let totalWeeklyCalories = 0;
-    let totalWeeklyProtein = 0;
-    let totalWeeklyCarbs = 0;
-    let totalWeeklyFats = 0;
     let countedDays = 0;
     
     Object.keys(plan.weekPlan).forEach(dayKey => {
@@ -3891,11 +3889,6 @@ function validatePlan(plan, userData, substitutions = []) {
         if (!hasFreeEating) {
           day.meals.forEach(meal => {
             totalWeeklyCalories += parseFloat(meal.calories) || 0;
-            if (meal.macros) {
-              totalWeeklyProtein += parseFloat(meal.macros.protein) || 0;
-              totalWeeklyCarbs += parseFloat(meal.macros.carbs) || 0;
-              totalWeeklyFats += parseFloat(meal.macros.fats) || 0;
-            }
           });
           countedDays++;
         }
@@ -3904,40 +3897,14 @@ function validatePlan(plan, userData, substitutions = []) {
     
     if (countedDays > 0) {
       const avgDailyCalories = totalWeeklyCalories / countedDays;
-      const avgDailyProtein = totalWeeklyProtein / countedDays;
-      const avgDailyCarbs = totalWeeklyCarbs / countedDays;
-      const avgDailyFats = totalWeeklyFats / countedDays;
-      
-      // Calculate average macro percentages from actual meals
-      const avgTotalMacroCal = (avgDailyProtein * 4) + (avgDailyCarbs * 4) + (avgDailyFats * 9);
-      const avgProteinPercent = avgTotalMacroCal > 0 ? Math.round((avgDailyProtein * 4 / avgTotalMacroCal) * 100) : 0;
-      const avgCarbsPercent = avgTotalMacroCal > 0 ? Math.round((avgDailyCarbs * 4 / avgTotalMacroCal) * 100) : 0;
-      const avgFatsPercent = avgTotalMacroCal > 0 ? Math.round((avgDailyFats * 9 / avgTotalMacroCal) * 100) : 0;
-      
-      // Compare against target ratios from analysis
-      const targetMacros = plan.analysis.macroRatios || {};
-      const targetProteinPercent = parseFloat(targetMacros.protein) || 0;
-      const targetCarbsPercent = parseFloat(targetMacros.carbs) || 0;
-      const targetFatsPercent = parseFloat(targetMacros.fats) || 0;
-      
-      // Validate macro ratio accuracy (±7% tolerance for weekly average)
-      const WEEKLY_MACRO_TOLERANCE_PERCENT = 7;
-      if (targetProteinPercent > 0 && Math.abs(avgProteinPercent - targetProteinPercent) > WEEKLY_MACRO_TOLERANCE_PERCENT) {
-        warnings.push(`Седмично макро отклонение: Средни белтъчини ${avgProteinPercent}% vs цел ${targetProteinPercent}% (разлика ${Math.abs(avgProteinPercent - targetProteinPercent)}%)`);
-      }
-      if (targetCarbsPercent > 0 && Math.abs(avgCarbsPercent - targetCarbsPercent) > WEEKLY_MACRO_TOLERANCE_PERCENT) {
-        warnings.push(`Седмично макро отклонение: Средни въглехидрати ${avgCarbsPercent}% vs цел ${targetCarbsPercent}% (разлика ${Math.abs(avgCarbsPercent - targetCarbsPercent)}%)`);
-      }
-      if (targetFatsPercent > 0 && Math.abs(avgFatsPercent - targetFatsPercent) > WEEKLY_MACRO_TOLERANCE_PERCENT) {
-        warnings.push(`Седмично макро отклонение: Средни мазнини ${avgFatsPercent}% vs цел ${targetFatsPercent}% (разлика ${Math.abs(avgFatsPercent - targetFatsPercent)}%)`);
-      }
-      
-      // Validate average daily calories against target
       const targetCalories = parseFloat(plan.analysis.Final_Calories || plan.analysis.recommendedCalories) || 0;
+      
+      // Only validate extreme deviations (>20%) - allow flexibility for individualized strategies
+      // (carb cycling, refeed days, intermittent fasting, etc.)
       if (targetCalories > 0) {
         const calorieDiffPercent = Math.abs((avgDailyCalories - targetCalories) / targetCalories * 100);
-        if (calorieDiffPercent > 8) { // 8% tolerance for weekly average
-          warnings.push(`Седмично отклонение на калориите: Средно ${Math.round(avgDailyCalories)} kcal/ден vs цел ${Math.round(targetCalories)} kcal (${Math.round(calorieDiffPercent)}% разлика)`);
+        if (calorieDiffPercent > 20) { // Only warn on extreme deviations
+          warnings.push(`Седмично отклонение на калориите: Средно ${Math.round(avgDailyCalories)} kcal/ден vs цел ${Math.round(targetCalories)} kcal (${Math.round(calorieDiffPercent)}% разлика) - проверете стратегията`);
         }
       }
     }
