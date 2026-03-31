@@ -6655,7 +6655,7 @@ async function handleGenerateLongevityProtocol(request, env) {
       // Return raw response if parsing fails
       return jsonResponse({ 
         success: false, 
-        error: 'Не можа да се парсне отговорът',
+        error: 'Отговорът не може да бъде обработен',
         rawResponse: aiResponse 
       }, 200);
     }
