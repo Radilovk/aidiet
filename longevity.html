@@ -1,0 +1,2272 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Интерактивна платформа за дълголетие и анти-ейджинг - научно-базирани протоколи за забавяне на стареенето и оптимизиране на здравето.">
+    <meta name="theme-color" content="#00c4c8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Longevity">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://biocode.website/longevity.html">
+    <meta property="og:title" content="Дълголетие и Анти-Ейджинг">
+    <meta property="og:description" content="Научно-базирани протоколи за забавяне на стареенето, активиране на автофагия и оптимизиране на митохондриите.">
+    <meta property="og:image" content="https://biocode.website/icon-512x512.png">
+    <meta property="og:locale" content="bg_BG">
+
+    <link rel="canonical" href="https://biocode.website/longevity.html">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    <title>Дълголетие и Анти-Ейджинг</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            /* Cyan-Gold theme for longevity/science content */
+            --primary: #00c4c8;
+            --primary-hover: #00a8ab;
+            --primary-light: #e0f7fa;
+            --primary-dark: #008b8f;
+            --accent-gold: #d4a843;
+            --accent-gold-light: #fef3c7;
+            --accent-warm: #F59E0B;
+            --accent-rose: #EC4899;
+            --accent-green: #10B981;
+            --accent-red: #ef4444;
+            --text-dark: #1F2937;
+            --text-gray: #6B7280;
+            --text-light: #9CA3AF;
+            --bg-color: #f0fdfc;
+            --card-bg: #FFFFFF;
+            --input-bg: #F9FAFB;
+            --shadow: 0 10px 40px rgba(0, 196, 200, 0.15);
+            --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.05);
+            --radius: 20px;
+            --radius-sm: 12px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+            /* Safe area insets for mobile devices */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --primary: #06d6da;
+            --primary-hover: #00c4c8;
+            --primary-light: #0a2e2f;
+            --primary-dark: #7ddcde;
+            --accent-gold: #eab654;
+            --text-dark: #F3F4F6;
+            --text-gray: #9CA3AF;
+            --text-light: #6B7280;
+            --bg-color: #05091a;
+            --card-bg: #0f1629;
+            --input-bg: #1a2035;
+            --shadow: 0 10px 40px rgba(0, 196, 200, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: var(--safe-area-inset-top);
+            padding-bottom: var(--safe-area-inset-bottom);
+        }
+
+        /* Background mesh animation */
+        .bg-mesh {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(0,196,200,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(212,168,67,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0,100,150,0.04) 0%, transparent 60%);
+            animation: bgShift 25s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.05) translate(2%, 2%); }
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 196, 200, 0.2);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: calc(12px + var(--safe-area-inset-top));
+        }
+
+        [data-theme="dark"] .header {
+            background: rgba(15, 22, 41, 0.9);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover {
+            color: var(--primary-hover);
+            transform: translateX(-4px);
+        }
+
+        .header-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .theme-toggle {
+            background: var(--input-bg);
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-gray);
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Main container */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 80px 20px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 40px 0 60px;
+        }
+
+        .hero-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-gold));
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 15px 40px rgba(0, 196, 200, 0.3);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .hero-icon i {
+            font-size: 2.8rem;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: clamp(1.8rem, 5vw, 2.4rem);
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(90deg, var(--primary), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            color: var(--text-gray);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 5px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            background: transparent;
+            border-radius: calc(var(--radius) - 5px);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-gray);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 196, 200, 0.3);
+        }
+
+        .tab-btn:not(.active):hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Education Cards */
+        .edu-section {
+            margin-bottom: 24px;
+        }
+
+        .edu-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            margin-bottom: 16px;
+            border: 1px solid transparent;
+        }
+
+        .edu-card:hover {
+            box-shadow: var(--shadow);
+            border-color: rgba(0, 196, 200, 0.2);
+        }
+
+        .edu-card-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .edu-card-header:hover {
+            background: var(--primary-light);
+        }
+
+        .edu-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .edu-icon i {
+            font-size: 1.3rem;
+            color: white;
+        }
+
+        .edu-icon.energy { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .edu-icon.cleanse { background: linear-gradient(135deg, #10b981, #059669); }
+        .edu-icon.protect { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+        .edu-icon.dna { background: linear-gradient(135deg, #ec4899, #be185d); }
+        .edu-icon.structure { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .edu-icon.detox { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+
+        .edu-card-title {
+            flex: 1;
+        }
+
+        .edu-card-title h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--text-dark);
+        }
+
+        .edu-card-title p {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        .edu-expand-icon {
+            color: var(--text-light);
+            transition: var(--transition);
+        }
+
+        .edu-card.expanded .edu-expand-icon {
+            transform: rotate(180deg);
+            color: var(--primary);
+        }
+
+        .edu-card-content {
+            display: none;
+            padding: 0 20px 20px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .edu-card.expanded .edu-card-content {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .edu-detail {
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .edu-detail-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .edu-detail-text {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .molecule-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .molecule-tag {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-gold));
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Markers Table */
+        .markers-section {
+            margin-top: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        .markers-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .marker-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .marker-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .marker-icon.warning { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .marker-icon.success { background: linear-gradient(135deg, #10b981, #059669); }
+        .marker-icon.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+
+        .marker-info h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .marker-info p {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        .marker-values {
+            text-align: right;
+        }
+
+        .marker-deficit {
+            font-size: 0.8rem;
+            color: var(--accent-red);
+            margin-bottom: 2px;
+        }
+
+        .marker-optimal {
+            font-size: 0.8rem;
+            color: var(--accent-green);
+        }
+
+        /* Protocol Wizard */
+        .wizard-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+        }
+
+        .wizard-progress {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .wizard-progress::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 40px;
+            right: 40px;
+            height: 3px;
+            background: var(--input-bg);
+            z-index: 0;
+        }
+
+        .wizard-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .wizard-step-num {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--input-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--text-light);
+            transition: var(--transition);
+        }
+
+        .wizard-step.active .wizard-step-num,
+        .wizard-step.completed .wizard-step-num {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+        }
+
+        .wizard-step.completed .wizard-step-num::after {
+            content: '✓';
+        }
+
+        .wizard-step-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            text-align: center;
+            max-width: 80px;
+        }
+
+        .wizard-step.active .wizard-step-label {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Wizard Form Sections */
+        .wizard-section {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .wizard-section.active {
+            display: block;
+        }
+
+        .wizard-section h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .wizard-section p {
+            color: var(--text-gray);
+            margin-bottom: 24px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--input-bg);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            background: var(--input-bg);
+            color: var(--text-dark);
+            transition: var(--transition);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--card-bg);
+        }
+
+        /* Checkbox/Radio Options */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .option-item {
+            position: relative;
+        }
+
+        .option-item input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .option-item label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: var(--input-bg);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .option-item input:checked + label {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .option-item label:hover {
+            background: var(--primary-light);
+        }
+
+        /* Slider Input */
+        .slider-container {
+            padding: 20px 0;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        .slider-value {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--input-bg);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 196, 200, 0.4);
+        }
+
+        /* Wizard Navigation */
+        .wizard-nav {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--input-bg);
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background: var(--input-bg);
+            color: var(--text-gray);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 196, 200, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 196, 200, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--accent-gold), #c4912d);
+            color: white;
+        }
+
+        /* Results Section */
+        .results-container {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .results-container.visible {
+            display: block;
+        }
+
+        .result-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .result-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .result-icon.protocol { background: linear-gradient(135deg, var(--primary), var(--accent-gold)); }
+        .result-icon.lifestyle { background: linear-gradient(135deg, #10b981, #059669); }
+        .result-icon.supplements { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+        .result-icon.markers { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+
+        .result-title h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .result-title p {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+        }
+
+        .result-list {
+            list-style: none;
+        }
+
+        .result-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--input-bg);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .result-list li:last-child {
+            border-bottom: none;
+        }
+
+        .result-list li i {
+            color: var(--primary);
+            margin-top: 3px;
+        }
+
+        .result-list li span {
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+
+        .result-list li strong {
+            color: var(--primary);
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--input-bg);
+        }
+
+        .comparison-table th {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+
+        .comparison-table td {
+            color: var(--text-dark);
+        }
+
+        .comparison-table tr:hover td {
+            background: var(--primary-light);
+        }
+
+        .effectiveness-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--input-bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .effectiveness-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent-gold));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-gray);
+            font-size: 0.85rem;
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 70px 16px 30px;
+            }
+
+            .hero {
+                padding: 30px 0 40px;
+            }
+
+            .hero-icon {
+                width: 80px;
+                height: 80px;
+                border-radius: 24px;
+            }
+
+            .hero-icon i {
+                font-size: 2.2rem;
+            }
+
+            .tab-nav {
+                flex-direction: column;
+            }
+
+            .tab-btn {
+                padding: 12px 16px;
+            }
+
+            .wizard-progress {
+                overflow-x: auto;
+                padding-bottom: 10px;
+            }
+
+            .wizard-step-label {
+                font-size: 0.65rem;
+                max-width: 60px;
+            }
+
+            .wizard-container {
+                padding: 20px;
+            }
+
+            .marker-card {
+                grid-template-columns: auto 1fr;
+                gap: 12px;
+            }
+
+            .marker-values {
+                grid-column: 1 / -1;
+                text-align: left;
+                display: flex;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-mesh"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <a href="index.html" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Начало</span>
+        </a>
+        <span class="header-title">Дълголетие</span>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Превключи тема">
+            <i class="fas fa-moon"></i>
+        </button>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-icon">
+                <i class="fas fa-dna"></i>
+            </div>
+            <h1>Наука за Дълголетието</h1>
+            <p>Научно-базирани стратегии за забавяне на биологичното стареене, активиране на клетъчния ремонт и оптимизиране на здравето за дълъг и качествен живот.</p>
+        </section>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="education">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Образование</span>
+            </button>
+            <button class="tab-btn" data-tab="protocol">
+                <i class="fas fa-flask"></i>
+                <span>Протокол</span>
+            </button>
+        </div>
+
+        <!-- Education Tab Content -->
+        <div id="education" class="tab-content active">
+            <!-- 6 Core Functions -->
+            <div class="edu-section">
+                <h2 class="section-title"><i class="fas fa-cube"></i> 6 Основни Функции на Дълголетието</h2>
+
+                <!-- Energy -->
+                <div class="edu-card" id="card-energy">
+                    <div class="edu-card-header" onclick="toggleCard('energy')">
+                        <div class="edu-icon energy">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>Енергия (AMPK / mTOR)</h3>
+                            <p>Активиране на енергийния сензор и автофагия</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🎯 Цел</div>
+                            <div class="edu-detail-text">Балансиране на енергийните сензори: активиране на AMPK (дефицит/ремонт) и потискане на mTOR (растеж/стареене).</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
+                            <div class="edu-detail-text">Периодично гладуване (16:8 или 24h), нисковъглехидратно хранене, високоинтензивни интервални тренировки (HIIT).</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
+                            <div class="edu-detail-text">AMPK ↑ / mTOR ↓ → Стартиране на автофагия, подобряване на инсулиновата чувствителност, горене на мазнини.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
+                            <div class="molecule-tags">
+                                <span class="molecule-tag">Метформин</span>
+                                <span class="molecule-tag">Берберин</span>
+                                <span class="molecule-tag">Спермидин</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cleansing -->
+                <div class="edu-card" id="card-cleanse">
+                    <div class="edu-card-header" onclick="toggleCard('cleanse')">
+                        <div class="edu-icon cleanse">
+                            <i class="fas fa-recycle"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>Почистване (Автофагия / Митофагия)</h3>
+                            <p>Клетъчно рециклиране и премахване на дефектни митохондрии</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🎯 Цел</div>
+                            <div class="edu-detail-text">Активиране на клетъчния „чистач" — автофагия за рециклиране на повредени протеини и митофагия за премахване на дефектни митохондрии.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
+                            <div class="edu-detail-text">Пропускане на хранения, удължено гладуване (24-72h), консумация на ферментирали храни и пшеничен зародиш.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
+                            <div class="edu-detail-text">Автофагия (ликвидация на клетъчни „боклуци") + Митофагия (селективно премахване на увредени митохондрии).</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
+                            <div class="molecule-tags">
+                                <span class="molecule-tag">Спермидин</span>
+                                <span class="molecule-tag">Уролитин А</span>
+                                <span class="molecule-tag">Рапамицин</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Protection -->
+                <div class="edu-card" id="card-protect">
+                    <div class="edu-card-header" onclick="toggleCard('protect')">
+                        <div class="edu-icon protect">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>Защита (NRF2 / Хормезис)</h3>
+                            <p>Активиране на антиоксидантните системи</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🎯 Цел</div>
+                            <div class="edu-detail-text">Стимулиране на NRF2 пътя — главният регулатор на антиоксидантната защита и детоксикацията.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
+                            <div class="edu-detail-text">Студени душове, ледени бани, сауна, консумация на кръстоцветни зеленчуци (броколи, карфиол), умерен физически стрес.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
+                            <div class="edu-detail-text">Хормезис — благоприятен отговор на умерен стрес. NRF2 активира глутатион редуктаза и хем оксигеназа-1.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
+                            <div class="molecule-tags">
+                                <span class="molecule-tag">PQQ</span>
+                                <span class="molecule-tag">Куркумин</span>
+                                <span class="molecule-tag">Сулфорафан</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DNA Code -->
+                <div class="edu-card" id="card-dna">
+                    <div class="edu-card-header" onclick="toggleCard('dna')">
+                        <div class="edu-icon dna">
+                            <i class="fas fa-dna"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>Код (ДНК Репарация / Съртуини)</h3>
+                            <p>Поддържане на геномната стабилност</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🎯 Цел</div>
+                            <div class="edu-detail-text">Защита на ДНК от мутации, активиране на съртуините (SIRT1-7) и поддържане на правилния циркаден ритъм.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
+                            <div class="edu-detail-text">Качествен сън (7-9 часа), медитация, избягване на синя светлина вечер, консумация на горски плодове.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
+                            <div class="edu-detail-text">ДНК репарация, активиране на NAD+-зависими съртуини, епигенетична настройка, забавяне на теломерното скъсяване.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
+                            <div class="molecule-tags">
+                                <span class="molecule-tag">NMN / NR</span>
+                                <span class="molecule-tag">Ресвератрол</span>
+                                <span class="molecule-tag">Мелатонин</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Structure -->
+                <div class="edu-card" id="card-structure">
+                    <div class="edu-card-header" onclick="toggleCard('structure')">
+                        <div class="edu-icon structure">
+                            <i class="fas fa-bone"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>Структура (Кости, Мускули, Колаген)</h3>
+                            <p>Поддържане на физическата интегритет</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🎯 Цел</div>
+                            <div class="edu-detail-text">Предотвратяване на саркопения (загуба на мускули), остеопороза и поддържане на колагеновия синтез.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
+                            <div class="edu-detail-text">Силови тренировки 2-3 пъти седмично, високопротеинова диета (1.6-2.2 г/кг), достатъчен витамин D.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
+                            <div class="edu-detail-text">Механично напрежение → костна и мускулна хипертрофия, синтез на колаген и извънклетъчен матрикс.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
+                            <div class="molecule-tags">
+                                <span class="molecule-tag">АКГ</span>
+                                <span class="molecule-tag">Магнезий</span>
+                                <span class="molecule-tag">Колаген</span>
+                                <span class="molecule-tag">Креатин</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detox / Senolysis -->
+                <div class="edu-card" id="card-detox">
+                    <div class="edu-card-header" onclick="toggleCard('detox')">
+                        <div class="edu-icon detox">
+                            <i class="fas fa-biohazard"></i>
+                        </div>
+                        <div class="edu-card-title">
+                            <h3>Детокс (Сенолиза / Зомби Клетки)</h3>
+                            <p>Елиминиране на стареещи клетки и SASP</p>
+                        </div>
+                        <i class="fas fa-chevron-down edu-expand-icon"></i>
+                    </div>
+                    <div class="edu-card-content">
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🎯 Цел</div>
+                            <div class="edu-detail-text">Премахване на „зомби клетки" (senescent cells), които са спрели да се делят, но излъчват токсичен SASP коктейл.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🏃 Практическо Поведение</div>
+                            <div class="edu-detail-text">Консумация на горски плодове (ягоди, боровинки), кръстоцветни зеленчуци и лук. Периодични сенолитични курсове.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">⚙️ Физиологичен Процес</div>
+                            <div class="edu-detail-text">Сенолиза — предизвикване на апоптоза (програмирана клетъчна смърт) в стареещите клетки. Спиране на Inflammaging.</div>
+                        </div>
+                        <div class="edu-detail">
+                            <div class="edu-detail-label">🧪 Ключови Молекули</div>
+                            <div class="molecule-tags">
+                                <span class="molecule-tag">Фисетин</span>
+                                <span class="molecule-tag">Кверцетин</span>
+                                <span class="molecule-tag">Куркумин</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biomarkers Section -->
+            <div class="markers-section">
+                <h2 class="section-title"><i class="fas fa-microscope"></i> Ключови Биомаркери</h2>
+                <div class="markers-grid">
+                    <div class="marker-card">
+                        <div class="marker-icon info">
+                            <i class="fas fa-fire-alt"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>hs-CRP (C-реактивен протеин)</h4>
+                            <p>Маркер за системно възпаление (Inflammaging)</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Дефицит: &gt;1.0 mg/L</div>
+                            <div class="marker-optimal">Оптимум: &lt;0.5 mg/L</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon warning">
+                            <i class="fas fa-cookie-bite"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>HbA1c (Гликиран хемоглобин)</h4>
+                            <p>Показател за гликация и контрол на кръвната захар</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Дефицит: &gt;5.4%</div>
+                            <div class="marker-optimal">Оптимум: 4.8-5.2%</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon success">
+                            <i class="fas fa-dna"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Хомоцистеин</h4>
+                            <p>Маркер за метилация и ДНК увреждания</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Дефицит: &gt;10 µmol/L</div>
+                            <div class="marker-optimal">Оптимум: &lt;7 µmol/L</div>
+                        </div>
+                    </div>
+
+                    <div class="marker-card">
+                        <div class="marker-icon info">
+                            <i class="fas fa-syringe"></i>
+                        </div>
+                        <div class="marker-info">
+                            <h4>Инсулин на гладно</h4>
+                            <p>Показател за инсулинова чувствителност</p>
+                        </div>
+                        <div class="marker-values">
+                            <div class="marker-deficit">Дефицит: &gt;6 µIU/mL</div>
+                            <div class="marker-optimal">Оптимум: &lt;4 µIU/mL</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="edu-section" style="margin-top: 30px;">
+                <h2 class="section-title"><i class="fas fa-balance-scale"></i> Фарма vs. Натурално</h2>
+                <div style="background: var(--card-bg); border-radius: var(--radius); padding: 20px; overflow-x: auto;">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Път</th>
+                                <th>Фармакологичен</th>
+                                <th>Естествен</th>
+                                <th>Ефективност</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>mTOR</strong></td>
+                                <td>Рапамицин</td>
+                                <td>Гладуване 3-5 дни</td>
+                                <td>
+                                    <div class="effectiveness-bar">
+                                        <div class="effectiveness-fill" style="width: 90%;"></div>
+                                    </div>
+                                    <small>85-95%</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>AMPK</strong></td>
+                                <td>Метформин</td>
+                                <td>HIIT + Ниски въглехидрати</td>
+                                <td>
+                                    <div class="effectiveness-bar">
+                                        <div class="effectiveness-fill" style="width: 100%;"></div>
+                                    </div>
+                                    <small>100-110% ✓</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>NAD+</strong></td>
+                                <td>NMN / NR</td>
+                                <td>Zone 2 кардио + Сън</td>
+                                <td>
+                                    <div class="effectiveness-bar">
+                                        <div class="effectiveness-fill" style="width: 35%;"></div>
+                                    </div>
+                                    <small>30-40%</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Митофагия</strong></td>
+                                <td>Уролитин А</td>
+                                <td>Нар + Здрав микробиом</td>
+                                <td>
+                                    <div class="effectiveness-bar">
+                                        <div class="effectiveness-fill" style="width: 35%;"></div>
+                                    </div>
+                                    <small>20-50%</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Сенолиза</strong></td>
+                                <td>Фисетин 1000mg</td>
+                                <td>5-8 кг ягоди/ден</td>
+                                <td>
+                                    <div class="effectiveness-bar">
+                                        <div class="effectiveness-fill" style="width: 12%;"></div>
+                                    </div>
+                                    <small>10-15%</small>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p style="margin-top: 15px; font-size: 0.85rem; color: var(--text-gray);">
+                        <i class="fas fa-lightbulb" style="color: var(--accent-gold);"></i>
+                        <strong>Златната среда:</strong> 80% начин на живот (глад, студ, тежести, сън) + 20% таргетирани добавки (NMN, Фисетин, Магнезий).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Protocol Tab Content -->
+        <div id="protocol" class="tab-content">
+            <!-- Wizard Container -->
+            <div class="wizard-container" id="wizardContainer">
+                <!-- Progress Steps -->
+                <div class="wizard-progress">
+                    <div class="wizard-step active" data-step="1">
+                        <div class="wizard-step-num">1</div>
+                        <div class="wizard-step-label">Профил</div>
+                    </div>
+                    <div class="wizard-step" data-step="2">
+                        <div class="wizard-step-num">2</div>
+                        <div class="wizard-step-label">Симптоми</div>
+                    </div>
+                    <div class="wizard-step" data-step="3">
+                        <div class="wizard-step-num">3</div>
+                        <div class="wizard-step-label">Навици</div>
+                    </div>
+                    <div class="wizard-step" data-step="4">
+                        <div class="wizard-step-num">4</div>
+                        <div class="wizard-step-label">Цели</div>
+                    </div>
+                    <div class="wizard-step" data-step="5">
+                        <div class="wizard-step-num">5</div>
+                        <div class="wizard-step-label">Протокол</div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Profile -->
+                <div class="wizard-section active" data-step="1">
+                    <h3>Основен Профил</h3>
+                    <p>Въведете основна информация за изчисляване на биологична възраст.</p>
+
+                    <div class="form-group">
+                        <label>Възраст (години)</label>
+                        <input type="number" id="age" min="18" max="120" placeholder="45">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Пол</label>
+                        <div class="options-grid">
+                            <div class="option-item">
+                                <input type="radio" name="gender" id="male" value="male">
+                                <label for="male"><i class="fas fa-mars"></i> Мъж</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="radio" name="gender" id="female" value="female">
+                                <label for="female"><i class="fas fa-venus"></i> Жена</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ниво на физическа активност</label>
+                        <select id="activityLevel">
+                            <option value="">-- Избери --</option>
+                            <option value="sedentary">Заседнал (офис работа)</option>
+                            <option value="light">Леко активен (1-2x спорт/седм.)</option>
+                            <option value="moderate">Умерено активен (3-4x спорт/седм.)</option>
+                            <option value="active">Много активен (5-6x спорт/седм.)</option>
+                            <option value="athlete">Атлет (ежедневни тренировки)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 2: Symptoms -->
+                <div class="wizard-section" data-step="2">
+                    <h3>Текущи Симптоми</h3>
+                    <p>Маркирайте симптомите, които изпитвате редовно.</p>
+
+                    <div class="form-group">
+                        <label>Енергия и Метаболизъм</label>
+                        <div class="options-grid">
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-fatigue" value="fatigue">
+                                <label for="symptom-fatigue"><i class="fas fa-battery-quarter"></i> Хронична умора</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-brain-fog" value="brain-fog">
+                                <label for="symptom-brain-fog"><i class="fas fa-cloud"></i> Мозъчна мъгла</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-weight" value="weight">
+                                <label for="symptom-weight"><i class="fas fa-weight"></i> Трудно отслабване</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-sugar" value="sugar">
+                                <label for="symptom-sugar"><i class="fas fa-candy-cane"></i> Глад за сладко</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Възстановяване и Стареене</label>
+                        <div class="options-grid">
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-joints" value="joints">
+                                <label for="symptom-joints"><i class="fas fa-bone"></i> Болки в ставите</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-skin" value="skin">
+                                <label for="symptom-skin"><i class="fas fa-spa"></i> Загуба на еластичност</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-wounds" value="wounds">
+                                <label for="symptom-wounds"><i class="fas fa-band-aid"></i> Бавно заздравяване</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-infections" value="infections">
+                                <label for="symptom-infections"><i class="fas fa-virus"></i> Чести инфекции</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Сън и Стрес</label>
+                        <div class="options-grid">
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-sleep" value="sleep">
+                                <label for="symptom-sleep"><i class="fas fa-moon"></i> Лош сън</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-stress" value="stress">
+                                <label for="symptom-stress"><i class="fas fa-bolt"></i> Хроничен стрес</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-cold" value="cold">
+                                <label for="symptom-cold"><i class="fas fa-snowflake"></i> Студени крайници</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="symptom-libido" value="libido">
+                                <label for="symptom-libido"><i class="fas fa-heart"></i> Спад в либидо</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Habits -->
+                <div class="wizard-section" data-step="3">
+                    <h3>Текущи Навици</h3>
+                    <p>Опишете текущия си начин на живот.</p>
+
+                    <div class="form-group">
+                        <label>Практикувате ли периодично гладуване?</label>
+                        <select id="fasting">
+                            <option value="">-- Избери --</option>
+                            <option value="none">Не практикувам</option>
+                            <option value="occasional">Понякога (1-2x месечно)</option>
+                            <option value="16-8">16:8 (ежедневно)</option>
+                            <option value="omad">OMAD (едно хранене на ден)</option>
+                            <option value="extended">Удължено гладуване (24-72h)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Студови процедури (студен душ, ледена баня)</label>
+                        <select id="coldExposure">
+                            <option value="">-- Избери --</option>
+                            <option value="none">Не практикувам</option>
+                            <option value="occasional">Понякога</option>
+                            <option value="regular">Редовно (3-4x седм.)</option>
+                            <option value="daily">Ежедневно</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Силови тренировки</label>
+                        <select id="strengthTraining">
+                            <option value="">-- Избери --</option>
+                            <option value="none">Не тренирам със силови</option>
+                            <option value="occasional">1x седмично</option>
+                            <option value="moderate">2-3x седмично</option>
+                            <option value="frequent">4+ пъти седмично</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Качество на съня (средно)</label>
+                        <div class="slider-container">
+                            <div class="slider-value"><span id="sleepValue">7</span> часа</div>
+                            <div class="slider-labels">
+                                <span>4h</span>
+                                <span>10h</span>
+                            </div>
+                            <input type="range" id="sleepHours" min="4" max="10" value="7" step="0.5" oninput="updateSleepValue()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Goals -->
+                <div class="wizard-section" data-step="4">
+                    <h3>Цели за Дълголетие</h3>
+                    <p>Какво искате да постигнете с вашия протокол?</p>
+
+                    <div class="form-group">
+                        <label>Приоритетни цели (изберете до 3)</label>
+                        <div class="options-grid">
+                            <div class="option-item">
+                                <input type="checkbox" id="goal-energy" value="energy" class="goal-checkbox">
+                                <label for="goal-energy"><i class="fas fa-bolt"></i> Повече енергия</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="goal-cognitive" value="cognitive" class="goal-checkbox">
+                                <label for="goal-cognitive"><i class="fas fa-brain"></i> Когнитивна яснота</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="goal-longevity" value="longevity" class="goal-checkbox">
+                                <label for="goal-longevity"><i class="fas fa-hourglass-half"></i> Дълголетие</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="goal-recovery" value="recovery" class="goal-checkbox">
+                                <label for="goal-recovery"><i class="fas fa-sync"></i> Бързо възстановяване</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="goal-skin" value="skin" class="goal-checkbox">
+                                <label for="goal-skin"><i class="fas fa-spa"></i> Здрава кожа</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="goal-inflammation" value="inflammation" class="goal-checkbox">
+                                <label for="goal-inflammation"><i class="fas fa-fire-extinguisher"></i> Намалено възпаление</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Готовност за промени</label>
+                        <div class="slider-container">
+                            <div class="slider-value"><span id="commitmentValue">5</span>/10</div>
+                            <div class="slider-labels">
+                                <span>Минимални</span>
+                                <span>Радикални</span>
+                            </div>
+                            <input type="range" id="commitment" min="1" max="10" value="5" oninput="updateCommitmentValue()">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Бюджет за добавки (месечно)</label>
+                        <select id="budget">
+                            <option value="">-- Избери --</option>
+                            <option value="minimal">Без добавки / Минимален</option>
+                            <option value="low">До 50 лв.</option>
+                            <option value="medium">50-150 лв.</option>
+                            <option value="high">150-300 лв.</option>
+                            <option value="premium">300+ лв.</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 5: Generate -->
+                <div class="wizard-section" data-step="5">
+                    <h3>Генериране на Протокол</h3>
+                    <p>Прегледайте данните и генерирайте персонализиран протокол.</p>
+
+                    <div style="background: var(--primary-light); border-radius: var(--radius-sm); padding: 20px; margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 12px;"><i class="fas fa-clipboard-list"></i> Обобщение</h4>
+                        <div id="summaryContent" style="color: var(--text-dark); line-height: 1.8;"></div>
+                    </div>
+
+                    <button class="btn btn-gold" style="width: 100%; justify-content: center;" onclick="generateProtocol()">
+                        <i class="fas fa-magic"></i>
+                        Генерирай AI Протокол
+                    </button>
+                </div>
+
+                <!-- Wizard Navigation -->
+                <div class="wizard-nav">
+                    <button class="btn btn-secondary" id="prevBtn" onclick="prevStep()" style="display: none;">
+                        <i class="fas fa-arrow-left"></i>
+                        Назад
+                    </button>
+                    <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">
+                        Напред
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Container -->
+            <div class="results-container" id="resultsContainer">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 class="section-title" style="margin: 0;"><i class="fas fa-clipboard-check"></i> Вашият Персонализиран Протокол</h2>
+                    <button class="btn btn-secondary" onclick="resetWizard()">
+                        <i class="fas fa-redo"></i>
+                        Нов протокол
+                    </button>
+                </div>
+
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Генериране на протокол...</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Научно-базирана информация за дълголетие.<br>
+        <a href="index.html">← Към началната страница</a></p>
+    </footer>
+
+    <script>
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+
+        // Theme Toggle
+        function toggleTheme() {
+            const body = document.body;
+            const isDark = body.getAttribute('data-theme') === 'dark';
+            body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const isDark = document.body.getAttribute('data-theme') === 'dark';
+            const icon = document.querySelector('.theme-toggle i');
+            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        // Tab Navigation
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Education Card Toggle
+        function toggleCard(cardId) {
+            const card = document.getElementById('card-' + cardId);
+            card.classList.toggle('expanded');
+        }
+
+        // Wizard State
+        let currentStep = 1;
+        const totalSteps = 5;
+        const wizardData = {};
+
+        function updateWizardUI() {
+            // Update step indicators
+            document.querySelectorAll('.wizard-step').forEach(step => {
+                const stepNum = parseInt(step.dataset.step);
+                step.classList.remove('active', 'completed');
+                if (stepNum === currentStep) {
+                    step.classList.add('active');
+                } else if (stepNum < currentStep) {
+                    step.classList.add('completed');
+                }
+            });
+
+            // Update sections
+            document.querySelectorAll('.wizard-section').forEach(section => {
+                const stepNum = parseInt(section.dataset.step);
+                section.classList.toggle('active', stepNum === currentStep);
+            });
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').style.display = currentStep > 1 ? 'flex' : 'none';
+            document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'flex' : 'none';
+
+            // Generate summary on step 5
+            if (currentStep === 5) {
+                generateSummary();
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                saveStepData();
+                currentStep++;
+                updateWizardUI();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateWizardUI();
+            }
+        }
+
+        function saveStepData() {
+            if (currentStep === 1) {
+                wizardData.age = document.getElementById('age').value;
+                wizardData.gender = document.querySelector('input[name="gender"]:checked')?.value;
+                wizardData.activityLevel = document.getElementById('activityLevel').value;
+            } else if (currentStep === 2) {
+                wizardData.symptoms = [];
+                document.querySelectorAll('[id^="symptom-"]:checked').forEach(cb => {
+                    wizardData.symptoms.push(cb.value);
+                });
+            } else if (currentStep === 3) {
+                wizardData.fasting = document.getElementById('fasting').value;
+                wizardData.coldExposure = document.getElementById('coldExposure').value;
+                wizardData.strengthTraining = document.getElementById('strengthTraining').value;
+                wizardData.sleepHours = document.getElementById('sleepHours').value;
+            } else if (currentStep === 4) {
+                wizardData.goals = [];
+                document.querySelectorAll('.goal-checkbox:checked').forEach(cb => {
+                    wizardData.goals.push(cb.value);
+                });
+                wizardData.commitment = document.getElementById('commitment').value;
+                wizardData.budget = document.getElementById('budget').value;
+            }
+
+            // Save to localStorage
+            localStorage.setItem('longevity_wizard_data', JSON.stringify(wizardData));
+        }
+
+        function generateSummary() {
+            const genderText = wizardData.gender === 'male' ? 'Мъж' : wizardData.gender === 'female' ? 'Жена' : '—';
+            const activityMap = {
+                'sedentary': 'Заседнал',
+                'light': 'Леко активен',
+                'moderate': 'Умерено активен',
+                'active': 'Много активен',
+                'athlete': 'Атлет'
+            };
+            const fastingMap = {
+                'none': 'Не практикува',
+                'occasional': 'Понякога',
+                '16-8': '16:8 ежедневно',
+                'omad': 'OMAD',
+                'extended': 'Удължено'
+            };
+
+            const symptomsText = wizardData.symptoms && wizardData.symptoms.length > 0 
+                ? wizardData.symptoms.length + ' симптома' 
+                : 'Няма';
+            const goalsText = wizardData.goals && wizardData.goals.length > 0 
+                ? wizardData.goals.length + ' цели' 
+                : 'Няма';
+
+            document.getElementById('summaryContent').innerHTML = `
+                <p><strong>Възраст:</strong> ${escapeHtml(wizardData.age || '—')} години | <strong>Пол:</strong> ${escapeHtml(genderText)}</p>
+                <p><strong>Активност:</strong> ${escapeHtml(activityMap[wizardData.activityLevel] || '—')}</p>
+                <p><strong>Симптоми:</strong> ${escapeHtml(symptomsText)}</p>
+                <p><strong>Гладуване:</strong> ${escapeHtml(fastingMap[wizardData.fasting] || '—')}</p>
+                <p><strong>Сън:</strong> ${escapeHtml(wizardData.sleepHours || '7')} часа</p>
+                <p><strong>Цели:</strong> ${escapeHtml(goalsText)}</p>
+                <p><strong>Готовност:</strong> ${escapeHtml(wizardData.commitment || '5')}/10</p>
+            `;
+        }
+
+        // XSS Prevention
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const str = String(text);
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return str.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function escapeHtmlWithBreaks(text) {
+            return escapeHtml(text).replace(/\n/g, '<br>');
+        }
+
+        // Sanitize icon class for FontAwesome (whitelist only fa- prefixed classes)
+        function sanitizeIconClass(iconClass) {
+            if (!iconClass || typeof iconClass !== 'string') return 'fas fa-circle';
+            const allowed = /^fa[srlbd]?\s+fa-[a-z0-9-]+$/i;
+            return allowed.test(iconClass.trim()) ? iconClass.trim() : 'fas fa-circle';
+        }
+
+        // Update slider values
+        function updateSleepValue() {
+            document.getElementById('sleepValue').textContent = document.getElementById('sleepHours').value;
+        }
+
+        function updateCommitmentValue() {
+            document.getElementById('commitmentValue').textContent = document.getElementById('commitment').value;
+        }
+
+        // Generate Protocol via AI
+        async function generateProtocol() {
+            saveStepData();
+            
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.add('visible');
+
+            try {
+                const prompt = buildProtocolPrompt();
+                
+                const response = await fetch(`${WORKER_URL}/api/generate-longevity-protocol`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        wizardData: wizardData,
+                        prompt: prompt 
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API грешка: ' + response.status);
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.protocol) {
+                    displayResults(data.protocol);
+                } else if (data.rawResponse) {
+                    // Try to parse raw response
+                    displayRawResults(data.rawResponse);
+                } else {
+                    throw new Error(data.error || 'Неуспешно генериране');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                // Fallback to local generation
+                const localProtocol = generateLocalProtocol();
+                displayResults(localProtocol);
+            } finally {
+                loadingOverlay.classList.remove('visible');
+            }
+        }
+
+        function buildProtocolPrompt() {
+            const symptomsMap = {
+                'fatigue': 'хронична умора',
+                'brain-fog': 'мозъчна мъгла',
+                'weight': 'трудно отслабване',
+                'sugar': 'глад за сладко',
+                'joints': 'болки в ставите',
+                'skin': 'загуба на еластичност на кожата',
+                'wounds': 'бавно заздравяване на рани',
+                'infections': 'чести инфекции',
+                'sleep': 'лош сън',
+                'stress': 'хроничен стрес',
+                'cold': 'студени крайници',
+                'libido': 'спад в либидото'
+            };
+
+            const goalsMap = {
+                'energy': 'повече енергия',
+                'cognitive': 'когнитивна яснота',
+                'longevity': 'дълголетие',
+                'recovery': 'бързо възстановяване',
+                'skin': 'здрава кожа',
+                'inflammation': 'намалено възпаление'
+            };
+
+            const symptoms = (wizardData.symptoms || []).map(s => symptomsMap[s] || s).join(', ');
+            const goals = (wizardData.goals || []).map(g => goalsMap[g] || g).join(', ');
+
+            return `Създай персонализиран протокол за дълголетие за:
+- Възраст: ${wizardData.age || 45} години
+- Пол: ${wizardData.gender === 'male' ? 'мъж' : 'жена'}
+- Активност: ${wizardData.activityLevel || 'умерена'}
+- Симптоми: ${symptoms || 'няма специфични'}
+- Гладуване: ${wizardData.fasting || 'не практикува'}
+- Студ: ${wizardData.coldExposure || 'не практикува'}
+- Силови: ${wizardData.strengthTraining || 'не тренира'}
+- Сън: ${wizardData.sleepHours || 7} часа
+- Цели: ${goals || 'общо дълголетие'}
+- Готовност за промени: ${wizardData.commitment || 5}/10
+- Бюджет: ${wizardData.budget || 'среден'}`;
+        }
+
+        function generateLocalProtocol() {
+            const protocol = {
+                lifestyle: [],
+                supplements: [],
+                markers: [],
+                timeline: ''
+            };
+
+            // Lifestyle recommendations based on data
+            if (!wizardData.fasting || wizardData.fasting === 'none') {
+                protocol.lifestyle.push({
+                    icon: 'fas fa-clock',
+                    title: 'Въведете 16:8 гладуване',
+                    description: 'Започнете с 14-часов прозорец на гладуване и постепенно увеличете до 16 часа. Това активира AMPK и автофагия.'
+                });
+            }
+
+            if (!wizardData.coldExposure || wizardData.coldExposure === 'none') {
+                protocol.lifestyle.push({
+                    icon: 'fas fa-snowflake',
+                    title: 'Студен душ 30-60 секунди',
+                    description: 'Завършвайте душа си със студена вода. Активира NRF2 пътя и хормезис.'
+                });
+            }
+
+            if (!wizardData.strengthTraining || wizardData.strengthTraining === 'none') {
+                protocol.lifestyle.push({
+                    icon: 'fas fa-dumbbell',
+                    title: 'Силови тренировки 2x седмично',
+                    description: 'Предотвратява саркопения и активира mTOR за мускулен растеж.'
+                });
+            }
+
+            if (parseFloat(wizardData.sleepHours) < 7) {
+                protocol.lifestyle.push({
+                    icon: 'fas fa-moon',
+                    title: 'Подобрете съня до 7-8 часа',
+                    description: 'Избягвайте синя светлина 2 часа преди сън. Сънят е критичен за ДНК репарация.'
+                });
+            }
+
+            // Default lifestyle if none added
+            if (protocol.lifestyle.length === 0) {
+                protocol.lifestyle.push({
+                    icon: 'fas fa-check-circle',
+                    title: 'Поддържайте текущите навици',
+                    description: 'Вашите навици са добра основа. Фокусирайте се върху последователност и добавки.'
+                });
+            }
+
+            // Supplement recommendations based on symptoms and budget
+            const budget = wizardData.budget || 'medium';
+            const symptoms = wizardData.symptoms || [];
+
+            // Base supplements
+            protocol.supplements.push({
+                name: 'Магнезий',
+                dose: '400-600 mg вечер',
+                reason: 'Основен минерал за 300+ ензимни реакции, сън и нервна система.',
+                priority: 'Висок'
+            });
+
+            if (symptoms.includes('fatigue') || symptoms.includes('brain-fog')) {
+                protocol.supplements.push({
+                    name: 'CoQ10 / Убиквинол',
+                    dose: '100-200 mg',
+                    reason: 'Подобрява митохондриалната функция и енергията.',
+                    priority: 'Висок'
+                });
+            }
+
+            if (budget !== 'minimal' && budget !== 'low') {
+                protocol.supplements.push({
+                    name: 'NMN или NR',
+                    dose: '250-500 mg сутрин',
+                    reason: 'Прекурсор на NAD+, активира съртуините за ДНК репарация.',
+                    priority: 'Среден'
+                });
+            }
+
+            if (symptoms.includes('joints') || symptoms.includes('skin')) {
+                protocol.supplements.push({
+                    name: 'Колаген + Витамин C',
+                    dose: '10-15 g колаген + 1000 mg Вит. C',
+                    reason: 'Поддържа съединителната тъкан, ставите и кожата.',
+                    priority: 'Висок'
+                });
+            }
+
+            if (symptoms.includes('infections') || symptoms.includes('inflammation')) {
+                protocol.supplements.push({
+                    name: 'Кверцетин + Фисетин',
+                    dose: '500 mg всяка, 2 дни месечно',
+                    reason: 'Сенолитичен протокол за изчистване на зомби клетки.',
+                    priority: 'Среден'
+                });
+            }
+
+            // Markers to track
+            protocol.markers = [
+                { name: 'hs-CRP', target: '< 0.5 mg/L', frequency: 'На 3 месеца' },
+                { name: 'HbA1c', target: '4.8-5.2%', frequency: 'На 3 месеца' },
+                { name: 'Витамин D', target: '60-80 ng/mL', frequency: 'На 6 месеца' },
+                { name: 'Хомоцистеин', target: '< 7 µmol/L', frequency: 'На 6 месеца' }
+            ];
+
+            // Timeline
+            protocol.timeline = `
+                <strong>Седмица 1-2:</strong> Въведете гладуване 14:8, студен душ 30 сек, магнезий вечер.<br>
+                <strong>Седмица 3-4:</strong> Увеличете до 16:8, добавете CoQ10 и колаген.<br>
+                <strong>Месец 2:</strong> Въведете силови тренировки, NMN ако бюджетът позволява.<br>
+                <strong>Месец 3:</strong> Първи сенолитичен курс (Кверцетин + Фисетин). Направете кръвни изследвания.
+            `;
+
+            return protocol;
+        }
+
+        function displayResults(protocol) {
+            document.getElementById('wizardContainer').style.display = 'none';
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.classList.add('visible');
+
+            let html = '';
+
+            // Lifestyle Card
+            if (protocol.lifestyle && protocol.lifestyle.length > 0) {
+                html += `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-icon lifestyle"><i class="fas fa-heartbeat"></i></div>
+                            <div class="result-title">
+                                <h3>Начин на Живот</h3>
+                                <p>Поведенчески промени за максимален ефект</p>
+                            </div>
+                        </div>
+                        <ul class="result-list">
+                            ${protocol.lifestyle.map(item => `
+                                <li>
+                                    <i class="${sanitizeIconClass(item.icon)}"></i>
+                                    <span><strong>${escapeHtml(item.title)}</strong><br>${escapeHtml(item.description)}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Supplements Card
+            if (protocol.supplements && protocol.supplements.length > 0) {
+                html += `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-icon supplements"><i class="fas fa-pills"></i></div>
+                            <div class="result-title">
+                                <h3>Препоръчани Добавки</h3>
+                                <p>Таргетирани молекули за вашите цели</p>
+                            </div>
+                        </div>
+                        <ul class="result-list">
+                            ${protocol.supplements.map(item => `
+                                <li>
+                                    <i class="fas fa-capsules"></i>
+                                    <span>
+                                        <strong>${escapeHtml(item.name)}</strong> — ${escapeHtml(item.dose)}<br>
+                                        <small style="color: var(--text-gray);">${escapeHtml(item.reason)}</small>
+                                        ${item.priority ? `<br><span style="color: var(--accent-gold); font-size: 0.75rem;">Приоритет: ${escapeHtml(item.priority)}</span>` : ''}
+                                    </span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Markers Card
+            if (protocol.markers && protocol.markers.length > 0) {
+                html += `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-icon markers"><i class="fas fa-chart-line"></i></div>
+                            <div class="result-title">
+                                <h3>Маркери за Проследяване</h3>
+                                <p>Измервайте напредъка си обективно</p>
+                            </div>
+                        </div>
+                        <ul class="result-list">
+                            ${protocol.markers.map(item => `
+                                <li>
+                                    <i class="fas fa-vial"></i>
+                                    <span>
+                                        <strong>${escapeHtml(item.name)}</strong> — Цел: ${escapeHtml(item.target)}<br>
+                                        <small style="color: var(--text-gray);">Честота: ${escapeHtml(item.frequency)}</small>
+                                    </span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Timeline Card
+            if (protocol.timeline) {
+                html += `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-icon protocol"><i class="fas fa-calendar-alt"></i></div>
+                            <div class="result-title">
+                                <h3>Времева Линия</h3>
+                                <p>Постепенно въвеждане на промените</p>
+                            </div>
+                        </div>
+                        <div style="padding: 10px 0; line-height: 1.8; color: var(--text-dark);">
+                            ${protocol.timeline}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('resultsContent').innerHTML = html;
+
+            // Save results
+            localStorage.setItem('longevity_protocol', JSON.stringify(protocol));
+        }
+
+        function displayRawResults(rawResponse) {
+            // Try to extract useful information from raw AI response
+            const protocol = {
+                lifestyle: [{
+                    icon: 'fas fa-info-circle',
+                    title: 'AI Препоръки',
+                    description: rawResponse.substring(0, 500) + '...'
+                }],
+                supplements: [],
+                markers: [],
+                timeline: ''
+            };
+            displayResults(protocol);
+        }
+
+        function resetWizard() {
+            currentStep = 1;
+            document.getElementById('wizardContainer').style.display = 'block';
+            document.getElementById('resultsContainer').classList.remove('visible');
+            
+            // Reset form
+            document.querySelectorAll('input[type="text"], input[type="number"], select, textarea').forEach(el => {
+                el.value = '';
+            });
+            document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => {
+                el.checked = false;
+            });
+            document.getElementById('sleepHours').value = 7;
+            document.getElementById('commitment').value = 5;
+            updateSleepValue();
+            updateCommitmentValue();
+
+            updateWizardUI();
+        }
+
+        // Initialize
+        function init() {
+            // Load theme
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            updateThemeIcon();
+
+            // Load saved wizard data
+            const savedData = localStorage.getItem('longevity_wizard_data');
+            if (savedData) {
+                try {
+                    Object.assign(wizardData, JSON.parse(savedData));
+                } catch (e) {
+                    console.error('Error loading wizard data:', e);
+                }
+            }
+
+            // Load saved protocol
+            const savedProtocol = localStorage.getItem('longevity_protocol');
+            if (savedProtocol) {
+                try {
+                    const protocol = JSON.parse(savedProtocol);
+                    // Switch to protocol tab and show results
+                    document.querySelector('[data-tab="protocol"]').click();
+                    displayResults(protocol);
+                } catch (e) {
+                    console.error('Error loading protocol:', e);
+                }
+            }
+
+            updateWizardUI();
+        }
+
+        // Limit goal selection to 3
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('goal-checkbox')) {
+                const checked = document.querySelectorAll('.goal-checkbox:checked');
+                if (checked.length > 3) {
+                    e.target.checked = false;
+                    alert('Моля, изберете максимум 3 цели.');
+                }
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
