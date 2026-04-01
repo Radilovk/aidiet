@@ -440,58 +440,23 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   const weight = parseFloat(data.weight) || 70;
   const gender = data.gender;
   const goal = data.goal || '';
-  const age = parseFloat(data.age) || 30;
   
   // Base protein needs (g/kg body weight)
-  // Evidence-based ranges from ISSN Position Stand on Protein (2017)
   // Women generally need slightly less due to lower muscle mass
   // Men need more for muscle maintenance/growth
-  // Age affects protein needs - older adults need more to prevent sarcopenia
   let proteinPerKg;
   if (gender === 'Мъж') {
-    // Men: 1.2-2.2 g/kg based on activity level
-    if (activityScore >= 8) {
-      proteinPerKg = 2.2; // Athletes/very active
-    } else if (activityScore >= 7) {
-      proteinPerKg = 2.0;
-    } else if (activityScore >= 5) {
-      proteinPerKg = 1.6;
-    } else {
-      proteinPerKg = 1.2;
-    }
+    proteinPerKg = activityScore >= 7 ? 2.0 : activityScore >= 5 ? 1.6 : 1.2;
   } else { // Жена
-    // Women: 1.0-2.0 g/kg based on activity level
-    if (activityScore >= 8) {
-      proteinPerKg = 2.0; // Athletes/very active
-    } else if (activityScore >= 7) {
-      proteinPerKg = 1.8;
-    } else if (activityScore >= 5) {
-      proteinPerKg = 1.4;
-    } else {
-      proteinPerKg = 1.0;
-    }
-  }
-  
-  // Age adjustment - older adults need more protein to prevent sarcopenia
-  // Research: PROT-AGE Study Group recommends 1.0-1.2 g/kg minimum for adults >65 years
-  // Bauer et al. (2013) JAMDA: higher protein needs in older adults
-  if (age >= 65) {
-    proteinPerKg = Math.max(proteinPerKg, 1.2); // Ensure minimum 1.2 g/kg base
-    proteinPerKg = proteinPerKg * 1.1; // Then add 10% increase (e.g., 1.2 → 1.32)
-  } else if (age >= 50) {
-    proteinPerKg = Math.max(proteinPerKg, 1.0); // Ensure minimum 1.0 g/kg base  
-    proteinPerKg = proteinPerKg * 1.05; // Then add 5% increase (e.g., 1.0 → 1.05)
+    proteinPerKg = activityScore >= 7 ? 1.8 : activityScore >= 5 ? 1.4 : 1.0;
   }
   
   // Adjust for goal
   if (goal.includes('Мускулна маса')) {
     proteinPerKg *= 1.2;
   } else if (goal.includes('Отслабване')) {
-    proteinPerKg *= 1.15; // Higher protein during weight loss to preserve muscle (was 1.1)
+    proteinPerKg *= 1.1; // Slightly more protein to preserve muscle
   }
-  
-  // Cap protein at safe upper limit (2.5 g/kg for most people)
-  proteinPerKg = Math.min(proteinPerKg, 2.5);
   
   // Calculate protein grams needed
   const proteinGrams = weight * proteinPerKg;
@@ -502,20 +467,13 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   const proteinCalories = proteinGrams * 4;
   const proteinPercent = Math.round((proteinCalories / estimatedCalories) * 100);
   
-  // Ensure protein doesn't exceed 40% of total calories (safety limit)
-  const cappedProteinPercent = Math.min(proteinPercent, 40);
-  
   // Distribute remaining calories between carbs and fats
   // Higher activity = more carbs for energy
   // Lower activity = more fats for satiety
-  const remainingPercent = 100 - cappedProteinPercent;
+  const remainingPercent = 100 - proteinPercent;
   let carbsPercent, fatsPercent;
   
-  if (activityScore >= 8) {
-    // Very high activity: maximize carbs for performance
-    carbsPercent = Math.round(remainingPercent * 0.65);
-    fatsPercent = remainingPercent - carbsPercent;
-  } else if (activityScore >= 7) {
+  if (activityScore >= 7) {
     // Very active: prioritize carbs for energy
     carbsPercent = Math.round(remainingPercent * 0.6);
     fatsPercent = remainingPercent - carbsPercent;
@@ -529,21 +487,14 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
     fatsPercent = remainingPercent - carbsPercent;
   }
   
-  // Ensure minimum 20% fats for hormonal function
-  if (fatsPercent < 20) {
-    const fatAdjustment = 20 - fatsPercent;
-    fatsPercent = 20;
-    carbsPercent -= fatAdjustment;
-  }
-  
   // Ensure ratios sum to exactly 100%
-  const total = cappedProteinPercent + carbsPercent + fatsPercent;
+  const total = proteinPercent + carbsPercent + fatsPercent;
   if (total !== 100) {
     fatsPercent += (100 - total); // Adjust fats to make it exactly 100
   }
   
   return {
-    protein: cappedProteinPercent,
+    protein: proteinPercent,
     carbs: carbsPercent,
     fats: fatsPercent,
     proteinGramsPerKg: Math.round(proteinPerKg * 10) / 10
