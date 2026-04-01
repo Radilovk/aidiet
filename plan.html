@@ -127,28 +127,28 @@
         .back-btn {
             background: none;
             border: none;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             color: var(--text-dark);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             padding: 8px;
-            border-radius: 50%;
+            border-radius: 12px;
         }
 
         .back-btn:hover {
             background: var(--soft-red);
-            transform: translateX(-3px);
+            transform: translateX(-2px);
         }
 
         .home-btn {
             background: none;
             border: none;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             color: var(--text-dark);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             padding: 8px;
-            border-radius: 50%;
+            border-radius: 12px;
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -157,28 +157,28 @@
 
         .home-btn:hover {
             background: var(--soft-red);
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
         .theme-toggle-btn {
-            background: var(--secondary-accent);
+            background: linear-gradient(135deg, var(--secondary-accent), #6366f1);
             border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.1rem;
+            font-size: 1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transition: all 0.25s ease;
+            box-shadow: 0 3px 10px rgba(59, 130, 246, 0.3);
         }
 
         .theme-toggle-btn:hover {
-            transform: scale(1.1) rotate(-10deg);
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.6);
+            transform: scale(1.08);
+            box-shadow: 0 5px 14px rgba(59, 130, 246, 0.45);
         }
 
         .theme-toggle-btn:active {
@@ -186,29 +186,30 @@
         }
 
         h1 {
-            font-size: 1.2rem;
-            font-weight: 700;
+            font-size: 1.15rem;
+            font-weight: 800;
             color: var(--primary-red);
+            letter-spacing: -0.01em;
         }
 
         .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: var(--primary-red);
-            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            transition: all 0.3s ease;
+            font-size: 1rem;
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
+            transition: all 0.25s ease;
         }
 
         .user-avatar:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+            transform: scale(1.05);
+            box-shadow: 0 5px 14px rgba(16, 185, 129, 0.4);
         }
 
         /* --- DAY NAVIGATION (Horizontal Scroll) --- */
@@ -416,30 +417,33 @@
         }
 
         .meal-type {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
             color: var(--primary-red);
             font-weight: 700;
-            letter-spacing: 0.8px;
-            margin-bottom: 6px;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            opacity: 0.85;
         }
 
         .meal-name {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             margin-bottom: 8px;
             color: var(--text-dark);
+            line-height: 1.35;
+            letter-spacing: -0.01em;
         }
 
         .meal-weight {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--primary-red);
             background: var(--soft-red);
             padding: 4px 12px;
-            border-radius: 20px;
+            border-radius: 10px;
             display: inline-block;
             font-weight: 600;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
+            box-shadow: none;
         }
 
         .meal-dessert {
@@ -457,21 +461,29 @@
         }
 
         .modal-dessert {
-            margin-top: 12px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: var(--soft-red, #fff3f3);
-            font-size: 0.9rem;
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            font-size: 0.85rem;
+            border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+
+        [data-theme="dark"] .modal-dessert {
+            background: linear-gradient(135deg, #292116, #2d2510);
+            border-color: rgba(245, 158, 11, 0.2);
         }
 
         .modal-dessert-weight {
-            color: var(--text-muted, #888);
+            color: var(--text-light);
+            font-size: 0.8rem;
         }
 
         .modal-dessert-desc {
             display: block;
-            color: var(--text-muted, #888);
-            font-size: 0.85rem;
+            color: var(--text-light);
+            font-size: 0.8rem;
+            margin-top: 4px;
         }
 
         .info-btn {
@@ -505,17 +517,17 @@
 
         /* --- COLLAPSIBLE SECTIONS (ACCORDION) --- */
         .accordion {
-            margin-top: 32px;
+            margin-top: 28px;
         }
 
         .acc-item {
             background: var(--card-bg);
             border-radius: var(--radius);
-            margin-bottom: 18px;
-            box-shadow: var(--shadow);
+            margin-bottom: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
             overflow: hidden;
-            border: 1px solid rgba(16, 185, 129, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(16, 185, 129, 0.06);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
         }
 
@@ -527,15 +539,15 @@
             width: 0;
             height: 100%;
             background: var(--primary-red);
-            opacity: 0.05;
+            opacity: 0.03;
             transition: width 0.4s ease;
             z-index: 0;
         }
 
         .acc-item:hover {
-            box-shadow: var(--shadow-hover);
-            transform: translateY(-3px);
-            border-color: rgba(16, 185, 129, 0.2);
+            box-shadow: 0 6px 24px rgba(16, 185, 129, 0.1), 0 2px 6px rgba(0, 0, 0, 0.03);
+            transform: translateY(-2px);
+            border-color: rgba(16, 185, 129, 0.12);
         }
 
         .acc-item:hover::before {
@@ -543,24 +555,23 @@
         }
 
         .acc-item.open {
-            border-color: rgba(16, 185, 129, 0.25);
-            box-shadow: var(--shadow-accent);
+            border-color: rgba(16, 185, 129, 0.18);
+            box-shadow: 0 8px 28px rgba(16, 185, 129, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04);
         }
 
         .acc-header {
-            padding: 22px 24px;
+            padding: 20px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
             background: transparent;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1rem;
             transition: all 0.3s ease;
             position: relative;
             z-index: 1;
             -webkit-tap-highlight-color: transparent;
-            position: relative;
         }
 
         .acc-header::before {
@@ -712,11 +723,11 @@
             position: fixed;
             bottom: calc(24px + var(--safe-area-inset-bottom));
             right: calc(24px + var(--safe-area-inset-right));
-            width: 68px;
-            height: 68px;
-            background: var(--primary-red);
-            border-radius: 50%;
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5);
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -727,26 +738,16 @@
             z-index: 900;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5);
-            }
-            50% {
-                box-shadow: 0 8px 32px rgba(16, 185, 129, 0.8);
-            }
         }
 
         .fab-chat:hover {
-            transform: scale(1.1) rotate(10deg);
-            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.7);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.5), 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .fab-chat:active { 
             transform: scale(0.95);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
         }
 
         .chat-icon-img {
@@ -1148,26 +1149,30 @@
         /* Mobile-specific improvements */
         @media (max-width: 600px) {
             .fab-chat {
-                width: 56px;
-                height: 56px;
-                font-size: 22px;
+                width: 52px;
+                height: 52px;
+                font-size: 20px;
                 bottom: 15px;
                 right: 15px;
+                border-radius: 16px;
             }
             
             .days-nav {
-                padding: 10px 5px;
+                padding: 12px 8px;
             }
             
             .day-chip {
                 padding: 8px 14px;
-                font-size: 0.85rem;
-                min-width: 60px;
+                font-size: 0.82rem;
+                min-width: 58px;
+                border-radius: 12px;
             }
             
             .meal-card {
-                padding: 14px;
-                font-size: 0.9rem;
+                padding: 14px 16px;
+                font-size: 0.88rem;
+                margin-bottom: 10px;
+            }
             }
             
             h1 {
@@ -1371,12 +1376,12 @@
 
         /* ===  MACROS VISUALIZATION CONTAINER === */
         .macros-viz-container {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(52, 211, 153, 0.03));
+            background: var(--card-bg);
             border-radius: var(--radius);
-            padding: 24px 20px;
-            margin-bottom: 24px;
-            box-shadow: var(--shadow);
-            border: 2px solid rgba(16, 185, 129, 0.15);
+            padding: 28px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(16, 185, 129, 0.08);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             animation: fadeIn 0.6s ease;
             position: relative;
@@ -1389,13 +1394,13 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 3px;
             background: linear-gradient(90deg, var(--primary-red), var(--primary-accent), var(--secondary-accent));
         }
 
         [data-theme="dark"] .macros-viz-container {
-            background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(110, 231, 183, 0.04));
-            border-color: rgba(52, 211, 153, 0.2);
+            background: var(--card-bg);
+            border-color: rgba(52, 211, 153, 0.1);
         }
 
         .macros-viz-header {
@@ -1404,25 +1409,26 @@
         }
 
         .macros-viz-title {
-            font-size: 1.4rem;
-            font-weight: 700;
+            font-size: 1.3rem;
+            font-weight: 800;
             color: var(--text-dark);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
             line-height: 1.3;
+            letter-spacing: -0.01em;
         }
 
         .macros-viz-title i {
             color: var(--primary-red);
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             flex-shrink: 0;
         }
 
         .macros-viz-subtitle {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             color: var(--text-light);
             font-weight: 500;
             line-height: 1.5;
@@ -1432,41 +1438,41 @@
 
         .calories-display {
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
             padding: 20px 16px;
             background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
-            border-radius: 16px;
+            border-radius: 18px;
             color: white;
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .calories-display:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 10px 28px rgba(16, 185, 129, 0.35);
         }
 
         .calories-label {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: 600;
             opacity: 0.9;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
         }
 
         .calories-value {
-            font-size: 3rem;
+            font-size: 2.8rem;
             font-weight: 800;
             line-height: 1;
-            margin-bottom: 6px;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 4px;
+            letter-spacing: -0.02em;
         }
 
         .calories-unit {
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            opacity: 0.85;
+            opacity: 0.8;
         }
 
         .macros-grid {
@@ -1478,11 +1484,11 @@
 
         .macro-card {
             background: var(--card-bg);
-            border-radius: 14px;
+            border-radius: 16px;
             padding: 18px 12px;
             text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-            border: 2px solid transparent;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.04);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
@@ -1501,9 +1507,9 @@
         }
 
         .macro-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-            border-color: var(--macro-color);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.06);
         }
 
         .macro-card:hover::before {
