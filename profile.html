@@ -508,7 +508,9 @@
         }
 
         .questionnaire-container.open .questionnaire-content {
-            max-height: 8000px; /* Large enough for all form sections */
+            /* 10000px is sufficient for 8+ form sections with ~50+ form fields
+               This value accounts for potential future form expansion */
+            max-height: 10000px;
         }
 
         .questionnaire-body {
@@ -1609,14 +1611,20 @@
 
         <!-- QUESTIONNAIRE COLLAPSIBLE CONTAINER -->
         <div class="questionnaire-container" id="questionnaireContainer">
-            <div class="questionnaire-header" onclick="toggleQuestionnaire()">
+            <div class="questionnaire-header" 
+                 onclick="toggleQuestionnaire()" 
+                 onkeydown="handleQuestionnaireKeydown(event)"
+                 role="button" 
+                 tabindex="0" 
+                 aria-expanded="false" 
+                 aria-controls="questionnaireContent">
                 <div class="questionnaire-title">
                     <i class="fas fa-clipboard-list"></i>
                     <span>Вашият Въпросник</span>
                 </div>
                 <i class="fas fa-chevron-down questionnaire-toggle"></i>
             </div>
-            <div class="questionnaire-content">
+            <div class="questionnaire-content" id="questionnaireContent">
                 <div class="questionnaire-body">
 
         <!-- Basic Info Section -->
@@ -1961,8 +1969,21 @@
         // --- Questionnaire Collapsible Toggle ---
         function toggleQuestionnaire() {
             const container = document.getElementById('questionnaireContainer');
+            const header = container ? container.querySelector('.questionnaire-header') : null;
             if (container) {
-                container.classList.toggle('open');
+                const isOpen = container.classList.toggle('open');
+                // Update aria-expanded for accessibility
+                if (header) {
+                    header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                }
+            }
+        }
+
+        // Keyboard handler for questionnaire toggle (Enter/Space)
+        function handleQuestionnaireKeydown(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleQuestionnaire();
             }
         }
 

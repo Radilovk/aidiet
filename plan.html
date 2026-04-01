@@ -1354,7 +1354,9 @@
         }
         
         .macro-breakdown.open .macro-breakdown-content {
-            max-height: 500px;
+            /* 600px accounts for macro bar (20px), legend grid (4 items ~200px), 
+               padding and margins. Sufficient for all screen sizes. */
+            max-height: 600px;
         }
         
         .macro-breakdown-body {
@@ -2711,14 +2713,20 @@
                 </div>
                 <!-- Macronutrient Breakdown - COLLAPSIBLE (closed by default) -->
                 <div class="macro-breakdown" id="macroBreakdown" style="display: none;">
-                    <div class="macro-breakdown-header" onclick="toggleMacroBreakdown()">
+                    <div class="macro-breakdown-header" 
+                         onclick="toggleMacroBreakdown()" 
+                         onkeydown="handleMacroBreakdownKeydown(event)"
+                         role="button" 
+                         tabindex="0" 
+                         aria-expanded="false" 
+                         aria-controls="macroBreakdownContent">
                         <div class="macro-breakdown-title">
                             <i class="fas fa-chart-pie"></i>
                             <span>Хранителни Макроелементи</span>
                         </div>
                         <i class="fas fa-chevron-down macro-breakdown-toggle"></i>
                     </div>
-                    <div class="macro-breakdown-content">
+                    <div class="macro-breakdown-content" id="macroBreakdownContent">
                         <div class="macro-breakdown-body">
                             <div class="macro-bar-container" id="macroBar">
                                 <!-- Segments will be added dynamically -->
@@ -4483,8 +4491,21 @@
         // --- Macro Breakdown Collapsible Toggle ---
         function toggleMacroBreakdown() {
             const macroBreakdown = document.getElementById('macroBreakdown');
+            const header = macroBreakdown ? macroBreakdown.querySelector('.macro-breakdown-header') : null;
             if (macroBreakdown) {
-                macroBreakdown.classList.toggle('open');
+                const isOpen = macroBreakdown.classList.toggle('open');
+                // Update aria-expanded for accessibility
+                if (header) {
+                    header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                }
+            }
+        }
+
+        // Keyboard handler for macro breakdown toggle (Enter/Space)
+        function handleMacroBreakdownKeydown(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleMacroBreakdown();
             }
         }
 
