@@ -252,11 +252,6 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.25);
         }
 
-        .user-avatar:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
-        }
-
         /* --- DAY NAVIGATION (Horizontal Scroll) --- */
         .days-nav {
             display: flex;
@@ -660,6 +655,8 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
+        /* Accent bar: Uses opacity-based transition (instead of width animation)
+           for smoother, GPU-accelerated performance on mobile devices */
         .acc-item::before {
             content: '';
             position: absolute;
@@ -1246,7 +1243,9 @@
             max-width: 60px;
         }
         
-        .macro-bar-container {
+        /* Modal macro-bar-container - used within meal info modal */
+        .modal-card .macro-bar-container,
+        #macroBreakdown .macro-bar-container {
             width: 100%;
             height: 14px;
             background: var(--card-bg);
@@ -1260,7 +1259,8 @@
             margin-top: 8px;
         }
         
-        [data-theme="dark"] .macro-bar-container {
+        [data-theme="dark"] .modal-card .macro-bar-container,
+        [data-theme="dark"] #macroBreakdown .macro-bar-container {
             box-shadow: 
                 inset 0 2px 4px rgba(0, 0, 0, 0.2),
                 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -1371,10 +1371,11 @@
             flex-shrink: 0;
         }
         
-        /* KEY FIX: Proportionate macro-value font in modal context */
-        .macro-legend-item .macro-value {
+        /* Proportionate macro-value font in modal context - uses modal-specific selector for specificity */
+        .modal-card .macro-breakdown .macro-legend-item .macro-value,
+        #infoModal .macro-legend-item .macro-value {
             font-weight: 700;
-            font-size: 0.82rem !important;
+            font-size: 0.82rem;
             color: var(--text-dark);
             margin-left: auto;
             white-space: nowrap;
@@ -1382,8 +1383,9 @@
         }
         
         @media (max-width: 400px) {
-            .macro-legend-item .macro-value {
-                font-size: 0.75rem !important;
+            .modal-card .macro-breakdown .macro-legend-item .macro-value,
+            #infoModal .macro-legend-item .macro-value {
+                font-size: 0.75rem;
             }
             
             .macro-legend-item {
