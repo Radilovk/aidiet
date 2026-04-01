@@ -535,6 +535,103 @@
             margin-bottom: 0;
         }
 
+        /* === SEPARATE ANALYSIS CONTAINER === */
+        .analysis-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+        }
+
+        .analysis-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: #ffffff;
+        }
+
+        .analysis-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .analysis-title i {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .analysis-body {
+            padding: 20px;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        [data-theme="dark"] .analysis-container {
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        [data-theme="dark"] .analysis-body {
+            color: var(--text-dark);
+        }
+
+        /* === SEPARATE NOTES CONTAINER === */
+        .notes-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid rgba(16, 185, 129, 0.1);
+        }
+
+        .notes-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, var(--primary-red), #059669);
+            color: #ffffff;
+        }
+
+        .notes-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .notes-title i {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .notes-body {
+            padding: 20px;
+        }
+
+        .notes-body .form-textarea {
+            min-height: 100px;
+        }
+
+        .notes-actions {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(16, 185, 129, 0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        [data-theme="dark"] .notes-container {
+            border-color: rgba(52, 211, 153, 0.1);
+        }
+
+        [data-theme="dark"] .notes-actions {
+            border-top-color: rgba(52, 211, 153, 0.1);
+        }
+
         /* Collapsible Plan Justification */
         .plan-justification-container {
             background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
@@ -1811,16 +1908,22 @@
             </div>
         </div>
 
-        <!-- REQUIREMENT 1: Health Analysis Section -->
-        <div class="form-section" id="analysisSection" style="display: none;">
-            <div class="section-title">
-                <i class="fas fa-heartbeat"></i>
-                Здравословен Анализ
+                </div> <!-- End questionnaire-body -->
+            </div> <!-- End questionnaire-content -->
+        </div> <!-- End questionnaire-container -->
+
+        <!-- SEPARATE CONTAINER: Health Analysis Section -->
+        <div class="analysis-container" id="analysisSection" style="display: none;">
+            <div class="analysis-header">
+                <div class="analysis-title">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Здравословен Анализ</span>
+                </div>
             </div>
-            <div id="analysisContent" style="padding: 15px;">
+            <div id="analysisContent" class="analysis-body">
                 <p style="color: var(--text-light); font-style: italic;">Няма наличен анализ</p>
             </div>
-            <div style="text-align: center; margin-top: 15px;">
+            <div style="text-align: center; padding: 15px;">
                 <button class="btn btn-primary" onclick="viewFullAnalysis()" style="display: inline-flex; align-items: center; gap: 8px;">
                     <i class="fas fa-chart-line"></i>
                     Виж пълен анализ
@@ -1828,40 +1931,37 @@
             </div>
         </div>
 
-        <!-- Additional Info -->
-        <div class="form-section">
-            <div class="section-title">
-                <i class="fas fa-clipboard"></i>
-                Допълнителна информация
+        <!-- SEPARATE CONTAINER: Notes Section with Edit Button -->
+        <div class="notes-container" id="notesContainer">
+            <div class="notes-header">
+                <div class="notes-title">
+                    <i class="fas fa-clipboard"></i>
+                    <span>Бележки</span>
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label">Бележки</label>
-                <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled></textarea>
+            <div class="notes-body">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled placeholder="Добавете допълнителни бележки..."></textarea>
+                </div>
             </div>
-        </div>
-
-                </div> <!-- End questionnaire-body -->
-            </div> <!-- End questionnaire-content -->
-        </div> <!-- End questionnaire-container -->
-
-        <!-- Action Buttons -->
-        <div class="button-group">
-            <button class="btn btn-primary" id="editBtn" onclick="enableEditing()">
-                <i class="fas fa-edit"></i>
-                Редактирай
-            </button>
-            <button class="btn btn-primary hidden" id="saveBtn" onclick="saveChanges()">
-                <i class="fas fa-save"></i>
-                Запази промените
-            </button>
-            <button class="btn btn-primary hidden" id="saveAndRegenerateBtn" onclick="saveAndRegeneratePlan()">
-                <i class="fas fa-sync-alt"></i>
-                Запази и регенерирай план
-            </button>
-            <button class="btn btn-secondary hidden" id="cancelBtn" onclick="cancelEditing()">
-                <i class="fas fa-times"></i>
-                Отказ
-            </button>
+            <div class="notes-actions">
+                <button class="btn btn-primary" id="editBtn" onclick="enableEditing()">
+                    <i class="fas fa-edit"></i>
+                    Редактирай
+                </button>
+                <button class="btn btn-primary hidden" id="saveBtn" onclick="saveChanges()">
+                    <i class="fas fa-save"></i>
+                    Запази промените
+                </button>
+                <button class="btn btn-primary hidden" id="saveAndRegenerateBtn" onclick="saveAndRegeneratePlan()">
+                    <i class="fas fa-sync-alt"></i>
+                    Запази и регенерирай план
+                </button>
+                <button class="btn btn-secondary hidden" id="cancelBtn" onclick="cancelEditing()">
+                    <i class="fas fa-times"></i>
+                    Отказ
+                </button>
+            </div>
         </div>
     </div>
 
