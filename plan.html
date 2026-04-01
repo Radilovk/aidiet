@@ -533,18 +533,18 @@
             font-size: 0.8rem;
         }
 
-        /* Modal Dessert Section - Premium Design - ROW LAYOUT (mobile-first) */
+        /* Modal Dessert Section - Premium Design - COMPACT ROW LAYOUT */
         .meal-dessert#mDessert {
-            margin-top: 18px;
-            padding: 16px 18px;
-            border-radius: 16px;
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
             font-size: 0.9rem;
-            /* Changed from row (columns) to column (rows) layout */
+            /* Compact column layout with minimal gap */
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            gap: 10px;
+            gap: 4px;
             border: 1px solid rgba(251, 191, 36, 0.3);
             box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
             position: relative;
@@ -560,19 +560,19 @@
         .meal-dessert#mDessert .dessert-header {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             width: 100%;
         }
         
         .meal-dessert#mDessert i {
             color: #d97706;
-            font-size: 1.2rem;
+            font-size: 1rem;
             flex-shrink: 0;
         }
         
         .meal-dessert#mDessert strong {
             color: #92400e;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
         
         [data-theme="dark"] .meal-dessert#mDessert strong {
@@ -583,8 +583,8 @@
         .meal-dessert#mDessert .dessert-name {
             font-weight: 600;
             color: #78350f;
-            font-size: 1rem;
-            line-height: 1.4;
+            font-size: 0.95rem;
+            line-height: 1.3;
         }
         
         [data-theme="dark"] .meal-dessert#mDessert .dessert-name {
@@ -605,11 +605,12 @@
         /* Dessert description displayed as separate row */
         .meal-dessert#mDessert .meal-dessert-desc {
             display: block;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: #78350f;
-            line-height: 1.5;
+            line-height: 1.4;
             opacity: 0.9;
-            padding-top: 6px;
+            padding-top: 4px;
+            margin-top: 2px;
             border-top: 1px dashed rgba(217, 119, 6, 0.25);
             width: 100%;
         }
@@ -2524,49 +2525,6 @@
 
     <!-- Main Content -->
     <div class="container">
-        
-        <!-- MACROS VISUALIZATION CONTAINER -->
-        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
-            <div class="macros-viz-header">
-                <div class="macros-viz-title">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Вашата Хранителна Цел</span>
-                </div>
-                <div class="macros-viz-subtitle">Препоръчителен дневен прием и разпределение на макронутриенти</div>
-            </div>
-
-            <div class="calories-display">
-                <div class="calories-label">Дневни Калории</div>
-                <div class="calories-value" id="targetCalories">2000</div>
-                <div class="calories-unit">kcal</div>
-            </div>
-
-            <div class="macros-grid">
-                <div class="macro-card protein">
-                    <div class="macro-icon">🥩</div>
-                    <div class="macro-label">Протеини</div>
-                    <div class="macro-value" id="targetProtein">120</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="proteinPercentage">25%</div>
-                </div>
-
-                <div class="macro-card carbs">
-                    <div class="macro-icon">🍞</div>
-                    <div class="macro-label">Въглехидрати</div>
-                    <div class="macro-value" id="targetCarbs">250</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="carbsPercentage">50%</div>
-                </div>
-
-                <div class="macro-card fats">
-                    <div class="macro-icon">🥑</div>
-                    <div class="macro-label">Мазнини</div>
-                    <div class="macro-value" id="targetFats">55</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="fatsPercentage">25%</div>
-                </div>
-            </div>
-        </div>
         
         <!-- MEAL PLAN SECTION -->
         <div id="mealContainer">
