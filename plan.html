@@ -2147,6 +2147,19 @@
                 </div>
             </div>
 
+            <!-- 5. Практически хакове -->
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-bolt"></i> Практически хакове</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner" id="hacksContent">
+                        <p style="color: var(--text-light); font-style: italic;">Практически съвети за по-добри резултати...</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -3788,6 +3801,9 @@
 
             // Update supplements section
             renderSupplements();
+
+            // Update hacks section (hardcoded per goal)
+            renderHacks();
         }
 
         // --- Render Psychology ---
@@ -3870,6 +3886,25 @@
             }
         }
 
+        // --- Render Hacks (hardcoded per goal, not AI-generated) ---
+        function renderHacks() {
+            const hacksContent = document.getElementById('hacksContent');
+            if (!hacksContent) return;
+
+            if (dietPlan.hacks && Array.isArray(dietPlan.hacks) && dietPlan.hacks.length > 0) {
+                let hacksHTML = '<ul class="info-list">';
+                dietPlan.hacks.forEach((hack) => {
+                    // Escape HTML to prevent XSS
+                    const safeHack = String(hack).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    hacksHTML += `<li><i class="fas fa-bolt" style="color: var(--accent-yellow); margin-right: 8px;"></i>${safeHack}</li>`;
+                });
+                hacksHTML += '</ul>';
+                hacksContent.innerHTML = hacksHTML;
+            } else {
+                hacksContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">Практически съвети за постигане на целта...</p>`;
+            }
+        }
+
         // --- Navigation Logic ---
         function goBack() {
             history.back();
@@ -3920,8 +3955,8 @@
             };
         }
 
-        // Helper function to create a stacked bar segment
-        function createMacroSegment(type, label, value, percent) {
+        // Helper function to create a stacked bar segment (calorie-based percentage)
+        function createMacroSegment(type, label, grams, percent, calories = null) {
             const segment = document.createElement('div');
             segment.className = `macro-segment ${type}`;
             segment.style.width = percent + '%';
@@ -3932,18 +3967,22 @@
             if (percent > 10) {
                 segment.setAttribute('data-percent', percentText);
             }
-            segment.title = `${label}: ${value}г (${percentText})`;
+            // Show calories in tooltip if provided
+            const calorieInfo = calories !== null ? ` → ${Math.round(calories)} kcal` : '';
+            segment.title = `${label}: ${grams}г${calorieInfo} (${percentText} от калориите)`;
             return segment;
         }
 
-        // Helper function to create a legend item
-        function createLegendItem(type, label, value) {
+        // Helper function to create a legend item with calorie contribution
+        function createLegendItem(type, label, value, calories = null) {
             const item = document.createElement('div');
             item.className = 'macro-legend-item';
+            // Show grams and optionally calorie contribution
+            const calorieText = calories !== null ? ` (${Math.round(calories)} kcal)` : '';
             item.innerHTML = `
                 <span class="macro-dot ${type}"></span>
                 <span class="macro-label">${label}:</span>
-                <span class="macro-value">${value}г</span>
+                <span class="macro-value">${value}г${calorieText}</span>
             `;
             return item;
         }
@@ -3994,45 +4033,50 @@
                 // Parse numeric values using helper function
                 const { protein, carbs, fats, fiber } = parseMacronutrients(effectiveMacros);
                 
-                // Calculate total and percentages
-                const total = protein + carbs + fats + fiber;
+                // Calculate calorie contribution from each macro (protein×4, carbs×4, fats×9, fiber×2)
+                const proteinCalories = protein * 4;
+                const carbsCalories = carbs * 4;
+                const fatsCalories = fats * 9;
+                const fiberCalories = fiber * 2;
+                const totalCalories = proteinCalories + carbsCalories + fatsCalories + fiberCalories;
                 
-                if (total > 0) {
-                    const proteinPercent = (protein / total) * 100;
-                    const carbsPercent = (carbs / total) * 100;
-                    const fatsPercent = (fats / total) * 100;
-                    const fiberPercent = (fiber / total) * 100;
+                if (totalCalories > 0) {
+                    // Calculate percentages based on calorie contribution
+                    const proteinPercent = (proteinCalories / totalCalories) * 100;
+                    const carbsPercent = (carbsCalories / totalCalories) * 100;
+                    const fatsPercent = (fatsCalories / totalCalories) * 100;
+                    const fiberPercent = (fiberCalories / totalCalories) * 100;
                     
                     // Build stacked bar using helper function
                     macroBar.innerHTML = '';
                     
-                    if (protein > 0) {
-                        macroBar.appendChild(createMacroSegment('protein', 'Протеин', protein, proteinPercent));
+                    if (proteinCalories > 0) {
+                        macroBar.appendChild(createMacroSegment('protein', 'Протеин', protein, proteinPercent, proteinCalories));
                     }
-                    if (fats > 0) {
-                        macroBar.appendChild(createMacroSegment('fats', 'Мазнини', fats, fatsPercent));
+                    if (fatsCalories > 0) {
+                        macroBar.appendChild(createMacroSegment('fats', 'Мазнини', fats, fatsPercent, fatsCalories));
                     }
-                    if (carbs > 0) {
-                        macroBar.appendChild(createMacroSegment('carbs', 'Въглехидрати', carbs, carbsPercent));
+                    if (carbsCalories > 0) {
+                        macroBar.appendChild(createMacroSegment('carbs', 'Въглехидрати', carbs, carbsPercent, carbsCalories));
                     }
-                    if (fiber > 0) {
-                        macroBar.appendChild(createMacroSegment('fiber', 'Фибри', fiber, fiberPercent));
+                    if (fiberCalories > 0) {
+                        macroBar.appendChild(createMacroSegment('fiber', 'Фибри', fiber, fiberPercent, fiberCalories));
                     }
                     
                     // Build legend using helper function
                     macroLegend.innerHTML = '';
                     
-                    if (protein > 0) {
-                        macroLegend.appendChild(createLegendItem('protein', 'Протеин', protein));
+                    if (proteinCalories > 0) {
+                        macroLegend.appendChild(createLegendItem('protein', 'Протеин', protein, proteinCalories));
                     }
-                    if (fats > 0) {
-                        macroLegend.appendChild(createLegendItem('fats', 'Мазнини', fats));
+                    if (fatsCalories > 0) {
+                        macroLegend.appendChild(createLegendItem('fats', 'Мазнини', fats, fatsCalories));
                     }
-                    if (carbs > 0) {
-                        macroLegend.appendChild(createLegendItem('carbs', 'Въглехидрати', carbs));
+                    if (carbsCalories > 0) {
+                        macroLegend.appendChild(createLegendItem('carbs', 'Въглехидрати', carbs, carbsCalories));
                     }
-                    if (fiber > 0) {
-                        macroLegend.appendChild(createLegendItem('fiber', 'Фибри', fiber));
+                    if (fiberCalories > 0) {
+                        macroLegend.appendChild(createLegendItem('fiber', 'Фибри', fiber, fiberCalories));
                     }
                     
                     macroBreakdown.style.display = 'block';

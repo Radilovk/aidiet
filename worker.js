@@ -187,6 +187,45 @@ const PLAN_MODIFICATION_DESCRIPTIONS = {
   [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: '- Повишен прием на протеини'
 };
 
+// Default goal-based hacks (hardcoded tips per goal, managed via admin panel)
+const DEFAULT_GOAL_HACKS = {
+  'Отслабване': [
+    '💧 Пийте чаша вода 20 мин. преди всяко хранене - намалява апетита с до 25%',
+    '🥗 Започвайте всяко хранене със зеленчуци - увеличава ситостта',
+    '🚶 10-минутна разходка след вечеря подобрява храносмилането и съня',
+    '⏰ Не яжте 3 часа преди сън - подобрява метаболизма нощем',
+    '🍽️ Използвайте по-малки чинии - визуално намалява порцията'
+  ],
+  'Покачване на мускулна маса': [
+    '💪 Консумирайте протеин в рамките на 30 мин. след тренировка',
+    '🍳 Разпределете протеина равномерно през деня (минимум 4 порции)',
+    '🛌 Спете минимум 7-8 часа - мускулите растат по време на сън',
+    '🥛 Казеинов протеин преди сън за бавно освобождаване през нощта',
+    '🍌 Въглехидрати след тренировка попълват гликогеновите запаси'
+  ],
+  'Подобряване на здравето': [
+    '🌈 Яжте минимум 5 различни цвята плодове/зеленчуци дневно',
+    '🐟 Консумирайте риба минимум 2 пъти седмично за омега-3',
+    '🧘 5 минути дихателни упражнения преди хранене подобрява храносмилането',
+    '☀️ 15 мин. сутрешна слънчева светлина регулира циркадния ритъм',
+    '🍵 Зелен чай между храненията подобрява метаболизма'
+  ],
+  'Антиейджинг': [
+    '🫐 Консумирайте тъмни плодове дневно - богати на антиоксиданти',
+    '🥑 Здравословните мазнини подобряват еластичността на кожата',
+    '🍷 Ограничете захарта - ускорява стареенето чрез гликация',
+    '💤 Качествен сън 7-9 часа - ключов за клетъчна регенерация',
+    '🏃 Редовна физическа активност стимулира митохондриите'
+  ],
+  'Друго': [
+    '📱 Планирайте храненията предварително - намалява нездравословните избори',
+    '🍴 Яжте бавно - минимум 20 мин. на хранене за по-добро усвояване',
+    '📝 Водете хранителен дневник за по-добра осъзнатост',
+    '🥤 Ограничете течните калории - сокове, газирани напитки',
+    '🛒 Пазарувайте с пълен стомах - избягвате импулсивни покупки'
+  ]
+};
+
 // Meal name and description formatting instructions for AI prompts
 const MEAL_NAME_FORMAT_INSTRUCTIONS = `
 === ФОРМАТ НА MEAL NAME И DESCRIPTION ===
@@ -1537,6 +1576,64 @@ function invalidateFoodListsCache() {
 }
 
 /**
+ * Get goal-based hacks from KV storage or use defaults
+ * @param {object} env - Worker environment with KV binding
+ * @param {string} goal - User's goal (e.g., 'Отслабване', 'Покачване на мускулна маса')
+ * @returns {Promise<string[]>} Array of hack tips for the goal
+ */
+async function getGoalHacks(env, goal) {
+  try {
+    if (env && env.page_content) {
+      const hacksData = await env.page_content.get('goal_hacks');
+      if (hacksData) {
+        const allHacks = JSON.parse(hacksData);
+        if (allHacks[goal] && Array.isArray(allHacks[goal]) && allHacks[goal].length > 0) {
+          return allHacks[goal];
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching goal hacks from KV:', error);
+  }
+  
+  // Return default hacks for the goal, or generic hacks if goal not found
+  return DEFAULT_GOAL_HACKS[goal] || DEFAULT_GOAL_HACKS['Друго'] || [];
+}
+
+/**
+ * Get all goal hacks from KV storage (for admin panel)
+ * @param {object} env - Worker environment with KV binding
+ * @returns {Promise<object>} Object with all goal hacks
+ */
+async function getAllGoalHacks(env) {
+  try {
+    if (env && env.page_content) {
+      const hacksData = await env.page_content.get('goal_hacks');
+      if (hacksData) {
+        return JSON.parse(hacksData);
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching all goal hacks from KV:', error);
+  }
+  
+  // Return default hacks
+  return DEFAULT_GOAL_HACKS;
+}
+
+/**
+ * Save goal hacks to KV storage (from admin panel)
+ * @param {object} env - Worker environment with KV binding
+ * @param {object} hacks - Object with all goal hacks
+ */
+async function saveGoalHacks(env, hacks) {
+  if (!env || !env.page_content) {
+    throw new Error('KV storage not available');
+  }
+  await env.page_content.put('goal_hacks', JSON.stringify(hacks));
+}
+
+/**
  * Invalidate custom prompts cache
  * @param {string|null} key - Specific prompt key to invalidate, or null to clear all
  */
@@ -2275,35 +2372,84 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
     healthContext.medicalConditions_other ? `Друго медицинско: ${healthContext.medicalConditions_other}` : ''
   ].filter(Boolean).join(' | ');
 
+  // Extract additional user data for enhanced personalization
+  const genderDisplay = data.gender === 'male' ? 'Мъж' : (data.gender === 'female' ? 'Жена' : 'неизвестен');
+  const stressLevel = data.stressLevel || 'средно';
+  const sleepQuality = data.sleepQuality || 'добро';
+  const sleepDuration = data.sleepDuration || '7-8';
+  const sportActivity = data.sportActivity || 'няма';
+  const dailyActivity = data.dailyActivity || 'средна';
+  
   const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план на ${data.name}.
 
-Ти си експертен клиничен диетолог, ендокринолог и психолог. Тази стъпка поема изцяло аналитичната отговорност за препоръки за хранителни добавки, психологическа подкрепа и конкретни позволени/забранени храни.
+Ти си експертен клиничен диетолог, ендокринолог и психолог с дълбоко разбиране за връзката между храненето, психиката и метаболизма.
 
-КЛИЕНТ: ${data.name}, Цел: ${data.goal}, BMR: ${bmr}
-Препоръчителни калории: ${recommendedCalories} kcal/ден | Реални средни: ${avgCalories} kcal/ден
+══════════════════════════════════════════════════════════
+📊 ОСНОВНИ ДАННИ
+══════════════════════════════════════════════════════════
+КЛИЕНТ: ${data.name}, ${data.age || 'неизвестна'} год., Пол: ${genderDisplay}
+ЦЕЛ: ${data.goal}
+BMR: ${bmr} kcal | Препоръчителни калории: ${recommendedCalories} kcal/ден | Средни калории от плана: ${avgCalories} kcal/ден
 Макроси (средни): Белтъчини ${avgProtein}г, Въглехидрати ${avgCarbs}г, Мазнини ${avgFats}г
 
+══════════════════════════════════════════════════════════
+🧠 ПСИХОЛОГИЧЕСКИ ПРОФИЛ
+══════════════════════════════════════════════════════════
 ТЕМПЕРАМЕНТ: ${analysis.psychoProfile?.temperament || 'не е определен'} (${analysis.psychoProfile?.probability || 0}% вероятност)
-ПСИХОЛОГИЧЕСКИ ПРОФИЛ: ${(analysis.psychologicalProfile || '').substring(0, 300)}
+ДЕТАЙЛЕН ПРОФИЛ: ${(analysis.psychologicalProfile || '').substring(0, 500)}
+НИВО НА СТРЕС: ${stressLevel}
+КАЧЕСТВО НА СЪН: ${sleepQuality} (${sleepDuration} ч./нощ)
 ТИП ДИЕТА: ${strategy.dietType || strategy.dietaryModifier || 'балансирана'}
 
-ЗДРАВНИ ДАННИ: Проблеми: ${healthContext.keyProblems || 'няма'} | Медикаменти: ${healthContext.medications}${extraHealthContext ? ` | ${extraHealthContext}` : ''}${dynamicMainlistSection ? '\n' + dynamicMainlistSection : ''}${dynamicWhitelistSection}${dynamicBlacklistSection}
+══════════════════════════════════════════════════════════
+🏃 ФИЗИЧЕСКА АКТИВНОСТ
+══════════════════════════════════════════════════════════
+СПОРТНА АКТИВНОСТ: ${sportActivity}
+ЕЖЕДНЕВНА АКТИВНОСТ: ${dailyActivity}
 
-JSON (ТОЧЕН ФОРМАТ):
+══════════════════════════════════════════════════════════
+⚕️ ЗДРАВНИ ДАННИ
+══════════════════════════════════════════════════════════
+КЛЮЧОВИ ПРОБЛЕМИ: ${healthContext.keyProblems || 'няма'}
+МЕДИКАМЕНТИ: ${healthContext.medications}
+АЛЕРГИИ: ${healthContext.allergies}
+ХРАНИТЕЛНИ ДЕФИЦИТИ: ${healthContext.deficiencies}
+${extraHealthContext ? extraHealthContext : ''}${dynamicMainlistSection ? '\n' + dynamicMainlistSection : ''}${dynamicWhitelistSection}${dynamicBlacklistSection}
+
+══════════════════════════════════════════════════════════
+📋 JSON ФОРМАТ НА ОТГОВОРА
+══════════════════════════════════════════════════════════
 {
   "summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}},
-  "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
-  "forbidden": ["храна 1", "храна 2", "храна 3"],
-  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
+  "recommendations": ["храна 1", "храна 2", "...до 10 храни"],
+  "forbidden": ["храна 1", "храна 2", "...до 10 храни"],
+  "psychology": [
+    "СЪВЕТ 1: [Заглавие] - [Детайлен, персонализиран съвет]",
+    "СЪВЕТ 2: [Заглавие] - [Детайлен, персонализиран съвет]",
+    "СЪВЕТ 3: [Заглавие] - [Детайлен, персонализиран съвет]"
+  ],
   "waterIntake": "${strategy.hydrationStrategy || '2-2.5л дневно'}",
-  "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
+  "supplements": [
+    "ДОБАВКА 1 - Дозировка: [доза] | Кога: [време] | Защо: [персонализирана причина]",
+    "ДОБАВКА 2 - Дозировка: [доза] | Кога: [време] | Защо: [персонализирана причина]",
+    "ДОБАВКА 3 - Дозировка: [доза] | Кога: [време] | Защо: [персонализирана причина]"
+  ]
 }
 
-ЗАДЪЛЖИТЕЛНО:
-- recommendations: МИН 10 конкретни типове храни (не ястия) подходящи за ${data.goal} и диета "${strategy.dietType || strategy.dietaryModifier || 'балансирана'}" — да не попадат в динамичния черен списък
-- forbidden: МИН 10 конкретни типове храни (не ястия) неподходящи за ${healthContext.keyProblems || 'общи рискове'} и текущия план — да не противоречат на динамичния бял списък
-- supplements: минимум 3 конкретни добавки с дозировка и кратка обосновка, съобразени с психопрофила (${analysis.psychoProfile?.temperament || 'неопределен'}), цел (${data.goal}) и медикаменти (${healthContext.medications}) — БЕЗ опасни взаимодействия с медикаментите
-- psychology: минимум 3 персонализирани психологически съвета, адаптирани към темперамента и психологическия профил на ${data.name}`;
+══════════════════════════════════════════════════════════
+⚠️ ЗАДЪЛЖИТЕЛНИ ИЗИСКВАНИЯ
+══════════════════════════════════════════════════════════
+📌 RECOMMENDATIONS: МИН 10 конкретни типове храни (не ястия) за "${data.goal}"
+📌 FORBIDDEN: МИН 10 конкретни типове храни неподходящи за здравния профил
+📌 PSYCHOLOGY (точно 3 съвета):
+   - Персонализирани според темперамент "${analysis.psychoProfile?.temperament || 'неопределен'}"
+   - Адаптирани към ниво на стрес "${stressLevel}" и сън "${sleepQuality}"
+   - Конкретни и приложими, НЕ общи фрази
+📌 SUPPLEMENTS (минимум 3):
+   - С точна дозировка (мг/IU/г)
+   - Време на прием
+   - Персонализирана обосновка базирана на профила
+   - ⚠️ БЕЗ взаимодействия с медикаменти: ${healthContext.medications}`;
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
@@ -2322,19 +2468,28 @@ JSON (ТОЧЕН ФОРМАТ):
       dynamicBlacklistSection: dynamicBlacklistSection,
       dynamicMainlistSection: dynamicMainlistSection || '',
       name: data.name,
+      age: data.age || 'неизвестно',
+      gender: data.gender === 'male' ? 'Мъж' : (data.gender === 'female' ? 'Жена' : 'неизвестен'),
       goal: data.goal,
       keyProblems: healthContext.keyProblems || 'няма',
       allergies: healthContext.allergies,
       medications: healthContext.medications,
       medicalConditions: healthContext.medicalConditions,
       medicalConditions_other: healthContext.medicalConditions_other,
+      deficiencies: healthContext.deficiencies || 'няма установени',
       psychologicalSupport: JSON.stringify(psychologicalSupport.slice(0, 3)),
       hydrationStrategy: hydrationStrategy,
       temperament: analysis.psychoProfile?.temperament || 'не е определен',
       temperamentProbability: analysis.psychoProfile?.probability || 0,
-      psychologicalProfile: (analysis.psychologicalProfile || '').substring(0, 300),
+      psychologicalProfile: (analysis.psychologicalProfile || '').substring(0, 500),
       dietType: strategy.dietType || strategy.dietaryModifier || 'балансирана',
-      supplementRecommendations: JSON.stringify((strategy.supplementRecommendations || []).slice(0, 5))
+      supplementRecommendations: JSON.stringify((strategy.supplementRecommendations || []).slice(0, 5)),
+      // New variables for enhanced psychology and supplements
+      stressLevel: data.stressLevel || 'средно',
+      sleepQuality: data.sleepQuality || 'добро',
+      sleepDuration: data.sleepDuration || '7-8',
+      sportActivity: data.sportActivity || 'няма',
+      dailyActivity: data.dailyActivity || 'средна'
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
@@ -2457,6 +2612,9 @@ async function handleGeneratePlan(request, env) {
           
           if (fallbackValidation.isValid) {
             const cleanPlan = removeInternalJustifications(simplifiedPlan);
+            // Add hardcoded goal-based hacks for fallback plan
+            const goalHacks = await getGoalHacks(env, data.goal);
+            cleanPlan.hacks = goalHacks;
             return jsonResponse({ 
               success: true, 
               plan: cleanPlan,
@@ -2485,6 +2643,10 @@ async function handleGeneratePlan(request, env) {
     
     // Remove internal justification fields before returning to client
     const cleanPlan = removeInternalJustifications(structuredPlan);
+    
+    // Add hardcoded goal-based hacks (not AI-generated)
+    const goalHacks = await getGoalHacks(env, data.goal);
+    cleanPlan.hacks = goalHacks;
     
     return jsonResponse({ 
       success: true, 
@@ -7523,6 +7685,111 @@ async function handleDeleteMainlistPreset(request, env) {
 }
 
 /**
+ * Goal Hacks Management: Get all goal hacks
+ */
+async function handleGetGoalHacks(request, env) {
+  try {
+    const hacks = await getAllGoalHacks(env);
+    return jsonResponse({ success: true, hacks: hacks }, 200, {
+      cacheControl: 'no-cache'
+    });
+  } catch (error) {
+    console.error('Error getting goal hacks:', error);
+    return jsonResponse({ error: `Failed to get goal hacks: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Goal Hacks Management: Set all goal hacks (replace all)
+ */
+async function handleSetGoalHacks(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    const data = await request.json();
+    const hacks = data.hacks;
+    
+    if (!hacks || typeof hacks !== 'object') {
+      return jsonResponse({ error: 'Hacks object is required' }, 400);
+    }
+    
+    await saveGoalHacks(env, hacks);
+    return jsonResponse({ success: true, hacks: hacks });
+  } catch (error) {
+    console.error('Error setting goal hacks:', error);
+    return jsonResponse({ error: `Failed to set goal hacks: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Goal Hacks Management: Add a hack to a specific goal
+ */
+async function handleAddGoalHack(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    const data = await request.json();
+    const { goal, hack } = data;
+    
+    if (!goal || !hack) {
+      return jsonResponse({ error: 'Goal and hack are required' }, 400);
+    }
+    
+    const hacks = await getAllGoalHacks(env);
+    
+    // Initialize array for goal if it doesn't exist
+    if (!hacks[goal]) {
+      hacks[goal] = [];
+    }
+    
+    // Add hack if not already present
+    if (!hacks[goal].includes(hack)) {
+      hacks[goal].push(hack);
+      await saveGoalHacks(env, hacks);
+    }
+    
+    return jsonResponse({ success: true, hacks: hacks });
+  } catch (error) {
+    console.error('Error adding goal hack:', error);
+    return jsonResponse({ error: `Failed to add goal hack: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Goal Hacks Management: Remove a hack from a specific goal
+ */
+async function handleRemoveGoalHack(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    
+    const data = await request.json();
+    const { goal, index } = data;
+    
+    if (!goal || index === undefined) {
+      return jsonResponse({ error: 'Goal and index are required' }, 400);
+    }
+    
+    const hacks = await getAllGoalHacks(env);
+    
+    if (hacks[goal] && Array.isArray(hacks[goal]) && index >= 0 && index < hacks[goal].length) {
+      hacks[goal].splice(index, 1);
+      await saveGoalHacks(env, hacks);
+    }
+    
+    return jsonResponse({ success: true, hacks: hacks });
+  } catch (error) {
+    console.error('Error removing goal hack:', error);
+    return jsonResponse({ error: `Failed to remove goal hack: ${error.message}` }, 500);
+  }
+}
+
+/**
  * Convert base64url string to Uint8Array
  */
 function base64UrlToUint8Array(base64String) {
@@ -8846,6 +9113,14 @@ export default {
         return await handleLoadMainlistPreset(request, env);
       } else if (url.pathname === '/api/admin/delete-mainlist-preset' && request.method === 'POST') {
         return await handleDeleteMainlistPreset(request, env);
+      } else if (url.pathname === '/api/admin/get-goal-hacks' && request.method === 'GET') {
+        return await handleGetGoalHacks(request, env);
+      } else if (url.pathname === '/api/admin/set-goal-hacks' && request.method === 'POST') {
+        return await handleSetGoalHacks(request, env);
+      } else if (url.pathname === '/api/admin/add-goal-hack' && request.method === 'POST') {
+        return await handleAddGoalHack(request, env);
+      } else if (url.pathname === '/api/admin/remove-goal-hack' && request.method === 'POST') {
+        return await handleRemoveGoalHack(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
