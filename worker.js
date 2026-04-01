@@ -2468,7 +2468,7 @@ ${extraHealthContext ? extraHealthContext : ''}${dynamicMainlistSection ? '\n' +
       dynamicBlacklistSection: dynamicBlacklistSection,
       dynamicMainlistSection: dynamicMainlistSection || '',
       name: data.name,
-      age: data.age || 'неизвестна',
+      age: data.age || 'неизвестно',
       gender: data.gender === 'male' ? 'Мъж' : (data.gender === 'female' ? 'Жена' : 'неизвестен'),
       goal: data.goal,
       keyProblems: healthContext.keyProblems || 'няма',
