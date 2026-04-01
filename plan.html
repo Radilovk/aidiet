@@ -533,16 +533,18 @@
             font-size: 0.8rem;
         }
 
-        /* Modal Dessert Section - Premium Design */
+        /* Modal Dessert Section - Premium Design - ROW LAYOUT (mobile-first) */
         .meal-dessert#mDessert {
             margin-top: 18px;
-            padding: 14px 18px;
-            border-radius: 14px;
+            padding: 16px 18px;
+            border-radius: 16px;
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
             font-size: 0.9rem;
+            /* Changed from row (columns) to column (rows) layout */
             display: flex;
+            flex-direction: column;
             align-items: flex-start;
-            gap: 12px;
+            gap: 10px;
             border: 1px solid rgba(251, 191, 36, 0.3);
             box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
             position: relative;
@@ -554,19 +556,67 @@
             border: 1px solid rgba(251, 191, 36, 0.2);
         }
         
+        /* Dessert header row with icon and title */
+        .meal-dessert#mDessert .dessert-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        
         .meal-dessert#mDessert i {
             color: #d97706;
-            font-size: 1.1rem;
-            margin-top: 2px;
+            font-size: 1.2rem;
             flex-shrink: 0;
         }
         
         .meal-dessert#mDessert strong {
             color: #92400e;
+            font-size: 0.95rem;
         }
         
         [data-theme="dark"] .meal-dessert#mDessert strong {
             color: #fbbf24;
+        }
+        
+        /* Dessert name displayed as separate row */
+        .meal-dessert#mDessert .dessert-name {
+            font-weight: 600;
+            color: #78350f;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+        
+        [data-theme="dark"] .meal-dessert#mDessert .dessert-name {
+            color: #fef3c7;
+        }
+        
+        /* Dessert weight displayed as separate row */
+        .meal-dessert#mDessert .dessert-weight {
+            font-size: 0.85rem;
+            color: #92400e;
+            opacity: 0.85;
+        }
+        
+        [data-theme="dark"] .meal-dessert#mDessert .dessert-weight {
+            color: #fcd34d;
+        }
+        
+        /* Dessert description displayed as separate row */
+        .meal-dessert#mDessert .meal-dessert-desc {
+            display: block;
+            font-size: 0.85rem;
+            color: #78350f;
+            line-height: 1.5;
+            opacity: 0.9;
+            padding-top: 6px;
+            border-top: 1px dashed rgba(217, 119, 6, 0.25);
+            width: 100%;
+        }
+        
+        [data-theme="dark"] .meal-dessert#mDessert .meal-dessert-desc {
+            color: #fef3c7;
+            border-top-color: rgba(251, 191, 36, 0.2);
         }
 
         .modal-dessert {
@@ -587,26 +637,42 @@
             font-size: 0.85rem;
         }
 
+        /* Info Button - Premium Design matching site's green theme */
         .info-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
+            /* Fixed dimensions for consistency */
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            min-height: 42px;
+            max-width: 42px;
+            max-height: 42px;
+            border-radius: 12px;
             border: none;
-            background: linear-gradient(135deg, var(--secondary-accent) 0%, #2563eb 100%);
+            /* Updated to match site's primary green/emerald color scheme */
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent, #059669) 100%);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            margin-left: 15px;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 18px;
+            /* Fixed position: always 12px from right edge of meal-card */
+            margin-left: auto;
+            flex-shrink: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 16px;
             -webkit-tap-highlight-color: transparent;
             box-shadow: 
-                0 6px 16px rgba(59, 130, 246, 0.35),
+                0 4px 12px rgba(16, 185, 129, 0.3),
                 inset 0 1px 0 rgba(255, 255, 255, 0.2);
             position: relative;
             z-index: 1;
+        }
+        
+        [data-theme="dark"] .info-btn {
+            background: linear-gradient(135deg, var(--primary-red) 0%, #10b981 100%);
+            box-shadow: 
+                0 4px 12px rgba(52, 211, 153, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
         
         .info-btn::before {
@@ -619,15 +685,25 @@
         }
         
         .info-btn:hover { 
-            transform: scale(1.12) rotate(5deg);
+            transform: scale(1.08);
             box-shadow: 
-                0 10px 24px rgba(59, 130, 246, 0.5),
+                0 6px 18px rgba(16, 185, 129, 0.4),
                 inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        }
+        
+        [data-theme="dark"] .info-btn:hover {
+            box-shadow: 
+                0 6px 18px rgba(52, 211, 153, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
         }
         
         .info-btn:active { 
             transform: scale(0.95);
-            box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+        }
+        
+        .info-btn i {
+            font-size: 15px;
         }
 
         /* --- COLLAPSIBLE SECTIONS (ACCORDION) - Premium Design --- */
@@ -1204,14 +1280,14 @@
         }
         
         /* Macronutrient stacked bar visualization */
-        /* --- Macro Breakdown in Modal - Premium Design --- */
+        /* --- Macro Breakdown in Modal - COLLAPSIBLE Premium Design --- */
         .macro-breakdown {
             margin-top: 28px;
-            padding: 22px;
             background: linear-gradient(145deg, var(--bg-color) 0%, rgba(16, 185, 129, 0.04) 100%);
             border-radius: 20px;
             border: 1px solid rgba(16, 185, 129, 0.1);
             box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
         }
         
         [data-theme="dark"] .macro-breakdown {
@@ -1219,28 +1295,70 @@
             border: 1px solid rgba(52, 211, 153, 0.12);
         }
         
+        /* Collapsible header for macro-breakdown */
+        .macro-breakdown-header {
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: transparent;
+            transition: background 0.3s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .macro-breakdown-header:hover,
+        .macro-breakdown-header:active {
+            background: rgba(16, 185, 129, 0.06);
+        }
+        
+        [data-theme="dark"] .macro-breakdown-header:hover,
+        [data-theme="dark"] .macro-breakdown-header:active {
+            background: rgba(52, 211, 153, 0.08);
+        }
+        
         .macro-breakdown-title {
             font-size: 0.8rem;
             font-weight: 700;
             color: var(--text-light);
-            margin-bottom: 18px;
+            margin: 0;
             text-transform: uppercase;
             letter-spacing: 1px;
-            text-align: center;
-            position: relative;
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 10px;
         }
         
-        .macro-breakdown-title::before,
-        .macro-breakdown-title::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent);
-            max-width: 60px;
+        .macro-breakdown-title i {
+            color: var(--primary-red);
+            font-size: 1rem;
+        }
+        
+        .macro-breakdown-toggle {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+        }
+        
+        .macro-breakdown.open .macro-breakdown-toggle {
+            transform: rotate(180deg);
+        }
+        
+        /* Collapsible content for macro-breakdown */
+        .macro-breakdown-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .macro-breakdown.open .macro-breakdown-content {
+            max-height: 500px;
+        }
+        
+        .macro-breakdown-body {
+            padding: 0 20px 20px;
         }
         
         /* Modal macro-bar-container - used within meal info modal */
@@ -1652,7 +1770,7 @@
         }
 
         /* ===  MACROS VISUALIZATION CONTAINER === */
-        /* --- Macros Visualization Container - Premium Design --- */
+        /* --- Macros Visualization Container - Premium Design (NO animation) --- */
         .macros-viz-container {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
             border-radius: 24px;
@@ -1664,7 +1782,7 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.9);
             border: 1px solid rgba(16, 185, 129, 0.1);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: fadeIn 0.6s ease;
+            /* Animation removed as per requirements */
             position: relative;
             overflow: hidden;
         }
@@ -1677,13 +1795,7 @@
             right: 0;
             height: 4px;
             background: linear-gradient(90deg, var(--primary-red), var(--primary-accent), var(--secondary-accent), var(--primary-red));
-            background-size: 200% 100%;
-            animation: shimmer 3s linear infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+            /* Static gradient - no shimmer animation */
         }
 
         [data-theme="dark"] .macros-viz-container {
@@ -2597,14 +2709,24 @@
                 <div class="modal-benefit">
                     <strong><i class="fas fa-heartbeat"></i> Ползи:</strong> <span id="mBenefit">Текст ползи...</span>
                 </div>
-                <!-- Macronutrient Breakdown -->
+                <!-- Macronutrient Breakdown - COLLAPSIBLE (closed by default) -->
                 <div class="macro-breakdown" id="macroBreakdown" style="display: none;">
-                    <div class="macro-breakdown-title">Хранителни Макроелементи</div>
-                    <div class="macro-bar-container" id="macroBar">
-                        <!-- Segments will be added dynamically -->
+                    <div class="macro-breakdown-header" onclick="toggleMacroBreakdown()">
+                        <div class="macro-breakdown-title">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Хранителни Макроелементи</span>
+                        </div>
+                        <i class="fas fa-chevron-down macro-breakdown-toggle"></i>
                     </div>
-                    <div class="macro-legend" id="macroLegend">
-                        <!-- Legend items will be added dynamically -->
+                    <div class="macro-breakdown-content">
+                        <div class="macro-breakdown-body">
+                            <div class="macro-bar-container" id="macroBar">
+                                <!-- Segments will be added dynamically -->
+                            </div>
+                            <div class="macro-legend" id="macroLegend">
+                                <!-- Legend items will be added dynamically -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4358,6 +4480,14 @@
             }
         }
 
+        // --- Macro Breakdown Collapsible Toggle ---
+        function toggleMacroBreakdown() {
+            const macroBreakdown = document.getElementById('macroBreakdown');
+            if (macroBreakdown) {
+                macroBreakdown.classList.toggle('open');
+            }
+        }
+
         // --- Modal Logic ---
         const modal = document.getElementById('infoModal');
         const mTitle = document.getElementById('mTitle');
@@ -4424,19 +4554,27 @@
             mBenefit.textContent = benefit;
             
             // Render dessert component section if present (as part of meal description)
+            // Using new ROW layout structure
             const existingDessertSection = document.getElementById('mDessert');
             if (existingDessertSection) existingDessertSection.remove();
             if (dessert && dessert.name) {
                 const dessertEl = document.createElement('div');
                 dessertEl.id = 'mDessert';
                 dessertEl.className = 'meal-dessert';
-                const weightHtml = dessert.weight
-                    ? ` • ${escapeHtmlWithBreaks(dessert.weight)}`
-                    : '';
-                const descHtml = dessert.description
-                    ? `<span class="meal-dessert-desc">- ${escapeHtmlWithBreaks(dessert.description)}</span>`
-                    : '';
-                dessertEl.innerHTML = `<i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(dessert.name)}${weightHtml}${descHtml}`;
+                
+                // Build structured row layout
+                let innerHtml = `<div class="dessert-header"><i class="fas fa-cookie-bite"></i><strong>Десерт</strong></div>`;
+                innerHtml += `<div class="dessert-name">${escapeHtmlWithBreaks(dessert.name)}</div>`;
+                
+                if (dessert.weight) {
+                    innerHtml += `<div class="dessert-weight">${escapeHtmlWithBreaks(dessert.weight)}</div>`;
+                }
+                
+                if (dessert.description) {
+                    innerHtml += `<span class="meal-dessert-desc">${escapeHtmlWithBreaks(dessert.description)}</span>`;
+                }
+                
+                dessertEl.innerHTML = innerHtml;
                 mDesc.insertAdjacentElement('afterend', dessertEl);
             }
             
@@ -4499,6 +4637,8 @@
                     }
                     
                     macroBreakdown.style.display = 'block';
+                    // Ensure it starts collapsed (closed by default)
+                    macroBreakdown.classList.remove('open');
                 } else {
                     macroBreakdown.style.display = 'none';
                 }
