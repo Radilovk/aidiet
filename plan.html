@@ -102,7 +102,7 @@
 
         /* --- HEADER --- */
         header {
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.75);
             padding: calc(20px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) 20px calc(24px + var(--safe-area-inset-left));
             min-height: calc(60px + var(--safe-area-inset-top));
             display: flex;
@@ -111,16 +111,17 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 0 1px 20px rgba(16, 185, 129, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+            backdrop-filter: blur(24px) saturate(200%);
+            -webkit-backdrop-filter: blur(24px) saturate(200%);
             transition: all 0.3s ease;
-            border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+            border-bottom: 1px solid rgba(16, 185, 129, 0.06);
         }
 
         [data-theme="dark"] header {
-            background: rgba(30, 41, 59, 0.7);
-            border-bottom: 1px solid rgba(52, 211, 153, 0.1);
+            background: rgba(15, 20, 25, 0.8);
+            border-bottom: 1px solid rgba(52, 211, 153, 0.08);
+            box-shadow: 0 1px 20px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .back-btn {
@@ -214,7 +215,7 @@
         .days-nav {
             display: flex;
             overflow-x: auto;
-            padding: 20px 15px;
+            padding: 18px 15px;
             background: var(--bg-color);
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none; /* Hide scrollbar Firefox */
@@ -224,23 +225,23 @@
 
         .day-chip {
             background: var(--card-bg);
-            border: 2px solid transparent;
-            padding: 12px 22px;
-            border-radius: 30px;
+            border: 2px solid rgba(16, 185, 129, 0.06);
+            padding: 10px 20px;
+            border-radius: 14px;
             margin: 0;
             white-space: nowrap;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 600;
             color: var(--text-dark);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-width: 80px;
+            min-width: 76px;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
             position: relative;
             overflow: hidden;
         }
@@ -264,11 +265,11 @@
         }
 
         .day-chip.active {
-            background: var(--primary-red);
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-accent));
             color: white;
             border-color: transparent;
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
-            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
         }
 
         .day-chip.active::before {
@@ -288,17 +289,17 @@
         .meal-card {
             background: var(--card-bg);
             border-radius: var(--radius);
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
+            padding: 22px 24px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.06);
         }
 
         .meal-card::before {
@@ -306,10 +307,10 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 4px;
+            width: 3px;
             height: 100%;
-            background: var(--primary-red);
-            transition: width 0.4s ease, opacity 0.3s ease;
+            background: linear-gradient(180deg, var(--primary-red), var(--primary-accent));
+            transition: width 0.35s ease, opacity 0.3s ease;
             border-radius: var(--radius) 0 0 var(--radius);
         }
 
@@ -327,13 +328,13 @@
         }
 
         .meal-card:hover {
-            transform: translateY(-4px) translateX(4px);
-            box-shadow: var(--shadow-hover);
-            border-color: rgba(16, 185, 129, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 28px rgba(16, 185, 129, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+            border-color: rgba(16, 185, 129, 0.15);
         }
 
         .meal-card:hover::before {
-            width: 6px;
+            width: 5px;
         }
 
         .meal-card:hover::after {
@@ -474,11 +475,11 @@
         }
 
         .info-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
             border: none;
-            background: var(--secondary-accent);
+            background: linear-gradient(135deg, var(--secondary-accent), #6366f1);
             color: white;
             display: flex;
             align-items: center;
@@ -486,16 +487,16 @@
             cursor: pointer;
             margin-left: 15px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 18px;
+            font-size: 16px;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
             position: relative;
             z-index: 1;
         }
         
         .info-btn:hover { 
-            transform: scale(1.1) rotate(10deg);
-            box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5);
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
         }
         
         .info-btn:active { 
@@ -787,15 +788,52 @@
 
         .modal-card {
             background: var(--card-bg);
-            border-radius: 20px;
-            padding: 28px;
+            border-radius: 24px;
+            padding: 0;
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
+            max-height: calc(90vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+            overflow-y: auto;
+            overflow-x: hidden;
             transform: translateY(30px) scale(0.9);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            border: 2px solid rgba(16, 185, 129, 0.1);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(16, 185, 129, 0.08);
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-red) transparent;
+        }
+
+        .modal-card::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .modal-card::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-card::-webkit-scrollbar-thumb {
+            background: var(--primary-red);
+            border-radius: 10px;
+        }
+
+        .modal-card::before {
+            content: '';
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: block;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981, #34d399, #3b82f6, #34d399, #10b981);
+            background-size: 200% 100%;
+            animation: modalGradientShift 3s ease infinite;
+            z-index: 2;
+            flex-shrink: 0;
+        }
+
+        @keyframes modalGradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         .modal-overlay.active .modal-card {
@@ -804,57 +842,82 @@
 
         .modal-close {
             position: absolute;
-            top: 18px;
-            right: 18px;
+            top: 20px;
+            right: 20px;
             border: none;
-            background: var(--soft-red);
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            font-size: 1.1rem;
-            color: var(--primary-red);
+            background: rgba(16, 185, 129, 0.08);
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            color: var(--text-light);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 3;
+            backdrop-filter: blur(4px);
         }
 
         .modal-close:hover {
             transform: rotate(90deg) scale(1.1);
             background: var(--primary-red);
             color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
         .modal-title {
-            color: var(--primary-red);
-            font-size: 1.3rem;
-            margin-bottom: 16px;
-            font-weight: 700;
-            padding-right: 40px;
+            color: var(--text-dark);
+            font-size: 1.2rem;
+            margin-bottom: 0;
+            padding: 28px 52px 0 28px;
+            font-weight: 800;
             white-space: pre-line;
+            letter-spacing: -0.01em;
+            line-height: 1.35;
         }
 
         .modal-body {
-            font-size: 1rem;
+            font-size: 0.92rem;
             color: var(--text-dark);
-            line-height: 1.8;
+            line-height: 1.75;
+            padding: 16px 28px 28px;
         }
 
         .modal-benefit {
             margin-top: 20px;
-            padding: 16px 20px;
-            background: var(--soft-red);
-            border-radius: 12px;
-            font-size: 0.9rem;
+            padding: 16px 18px;
+            background: linear-gradient(135deg, var(--soft-red), rgba(16, 185, 129, 0.04));
+            border-radius: 14px;
+            font-size: 0.85rem;
             color: var(--text-dark);
-            border-left: 4px solid var(--primary-accent);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+            border-left: 3px solid var(--primary-accent);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+            line-height: 1.65;
+            transition: all 0.3s ease;
+        }
+
+        .modal-benefit:hover {
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+            transform: translateX(2px);
+        }
+
+        .modal-benefit strong {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--primary-red);
         }
 
         .modal-benefit i {
-            color: var(--secondary-accent);
-            margin-right: 8px;
+            color: var(--primary-red);
+            margin-right: 0;
+            font-size: 0.9rem;
         }
         
         /* Welcome modal specific styles */
@@ -918,62 +981,64 @@
         /* Macronutrient stacked bar visualization */
         .macro-breakdown {
             margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(16, 185, 129, 0.15);
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.04), rgba(59, 130, 246, 0.03));
+            border-radius: 16px;
+            border: 1px solid rgba(16, 185, 129, 0.1);
         }
         
         .macro-breakdown-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 16px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
             text-align: center;
         }
         
-        .macro-bar-container {
+        .macro-breakdown .macro-bar-container {
             width: 100%;
-            height: 36px;
+            height: 32px;
             background: var(--bg-color);
-            border-radius: 18px;
-            overflow: visible; /* Changed from 'hidden' to allow percentage labels above bars */
+            border-radius: 16px;
+            overflow: visible;
             display: flex;
-            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
             margin-bottom: 16px;
-            margin-top: 24px; /* Space for percentage labels above */
+            margin-top: 24px;
         }
         
         .macro-segment {
             height: 100%;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-end;
-            font-size: 0.75rem;
-            font-weight: 600;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
             color: white;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-            min-width: 45px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+            min-width: 40px;
         }
         
         .macro-segment::before {
             content: attr(data-percent);
             position: absolute;
-            top: -22px;
+            top: -20px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--text-dark);
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-light);
             white-space: nowrap;
         }
         
         .macro-segment:hover {
             filter: brightness(1.1);
-            transform: scaleY(1.05);
+            transform: scaleY(1.08);
         }
         
         .macro-segment.protein {
@@ -992,52 +1057,63 @@
             background: linear-gradient(135deg, #10b981, #059669);
         }
         
-        .macro-legend {
+        .macro-breakdown .macro-legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 14px;
+            gap: 10px 16px;
             justify-content: center;
-            padding: 8px 0;
+            padding: 12px 0 4px;
         }
         
-        .macro-legend-item {
+        .macro-breakdown .macro-legend-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             font-size: 0.8rem;
             color: var(--text-dark);
+            padding: 5px 10px;
+            background: var(--soft-red);
+            border-radius: 8px;
+            transition: all 0.2s ease;
         }
         
-        .macro-dot {
-            width: 12px;
-            height: 12px;
+        .macro-breakdown .macro-legend-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .macro-breakdown .macro-dot {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
         }
         
-        .macro-dot.protein {
+        .macro-breakdown .macro-dot.protein {
             background: #3b82f6;
         }
         
-        .macro-dot.fats {
+        .macro-breakdown .macro-dot.fats {
             background: #fbbf24;
         }
         
-        .macro-dot.carbs {
+        .macro-breakdown .macro-dot.carbs {
             background: #ef4444;
         }
         
-        .macro-dot.fiber {
+        .macro-breakdown .macro-dot.fiber {
             background: #10b981;
         }
         
-        .macro-label {
+        .macro-breakdown .macro-label {
             font-weight: 500;
         }
         
-        .macro-value {
-            font-weight: 600;
-            color: var(--primary-red);
+        .macro-breakdown .macro-value {
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 0.8rem;
         }
         
         /* Enhancement #5: Highlight animation for changed meals */
