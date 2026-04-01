@@ -1719,6 +1719,10 @@
                     <i class="fas fa-clipboard-list"></i>
                     <span>Вашият Въпросник</span>
                 </div>
+                <button class="btn btn-primary" id="editBtn" onclick="event.stopPropagation(); enableEditing()">
+                    <i class="fas fa-edit"></i>
+                    Редактирай
+                </button>
                 <i class="fas fa-chevron-down questionnaire-toggle"></i>
             </div>
             <div class="questionnaire-content" id="questionnaireContent">
@@ -1945,10 +1949,6 @@
                 </div>
             </div>
             <div class="notes-actions">
-                <button class="btn btn-primary" id="editBtn" onclick="enableEditing()">
-                    <i class="fas fa-edit"></i>
-                    Редактирай
-                </button>
                 <button class="btn btn-primary hidden" id="saveBtn" onclick="saveChanges()">
                     <i class="fas fa-save"></i>
                     Запази промените
@@ -2088,6 +2088,11 @@
         }
 
         // --- Macros Visualization Loading ---
+        function parseNumericValue(value) {
+            const match = String(value).match(/(\d+(?:\.\d+)?)/);
+            return match ? Math.round(parseFloat(match[1])) : 0;
+        }
+
         function loadMacrosVisualization() {
             try {
                 // Get diet plan from localStorage
@@ -2097,65 +2102,61 @@
                 }
 
                 const dietPlan = JSON.parse(planDataStr);
-                if (!dietPlan || !dietPlan.strategy) {
+                if (!dietPlan || !dietPlan.summary) {
                     return;
                 }
 
-                const strategy = dietPlan.strategy;
+                const summary = dietPlan.summary;
                 const container = document.getElementById('macrosVizContainer');
-                
-                // Check if we have macro data
-                if (strategy.targetDailyCalories || strategy.targetProteinGrams || strategy.targetCarbsGrams || strategy.targetFatsGrams) {
-                    // Update calories
-                    const targetCalories = document.getElementById('targetCalories');
-                    if (targetCalories && strategy.targetDailyCalories) {
-                        targetCalories.textContent = Math.round(strategy.targetDailyCalories);
-                    }
 
-                    // Update protein
-                    const targetProtein = document.getElementById('targetProtein');
-                    if (targetProtein && strategy.targetProteinGrams) {
-                        targetProtein.textContent = Math.round(strategy.targetProteinGrams);
-                    }
+                // Extract calorie value (may be a string like "2000 kcal")
+                let dailyCalories = summary.dailyCalories ? parseNumericValue(summary.dailyCalories) : 0;
 
-                    // Update carbs
-                    const targetCarbs = document.getElementById('targetCarbs');
-                    if (targetCarbs && strategy.targetCarbsGrams) {
-                        targetCarbs.textContent = Math.round(strategy.targetCarbsGrams);
-                    }
+                // Extract macro values (may be strings like "120g")
+                let protein = 0, carbs = 0, fats = 0;
+                if (summary.macros) {
+                    if (summary.macros.protein) protein = parseNumericValue(summary.macros.protein);
+                    if (summary.macros.carbs) carbs = parseNumericValue(summary.macros.carbs);
+                    if (summary.macros.fats) fats = parseNumericValue(summary.macros.fats);
+                }
 
-                    // Update fats
-                    const targetFats = document.getElementById('targetFats');
-                    if (targetFats && strategy.targetFatsGrams) {
-                        targetFats.textContent = Math.round(strategy.targetFatsGrams);
-                    }
+                // If no macros found, calculate from calories using typical distribution
+                if (protein === 0 && carbs === 0 && fats === 0 && dailyCalories > 0) {
+                    protein = Math.round((dailyCalories * 0.25) / 4);
+                    carbs = Math.round((dailyCalories * 0.50) / 4);
+                    fats = Math.round((dailyCalories * 0.25) / 9);
+                }
 
-                    // Calculate and update percentages (calorie-based)
-                    if (strategy.targetDailyCalories > 0) {
-                        const totalCalories = strategy.targetDailyCalories;
-                        const proteinCalories = (strategy.targetProteinGrams || 0) * 4;
-                        const carbsCalories = (strategy.targetCarbsGrams || 0) * 4;
-                        const fatsCalories = (strategy.targetFatsGrams || 0) * 9;
-                        
-                        const proteinPercentage = document.getElementById('proteinPercentage');
-                        const carbsPercentage = document.getElementById('carbsPercentage');
-                        const fatsPercentage = document.getElementById('fatsPercentage');
-                        
-                        if (proteinPercentage) {
-                            proteinPercentage.textContent = Math.round((proteinCalories / totalCalories) * 100) + '%';
-                        }
-                        if (carbsPercentage) {
-                            carbsPercentage.textContent = Math.round((carbsCalories / totalCalories) * 100) + '%';
-                        }
-                        if (fatsPercentage) {
-                            fatsPercentage.textContent = Math.round((fatsCalories / totalCalories) * 100) + '%';
-                        }
-                    }
+                if (dailyCalories === 0 && protein === 0) {
+                    return; // Nothing to show
+                }
 
-                    // Show the container
-                    if (container) {
-                        container.style.display = 'block';
-                    }
+                // Calculate percentages (calorie-based)
+                const totalMacroCalories = (protein * 4) + (carbs * 4) + (fats * 9);
+                const proteinPercent = totalMacroCalories > 0 ? Math.round((protein * 4 / totalMacroCalories) * 100) : 0;
+                const carbsPercent = totalMacroCalories > 0 ? Math.round((carbs * 4 / totalMacroCalories) * 100) : 0;
+                const fatsPercent = totalMacroCalories > 0 ? Math.round((fats * 9 / totalMacroCalories) * 100) : 0;
+
+                // Update display elements (with null checks)
+                const elCalories = document.getElementById('targetCalories');
+                const elProtein = document.getElementById('targetProtein');
+                const elCarbs = document.getElementById('targetCarbs');
+                const elFats = document.getElementById('targetFats');
+                const elProteinPct = document.getElementById('proteinPercentage');
+                const elCarbsPct = document.getElementById('carbsPercentage');
+                const elFatsPct = document.getElementById('fatsPercentage');
+
+                if (elCalories) elCalories.textContent = dailyCalories;
+                if (elProtein) elProtein.textContent = protein;
+                if (elCarbs) elCarbs.textContent = carbs;
+                if (elFats) elFats.textContent = fats;
+                if (elProteinPct) elProteinPct.textContent = proteinPercent + '%';
+                if (elCarbsPct) elCarbsPct.textContent = carbsPercent + '%';
+                if (elFatsPct) elFatsPct.textContent = fatsPercent + '%';
+
+                // Show the container
+                if (container) {
+                    container.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error loading macros visualization:', error);
@@ -2225,6 +2226,14 @@
         // --- Editing Functions ---
         function enableEditing() {
             isEditing = true;
+
+            // Open the questionnaire if it is collapsed
+            const container = document.getElementById('questionnaireContainer');
+            const header = container ? container.querySelector('.questionnaire-header') : null;
+            if (container && !container.classList.contains('open')) {
+                container.classList.add('open');
+                if (header) header.setAttribute('aria-expanded', 'true');
+            }
 
             // Enable all inputs
             const inputs = document.querySelectorAll('[data-field]');
