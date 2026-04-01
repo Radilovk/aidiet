@@ -225,6 +225,314 @@
             box-shadow: var(--shadow);
         }
 
+        /* ===  MACROS VISUALIZATION CONTAINER for Profile Page === */
+        .macros-viz-container {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
+            border-radius: 20px;
+            padding: 24px 20px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 6px 24px rgba(16, 185, 129, 0.1),
+                0 2px 6px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(16, 185, 129, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .macros-viz-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-red), var(--accent-blue), var(--accent-yellow), var(--primary-red));
+        }
+
+        [data-theme="dark"] .macros-viz-container {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border-color: rgba(52, 211, 153, 0.12);
+            box-shadow: 
+                0 6px 24px rgba(0, 0, 0, 0.25),
+                0 2px 6px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .macros-viz-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .macros-viz-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            line-height: 1.3;
+        }
+
+        .macros-viz-title i {
+            color: var(--primary-red);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .macros-viz-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        .calories-display {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 18px 16px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
+            border-radius: 16px;
+            color: white;
+            box-shadow: 
+                0 8px 24px rgba(16, 185, 129, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .calories-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .calories-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .calories-value {
+            font-size: 2.4rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .calories-unit {
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0.85;
+        }
+
+        .macros-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 380px) {
+            .macros-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+
+        .macro-card {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
+            border-radius: 14px;
+            padding: 14px 10px;
+            text-align: center;
+            box-shadow: 
+                0 3px 12px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        [data-theme="dark"] .macro-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
+            box-shadow: 
+                0 3px 12px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .macro-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--macro-color);
+        }
+
+        .macro-card.protein {
+            --macro-color: #6366f1;
+        }
+
+        .macro-card.carbs {
+            --macro-color: #3b82f6;
+        }
+
+        .macro-card.fats {
+            --macro-color: #f59e0b;
+        }
+
+        .macro-icon {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .macro-card .macro-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .macro-card .macro-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1;
+            margin-bottom: 3px;
+        }
+
+        .macro-unit {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            font-weight: 600;
+        }
+
+        .macro-percentage {
+            font-size: 0.75rem;
+            color: var(--macro-color);
+            font-weight: 700;
+            margin-top: 8px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .macro-card.protein .macro-percentage {
+            background: rgba(99, 102, 241, 0.1);
+            color: #6366f1;
+        }
+
+        .macro-card.carbs .macro-percentage {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .macro-card.fats .macro-percentage {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+        }
+
+        /* ===  QUESTIONNAIRE COLLAPSIBLE CONTAINER === */
+        .questionnaire-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid rgba(16, 185, 129, 0.1);
+        }
+
+        .questionnaire-header {
+            padding: 18px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, var(--primary-red), #059669);
+            color: #ffffff;
+            transition: all 0.3s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .questionnaire-header:hover,
+        .questionnaire-header:active {
+            background: linear-gradient(135deg, #059669, var(--primary-red));
+        }
+
+        .questionnaire-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .questionnaire-title i {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .questionnaire-toggle {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .questionnaire-container.open .questionnaire-toggle {
+            transform: rotate(180deg);
+        }
+
+        .questionnaire-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .questionnaire-container.open .questionnaire-content {
+            max-height: 8000px; /* Large enough for all form sections */
+        }
+
+        .questionnaire-body {
+            padding: 20px;
+        }
+
+        /* Form sections inside questionnaire container */
+        .questionnaire-body .form-section {
+            margin-bottom: 16px;
+            border-radius: 16px;
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        [data-theme="dark"] .questionnaire-body .form-section {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border-color: rgba(52, 211, 153, 0.1);
+        }
+
+        .questionnaire-body .form-section:last-child {
+            margin-bottom: 0;
+        }
+
         /* Collapsible Plan Justification */
         .plan-justification-container {
             background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
@@ -584,26 +892,44 @@
         /* --- BUTTONS --- */
         .button-group {
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 24px;
+            padding: 20px;
             flex-wrap: wrap;
             justify-content: center;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(16, 185, 129, 0.1);
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 14px 24px;
             border: none;
-            border-radius: 8px;
-            font-size: 1rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             gap: 8px;
             flex: 1;
             min-width: 150px;
             justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+            pointer-events: none;
         }
 
         @media (max-width: 600px) {
@@ -611,29 +937,42 @@
                 flex: 1 1 100%;
                 padding: 14px 20px;
             }
+            
+            .button-group {
+                padding: 16px;
+            }
         }
 
         .btn-primary {
-            background: var(--primary-red);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
             color: white;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
         }
 
         .btn-primary:hover {
-            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
         }
 
         .btn-secondary {
-            background: var(--text-light);
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
             color: white;
+            box-shadow: 0 4px 14px rgba(107, 114, 128, 0.25);
         }
 
         .btn-secondary:hover {
-            background: #6c7a7b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(107, 114, 128, 0.35);
         }
 
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none !important;
         }
 
         .hidden {
@@ -1152,6 +1491,49 @@
 
         <div id="alertContainer"></div>
 
+        <!-- MACROS VISUALIZATION CONTAINER - Moved from plan.html -->
+        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
+            <div class="macros-viz-header">
+                <div class="macros-viz-title">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Вашата Хранителна Цел</span>
+                </div>
+                <div class="macros-viz-subtitle">Препоръчителен дневен прием</div>
+            </div>
+
+            <div class="calories-display">
+                <div class="calories-label">Дневни Калории</div>
+                <div class="calories-value" id="targetCalories">2000</div>
+                <div class="calories-unit">kcal</div>
+            </div>
+
+            <div class="macros-grid">
+                <div class="macro-card protein">
+                    <div class="macro-icon">🥩</div>
+                    <div class="macro-label">Протеини</div>
+                    <div class="macro-value" id="targetProtein">120</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="proteinPercentage">25%</div>
+                </div>
+
+                <div class="macro-card carbs">
+                    <div class="macro-icon">🍞</div>
+                    <div class="macro-label">Въглехидрати</div>
+                    <div class="macro-value" id="targetCarbs">250</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="carbsPercentage">50%</div>
+                </div>
+
+                <div class="macro-card fats">
+                    <div class="macro-icon">🥑</div>
+                    <div class="macro-label">Мазнини</div>
+                    <div class="macro-value" id="targetFats">55</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="fatsPercentage">25%</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Unified Strategy Panel -->
         <div class="plan-justification-container" id="strategyPanelContainer" style="display: none;">
             <div class="plan-justification-header" onclick="openStrategyModal()">
@@ -1224,6 +1606,18 @@
                 </div>
             </div>
         </div>
+
+        <!-- QUESTIONNAIRE COLLAPSIBLE CONTAINER -->
+        <div class="questionnaire-container" id="questionnaireContainer">
+            <div class="questionnaire-header" onclick="toggleQuestionnaire()">
+                <div class="questionnaire-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Вашият Въпросник</span>
+                </div>
+                <i class="fas fa-chevron-down questionnaire-toggle"></i>
+            </div>
+            <div class="questionnaire-content">
+                <div class="questionnaire-body">
 
         <!-- Basic Info Section -->
         <div class="form-section">
@@ -1438,6 +1832,10 @@
             </div>
         </div>
 
+                </div> <!-- End questionnaire-body -->
+            </div> <!-- End questionnaire-content -->
+        </div> <!-- End questionnaire-container -->
+
         <!-- Action Buttons -->
         <div class="button-group">
             <button class="btn btn-primary" id="editBtn" onclick="enableEditing()">
@@ -1557,6 +1955,89 @@
         function handleStrategyModalClick(event) {
             if (event.target === document.getElementById('strategyModal')) {
                 closeStrategyModal();
+            }
+        }
+
+        // --- Questionnaire Collapsible Toggle ---
+        function toggleQuestionnaire() {
+            const container = document.getElementById('questionnaireContainer');
+            if (container) {
+                container.classList.toggle('open');
+            }
+        }
+
+        // --- Macros Visualization Loading ---
+        function loadMacrosVisualization() {
+            try {
+                // Get diet plan from localStorage
+                const planDataStr = localStorage.getItem('dietPlan');
+                if (!planDataStr) {
+                    return; // No plan data, keep container hidden
+                }
+
+                const dietPlan = JSON.parse(planDataStr);
+                if (!dietPlan || !dietPlan.strategy) {
+                    return;
+                }
+
+                const strategy = dietPlan.strategy;
+                const container = document.getElementById('macrosVizContainer');
+                
+                // Check if we have macro data
+                if (strategy.targetDailyCalories || strategy.targetProteinGrams || strategy.targetCarbsGrams || strategy.targetFatsGrams) {
+                    // Update calories
+                    const targetCalories = document.getElementById('targetCalories');
+                    if (targetCalories && strategy.targetDailyCalories) {
+                        targetCalories.textContent = Math.round(strategy.targetDailyCalories);
+                    }
+
+                    // Update protein
+                    const targetProtein = document.getElementById('targetProtein');
+                    if (targetProtein && strategy.targetProteinGrams) {
+                        targetProtein.textContent = Math.round(strategy.targetProteinGrams);
+                    }
+
+                    // Update carbs
+                    const targetCarbs = document.getElementById('targetCarbs');
+                    if (targetCarbs && strategy.targetCarbsGrams) {
+                        targetCarbs.textContent = Math.round(strategy.targetCarbsGrams);
+                    }
+
+                    // Update fats
+                    const targetFats = document.getElementById('targetFats');
+                    if (targetFats && strategy.targetFatsGrams) {
+                        targetFats.textContent = Math.round(strategy.targetFatsGrams);
+                    }
+
+                    // Calculate and update percentages (calorie-based)
+                    if (strategy.targetDailyCalories > 0) {
+                        const totalCalories = strategy.targetDailyCalories;
+                        const proteinCalories = (strategy.targetProteinGrams || 0) * 4;
+                        const carbsCalories = (strategy.targetCarbsGrams || 0) * 4;
+                        const fatsCalories = (strategy.targetFatsGrams || 0) * 9;
+                        
+                        const proteinPercentage = document.getElementById('proteinPercentage');
+                        const carbsPercentage = document.getElementById('carbsPercentage');
+                        const fatsPercentage = document.getElementById('fatsPercentage');
+                        
+                        if (proteinPercentage) {
+                            proteinPercentage.textContent = Math.round((proteinCalories / totalCalories) * 100) + '%';
+                        }
+                        if (carbsPercentage) {
+                            carbsPercentage.textContent = Math.round((carbsCalories / totalCalories) * 100) + '%';
+                        }
+                        if (fatsPercentage) {
+                            fatsPercentage.textContent = Math.round((fatsCalories / totalCalories) * 100) + '%';
+                        }
+                    }
+
+                    // Show the container
+                    if (container) {
+                        container.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading macros visualization:', error);
             }
         }
 
@@ -2043,6 +2524,7 @@
             initializeTheme();
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
+            loadMacrosVisualization(); // Load macros viz container above strategy panel
             loadStrategyPanel(); // Load unified strategy panel
         });
 
