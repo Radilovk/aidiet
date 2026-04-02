@@ -2773,6 +2773,8 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
 
   // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
+    // Pre-resolve clinical protocol once for custom prompt variables
+    const _proto = getClinicalProtocol(data.clinicalProtocol);
     // Replace variables in custom prompt
     let prompt = replacePromptVariables(customPrompt, {
       userData: data,
@@ -2810,9 +2812,9 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
       sleepDuration: data.sleepDuration || '7-8',
       sportActivity: data.sportActivity || 'няма',
       dailyActivity: data.dailyActivity || 'средна',
-      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
-      clinicalProtocolSupplementSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolSupplementSection(p) : ''; })(),
-      clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
+      clinicalProtocolSection: _proto ? buildClinicalProtocolPromptSection(_proto) : '',
+      clinicalProtocolSupplementSection: _proto ? buildClinicalProtocolSupplementSection(_proto) : '',
+      clinicalProtocolName: _proto ? _proto.name : ''
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
@@ -2864,8 +2866,6 @@ async function handleGeneratePlan(request, env) {
       if (!data.goal) {
         data.goal = clinicalProtocol.goalMapping;
       }
-      // Store protocol name for reference in prompts
-      data._clinicalProtocolName = clinicalProtocol.name;
     }
     
     // Step 0: Validate data adequacy (unrealistic, offensive, inappropriate data)
