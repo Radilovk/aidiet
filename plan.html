@@ -2830,7 +2830,7 @@
                 <i class="fas fa-moon" id="themeIcon" aria-hidden="true"></i>
             </button>
 
-            <div class="user-avatar" onclick="goToProfile()" style="cursor: pointer;" title="Моят профил" role="button" tabindex="0" aria-label="Моят профил"></div>
+            <button class="user-avatar" onclick="goToProfile()" onkeydown="if(event.key==='Enter'||event.key===' ')goToProfile()" style="cursor: pointer;" title="Моят профил" aria-label="Моят профил"></button>
         </div>
     </header>
 
@@ -2888,13 +2888,13 @@
     <!-- Navigation: Days of the week -->
     <nav class="days-nav" id="daysContainer" role="tablist" aria-label="Избор на ден">
         <!-- Will be populated by JS or Static -->
-        <button class="day-chip active" onclick="selectDay(1)" role="tab" aria-selected="true" aria-controls="day-1-panel" tabindex="0">Ден 1</button>
-        <button class="day-chip" onclick="selectDay(2)" role="tab" aria-selected="false" aria-controls="day-2-panel" tabindex="-1">Ден 2</button>
-        <button class="day-chip" onclick="selectDay(3)" role="tab" aria-selected="false" aria-controls="day-3-panel" tabindex="-1">Ден 3</button>
-        <button class="day-chip" onclick="selectDay(4)" role="tab" aria-selected="false" aria-controls="day-4-panel" tabindex="-1">Ден 4</button>
-        <button class="day-chip" onclick="selectDay(5)" role="tab" aria-selected="false" aria-controls="day-5-panel" tabindex="-1">Ден 5</button>
-        <button class="day-chip" onclick="selectDay(6)" role="tab" aria-selected="false" aria-controls="day-6-panel" tabindex="-1">Ден 6</button>
-        <button class="day-chip" onclick="selectDay(7)" role="tab" aria-selected="false" aria-controls="day-7-panel" tabindex="-1">Ден 7</button>
+        <button class="day-chip active" onclick="selectDay(1)" role="tab" aria-selected="true" tabindex="0">Ден 1</button>
+        <button class="day-chip" onclick="selectDay(2)" role="tab" aria-selected="false" tabindex="-1">Ден 2</button>
+        <button class="day-chip" onclick="selectDay(3)" role="tab" aria-selected="false" tabindex="-1">Ден 3</button>
+        <button class="day-chip" onclick="selectDay(4)" role="tab" aria-selected="false" tabindex="-1">Ден 4</button>
+        <button class="day-chip" onclick="selectDay(5)" role="tab" aria-selected="false" tabindex="-1">Ден 5</button>
+        <button class="day-chip" onclick="selectDay(6)" role="tab" aria-selected="false" tabindex="-1">Ден 6</button>
+        <button class="day-chip" onclick="selectDay(7)" role="tab" aria-selected="false" tabindex="-1">Ден 7</button>
     </nav>
 
     <!-- Greeting Banner -->
@@ -4242,17 +4242,20 @@
             const streakData = JSON.parse(localStorage.getItem('streakData') || '{}');
             const today = new Date().toDateString();
             
+            // Only process if not already completed today
             if (streakData.lastDate !== today || !streakData.completedToday) {
                 const lastDate = new Date(streakData.lastDate || today);
                 const todayDate = new Date(today);
                 const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
                 
-                if (diffDays <= 1) {
-                    streakData.count = (streakData.count || 0) + (diffDays === 1 ? 1 : 0);
-                    if (diffDays === 0 && !streakData.completedToday) {
-                        streakData.count++;
-                    }
-                } else {
+                if (diffDays === 0 && !streakData.completedToday) {
+                    // First completion today - start or continue streak
+                    streakData.count = (streakData.count || 0) + 1;
+                } else if (diffDays === 1) {
+                    // Continuing streak from yesterday
+                    streakData.count = (streakData.count || 0) + 1;
+                } else if (diffDays > 1) {
+                    // Streak broken - reset to 1
                     streakData.count = 1;
                 }
                 
