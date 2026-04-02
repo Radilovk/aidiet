@@ -602,22 +602,20 @@
             color: #fcd34d;
         }
         
-        /* Dessert description displayed as separate row */
+        /* Dessert description displayed as flowing paragraph */
         .meal-dessert#mDessert .meal-dessert-desc {
             display: block;
             font-size: 0.82rem;
+            font-weight: 400;
             color: #78350f;
-            line-height: 1.4;
+            line-height: 1.6;
             opacity: 0.9;
-            padding-top: 4px;
-            margin-top: 2px;
-            border-top: 1px dashed rgba(217, 119, 6, 0.25);
+            margin-top: 6px;
             width: 100%;
         }
         
         [data-theme="dark"] .meal-dessert#mDessert .meal-dessert-desc {
             color: #fef3c7;
-            border-top-color: rgba(251, 191, 36, 0.2);
         }
 
         .modal-dessert {
@@ -1594,6 +1592,33 @@
             }
         }
 
+        /* Greeting Banner */
+        .greeting-banner {
+            padding: 14px 16px;
+            margin: 0;
+            background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(5,150,105,0.05) 100%);
+            border-bottom: 1px solid rgba(16,185,129,0.12);
+            text-align: center;
+        }
+
+        .greeting-banner p {
+            margin: 0;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--primary-red);
+            line-height: 1.45;
+        }
+
+        .greeting-banner .greeting-name {
+            color: var(--text-dark);
+            font-weight: 700;
+        }
+
+        [data-theme="dark"] .greeting-banner {
+            background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.06) 100%);
+            border-bottom-color: rgba(16,185,129,0.15);
+        }
+
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
@@ -2522,6 +2547,11 @@
         <div class="day-chip" onclick="selectDay(6)">Ден 6</div>
         <div class="day-chip" onclick="selectDay(7)">Ден 7</div>
     </nav>
+
+    <!-- Greeting Banner -->
+    <div class="greeting-banner" id="greetingBanner">
+        <p>Здравей, <span class="greeting-name" id="greetingName"></span>! 🌿 Днес ще направим още една важна крачка към постигането на твоята цел!</p>
+    </div>
 
     <!-- Main Content -->
     <div class="container">
@@ -3869,6 +3899,16 @@
                     avatar.textContent = userData.name.charAt(0).toUpperCase();
                 }
 
+                // Update greeting banner name
+                const greetingNameEl = document.getElementById('greetingName');
+                if (greetingNameEl) {
+                    if (userData.name) {
+                        greetingNameEl.textContent = userData.name;
+                    } else {
+                        greetingNameEl.textContent = userData.gender === 'Жена' ? 'приятелко' : 'приятелю';
+                    }
+                }
+
                 // Render initial data
                 renderDay(1);
                 renderRecommendations();
@@ -4550,7 +4590,7 @@
                 }
                 
                 if (dessert.description) {
-                    innerHtml += `<span class="meal-dessert-desc">${escapeHtmlWithBreaks(dessert.description)}</span>`;
+                    innerHtml += `<span class="meal-dessert-desc">${escapeHtml(dessert.description)}</span>`;
                 }
                 
                 dessertEl.innerHTML = innerHtml;
