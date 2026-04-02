@@ -31,6 +31,8 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192x192.png">
     <title>Диетичен План</title>
+    <!-- Design System 2026 -->
+    <link rel="stylesheet" href="./design-system.css">
     <!-- Font Awesome за икони -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -2389,6 +2391,291 @@
             vertical-align: middle;
         }
 
+        /* === DESIGN SYSTEM 2026 ENHANCEMENTS === */
+        
+        /* Daily Progress Section */
+        .daily-progress-section {
+            background: var(--ds-bg-card, var(--card-bg));
+            border-radius: var(--ds-radius-2xl, 20px);
+            padding: var(--ds-space-5, 20px);
+            margin: var(--ds-space-4, 16px);
+            box-shadow: var(--ds-shadow-md, var(--shadow));
+            border: 1px solid var(--ds-border-secondary, rgba(16, 185, 129, 0.1));
+        }
+        
+        [data-theme="dark"] .daily-progress-section {
+            background: var(--ds-bg-card, var(--card-bg));
+            border-color: var(--ds-border-secondary, rgba(52, 211, 153, 0.1));
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--ds-space-4, 16px);
+            flex-wrap: wrap;
+            gap: var(--ds-space-3, 12px);
+        }
+        
+        .progress-title {
+            font-size: var(--ds-text-lg, 1.1rem);
+            font-weight: var(--ds-font-bold, 700);
+            color: var(--ds-text-primary, var(--text-dark));
+            display: flex;
+            align-items: center;
+            gap: var(--ds-space-2, 8px);
+            margin: 0;
+        }
+        
+        .progress-title i {
+            color: var(--ds-primary-500, var(--primary-red));
+        }
+        
+        .progress-circles {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--ds-space-4, 16px);
+        }
+        
+        /* Progress circle enhancements */
+        .ds-progress-circle {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--ds-space-2, 8px);
+        }
+        
+        .ds-progress-circle svg {
+            width: var(--size, 90px);
+            height: var(--size, 90px);
+            transform: rotate(-90deg);
+        }
+        
+        .ds-progress-circle-bg {
+            fill: none;
+            stroke: var(--ds-gray-200, #e5e7eb);
+            stroke-width: var(--stroke-width, 6px);
+        }
+        
+        [data-theme="dark"] .ds-progress-circle-bg {
+            stroke: var(--ds-gray-700, #374151);
+        }
+        
+        .ds-progress-circle-fill {
+            fill: none;
+            stroke: var(--ds-primary-500, var(--primary-red));
+            stroke-width: var(--stroke-width, 6px);
+            stroke-linecap: round;
+            stroke-dasharray: 282.74;
+            stroke-dashoffset: calc(282.74 * (1 - var(--progress, 0) / 100));
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .ds-progress-circle-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, calc(-50% - 10px));
+            font-size: var(--ds-text-lg, 1.1rem);
+            font-weight: var(--ds-font-bold, 700);
+            color: var(--ds-text-primary, var(--text-dark));
+        }
+        
+        .progress-label {
+            font-size: var(--ds-text-xs, 0.75rem);
+            font-weight: var(--ds-font-semibold, 600);
+            color: var(--ds-text-secondary, var(--text-light));
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Daily checks styling */
+        .ds-daily-checks {
+            display: flex;
+            gap: var(--ds-space-2, 8px);
+        }
+        
+        .ds-daily-check {
+            width: 14px;
+            height: 14px;
+            border-radius: var(--ds-radius-full, 50%);
+            background: var(--ds-gray-200, #e5e7eb);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+        }
+        
+        [data-theme="dark"] .ds-daily-check {
+            background: var(--ds-gray-700, #374151);
+        }
+        
+        .ds-daily-check.completed {
+            background: var(--ds-primary-500, var(--primary-red));
+            transform: scale(1.15);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+        }
+        
+        .ds-daily-check:hover {
+            transform: scale(1.2);
+        }
+        
+        /* Streak counter styling */
+        .ds-streak {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--ds-space-1-5, 6px);
+            padding: var(--ds-space-1-5, 6px) var(--ds-space-3, 12px);
+            background: linear-gradient(135deg, var(--ds-accent-gold-100, #fef3c7) 0%, var(--ds-accent-gold-50, #fffbeb) 100%);
+            border-radius: var(--ds-radius-full, 9999px);
+            font-weight: var(--ds-font-semibold, 600);
+            font-size: var(--ds-text-sm, 0.875rem);
+            color: var(--ds-accent-gold-700, #b45309);
+            box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+        }
+        
+        [data-theme="dark"] .ds-streak {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+            color: var(--ds-accent-gold-400, #fbbf24);
+        }
+        
+        .ds-streak-icon {
+            font-size: var(--ds-text-base, 1rem);
+            animation: flame-flicker 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes flame-flicker {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.1) rotate(-5deg); }
+            75% { transform: scale(1.1) rotate(5deg); }
+        }
+        
+        /* Celebration animation */
+        @keyframes celebrate-pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+            }
+        }
+        
+        .celebrate {
+            animation: celebrate-pulse 0.6s ease-out;
+        }
+        
+        /* Confetti animation styles */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            overflow: hidden;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            animation: confetti-fall 3s linear forwards;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        /* Bento-style meal cards grid */
+        .meals-bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--ds-space-4, 16px);
+            margin-bottom: var(--ds-space-6, 24px);
+        }
+        
+        @media (max-width: 600px) {
+            .meals-bento-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .progress-circles {
+                gap: var(--ds-space-2, 8px);
+            }
+            
+            .ds-progress-circle {
+                --size: 70px !important;
+            }
+            
+            .ds-progress-circle-text {
+                font-size: var(--ds-text-sm, 0.875rem);
+            }
+        }
+        
+        /* Enhanced meal card with checkmark */
+        .meal-card-wrapper {
+            position: relative;
+        }
+        
+        .meal-completed-check {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 28px;
+            height: 28px;
+            background: var(--ds-primary-500, var(--primary-red));
+            border-radius: var(--ds-radius-full, 50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            z-index: 10;
+        }
+        
+        .meal-card-wrapper.completed .meal-completed-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .meal-card-wrapper.completed .meal-card {
+            border-color: var(--ds-primary-300, rgba(16, 185, 129, 0.3));
+        }
+        
+        /* Skip link styling */
+        .ds-skip-link {
+            position: absolute;
+            top: -100%;
+            left: var(--ds-space-4, 16px);
+            padding: var(--ds-space-3, 12px) var(--ds-space-6, 24px);
+            background: var(--ds-primary-500, var(--primary-red));
+            color: white;
+            border-radius: var(--ds-radius-lg, 12px);
+            text-decoration: none;
+            font-weight: var(--ds-font-semibold, 600);
+            z-index: 10000;
+            transition: top 0.3s ease;
+        }
+        
+        .ds-skip-link:focus {
+            top: var(--ds-space-4, 16px);
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2522,39 +2809,101 @@
         </div>
     </div>
 
+    <!-- Skip Navigation Link (Accessibility) -->
+    <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
+    
+    <!-- Animated Mesh Background -->
+    <div class="ds-mesh-bg" aria-hidden="true"></div>
+
     <!-- Header -->
-    <header>
-        <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
-        <a href="index.html?stay=1" class="home-btn" title="Начало"><i class="fas fa-home"></i></a>
+    <header role="banner" aria-label="Главна навигация">
+        <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+        <a href="index.html?stay=1" class="home-btn" title="Начало" aria-label="Начална страница"><i class="fas fa-home" aria-hidden="true"></i></a>
         <h1>Моят Хранителен План</h1>
         <div style="display: flex; align-items: center; gap: 10px;">
-            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема">
-                <i class="fas fa-moon" id="themeIcon"></i>
+            <!-- Daily Streak Counter -->
+            <div class="ds-streak" id="streakCounter" title="Последователни дни">
+                <span class="ds-streak-icon">🔥</span>
+                <span id="streakValue">0</span>
+            </div>
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Превключи тема">
+                <i class="fas fa-moon" id="themeIcon" aria-hidden="true"></i>
             </button>
 
-            <div class="user-avatar" onclick="goToProfile()" style="cursor: pointer;" title="Моят профил"></div>
+            <div class="user-avatar" onclick="goToProfile()" style="cursor: pointer;" title="Моят профил" role="button" tabindex="0" aria-label="Моят профил"></div>
         </div>
     </header>
 
+    <!-- Daily Progress Section -->
+    <div class="daily-progress-section" id="dailyProgressSection">
+        <div class="progress-header">
+            <h2 class="progress-title"><i class="fas fa-chart-line" aria-hidden="true"></i> Дневен прогрес</h2>
+            <div class="ds-daily-checks" id="weeklyProgress" aria-label="Седмичен прогрес">
+                <div class="ds-daily-check" data-day="1" title="Понеделник"></div>
+                <div class="ds-daily-check" data-day="2" title="Вторник"></div>
+                <div class="ds-daily-check" data-day="3" title="Сряда"></div>
+                <div class="ds-daily-check" data-day="4" title="Четвъртък"></div>
+                <div class="ds-daily-check" data-day="5" title="Петък"></div>
+                <div class="ds-daily-check" data-day="6" title="Събота"></div>
+                <div class="ds-daily-check" data-day="7" title="Неделя"></div>
+            </div>
+        </div>
+        <div class="progress-circles">
+            <!-- Circular Progress - Meals -->
+            <div class="ds-progress-circle" id="mealsProgress" style="--progress: 0; --size: 90px; --stroke-width: 6px;" aria-label="Прогрес на храненията">
+                <svg viewBox="0 0 100 100" aria-hidden="true">
+                    <circle class="ds-progress-circle-bg" cx="50" cy="50" r="45"></circle>
+                    <circle class="ds-progress-circle-fill" cx="50" cy="50" r="45"></circle>
+                </svg>
+                <div class="ds-progress-circle-text">
+                    <span id="mealsProgressValue">0</span>%
+                </div>
+                <span class="progress-label">Хранения</span>
+            </div>
+            <!-- Circular Progress - Calories -->
+            <div class="ds-progress-circle" id="caloriesProgress" style="--progress: 0; --size: 90px; --stroke-width: 6px;" aria-label="Прогрес на калориите">
+                <svg viewBox="0 0 100 100" aria-hidden="true">
+                    <circle class="ds-progress-circle-bg" cx="50" cy="50" r="45"></circle>
+                    <circle class="ds-progress-circle-fill" cx="50" cy="50" r="45"></circle>
+                </svg>
+                <div class="ds-progress-circle-text">
+                    <span id="caloriesProgressValue">0</span>%
+                </div>
+                <span class="progress-label">Калории</span>
+            </div>
+            <!-- Circular Progress - Water -->
+            <div class="ds-progress-circle" id="waterProgress" style="--progress: 0; --size: 90px; --stroke-width: 6px;" aria-label="Прогрес на водата">
+                <svg viewBox="0 0 100 100" aria-hidden="true">
+                    <circle class="ds-progress-circle-bg" cx="50" cy="50" r="45"></circle>
+                    <circle class="ds-progress-circle-fill" cx="50" cy="50" r="45"></circle>
+                </svg>
+                <div class="ds-progress-circle-text">
+                    <span id="waterProgressValue">0</span>%
+                </div>
+                <span class="progress-label">Вода</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Navigation: Days of the week -->
-    <nav class="days-nav" id="daysContainer">
+    <nav class="days-nav" id="daysContainer" role="tablist" aria-label="Избор на ден">
         <!-- Will be populated by JS or Static -->
-        <div class="day-chip active" onclick="selectDay(1)">Ден 1</div>
-        <div class="day-chip" onclick="selectDay(2)">Ден 2</div>
-        <div class="day-chip" onclick="selectDay(3)">Ден 3</div>
-        <div class="day-chip" onclick="selectDay(4)">Ден 4</div>
-        <div class="day-chip" onclick="selectDay(5)">Ден 5</div>
-        <div class="day-chip" onclick="selectDay(6)">Ден 6</div>
-        <div class="day-chip" onclick="selectDay(7)">Ден 7</div>
+        <button class="day-chip active" onclick="selectDay(1)" role="tab" aria-selected="true" aria-controls="day-1-panel" tabindex="0">Ден 1</button>
+        <button class="day-chip" onclick="selectDay(2)" role="tab" aria-selected="false" aria-controls="day-2-panel" tabindex="-1">Ден 2</button>
+        <button class="day-chip" onclick="selectDay(3)" role="tab" aria-selected="false" aria-controls="day-3-panel" tabindex="-1">Ден 3</button>
+        <button class="day-chip" onclick="selectDay(4)" role="tab" aria-selected="false" aria-controls="day-4-panel" tabindex="-1">Ден 4</button>
+        <button class="day-chip" onclick="selectDay(5)" role="tab" aria-selected="false" aria-controls="day-5-panel" tabindex="-1">Ден 5</button>
+        <button class="day-chip" onclick="selectDay(6)" role="tab" aria-selected="false" aria-controls="day-6-panel" tabindex="-1">Ден 6</button>
+        <button class="day-chip" onclick="selectDay(7)" role="tab" aria-selected="false" aria-controls="day-7-panel" tabindex="-1">Ден 7</button>
     </nav>
 
     <!-- Greeting Banner -->
-    <div class="greeting-banner" id="greetingBanner">
+    <div class="greeting-banner" id="greetingBanner" role="status" aria-live="polite">
         <p>Здравей, <span class="greeting-name" id="greetingName"></span>! 🌿 Днес ще направим още една важна крачка към постигането на твоята цел!</p>
     </div>
 
     <!-- Main Content -->
-    <div class="container">
+    <main class="container" id="main-content" role="main">
         
         <!-- MEAL PLAN SECTION -->
         <div id="mealContainer">
@@ -2682,11 +3031,11 @@
             </div>
 
         </div>
-    </div>
+    </main>
 
     <!-- Chat Assistant Button -->
-    <button class="fab-chat" onclick="openChat()">
-        <img src="./docs/Chat2.png" alt="Chat Assistant" class="chat-icon-img">
+    <button class="fab-chat" onclick="openChat()" aria-label="Отвори чат асистент">
+        <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
     </button>
 
     <!-- INFO MODAL -->
@@ -3827,10 +4176,326 @@
             saveOfflineQueue();
         }
 
+        // ===================================================================
+        // GAMIFICATION SYSTEM - Streaks, Progress, Celebrations
+        // ===================================================================
+        
+        /**
+         * Initialize gamification features
+         */
+        function initGamification() {
+            loadStreak();
+            loadWeeklyProgress();
+            updateDailyProgress();
+        }
+        
+        /**
+         * Load and display streak counter
+         */
+        function loadStreak() {
+            const streakData = JSON.parse(localStorage.getItem('streakData') || '{}');
+            const today = new Date().toDateString();
+            
+            if (!streakData.lastDate) {
+                streakData.count = 0;
+                streakData.lastDate = today;
+            } else {
+                const lastDate = new Date(streakData.lastDate);
+                const todayDate = new Date(today);
+                const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays > 1) {
+                    // Streak broken
+                    streakData.count = 0;
+                } else if (diffDays === 1 && !streakData.completedToday) {
+                    // New day, can increase streak
+                    streakData.completedToday = false;
+                }
+            }
+            
+            localStorage.setItem('streakData', JSON.stringify(streakData));
+            updateStreakDisplay(streakData.count);
+        }
+        
+        /**
+         * Update streak display
+         */
+        function updateStreakDisplay(count) {
+            const streakValue = document.getElementById('streakValue');
+            if (streakValue) {
+                streakValue.textContent = count;
+                
+                // Add animation if streak is notable
+                if (count >= 7) {
+                    document.getElementById('streakCounter')?.classList.add('celebrate');
+                    setTimeout(() => {
+                        document.getElementById('streakCounter')?.classList.remove('celebrate');
+                    }, 600);
+                }
+            }
+        }
+        
+        /**
+         * Increment streak when user completes a meal
+         */
+        function incrementStreak() {
+            const streakData = JSON.parse(localStorage.getItem('streakData') || '{}');
+            const today = new Date().toDateString();
+            
+            if (streakData.lastDate !== today || !streakData.completedToday) {
+                const lastDate = new Date(streakData.lastDate || today);
+                const todayDate = new Date(today);
+                const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays <= 1) {
+                    streakData.count = (streakData.count || 0) + (diffDays === 1 ? 1 : 0);
+                    if (diffDays === 0 && !streakData.completedToday) {
+                        streakData.count++;
+                    }
+                } else {
+                    streakData.count = 1;
+                }
+                
+                streakData.lastDate = today;
+                streakData.completedToday = true;
+                localStorage.setItem('streakData', JSON.stringify(streakData));
+                updateStreakDisplay(streakData.count);
+                
+                // Trigger celebration if milestone reached
+                if ([3, 7, 14, 21, 30].includes(streakData.count)) {
+                    triggerCelebration();
+                }
+            }
+        }
+        
+        /**
+         * Load weekly progress dots
+         */
+        function loadWeeklyProgress() {
+            const weeklyData = JSON.parse(localStorage.getItem('weeklyProgress') || '[]');
+            const checks = document.querySelectorAll('.ds-daily-check');
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+            
+            checks.forEach((check, index) => {
+                const checkDate = new Date(startOfWeek);
+                checkDate.setDate(startOfWeek.getDate() + index);
+                const dateStr = checkDate.toDateString();
+                
+                if (weeklyData.includes(dateStr)) {
+                    check.classList.add('completed');
+                }
+                
+                check.addEventListener('click', () => toggleDayCompletion(index, dateStr));
+            });
+        }
+        
+        /**
+         * Toggle day completion
+         */
+        function toggleDayCompletion(dayIndex, dateStr) {
+            const weeklyData = JSON.parse(localStorage.getItem('weeklyProgress') || '[]');
+            const check = document.querySelectorAll('.ds-daily-check')[dayIndex];
+            
+            if (weeklyData.includes(dateStr)) {
+                const idx = weeklyData.indexOf(dateStr);
+                weeklyData.splice(idx, 1);
+                check?.classList.remove('completed');
+            } else {
+                weeklyData.push(dateStr);
+                check?.classList.add('completed');
+                incrementStreak();
+            }
+            
+            localStorage.setItem('weeklyProgress', JSON.stringify(weeklyData));
+        }
+        
+        /**
+         * Update circular progress indicators
+         */
+        function updateDailyProgress() {
+            // Get today's meal completion data
+            const mealProgress = calculateMealProgress();
+            const caloriesProgress = calculateCaloriesProgress();
+            const waterProgress = calculateWaterProgress();
+            
+            // Update meals progress
+            updateCircularProgress('mealsProgress', 'mealsProgressValue', mealProgress);
+            
+            // Update calories progress
+            updateCircularProgress('caloriesProgress', 'caloriesProgressValue', caloriesProgress);
+            
+            // Update water progress
+            updateCircularProgress('waterProgress', 'waterProgressValue', waterProgress);
+        }
+        
+        /**
+         * Calculate meal completion percentage
+         */
+        function calculateMealProgress() {
+            const mealCompletion = JSON.parse(localStorage.getItem('mealCompletion') || '{}');
+            const today = new Date().toDateString();
+            const todayMeals = mealCompletion[today] || [];
+            const totalMeals = dietPlan?.days?.[currentDay - 1]?.meals?.length || 3;
+            return Math.min(100, Math.round((todayMeals.length / totalMeals) * 100));
+        }
+        
+        /**
+         * Calculate calories progress
+         */
+        function calculateCaloriesProgress() {
+            const caloriesData = JSON.parse(localStorage.getItem('caloriesTracking') || '{}');
+            const today = new Date().toDateString();
+            const consumed = caloriesData[today] || 0;
+            const target = dietPlan?.weeklyPlan?.dailyCalorieTarget || userData?.dailyCalories || 2000;
+            return Math.min(100, Math.round((consumed / target) * 100));
+        }
+        
+        /**
+         * Calculate water consumption progress
+         */
+        function calculateWaterProgress() {
+            const waterData = JSON.parse(localStorage.getItem('waterTracking') || '{}');
+            const today = new Date().toDateString();
+            const consumed = waterData[today] || 0;
+            const target = 8; // 8 glasses of water
+            return Math.min(100, Math.round((consumed / target) * 100));
+        }
+        
+        /**
+         * Update a circular progress element
+         */
+        function updateCircularProgress(circleId, valueId, percentage) {
+            const circle = document.getElementById(circleId);
+            const valueEl = document.getElementById(valueId);
+            
+            if (circle) {
+                circle.style.setProperty('--progress', percentage);
+            }
+            if (valueEl) {
+                // Animate the number
+                animateNumber(valueEl, 0, percentage, 800);
+            }
+        }
+        
+        /**
+         * Animate a number from start to end
+         */
+        function animateNumber(element, start, end, duration) {
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+                const current = Math.round(start + (end - start) * eased);
+                
+                element.textContent = current;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            requestAnimationFrame(update);
+        }
+        
+        /**
+         * Mark a meal as completed
+         */
+        function markMealCompleted(mealIndex) {
+            const mealCompletion = JSON.parse(localStorage.getItem('mealCompletion') || '{}');
+            const today = new Date().toDateString();
+            
+            if (!mealCompletion[today]) {
+                mealCompletion[today] = [];
+            }
+            
+            if (!mealCompletion[today].includes(mealIndex)) {
+                mealCompletion[today].push(mealIndex);
+                localStorage.setItem('mealCompletion', JSON.stringify(mealCompletion));
+                
+                // Update UI
+                updateDailyProgress();
+                
+                // Add checkmark animation
+                const mealCards = document.querySelectorAll('.meal-card-wrapper');
+                if (mealCards[mealIndex]) {
+                    mealCards[mealIndex].classList.add('completed');
+                }
+                
+                // Check if all meals completed
+                const totalMeals = dietPlan?.days?.[currentDay - 1]?.meals?.length || 3;
+                if (mealCompletion[today].length >= totalMeals) {
+                    incrementStreak();
+                    triggerCelebration();
+                }
+            }
+        }
+        
+        /**
+         * Trigger celebration animation
+         */
+        function triggerCelebration() {
+            // Add confetti
+            createConfetti();
+            
+            // Pulse animation on progress section
+            const progressSection = document.getElementById('dailyProgressSection');
+            if (progressSection) {
+                progressSection.classList.add('celebrate');
+                setTimeout(() => progressSection.classList.remove('celebrate'), 1000);
+            }
+        }
+        
+        /**
+         * Create confetti animation
+         */
+        function createConfetti() {
+            const container = document.createElement('div');
+            container.className = 'confetti-container';
+            document.body.appendChild(container);
+            
+            const colors = ['#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#3b82f6', '#ec4899'];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                confetti.style.animationDuration = (2 + Math.random()) + 's';
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                container.appendChild(confetti);
+            }
+            
+            // Remove after animation
+            setTimeout(() => container.remove(), 4000);
+        }
+        
+        /**
+         * Add water consumption
+         */
+        function addWater() {
+            const waterData = JSON.parse(localStorage.getItem('waterTracking') || '{}');
+            const today = new Date().toDateString();
+            waterData[today] = (waterData[today] || 0) + 1;
+            localStorage.setItem('waterTracking', JSON.stringify(waterData));
+            updateDailyProgress();
+            
+            // Celebrate if target reached
+            if (waterData[today] === 8) {
+                triggerCelebration();
+            }
+        }
+
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
             loadDietData();
+            // Initialize gamification
+            initGamification();
             // Enhancement #8: Load offline queue
             loadOfflineQueue();
             // Enhancement #6: Load plan history
