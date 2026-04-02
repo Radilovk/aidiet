@@ -578,44 +578,10 @@
             color: var(--text-dark);
         }
 
-        /* === SEPARATE NOTES CONTAINER === */
-        .notes-container {
-            background: var(--card-bg);
-            border-radius: 20px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            border: 1px solid rgba(16, 185, 129, 0.1);
-        }
+        /* === SEPARATE NOTES CONTAINER (removed) === */
 
-        .notes-header {
-            padding: 16px 20px;
-            background: linear-gradient(135deg, var(--primary-red), #059669);
-            color: #ffffff;
-        }
-
-        .notes-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .notes-title i {
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-
-        .notes-body {
-            padding: 20px;
-        }
-
-        .notes-body .form-textarea {
-            min-height: 100px;
-        }
-
-        .notes-actions {
+        /* === QUESTIONNAIRE ACTIONS (bottom of expanded container) === */
+        .questionnaire-actions {
             padding: 15px 20px;
             border-top: 1px solid rgba(16, 185, 129, 0.1);
             display: flex;
@@ -624,12 +590,23 @@
             justify-content: center;
         }
 
-        [data-theme="dark"] .notes-container {
-            border-color: rgba(52, 211, 153, 0.1);
+        [data-theme="dark"] .questionnaire-actions {
+            border-top-color: rgba(52, 211, 153, 0.1);
         }
 
-        [data-theme="dark"] .notes-actions {
-            border-top-color: rgba(52, 211, 153, 0.1);
+        /* === BACK TO PLAN BUTTON === */
+        .back-to-plan-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .back-to-plan-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 1rem;
         }
 
         /* Collapsible Plan Justification */
@@ -1719,10 +1696,6 @@
                     <i class="fas fa-clipboard-list"></i>
                     <span>Вашият Въпросник</span>
                 </div>
-                <button class="btn btn-primary" id="editBtn" onclick="event.stopPropagation(); enableEditing()">
-                    <i class="fas fa-edit"></i>
-                    Редактирай
-                </button>
                 <i class="fas fa-chevron-down questionnaire-toggle"></i>
             </div>
             <div class="questionnaire-content" id="questionnaireContent">
@@ -1910,9 +1883,31 @@
                 <label class="form-label">Детайли за лекарства и добавки</label>
                 <textarea class="form-textarea" id="medicationsDetails" data-field="medicationsDetails" data-diet-related="true" disabled></textarea>
             </div>
+            <div class="form-group">
+                <label class="form-label">Допълнителни бележки</label>
+                <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled placeholder="Добавете допълнителни бележки..."></textarea>
+            </div>
         </div>
 
                 </div> <!-- End questionnaire-body -->
+                <div class="questionnaire-actions">
+                    <button class="btn btn-primary" id="editBtn" onclick="enableEditing()">
+                        <i class="fas fa-edit"></i>
+                        Редактирай
+                    </button>
+                    <button class="btn btn-primary hidden" id="saveBtn" onclick="saveChanges()">
+                        <i class="fas fa-save"></i>
+                        Запази промените
+                    </button>
+                    <button class="btn btn-primary hidden" id="saveAndRegenerateBtn" onclick="saveAndRegeneratePlan()">
+                        <i class="fas fa-sync-alt"></i>
+                        Запази и регенерирай план
+                    </button>
+                    <button class="btn btn-secondary hidden" id="cancelBtn" onclick="cancelEditing()">
+                        <i class="fas fa-times"></i>
+                        Отказ
+                    </button>
+                </div>
             </div> <!-- End questionnaire-content -->
         </div> <!-- End questionnaire-container -->
 
@@ -1935,33 +1930,12 @@
             </div>
         </div>
 
-        <!-- SEPARATE CONTAINER: Notes Section with Edit Button -->
-        <div class="notes-container" id="notesContainer">
-            <div class="notes-header">
-                <div class="notes-title">
-                    <i class="fas fa-clipboard"></i>
-                    <span>Бележки</span>
-                </div>
-            </div>
-            <div class="notes-body">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled placeholder="Добавете допълнителни бележки..."></textarea>
-                </div>
-            </div>
-            <div class="notes-actions">
-                <button class="btn btn-primary hidden" id="saveBtn" onclick="saveChanges()">
-                    <i class="fas fa-save"></i>
-                    Запази промените
-                </button>
-                <button class="btn btn-primary hidden" id="saveAndRegenerateBtn" onclick="saveAndRegeneratePlan()">
-                    <i class="fas fa-sync-alt"></i>
-                    Запази и регенерирай план
-                </button>
-                <button class="btn btn-secondary hidden" id="cancelBtn" onclick="cancelEditing()">
-                    <i class="fas fa-times"></i>
-                    Отказ
-                </button>
-            </div>
+        <!-- Back to Plan Button -->
+        <div class="back-to-plan-container">
+            <button class="btn btn-secondary back-to-plan-btn" onclick="window.location.href='plan.html'">
+                <i class="fas fa-arrow-left"></i>
+                Към плана
+            </button>
         </div>
     </div>
 
