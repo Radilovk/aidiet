@@ -1654,6 +1654,18 @@
                 // but for simplicity in this demo, we just go back. 
                 // The forward logic handles re-injection.
                 currentIndex--;
+                
+                // SKIP LOGIC (reverse): Skip questions that should be hidden based on other answers
+                const prevQ = currentQueue[currentIndex];
+                if (prevQ && prevQ.skipWhen) {
+                    for (const [field, skipValues] of Object.entries(prevQ.skipWhen)) {
+                        if (answers[field] && skipValues.includes(answers[field])) {
+                            prevStep();
+                            return;
+                        }
+                    }
+                }
+                
                 renderStep();
             }
         }
