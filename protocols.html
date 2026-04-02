@@ -747,6 +747,115 @@
             align-items: center;
             gap: 8px;
         }
+        /* ===== STEP DOTS STEPPER ===== */
+        .wizard-dots-nav {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0;
+            padding: 0 0 12px;
+        }
+        .wizard-dot-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
+        .wizard-dot-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: calc(50% + 14px);
+            right: calc(-50% + 14px);
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+            z-index: 0;
+            transition: background 0.3s;
+        }
+        .wizard-dot-item.done:not(:last-child)::after {
+            background: var(--accent-cyan);
+        }
+        .wizard-dot-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .wizard-dot-item.active .wizard-dot-circle {
+            border-color: var(--accent-cyan);
+            background: rgba(0,196,200,0.18);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 14px rgba(0,196,200,0.35);
+            transform: scale(1.15);
+        }
+        .wizard-dot-item.done .wizard-dot-circle {
+            border-color: var(--accent-cyan);
+            background: var(--accent-cyan);
+            color: #05091a;
+        }
+        .wizard-dot-label {
+            font-size: 0.55rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            text-align: center;
+            line-height: 1.2;
+            max-width: 58px;
+            word-break: break-word;
+            display: none;
+        }
+        .wizard-dot-item.active .wizard-dot-label { color: var(--accent-cyan); font-weight: 700; }
+        @media (min-width: 480px) { .wizard-dot-label { display: block; } }
+        /* Step header icon */
+        .step-emoji {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 6px;
+            line-height: 1;
+        }
+        /* Real-time BMI display */
+        .bmi-display {
+            margin-top: 8px;
+            padding: 9px 14px;
+            background: rgba(0,196,200,0.06);
+            border: 1px solid rgba(0,196,200,0.2);
+            border-radius: 8px;
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .bmi-display.show { display: flex; }
+        .bmi-val { color: var(--accent-cyan); font-weight: 700; font-size: 1rem; }
+        .bmi-cat { color: var(--text-primary); font-weight: 600; }
+        /* Larger tile options for easier tapping */
+        .tile-option { padding: 10px 14px; font-size: 0.85rem; }
+        .tile-option .tile-icon { margin-right: 4px; font-style: normal; }
+        /* Hint text under labels */
+        .field-hint {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: -4px;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+        /* Light theme tweaks for new elements */
+        [data-theme="light"] .wizard-dot-circle { border-color: rgba(0,0,0,0.15); color: #64748b; background: rgba(0,0,0,0.04); }
+        [data-theme="light"] .bmi-display { background: rgba(0,196,200,0.05); border-color: rgba(0,196,200,0.25); }
     </style>
 </head>
 <body>
@@ -815,8 +924,15 @@
         <div class="wizard-inner">
             <div class="wizard-inner-content">
                 <div class="wizard-top-bar">
-                    <div class="wizard-progress-line">
-                        <div class="wizard-progress-fill" id="wizard-progress-fill"></div>
+                    <div class="wizard-dots-nav" id="wizard-dots-nav">
+                        <div class="wizard-dot-item active" data-dot="1"><div class="wizard-dot-circle">1</div><div class="wizard-dot-label">Тяло</div></div>
+                        <div class="wizard-dot-item" data-dot="2"><div class="wizard-dot-circle">2</div><div class="wizard-dot-label">Активност</div></div>
+                        <div class="wizard-dot-item" data-dot="3"><div class="wizard-dot-circle">3</div><div class="wizard-dot-label">Здраве</div></div>
+                        <div class="wizard-dot-item" data-dot="4"><div class="wizard-dot-circle">4</div><div class="wizard-dot-label">Цели</div></div>
+                        <div class="wizard-dot-item" data-dot="5"><div class="wizard-dot-circle">5</div><div class="wizard-dot-label">Опит</div></div>
+                        <div class="wizard-dot-item" data-dot="6"><div class="wizard-dot-circle">6</div><div class="wizard-dot-label">Бюджет</div></div>
+                        <div class="wizard-dot-item" data-dot="7"><div class="wizard-dot-circle">7</div><div class="wizard-dot-label">Преглед</div></div>
+                        <div class="wizard-dot-item" data-dot="8"><div class="wizard-dot-circle">🧬</div><div class="wizard-dot-label">AI</div></div>
                     </div>
                     <div class="wizard-top-info">
                         <span class="wizard-step-label" id="wizard-step-label">Стъпка 1 от 8</span>
@@ -828,8 +944,9 @@
                     <!-- STEP 1: Биометрика -->
                     <div class="wizard-step active" data-step="1">
                         <div class="wizard-step-header">
+                            <span class="step-emoji">📏</span>
                             <h3>Биометрика</h3>
-                            <p>Основни данни за вашето тяло</p>
+                            <p>Основни данни за вашето тяло — необходими за точен протокол</p>
                         </div>
                         <div class="form-field">
                             <label>Вашето име (по желание)</label>
@@ -863,8 +980,11 @@
                                 <div class="validation-error"></div>
                             </div>
                         </div>
+                        <div id="bmi-display" class="bmi-display">
+                            <span>ИТМ:</span> <span class="bmi-val" id="bmi-value">—</span> <span class="bmi-cat" id="bmi-category"></span>
+                        </div>
                         <div class="form-field">
-                            <label>% Телесни мазнини (ако знаете)</label>
+                            <label>% Телесни мазнини <em style="font-weight:400;opacity:0.7">(по желание)</em></label>
                             <input type="number" id="prot-bodyfat" min="3" max="60" placeholder="ако знаете, напр. 18">
                         </div>
                     </div>
@@ -872,30 +992,31 @@
                     <!-- STEP 2: Активност & Начин на живот -->
                     <div class="wizard-step" data-step="2">
                         <div class="wizard-step-header">
+                            <span class="step-emoji">🏃</span>
                             <h3>Активност &amp; Начин на живот</h3>
-                            <p>Разкажете ни за вашата ежедневна активност</p>
+                            <p>Разкажете ни за вашата ежедневна активност и навици</p>
                         </div>
                         <div class="form-field">
                             <label>Ниво на физическа активност *</label>
                             <select id="prot-activity">
                                 <option value="">-- Изберете --</option>
-                                <option value="sedentary">Заседнал (офис, без спорт)</option>
-                                <option value="light">Лека активност (1-2 пъти/седмица)</option>
-                                <option value="moderate">Умерена активност (3-4 пъти/седмица)</option>
-                                <option value="active">Активен (5+ пъти/седмица)</option>
-                                <option value="athlete">Атлет / Професионален спортист</option>
+                                <option value="sedentary">🪑 Заседнал (офис, без спорт)</option>
+                                <option value="light">🚶 Лека активност (1-2 пъти/седмица)</option>
+                                <option value="moderate">🏋️ Умерена активност (3-4 пъти/седмица)</option>
+                                <option value="active">🔥 Активен (5+ пъти/седмица)</option>
+                                <option value="athlete">🏆 Атлет / Професионален спортист</option>
                             </select>
                             <div class="validation-error"></div>
                         </div>
                         <div class="form-field">
-                            <label>Вид тренировка (изберете всички приложими)</label>
+                            <label>Вид тренировка <em style="font-weight:400;opacity:0.7">(изберете всички приложими)</em></label>
                             <div class="tile-group">
-                                <label class="tile-option"><input type="checkbox" name="prot-training" value="strength"><span>Сила / Бодибилдинг</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-training" value="cardio"><span>Кардио / Издръжливост</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-training" value="hiit"><span>HIIT / Кросфит</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-training" value="sports"><span>Спорт / Игри</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-training" value="yoga"><span>Йога / Пилатес</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-training" value="none"><span>— Не тренирам</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-training" value="strength"><span><i class="tile-icon">💪</i>Сила / Бодибилдинг</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-training" value="cardio"><span><i class="tile-icon">🏃</i>Кардио / Издръжливост</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-training" value="hiit"><span><i class="tile-icon">⚡</i>HIIT / Кросфит</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-training" value="sports"><span><i class="tile-icon">⚽</i>Спорт / Игри</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-training" value="yoga"><span><i class="tile-icon">🧘</i>Йога / Пилатес</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-training" value="none"><span><i class="tile-icon">🚫</i>Не тренирам</span></label>
                             </div>
                         </div>
                         <div class="form-row">
@@ -914,11 +1035,11 @@
                                 <label>Качество на съня</label>
                                 <select id="prot-sleep-quality">
                                     <option value="">-- Изберете --</option>
-                                    <option value="terrible">Ужасен</option>
-                                    <option value="poor">Лош</option>
-                                    <option value="average">Среден</option>
-                                    <option value="good">Добър</option>
-                                    <option value="excellent">Отличен</option>
+                                    <option value="terrible">😫 Ужасен</option>
+                                    <option value="poor">😕 Лош</option>
+                                    <option value="average">😐 Среден</option>
+                                    <option value="good">😊 Добър</option>
+                                    <option value="excellent">😁 Отличен</option>
                                 </select>
                             </div>
                         </div>
@@ -927,19 +1048,19 @@
                                 <label>Хронотип</label>
                                 <select id="prot-chronotype">
                                     <option value="">-- Изберете --</option>
-                                    <option value="morning">Сутрешен ("Ранна птица")</option>
-                                    <option value="evening">Вечерен ("Нощна птица")</option>
-                                    <option value="neutral">Неутрален</option>
+                                    <option value="morning">🌅 Сутрешен ("Ранна птица")</option>
+                                    <option value="evening">🌙 Вечерен ("Нощна птица")</option>
+                                    <option value="neutral">☀️ Неутрален</option>
                                 </select>
                             </div>
                             <div class="form-field">
                                 <label>Ниво на стрес</label>
                                 <select id="prot-stress">
                                     <option value="">-- Изберете --</option>
-                                    <option value="low">Нисък</option>
-                                    <option value="moderate">Умерен</option>
-                                    <option value="high">Висок</option>
-                                    <option value="very_high">Много висок</option>
+                                    <option value="low">🟢 Нисък</option>
+                                    <option value="moderate">🟡 Умерен</option>
+                                    <option value="high">🟠 Висок</option>
+                                    <option value="very_high">🔴 Много висок</option>
                                 </select>
                             </div>
                         </div>
@@ -948,45 +1069,46 @@
                     <!-- STEP 3: Биомаркери & Здраве -->
                     <div class="wizard-step" data-step="3">
                         <div class="wizard-step-header">
+                            <span class="step-emoji">🔬</span>
                             <h3>Биомаркери &amp; Здраве</h3>
                             <p>Здравословно състояние и известни дефицити</p>
                         </div>
                         <div class="form-field">
                             <label>Имате ли кръвни изследвания от последните 12 месеца?</label>
                             <div class="radio-group">
-                                <label class="radio-option"><input type="radio" name="prot-bloodwork" value="yes"><span>Да</span></label>
-                                <label class="radio-option"><input type="radio" name="prot-bloodwork" value="no"><span>Не</span></label>
+                                <label class="radio-option"><input type="radio" name="prot-bloodwork" value="yes"><span>✅ Да</span></label>
+                                <label class="radio-option"><input type="radio" name="prot-bloodwork" value="no"><span>❌ Не</span></label>
                             </div>
                         </div>
                         <div class="form-field">
-                            <label>Известни дефицити / ниски нива (изберете всички)</label>
+                            <label>Известни дефицити / ниски нива <em style="font-weight:400;opacity:0.7">(изберете всички)</em></label>
                             <div class="tile-group">
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="vitamin_d"><span>Витамин D</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="b12"><span>Витамин B12</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="iron"><span>Желязо / Феритин</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="magnesium"><span>Магнезий</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="zinc"><span>Цинк</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="omega3"><span>Омега-3</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="testosterone"><span>Тестостерон (ниско)</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="thyroid"><span>Щитовидна жлеза</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="none_deficiency"><span>— Нямам / Не знам</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="vitamin_d"><span><i class="tile-icon">☀️</i>Витамин D</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="b12"><span><i class="tile-icon">🔵</i>Витамин B12</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="iron"><span><i class="tile-icon">🩸</i>Желязо / Феритин</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="magnesium"><span><i class="tile-icon">⚗️</i>Магнезий</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="zinc"><span><i class="tile-icon">💊</i>Цинк</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="omega3"><span><i class="tile-icon">🐟</i>Омега-3</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="testosterone"><span><i class="tile-icon">💪</i>Тестостерон (ниско)</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="thyroid"><span><i class="tile-icon">🦋</i>Щитовидна жлеза</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-deficiencies" value="none_deficiency"><span><i class="tile-icon">🚫</i>Нямам / Не знам</span></label>
                             </div>
                         </div>
                         <div class="form-field">
-                            <label>Съществуващи здравословни проблеми (изберете всички)</label>
+                            <label>Съществуващи здравословни проблеми <em style="font-weight:400;opacity:0.7">(изберете всички)</em></label>
                             <div class="tile-group">
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="none"><span>Никакви</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="joint_pain"><span>Ставни болки</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="fatigue"><span>Хронична умора</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="insomnia"><span>Безсъние</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="brain_fog"><span>Мозъчна мъгла</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="skin_issues"><span>Проблеми с кожата</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="hair_loss"><span>Косопад</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="digestion"><span>Храносмилане</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="inflammation"><span>Хронично възпаление</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="hormonal"><span>Хормонален дисбаланс</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="autoimmune"><span>Автоимунно</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="metabolic"><span>Метаболитен синдром / ИР</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="none"><span><i class="tile-icon">✅</i>Никакви</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="joint_pain"><span><i class="tile-icon">🦴</i>Ставни болки</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="fatigue"><span><i class="tile-icon">😴</i>Хронична умора</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="insomnia"><span><i class="tile-icon">🌙</i>Безсъние</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="brain_fog"><span><i class="tile-icon">🧠</i>Мозъчна мъгла</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="skin_issues"><span><i class="tile-icon">🌸</i>Проблеми с кожата</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="hair_loss"><span><i class="tile-icon">💈</i>Косопад</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="digestion"><span><i class="tile-icon">🤢</i>Храносмилане</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="inflammation"><span><i class="tile-icon">🔥</i>Хронично възпаление</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="hormonal"><span><i class="tile-icon">⚖️</i>Хормонален дисбаланс</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="autoimmune"><span><i class="tile-icon">🛡️</i>Автоимунно</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-conditions" value="metabolic"><span><i class="tile-icon">📊</i>Метаболитен синдром / ИР</span></label>
                             </div>
                         </div>
                         <div class="form-row">
@@ -1004,24 +1126,25 @@
                     <!-- STEP 4: Цели & Приоритет -->
                     <div class="wizard-step" data-step="4">
                         <div class="wizard-step-header">
+                            <span class="step-emoji">🎯</span>
                             <h3>Цели &amp; Приоритет</h3>
-                            <p>Какво искате да постигнете?</p>
+                            <p>Какво искате да постигнете? Изберете всичко, което отговаря</p>
                         </div>
                         <div class="form-field">
-                            <label>Основни цели (изберете всички приложими) *</label>
+                            <label>Основни цели <em style="font-weight:400;opacity:0.7">(изберете всички приложими) *</em></label>
                             <div class="tile-group" id="goals-tile-group">
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="anti_aging"><span>Визуално подмладяване</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="muscle"><span>Мускулна маса и сила</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="cognitive"><span>Когниция и фокус</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="energy"><span>Енергия и издръжливост</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="longevity"><span>Дълголетие и клетъчно здраве</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="immunity"><span>Имунна система</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="sleep_goal"><span>Качество на съня</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="stress_mgmt"><span>Управление на стреса</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="joints_goal"><span>Стави и подвижност</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="skin_goal"><span>Здраве на кожата</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="fat_loss"><span>Горене на мазнини</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="libido"><span>Либидо и хормони</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="anti_aging"><span><i class="tile-icon">✨</i>Визуално подмладяване</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="muscle"><span><i class="tile-icon">💪</i>Мускулна маса и сила</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="cognitive"><span><i class="tile-icon">🧠</i>Когниция и фокус</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="energy"><span><i class="tile-icon">⚡</i>Енергия и издръжливост</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="longevity"><span><i class="tile-icon">♾️</i>Дълголетие и клетъчно здраве</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="immunity"><span><i class="tile-icon">🛡️</i>Имунна система</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="sleep_goal"><span><i class="tile-icon">😴</i>Качество на съня</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="stress_mgmt"><span><i class="tile-icon">🧘</i>Управление на стреса</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="joints_goal"><span><i class="tile-icon">🦴</i>Стави и подвижност</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="skin_goal"><span><i class="tile-icon">🌟</i>Здраве на кожата</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="fat_loss"><span><i class="tile-icon">🔥</i>Горене на мазнини</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-goals" value="libido"><span><i class="tile-icon">❤️</i>Либидо и хормони</span></label>
                             </div>
                             <div class="tile-group-error" id="err-goals">Моля, изберете поне една цел</div>
                         </div>
@@ -1030,28 +1153,28 @@
                                 <label>Основен приоритет</label>
                                 <select id="prot-priority">
                                     <option value="">-- Изберете главния --</option>
-                                    <option value="anti_aging">Визуално подмладяване</option>
-                                    <option value="muscle">Мускулна маса и сила</option>
-                                    <option value="cognitive">Когниция и фокус</option>
-                                    <option value="energy">Енергия и издръжливост</option>
-                                    <option value="longevity">Дълголетие</option>
-                                    <option value="immunity">Имунна система</option>
-                                    <option value="sleep_goal">Качество на съня</option>
-                                    <option value="stress_mgmt">Управление на стреса</option>
-                                    <option value="joints_goal">Стави и подвижност</option>
-                                    <option value="skin_goal">Здраве на кожата</option>
-                                    <option value="fat_loss">Горене на мазнини</option>
-                                    <option value="libido">Либидо и хормони</option>
+                                    <option value="anti_aging">✨ Визуално подмладяване</option>
+                                    <option value="muscle">💪 Мускулна маса и сила</option>
+                                    <option value="cognitive">🧠 Когниция и фокус</option>
+                                    <option value="energy">⚡ Енергия и издръжливост</option>
+                                    <option value="longevity">♾️ Дълголетие</option>
+                                    <option value="immunity">🛡️ Имунна система</option>
+                                    <option value="sleep_goal">😴 Качество на съня</option>
+                                    <option value="stress_mgmt">🧘 Управление на стреса</option>
+                                    <option value="joints_goal">🦴 Стави и подвижност</option>
+                                    <option value="skin_goal">🌟 Здраве на кожата</option>
+                                    <option value="fat_loss">🔥 Горене на мазнини</option>
+                                    <option value="libido">❤️ Либидо и хормони</option>
                                 </select>
                             </div>
                             <div class="form-field">
                                 <label>Времеви хоризонт</label>
                                 <select id="prot-timeframe">
                                     <option value="">-- Изберете --</option>
-                                    <option value="1month">До 1 месец (бърз ефект)</option>
-                                    <option value="1to3months">1-3 месеца (среден)</option>
-                                    <option value="3to6months">3-6 месеца (дългосрочен)</option>
-                                    <option value="6plus">6+ месеца (трансформационен)</option>
+                                    <option value="1month">⚡ До 1 месец (бърз ефект)</option>
+                                    <option value="1to3months">📅 1-3 месеца (среден)</option>
+                                    <option value="3to6months">📆 3-6 месеца (дългосрочен)</option>
+                                    <option value="6plus">🏆 6+ месеца (трансформационен)</option>
                                 </select>
                             </div>
                         </div>
@@ -1060,39 +1183,40 @@
                     <!-- STEP 5: Биохакинг Опит -->
                     <div class="wizard-step" data-step="5">
                         <div class="wizard-step-header">
+                            <span class="step-emoji">🧪</span>
                             <h3>Биохакинг Опит</h3>
                             <p>Разкажете ни за вашия опит с добавки и биохакинг</p>
                         </div>
                         <div class="form-field">
-                            <label>Текущи добавки (ако приемате)</label>
+                            <label>Текущи добавки <em style="font-weight:400;opacity:0.7">(ако приемате)</em></label>
                             <textarea id="prot-current-supplements" placeholder="напр. витамин D3 5000 IU, магнезий глицинат, омега-3..."></textarea>
                         </div>
                         <div class="form-field">
                             <label>Имате ли опит с пептиди?</label>
                             <div class="radio-group">
-                                <label class="radio-option"><input type="radio" name="prot-peptides" value="yes"><span>Да, имам</span></label>
-                                <label class="radio-option"><input type="radio" name="prot-peptides" value="no"><span>Не, нямам</span></label>
-                                <label class="radio-option"><input type="radio" name="prot-peptides" value="unknown"><span>Не знам какво са</span></label>
+                                <label class="radio-option"><input type="radio" name="prot-peptides" value="yes"><span>✅ Да, имам</span></label>
+                                <label class="radio-option"><input type="radio" name="prot-peptides" value="no"><span>❌ Не, нямам</span></label>
+                                <label class="radio-option"><input type="radio" name="prot-peptides" value="unknown"><span>❓ Не знам какво са</span></label>
                             </div>
                         </div>
                         <div class="form-field">
-                            <label>Биохакинг практики, които правите (изберете всички)</label>
+                            <label>Биохакинг практики <em style="font-weight:400;opacity:0.7">(изберете всички)</em></label>
                             <div class="tile-group">
-                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="fasting"><span>Интермитентно гладуване</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="sauna"><span>Сауна / Топлинна терапия</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="cold"><span>Студена терапия / Ice bath</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="red_light"><span>Червена светлина (PBM)</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="grounding"><span>Заземяване</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="none_bio"><span>— Нищо от изброените</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="fasting"><span><i class="tile-icon">🍽️</i>Интермитентно гладуване</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="sauna"><span><i class="tile-icon">🧖</i>Сауна / Топлинна терапия</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="cold"><span><i class="tile-icon">🧊</i>Студена терапия / Ice bath</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="red_light"><span><i class="tile-icon">🔴</i>Червена светлина (PBM)</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="grounding"><span><i class="tile-icon">🌿</i>Заземяване</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-biohacking" value="none_bio"><span><i class="tile-icon">🚫</i>Нищо от изброените</span></label>
                             </div>
                         </div>
                         <div class="form-field">
                             <label>Готовност за инжекционни форми</label>
                             <select id="prot-injection-willing">
                                 <option value="">-- Изберете --</option>
-                                <option value="yes_all">Да, без проблем</option>
-                                <option value="subcutaneous">Само подкожни (по-лесни)</option>
-                                <option value="no">Не, само орални и топикални</option>
+                                <option value="yes_all">💉 Да, без проблем</option>
+                                <option value="subcutaneous">🩺 Само подкожни (по-лесни)</option>
+                                <option value="no">💊 Не, само орални и топикални</option>
                             </select>
                         </div>
                     </div>
@@ -1100,34 +1224,35 @@
                     <!-- STEP 6: Бюджет & Предпочитания -->
                     <div class="wizard-step" data-step="6">
                         <div class="wizard-step-header">
+                            <span class="step-emoji">💰</span>
                             <h3>Бюджет &amp; Предпочитания</h3>
-                            <p>Финансова рамка и предпочитани форми</p>
+                            <p>Финансова рамка и предпочитани форми на прием</p>
                         </div>
                         <div class="form-field">
                             <label>Месечен бюджет за добавки *</label>
                             <select id="prot-budget">
                                 <option value="">-- Изберете --</option>
-                                <option value="low">До €50/месец (Базов)</option>
-                                <option value="medium">€50-150/месец (Стандарт)</option>
-                                <option value="high">€150-300/месец (Висок)</option>
-                                <option value="premium">€300-500/месец (Премиум)</option>
-                                <option value="unlimited">€500+/месец (Без ограничение)</option>
+                                <option value="low">💵 До €50/месец (Базов)</option>
+                                <option value="medium">💶 €50-150/месец (Стандарт)</option>
+                                <option value="high">💷 €150-300/месец (Висок)</option>
+                                <option value="premium">💎 €300-500/месец (Премиум)</option>
+                                <option value="unlimited">🏆 €500+/месец (Без ограничение)</option>
                             </select>
                             <div class="validation-error"></div>
                         </div>
                         <div class="form-field">
-                            <label>Предпочитани форми за прием (изберете всички)</label>
+                            <label>Предпочитани форми за прием <em style="font-weight:400;opacity:0.7">(изберете всички)</em></label>
                             <div class="tile-group">
-                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="oral"><span>Перорални таблетки/капсули</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="powder"><span>Прахове</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="liquid"><span>Течни / Ампули</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="topical"><span>Серуми и кремове</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="sublingual"><span>Сублингвални</span></label>
-                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="injection"><span>Инжекционни</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="oral"><span><i class="tile-icon">💊</i>Таблетки / Капсули</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="powder"><span><i class="tile-icon">🥄</i>Прахове</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="liquid"><span><i class="tile-icon">💧</i>Течни / Ампули</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="topical"><span><i class="tile-icon">🧴</i>Серуми и кремове</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="sublingual"><span><i class="tile-icon">👅</i>Сублингвални</span></label>
+                                <label class="tile-option"><input type="checkbox" name="prot-forms" value="injection"><span><i class="tile-icon">💉</i>Инжекционни</span></label>
                             </div>
                         </div>
                         <div class="form-field">
-                            <label>Допълнителна информация (по желание)</label>
+                            <label>Допълнителна информация <em style="font-weight:400;opacity:0.7">(по желание)</em></label>
                             <textarea id="prot-notes" placeholder="Всяка допълнителна информация, която считате за важна..."></textarea>
                         </div>
                     </div>
@@ -1135,6 +1260,7 @@
                     <!-- STEP 7: Обобщение -->
                     <div class="wizard-step" data-step="7">
                         <div class="wizard-step-header">
+                            <span class="step-emoji">✅</span>
                             <h3>Обобщение на данните</h3>
                             <p>Прегледайте и потвърдете вашите данни преди генерирането</p>
                         </div>
@@ -1828,7 +1954,6 @@
         const wizardSteps = wizard.querySelectorAll('.wizard-step');
         const prevBtn = document.getElementById('wizard-prev');
         const nextBtn = document.getElementById('wizard-next');
-        const progressFill = document.getElementById('wizard-progress-fill');
         const stepLabel = document.getElementById('wizard-step-label');
         const stepTitle = document.getElementById('wizard-step-title');
         const totalSteps = 8;
@@ -1845,14 +1970,24 @@
             'AI Генерация'
         ];
 
+        function updateDots(step) {
+            const dots = wizard.querySelectorAll('.wizard-dot-item');
+            dots.forEach((dot, i) => {
+                const dotStep = i + 1;
+                dot.classList.remove('active', 'done');
+                if (dotStep < step) dot.classList.add('done');
+                else if (dotStep === step) dot.classList.add('active');
+            });
+        }
+
         function showStep(step) {
             currentStep = step;
             wizardSteps.forEach(s => s.classList.remove('active'));
             const activeStep = wizard.querySelector(`[data-step="${step}"]`);
             if (activeStep) activeStep.classList.add('active');
 
-            // Update progress bar
-            progressFill.style.width = `${(step / totalSteps * 100)}%`;
+            // Update dot stepper
+            updateDots(step);
             stepLabel.textContent = `Стъпка ${step} от ${totalSteps}`;
             stepTitle.textContent = stepTitles[step - 1] || '';
 
@@ -1866,7 +2001,7 @@
             } else if (step === 7) {
                 // Summary step - show generate button
                 bottomNav.style.display = 'flex';
-                nextBtn.textContent = 'Генерирай Протокол';
+                nextBtn.textContent = '🚀 Генерирай Протокол';
                 nextBtn.className = 'btn-wizard-next btn-wizard-generate';
             } else {
                 bottomNav.style.display = 'flex';
@@ -1901,6 +2036,29 @@
         const closeWizardFn = () => { wizard.classList.remove('show'); document.body.style.overflow = 'auto'; };
         document.getElementById('close-wizard-btn').addEventListener('click', closeWizardFn);
         wizard.addEventListener('click', (e) => { if (e.target === wizard) closeWizardFn(); });
+
+        // === REAL-TIME BMI CALCULATOR ===
+        function updateBMI() {
+            const h = parseFloat(document.getElementById('prot-height').value);
+            const w = parseFloat(document.getElementById('prot-weight').value);
+            const bmiDisplay = document.getElementById('bmi-display');
+            if (h >= 120 && h <= 230 && w >= 30 && w <= 250) {
+                const bmiVal = (w / ((h / 100) ** 2)).toFixed(1);
+                let cat, color;
+                if (bmiVal < 18.5) { cat = 'Поднормено тегло'; color = '#60a5fa'; }
+                else if (bmiVal < 25) { cat = 'Нормално тегло ✓'; color = '#10b981'; }
+                else if (bmiVal < 30) { cat = 'Наднормено тегло'; color = '#f59e0b'; }
+                else { cat = 'Затлъстяване'; color = '#ef4444'; }
+                document.getElementById('bmi-value').textContent = bmiVal;
+                document.getElementById('bmi-value').style.color = color;
+                document.getElementById('bmi-category').textContent = '— ' + cat;
+                bmiDisplay.classList.add('show');
+            } else {
+                bmiDisplay.classList.remove('show');
+            }
+        }
+        document.getElementById('prot-height').addEventListener('input', updateBMI);
+        document.getElementById('prot-weight').addEventListener('input', updateBMI);
 
         // Navigation
         prevBtn.addEventListener('click', () => {
