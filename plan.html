@@ -2550,7 +2550,7 @@
 
     <!-- Greeting Banner -->
     <div class="greeting-banner" id="greetingBanner">
-        <p>Здравей, <span class="greeting-name" id="greetingName">приятелю</span>! 🌿 Днес ще направим още една важна крачка към постигането на твоята цел!</p>
+        <p>Здравей, <span class="greeting-name" id="greetingName"></span>! 🌿 Днес ще направим още една важна крачка към постигането на твоята цел!</p>
     </div>
 
     <!-- Main Content -->
@@ -3901,8 +3901,12 @@
 
                 // Update greeting banner name
                 const greetingNameEl = document.getElementById('greetingName');
-                if (greetingNameEl && userData.name) {
-                    greetingNameEl.textContent = userData.name;
+                if (greetingNameEl) {
+                    if (userData.name) {
+                        greetingNameEl.textContent = userData.name;
+                    } else {
+                        greetingNameEl.textContent = userData.gender === 'Жена' ? 'приятелко' : 'приятелю';
+                    }
                 }
 
                 // Render initial data
