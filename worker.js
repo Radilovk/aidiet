@@ -2857,6 +2857,17 @@ async function handleGeneratePlan(request, env) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
     
+    // If a clinical protocol is selected, map its goal and ensure data.goal is set
+    const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
+    if (clinicalProtocol) {
+      // Use protocol's goalMapping as the goal if not explicitly set
+      if (!data.goal) {
+        data.goal = clinicalProtocol.goalMapping;
+      }
+      // Store protocol name for reference in prompts
+      data._clinicalProtocolName = clinicalProtocol.name;
+    }
+    
     // Step 0: Validate data adequacy (unrealistic, offensive, inappropriate data)
     const dataValidation = validateDataAdequacy(data);
     if (!dataValidation.isValid) {
@@ -2936,8 +2947,15 @@ async function handleGeneratePlan(request, env) {
           if (fallbackValidation.isValid) {
             const cleanPlan = removeInternalJustifications(simplifiedPlan);
             // Add hardcoded goal-based hacks for fallback plan
-            const goalHacks = await getGoalHacks(env, data.goal);
-            cleanPlan.hacks = goalHacks;
+            if (clinicalProtocol && clinicalProtocol.hacks) {
+              cleanPlan.hacks = clinicalProtocol.hacks;
+            } else {
+              const goalHacks = await getGoalHacks(env, data.goal);
+              cleanPlan.hacks = goalHacks;
+            }
+            if (clinicalProtocol) {
+              cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
+            }
             return jsonResponse({ 
               success: true, 
               plan: cleanPlan,
@@ -2968,8 +2986,21 @@ async function handleGeneratePlan(request, env) {
     const cleanPlan = removeInternalJustifications(structuredPlan);
     
     // Add hardcoded goal-based hacks (not AI-generated)
-    const goalHacks = await getGoalHacks(env, data.goal);
-    cleanPlan.hacks = goalHacks;
+    // If clinical protocol is active, use protocol-specific hacks
+    if (clinicalProtocol && clinicalProtocol.hacks) {
+      cleanPlan.hacks = clinicalProtocol.hacks;
+    } else {
+      const goalHacks = await getGoalHacks(env, data.goal);
+      cleanPlan.hacks = goalHacks;
+    }
+    
+    // If clinical protocol, add protocol metadata to plan
+    if (clinicalProtocol) {
+      cleanPlan.clinicalProtocol = {
+        id: clinicalProtocol.id,
+        name: clinicalProtocol.name
+      };
+    }
     
     return jsonResponse({ 
       success: true, 
@@ -9359,6 +9390,27 @@ async function sendPushNotificationToUser(userId, message, env) {
   }
 }
 
+/**
+ * Handle GET /api/clinical-protocols - Returns list of available clinical protocols
+ * @returns {Response} JSON response with protocols list
+ */
+function handleGetClinicalProtocols() {
+  const protocolsList = Object.values(CLINICAL_PROTOCOLS).map(p => ({
+    id: p.id,
+    name: p.name,
+    goalMapping: p.goalMapping,
+    dietTypeHint: p.dietTypeHint,
+    supplementCount: p.supplements.length,
+    supplements: p.supplements.map(s => s.name)
+  }));
+  
+  return jsonResponse({
+    success: true,
+    protocols: protocolsList,
+    count: protocolsList.length
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -9378,6 +9430,8 @@ export default {
       // Route handling
       if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
         return await handleGeneratePlan(request, env);
+      } else if (url.pathname === '/api/clinical-protocols' && request.method === 'GET') {
+        return handleGetClinicalProtocols();
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
         return await handleChat(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
