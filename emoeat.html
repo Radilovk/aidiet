@@ -24,6 +24,8 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192x192.png">
     <title>Въпросник за Емоционално Хранене</title>
+    <!-- Design System 2026 -->
+    <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -1379,13 +1381,16 @@
         })();
     </script>
 </head>
-<body>
+<body data-page-theme="emoeat">
+    <!-- Skip Navigation Link (Accessibility) -->
+    <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
+    
     <!-- Header -->
-    <header class="app-header">
+    <header class="app-header" role="banner">
         <div class="header-content">
             <div class="header-title">
                 <div class="header-icon">
-                    <i class="fas fa-heart-pulse"></i>
+                    <i class="fas fa-heart-pulse" aria-hidden="true"></i>
                 </div>
                 <div class="header-text">
                     <h1>Емоционално Хранене</h1>
@@ -1393,12 +1398,13 @@
                 </div>
             </div>
             <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Смени темата" aria-label="Смени темата">
-                <i class="fas fa-moon"></i>
+                <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
         </div>
     </header>
 
     <!-- Progress -->
+    <main id="main-content" role="main">
     <div class="progress-section">
         <div class="progress-track">
             <div class="progress-fill" id="progressBar"></div>

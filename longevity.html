@@ -24,6 +24,8 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192x192.png">
     <title>Дълголетие и Анти-Ейджинг</title>
+    <!-- Design System 2026 -->
+    <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -994,23 +996,26 @@
         }
     </style>
 </head>
-<body>
-    <div class="bg-mesh"></div>
+<body data-page-theme="longevity">
+    <!-- Skip Navigation Link (Accessibility) -->
+    <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
+    
+    <div class="bg-mesh" aria-hidden="true"></div>
 
     <!-- Header -->
-    <header class="header">
-        <a href="index.html" class="back-btn">
-            <i class="fas fa-arrow-left"></i>
+    <header class="header" role="banner">
+        <a href="index.html" class="back-btn" aria-label="Обратно към началната страница">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
             <span>Начало</span>
         </a>
         <span class="header-title">Дълголетие</span>
         <button class="theme-toggle" onclick="toggleTheme()" aria-label="Превключи тема">
-            <i class="fas fa-moon"></i>
+            <i class="fas fa-moon" aria-hidden="true"></i>
         </button>
     </header>
 
     <!-- Main Container -->
-    <div class="container">
+    <main class="container" id="main-content" role="main">
         <!-- Hero Section -->
         <section class="hero">
             <div class="hero-icon">

@@ -31,6 +31,8 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192x192.png">
     <title>NutriPlan - Твоят Персонален Режим</title>
+    <!-- Design System 2026 -->
+    <link rel="stylesheet" href="./design-system.css">
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -926,20 +928,26 @@
     </script>
 </head>
 <body>
+    <!-- Skip Navigation Link (Accessibility) -->
+    <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
+    
+    <!-- Animated Mesh Background -->
+    <div class="ds-mesh-bg" aria-hidden="true"></div>
 
     <!-- Navigation -->
-    <nav>
-        <a href="#" class="logo"><i class="fas fa-apple-alt"></i> NutriPlan</a>
+    <nav role="navigation" aria-label="Главна навигация">
+        <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
         <div style="display: flex; gap: 10px; align-items: center;">
             <a href="plan.html" class="nav-btn" id="myPlanBtn" style="display: none; background-color: #27ae60;">
-                <i class="fas fa-user-check"></i> Моят План
+                <i class="fas fa-user-check" aria-hidden="true"></i> Моят План
             </a>
             <a href="questionnaire.html" class="nav-btn" id="startNowBtn" style="display: none;">Започни Сега</a>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero">
+    <main id="main-content">
+    <section class="hero" role="region" aria-label="Герой секция">
         <div class="hero-content">
             <h1>Твоят път към <br> по-здравословно <span>тяло</span>.</h1>
             <p>Комплексен план за хранене, психология, добавки и активности. Създаден от екип специалисти с помощта на мощен AI алгоритъм с 7-степенен анализ и 30+ критерия за пълна персонализация.</p>
@@ -1087,9 +1095,10 @@
             <a href="questionnaire.html" class="nav-btn" style="padding: 15px 40px; font-size: 1.1rem;">Започни Своята Промяна</a>
         </div>
     </section>
+    </main>
 
     <!-- Footer -->
-    <footer>
+    <footer role="contentinfo">
         <div class="footer-logo"><i class="fas fa-apple-alt"></i> NutriPlan</div>
         <div class="socials">
             <a href="#"><i class="fab fa-facebook-f"></i></a>
