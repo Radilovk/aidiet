@@ -988,7 +988,8 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] } },
+            { "id": "clinicalProtocol", "text": "Имате ли специфично здравословно състояние, за което искате протокол?", "type": "radio", "options": ["Не, искам стандартен план", "Инсулинова резистентност / Превенция Диабет Т2", "Автоимунни заболявания / Чревна бариера (AIP)", "Стомашно-чревни проблеми (Запек/Подуване)", "Менопауза и Саркопения", "Редукция на целулит", "Хроничен стрес (Кортизолова регулация)", "Възстановяване след бременност / Лактация", "Висцерални мазнини (Коремно отслабване)", "След спиране на тютюнопушенето", "Дълголетие (Longevity)", "Детоксикация (Черен дроб и клетки)"] },
+            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] }, "skipWhen": { "clinicalProtocol": ["insulin_resistance", "autoimmune_aip", "gi_issues", "menopause_sarcopenia", "cellulite_reduction", "chronic_stress", "postpartum_lactation", "visceral_fat", "post_smoking", "longevity", "detox"] } },
             { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
             { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
             { "id": "chronotype", "text": "Вашият хронотип:", "type": "radio", "options": ["Сутрешен", "Вечерен", "Неутрален"] },
@@ -1587,6 +1588,30 @@
         function nextStep() {
             const currentQ = currentQueue[currentIndex];
             
+            // CLINICAL PROTOCOL MAPPING: When user selects a protocol, map to backend ID
+            if (currentQ.id === 'clinicalProtocol' && answers.clinicalProtocol) {
+                const protocolMapping = {
+                    'Инсулинова резистентност / Превенция Диабет Т2': 'insulin_resistance',
+                    'Автоимунни заболявания / Чревна бариера (AIP)': 'autoimmune_aip',
+                    'Стомашно-чревни проблеми (Запек/Подуване)': 'gi_issues',
+                    'Менопауза и Саркопения': 'menopause_sarcopenia',
+                    'Редукция на целулит': 'cellulite_reduction',
+                    'Хроничен стрес (Кортизолова регулация)': 'chronic_stress',
+                    'Възстановяване след бременност / Лактация': 'postpartum_lactation',
+                    'Висцерални мазнини (Коремно отслабване)': 'visceral_fat',
+                    'След спиране на тютюнопушенето': 'post_smoking',
+                    'Дълголетие (Longevity)': 'longevity',
+                    'Детоксикация (Черен дроб и клетки)': 'detox'
+                };
+                const selectedLabel = answers.clinicalProtocol;
+                if (selectedLabel === 'Не, искам стандартен план') {
+                    delete answers.clinicalProtocol;
+                } else if (protocolMapping[selectedLabel]) {
+                    answers.clinicalProtocol = protocolMapping[selectedLabel];
+                }
+                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            }
+            
             // BRANCHING LOGIC: Check if current answer triggers children
             if (currentQ.children && answers[currentQ.id]) {
                 const answerVal = answers[currentQ.id];
@@ -1605,6 +1630,18 @@
 
             if (currentIndex < currentQueue.length - 1) {
                 currentIndex++;
+                
+                // SKIP LOGIC: Skip questions that should be hidden based on other answers
+                const nextQ = currentQueue[currentIndex];
+                if (nextQ && nextQ.skipWhen) {
+                    for (const [field, skipValues] of Object.entries(nextQ.skipWhen)) {
+                        if (answers[field] && skipValues.includes(answers[field])) {
+                            nextStep();
+                            return;
+                        }
+                    }
+                }
+                
                 renderStep();
             } else {
                 finishQuiz();
