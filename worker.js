@@ -8211,10 +8211,24 @@ async function handleUploadProtocolImage(request, env) {
       return jsonResponse({ error: 'Invalid protocol ID' }, 400);
     }
     
-    // Validate mime type
+    // Validate mime type (required)
     const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
-    if (mimeType && !allowedMimeTypes.includes(mimeType)) {
-      return jsonResponse({ error: 'Invalid image type. Allowed: PNG, JPG, WebP' }, 400);
+    if (!mimeType || !allowedMimeTypes.includes(mimeType)) {
+      return jsonResponse({ error: 'Invalid or missing image type. Allowed: PNG, JPG, WebP' }, 400);
+    }
+    
+    // Validate image data format and size
+    if (!imageData.startsWith('data:image/')) {
+      return jsonResponse({ error: 'Invalid image data format' }, 400);
+    }
+    
+    // Calculate approximate file size from base64 (base64 adds ~33% overhead)
+    const base64Data = imageData.split(',')[1] || '';
+    const approximateSize = (base64Data.length * 3) / 4;
+    const maxSizeBytes = 500 * 1024; // 500KB limit
+    
+    if (approximateSize > maxSizeBytes) {
+      return jsonResponse({ error: `Image too large. Maximum size: 500KB (received ~${Math.round(approximateSize / 1024)}KB)` }, 400);
     }
     
     // Get existing images

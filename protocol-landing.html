@@ -1355,6 +1355,25 @@
                 console.log('Could not load protocol images, using defaults:', error);
             }
         }
+        
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Handle image load error - replace with icon using safe DOM manipulation
+        function handleImageError(imgElement, iconText) {
+            const parent = imgElement.parentElement;
+            if (parent) {
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'card-icon';
+                iconDiv.textContent = iconText;
+                parent.innerHTML = '';
+                parent.appendChild(iconDiv);
+            }
+        }
 
         // Theme management
         function initTheme() {
@@ -1411,18 +1430,19 @@
                 
                 // Check if there's a custom image URL from backend
                 const customImageUrl = protocolImages[protocol.id];
+                // Use DOM manipulation for fallback instead of innerHTML in onerror to prevent XSS
                 const imageHtml = customImageUrl 
-                    ? `<img src="${customImageUrl}" alt="${protocol.name}" onerror="this.parentElement.innerHTML='<div class=\\'card-icon\\'>${protocol.icon}</div>'">`
-                    : `<div class="card-icon">${protocol.icon}</div>`;
+                    ? `<img src="${customImageUrl}" alt="${escapeHtml(protocol.name)}" onerror="handleImageError(this, '${escapeHtml(protocol.icon)}')">`
+                    : `<div class="card-icon">${escapeHtml(protocol.icon)}</div>`;
                 
                 card.innerHTML = `
                     <div class="card-image">
                         ${imageHtml}
                     </div>
                     <div class="card-content">
-                        <span class="card-category">${protocol.category}</span>
-                        <h3>${protocol.shortName}</h3>
-                        <p>${protocol.shortDescription}</p>
+                        <span class="card-category">${escapeHtml(protocol.category)}</span>
+                        <h3>${escapeHtml(protocol.shortName)}</h3>
+                        <p>${escapeHtml(protocol.shortDescription)}</p>
                         <div class="card-action">
                             Научете повече <i class="fas fa-arrow-right"></i>
                         </div>
