@@ -1337,7 +1337,9 @@
         
         function showProtocolBannerIfNeeded() {
             const protocolId = answers.clinicalProtocol;
-            if (protocolId && PROTOCOL_NAMES[protocolId]) {
+            // Only show banner if user explicitly came from protocol landing page
+            // This prevents showing stale banner from old localStorage data
+            if (protocolId && PROTOCOL_NAMES[protocolId] && answers._protocolSelectedFromLanding) {
                 const banner = document.getElementById('protocolBanner');
                 const titleEl = document.getElementById('protocolBannerTitle');
                 const iconEl = document.getElementById('protocolBannerIcon');

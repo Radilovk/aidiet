@@ -8158,7 +8158,19 @@ const PROTOCOL_IMAGES_KEY = 'protocol_images';
  */
 async function handleGetAllProtocolImages(request, env) {
   try {
-    const images = await env.KV.get(PROTOCOL_IMAGES_KEY, 'json') || {};
+    if (!env || !env.page_content) {
+      console.warn('Protocol images: Storage not available, returning empty response');
+      return jsonResponse({ success: true, images: {}, storageUnavailable: true });
+    }
+    const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
+    let images = {};
+    if (imagesStr) {
+      try {
+        images = JSON.parse(imagesStr);
+      } catch (parseError) {
+        console.error('Error parsing protocol images JSON, returning empty:', parseError);
+      }
+    }
     return jsonResponse({ success: true, images });
   } catch (error) {
     console.error('Error getting protocol images:', error);
@@ -8178,7 +8190,20 @@ async function handleGetProtocolImage(request, env) {
       return jsonResponse({ error: 'Protocol ID is required' }, 400);
     }
     
-    const images = await env.KV.get(PROTOCOL_IMAGES_KEY, 'json') || {};
+    if (!env || !env.page_content) {
+      console.warn('Protocol images: Storage not available for single image request');
+      return jsonResponse({ success: true, imageUrl: null, protocolId, storageUnavailable: true });
+    }
+    
+    const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
+    let images = {};
+    if (imagesStr) {
+      try {
+        images = JSON.parse(imagesStr);
+      } catch (parseError) {
+        console.error('Error parsing protocol images JSON:', parseError);
+      }
+    }
     const imageUrl = images[protocolId] || null;
     
     return jsonResponse({ success: true, imageUrl, protocolId });
@@ -8232,13 +8257,24 @@ async function handleUploadProtocolImage(request, env) {
     }
     
     // Get existing images
-    const images = await env.KV.get(PROTOCOL_IMAGES_KEY, 'json') || {};
+    if (!env || !env.page_content) {
+      return jsonResponse({ error: 'Storage not available' }, 500);
+    }
+    const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
+    let images = {};
+    if (imagesStr) {
+      try {
+        images = JSON.parse(imagesStr);
+      } catch (parseError) {
+        console.error('Error parsing protocol images JSON, starting fresh:', parseError);
+      }
+    }
     
     // Store the base64 image directly (for simplicity - in production you'd use R2 or external storage)
     images[protocolId] = imageData;
     
     // Save to KV
-    await env.KV.put(PROTOCOL_IMAGES_KEY, JSON.stringify(images));
+    await env.page_content.put(PROTOCOL_IMAGES_KEY, JSON.stringify(images));
     
     return jsonResponse({ 
       success: true, 
@@ -8264,12 +8300,23 @@ async function handleDeleteProtocolImage(request, env) {
     }
     
     // Get existing images
-    const images = await env.KV.get(PROTOCOL_IMAGES_KEY, 'json') || {};
+    if (!env || !env.page_content) {
+      return jsonResponse({ error: 'Storage not available' }, 500);
+    }
+    const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
+    let images = {};
+    if (imagesStr) {
+      try {
+        images = JSON.parse(imagesStr);
+      } catch (parseError) {
+        console.error('Error parsing protocol images JSON:', parseError);
+      }
+    }
     
     // Delete the image
     if (images[protocolId]) {
       delete images[protocolId];
-      await env.KV.put(PROTOCOL_IMAGES_KEY, JSON.stringify(images));
+      await env.page_content.put(PROTOCOL_IMAGES_KEY, JSON.stringify(images));
     }
     
     return jsonResponse({ success: true, message: 'Image deleted successfully' });
