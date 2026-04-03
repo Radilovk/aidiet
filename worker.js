@@ -8159,7 +8159,8 @@ const PROTOCOL_IMAGES_KEY = 'protocol_images';
 async function handleGetAllProtocolImages(request, env) {
   try {
     if (!env || !env.page_content) {
-      return jsonResponse({ success: true, images: {} });
+      console.warn('Protocol images: Storage not available, returning empty response');
+      return jsonResponse({ success: true, images: {}, storageUnavailable: true });
     }
     const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
     let images = {};
@@ -8190,7 +8191,8 @@ async function handleGetProtocolImage(request, env) {
     }
     
     if (!env || !env.page_content) {
-      return jsonResponse({ success: true, imageUrl: null, protocolId });
+      console.warn('Protocol images: Storage not available for single image request');
+      return jsonResponse({ success: true, imageUrl: null, protocolId, storageUnavailable: true });
     }
     
     const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
