@@ -4998,7 +4998,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
       FIBER_MIN_GRAMS,
       FIBER_MAX_GRAMS,
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
-      clinicalProtocolName: getClinicalProtocol(data.clinicalProtocol)?.name || ''
+      clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
     });
     
     // Inject error prevention comment if provided
@@ -5483,7 +5483,7 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       sleepHours: data.sleepHours || '',
       TEMPERAMENT_CONFIDENCE_THRESHOLD,
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
-      clinicalProtocolName: getClinicalProtocol(data.clinicalProtocol)?.name || ''
+      clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
     });
     
     // Inject error prevention comment if provided
