@@ -8162,7 +8162,14 @@ async function handleGetAllProtocolImages(request, env) {
       return jsonResponse({ success: true, images: {} });
     }
     const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
-    const images = imagesStr ? JSON.parse(imagesStr) : {};
+    let images = {};
+    if (imagesStr) {
+      try {
+        images = JSON.parse(imagesStr);
+      } catch (parseError) {
+        console.error('Error parsing protocol images JSON, returning empty:', parseError);
+      }
+    }
     return jsonResponse({ success: true, images });
   } catch (error) {
     console.error('Error getting protocol images:', error);
@@ -8187,7 +8194,14 @@ async function handleGetProtocolImage(request, env) {
     }
     
     const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
-    const images = imagesStr ? JSON.parse(imagesStr) : {};
+    let images = {};
+    if (imagesStr) {
+      try {
+        images = JSON.parse(imagesStr);
+      } catch (parseError) {
+        console.error('Error parsing protocol images JSON:', parseError);
+      }
+    }
     const imageUrl = images[protocolId] || null;
     
     return jsonResponse({ success: true, imageUrl, protocolId });
@@ -8245,7 +8259,14 @@ async function handleUploadProtocolImage(request, env) {
       return jsonResponse({ error: 'Storage not available' }, 500);
     }
     const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
-    const images = imagesStr ? JSON.parse(imagesStr) : {};
+    let images = {};
+    if (imagesStr) {
+      try {
+        images = JSON.parse(imagesStr);
+      } catch (parseError) {
+        console.error('Error parsing protocol images JSON, starting fresh:', parseError);
+      }
+    }
     
     // Store the base64 image directly (for simplicity - in production you'd use R2 or external storage)
     images[protocolId] = imageData;
@@ -8281,7 +8302,14 @@ async function handleDeleteProtocolImage(request, env) {
       return jsonResponse({ error: 'Storage not available' }, 500);
     }
     const imagesStr = await env.page_content.get(PROTOCOL_IMAGES_KEY);
-    const images = imagesStr ? JSON.parse(imagesStr) : {};
+    let images = {};
+    if (imagesStr) {
+      try {
+        images = JSON.parse(imagesStr);
+      } catch (parseError) {
+        console.error('Error parsing protocol images JSON:', parseError);
+      }
+    }
     
     // Delete the image
     if (images[protocolId]) {
