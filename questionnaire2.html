@@ -1238,17 +1238,29 @@
             }
         }
         
+        // Valid protocol IDs that can be selected from landing page
+        const VALID_PROTOCOL_IDS = [
+            'insulin_resistance', 'autoimmune_aip', 'gi_issues', 'menopause_sarcopenia',
+            'cellulite_reduction', 'chronic_stress', 'postpartum_lactation', 'visceral_fat',
+            'post_smoking', 'longevity', 'detox'
+        ];
+        
         // Handle protocol selection from landing page URL parameter
         function handleProtocolFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
             const protocolId = urlParams.get('protocol');
             
-            if (protocolId && PROTOCOL_SPECIFIC_QUESTIONS[protocolId]) {
+            // Accept any valid protocol ID, not just those with specific questions
+            if (protocolId && VALID_PROTOCOL_IDS.includes(protocolId)) {
                 answers.clinicalProtocol = protocolId;
                 answers._protocolSelectedFromLanding = true;
                 localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
                 
-                injectProtocolQuestions(protocolId);
+                // Inject protocol-specific questions if they exist for this protocol
+                if (PROTOCOL_SPECIFIC_QUESTIONS[protocolId]) {
+                    injectProtocolQuestions(protocolId);
+                }
+                
                 skipClinicalProtocolQuestion();
                 
                 console.log('Protocol loaded from URL:', protocolId);
