@@ -17,28 +17,38 @@
     <link rel="apple-touch-icon" href="./icon-192x192.png">
     <title>Клинични Протоколи | NutriPlan</title>
     <link rel="stylesheet" href="./design-system.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --primary: #10b981;
             --primary-hover: #059669;
             --primary-light: #d1fae5;
+            --primary-glow: rgba(16, 185, 129, 0.4);
             --secondary: #3b82f6;
             --accent-purple: #8b5cf6;
             --accent-cyan: #06b6d4;
             --accent-gold: #f59e0b;
             --accent-rose: #f43f5e;
-            --text-dark: #1e293b;
-            --text-gray: #64748b;
+            --text-dark: #0f172a;
+            --text-gray: #475569;
             --text-light: #94a3b8;
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-            --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 20px;
+            --bg-color: #f1f5f9;
+            --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #f8fafc 100%);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-bg-solid: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.12);
+            --shadow-glow: 0 0 40px var(--primary-glow);
+            --radius-sm: 12px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
             --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
         }
@@ -47,147 +57,330 @@
             --primary: #34d399;
             --primary-hover: #10b981;
             --primary-light: #064e3b;
-            --text-dark: #f1f5f9;
-            --text-gray: #94a3b8;
+            --primary-glow: rgba(52, 211, 153, 0.3);
+            --text-dark: #f8fafc;
+            --text-gray: #cbd5e1;
             --text-light: #64748b;
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-            --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
+            --bg-color: #0c1222;
+            --bg-gradient: linear-gradient(135deg, #0c1222 0%, #131b2e 50%, #0f172a 100%);
+            --card-bg: rgba(30, 41, 59, 0.8);
+            --card-bg-solid: #1e293b;
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.4);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.5);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        html {
+            scroll-behavior: smooth;
+        }
         
         body {
-            background: var(--bg-color);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
             color: var(--text-dark);
             min-height: 100vh;
-            transition: background-color 0.3s, color 0.3s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Header */
-        .header {
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .bg-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+            animation: blobFloat 20s ease-in-out infinite;
+        }
+        
+        .bg-blob-1 {
+            width: 600px;
+            height: 600px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%);
-            padding: calc(60px + var(--safe-area-inset-top)) 20px 80px;
-            text-align: center;
+            top: -200px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+        
+        .bg-blob-2 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-rose) 100%);
+            bottom: -100px;
+            left: -100px;
+            animation-delay: -5s;
+        }
+        
+        .bg-blob-3 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-rose) 100%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: -10s;
+        }
+        
+        [data-theme="dark"] .bg-blob {
+            opacity: 0.15;
+        }
+        
+        @keyframes blobFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -30px) scale(1.05); }
+            50% { transform: translate(-20px, 20px) scale(0.95); }
+            75% { transform: translate(20px, 30px) scale(1.02); }
+        }
+
+        /* Hero Section */
+        .hero {
             position: relative;
+            padding: calc(100px + var(--safe-area-inset-top)) 20px 120px;
+            text-align: center;
             overflow: hidden;
         }
         
-        .header::before {
+        .hero::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-            opacity: 0.5;
+            background: linear-gradient(180deg, transparent 0%, var(--bg-color) 100%);
+            pointer-events: none;
         }
         
-        .header-content {
+        .hero-content {
             position: relative;
-            z-index: 1;
+            z-index: 2;
             max-width: 800px;
             margin: 0 auto;
+            animation: heroFadeIn 1s ease-out;
         }
         
-        .header h1 {
-            font-size: clamp(1.75rem, 5vw, 2.5rem);
-            font-weight: 800;
-            color: white;
-            margin-bottom: 12px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        @keyframes heroFadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        .header p {
-            font-size: 1.1rem;
-            color: rgba(255,255,255,0.9);
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 24px;
+            animation: badgePulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes badgePulse {
+            0%, 100% { box-shadow: 0 0 0 0 var(--primary-glow); }
+            50% { box-shadow: 0 0 20px 5px var(--primary-glow); }
+        }
+        
+        .hero h1 {
+            font-size: clamp(2.2rem, 7vw, 4rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text-dark) 0%, var(--primary) 50%, var(--accent-cyan) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease-in-out infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% center; }
+            50% { background-position: 100% center; }
+        }
+        
+        .hero p {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            color: var(--text-gray);
             max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
+            margin: 0 auto 32px;
+            line-height: 1.7;
         }
         
-        /* Back button */
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* Navigation */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: calc(16px + var(--safe-area-inset-top)) 20px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .top-nav.scrolled {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+        
         .back-btn {
-            position: absolute;
-            top: calc(20px + var(--safe-area-inset-top));
-            left: 20px;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            padding: 10px 16px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 8px;
-            backdrop-filter: blur(8px);
-            transition: all 0.2s;
-            z-index: 10;
+            padding: 10px 18px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
         }
         
         .back-btn:hover {
-            background: rgba(255,255,255,0.3);
+            background: var(--card-bg);
             transform: translateX(-3px);
+            box-shadow: var(--shadow-md);
         }
-
-        /* Theme toggle */
+        
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
         .theme-toggle {
-            position: absolute;
-            top: calc(20px + var(--safe-area-inset-top));
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
             width: 44px;
             height: 44px;
             border-radius: 50%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-dark);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(8px);
-            transition: all 0.2s;
-            z-index: 10;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
         }
         
         .theme-toggle:hover {
-            background: rgba(255,255,255,0.3);
+            background: var(--card-bg);
+            transform: rotate(15deg);
+            box-shadow: var(--shadow-md);
         }
 
         /* Main content */
         .container {
-            max-width: 1200px;
+            max-width: 1300px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 0 20px 60px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+        .section-header h2 {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+        
+        .section-header p {
+            color: var(--text-gray);
+            max-width: 500px;
+            margin: 0 auto;
         }
 
         /* Protocol grid */
         .protocols-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 24px;
-            margin-top: -60px;
-            position: relative;
-            z-index: 2;
         }
 
-        /* Protocol card */
+        /* Protocol card - Premium Design */
         .protocol-card {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            padding: 28px 24px;
-            box-shadow: var(--shadow-md);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            border: 2px solid transparent;
             position: relative;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
             overflow: hidden;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--glass-border);
+            animation: cardFadeIn 0.6s ease-out backwards;
         }
+        
+        @keyframes cardFadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .protocol-card:nth-child(1) { animation-delay: 0.1s; }
+        .protocol-card:nth-child(2) { animation-delay: 0.15s; }
+        .protocol-card:nth-child(3) { animation-delay: 0.2s; }
+        .protocol-card:nth-child(4) { animation-delay: 0.25s; }
+        .protocol-card:nth-child(5) { animation-delay: 0.3s; }
+        .protocol-card:nth-child(6) { animation-delay: 0.35s; }
+        .protocol-card:nth-child(7) { animation-delay: 0.4s; }
+        .protocol-card:nth-child(8) { animation-delay: 0.45s; }
+        .protocol-card:nth-child(9) { animation-delay: 0.5s; }
+        .protocol-card:nth-child(10) { animation-delay: 0.55s; }
+        .protocol-card:nth-child(11) { animation-delay: 0.6s; }
         
         .protocol-card::before {
             content: '';
@@ -195,156 +388,256 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
-            background: var(--card-accent, var(--primary));
-            transform: scaleX(0);
-            transition: transform 0.3s;
+            height: 180px;
+            background: var(--card-gradient, linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%));
+            opacity: 0.9;
+            transition: all 0.4s ease;
+        }
+        
+        .protocol-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 40%, var(--card-bg-solid) 70%);
+            pointer-events: none;
         }
         
         .protocol-card:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--card-accent, var(--primary));
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            border-color: var(--primary);
         }
         
         .protocol-card:hover::before {
-            transform: scaleX(1);
+            opacity: 1;
+            transform: scale(1.05);
         }
         
-        .protocol-icon {
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            background: var(--icon-bg, var(--primary-light));
+        .card-image {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 140px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 16px;
-            font-size: 2rem;
-            transition: transform 0.3s;
+            padding: 20px;
         }
         
-        .protocol-card:hover .protocol-icon {
-            transform: scale(1.1);
+        .card-image img {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.2));
+            transition: transform 0.4s ease;
+        }
+        
+        .protocol-card:hover .card-image img {
+            transform: scale(1.15) rotate(5deg);
+        }
+        
+        .card-icon {
+            width: 90px;
+            height: 90px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            transition: all 0.4s ease;
+        }
+        
+        [data-theme="dark"] .card-icon {
+            background: rgba(30, 41, 59, 0.95);
+        }
+        
+        .protocol-card:hover .card-icon {
+            transform: scale(1.1) rotate(-5deg);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+        
+        .card-content {
+            position: relative;
+            z-index: 2;
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .card-category {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
         }
         
         .protocol-card h3 {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 700;
             color: var(--text-dark);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             line-height: 1.3;
         }
         
         .protocol-card p {
             font-size: 0.9rem;
             color: var(--text-gray);
-            line-height: 1.5;
-            flex-grow: 1;
+            line-height: 1.6;
+            margin-bottom: 20px;
         }
         
-        .protocol-card .card-footer {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(0,0,0,0.06);
-            width: 100%;
-        }
-        
-        [data-theme="dark"] .protocol-card .card-footer {
-            border-top-color: rgba(255,255,255,0.1);
-        }
-        
-        .learn-more {
-            color: var(--card-accent, var(--primary));
-            font-weight: 600;
-            font-size: 0.85rem;
+        .card-action {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 8px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
         
-        .learn-more i {
-            transition: transform 0.2s;
+        .card-action i {
+            transition: transform 0.3s ease;
         }
         
-        .protocol-card:hover .learn-more i {
+        .protocol-card:hover .card-action {
+            box-shadow: 0 8px 25px var(--primary-glow);
+        }
+        
+        .protocol-card:hover .card-action i {
             transform: translateX(4px);
         }
 
         /* Card color variants */
         .protocol-card[data-protocol="insulin_resistance"] {
-            --card-accent: #06b6d4;
-            --icon-bg: #cffafe;
+            --card-gradient: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="insulin_resistance"] { --icon-bg: #155e75; }
-        
         .protocol-card[data-protocol="autoimmune_aip"] {
-            --card-accent: #8b5cf6;
-            --icon-bg: #ede9fe;
+            --card-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="autoimmune_aip"] { --icon-bg: #4c1d95; }
-        
         .protocol-card[data-protocol="gi_issues"] {
-            --card-accent: #f59e0b;
-            --icon-bg: #fef3c7;
+            --card-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="gi_issues"] { --icon-bg: #78350f; }
-        
         .protocol-card[data-protocol="menopause_sarcopenia"] {
-            --card-accent: #ec4899;
-            --icon-bg: #fce7f3;
+            --card-gradient: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="menopause_sarcopenia"] { --icon-bg: #831843; }
-        
         .protocol-card[data-protocol="cellulite_reduction"] {
-            --card-accent: #f43f5e;
-            --icon-bg: #ffe4e6;
+            --card-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="cellulite_reduction"] { --icon-bg: #881337; }
-        
         .protocol-card[data-protocol="chronic_stress"] {
-            --card-accent: #14b8a6;
-            --icon-bg: #ccfbf1;
+            --card-gradient: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="chronic_stress"] { --icon-bg: #134e4a; }
-        
         .protocol-card[data-protocol="postpartum_lactation"] {
-            --card-accent: #a855f7;
-            --icon-bg: #f3e8ff;
+            --card-gradient: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="postpartum_lactation"] { --icon-bg: #581c87; }
-        
         .protocol-card[data-protocol="visceral_fat"] {
-            --card-accent: #ef4444;
-            --icon-bg: #fee2e2;
+            --card-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="visceral_fat"] { --icon-bg: #7f1d1d; }
-        
         .protocol-card[data-protocol="post_smoking"] {
-            --card-accent: #64748b;
-            --icon-bg: #f1f5f9;
+            --card-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="post_smoking"] { --icon-bg: #334155; }
-        
         .protocol-card[data-protocol="longevity"] {
-            --card-accent: #0ea5e9;
-            --icon-bg: #e0f2fe;
+            --card-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="longevity"] { --icon-bg: #0c4a6e; }
-        
         .protocol-card[data-protocol="detox"] {
-            --card-accent: #22c55e;
-            --icon-bg: #dcfce7;
+            --card-gradient: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
         }
-        [data-theme="dark"] .protocol-card[data-protocol="detox"] { --icon-bg: #14532d; }
 
-        /* Modal */
+        /* Standard plan CTA - Impressive design */
+        .standard-plan-section {
+            margin-top: 60px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            padding: 48px 32px;
+            text-align: center;
+            border: 2px dashed var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .standard-plan-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(6, 182, 212, 0.03) 100%);
+            pointer-events: none;
+        }
+        
+        .standard-plan-section h3 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: var(--text-dark);
+        }
+        
+        .standard-plan-section p {
+            color: var(--text-gray);
+            margin-bottom: 28px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 32px;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px var(--primary-glow);
+        }
+        
+        .btn-secondary {
+            background: var(--glass-bg);
+            color: var(--text-dark);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--card-bg);
+            transform: translateY(-2px);
+        }
+
+        /* Modal - Premium Design */
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 1000;
             display: flex;
             align-items: center;
@@ -352,7 +645,7 @@
             padding: 20px;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .modal-overlay.active {
@@ -361,81 +654,131 @@
         }
         
         .modal {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
+            background: var(--card-bg-solid);
+            border-radius: var(--radius-xl);
             max-width: 600px;
             width: 100%;
             max-height: 90vh;
-            overflow-y: auto;
-            transform: scale(0.9) translateY(20px);
-            transition: transform 0.3s;
+            overflow: hidden;
+            transform: scale(0.9) translateY(30px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--glass-border);
         }
         
         .modal-overlay.active .modal {
             transform: scale(1) translateY(0);
         }
         
-        .modal-header {
-            padding: 24px 24px 0;
+        .modal-hero {
+            position: relative;
+            height: 180px;
+            background: var(--modal-gradient, linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%));
             display: flex;
-            align-items: flex-start;
-            gap: 16px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
         
-        .modal-icon {
-            width: 56px;
-            height: 56px;
+        .modal-hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, transparent 0%, var(--card-bg-solid) 100%);
+        }
+        
+        .modal-icon-large {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.95);
             border-radius: 50%;
-            background: var(--modal-accent-bg, var(--primary-light));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            flex-shrink: 0;
+            font-size: 2.5rem;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 1;
+            animation: modalIconPop 0.5s ease-out 0.2s backwards;
         }
         
-        .modal-header-text h2 {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 4px;
+        [data-theme="dark"] .modal-icon-large {
+            background: rgba(30, 41, 59, 0.95);
         }
         
-        .modal-header-text .protocol-category {
-            font-size: 0.85rem;
-            color: var(--modal-accent, var(--primary));
-            font-weight: 600;
+        @keyframes modalIconPop {
+            from { transform: scale(0) rotate(-15deg); opacity: 0; }
+            to { transform: scale(1) rotate(0); opacity: 1; }
         }
         
         .modal-close {
             position: absolute;
             top: 16px;
             right: 16px;
-            background: transparent;
-            border: none;
-            color: var(--text-gray);
-            cursor: pointer;
-            padding: 8px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            transition: all 0.2s;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 2;
         }
         
         .modal-close:hover {
-            background: rgba(0,0,0,0.05);
-            color: var(--text-dark);
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
         }
         
-        [data-theme="dark"] .modal-close:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .modal-body {
+        .modal-content {
             padding: 24px;
+            max-height: calc(90vh - 260px);
+            overflow-y: auto;
+        }
+        
+        .modal-title {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .modal-title h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+        }
+        
+        .modal-title .category-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
         
         .modal-section {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: rgba(0,0,0,0.02);
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--primary);
+        }
+        
+        [data-theme="dark"] .modal-section {
+            background: rgba(255,255,255,0.02);
         }
         
         .modal-section:last-child {
@@ -445,23 +788,19 @@
         .modal-section h4 {
             font-size: 0.85rem;
             font-weight: 700;
-            color: var(--text-gray);
+            color: var(--primary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
-        .modal-section h4 i {
-            color: var(--modal-accent, var(--primary));
-        }
-        
         .modal-section p {
             font-size: 0.95rem;
             color: var(--text-dark);
-            line-height: 1.6;
+            line-height: 1.7;
         }
         
         .modal-section ul {
@@ -472,16 +811,17 @@
         }
         
         .modal-section ul li {
-            background: var(--primary-light);
-            color: var(--primary);
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 8px 14px;
+            border-radius: 25px;
             font-size: 0.85rem;
             font-weight: 500;
+            background: var(--primary-light);
+            color: var(--primary);
+            transition: all 0.2s ease;
         }
         
-        [data-theme="dark"] .modal-section ul li {
-            background: rgba(52, 211, 153, 0.15);
+        .modal-section ul li:hover {
+            transform: translateY(-2px);
         }
         
         .modal-section ul.restrictions li {
@@ -494,30 +834,46 @@
             color: #fca5a5;
         }
         
-        .supplements-list {
+        .supplements-grid {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .supplement-card {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .supplement-item {
-            background: rgba(0,0,0,0.02);
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            background: var(--card-bg);
             border-radius: var(--radius-sm);
-            padding: 12px;
-            border-left: 3px solid var(--modal-accent, var(--primary));
+            border: 1px solid var(--glass-border);
+            transition: all 0.2s ease;
         }
         
-        [data-theme="dark"] .supplement-item {
-            background: rgba(255,255,255,0.03);
+        .supplement-card:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow-sm);
         }
         
-        .supplement-item .name {
+        .supplement-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+        
+        .supplement-info .name {
             font-weight: 600;
             color: var(--text-dark);
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         
-        .supplement-item .dosage {
+        .supplement-info .dosage {
             font-size: 0.85rem;
             color: var(--text-gray);
         }
@@ -525,173 +881,188 @@
         .modal-footer {
             padding: 20px 24px;
             background: rgba(0,0,0,0.02);
-            border-top: 1px solid rgba(0,0,0,0.06);
+            border-top: 1px solid var(--glass-border);
             display: flex;
             gap: 12px;
         }
         
         [data-theme="dark"] .modal-footer {
             background: rgba(255,255,255,0.02);
-            border-top-color: rgba(255,255,255,0.06);
         }
         
-        .btn {
-            padding: 14px 28px;
-            border-radius: var(--radius-md);
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .btn-primary {
-            background: var(--primary);
-            color: white;
+        .modal-footer .btn {
             flex: 1;
-        }
-        
-        .btn-primary:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
-        }
-        
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-gray);
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        
-        [data-theme="dark"] .btn-secondary {
-            border-color: rgba(255,255,255,0.15);
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(0,0,0,0.05);
-            color: var(--text-dark);
-        }
-        
-        [data-theme="dark"] .btn-secondary:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* Standard plan CTA */
-        .standard-plan-section {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            padding: 32px;
-            margin-top: 40px;
-            text-align: center;
-            box-shadow: var(--shadow-md);
-            border: 2px dashed rgba(0,0,0,0.1);
-        }
-        
-        [data-theme="dark"] .standard-plan-section {
-            border-color: rgba(255,255,255,0.1);
-        }
-        
-        .standard-plan-section h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 8px;
-        }
-        
-        .standard-plan-section p {
-            color: var(--text-gray);
-            margin-bottom: 20px;
         }
 
         /* Footer */
         footer {
             text-align: center;
-            padding: 40px 20px calc(20px + var(--safe-area-inset-bottom));
+            padding: 60px 20px calc(40px + var(--safe-area-inset-bottom));
             color: var(--text-gray);
+        }
+        
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .footer-logo i {
+            color: var(--primary);
+        }
+        
+        footer p {
             font-size: 0.9rem;
         }
         
         footer a {
             color: var(--primary);
             text-decoration: none;
+            font-weight: 500;
         }
 
         /* Responsive */
-        @media (max-width: 640px) {
-            .header {
-                padding: calc(50px + var(--safe-area-inset-top)) 16px 70px;
+        @media (max-width: 768px) {
+            .hero {
+                padding: calc(90px + var(--safe-area-inset-top)) 16px 100px;
             }
             
-            .header h1 {
-                font-size: 1.5rem;
+            .hero h1 {
+                font-size: 2rem;
             }
             
-            .header p {
-                font-size: 0.95rem;
+            .hero-stats {
+                gap: 24px;
             }
             
-            .back-btn {
-                padding: 8px 12px;
-                font-size: 0.8rem;
+            .stat-number {
+                font-size: 2rem;
             }
             
             .protocols-grid {
                 grid-template-columns: 1fr;
-                gap: 16px;
-                margin-top: -40px;
+                gap: 20px;
             }
             
-            .protocol-card {
-                padding: 20px 16px;
+            .protocol-card::before {
+                height: 150px;
+            }
+            
+            .card-image {
+                height: 120px;
             }
             
             .modal {
-                max-height: 85vh;
+                max-height: 92vh;
             }
             
-            .modal-header {
-                padding: 20px 20px 0;
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
+            .modal-hero {
+                height: 150px;
             }
             
-            .modal-body {
+            .modal-icon-large {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+            
+            .modal-content {
                 padding: 20px;
+                max-height: calc(92vh - 230px);
             }
             
             .modal-footer {
                 flex-direction: column;
             }
             
-            .btn-secondary {
-                order: 1;
+            .standard-plan-section {
+                padding: 32px 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .back-btn span {
+                display: none;
+            }
+            
+            .back-btn {
+                padding: 10px;
+                border-radius: 50%;
+            }
+            
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+            
+            .hero p {
+                font-size: 0.95rem;
+            }
+            
+            .card-content {
+                padding: 20px 16px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-blob bg-blob-1"></div>
+        <div class="bg-blob bg-blob-2"></div>
+        <div class="bg-blob bg-blob-3"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="top-nav" id="topNav">
         <a href="index.html" class="back-btn">
             <i class="fas fa-arrow-left"></i>
             <span>Начало</span>
         </a>
-        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Превключване на тема">
-            <i class="fas fa-moon"></i>
-        </button>
-        <div class="header-content">
-            <h1>🏥 Клинични Протоколи</h1>
-            <p>Изберете специализиран протокол, съобразен с вашето здравословно състояние за максимално персонализиран план</p>
+        <div class="nav-actions">
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Превключване на тема">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-sparkles"></i>
+                11 специализирани протокола
+            </div>
+            <h1>Персонализирани<br>Клинични Протоколи</h1>
+            <p>Изберете протокол, създаден специално за вашето здравословно състояние. Получете научно обоснован хранителен план.</p>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number">11</div>
+                    <div class="stat-label">Протокола</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">100+</div>
+                    <div class="stat-label">Добавки</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">1000+</div>
+                    <div class="stat-label">Доволни клиенти</div>
+                </div>
+            </div>
         </div>
     </header>
 
     <!-- Main Content -->
     <main class="container">
+        <div class="section-header">
+            <h2>Изберете вашия протокол</h2>
+            <p>Кликнете върху карта, за да научите повече за протокола</p>
+        </div>
+        
         <div class="protocols-grid" id="protocolsGrid">
             <!-- Cards will be dynamically generated -->
         </div>
@@ -699,7 +1070,7 @@
         <!-- Standard Plan Section -->
         <section class="standard-plan-section">
             <h3>🎯 Нямате специфично състояние?</h3>
-            <p>Получете стандартен персонализиран план базиран на вашите цели, без клиничен протокол</p>
+            <p>Получете стандартен персонализиран план, базиран на вашите цели – без клиничен протокол</p>
             <button class="btn btn-primary" onclick="goToStandardQuestionnaire()">
                 <i class="fas fa-clipboard-list"></i>
                 Към стандартния въпросник
@@ -710,44 +1081,41 @@
     <!-- Modal -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
         <div class="modal" onclick="event.stopPropagation()">
-            <button class="modal-close" onclick="closeModal()">
-                <i class="fas fa-times fa-lg"></i>
-            </button>
-            <div class="modal-header">
-                <div class="modal-icon" id="modalIcon">
-                    <!-- Icon will be set dynamically -->
-                </div>
-                <div class="modal-header-text">
-                    <h2 id="modalTitle">Протокол</h2>
-                    <span class="protocol-category" id="modalCategory">Категория</span>
-                </div>
+            <div class="modal-hero" id="modalHero">
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="modal-icon-large" id="modalIcon"></div>
             </div>
-            <div class="modal-body">
+            <div class="modal-content">
+                <div class="modal-title">
+                    <h2 id="modalTitle">Протокол</h2>
+                    <span class="category-badge" id="modalCategory">Категория</span>
+                </div>
+                
                 <div class="modal-section">
                     <h4><i class="fas fa-info-circle"></i> За какво е този протокол?</h4>
-                    <p id="modalDescription">Описание на протокола...</p>
+                    <p id="modalDescription">Описание...</p>
                 </div>
+                
                 <div class="modal-section">
                     <h4><i class="fas fa-bullseye"></i> Какво ще постигнете?</h4>
-                    <p id="modalBenefits">Ползи от протокола...</p>
+                    <p id="modalBenefits">Ползи...</p>
                 </div>
+                
                 <div class="modal-section">
                     <h4><i class="fas fa-check-circle"></i> Акцент върху</h4>
-                    <ul id="modalEmphasis" class="emphasis">
-                        <!-- Will be populated dynamically -->
-                    </ul>
+                    <ul id="modalEmphasis" class="emphasis"></ul>
                 </div>
+                
                 <div class="modal-section">
                     <h4><i class="fas fa-ban"></i> Ограничаване</h4>
-                    <ul id="modalRestrictions" class="restrictions">
-                        <!-- Will be populated dynamically -->
-                    </ul>
+                    <ul id="modalRestrictions" class="restrictions"></ul>
                 </div>
+                
                 <div class="modal-section">
-                    <h4><i class="fas fa-pills"></i> Основни добавки</h4>
-                    <div class="supplements-list" id="modalSupplements">
-                        <!-- Will be populated dynamically -->
-                    </div>
+                    <h4><i class="fas fa-pills"></i> Ключови добавки</h4>
+                    <div class="supplements-grid" id="modalSupplements"></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -756,17 +1124,23 @@
                 </button>
                 <button class="btn btn-primary" id="modalSelectBtn" onclick="selectProtocol()">
                     <i class="fas fa-arrow-right"></i>
-                    Избери този протокол
+                    Избери протокол
                 </button>
             </div>
         </div>
     </div>
 
     <footer>
+        <div class="footer-logo">
+            <i class="fas fa-leaf"></i>
+            NutriPlan
+        </div>
         <p>© 2026 NutriPlan | <a href="index.html">Начална страница</a></p>
     </footer>
 
     <script>
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+        
         // Protocol definitions with extended info for the landing page
         const PROTOCOLS = {
             insulin_resistance: {
@@ -989,28 +1363,53 @@
 
         function updateThemeIcon(isDark) {
             const icon = document.querySelector('.theme-toggle i');
-            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            if (icon) {
+                icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            }
         }
+        
+        // Navigation scroll effect
+        window.addEventListener('scroll', function() {
+            const nav = document.getElementById('topNav');
+            if (nav) {
+                if (window.scrollY > 50) {
+                    nav.classList.add('scrolled');
+                } else {
+                    nav.classList.remove('scrolled');
+                }
+            }
+        });
 
-        // Render protocol cards
+        // Render protocol cards with new design
         function renderProtocolCards() {
             const grid = document.getElementById('protocolsGrid');
+            if (!grid) return;
             grid.innerHTML = '';
             
-            Object.values(PROTOCOLS).forEach(protocol => {
+            Object.values(PROTOCOLS).forEach((protocol, index) => {
                 const card = document.createElement('div');
                 card.className = 'protocol-card';
                 card.setAttribute('data-protocol', protocol.id);
+                card.style.animationDelay = `${0.1 + index * 0.05}s`;
                 card.onclick = () => openModal(protocol.id);
                 
+                // Check if there's a custom image URL
+                const imageUrl = protocol.imageUrl;
+                const imageHtml = imageUrl 
+                    ? `<img src="${imageUrl}" alt="${protocol.name}" onerror="this.parentElement.innerHTML='<div class=\\'card-icon\\'>${protocol.icon}</div>'">`
+                    : `<div class="card-icon">${protocol.icon}</div>`;
+                
                 card.innerHTML = `
-                    <div class="protocol-icon">${protocol.icon}</div>
-                    <h3>${protocol.shortName}</h3>
-                    <p>${protocol.shortDescription}</p>
-                    <div class="card-footer">
-                        <span class="learn-more">
+                    <div class="card-image">
+                        ${imageHtml}
+                    </div>
+                    <div class="card-content">
+                        <span class="card-category">${protocol.category}</span>
+                        <h3>${protocol.shortName}</h3>
+                        <p>${protocol.shortDescription}</p>
+                        <div class="card-action">
                             Научете повече <i class="fas fa-arrow-right"></i>
-                        </span>
+                        </div>
                     </div>
                 `;
                 
@@ -1018,12 +1417,33 @@
             });
         }
 
-        // Modal functions
+        // Modal gradient colors for each protocol
+        const MODAL_GRADIENTS = {
+            insulin_resistance: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+            autoimmune_aip: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            gi_issues: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            menopause_sarcopenia: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+            cellulite_reduction: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+            chronic_stress: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+            postpartum_lactation: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+            visceral_fat: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            post_smoking: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            longevity: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+            detox: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+        };
+
+        // Modal functions - updated for new design
         function openModal(protocolId) {
             const protocol = PROTOCOLS[protocolId];
             if (!protocol) return;
             
             selectedProtocolId = protocolId;
+            
+            // Set modal hero gradient
+            const modalHero = document.getElementById('modalHero');
+            if (modalHero) {
+                modalHero.style.background = MODAL_GRADIENTS[protocolId] || 'linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%)';
+            }
             
             // Set modal content
             document.getElementById('modalIcon').textContent = protocol.icon;
@@ -1040,12 +1460,17 @@
             const restrictionsList = document.getElementById('modalRestrictions');
             restrictionsList.innerHTML = protocol.restrictions.map(item => `<li>${item}</li>`).join('');
             
-            // Supplements list
+            // Supplements list - updated design
             const supplementsList = document.getElementById('modalSupplements');
             supplementsList.innerHTML = protocol.supplements.map(supp => `
-                <div class="supplement-item">
-                    <div class="name">${supp.name}</div>
-                    <div class="dosage">${supp.dosage}</div>
+                <div class="supplement-card">
+                    <div class="supplement-icon">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <div class="supplement-info">
+                        <div class="name">${supp.name}</div>
+                        <div class="dosage">${supp.dosage}</div>
+                    </div>
                 </div>
             `).join('');
             
