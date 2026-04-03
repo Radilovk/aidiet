@@ -1843,6 +1843,73 @@
                     </p>
                 </div>
             </div>
+            
+            <!-- Protocol Images Card -->
+            <div class="card">
+                <h2><i class="fas fa-images"></i> Изображения за Клинични Протоколи</h2>
+                <div class="info-box" style="background: #e0f7fa; border-left: 4px solid #00bcd4;">
+                    <strong>Информация:</strong> Качете изображения за всеки клиничен протокол. Изображенията ще се показват в картите на landing страницата. Препоръчителен размер: 200x200px, формат: PNG/JPG/WebP.
+                </div>
+                
+                <div class="form-group">
+                    <label for="protocolImageSelect">Изберете протокол:</label>
+                    <select id="protocolImageSelect">
+                        <option value="insulin_resistance">🩸 Инсулинова резистентност</option>
+                        <option value="autoimmune_aip">🛡️ Автоимунен протокол (AIP)</option>
+                        <option value="gi_issues">🌿 Стомашно-чревни проблеми</option>
+                        <option value="menopause_sarcopenia">💪 Менопауза и Саркопения</option>
+                        <option value="cellulite_reduction">✨ Редукция на целулит</option>
+                        <option value="chronic_stress">🧘 Хроничен стрес</option>
+                        <option value="postpartum_lactation">🤱 След бременност & Лактация</option>
+                        <option value="visceral_fat">🔥 Висцерални мазнини</option>
+                        <option value="post_smoking">🚭 След спиране на цигарите</option>
+                        <option value="longevity">🧬 Дълголетие (Longevity)</option>
+                        <option value="detox">🌱 Детоксикация</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Текущо изображение:</label>
+                    <div id="currentProtocolImage" style="padding: 20px; background: var(--soft-red); border-radius: 12px; text-align: center; min-height: 150px; display: flex; align-items: center; justify-content: center;">
+                        <div style="color: var(--text-gray);">
+                            <i class="fas fa-image" style="font-size: 3rem; opacity: 0.3; margin-bottom: 10px; display: block;"></i>
+                            <p>Изберете протокол и натиснете "Зареди" за да видите текущото изображение</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="protocolImageFile">Качете ново изображение:</label>
+                    <input type="file" id="protocolImageFile" accept="image/png,image/jpeg,image/webp" style="padding: 15px; border: 2px dashed var(--primary-red); border-radius: 12px; width: 100%; cursor: pointer;">
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        Максимален размер: 500KB. Препоръчителен формат: WebP или PNG с прозрачен фон.
+                    </small>
+                </div>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                    <button class="btn" onclick="loadProtocolImage()" style="background: var(--accent-blue);">
+                        <i class="fas fa-sync"></i> Зареди изображение
+                    </button>
+                    <button class="btn" onclick="uploadProtocolImage()" style="background: var(--primary-red);">
+                        <i class="fas fa-upload"></i> Качи изображение
+                    </button>
+                    <button class="btn" onclick="deleteProtocolImage()" style="background: var(--accent-light-red);">
+                        <i class="fas fa-trash"></i> Изтрий изображение
+                    </button>
+                </div>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Преглед на всички изображения:</label>
+                    <button class="btn" onclick="loadAllProtocolImages()" style="background: #9c27b0; margin-bottom: 15px;">
+                        <i class="fas fa-th"></i> Зареди всички изображения
+                    </button>
+                    <div id="allProtocolImages" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; padding: 15px; background: var(--soft-red); border-radius: 12px; min-height: 100px;">
+                        <p style="text-align: center; color: var(--text-gray); grid-column: 1/-1; padding: 20px;">
+                            Натиснете "Зареди всички изображения" за да видите качените изображения.
+                        </p>
+                    </div>
+                </div>
+            </div>
             </div>
             <!-- End Protocols Tab -->
 
@@ -4417,6 +4484,191 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             } catch (error) {
                 console.error('Error resetting goal hacks:', error);
                 showError('Не може да се върнат хаковете по подразбиране.');
+            }
+        }
+
+        // --- Protocol Images Functions ---
+        let protocolImagesCache = {};
+        
+        async function loadProtocolImage() {
+            const protocolId = document.getElementById('protocolImageSelect').value;
+            const container = document.getElementById('currentProtocolImage');
+            
+            container.innerHTML = '<div style="color: var(--text-gray);"><i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i><p>Зареждане...</p></div>';
+            
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-protocol-image?protocol=' + protocolId, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.imageUrl) {
+                    container.innerHTML = `
+                        <div>
+                            <img src="${result.imageUrl}" alt="${protocolId}" style="max-width: 150px; max-height: 150px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                            <p style="margin-top: 10px; color: var(--text-gray); font-size: 0.85rem;">${protocolId}</p>
+                        </div>
+                    `;
+                    protocolImagesCache[protocolId] = result.imageUrl;
+                } else {
+                    container.innerHTML = `
+                        <div style="color: var(--text-gray);">
+                            <i class="fas fa-image" style="font-size: 3rem; opacity: 0.3; margin-bottom: 10px; display: block;"></i>
+                            <p>Няма качено изображение за този протокол</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading protocol image:', error);
+                container.innerHTML = `
+                    <div style="color: var(--accent-light-red);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                        <p>Грешка при зареждане на изображението</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function uploadProtocolImage() {
+            const protocolId = document.getElementById('protocolImageSelect').value;
+            const fileInput = document.getElementById('protocolImageFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showError('Моля, изберете файл за качване.');
+                return;
+            }
+            
+            // Validate file size (max 500KB)
+            if (file.size > 500 * 1024) {
+                showError('Файлът е твърде голям. Максимален размер: 500KB.');
+                return;
+            }
+            
+            // Validate file type
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showError('Невалиден формат. Позволени: PNG, JPG, WebP.');
+                return;
+            }
+            
+            // Convert to base64
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                
+                try {
+                    showSuccess('Качване на изображението...', 5000);
+                    
+                    const response = await fetch(WORKER_URL + '/api/admin/upload-protocol-image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            protocolId: protocolId,
+                            imageData: base64Data,
+                            mimeType: file.type
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showSuccess('Изображението е качено успешно!');
+                        protocolImagesCache[protocolId] = result.imageUrl;
+                        fileInput.value = '';
+                        loadProtocolImage();
+                    } else {
+                        showError(result.error || 'Грешка при качване на изображението.');
+                    }
+                } catch (error) {
+                    console.error('Error uploading protocol image:', error);
+                    showError('Не може да се качи изображението. Моля, опитайте отново.');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function deleteProtocolImage() {
+            const protocolId = document.getElementById('protocolImageSelect').value;
+            
+            if (!confirm('Сигурни ли сте, че искате да изтриете изображението за този протокол?')) return;
+            
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/delete-protocol-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ protocolId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Изображението е изтрито успешно!');
+                    delete protocolImagesCache[protocolId];
+                    loadProtocolImage();
+                } else {
+                    showError(result.error || 'Грешка при изтриване на изображението.');
+                }
+            } catch (error) {
+                console.error('Error deleting protocol image:', error);
+                showError('Не може да се изтрие изображението. Моля, опитайте отново.');
+            }
+        }
+        
+        async function loadAllProtocolImages() {
+            const container = document.getElementById('allProtocolImages');
+            const protocols = [
+                { id: 'insulin_resistance', name: 'Инсулинова резистентност', icon: '🩸' },
+                { id: 'autoimmune_aip', name: 'Автоимунен протокол', icon: '🛡️' },
+                { id: 'gi_issues', name: 'Стомашно-чревни', icon: '🌿' },
+                { id: 'menopause_sarcopenia', name: 'Менопауза', icon: '💪' },
+                { id: 'cellulite_reduction', name: 'Целулит', icon: '✨' },
+                { id: 'chronic_stress', name: 'Хроничен стрес', icon: '🧘' },
+                { id: 'postpartum_lactation', name: 'Лактация', icon: '🤱' },
+                { id: 'visceral_fat', name: 'Висцерални мазнини', icon: '🔥' },
+                { id: 'post_smoking', name: 'След цигарите', icon: '🚭' },
+                { id: 'longevity', name: 'Дълголетие', icon: '🧬' },
+                { id: 'detox', name: 'Детокс', icon: '🌱' }
+            ];
+            
+            container.innerHTML = '<p style="text-align: center; grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+            
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-all-protocol-images', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                const images = result.images || {};
+                
+                let html = '';
+                protocols.forEach(protocol => {
+                    const imageUrl = images[protocol.id];
+                    const hasImage = !!imageUrl;
+                    
+                    html += `
+                        <div style="text-align: center; padding: 10px; background: white; border-radius: 12px; border: 2px solid ${hasImage ? 'var(--primary-red)' : 'transparent'}; transition: all 0.2s;" onclick="document.getElementById('protocolImageSelect').value='${protocol.id}'; loadProtocolImage();" class="protocol-image-thumb">
+                            ${hasImage 
+                                ? `<img src="${imageUrl}" alt="${protocol.name}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">`
+                                : `<div style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto;">${protocol.icon}</div>`
+                            }
+                            <p style="font-size: 0.7rem; margin-top: 5px; color: var(--text-gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${protocol.name}</p>
+                            <span style="font-size: 0.6rem; color: ${hasImage ? 'var(--primary-red)' : 'var(--text-light)'};">${hasImage ? '✓ Качено' : 'Няма'}</span>
+                        </div>
+                    `;
+                    
+                    if (hasImage) {
+                        protocolImagesCache[protocol.id] = imageUrl;
+                    }
+                });
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading all protocol images:', error);
+                container.innerHTML = '<p style="text-align: center; color: var(--accent-light-red); grid-column: 1/-1; padding: 20px;">Грешка при зареждане на изображенията.</p>';
             }
         }
 

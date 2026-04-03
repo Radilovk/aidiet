@@ -8149,6 +8149,122 @@ async function handleRemoveGoalHack(request, env) {
   }
 }
 
+// === Protocol Images Handlers ===
+
+const PROTOCOL_IMAGES_KEY = 'protocol_images';
+
+/**
+ * Get all protocol images
+ */
+async function handleGetAllProtocolImages(request, env) {
+  try {
+    const images = await env.KV.get(PROTOCOL_IMAGES_KEY, 'json') || {};
+    return jsonResponse({ success: true, images });
+  } catch (error) {
+    console.error('Error getting protocol images:', error);
+    return jsonResponse({ error: `Failed to get protocol images: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Get single protocol image
+ */
+async function handleGetProtocolImage(request, env) {
+  try {
+    const url = new URL(request.url);
+    const protocolId = url.searchParams.get('protocol');
+    
+    if (!protocolId) {
+      return jsonResponse({ error: 'Protocol ID is required' }, 400);
+    }
+    
+    const images = await env.KV.get(PROTOCOL_IMAGES_KEY, 'json') || {};
+    const imageUrl = images[protocolId] || null;
+    
+    return jsonResponse({ success: true, imageUrl, protocolId });
+  } catch (error) {
+    console.error('Error getting protocol image:', error);
+    return jsonResponse({ error: `Failed to get protocol image: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Upload protocol image (base64 encoded)
+ */
+async function handleUploadProtocolImage(request, env) {
+  try {
+    const body = await request.json();
+    const { protocolId, imageData, mimeType } = body;
+    
+    if (!protocolId || !imageData) {
+      return jsonResponse({ error: 'Protocol ID and image data are required' }, 400);
+    }
+    
+    // Validate protocol ID
+    const validProtocols = [
+      'insulin_resistance', 'autoimmune_aip', 'gi_issues', 'menopause_sarcopenia',
+      'cellulite_reduction', 'chronic_stress', 'postpartum_lactation', 'visceral_fat',
+      'post_smoking', 'longevity', 'detox'
+    ];
+    
+    if (!validProtocols.includes(protocolId)) {
+      return jsonResponse({ error: 'Invalid protocol ID' }, 400);
+    }
+    
+    // Validate mime type
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (mimeType && !allowedMimeTypes.includes(mimeType)) {
+      return jsonResponse({ error: 'Invalid image type. Allowed: PNG, JPG, WebP' }, 400);
+    }
+    
+    // Get existing images
+    const images = await env.KV.get(PROTOCOL_IMAGES_KEY, 'json') || {};
+    
+    // Store the base64 image directly (for simplicity - in production you'd use R2 or external storage)
+    images[protocolId] = imageData;
+    
+    // Save to KV
+    await env.KV.put(PROTOCOL_IMAGES_KEY, JSON.stringify(images));
+    
+    return jsonResponse({ 
+      success: true, 
+      imageUrl: imageData,
+      message: 'Image uploaded successfully' 
+    });
+  } catch (error) {
+    console.error('Error uploading protocol image:', error);
+    return jsonResponse({ error: `Failed to upload protocol image: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Delete protocol image
+ */
+async function handleDeleteProtocolImage(request, env) {
+  try {
+    const body = await request.json();
+    const { protocolId } = body;
+    
+    if (!protocolId) {
+      return jsonResponse({ error: 'Protocol ID is required' }, 400);
+    }
+    
+    // Get existing images
+    const images = await env.KV.get(PROTOCOL_IMAGES_KEY, 'json') || {};
+    
+    // Delete the image
+    if (images[protocolId]) {
+      delete images[protocolId];
+      await env.KV.put(PROTOCOL_IMAGES_KEY, JSON.stringify(images));
+    }
+    
+    return jsonResponse({ success: true, message: 'Image deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting protocol image:', error);
+    return jsonResponse({ error: `Failed to delete protocol image: ${error.message}` }, 500);
+  }
+}
+
 /**
  * Convert base64url string to Uint8Array
  */
@@ -9504,6 +9620,15 @@ export default {
         return await handleAddGoalHack(request, env);
       } else if (url.pathname === '/api/admin/remove-goal-hack' && request.method === 'POST') {
         return await handleRemoveGoalHack(request, env);
+      // Protocol Images API
+      } else if (url.pathname === '/api/admin/get-all-protocol-images' && request.method === 'GET') {
+        return await handleGetAllProtocolImages(request, env);
+      } else if (url.pathname === '/api/admin/get-protocol-image' && request.method === 'GET') {
+        return await handleGetProtocolImage(request, env);
+      } else if (url.pathname === '/api/admin/upload-protocol-image' && request.method === 'POST') {
+        return await handleUploadProtocolImage(request, env);
+      } else if (url.pathname === '/api/admin/delete-protocol-image' && request.method === 'POST') {
+        return await handleDeleteProtocolImage(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {

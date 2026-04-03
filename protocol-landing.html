@@ -1333,12 +1333,28 @@
         };
 
         let selectedProtocolId = null;
+        let protocolImages = {}; // Will be loaded from backend
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             initTheme();
+            await loadProtocolImages();
             renderProtocolCards();
         });
+        
+        // Load protocol images from backend
+        async function loadProtocolImages() {
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-all-protocol-images');
+                const result = await response.json();
+                if (result.success && result.images) {
+                    protocolImages = result.images;
+                    console.log('Protocol images loaded:', Object.keys(protocolImages).length);
+                }
+            } catch (error) {
+                console.log('Could not load protocol images, using defaults:', error);
+            }
+        }
 
         // Theme management
         function initTheme() {
@@ -1393,10 +1409,10 @@
                 card.style.animationDelay = `${0.1 + index * 0.05}s`;
                 card.onclick = () => openModal(protocol.id);
                 
-                // Check if there's a custom image URL
-                const imageUrl = protocol.imageUrl;
-                const imageHtml = imageUrl 
-                    ? `<img src="${imageUrl}" alt="${protocol.name}" onerror="this.parentElement.innerHTML='<div class=\\'card-icon\\'>${protocol.icon}</div>'">`
+                // Check if there's a custom image URL from backend
+                const customImageUrl = protocolImages[protocol.id];
+                const imageHtml = customImageUrl 
+                    ? `<img src="${customImageUrl}" alt="${protocol.name}" onerror="this.parentElement.innerHTML='<div class=\\'card-icon\\'>${protocol.icon}</div>'">`
                     : `<div class="card-icon">${protocol.icon}</div>`;
                 
                 card.innerHTML = `
