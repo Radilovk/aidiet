@@ -774,7 +774,7 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   // Use provided TDEE if available, otherwise estimate based on weight/gender
   const estimatedCalories = tdee || (gender === 'Мъж' ? weight * 30 : weight * 28);
   const proteinCalories = proteinGrams * 4;
-  const proteinPercent = Math.round((proteinCalories / estimatedCalories) * 100);
+  let proteinPercent = Math.round((proteinCalories / estimatedCalories) * 100);
   
   // Distribute remaining calories between carbs and fats
   // Higher activity = more carbs for energy
@@ -8441,10 +8441,10 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
   
   // Perform ECDH to get shared secret
   const sharedSecret = await crypto.subtle.deriveBits(
-    {
+    /** @type {any} */({
       name: 'ECDH',
       public: importedUserPublicKey
-    },
+    }),
     localKeyPair.privateKey,
     256
   );
