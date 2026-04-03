@@ -1484,15 +1484,29 @@
                         <h3>${escapeHtml(protocol.shortName)}</h3>
                         <p>${escapeHtml(protocol.shortDescription)}</p>
                         <div class="card-actions">
-                            <button class="card-action card-action-select" data-protocol-id="${escapeHtml(protocol.id)}" onclick="event.stopPropagation(); selectProtocolDirect('${escapeHtml(protocol.id)}')">
+                            <button class="card-action card-action-select" data-protocol-id="${escapeHtml(protocol.id)}" aria-label="Избери протокол ${escapeHtml(protocol.shortName)}">
                                 <i class="fas fa-check"></i> Избери
                             </button>
-                            <button class="card-action card-action-info" onclick="event.stopPropagation(); openModal('${escapeHtml(protocol.id)}')">
+                            <button class="card-action card-action-info" data-protocol-id="${escapeHtml(protocol.id)}" aria-label="Виж детайли за ${escapeHtml(protocol.shortName)}">
                                 <i class="fas fa-info-circle"></i> Детайли
                             </button>
                         </div>
                     </div>
                 `;
+                
+                // Add event listeners to buttons (safer than inline onclick)
+                const selectBtn = card.querySelector('.card-action-select');
+                const infoBtn = card.querySelector('.card-action-info');
+                
+                selectBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    selectProtocolDirect(protocol.id);
+                });
+                
+                infoBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openModal(protocol.id);
+                });
                 
                 grid.appendChild(card);
             });
@@ -1572,13 +1586,19 @@
             if (!protocolId || !PROTOCOLS[protocolId]) return;
             
             // Store the selected protocol in localStorage for the questionnaire
-            const existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
+            let existingAnswers = {};
+            try {
+                existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
+            } catch (e) {
+                console.warn('Could not parse existing answers, starting fresh:', e);
+                existingAnswers = {};
+            }
             existingAnswers.clinicalProtocol = protocolId;
             existingAnswers._protocolSelectedFromLanding = true;
             localStorage.setItem('questionnaireAnswers', JSON.stringify(existingAnswers));
             
             // Navigate to questionnaire with protocol
-            window.location.href = 'questionnaire.html?protocol=' + protocolId;
+            window.location.href = 'questionnaire.html?protocol=' + encodeURIComponent(protocolId);
         }
 
         // Select protocol and go to questionnaire (from modal)
@@ -1588,19 +1608,31 @@
             const protocol = PROTOCOLS[selectedProtocolId];
             
             // Store the selected protocol in localStorage for the questionnaire
-            const existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
+            let existingAnswers = {};
+            try {
+                existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
+            } catch (e) {
+                console.warn('Could not parse existing answers, starting fresh:', e);
+                existingAnswers = {};
+            }
             existingAnswers.clinicalProtocol = selectedProtocolId;
             existingAnswers._protocolSelectedFromLanding = true;
             localStorage.setItem('questionnaireAnswers', JSON.stringify(existingAnswers));
             
             // Navigate to questionnaire
-            window.location.href = 'questionnaire.html?protocol=' + selectedProtocolId;
+            window.location.href = 'questionnaire.html?protocol=' + encodeURIComponent(selectedProtocolId);
         }
 
         // Go to standard questionnaire without protocol
         function goToStandardQuestionnaire() {
             // Clear any previously selected protocol
-            const existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
+            let existingAnswers = {};
+            try {
+                existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
+            } catch (e) {
+                console.warn('Could not parse existing answers, starting fresh:', e);
+                existingAnswers = {};
+            }
             delete existingAnswers.clinicalProtocol;
             delete existingAnswers._protocolSelectedFromLanding;
             localStorage.setItem('questionnaireAnswers', JSON.stringify(existingAnswers));
