@@ -463,6 +463,9 @@
             z-index: 2;
             padding: 24px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
         }
         
         .card-category {
@@ -493,30 +496,58 @@
             margin-bottom: 20px;
         }
         
+        /* Card action buttons container */
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+        
         .card-action {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-            color: white;
+            gap: 6px;
+            padding: 12px 16px;
             border-radius: var(--radius-md);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            flex: 1;
         }
         
         .card-action i {
             transition: transform 0.3s ease;
+            font-size: 0.8rem;
         }
         
-        .protocol-card:hover .card-action {
+        .card-action-select {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+        }
+        
+        .card-action-info {
+            background: var(--glass-bg);
+            color: var(--text-dark);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
+        .protocol-card:hover .card-action-select {
             box-shadow: 0 8px 25px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+        
+        .protocol-card:hover .card-action-info {
+            background: var(--card-bg);
+            transform: translateY(-2px);
         }
         
         .protocol-card:hover .card-action i {
-            transform: translateX(4px);
+            transform: translateX(3px);
         }
 
         /* Card color variants */
@@ -1006,6 +1037,16 @@
             .card-content {
                 padding: 20px 16px;
             }
+            
+            .card-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .card-action {
+                padding: 10px 14px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -1426,7 +1467,6 @@
                 card.className = 'protocol-card';
                 card.setAttribute('data-protocol', protocol.id);
                 card.style.animationDelay = `${0.1 + index * 0.05}s`;
-                card.onclick = () => openModal(protocol.id);
                 
                 // Check if there's a custom image URL from backend
                 const customImageUrl = protocolImages[protocol.id];
@@ -1443,8 +1483,13 @@
                         <span class="card-category">${escapeHtml(protocol.category)}</span>
                         <h3>${escapeHtml(protocol.shortName)}</h3>
                         <p>${escapeHtml(protocol.shortDescription)}</p>
-                        <div class="card-action">
-                            Научете повече <i class="fas fa-arrow-right"></i>
+                        <div class="card-actions">
+                            <button class="card-action card-action-select" data-protocol-id="${escapeHtml(protocol.id)}" onclick="event.stopPropagation(); selectProtocolDirect('${escapeHtml(protocol.id)}')">
+                                <i class="fas fa-check"></i> Избери
+                            </button>
+                            <button class="card-action card-action-info" onclick="event.stopPropagation(); openModal('${escapeHtml(protocol.id)}')">
+                                <i class="fas fa-info-circle"></i> Детайли
+                            </button>
                         </div>
                     </div>
                 `;
@@ -1522,7 +1567,21 @@
             selectedProtocolId = null;
         }
 
-        // Select protocol and go to questionnaire
+        // Direct select protocol from card (without opening modal)
+        function selectProtocolDirect(protocolId) {
+            if (!protocolId || !PROTOCOLS[protocolId]) return;
+            
+            // Store the selected protocol in localStorage for the questionnaire
+            const existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
+            existingAnswers.clinicalProtocol = protocolId;
+            existingAnswers._protocolSelectedFromLanding = true;
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(existingAnswers));
+            
+            // Navigate to questionnaire with protocol
+            window.location.href = 'questionnaire.html?protocol=' + protocolId;
+        }
+
+        // Select protocol and go to questionnaire (from modal)
         function selectProtocol() {
             if (!selectedProtocolId) return;
             
