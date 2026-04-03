@@ -521,6 +521,91 @@
             }
         }
 
+        /* Protocol Selection Banner */
+        .protocol-banner {
+            position: fixed;
+            top: calc(80px + var(--safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 998;
+            animation: slideDownBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            max-width: 95%;
+        }
+        
+        .protocol-banner.show {
+            display: flex;
+        }
+        
+        .protocol-banner-icon {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .protocol-banner-text {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        
+        .protocol-banner-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            line-height: 1.2;
+        }
+        
+        .protocol-banner-subtitle {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+        
+        .protocol-banner-change {
+            margin-left: 4px;
+            padding: 6px 10px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .protocol-banner-change:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .protocol-banner {
+                top: calc(12px + var(--safe-area-inset-top));
+                left: 10px;
+                right: 10px;
+                transform: translateX(0);
+                max-width: calc(100% - 20px);
+                padding: 10px 16px;
+            }
+            
+            .protocol-banner-title {
+                font-size: 0.85rem;
+            }
+            
+            .protocol-banner-subtitle {
+                font-size: 0.7rem;
+            }
+        }
+
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
@@ -924,6 +1009,18 @@
         </div>
     </div>
 
+    <!-- Protocol Selection Banner (shown when coming from protocol landing page) -->
+    <div class="protocol-banner" id="protocolBanner">
+        <div class="protocol-banner-icon" id="protocolBannerIcon">🏥</div>
+        <div class="protocol-banner-text">
+            <div class="protocol-banner-title" id="protocolBannerTitle">Клиничен протокол</div>
+            <div class="protocol-banner-subtitle" id="protocolBannerSubtitle">Въпросникът е адаптиран за вашето състояние</div>
+        </div>
+        <a href="protocol-landing.html" class="protocol-banner-change">
+            <i class="fas fa-exchange-alt"></i>
+        </a>
+    </div>
+
     <!-- Quick Complete Banner -->
     <div class="quick-complete-banner" id="quickCompleteBanner" onclick="jumpToLastStep()">
         <div class="quick-complete-icon">
@@ -1017,6 +1114,111 @@
             { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [] }
         ];
 
+        // --- PROTOCOL-SPECIFIC QUESTIONS ---
+        // Additional questions shown only when specific clinical protocol is selected
+        const PROTOCOL_SPECIFIC_QUESTIONS = {
+            insulin_resistance: {
+                addAfter: 'medicalConditions', // Insert after this question ID
+                questions: [
+                    { "id": "bloodSugarLevels", "text": "Имате ли измервания на кръвна захар на гладно? Ако да, какви са стойностите?", "type": "textarea", "options": [], "optional": true },
+                    { "id": "insulinResistanceSymptoms", "text": "Имате ли някои от следните симптоми?", "type": "checkbox", "options": ["Силно желание за сладко след хранене", "Умора след хранене", "Затъмняване на кожата (акантозис нигриканс)", "Затруднено отслабване в коремната област", "Чести глади между храненията", "Нито едно"], "negativeOption": "Нито едно" },
+                    { "id": "familyDiabetes", "text": "Има ли член от семейството ви с диабет тип 2?", "type": "radio", "options": ["Да", "Не", "Не знам"] }
+                ],
+                removeQuestions: [] // Question IDs to remove for this protocol
+            },
+            autoimmune_aip: {
+                addAfter: 'medicalConditions',
+                questions: [
+                    { "id": "autoimmuneDiagnosis", "text": "Какво е вашето автоимунно заболяване? (напр. Хашимото, ревматоиден артрит, псориазис)", "type": "textarea", "options": [] },
+                    { "id": "autoimmuneFlares", "text": "Колко често имате обостряния на симптомите?", "type": "radio", "options": ["Ежедневно", "Няколко пъти седмично", "Няколко пъти месечно", "Рядко"] },
+                    { "id": "foodSensitivities", "text": "Забелязали ли сте влошаване на симптомите след определени храни?", "type": "radio", "options": ["Да", "Не", "Не съм сигурен/а"], "children": { "Да": [{ "id": "triggerFoods", "text": "Кои храни влошават симптомите ви?", "type": "textarea", "options": [] }] } }
+                ],
+                removeQuestions: []
+            },
+            gi_issues: {
+                addAfter: 'medicalConditions',
+                questions: [
+                    { "id": "giSymptoms", "text": "Кои от следните симптоми имате?", "type": "checkbox", "options": ["Запек", "Подуване", "Газове", "Болки в корема", "Киселини/рефлукс", "Диария", "Нередовни изхождания", "Нито едно"], "negativeOption": "Нито едно" },
+                    { "id": "bowelFrequency", "text": "Колко често имате изхождане?", "type": "radio", "options": ["Повече от 3 пъти дневно", "1-2 пъти дневно", "Всеки ден", "През ден", "По-рядко от през ден"] },
+                    { "id": "giTriggers", "text": "Има ли храни, които влошават симптомите ви?", "type": "textarea", "options": [], "optional": true }
+                ],
+                removeQuestions: []
+            },
+            menopause_sarcopenia: {
+                addAfter: 'gender',
+                questions: [
+                    { "id": "menopauseStatus", "text": "В коя фаза сте?", "type": "radio", "options": ["Перименопауза (нередовен цикъл)", "Менопауза (без цикъл над 12 месеца)", "Постменопауза (над 5 години без цикъл)", "Не съм сигурна"] },
+                    { "id": "menopauseSymptoms", "text": "Кои симптоми ви притесняват най-много?", "type": "checkbox", "options": ["Горещи вълни", "Нощно изпотяване", "Проблеми със съня", "Настроение/раздразнителност", "Загуба на мускулна маса", "Увеличено тегло", "Сухота на кожата", "Нито едно"], "negativeOption": "Нито едно" },
+                    { "id": "strengthTraining", "text": "Правите ли силови тренировки?", "type": "radio", "options": ["Да, редовно (2+ пъти седмично)", "Да, понякога", "Не, но бих искала да започна", "Не"] }
+                ],
+                removeQuestions: []
+            },
+            cellulite_reduction: {
+                addAfter: 'weight',
+                questions: [
+                    { "id": "celluliteAreas", "text": "В кои области имате целулит?", "type": "checkbox", "options": ["Бедра", "Задни части", "Корем", "Ръце", "Навсякъде"], "negativeOption": "" },
+                    { "id": "waterRetention", "text": "Имате ли проблем със задържане на течности?", "type": "radio", "options": ["Да, често", "Понякога", "Рядко", "Не"] },
+                    { "id": "sedentaryHours", "text": "Колко часа дневно прекарвате седнали?", "type": "radio", "options": ["Под 4 часа", "4-6 часа", "6-8 часа", "Над 8 часа"] }
+                ],
+                removeQuestions: []
+            },
+            chronic_stress: {
+                addAfter: 'stressLevel',
+                questions: [
+                    { "id": "stressSources", "text": "Кои са основните източници на стрес?", "type": "checkbox", "options": ["Работа", "Семейство", "Финанси", "Здраве", "Отношения", "Друго", "Не мога да определя"], "hasOtherInput": true, "negativeOption": "Не мога да определя" },
+                    { "id": "stressSymptoms", "text": "Кои от следните симптоми изпитвате?", "type": "checkbox", "options": ["Безсъние", "Тревожност", "Раздразнителност", "Умора сутрин", "Затруднена концентрация", "Желание за сладко/солено", "Нито едно"], "negativeOption": "Нито едно" },
+                    { "id": "relaxationPractices", "text": "Практикувате ли техники за релаксация?", "type": "radio", "options": ["Да, редовно", "Понякога", "Рядко", "Не, но бих искал/а", "Не ме интересува"] }
+                ],
+                removeQuestions: []
+            },
+            postpartum_lactation: {
+                addAfter: 'gender',
+                questions: [
+                    { "id": "postpartumStatus", "text": "В коя фаза сте?", "type": "radio", "options": ["Бременна", "Кърмя (до 6 месеца след раждане)", "Кърмя (6-12 месеца след раждане)", "Кърмя (над 12 месеца)", "Не кърмя, но наскоро родих (до 1 година)"] },
+                    { "id": "breastfeedingFrequency", "text": "Колко често кърмите?", "type": "radio", "options": ["Изцяло на гърда (6+ пъти дневно)", "Смесено хранене", "1-3 пъти дневно", "Не кърмя"], "optional": true },
+                    { "id": "postpartumGoal", "text": "Каква е основната ви цел?", "type": "checkbox", "options": ["Достатъчно мляко за бебето", "Постепенно отслабване", "Възстановяване на енергията", "Подобряване на настроението", "Всички горепосочени"] }
+                ],
+                removeQuestions: ['goal'] // Remove the general goal question
+            },
+            visceral_fat: {
+                addAfter: 'weight',
+                questions: [
+                    { "id": "waistCircumference", "text": "Каква е обиколката на талията ви (в см)?", "type": "number", "options": [] },
+                    { "id": "fatDistribution", "text": "Къде се натрупва мазнината при вас?", "type": "radio", "options": ["Предимно в корема", "Равномерно по цялото тяло", "Бедра и задни части", "Не съм сигурен/а"] },
+                    { "id": "metabolicSyndrome", "text": "Имате ли някои от следните?", "type": "checkbox", "options": ["Повишено кръвно налягане", "Повишени триглицериди", "Нисък HDL холестерол", "Повишена кръвна захар", "Нищо от изброените", "Не знам"], "negativeOption": "Нищо от изброените" }
+                ],
+                removeQuestions: []
+            },
+            post_smoking: {
+                addAfter: 'drinksAlcohol',
+                questions: [
+                    { "id": "smokingHistory", "text": "Колко дълго пушихте?", "type": "radio", "options": ["Под 5 години", "5-10 години", "10-20 години", "Над 20 години"] },
+                    { "id": "quitDuration", "text": "От колко време сте спрели?", "type": "radio", "options": ["Под 1 месец", "1-3 месеца", "3-6 месеца", "6-12 месеца", "Над 1 година"] },
+                    { "id": "cravingsTriggers", "text": "Кога изпитвате най-силно желание за цигара?", "type": "checkbox", "options": ["След хранене", "При стрес", "С кафе", "При алкохол", "На социални събития", "При скука", "Нямам силни желания"], "negativeOption": "Нямам силни желания" },
+                    { "id": "weightGainConcern", "text": "Притеснявате ли се от наддаване на тегло?", "type": "radio", "options": ["Да, много", "Донякъде", "Не особено", "Не"] }
+                ],
+                removeQuestions: []
+            },
+            longevity: {
+                addAfter: 'sportActivity',
+                questions: [
+                    { "id": "fastingExperience", "text": "Имате ли опит с периодично гладуване?", "type": "radio", "options": ["Да, практикувам редовно", "Опитвал/а съм", "Не, но искам да опитам", "Не ме интересува"] },
+                    { "id": "longevityGoals", "text": "Кои аспекти на дълголетието са най-важни за вас?", "type": "checkbox", "options": ["Когнитивно здраве", "Физическа сила и мобилност", "Енергия и виталност", "Външен вид и кожа", "Превенция на болести", "Всички"], "negativeOption": "" },
+                    { "id": "currentSupplements", "text": "Приемате ли добавки за дълголетие (напр. NMN, ресвератрол)?", "type": "radio", "options": ["Да", "Не, но бих искал/а", "Не"], "children": { "Да": [{ "id": "longevitySupplDetails", "text": "Кои добавки приемате?", "type": "textarea", "options": [] }] } }
+                ],
+                removeQuestions: []
+            },
+            detox: {
+                addAfter: 'drinksAlcohol',
+                questions: [
+                    { "id": "detoxReason", "text": "Защо искате детокс програма?", "type": "checkbox", "options": ["Умора и липса на енергия", "Проблеми с кожата", "Храносмилателни проблеми", "Главоболие", "Желание за \"рестарт\"", "Друго"], "hasOtherInput": true },
+                    { "id": "toxinExposure", "text": "Изложени ли сте на следните?", "type": "checkbox", "options": ["Замърсен въздух (град)", "Работа с химикали", "Честа употреба на лекарства", "Консумация на преработени храни", "Пушене (активно или пасивно)", "Нищо от изброените"], "negativeOption": "Нищо от изброените" },
+                    { "id": "liverSymptoms", "text": "Имате ли някои от следните симптоми?", "type": "checkbox", "options": ["Жълтеникава кожа", "Тъмна урина", "Болки в дясната страна", "Лош дъх сутрин", "Непоносимост към мазни храни", "Нито едно"], "negativeOption": "Нито едно" }
+                ],
+                removeQuestions: []
+            }
+        };
+
         // --- CONFIGURATION ---
         // Question types that should use compact footer layout (closer to input field)
         const INPUT_ONLY_TYPES = ['text', 'number', 'email', 'textarea'];
@@ -1037,6 +1239,71 @@
             }
         }
         
+        // Handle protocol selection from landing page URL parameter
+        function handleProtocolFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const protocolId = urlParams.get('protocol');
+            
+            if (protocolId && PROTOCOL_SPECIFIC_QUESTIONS[protocolId]) {
+                // Set the protocol in answers
+                answers.clinicalProtocol = protocolId;
+                answers._protocolSelectedFromLanding = true;
+                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                
+                // Inject protocol-specific questions
+                injectProtocolQuestions(protocolId);
+                
+                // Skip the clinical protocol question since it's already selected
+                skipClinicalProtocolQuestion();
+                
+                console.log('Protocol loaded from URL:', protocolId);
+            }
+        }
+        
+        // Inject protocol-specific questions into the queue
+        function injectProtocolQuestions(protocolId) {
+            const protocolConfig = PROTOCOL_SPECIFIC_QUESTIONS[protocolId];
+            if (!protocolConfig) return;
+            
+            // Remove questions that should be hidden for this protocol
+            if (protocolConfig.removeQuestions && protocolConfig.removeQuestions.length > 0) {
+                currentQueue = currentQueue.filter(q => !protocolConfig.removeQuestions.includes(q.id));
+            }
+            
+            // Find the position to insert questions
+            if (protocolConfig.questions && protocolConfig.questions.length > 0) {
+                const insertIndex = currentQueue.findIndex(q => q.id === protocolConfig.addAfter);
+                if (insertIndex !== -1) {
+                    // Mark questions as protocol-specific for potential styling
+                    const markedQuestions = protocolConfig.questions.map(q => ({
+                        ...q,
+                        _protocolSpecific: true,
+                        _protocolId: protocolId
+                    }));
+                    currentQueue.splice(insertIndex + 1, 0, ...markedQuestions);
+                }
+            }
+        }
+        
+        // Skip the clinical protocol question when coming from landing page
+        function skipClinicalProtocolQuestion() {
+            // Find and remove the clinicalProtocol question from the queue
+            const protocolQuestionIndex = currentQueue.findIndex(q => q.id === 'clinicalProtocol');
+            if (protocolQuestionIndex !== -1) {
+                currentQueue.splice(protocolQuestionIndex, 1);
+            }
+            
+            // Also skip the goal question if protocol has goalMapping
+            const goalQuestionIndex = currentQueue.findIndex(q => q.id === 'goal');
+            if (goalQuestionIndex !== -1 && answers.clinicalProtocol) {
+                // Goal will be derived from protocol's goalMapping on backend
+                currentQueue.splice(goalQuestionIndex, 1);
+            }
+        }
+        
+        // Initialize protocol handling
+        handleProtocolFromURL();
+        
         // --- DOM ELEMENTS ---
         const container = document.getElementById('questionContainer');
         const nextBtn = document.getElementById('nextBtn');
@@ -1046,9 +1313,42 @@
 
         // --- INITIALIZATION ---
         function init() {
+            // Show protocol banner if protocol was selected from landing page
+            showProtocolBannerIfNeeded();
             // Show quick complete banner if user has saved answers and is on first question
             checkAndShowQuickCompleteBanner();
             renderStep();
+        }
+        
+        // Protocol name mapping for banner display
+        const PROTOCOL_NAMES = {
+            insulin_resistance: { name: 'Инсулинова резистентност', icon: '🩸' },
+            autoimmune_aip: { name: 'Автоимунен протокол (AIP)', icon: '🛡️' },
+            gi_issues: { name: 'Стомашно-чревни проблеми', icon: '🌿' },
+            menopause_sarcopenia: { name: 'Менопауза и Саркопения', icon: '💪' },
+            cellulite_reduction: { name: 'Редукция на целулит', icon: '✨' },
+            chronic_stress: { name: 'Хроничен стрес', icon: '🧘' },
+            postpartum_lactation: { name: 'След бременност & Лактация', icon: '🤱' },
+            visceral_fat: { name: 'Висцерални мазнини', icon: '🔥' },
+            post_smoking: { name: 'След спиране на цигарите', icon: '🚭' },
+            longevity: { name: 'Дълголетие (Longevity)', icon: '🧬' },
+            detox: { name: 'Детоксикация', icon: '🌱' }
+        };
+        
+        function showProtocolBannerIfNeeded() {
+            const protocolId = answers.clinicalProtocol;
+            if (protocolId && PROTOCOL_NAMES[protocolId]) {
+                const banner = document.getElementById('protocolBanner');
+                const titleEl = document.getElementById('protocolBannerTitle');
+                const iconEl = document.getElementById('protocolBannerIcon');
+                
+                if (banner && titleEl && iconEl) {
+                    const protocol = PROTOCOL_NAMES[protocolId];
+                    titleEl.textContent = protocol.name;
+                    iconEl.textContent = protocol.icon;
+                    banner.classList.add('show');
+                }
+            }
         }
 
         // --- QUICK COMPLETE FUNCTIONALITY ---
