@@ -1590,7 +1590,7 @@
             try {
                 existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
             } catch (e) {
-                console.warn('Could not parse existing answers, starting fresh:', e);
+                console.warn('Could not parse existing answers from localStorage, initializing empty object:', e);
                 existingAnswers = {};
             }
             existingAnswers.clinicalProtocol = protocolId;
@@ -1612,7 +1612,7 @@
             try {
                 existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
             } catch (e) {
-                console.warn('Could not parse existing answers, starting fresh:', e);
+                console.warn('Could not parse existing answers from localStorage, initializing empty object:', e);
                 existingAnswers = {};
             }
             existingAnswers.clinicalProtocol = selectedProtocolId;
@@ -1630,7 +1630,7 @@
             try {
                 existingAnswers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}');
             } catch (e) {
-                console.warn('Could not parse existing answers, starting fresh:', e);
+                console.warn('Could not parse existing answers from localStorage, initializing empty object:', e);
                 existingAnswers = {};
             }
             delete existingAnswers.clinicalProtocol;
