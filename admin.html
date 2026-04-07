@@ -4878,31 +4878,31 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 return;
             }
 
-            const statusLabel = { new: 'Ново', unread: 'Непрочетено', answered: 'Отговорено' };
-            const statusBadgeClass = { new: 'badge-new', unread: 'badge-inquiry-unread', answered: 'badge-answered' };
-            const statusItemClass = { new: 'inquiry-item-new', unread: 'inquiry-item-unread', answered: 'inquiry-item-answered' };
+            // Consolidated status config
+            const STATUS_CONFIG = {
+                new:      { label: 'Ново',        badge: 'badge-new',           item: 'inquiry-item-new',      color: '#3b82f6' },
+                unread:   { label: 'Непрочетено',  badge: 'badge-inquiry-unread', item: 'inquiry-item-unread',   color: '#f59e0b' },
+                answered: { label: 'Отговорено',   badge: 'badge-answered',       item: 'inquiry-item-answered', color: '#10b981' },
+            };
+            const defaultStatus = STATUS_CONFIG.new;
 
             let html = '';
             inquiries.forEach(inquiry => {
                 const status = inquiry.status || 'new';
+                const cfg = STATUS_CONFIG[status] || defaultStatus;
                 const dateStr = new Date(inquiry.timestamp).toLocaleString('bg-BG');
-                const badgeClass = statusBadgeClass[status] || 'badge-new';
-                const itemClass = statusItemClass[status] || 'inquiry-item-new';
 
-                // Next status options for the action buttons
-                const nextStatuses = [
-                    { value: 'new',      label: 'Ново' },
-                    { value: 'unread',   label: 'Непрочетено' },
-                    { value: 'answered', label: 'Отговорено' },
-                ].filter(s => s.value !== status);
+                const nextStatuses = Object.entries(STATUS_CONFIG)
+                    .filter(([key]) => key !== status)
+                    .map(([key, sc]) => ({ value: key, label: sc.label, color: sc.color }));
 
                 html += `
-                    <div class="report-item ${itemClass}" id="inquiry-card-${escapeHtml(inquiry.id)}">
+                    <div class="report-item ${cfg.item}" data-inquiry-id="${escapeHtml(inquiry.id)}">
                         <div class="report-header">
                             <div class="report-user">
                                 <i class="fas fa-user-circle"></i>
                                 <span>${escapeHtml(inquiry.name)}</span>
-                                <span class="report-badge ${badgeClass}">${statusLabel[status] || status}</span>
+                                <span class="report-badge ${cfg.badge}">${cfg.label}</span>
                             </div>
                             <div class="report-time">
                                 <i class="fas fa-clock"></i> ${dateStr}
@@ -4920,8 +4920,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             </div>
                             <div style="display:flex; gap:6px; flex-wrap:wrap;">
                                 ${nextStatuses.map(s => `
-                                    <button class="btn" onclick="updateInquiryStatus('${escapeHtml(inquiry.id)}', '${s.value}')"
-                                            style="padding:5px 12px; font-size:0.8rem; background:${s.value === 'answered' ? '#10b981' : s.value === 'unread' ? '#f59e0b' : '#3b82f6'};">
+                                    <button class="btn inquiry-status-btn"
+                                            data-status="${s.value}"
+                                            style="padding:5px 12px; font-size:0.8rem; background:${s.color};">
                                         Маркирай: ${s.label}
                                     </button>
                                 `).join('')}
@@ -4932,6 +4933,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             });
 
             container.innerHTML = html;
+
+            // Attach event listeners using data attributes (avoids inline onclick with IDs)
+            container.querySelectorAll('.inquiry-status-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const card = this.closest('[data-inquiry-id]');
+                    const inquiryId = card.getAttribute('data-inquiry-id');
+                    const newStatus = this.getAttribute('data-status');
+                    updateInquiryStatus(inquiryId, newStatus);
+                });
+            });
         }
 
         async function updateInquiryStatus(inquiryId, newStatus) {

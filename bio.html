@@ -333,6 +333,7 @@
                 <i class="fas fa-paper-plane"></i>
                 <span>Изпрати запитване</span>
             </button>
+            <div class="field-error" id="submitError" style="text-align:center; margin-top:10px;"></div>
 
         </form>
 
@@ -444,7 +445,9 @@
                 console.error('Inquiry submit error:', error);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Изпрати запитване</span>';
-                alert('Грешка при изпращане. Моля, опитайте отново.');
+                const submitError = document.getElementById('submitError');
+                submitError.textContent = 'Грешка при изпращане. Моля, опитайте отново.';
+                submitError.classList.add('visible');
             }
         });
     </script>

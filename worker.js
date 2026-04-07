@@ -3397,7 +3397,7 @@ async function handleSaveInquiry(request, env) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
 
-    const inquiryId = `inquiry_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const inquiryId = `inquiry_${crypto.randomUUID()}`;
 
     const inquiry = {
       id: inquiryId,
@@ -3417,7 +3417,10 @@ async function handleSaveInquiry(request, env) {
     inquiriesList.unshift(inquiryId);
 
     if (inquiriesList.length > MAX_INQUIRIES) {
+      const dropped = inquiriesList.slice(MAX_INQUIRIES);
       inquiriesList = inquiriesList.slice(0, MAX_INQUIRIES);
+      // Delete orphaned KV entries for dropped IDs
+      await Promise.all(dropped.map(id => env.page_content.delete(`inquiry:${id}`)));
     }
 
     await env.page_content.put('inquiries_list', JSON.stringify(inquiriesList));
