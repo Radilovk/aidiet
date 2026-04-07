@@ -2476,7 +2476,8 @@
             /* Show all accordion content without interaction */
             .acc-content { max-height: none !important; overflow: visible !important; display: block !important; }
 
-            /* Show ALL days, not just the active one */
+            /* Show ALL days (overrides JS-controlled visibility so the printed
+               PDF contains the full 7-day plan, not only the selected day) */
             .day-meals { display: block !important; }
 
             /* Page breaks */

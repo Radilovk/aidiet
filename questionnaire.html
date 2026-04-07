@@ -2232,7 +2232,7 @@
                 if (!response.ok) {
                     console.error('Server error:', response.status);
                     let serverMsg = '';
-                    try { const errBody = await response.json(); serverMsg = errBody.error || ''; } catch (_) {}
+                    try { const errBody = await response.json(); serverMsg = errBody.error || ''; } catch (parseErr) { console.warn('Could not parse error response body:', parseErr.message); }
                     const err = new Error(`Server error: ${response.status}`);
                     err.httpStatus = response.status;
                     err.serverMsg = serverMsg;
