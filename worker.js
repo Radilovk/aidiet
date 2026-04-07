@@ -3381,6 +3381,85 @@ async function handleReportProblem(request, env) {
 }
 
 /**
+ * Handle inquiry submission from bio.html
+ */
+async function handleSaveInquiry(request, env) {
+  try {
+    const { name, email, phone, message, timestamp } = await request.json();
+
+    if (!name || !email || !message) {
+      return jsonResponse({ error: 'Missing required fields: name, email, message' }, 400);
+    }
+
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const inquiryId = `inquiry_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+    const inquiry = {
+      id: inquiryId,
+      name: name,
+      email: email,
+      phone: phone || '',
+      message: message,
+      timestamp: timestamp || new Date().toISOString(),
+      status: 'unread'
+    };
+
+    await env.page_content.put(`inquiry:${inquiryId}`, JSON.stringify(inquiry));
+
+    let inquiriesList = await env.page_content.get('inquiries_list');
+    inquiriesList = inquiriesList ? JSON.parse(inquiriesList) : [];
+    inquiriesList.unshift(inquiryId);
+
+    if (inquiriesList.length > 200) {
+      inquiriesList = inquiriesList.slice(0, 200);
+    }
+
+    await env.page_content.put('inquiries_list', JSON.stringify(inquiriesList));
+
+    console.log('Inquiry saved:', inquiryId);
+
+    return jsonResponse({ success: true, inquiryId: inquiryId });
+  } catch (error) {
+    console.error('Error saving inquiry:', error);
+    return jsonResponse({ error: `Failed to save inquiry: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Get all inquiries from bio.html for admin panel
+ */
+async function handleGetInquiries(request, env) {
+  try {
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const inquiriesList = await env.page_content.get('inquiries_list');
+    if (!inquiriesList) {
+      return jsonResponse({ success: true, inquiries: [] });
+    }
+
+    const inquiryIds = JSON.parse(inquiriesList);
+
+    const inquiryPromises = inquiryIds.map(id => env.page_content.get(`inquiry:${id}`));
+    const inquiryDataList = await Promise.all(inquiryPromises);
+    const inquiries = inquiryDataList
+      .filter(data => data !== null)
+      .map(data => JSON.parse(data));
+
+    return jsonResponse({ success: true, inquiries: inquiries });
+  } catch (error) {
+    console.error('Error getting inquiries:', error);
+    return jsonResponse({ error: `Failed to get inquiries: ${error.message}` }, 500);
+  }
+}
+
+/**
  * Get all problem reports for admin panel
  */
 async function handleGetReports(request, env) {
@@ -9778,6 +9857,10 @@ export default {
         return await handleGetLoggingStatus(request, env);
       } else if (url.pathname === '/api/admin/set-logging-status' && request.method === 'POST') {
         return await handleSetLoggingStatus(request, env);
+      } else if (url.pathname === '/api/inquiry' && request.method === 'POST') {
+        return await handleSaveInquiry(request, env);
+      } else if (url.pathname === '/api/admin/get-inquiries' && request.method === 'GET') {
+        return await handleGetInquiries(request, env);
       } else if (url.pathname === '/api/admin/get-clients-list' && request.method === 'GET') {
         return await handleGetClientsList(request, env);
       } else if (url.pathname === '/api/admin/get-client-data' && request.method === 'GET') {

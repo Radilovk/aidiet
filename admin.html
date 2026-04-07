@@ -1190,6 +1190,22 @@
                 </div>
             </div>
 
+            <!-- Bio Inquiries Section -->
+            <div class="card">
+                <h2><i class="fas fa-envelope-open-text"></i> Запитвания от Bio страницата</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Запитвания, изпратени от посетители чрез контактната форма на bio.html.
+                </div>
+                <button class="btn" onclick="loadInquiries()" style="margin-bottom: 20px;">
+                    <i class="fas fa-sync"></i> Обнови Запитвания
+                </button>
+                <div id="inquiriesContainer" style="max-height: 500px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                        Натиснете "Обнови Запитвания" за да заредите запитванията.
+                    </p>
+                </div>
+            </div>
+
             <!-- Client Questionnaires Section -->
             <div class="card">
                 <h2><i class="fas fa-users"></i> Клиентски Въпросници</h2>
@@ -4737,6 +4753,64 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 console.error('Error loading reports:', error);
                 container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на доклади</p>';
                 showError('Грешка при зареждане на доклади: ' + error.message);
+            }
+        }
+
+        // Load Bio inquiries
+        async function loadInquiries() {
+            const container = document.getElementById('inquiriesContainer');
+            container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-inquiries');
+                const result = await response.json();
+
+                if (result.success && result.inquiries) {
+                    if (result.inquiries.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма запитвания за показване.</p>';
+                        return;
+                    }
+
+                    let html = '';
+                    result.inquiries.forEach(inquiry => {
+                        const date = new Date(inquiry.timestamp);
+                        const dateStr = date.toLocaleString('bg-BG');
+
+                        html += `
+                            <div class="report-item">
+                                <div class="report-header">
+                                    <div class="report-user">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span>${escapeHtml(inquiry.name)}</span>
+                                        <span class="report-badge badge-${inquiry.status || 'unread'}">${inquiry.status === 'read' ? 'Прочетено' : 'Ново'}</span>
+                                    </div>
+                                    <div class="report-time">
+                                        <i class="fas fa-clock"></i> ${dateStr}
+                                    </div>
+                                </div>
+                                <div class="report-meta" style="margin-bottom: 8px;">
+                                    <span><i class="fas fa-envelope"></i> ${escapeHtml(inquiry.email)}</span>
+                                    ${inquiry.phone ? `<span><i class="fas fa-phone"></i> ${escapeHtml(inquiry.phone)}</span>` : ''}
+                                </div>
+                                <div class="report-message">
+                                    ${escapeHtml(inquiry.message)}
+                                </div>
+                                <div class="report-meta">
+                                    <span><i class="fas fa-hashtag"></i> ID: ${escapeHtml(inquiry.id)}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                    showSuccess(`Заредени ${result.inquiries.length} запитвания`);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Error loading inquiries:', error);
+                container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на запитвания</p>';
+                showError('Грешка при зареждане на запитвания: ' + error.message);
             }
         }
 
