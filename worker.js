@@ -125,7 +125,6 @@ const OFFENSIVE_PATTERNS = [
 const MAX_LOG_ENTRIES = 10; // Keep last 10 sessions to ensure error logs are preserved for debugging
 const AI_LOG_CACHE_TTL = 24 * 60 * 60; // 24 hours - logs expire after 1 day
 const AI_ERROR_LOG_KV_ENABLED = true; // Enable KV storage for errors (debugging capability)
-const MAX_INQUIRIES = 200; // Maximum number of bio.html inquiries to retain in KV list
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -3378,121 +3377,6 @@ async function handleReportProblem(request, env) {
   } catch (error) {
     console.error('Error saving problem report:', error);
     return jsonResponse({ error: `Failed to save report: ${error.message}` }, 500);
-  }
-}
-
-/**
- * Handle inquiry submission from bio.html
- */
-async function handleSaveInquiry(request, env) {
-  try {
-    const { name, email, phone, subject, message, timestamp } = await request.json();
-
-    if (!name || !email || !message) {
-      return jsonResponse({ error: 'Missing required fields: name, email, message' }, 400);
-    }
-
-    if (!env.page_content) {
-      console.error('KV namespace not configured');
-      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    }
-
-    const inquiryId = `inquiry_${crypto.randomUUID()}`;
-
-    const inquiry = {
-      id: inquiryId,
-      name,
-      email,
-      phone: phone || '',
-      subject: subject || '',
-      message,
-      timestamp: timestamp || new Date().toISOString(),
-      status: 'new'
-    };
-
-    await env.page_content.put(`inquiry:${inquiryId}`, JSON.stringify(inquiry));
-
-    let inquiriesList = await env.page_content.get('inquiries_list');
-    inquiriesList = inquiriesList ? JSON.parse(inquiriesList) : [];
-    inquiriesList.unshift(inquiryId);
-
-    if (inquiriesList.length > MAX_INQUIRIES) {
-      const dropped = inquiriesList.slice(MAX_INQUIRIES);
-      inquiriesList = inquiriesList.slice(0, MAX_INQUIRIES);
-      // Delete orphaned KV entries for dropped IDs
-      await Promise.all(dropped.map(id => env.page_content.delete(`inquiry:${id}`)));
-    }
-
-    await env.page_content.put('inquiries_list', JSON.stringify(inquiriesList));
-
-    console.log('Inquiry saved:', inquiryId);
-
-    return jsonResponse({ success: true, inquiryId: inquiryId });
-  } catch (error) {
-    console.error('Error saving inquiry:', error);
-    return jsonResponse({ error: `Failed to save inquiry: ${error.message}` }, 500);
-  }
-}
-
-/**
- * Get all inquiries from bio.html for admin panel
- */
-async function handleGetInquiries(request, env) {
-  try {
-    if (!env.page_content) {
-      console.error('KV namespace not configured');
-      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    }
-
-    const inquiriesList = await env.page_content.get('inquiries_list');
-    if (!inquiriesList) {
-      return jsonResponse({ success: true, inquiries: [] });
-    }
-
-    const inquiryIds = JSON.parse(inquiriesList);
-
-    const inquiryPromises = inquiryIds.map(id => env.page_content.get(`inquiry:${id}`));
-    const inquiryDataList = await Promise.all(inquiryPromises);
-    const inquiries = inquiryDataList
-      .filter(data => data !== null)
-      .map(data => JSON.parse(data));
-
-    return jsonResponse({ success: true, inquiries: inquiries });
-  } catch (error) {
-    console.error('Error getting inquiries:', error);
-    return jsonResponse({ error: `Failed to get inquiries: ${error.message}` }, 500);
-  }
-}
-
-/**
- * Update inquiry status (new → unread → answered)
- */
-async function handleUpdateInquiryStatus(request, env) {
-  try {
-    const { inquiryId, status } = await request.json();
-
-    const VALID_STATUSES = ['new', 'unread', 'answered'];
-    if (!inquiryId || !VALID_STATUSES.includes(status)) {
-      return jsonResponse({ error: 'Missing or invalid inquiryId / status' }, 400);
-    }
-
-    if (!env.page_content) {
-      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    }
-
-    const inquiryStr = await env.page_content.get(`inquiry:${inquiryId}`);
-    if (!inquiryStr) {
-      return jsonResponse({ error: 'Inquiry not found' }, 404);
-    }
-
-    const inquiry = JSON.parse(inquiryStr);
-    inquiry.status = status;
-    await env.page_content.put(`inquiry:${inquiryId}`, JSON.stringify(inquiry));
-
-    return jsonResponse({ success: true, inquiryId, status });
-  } catch (error) {
-    console.error('Error updating inquiry status:', error);
-    return jsonResponse({ error: `Failed to update status: ${error.message}` }, 500);
   }
 }
 
@@ -9894,12 +9778,6 @@ export default {
         return await handleGetLoggingStatus(request, env);
       } else if (url.pathname === '/api/admin/set-logging-status' && request.method === 'POST') {
         return await handleSetLoggingStatus(request, env);
-      } else if (url.pathname === '/api/inquiry' && request.method === 'POST') {
-        return await handleSaveInquiry(request, env);
-      } else if (url.pathname === '/api/admin/get-inquiries' && request.method === 'GET') {
-        return await handleGetInquiries(request, env);
-      } else if (url.pathname === '/api/admin/update-inquiry-status' && request.method === 'POST') {
-        return await handleUpdateInquiryStatus(request, env);
       } else if (url.pathname === '/api/admin/get-clients-list' && request.method === 'GET') {
         return await handleGetClientsList(request, env);
       } else if (url.pathname === '/api/admin/get-client-data' && request.method === 'GET') {
