@@ -5024,8 +5024,8 @@
             
             if (!message) return;
             
-            // Check demo version limit
-            if (totalMessagesSent >= MAX_TOTAL_MESSAGES) {
+            // Check demo version limit (report/contact messages are always allowed)
+            if (totalMessagesSent >= MAX_TOTAL_MESSAGES && chatMode !== 'report') {
                 addMessageToChat(`⚠️ Демо версията на приложението позволява до ${MAX_TOTAL_MESSAGES} чат съобщения. За неограничен достъп до чата, моля свържете се с нас.`, 'assistant');
                 input.value = '';
                 return;
@@ -5126,8 +5126,10 @@
             isSending = true;
             
             // Add user message to chat only on first attempt
+            // Report messages are not counted toward the demo limit
             if (retryCount === 0) {
-                addMessageToChat(message, 'user');
+                const saveToHistory = chatMode !== 'report';
+                addMessageToChat(message, 'user', saveToHistory);
             }
 
             // Show typing indicator
