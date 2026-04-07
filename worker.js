@@ -125,6 +125,7 @@ const OFFENSIVE_PATTERNS = [
 const MAX_LOG_ENTRIES = 10; // Keep last 10 sessions to ensure error logs are preserved for debugging
 const AI_LOG_CACHE_TTL = 24 * 60 * 60; // 24 hours - logs expire after 1 day
 const AI_ERROR_LOG_KV_ENABLED = true; // Enable KV storage for errors (debugging capability)
+const MAX_INQUIRIES = 200; // Maximum number of bio.html inquiries to retain in KV list
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
@@ -3400,10 +3401,10 @@ async function handleSaveInquiry(request, env) {
 
     const inquiry = {
       id: inquiryId,
-      name: name,
-      email: email,
+      name,
+      email,
       phone: phone || '',
-      message: message,
+      message,
       timestamp: timestamp || new Date().toISOString(),
       status: 'unread'
     };
@@ -3414,8 +3415,8 @@ async function handleSaveInquiry(request, env) {
     inquiriesList = inquiriesList ? JSON.parse(inquiriesList) : [];
     inquiriesList.unshift(inquiryId);
 
-    if (inquiriesList.length > 200) {
-      inquiriesList = inquiriesList.slice(0, 200);
+    if (inquiriesList.length > MAX_INQUIRIES) {
+      inquiriesList = inquiriesList.slice(0, MAX_INQUIRIES);
     }
 
     await env.page_content.put('inquiries_list', JSON.stringify(inquiriesList));

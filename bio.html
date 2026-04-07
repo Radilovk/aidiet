@@ -366,15 +366,15 @@
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const message = document.getElementById('message').value.trim();
-            const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
             let valid = true;
 
             showFieldError('name', 'nameError', !name);
             if (!name) valid = false;
 
-            showFieldError('email', 'emailError', !emailRe.test(email));
-            if (!emailRe.test(email)) valid = false;
+            showFieldError('email', 'emailError', !emailRegex.test(email));
+            if (!emailRegex.test(email)) valid = false;
 
             showFieldError('message', 'messageError', !message);
             if (!message) valid = false;
