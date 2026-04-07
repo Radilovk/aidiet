@@ -240,7 +240,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Мио-инозитол/D-хиро-инозитол (40:1)', dosage: '2000–4000mg', timing: 'сутрин' },
       { name: 'Берберин', dosage: '3 x 500mg', timing: 'преди хранене' },
-      { name: 'Алфа-липоева киселина (ALA)', dosage: '600mg', timing: 'на гладно' }
+      { name: 'Алфа-липоева киселина (ALA)', dosage: '600mg', timing: 'на гладно' },
+      { name: 'Хром пиколинат', dosage: '200–1000mcg', timing: 'с хранене — подобрява инсулиновата чувствителност' }
     ],
     macroModifiers: { carbReduction: 10, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Нисковъглехидратна / Нисък ГИ',
@@ -262,7 +263,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'L-Глутамин', dosage: '5–10g', timing: 'на гладно' },
       { name: 'Цинк карнозин', dosage: '2 x 75mg', timing: 'с хранене' },
-      { name: 'Витамин D3 + K2', dosage: '5000IU / 100mcg', timing: 'с мазна храна' }
+      { name: 'Витамин D3 + K2', dosage: '5000IU / 100mcg', timing: 'с мазна храна' },
+      { name: 'Колострум или Бутират', dosage: '500–1000mg', timing: 'на гладно — подкрепа на чревната бариера' }
     ],
     macroModifiers: { carbReduction: 5, proteinIncrease: 5, fatIncrease: 0 },
     dietTypeHint: 'Автоимунен Палео Протокол (AIP)',
@@ -306,7 +308,9 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Креатин монохидрат', dosage: '3–5g', timing: 'след тренировка или с хранене' },
       { name: 'Магнезиев бисглицинат', dosage: '300–400mg', timing: 'вечер' },
-      { name: 'Омега-3 (високо EPA)', dosage: '2000mg', timing: 'с хранене' }
+      { name: 'Омега-3 (високо EPA)', dosage: '2000mg', timing: 'с хранене' },
+      { name: 'Витамин D3', dosage: '2000–4000IU', timing: 'с мазна храна — критичен за костното здраве' },
+      { name: 'Колаген тип II', dosage: '40mg (нативен)', timing: 'на гладно — подкрепа на ставите' }
     ],
     macroModifiers: { carbReduction: 5, proteinIncrease: 10, fatIncrease: 0 },
     dietTypeHint: 'Високопротеинова / Средиземноморска',
@@ -328,7 +332,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Колагенови пептиди (тип I и III)', dosage: '10–15g', timing: 'сутрин на гладно' },
       { name: 'Екстракт от Готу Кола (Centella Asiatica)', dosage: '60–120mg', timing: 'с хранене' },
-      { name: 'Витамин C', dosage: '1000mg', timing: 'сутрин' }
+      { name: 'Витамин C', dosage: '1000mg', timing: 'сутрин' },
+      { name: 'Ортосилициева киселина (Силиций)', dosage: '5–10mg', timing: 'с хранене — укрепва съединителната тъкан' }
     ],
     macroModifiers: { carbReduction: 10, proteinIncrease: 10, fatIncrease: 0 },
     dietTypeHint: 'Хипокалорична високопротеинова',
@@ -350,7 +355,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Ашваганда (KSM-66)', dosage: '300–600mg', timing: 'сутрин и/или вечер' },
       { name: 'Магнезиев L-треонат', dosage: '150–200mg елементен Mg', timing: 'вечер' },
-      { name: 'L-Теанин', dosage: '200mg', timing: 'при стрес или вечер' }
+      { name: 'L-Теанин', dosage: '200mg', timing: 'при стрес или вечер' },
+      { name: 'Фосфатидилсерин (PS)', dosage: '100–300mg', timing: 'вечер — доказан кортизолов модулатор' }
     ],
     macroModifiers: { carbReduction: 0, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Противовъзпалителна / Балансирана',
@@ -372,7 +378,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Холин (Alpha-GPC)', dosage: 'до 550mg общо', timing: 'с хранене' },
       { name: 'Железен бисглицинат', dosage: '18–25mg (при дефицит)', timing: 'на гладно с Вит.C' },
-      { name: 'DHA (Омега-3)', dosage: 'мин. 1000mg', timing: 'с хранене' }
+      { name: 'DHA (Омега-3)', dosage: 'мин. 1000mg', timing: 'с хранене' },
+      { name: 'Калиев йодид (Йод)', dosage: '150–290mcg', timing: 'с хранене — критичен за лактация и развитие на бебето' }
     ],
     macroModifiers: { carbReduction: 0, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Балансирана / Нутриент-плътна',
@@ -392,9 +399,10 @@ const CLINICAL_PROTOCOLS = {
     restrictions: ['Транс мазнини', 'Рафинирани въглехидрати', 'Захар', 'Алкохол (особено бира)', 'Преработени храни'],
     emphasis: ['Зелен чай', 'Куркума', 'Къпини и горски плодове', 'Зехтин екстра върджин', 'Високо фиброви храни', 'Омега-3 риби'],
     supplements: [
-      { name: 'EGCG (Зелен чай екстракт)', dosage: '400–500mg', timing: 'сутрин на гладно' },
+      { name: 'EGCG (Зелен чай екстракт)', dosage: '400–500mg', timing: 'сутрин с хранене — не на празен стомах' },
       { name: 'Куркумин (+пиперин)', dosage: '500–1000mg', timing: 'с хранене' },
-      { name: 'Транс-ресвератрол', dosage: '500mg', timing: 'сутрин' }
+      { name: 'Транс-ресвератрол', dosage: '500mg', timing: 'сутрин' },
+      { name: 'CLA (Конюгирана линолова киселина)', dosage: '3000–4000mg', timing: 'с хранене — специфична за висцерални мазнини' }
     ],
     macroModifiers: { carbReduction: 10, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Противовъзпалителна / Средиземноморска',
@@ -416,7 +424,9 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'N-Ацетил Цистеин (NAC)', dosage: '600–1200mg', timing: 'сутрин и вечер — контрол на желанието' },
       { name: 'L-Тирозин', dosage: '500–1000mg', timing: 'сутрин на гладно' },
-      { name: 'B-комплекс (метилиран)', dosage: '1 капсула', timing: 'сутрин с хранене' }
+      { name: 'B-комплекс (метилиран)', dosage: '1 капсула', timing: 'сутрин с хранене' },
+      { name: 'Витамин C', dosage: '1000–2000mg', timing: 'сутрин — пушенето изчерпва запасите' },
+      { name: 'Магнезиев бисглицинат', dosage: '300–400mg', timing: 'вечер — честа дефицитност при пушачи' }
     ],
     macroModifiers: { carbReduction: 5, proteinIncrease: 5, fatIncrease: 0 },
     dietTypeHint: 'Стабилизираща / Балансирана',
@@ -461,7 +471,8 @@ const CLINICAL_PROTOCOLS = {
       { name: 'NAC (N-Ацетил Цистеин)', dosage: '2 x 600mg', timing: 'сутрин и вечер' },
       { name: 'TUDCA', dosage: '250–500mg', timing: 'с хранене — подобрява жлъчния поток' },
       { name: 'Калциев D-Глюкарат', dosage: '500–1000mg', timing: 'сутрин — естрогенен детокс' },
-      { name: 'Силимарин (Бял трън)', dosage: '300–600mg', timing: 'с хранене' }
+      { name: 'Силимарин (Бял трън)', dosage: '300–600mg', timing: 'с хранене' },
+      { name: 'Глутатион (липозомален)', dosage: '250–500mg', timing: 'на гладно — директен антиоксидант за черния дроб' }
     ],
     macroModifiers: { carbReduction: 0, proteinIncrease: 5, fatIncrease: 0 },
     dietTypeHint: 'Детоксикационна / Високо фиброва',
@@ -9578,7 +9589,10 @@ function handleGetClinicalProtocols() {
     goalMapping: p.goalMapping,
     dietTypeHint: p.dietTypeHint,
     supplementCount: p.supplements.length,
-    supplements: p.supplements.map(s => s.name)
+    supplements: p.supplements.map(s => s.name),
+    hacks: p.hacks || [],
+    restrictions: p.restrictions || [],
+    emphasis: p.emphasis || []
   }));
   
   return jsonResponse({
