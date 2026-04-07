@@ -1090,6 +1090,52 @@ function detectGoalContradiction(data) {
   return { hasContradiction, warningData };
 }
 
+// Rate limiting configuration for expensive AI endpoints
+const RATE_LIMIT = {
+  GENERATE_PLAN: { maxRequests: 3, windowSec: 60 },  // 3 plans/min per IP
+  CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
+};
+
+/**
+ * KV-based rate limiter.
+ * Returns a 429 Response if the IP exceeds the allowed rate, or null if OK.
+ * Uses keys of the form `rl:{endpoint}:{ip}:{windowMinute}` with a 2-minute TTL.
+ */
+async function checkRateLimit(env, request, endpoint) {
+  if (!env.page_content) return null; // KV not available – skip limiting
+
+  const ip = request.headers.get('CF-Connecting-IP')
+           || request.headers.get('X-Forwarded-For')
+           || 'unknown';
+
+  const config = RATE_LIMIT[endpoint];
+  if (!config) return null;
+
+  const window = Math.floor(Date.now() / (config.windowSec * 1000));
+  const key = `rl:${endpoint}:${ip}:${window}`;
+
+  try {
+    const raw = await env.page_content.get(key);
+    const count = raw ? parseInt(raw, 10) : 0;
+
+    if (count >= config.maxRequests) {
+      console.warn(`Rate limit exceeded for ${endpoint} by IP ${ip}`);
+      return new Response(
+        JSON.stringify({ error: 'Твърде много заявки. Моля, изчакайте малко и опитайте отново.', rateLimited: true }),
+        { status: 429, headers: { ...CORS_HEADERS, 'Retry-After': String(config.windowSec) } }
+      );
+    }
+
+    // Increment counter; expire after 2 windows so the key cleans itself up
+    await env.page_content.put(key, String(count + 1), { expirationTtl: config.windowSec * 2 });
+  } catch (e) {
+    // If KV fails for any reason, let the request through rather than blocking users
+    console.error('Rate limit KV error (non-blocking):', e.message);
+  }
+
+  return null; // OK – proceed
+}
+
 // CORS headers for client-side requests
 // NOTE: For production, replace '*' with specific allowed domains
 // Example: 'https://yourdomain.com, https://www.yourdomain.com'
@@ -9618,10 +9664,14 @@ export default {
     try {
       // Route handling
       if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'GENERATE_PLAN');
+        if (rlErr) return rlErr;
         return await handleGeneratePlan(request, env);
       } else if (url.pathname === '/api/clinical-protocols' && request.method === 'GET') {
         return handleGetClinicalProtocols();
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'CHAT');
+        if (rlErr) return rlErr;
         return await handleChat(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
         return await handleReportProblem(request, env);

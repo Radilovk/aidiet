@@ -2306,13 +2306,22 @@
             } catch (error) {
                 console.error('Error saving data:', error);
                 
+                let errorMessage;
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Заявката отне твърде дълго. Моля, проверете интернет връзката и опитайте отново.';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = 'Няма връзка със сървъра. Проверете интернет връзката си и опитайте отново.';
+                } else {
+                    errorMessage = 'Възникна проблем при съхраняването на данните. Моля, опитайте отново.';
+                }
+                
                 container.innerHTML = `
                     <div style="text-align:center; animation: fadeIn 0.5s;">
-                        <div class="section-icon" style="background:#d1fae5; color:#10b981;">
+                        <div class="section-icon" style="background:#fee2e2; color:#ef4444;">
                             <i class="fas fa-exclamation-circle"></i>
                         </div>
-                        <h2 class="q-text">Грешка</h2>
-                        <p style="color:#7f8c8d; margin-bottom:20px;">Възникна проблем при съхраняването на данните. Моля, опитайте отново.</p>
+                        <h2 class="q-text">Нещо се обърка</h2>
+                        <p style="color:#7f8c8d; margin-bottom:20px;">${errorMessage}</p>
                         <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
                     </div>
                 `;

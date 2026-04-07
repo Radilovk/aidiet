@@ -2231,7 +2231,12 @@
 
                 if (!response.ok) {
                     console.error('Server error:', response.status);
-                    throw new Error(`Server error: ${response.status}`);
+                    let serverMsg = '';
+                    try { const errBody = await response.json(); serverMsg = errBody.error || ''; } catch (_) {}
+                    const err = new Error(`Server error: ${response.status}`);
+                    err.httpStatus = response.status;
+                    err.serverMsg = serverMsg;
+                    throw err;
                 }
 
                 const result = await response.json();
@@ -2309,19 +2314,30 @@
                     tipsInterval = null;
                 }
                 
-                let errorMessage = error.message;
+                let errorMessage;
+                const status = error.httpStatus;
                 if (error.name === 'AbortError') {
-                    errorMessage = 'Заявката отне твърде дълго време. Моля, проверете интернет връзката и опитайте отново.';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMessage = 'Неуспешна връзка със сървъра. Моля, проверете интернет връзката и опитайте отново.';
+                    errorMessage = 'Генерирането отне твърде дълго (над 6 минути). Вероятно има временно натоварване — моля, опитайте отново след малко.';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = 'Няма връзка със сървъра. Проверете интернет връзката си и опитайте отново.';
+                } else if (status === 429) {
+                    errorMessage = 'Изпратихте прекалено много заявки за кратко време. Изчакайте около минута и опитайте отново.';
+                } else if (status === 503 || status === 502) {
+                    errorMessage = 'Сървърът е временно недостъпен. Моля, опитайте отново след няколко минути.';
+                } else if (status === 500) {
+                    errorMessage = 'Възникна грешка при генерирането на плана. Ако проблемът продължава, опитайте да попълните въпросника отново.';
+                } else if (error.serverMsg && error.serverMsg.includes('quota')) {
+                    errorMessage = 'AI моделът е достигнал дневния си лимит. Моля, опитайте отново след няколко часа.';
+                } else {
+                    errorMessage = 'Възникна неочаквана грешка. Моля, опитайте отново.';
                 }
                 
                 container.innerHTML = `
                     <div style="text-align:center; animation: fadeIn 0.5s;">
-                        <div class="section-icon" style="background:#d1fae5; color:#10b981;">
+                        <div class="section-icon" style="background:#fee2e2; color:#ef4444;">
                             <i class="fas fa-exclamation-circle"></i>
                         </div>
-                        <h2 class="q-text">Грешка</h2>
+                        <h2 class="q-text">Нещо се обърка</h2>
                         <p style="color:#7f8c8d; margin-bottom:20px;">${errorMessage}</p>
                         <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
                     </div>
