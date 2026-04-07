@@ -5128,7 +5128,8 @@
             // Add user message to chat only on first attempt
             // Report messages are not counted toward the demo limit
             if (retryCount === 0) {
-                addMessageToChat(message, 'user', chatMode !== 'report');
+                const saveToHistory = chatMode !== 'report';
+                addMessageToChat(message, 'user', saveToHistory);
             }
 
             // Show typing indicator
