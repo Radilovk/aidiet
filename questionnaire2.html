@@ -1515,9 +1515,27 @@
                 if (step.type === 'text') {
                     input.setAttribute('maxlength', '200');
                 }
+
+                // Set numeric keyboard and browser-level min/max hints for number fields
+                if (step.type === 'number') {
+                    input.setAttribute('inputmode', 'decimal');
+                    const rule = FIELD_RULES[step.id];
+                    if (rule) {
+                        input.setAttribute('min', rule.min);
+                        input.setAttribute('max', rule.max);
+                        if (rule.integer) input.setAttribute('step', '1');
+                    }
+                }
+
+                // Email keyboard hint
+                if (step.type === 'email') {
+                    input.setAttribute('inputmode', 'email');
+                    input.setAttribute('autocomplete', 'email');
+                }
                 
                 input.oninput = (e) => {
                     saveAnswer(step.id, e.target.value);
+                    validateInput();
                     // Test mode activation: when name is "kakadu" or "какаду"
                     if (step.id === 'name') {
                         const lowerValue = e.target.value.toLowerCase();
@@ -1527,6 +1545,12 @@
                     }
                 };
                 card.appendChild(input);
+
+                // Inline error hint element (shared id — only one input rendered at a time)
+                const hint = document.createElement('div');
+                hint.id = 'fieldErrorHint';
+                hint.style.cssText = 'color:#ef4444;font-size:0.82rem;margin-top:6px;display:none;padding:0 4px;';
+                card.appendChild(hint);
             } 
             else if (step.type === 'textarea') {
                 const input = document.createElement('textarea');
@@ -1856,32 +1880,62 @@
             }
         }
 
-        function validateInput() {
-            const step = currentQueue[currentIndex];
+        // ---- Field-level validation rules (mirrors backend constants) ----
+        const FIELD_RULES = {
+            age:               { min: 10,  max: 100,  integer: true,  label: 'Възраст', unit: 'години' },
+            weight:            { min: 20,  max: 300,  integer: false, label: 'Тегло',   unit: 'кг' },
+            height:            { min: 100, max: 250,  integer: false, label: 'Ръст',    unit: 'см' },
+            lossKg:            { min: 1,   max: 150,  integer: false, label: 'Желано отслабване', unit: 'кг' },
+            waistCircumference:{ min: 30,  max: 300,  integer: false, label: 'Обиколка на талия', unit: 'см' },
+        };
 
-            const val = answers[step.id];
-            
-            // Check if field is optional
-            if (step.optional === true) {
-                // Optional fields are always valid
-                nextBtn.disabled = false;
-                return;
-            }
-            
-            // Simple validation: not empty, not null, if array not empty
-            let isValid = false;
-            if (val) {
-                if(Array.isArray(val)) {
-                    isValid = val.length > 0;
-                } else {
-                    isValid = String(val).trim().length > 0;
+        function getFieldError(id, type, val, optional) {
+            if (optional || id === 'additionalNotes' || id === 'medicalFiles') return { valid: true, message: '' };
+            const strVal = val !== undefined && val !== null ? String(val).trim() : '';
+            if (!strVal) return { valid: false, message: '' };
+            if (type === 'number' && FIELD_RULES[id]) {
+                const rule = FIELD_RULES[id];
+                const num = rule.integer ? parseInt(strVal, 10) : parseFloat(strVal);
+                if (isNaN(num)) return { valid: false, message: 'Моля, въведете число.' };
+                if (num < rule.min || num > rule.max) {
+                    return { valid: false, message: `${rule.label} трябва да бъде между ${rule.min} и ${rule.max} ${rule.unit}.` };
                 }
             }
-            
-            // For optional "notes" fields, you might want to always allow true
-            if(step.id === 'additionalNotes' || step.id === 'medicalFiles') isValid = true;
+            if (type === 'email') {
+                const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+                if (!emailRe.test(strVal)) {
+                    return { valid: false, message: 'Моля, въведете валиден имейл адрес (напр. ivan@example.com).' };
+                }
+            }
+            return { valid: true, message: '' };
+        }
 
-            nextBtn.disabled = !isValid;
+        function validateInput() {
+            const step = currentQueue[currentIndex];
+            const val = answers[step.id];
+
+            if (step.optional === true || step.id === 'additionalNotes' || step.id === 'medicalFiles') {
+                nextBtn.disabled = false;
+                setFieldHint('');
+                return;
+            }
+
+            if (Array.isArray(val)) {
+                nextBtn.disabled = val.length === 0;
+                setFieldHint('');
+                return;
+            }
+
+            const { valid, message } = getFieldError(step.id, step.type, val, false);
+            setFieldHint(message);
+            nextBtn.disabled = !valid;
+        }
+
+        function setFieldHint(message) {
+            const hint = document.getElementById('fieldErrorHint');
+            if (!hint) return;
+            hint.textContent = message;
+            hint.style.display = message ? 'block' : 'none';
         }
 
         // --- NAVIGATION & BRANCHING ---
