@@ -9588,8 +9588,6 @@ function handleGetClinicalProtocols() {
     name: p.name,
     goalMapping: p.goalMapping,
     dietTypeHint: p.dietTypeHint,
-    supplementCount: p.supplements.length,
-    supplements: p.supplements.map(s => s.name),
     hacks: p.hacks || [],
     restrictions: p.restrictions || [],
     emphasis: p.emphasis || []
