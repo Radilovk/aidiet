@@ -240,7 +240,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Мио-инозитол/D-хиро-инозитол (40:1)', dosage: '2000–4000mg', timing: 'сутрин' },
       { name: 'Берберин', dosage: '3 x 500mg', timing: 'преди хранене' },
-      { name: 'Алфа-липоева киселина (ALA)', dosage: '600mg', timing: 'на гладно' }
+      { name: 'Алфа-липоева киселина (ALA)', dosage: '600mg', timing: 'на гладно' },
+      { name: 'Хром пиколинат', dosage: '200–1000mcg', timing: 'с хранене — подобрява инсулиновата чувствителност' }
     ],
     macroModifiers: { carbReduction: 10, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Нисковъглехидратна / Нисък ГИ',
@@ -262,7 +263,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'L-Глутамин', dosage: '5–10g', timing: 'на гладно' },
       { name: 'Цинк карнозин', dosage: '2 x 75mg', timing: 'с хранене' },
-      { name: 'Витамин D3 + K2', dosage: '5000IU / 100mcg', timing: 'с мазна храна' }
+      { name: 'Витамин D3 + K2', dosage: '5000IU / 100mcg', timing: 'с мазна храна' },
+      { name: 'Колострум или Бутират', dosage: '500–1000mg', timing: 'на гладно — подкрепа на чревната бариера' }
     ],
     macroModifiers: { carbReduction: 5, proteinIncrease: 5, fatIncrease: 0 },
     dietTypeHint: 'Автоимунен Палео Протокол (AIP)',
@@ -306,7 +308,9 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Креатин монохидрат', dosage: '3–5g', timing: 'след тренировка или с хранене' },
       { name: 'Магнезиев бисглицинат', dosage: '300–400mg', timing: 'вечер' },
-      { name: 'Омега-3 (високо EPA)', dosage: '2000mg', timing: 'с хранене' }
+      { name: 'Омега-3 (високо EPA)', dosage: '2000mg', timing: 'с хранене' },
+      { name: 'Витамин D3', dosage: '2000–4000IU', timing: 'с мазна храна — критичен за костното здраве' },
+      { name: 'Колаген тип II', dosage: '40mg (нативен)', timing: 'на гладно — подкрепа на ставите' }
     ],
     macroModifiers: { carbReduction: 5, proteinIncrease: 10, fatIncrease: 0 },
     dietTypeHint: 'Високопротеинова / Средиземноморска',
@@ -328,7 +332,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Колагенови пептиди (тип I и III)', dosage: '10–15g', timing: 'сутрин на гладно' },
       { name: 'Екстракт от Готу Кола (Centella Asiatica)', dosage: '60–120mg', timing: 'с хранене' },
-      { name: 'Витамин C', dosage: '1000mg', timing: 'сутрин' }
+      { name: 'Витамин C', dosage: '1000mg', timing: 'сутрин' },
+      { name: 'Ортосилициева киселина (Силиций)', dosage: '5–10mg', timing: 'с хранене — укрепва съединителната тъкан' }
     ],
     macroModifiers: { carbReduction: 10, proteinIncrease: 10, fatIncrease: 0 },
     dietTypeHint: 'Хипокалорична високопротеинова',
@@ -350,7 +355,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Ашваганда (KSM-66)', dosage: '300–600mg', timing: 'сутрин и/или вечер' },
       { name: 'Магнезиев L-треонат', dosage: '150–200mg елементен Mg', timing: 'вечер' },
-      { name: 'L-Теанин', dosage: '200mg', timing: 'при стрес или вечер' }
+      { name: 'L-Теанин', dosage: '200mg', timing: 'при стрес или вечер' },
+      { name: 'Фосфатидилсерин (PS)', dosage: '100–300mg', timing: 'вечер — доказан кортизолов модулатор' }
     ],
     macroModifiers: { carbReduction: 0, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Противовъзпалителна / Балансирана',
@@ -372,7 +378,8 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'Холин (Alpha-GPC)', dosage: 'до 550mg общо', timing: 'с хранене' },
       { name: 'Железен бисглицинат', dosage: '18–25mg (при дефицит)', timing: 'на гладно с Вит.C' },
-      { name: 'DHA (Омега-3)', dosage: 'мин. 1000mg', timing: 'с хранене' }
+      { name: 'DHA (Омега-3)', dosage: 'мин. 1000mg', timing: 'с хранене' },
+      { name: 'Калиев йодид (Йод)', dosage: '150–290mcg', timing: 'с хранене — критичен за лактация и развитие на бебето' }
     ],
     macroModifiers: { carbReduction: 0, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Балансирана / Нутриент-плътна',
@@ -392,9 +399,10 @@ const CLINICAL_PROTOCOLS = {
     restrictions: ['Транс мазнини', 'Рафинирани въглехидрати', 'Захар', 'Алкохол (особено бира)', 'Преработени храни'],
     emphasis: ['Зелен чай', 'Куркума', 'Къпини и горски плодове', 'Зехтин екстра върджин', 'Високо фиброви храни', 'Омега-3 риби'],
     supplements: [
-      { name: 'EGCG (Зелен чай екстракт)', dosage: '400–500mg', timing: 'сутрин на гладно' },
+      { name: 'EGCG (Зелен чай екстракт)', dosage: '400–500mg', timing: 'сутрин с хранене — не на празен стомах' },
       { name: 'Куркумин (+пиперин)', dosage: '500–1000mg', timing: 'с хранене' },
-      { name: 'Транс-ресвератрол', dosage: '500mg', timing: 'сутрин' }
+      { name: 'Транс-ресвератрол', dosage: '500mg', timing: 'сутрин' },
+      { name: 'CLA (Конюгирана линолова киселина)', dosage: '3000–4000mg', timing: 'с хранене — специфична за висцерални мазнини' }
     ],
     macroModifiers: { carbReduction: 10, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Противовъзпалителна / Средиземноморска',
@@ -416,7 +424,9 @@ const CLINICAL_PROTOCOLS = {
     supplements: [
       { name: 'N-Ацетил Цистеин (NAC)', dosage: '600–1200mg', timing: 'сутрин и вечер — контрол на желанието' },
       { name: 'L-Тирозин', dosage: '500–1000mg', timing: 'сутрин на гладно' },
-      { name: 'B-комплекс (метилиран)', dosage: '1 капсула', timing: 'сутрин с хранене' }
+      { name: 'B-комплекс (метилиран)', dosage: '1 капсула', timing: 'сутрин с хранене' },
+      { name: 'Витамин C', dosage: '1000–2000mg', timing: 'сутрин — пушенето изчерпва запасите' },
+      { name: 'Магнезиев бисглицинат', dosage: '300–400mg', timing: 'вечер — честа дефицитност при пушачи' }
     ],
     macroModifiers: { carbReduction: 5, proteinIncrease: 5, fatIncrease: 0 },
     dietTypeHint: 'Стабилизираща / Балансирана',
@@ -461,7 +471,8 @@ const CLINICAL_PROTOCOLS = {
       { name: 'NAC (N-Ацетил Цистеин)', dosage: '2 x 600mg', timing: 'сутрин и вечер' },
       { name: 'TUDCA', dosage: '250–500mg', timing: 'с хранене — подобрява жлъчния поток' },
       { name: 'Калциев D-Глюкарат', dosage: '500–1000mg', timing: 'сутрин — естрогенен детокс' },
-      { name: 'Силимарин (Бял трън)', dosage: '300–600mg', timing: 'с хранене' }
+      { name: 'Силимарин (Бял трън)', dosage: '300–600mg', timing: 'с хранене' },
+      { name: 'Глутатион (липозомален)', dosage: '250–500mg', timing: 'на гладно — директен антиоксидант за черния дроб' }
     ],
     macroModifiers: { carbReduction: 0, proteinIncrease: 5, fatIncrease: 0 },
     dietTypeHint: 'Детоксикационна / Високо фиброва',
@@ -1077,6 +1088,52 @@ function detectGoalContradiction(data) {
   }
   
   return { hasContradiction, warningData };
+}
+
+// Rate limiting configuration for expensive AI endpoints
+const RATE_LIMIT = {
+  GENERATE_PLAN: { maxRequests: 3, windowSec: 60 },  // 3 plans/min per IP
+  CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
+};
+
+/**
+ * KV-based rate limiter.
+ * Returns a 429 Response if the IP exceeds the allowed rate, or null if OK.
+ * Uses keys of the form `rl:{endpoint}:{ip}:{windowMinute}` with a 2-minute TTL.
+ */
+async function checkRateLimit(env, request, endpoint) {
+  if (!env.page_content) return null; // KV not available – skip limiting
+
+  const ip = request.headers.get('CF-Connecting-IP')
+           || request.headers.get('X-Forwarded-For')
+           || 'unknown';
+
+  const config = RATE_LIMIT[endpoint];
+  if (!config) return null;
+
+  const window = Math.floor(Date.now() / (config.windowSec * 1000));
+  const key = `rl:${endpoint}:${ip}:${window}`;
+
+  try {
+    const raw = await env.page_content.get(key);
+    const count = raw ? parseInt(raw, 10) : 0;
+
+    if (count >= config.maxRequests) {
+      console.warn(`Rate limit exceeded for ${endpoint} by IP ${ip}`);
+      return new Response(
+        JSON.stringify({ error: 'Твърде много заявки. Моля, изчакайте малко и опитайте отново.', rateLimited: true }),
+        { status: 429, headers: { ...CORS_HEADERS, 'Retry-After': String(config.windowSec) } }
+      );
+    }
+
+    // Increment counter; expire after 2 windows so the key cleans itself up
+    await env.page_content.put(key, String(count + 1), { expirationTtl: config.windowSec * 2 });
+  } catch (e) {
+    // If KV fails for any reason, let the request through rather than blocking users
+    console.error('Rate limit KV error (non-blocking):', e.message);
+  }
+
+  return null; // OK – proceed
 }
 
 // CORS headers for client-side requests
@@ -9577,8 +9634,9 @@ function handleGetClinicalProtocols() {
     name: p.name,
     goalMapping: p.goalMapping,
     dietTypeHint: p.dietTypeHint,
-    supplementCount: p.supplements.length,
-    supplements: p.supplements.map(s => s.name)
+    hacks: p.hacks || [],
+    restrictions: p.restrictions || [],
+    emphasis: p.emphasis || []
   }));
   
   return jsonResponse({
@@ -9606,10 +9664,14 @@ export default {
     try {
       // Route handling
       if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'GENERATE_PLAN');
+        if (rlErr) return rlErr;
         return await handleGeneratePlan(request, env);
       } else if (url.pathname === '/api/clinical-protocols' && request.method === 'GET') {
         return handleGetClinicalProtocols();
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'CHAT');
+        if (rlErr) return rlErr;
         return await handleChat(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
         return await handleReportProblem(request, env);

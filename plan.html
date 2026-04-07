@@ -2460,6 +2460,43 @@
             top: var(--ds-space-4, 16px);
         }
 
+        /* ---- Print / Save as PDF ---- */
+        @media print {
+            /* Hide UI chrome */
+            header, .days-nav, .greeting-banner,
+            .install-banner, #ios-banner, #printBtn,
+            .back-btn, .home-btn, .theme-toggle-btn, .user-avatar,
+            button:not(.info-btn), nav { display: none !important; }
+
+            /* Remove backgrounds and shadows for ink economy */
+            body, html { background: #fff !important; color: #000 !important; }
+            .meal-card, .acc-item, .macro-bar-container,
+            .macros-viz-container { box-shadow: none !important; border: 1px solid #ddd !important; }
+
+            /* Show all accordion content without interaction */
+            .acc-content { max-height: none !important; overflow: visible !important; display: block !important; }
+
+            /* Show ALL days (overrides JS-controlled visibility so the printed
+               PDF contains the full 7-day plan, not only the selected day) */
+            .day-meals { display: block !important; }
+
+            /* Page breaks */
+            .acc-item { page-break-inside: avoid; }
+            h2, h3 { page-break-after: avoid; }
+
+            /* Print title */
+            body::before {
+                content: "NutriPlan — Моят хранителен план";
+                display: block;
+                font-size: 1.4rem;
+                font-weight: 700;
+                text-align: center;
+                margin-bottom: 16px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 8px;
+            }
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2607,6 +2644,9 @@
         <div style="display: flex; align-items: center; gap: 10px;">
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Превключи тема">
                 <i class="fas fa-moon" id="themeIcon" aria-hidden="true"></i>
+            </button>
+            <button class="theme-toggle-btn" onclick="window.print()" title="Принтирай / Свали PDF" aria-label="Принтирай плана" id="printBtn">
+                <i class="fas fa-print" aria-hidden="true"></i>
             </button>
 
             <button class="user-avatar" onclick="goToProfile()" onkeydown="if(event.key==='Enter'||event.key===' ')goToProfile()" style="cursor: pointer;" title="Моят профил" aria-label="Моят профил"></button>

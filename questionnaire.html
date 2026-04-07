@@ -1527,9 +1527,27 @@
                 if (step.type === 'text') {
                     input.setAttribute('maxlength', '200');
                 }
+
+                // Set numeric keyboard and browser-level min/max hints for number fields
+                if (step.type === 'number') {
+                    input.setAttribute('inputmode', 'decimal');
+                    const rule = FIELD_RULES[step.id];
+                    if (rule) {
+                        input.setAttribute('min', rule.min);
+                        input.setAttribute('max', rule.max);
+                        if (rule.integer) input.setAttribute('step', '1');
+                    }
+                }
+
+                // Email keyboard hint
+                if (step.type === 'email') {
+                    input.setAttribute('inputmode', 'email');
+                    input.setAttribute('autocomplete', 'email');
+                }
                 
                 input.oninput = (e) => {
                     saveAnswer(step.id, e.target.value);
+                    validateInput();
                     // Test mode activation: when name is "kakadu" or "какаду"
                     if (step.id === 'name') {
                         const lowerValue = e.target.value.toLowerCase();
@@ -1539,6 +1557,12 @@
                     }
                 };
                 card.appendChild(input);
+
+                // Inline error hint element (shared id — only one input rendered at a time)
+                const hint = document.createElement('div');
+                hint.id = 'fieldErrorHint';
+                hint.style.cssText = 'color:#ef4444;font-size:0.82rem;margin-top:6px;display:none;padding:0 4px;';
+                card.appendChild(hint);
             } 
             else if (step.type === 'textarea') {
                 const input = document.createElement('textarea');
@@ -1797,32 +1821,82 @@
             }
         }
 
-        function validateInput() {
-            const step = currentQueue[currentIndex];
+        // ---- Field-level validation rules (mirrors backend constants) ----
+        const FIELD_RULES = {
+            age:               { min: 10,  max: 100,  integer: true,  label: 'Възраст', unit: 'години' },
+            weight:            { min: 20,  max: 300,  integer: false, label: 'Тегло',   unit: 'кг' },
+            height:            { min: 100, max: 250,  integer: false, label: 'Ръст',    unit: 'см' },
+            lossKg:            { min: 1,   max: 150,  integer: false, label: 'Желано отслабване', unit: 'кг' },
+            waistCircumference:{ min: 30,  max: 300,  integer: false, label: 'Обиколка на талия', unit: 'см' },
+        };
 
-            const val = answers[step.id];
-            
-            // Check if field is optional
-            if (step.optional === true) {
-                // Optional fields are always valid
-                nextBtn.disabled = false;
-                return;
-            }
-            
-            // Simple validation: not empty, not null, if array not empty
-            let isValid = false;
-            if (val) {
-                if(Array.isArray(val)) {
-                    isValid = val.length > 0;
-                } else {
-                    isValid = String(val).trim().length > 0;
+        /**
+         * Returns { valid: bool, message: string } for a field.
+         * @param {string} id   - question id
+         * @param {string} type - question type ('number', 'email', 'text', …)
+         * @param {*} val       - current value from answers
+         * @param {boolean} optional
+         */
+        function getFieldError(id, type, val, optional) {
+            if (optional || id === 'additionalNotes') return { valid: true, message: '' };
+
+            // Empty check
+            const strVal = val !== undefined && val !== null ? String(val).trim() : '';
+            if (!strVal) return { valid: false, message: '' }; // no hint for blank (button just stays disabled)
+
+            // Number field range check
+            if (type === 'number' && FIELD_RULES[id]) {
+                const rule = FIELD_RULES[id];
+                const num = rule.integer ? parseInt(strVal, 10) : parseFloat(strVal);
+                if (isNaN(num)) return { valid: false, message: `Моля, въведете число.` };
+                if (num < rule.min || num > rule.max) {
+                    return {
+                        valid: false,
+                        message: `${rule.label} трябва да бъде между ${rule.min} и ${rule.max} ${rule.unit}.`
+                    };
                 }
             }
-            
-            // For optional "notes" fields, you might want to always allow true
-            if(step.id === 'additionalNotes') isValid = true;
 
-            nextBtn.disabled = !isValid;
+            // Email format check
+            if (type === 'email') {
+                const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+                if (!emailRe.test(strVal)) {
+                    return { valid: false, message: 'Моля, въведете валиден имейл адрес (напр. ivan@example.com).' };
+                }
+            }
+
+            return { valid: true, message: '' };
+        }
+
+        function validateInput() {
+            const step = currentQueue[currentIndex];
+            const val = answers[step.id];
+
+            // Optional fields — always valid
+            if (step.optional === true || step.id === 'additionalNotes') {
+                nextBtn.disabled = false;
+                setFieldHint('');
+                return;
+            }
+
+            // Array fields (checkboxes)
+            if (Array.isArray(val)) {
+                nextBtn.disabled = val.length === 0;
+                setFieldHint('');
+                return;
+            }
+
+            const { valid, message } = getFieldError(step.id, step.type, val, false);
+            setFieldHint(message);
+            nextBtn.disabled = !valid;
+        }
+
+        /** Shows or clears the inline error hint below the active input */
+        function setFieldHint(message) {
+            const hint = document.getElementById('fieldErrorHint');
+            if (!hint) return;
+            hint.textContent = message;
+            hint.style.display = message ? 'block' : 'none';
         }
 
         // --- NAVIGATION & BRANCHING ---
@@ -2231,7 +2305,12 @@
 
                 if (!response.ok) {
                     console.error('Server error:', response.status);
-                    throw new Error(`Server error: ${response.status}`);
+                    let serverMsg = '';
+                    try { const errBody = await response.json(); serverMsg = errBody.error || ''; } catch (parseErr) { console.warn('Could not parse error response body:', parseErr.message); }
+                    const err = new Error(`Server error: ${response.status}`);
+                    err.httpStatus = response.status;
+                    err.serverMsg = serverMsg;
+                    throw err;
                 }
 
                 const result = await response.json();
@@ -2309,19 +2388,30 @@
                     tipsInterval = null;
                 }
                 
-                let errorMessage = error.message;
+                let errorMessage;
+                const status = error.httpStatus;
                 if (error.name === 'AbortError') {
-                    errorMessage = 'Заявката отне твърде дълго време. Моля, проверете интернет връзката и опитайте отново.';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMessage = 'Неуспешна връзка със сървъра. Моля, проверете интернет връзката и опитайте отново.';
+                    errorMessage = 'Генерирането отне твърде дълго (над 6 минути). Вероятно има временно натоварване — моля, опитайте отново след малко.';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = 'Няма връзка със сървъра. Проверете интернет връзката си и опитайте отново.';
+                } else if (status === 429) {
+                    errorMessage = 'Изпратихте прекалено много заявки за кратко време. Изчакайте около минута и опитайте отново.';
+                } else if (status === 503 || status === 502) {
+                    errorMessage = 'Сървърът е временно недостъпен. Моля, опитайте отново след няколко минути.';
+                } else if (status === 500) {
+                    errorMessage = 'Възникна грешка при генерирането на плана. Ако проблемът продължава, опитайте да попълните въпросника отново.';
+                } else if (error.serverMsg && error.serverMsg.includes('quota')) {
+                    errorMessage = 'AI моделът е достигнал дневния си лимит. Моля, опитайте отново след няколко часа.';
+                } else {
+                    errorMessage = 'Възникна неочаквана грешка. Моля, опитайте отново.';
                 }
                 
                 container.innerHTML = `
                     <div style="text-align:center; animation: fadeIn 0.5s;">
-                        <div class="section-icon" style="background:#d1fae5; color:#10b981;">
+                        <div class="section-icon" style="background:#fee2e2; color:#ef4444;">
                             <i class="fas fa-exclamation-circle"></i>
                         </div>
-                        <h2 class="q-text">Грешка</h2>
+                        <h2 class="q-text">Нещо се обърка</h2>
                         <p style="color:#7f8c8d; margin-bottom:20px;">${errorMessage}</p>
                         <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
                     </div>

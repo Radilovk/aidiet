@@ -4,7 +4,7 @@ const BASE_PATH = '';
 
 // GLOBAL NOTIFICATION KILL SWITCH - set to true to disable ALL notifications
 const NOTIFICATIONS_DISABLED = true;
-const CACHE_NAME = 'nutriplan-v2';
+const CACHE_NAME = 'nutriplan-v3';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -12,9 +12,11 @@ const DEFAULT_BODY = 'Ново напомняне от NutriPlan';
 const STATIC_CACHE = [
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire.html`,
+  `${BASE_PATH}/questionnaire2.html`,
   `${BASE_PATH}/plan.html`,
   `${BASE_PATH}/profile.html`,
   `${BASE_PATH}/admin.html`,
+  `${BASE_PATH}/design-system.css`,
   `${BASE_PATH}/icon-192x192.png`,
   `${BASE_PATH}/icon-192x192.svg`,
   `${BASE_PATH}/icon-512x512.png`,
