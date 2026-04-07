@@ -376,6 +376,30 @@
             color: white;
         }
 
+        /* Inquiry status badges */
+        .badge-new {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .badge-inquiry-unread {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .badge-answered {
+            background: #10b981;
+            color: white;
+        }
+
+        /* Inquiry item border accent per status */
+        .inquiry-item-new    { border-left: 4px solid #3b82f6; }
+        .inquiry-item-unread { border-left: 4px solid #f59e0b; }
+        .inquiry-item-answered { border-left: 4px solid #10b981; }
+
+        .inquiry-sort-btn { background: var(--text-gray) !important; }
+        .inquiry-sort-btn.active-sort { background: var(--primary-red) !important; }
+
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
@@ -1195,13 +1219,39 @@
                 <h2><i class="fas fa-envelope-open-text"></i> Запитвания от Bio страницата</h2>
                 <div class="info-box">
                     <strong>Информация:</strong> Запитвания, изпратени от посетители чрез контактната форма на bio.html.
+                    <span id="inquiriesCount" style="margin-left:10px; font-weight:700;"></span>
                 </div>
-                <button class="btn" onclick="loadInquiries()" style="margin-bottom: 20px;">
-                    <i class="fas fa-sync"></i> Обнови Запитвания
-                </button>
-                <div id="inquiriesContainer" style="max-height: 500px; overflow-y: auto;">
-                    <p style="text-align: center; color: var(--text-gray); padding: 20px;">
-                        Натиснете "Обнови Запитвания" за да заредите запитванията.
+
+                <!-- Controls row -->
+                <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; align-items:center;">
+                    <button class="btn" onclick="loadInquiries()" style="white-space:nowrap;">
+                        <i class="fas fa-sync"></i> Обнови
+                    </button>
+
+                    <span style="color:var(--text-gray); font-size:0.85rem; font-weight:600; margin-left:4px;">Сортирай:</span>
+                    <button id="sortDateBtn"    class="btn inquiry-sort-btn active-sort" onclick="sortAndRender('date')"    style="padding:8px 14px; font-size:0.85rem;">
+                        <i class="fas fa-calendar-alt"></i> Дата
+                    </button>
+                    <button id="sortSubjectBtn" class="btn inquiry-sort-btn" onclick="sortAndRender('subject')" style="padding:8px 14px; font-size:0.85rem;">
+                        <i class="fas fa-tag"></i> Тема
+                    </button>
+                    <button id="sortNameBtn"    class="btn inquiry-sort-btn" onclick="sortAndRender('name')"    style="padding:8px 14px; font-size:0.85rem;">
+                        <i class="fas fa-sort-alpha-down"></i> Азбучен
+                    </button>
+
+                    <span style="color:var(--text-gray); font-size:0.85rem; font-weight:600; margin-left:4px;">Филтър:</span>
+                    <select id="inquiryStatusFilter" onchange="sortAndRender(currentInquirySort)"
+                            style="padding:8px 12px; border:2px solid #d1d5db; border-radius:8px; font-size:0.85rem;">
+                        <option value="">Всички</option>
+                        <option value="new">Ново</option>
+                        <option value="unread">Непрочетено</option>
+                        <option value="answered">Отговорено</option>
+                    </select>
+                </div>
+
+                <div id="inquiriesContainer" style="max-height:600px; overflow-y:auto;">
+                    <p style="text-align:center; color:var(--text-gray); padding:20px;">
+                        Натиснете "Обнови" за да заредите запитванията.
                     </p>
                 </div>
             </div>
@@ -4756,61 +4806,156 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
-        // Load Bio inquiries
+        // =====================================================
+        // Bio Inquiries
+        // =====================================================
+        let allInquiriesData = [];
+        let currentInquirySort = 'date';
+
         async function loadInquiries() {
             const container = document.getElementById('inquiriesContainer');
-            container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+            container.innerHTML = '<p style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
 
             try {
                 const response = await fetch(WORKER_URL + '/api/admin/get-inquiries');
                 const result = await response.json();
 
                 if (result.success && result.inquiries) {
-                    if (result.inquiries.length === 0) {
-                        container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма запитвания за показване.</p>';
-                        return;
-                    }
-
-                    let html = '';
-                    result.inquiries.forEach(inquiry => {
-                        const date = new Date(inquiry.timestamp);
-                        const dateStr = date.toLocaleString('bg-BG');
-
-                        html += `
-                            <div class="report-item">
-                                <div class="report-header">
-                                    <div class="report-user">
-                                        <i class="fas fa-user-circle"></i>
-                                        <span>${escapeHtml(inquiry.name)}</span>
-                                        <span class="report-badge badge-${inquiry.status === 'read' ? 'read' : 'unread'}">${inquiry.status === 'read' ? 'Прочетено' : 'Ново'}</span>
-                                    </div>
-                                    <div class="report-time">
-                                        <i class="fas fa-clock"></i> ${dateStr}
-                                    </div>
-                                </div>
-                                <div class="report-meta" style="margin-bottom: 8px;">
-                                    <span><i class="fas fa-envelope"></i> ${escapeHtml(inquiry.email)}</span>
-                                    ${inquiry.phone ? `<span><i class="fas fa-phone"></i> ${escapeHtml(inquiry.phone)}</span>` : ''}
-                                </div>
-                                <div class="report-message">
-                                    ${escapeHtml(inquiry.message)}
-                                </div>
-                                <div class="report-meta">
-                                    <span><i class="fas fa-hashtag"></i> ID: ${escapeHtml(inquiry.id)}</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    container.innerHTML = html;
+                    allInquiriesData = result.inquiries;
+                    updateInquiriesCount();
+                    sortAndRender(currentInquirySort);
                     showSuccess(`Заредени ${result.inquiries.length} запитвания`);
                 } else {
                     throw new Error('Invalid response format');
                 }
             } catch (error) {
                 console.error('Error loading inquiries:', error);
-                container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на запитвания</p>';
+                container.innerHTML = '<p style="text-align:center; color:#e74c3c; padding:20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на запитвания</p>';
                 showError('Грешка при зареждане на запитвания: ' + error.message);
+            }
+        }
+
+        function updateInquiriesCount() {
+            const countEl = document.getElementById('inquiriesCount');
+            if (!countEl) return;
+            const newCount = allInquiriesData.filter(i => i.status === 'new').length;
+            countEl.textContent = newCount > 0 ? `(${newCount} нови)` : `(${allInquiriesData.length} общо)`;
+            countEl.style.color = newCount > 0 ? '#3b82f6' : 'var(--text-gray)';
+        }
+
+        function sortAndRender(sortBy) {
+            currentInquirySort = sortBy;
+
+            // Update active sort button
+            document.querySelectorAll('.inquiry-sort-btn').forEach(btn => btn.classList.remove('active-sort'));
+            const activeMap = { date: 'sortDateBtn', subject: 'sortSubjectBtn', name: 'sortNameBtn' };
+            const activeBtn = document.getElementById(activeMap[sortBy]);
+            if (activeBtn) activeBtn.classList.add('active-sort');
+
+            // Apply status filter
+            const filterStatus = document.getElementById('inquiryStatusFilter')?.value || '';
+            let data = filterStatus
+                ? allInquiriesData.filter(i => i.status === filterStatus)
+                : [...allInquiriesData];
+
+            // Sort
+            if (sortBy === 'date') {
+                data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            } else if (sortBy === 'subject') {
+                data.sort((a, b) => (a.subject || '').localeCompare(b.subject || '', 'bg'));
+            } else if (sortBy === 'name') {
+                data.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'bg'));
+            }
+
+            renderInquiries(data);
+        }
+
+        function renderInquiries(inquiries) {
+            const container = document.getElementById('inquiriesContainer');
+
+            if (inquiries.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--text-gray); padding:20px;">Няма запитвания за показване.</p>';
+                return;
+            }
+
+            const statusLabel = { new: 'Ново', unread: 'Непрочетено', answered: 'Отговорено' };
+            const statusBadgeClass = { new: 'badge-new', unread: 'badge-inquiry-unread', answered: 'badge-answered' };
+            const statusItemClass = { new: 'inquiry-item-new', unread: 'inquiry-item-unread', answered: 'inquiry-item-answered' };
+
+            let html = '';
+            inquiries.forEach(inquiry => {
+                const status = inquiry.status || 'new';
+                const dateStr = new Date(inquiry.timestamp).toLocaleString('bg-BG');
+                const badgeClass = statusBadgeClass[status] || 'badge-new';
+                const itemClass = statusItemClass[status] || 'inquiry-item-new';
+
+                // Next status options for the action buttons
+                const nextStatuses = [
+                    { value: 'new',      label: 'Ново' },
+                    { value: 'unread',   label: 'Непрочетено' },
+                    { value: 'answered', label: 'Отговорено' },
+                ].filter(s => s.value !== status);
+
+                html += `
+                    <div class="report-item ${itemClass}" id="inquiry-card-${escapeHtml(inquiry.id)}">
+                        <div class="report-header">
+                            <div class="report-user">
+                                <i class="fas fa-user-circle"></i>
+                                <span>${escapeHtml(inquiry.name)}</span>
+                                <span class="report-badge ${badgeClass}">${statusLabel[status] || status}</span>
+                            </div>
+                            <div class="report-time">
+                                <i class="fas fa-clock"></i> ${dateStr}
+                            </div>
+                        </div>
+                        ${inquiry.subject ? `<div style="font-weight:700; color:var(--text-dark); margin-bottom:6px;"><i class="fas fa-tag" style="color:var(--accent-blue);"></i> ${escapeHtml(inquiry.subject)}</div>` : ''}
+                        <div class="report-meta" style="margin-bottom:8px;">
+                            <span><i class="fas fa-envelope"></i> ${escapeHtml(inquiry.email)}</span>
+                            ${inquiry.phone ? `<span><i class="fas fa-phone"></i> ${escapeHtml(inquiry.phone)}</span>` : ''}
+                        </div>
+                        <div class="report-message">${escapeHtml(inquiry.message)}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px;">
+                            <div class="report-meta">
+                                <span><i class="fas fa-hashtag"></i> ${escapeHtml(inquiry.id)}</span>
+                            </div>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                ${nextStatuses.map(s => `
+                                    <button class="btn" onclick="updateInquiryStatus('${escapeHtml(inquiry.id)}', '${s.value}')"
+                                            style="padding:5px 12px; font-size:0.8rem; background:${s.value === 'answered' ? '#10b981' : s.value === 'unread' ? '#f59e0b' : '#3b82f6'};">
+                                        Маркирай: ${s.label}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        async function updateInquiryStatus(inquiryId, newStatus) {
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/update-inquiry-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inquiryId, status: newStatus })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update local data
+                    const item = allInquiriesData.find(i => i.id === inquiryId);
+                    if (item) item.status = newStatus;
+                    updateInquiriesCount();
+                    sortAndRender(currentInquirySort);
+                    showSuccess('Статусът е обновен');
+                } else {
+                    throw new Error(result.error || 'Failed');
+                }
+            } catch (error) {
+                console.error('Error updating inquiry status:', error);
+                showError('Грешка при обновяване на статуса: ' + error.message);
             }
         }
 

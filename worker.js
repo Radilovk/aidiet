@@ -3386,7 +3386,7 @@ async function handleReportProblem(request, env) {
  */
 async function handleSaveInquiry(request, env) {
   try {
-    const { name, email, phone, message, timestamp } = await request.json();
+    const { name, email, phone, subject, message, timestamp } = await request.json();
 
     if (!name || !email || !message) {
       return jsonResponse({ error: 'Missing required fields: name, email, message' }, 400);
@@ -3404,9 +3404,10 @@ async function handleSaveInquiry(request, env) {
       name,
       email,
       phone: phone || '',
+      subject: subject || '',
       message,
       timestamp: timestamp || new Date().toISOString(),
-      status: 'unread'
+      status: 'new'
     };
 
     await env.page_content.put(`inquiry:${inquiryId}`, JSON.stringify(inquiry));
@@ -3457,6 +3458,38 @@ async function handleGetInquiries(request, env) {
   } catch (error) {
     console.error('Error getting inquiries:', error);
     return jsonResponse({ error: `Failed to get inquiries: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Update inquiry status (new → unread → answered)
+ */
+async function handleUpdateInquiryStatus(request, env) {
+  try {
+    const { inquiryId, status } = await request.json();
+
+    const VALID_STATUSES = ['new', 'unread', 'answered'];
+    if (!inquiryId || !VALID_STATUSES.includes(status)) {
+      return jsonResponse({ error: 'Missing or invalid inquiryId / status' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const inquiryStr = await env.page_content.get(`inquiry:${inquiryId}`);
+    if (!inquiryStr) {
+      return jsonResponse({ error: 'Inquiry not found' }, 404);
+    }
+
+    const inquiry = JSON.parse(inquiryStr);
+    inquiry.status = status;
+    await env.page_content.put(`inquiry:${inquiryId}`, JSON.stringify(inquiry));
+
+    return jsonResponse({ success: true, inquiryId, status });
+  } catch (error) {
+    console.error('Error updating inquiry status:', error);
+    return jsonResponse({ error: `Failed to update status: ${error.message}` }, 500);
   }
 }
 
@@ -9862,6 +9895,8 @@ export default {
         return await handleSaveInquiry(request, env);
       } else if (url.pathname === '/api/admin/get-inquiries' && request.method === 'GET') {
         return await handleGetInquiries(request, env);
+      } else if (url.pathname === '/api/admin/update-inquiry-status' && request.method === 'POST') {
+        return await handleUpdateInquiryStatus(request, env);
       } else if (url.pathname === '/api/admin/get-clients-list' && request.method === 'GET') {
         return await handleGetClientsList(request, env);
       } else if (url.pathname === '/api/admin/get-client-data' && request.method === 'GET') {
