@@ -35,20 +35,20 @@
             --text-dark: #0f172a;
             --text-gray: #475569;
             --text-light: #94a3b8;
-            --bg-color: #f1f5f9;
-            --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #f8fafc 100%);
-            --card-bg: rgba(255, 255, 255, 0.9);
+            --bg-color: #f8fafc;
+            --bg-gradient: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            --card-bg: #ffffff;
             --card-bg-solid: #ffffff;
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
-            --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
-            --shadow-lg: 0 20px 60px rgba(0,0,0,0.12);
-            --shadow-glow: 0 0 40px var(--primary-glow);
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.06);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 0 transparent;
             --radius-sm: 12px;
             --radius-md: 16px;
-            --radius-lg: 24px;
-            --radius-xl: 32px;
+            --radius-lg: 20px;
+            --radius-xl: 24px;
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
             --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
         }
@@ -57,19 +57,19 @@
             --primary: #34d399;
             --primary-hover: #10b981;
             --primary-light: #064e3b;
-            --primary-glow: rgba(52, 211, 153, 0.3);
-            --text-dark: #f8fafc;
-            --text-gray: #cbd5e1;
+            --primary-glow: rgba(52, 211, 153, 0.15);
+            --text-dark: #f1f5f9;
+            --text-gray: #94a3b8;
             --text-light: #64748b;
-            --bg-color: #0c1222;
-            --bg-gradient: linear-gradient(135deg, #0c1222 0%, #131b2e 50%, #0f172a 100%);
-            --card-bg: rgba(30, 41, 59, 0.8);
-            --card-bg-solid: #1e293b;
-            --glass-bg: rgba(30, 41, 59, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
-            --shadow-md: 0 8px 30px rgba(0,0,0,0.4);
-            --shadow-lg: 0 20px 60px rgba(0,0,0,0.5);
+            --bg-color: #0b1120;
+            --bg-gradient: linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+            --card-bg: #1a2332;
+            --card-bg-solid: #1a2332;
+            --glass-bg: rgba(26, 35, 50, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -83,13 +83,13 @@
             background: var(--bg-gradient);
             color: var(--text-dark);
             min-height: 100vh;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: background 0.4s ease, color 0.3s ease;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Animated background */
+        /* Subtle background pattern */
         .bg-animation {
             position: fixed;
             inset: 0;
@@ -101,54 +101,38 @@
         .bg-blob {
             position: absolute;
             border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.5;
-            animation: blobFloat 20s ease-in-out infinite;
+            filter: blur(120px);
+            opacity: 0.25;
         }
         
         .bg-blob-1 {
-            width: 600px;
-            height: 600px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%);
-            top: -200px;
-            right: -100px;
-            animation-delay: 0s;
+            width: 800px;
+            height: 800px;
+            background: var(--primary);
+            top: -400px;
+            right: -200px;
         }
         
         .bg-blob-2 {
-            width: 400px;
-            height: 400px;
-            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-rose) 100%);
-            bottom: -100px;
-            left: -100px;
-            animation-delay: -5s;
+            width: 600px;
+            height: 600px;
+            background: var(--accent-cyan);
+            bottom: -200px;
+            left: -200px;
         }
         
         .bg-blob-3 {
-            width: 300px;
-            height: 300px;
-            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-rose) 100%);
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            animation-delay: -10s;
+            display: none;
         }
         
         [data-theme="dark"] .bg-blob {
-            opacity: 0.15;
-        }
-        
-        @keyframes blobFloat {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            25% { transform: translate(30px, -30px) scale(1.05); }
-            50% { transform: translate(-20px, 20px) scale(0.95); }
-            75% { transform: translate(20px, 30px) scale(1.02); }
+            opacity: 0.08;
         }
 
         /* Hero Section */
         .hero {
             position: relative;
-            padding: calc(100px + var(--safe-area-inset-top)) 20px 120px;
+            padding: calc(100px + var(--safe-area-inset-top)) 20px 80px;
             text-align: center;
             overflow: hidden;
         }
@@ -164,13 +148,13 @@
         .hero-content {
             position: relative;
             z-index: 2;
-            max-width: 800px;
+            max-width: 720px;
             margin: 0 auto;
-            animation: heroFadeIn 1s ease-out;
+            animation: heroFadeIn 0.8s ease-out;
         }
         
         @keyframes heroFadeIn {
-            from { opacity: 0; transform: translateY(30px); }
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
@@ -178,54 +162,45 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: var(--card-bg);
             border: 1px solid var(--glass-border);
             padding: 8px 20px;
             border-radius: 50px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 600;
             color: var(--primary);
             margin-bottom: 24px;
-            animation: badgePulse 3s ease-in-out infinite;
-        }
-        
-        @keyframes badgePulse {
-            0%, 100% { box-shadow: 0 0 0 0 var(--primary-glow); }
-            50% { box-shadow: 0 0 20px 5px var(--primary-glow); }
+            box-shadow: var(--shadow-sm);
         }
         
         .hero h1 {
-            font-size: clamp(2.2rem, 7vw, 4rem);
-            font-weight: 900;
-            line-height: 1.1;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, var(--text-dark) 0%, var(--primary) 50%, var(--accent-cyan) 100%);
-            background-size: 200% auto;
+            font-size: clamp(2rem, 6vw, 3.2rem);
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            color: var(--text-dark);
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 .accent {
+            background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: gradientShift 4s ease-in-out infinite;
-        }
-        
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% center; }
-            50% { background-position: 100% center; }
         }
         
         .hero p {
-            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            font-size: clamp(0.95rem, 2vw, 1.1rem);
             color: var(--text-gray);
-            max-width: 600px;
-            margin: 0 auto 32px;
+            max-width: 540px;
+            margin: 0 auto 36px;
             line-height: 1.7;
         }
         
         .hero-stats {
             display: flex;
             justify-content: center;
-            gap: 40px;
+            gap: 48px;
             flex-wrap: wrap;
         }
         
@@ -234,16 +209,17 @@
         }
         
         .stat-number {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 800;
             color: var(--primary);
             line-height: 1;
         }
         
         .stat-label {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-light);
             margin-top: 4px;
+            font-weight: 500;
         }
 
         /* Navigation */
@@ -253,7 +229,7 @@
             left: 0;
             right: 0;
             z-index: 100;
-            padding: calc(16px + var(--safe-area-inset-top)) 20px 16px;
+            padding: calc(12px + var(--safe-area-inset-top)) 20px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -272,22 +248,20 @@
             align-items: center;
             gap: 8px;
             padding: 10px 18px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: var(--card-bg);
             border: 1px solid var(--glass-border);
             border-radius: 50px;
             color: var(--text-dark);
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-weight: 500;
             text-decoration: none;
             transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
         }
         
         .back-btn:hover {
-            background: var(--card-bg);
-            transform: translateX(-3px);
             box-shadow: var(--shadow-md);
+            transform: translateX(-2px);
         }
         
         .nav-actions {
@@ -296,12 +270,10 @@
         }
         
         .theme-toggle {
-            width: 44px;
-            height: 44px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: var(--card-bg);
             border: 1px solid var(--glass-border);
             color: var(--text-dark);
             cursor: pointer;
@@ -309,18 +281,17 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            box-shadow: var(--shadow-sm);
         }
         
         .theme-toggle:hover {
-            background: var(--card-bg);
-            transform: rotate(15deg);
             box-shadow: var(--shadow-md);
         }
 
         /* Main content */
         .container {
-            max-width: 1300px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px 60px;
             position: relative;
@@ -333,293 +304,216 @@
         }
         
         .section-header h2 {
-            font-size: clamp(1.5rem, 4vw, 2rem);
-            font-weight: 800;
-            margin-bottom: 12px;
+            font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
         }
         
         .section-header p {
             color: var(--text-gray);
-            max-width: 500px;
+            max-width: 480px;
             margin: 0 auto;
+            font-size: 0.95rem;
         }
 
         /* Protocol grid */
         .protocols-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
         }
 
-        /* Protocol card - Premium Design */
+        /* Protocol card - Clean Professional Design */
         .protocol-card {
             position: relative;
             background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: var(--radius-xl);
+            border-radius: var(--radius-lg);
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid var(--glass-border);
-            animation: cardFadeIn 0.6s ease-out backwards;
+            box-shadow: var(--shadow-sm);
+            animation: cardFadeIn 0.5s ease-out backwards;
         }
         
         @keyframes cardFadeIn {
-            from { opacity: 0; transform: translateY(30px); }
+            from { opacity: 0; transform: translateY(16px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
-        .protocol-card:nth-child(1) { animation-delay: 0.1s; }
-        .protocol-card:nth-child(2) { animation-delay: 0.15s; }
-        .protocol-card:nth-child(3) { animation-delay: 0.2s; }
-        .protocol-card:nth-child(4) { animation-delay: 0.25s; }
-        .protocol-card:nth-child(5) { animation-delay: 0.3s; }
-        .protocol-card:nth-child(6) { animation-delay: 0.35s; }
-        .protocol-card:nth-child(7) { animation-delay: 0.4s; }
-        .protocol-card:nth-child(8) { animation-delay: 0.45s; }
-        .protocol-card:nth-child(9) { animation-delay: 0.5s; }
-        .protocol-card:nth-child(10) { animation-delay: 0.55s; }
-        .protocol-card:nth-child(11) { animation-delay: 0.6s; }
-        
-        .protocol-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 180px;
-            background: var(--card-gradient, linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%));
-            opacity: 0.9;
-            transition: all 0.4s ease;
-        }
-        
-        .protocol-card::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, transparent 40%, var(--card-bg-solid) 70%);
-            pointer-events: none;
-        }
+        .protocol-card:nth-child(1) { animation-delay: 0.05s; }
+        .protocol-card:nth-child(2) { animation-delay: 0.1s; }
+        .protocol-card:nth-child(3) { animation-delay: 0.15s; }
+        .protocol-card:nth-child(4) { animation-delay: 0.2s; }
+        .protocol-card:nth-child(5) { animation-delay: 0.25s; }
+        .protocol-card:nth-child(6) { animation-delay: 0.3s; }
+        .protocol-card:nth-child(7) { animation-delay: 0.35s; }
+        .protocol-card:nth-child(8) { animation-delay: 0.4s; }
+        .protocol-card:nth-child(9) { animation-delay: 0.45s; }
+        .protocol-card:nth-child(10) { animation-delay: 0.5s; }
+        .protocol-card:nth-child(11) { animation-delay: 0.55s; }
         
         .protocol-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: var(--shadow-lg), var(--shadow-glow);
-            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(16, 185, 129, 0.2);
         }
         
-        .protocol-card:hover::before {
-            opacity: 1;
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 24px 24px 0;
+        }
+        
+        .card-icon-wrap {
+            width: 52px;
+            height: 52px;
+            min-width: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: white;
+            background: var(--card-accent, var(--primary));
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .protocol-card:hover .card-icon-wrap {
             transform: scale(1.05);
         }
         
-        .card-image {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            height: 140px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+        .card-header-text {
+            flex: 1;
+            min-width: 0;
         }
         
-        .card-image img {
-            max-width: 100px;
-            max-height: 100px;
-            object-fit: contain;
-            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.2));
-            transition: transform 0.4s ease;
+        .card-category {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-light);
+            margin-bottom: 2px;
         }
         
-        .protocol-card:hover .card-image img {
-            transform: scale(1.15) rotate(5deg);
-        }
-        
-        .card-icon {
-            width: 90px;
-            height: 90px;
-            background: rgba(255,255,255,0.95);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.8rem;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-            transition: all 0.4s ease;
-        }
-        
-        [data-theme="dark"] .card-icon {
-            background: rgba(30, 41, 59, 0.95);
-        }
-        
-        .protocol-card:hover .card-icon {
-            transform: scale(1.1) rotate(-5deg);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        .protocol-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.3;
         }
         
         .card-content {
             position: relative;
             z-index: 2;
-            padding: 24px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            min-height: 200px;
+            padding: 14px 24px 24px;
         }
         
-        .card-category {
-            display: inline-block;
-            padding: 4px 12px;
-            background: var(--primary-light);
-            color: var(--primary);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-        
-        .protocol-card h3 {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 10px;
-            line-height: 1.3;
-        }
-        
-        .protocol-card p {
-            font-size: 0.9rem;
+        .protocol-card .card-description {
+            font-size: 0.88rem;
             color: var(--text-gray);
-            line-height: 1.6;
-            margin-bottom: 20px;
+            line-height: 1.65;
+            margin: 0;
         }
         
-        /* Card action buttons container */
-        .card-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: auto;
-        }
-        
-        .card-action {
+        .card-arrow {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            padding: 12px 16px;
-            border-radius: var(--radius-md);
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: none;
-            flex: 1;
-        }
-        
-        .card-action i {
-            transition: transform 0.3s ease;
+            color: var(--text-light);
             font-size: 0.8rem;
+            transition: all 0.3s ease;
+            background: transparent;
         }
         
-        .card-action-select {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-            color: white;
-        }
-        
-        .card-action-info {
-            background: var(--glass-bg);
-            color: var(--text-dark);
-            border: 1px solid var(--glass-border);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
-        
-        .protocol-card:hover .card-action-select {
-            box-shadow: 0 8px 25px var(--primary-glow);
-            transform: translateY(-2px);
-        }
-        
-        .protocol-card:hover .card-action-info {
-            background: var(--card-bg);
-            transform: translateY(-2px);
-        }
-        
-        .protocol-card:hover .card-action i {
-            transform: translateX(3px);
+        .protocol-card:hover .card-arrow {
+            color: var(--primary);
+            background: var(--primary-light);
+            transform: translateX(2px);
         }
 
-        /* Card color variants */
-        .protocol-card[data-protocol="insulin_resistance"] {
-            --card-gradient: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        /* Card image support */
+        .card-image-wrap {
+            position: relative;
+            width: 100%;
+            height: 0;
+            overflow: hidden;
         }
-        .protocol-card[data-protocol="autoimmune_aip"] {
-            --card-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        
+        .card-image-wrap.has-image {
+            height: 160px;
         }
-        .protocol-card[data-protocol="gi_issues"] {
-            --card-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        
+        .card-image-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
         }
-        .protocol-card[data-protocol="menopause_sarcopenia"] {
-            --card-gradient: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-        }
-        .protocol-card[data-protocol="cellulite_reduction"] {
-            --card-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-        }
-        .protocol-card[data-protocol="chronic_stress"] {
-            --card-gradient: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-        }
-        .protocol-card[data-protocol="postpartum_lactation"] {
-            --card-gradient: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
-        }
-        .protocol-card[data-protocol="visceral_fat"] {
-            --card-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
-        .protocol-card[data-protocol="post_smoking"] {
-            --card-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        }
-        .protocol-card[data-protocol="longevity"] {
-            --card-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-        }
-        .protocol-card[data-protocol="detox"] {
-            --card-gradient: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        
+        .protocol-card:hover .card-image-wrap img {
+            transform: scale(1.03);
         }
 
-        /* Standard plan CTA - Impressive design */
+        /* Card accent color variants */
+        .protocol-card[data-protocol="insulin_resistance"] { --card-accent: #0891b2; }
+        .protocol-card[data-protocol="autoimmune_aip"] { --card-accent: #7c3aed; }
+        .protocol-card[data-protocol="gi_issues"] { --card-accent: #d97706; }
+        .protocol-card[data-protocol="menopause_sarcopenia"] { --card-accent: #db2777; }
+        .protocol-card[data-protocol="cellulite_reduction"] { --card-accent: #e11d48; }
+        .protocol-card[data-protocol="chronic_stress"] { --card-accent: #0d9488; }
+        .protocol-card[data-protocol="postpartum_lactation"] { --card-accent: #9333ea; }
+        .protocol-card[data-protocol="visceral_fat"] { --card-accent: #dc2626; }
+        .protocol-card[data-protocol="post_smoking"] { --card-accent: #4f46e5; }
+        .protocol-card[data-protocol="longevity"] { --card-accent: #0284c7; }
+        .protocol-card[data-protocol="detox"] { --card-accent: #16a34a; }
+
+        /* Standard plan CTA */
         .standard-plan-section {
             margin-top: 60px;
             background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             border-radius: var(--radius-xl);
             padding: 48px 32px;
             text-align: center;
-            border: 2px dashed var(--glass-border);
+            border: 1px solid var(--glass-border);
             position: relative;
             overflow: hidden;
+            box-shadow: var(--shadow-sm);
         }
         
         .standard-plan-section::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(6, 182, 212, 0.03) 100%);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.02) 0%, rgba(6, 182, 212, 0.02) 100%);
             pointer-events: none;
         }
         
         .standard-plan-section h3 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin-bottom: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
             color: var(--text-dark);
         }
         
         .standard-plan-section p {
             color: var(--text-gray);
-            margin-bottom: 28px;
-            max-width: 500px;
+            margin-bottom: 24px;
+            max-width: 460px;
             margin-left: auto;
             margin-right: auto;
+            font-size: 0.95rem;
         }
 
         /* Buttons */
@@ -628,9 +522,9 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            padding: 16px 32px;
-            border-radius: var(--radius-md);
-            font-size: 1rem;
+            padding: 14px 28px;
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -641,34 +535,32 @@
         .btn-primary {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
             color: white;
-            box-shadow: 0 4px 15px var(--primary-glow);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
         }
         
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px var(--primary-glow);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
         }
         
         .btn-secondary {
-            background: var(--glass-bg);
+            background: var(--card-bg);
             color: var(--text-dark);
             border: 1px solid var(--glass-border);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
         }
         
         .btn-secondary:hover {
-            background: var(--card-bg);
-            transform: translateY(-2px);
+            background: var(--bg-color);
+            transform: translateY(-1px);
         }
 
-        /* Modal - Premium Design */
+        /* Modal - Premium Clean Design */
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             z-index: 1000;
             display: flex;
             align-items: center;
@@ -676,7 +568,7 @@
             padding: 20px;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
         }
         
         .modal-overlay.active {
@@ -687,14 +579,14 @@
         .modal {
             background: var(--card-bg-solid);
             border-radius: var(--radius-xl);
-            max-width: 600px;
+            max-width: 580px;
             width: 100%;
             max-height: 90vh;
             overflow: hidden;
-            transform: scale(0.9) translateY(30px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(0.95) translateY(20px);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 24px 80px rgba(0,0,0,0.15);
             border: 1px solid var(--glass-border);
         }
         
@@ -704,7 +596,7 @@
         
         .modal-hero {
             position: relative;
-            height: 180px;
+            height: 140px;
             background: var(--modal-gradient, linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%));
             display: flex;
             flex-direction: column;
@@ -719,23 +611,24 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 60px;
+            height: 40px;
             background: linear-gradient(180deg, transparent 0%, var(--card-bg-solid) 100%);
         }
         
         .modal-icon-large {
-            width: 80px;
-            height: 80px;
+            width: 64px;
+            height: 64px;
             background: rgba(255,255,255,0.95);
-            border-radius: 50%;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5rem;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
             position: relative;
             z-index: 1;
-            animation: modalIconPop 0.5s ease-out 0.2s backwards;
+            animation: modalIconPop 0.4s ease-out 0.15s backwards;
         }
         
         [data-theme="dark"] .modal-icon-large {
@@ -743,20 +636,18 @@
         }
         
         @keyframes modalIconPop {
-            from { transform: scale(0) rotate(-15deg); opacity: 0; }
-            to { transform: scale(1) rotate(0); opacity: 1; }
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
         
         .modal-close {
             position: absolute;
-            top: 16px;
-            right: 16px;
-            width: 40px;
-            height: 40px;
+            top: 14px;
+            right: 14px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             border: none;
             color: white;
             cursor: pointer;
@@ -765,16 +656,16 @@
             justify-content: center;
             transition: all 0.3s ease;
             z-index: 2;
+            font-size: 0.9rem;
         }
         
         .modal-close:hover {
             background: rgba(255,255,255,0.3);
-            transform: rotate(90deg);
         }
         
         .modal-content {
             padding: 24px;
-            max-height: calc(90vh - 260px);
+            max-height: calc(90vh - 220px);
             overflow-y: auto;
         }
         
@@ -784,32 +675,33 @@
         }
         
         .modal-title h2 {
-            font-size: 1.5rem;
-            font-weight: 800;
+            font-size: 1.35rem;
+            font-weight: 700;
             color: var(--text-dark);
             margin-bottom: 6px;
+            letter-spacing: -0.01em;
         }
         
         .modal-title .category-badge {
             display: inline-block;
-            padding: 4px 14px;
+            padding: 4px 12px;
             background: var(--primary-light);
             color: var(--primary);
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
         }
         
         .modal-section {
-            margin-bottom: 24px;
-            padding: 20px;
+            margin-bottom: 20px;
+            padding: 18px;
             background: rgba(0,0,0,0.02);
-            border-radius: var(--radius-md);
-            border-left: 4px solid var(--primary);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--primary);
         }
         
         [data-theme="dark"] .modal-section {
-            background: rgba(255,255,255,0.02);
+            background: rgba(255,255,255,0.03);
         }
         
         .modal-section:last-child {
@@ -817,19 +709,19 @@
         }
         
         .modal-section h4 {
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             font-weight: 700;
             color: var(--primary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
         .modal-section p {
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             color: var(--text-dark);
             line-height: 1.7;
         }
@@ -838,21 +730,16 @@
             list-style: none;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
         
         .modal-section ul li {
-            padding: 8px 14px;
-            border-radius: 25px;
-            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
             font-weight: 500;
             background: var(--primary-light);
             color: var(--primary);
-            transition: all 0.2s ease;
-        }
-        
-        .modal-section ul li:hover {
-            transform: translateY(-2px);
         }
         
         .modal-section ul.restrictions li {
@@ -861,7 +748,7 @@
         }
         
         [data-theme="dark"] .modal-section ul.restrictions li {
-            background: rgba(239, 68, 68, 0.15);
+            background: rgba(239, 68, 68, 0.12);
             color: #fca5a5;
         }
         
@@ -869,29 +756,29 @@
             list-style: none !important;
             display: flex;
             flex-direction: column !important;
-            gap: 10px !important;
+            gap: 8px !important;
         }
         
         .hacks-list li {
             display: flex;
             align-items: flex-start;
             gap: 10px;
-            padding: 12px 16px !important;
+            padding: 10px 14px !important;
             border-radius: var(--radius-sm) !important;
-            font-size: 0.9rem !important;
+            font-size: 0.85rem !important;
             line-height: 1.5;
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(6, 182, 212, 0.06) 100%) !important;
+            background: rgba(0,0,0,0.02) !important;
             color: var(--text-dark) !important;
             border-left: 3px solid var(--primary);
         }
         
         [data-theme="dark"] .hacks-list li {
-            background: linear-gradient(135deg, rgba(52, 211, 153, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%) !important;
+            background: rgba(255,255,255,0.04) !important;
         }
         
         .modal-section-forwhom {
             border-left-color: var(--accent-purple) !important;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, rgba(168, 85, 247, 0.04) 100%) !important;
+            background: rgba(139, 92, 246, 0.03) !important;
         }
         
         .modal-section-forwhom h4 {
@@ -900,41 +787,57 @@
         
         .modal-section-forwhom p {
             font-weight: 500;
-            font-style: italic;
+        }
+        
+        /* Modal CTA inside content */
+        .modal-cta {
+            margin-top: 24px;
+            padding: 24px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(6, 182, 212, 0.04) 100%);
+            border-radius: var(--radius-md);
+            text-align: center;
+            border: 1px solid rgba(16, 185, 129, 0.1);
+        }
+        
+        .modal-cta .btn {
+            width: 100%;
+            padding: 16px 28px;
+            font-size: 1rem;
+        }
+        
+        .modal-cta-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 8px;
         }
         
         .modal-footer {
-            padding: 20px 24px;
-            background: rgba(0,0,0,0.02);
+            padding: 16px 24px;
             border-top: 1px solid var(--glass-border);
             display: flex;
-            gap: 12px;
-        }
-        
-        [data-theme="dark"] .modal-footer {
-            background: rgba(255,255,255,0.02);
+            justify-content: center;
         }
         
         .modal-footer .btn {
-            flex: 1;
+            min-width: 120px;
         }
 
         /* Footer */
         footer {
             text-align: center;
-            padding: 60px 20px calc(40px + var(--safe-area-inset-bottom));
-            color: var(--text-gray);
+            padding: 48px 20px calc(32px + var(--safe-area-inset-bottom));
+            color: var(--text-light);
         }
         
         .footer-logo {
-            font-size: 1.5rem;
-            font-weight: 800;
+            font-size: 1.3rem;
+            font-weight: 700;
             color: var(--text-dark);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .footer-logo i {
@@ -942,7 +845,7 @@
         }
         
         footer p {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         
         footer a {
@@ -954,32 +857,20 @@
         /* Responsive */
         @media (max-width: 768px) {
             .hero {
-                padding: calc(90px + var(--safe-area-inset-top)) 16px 100px;
-            }
-            
-            .hero h1 {
-                font-size: 2rem;
+                padding: calc(80px + var(--safe-area-inset-top)) 16px 60px;
             }
             
             .hero-stats {
-                gap: 24px;
+                gap: 32px;
             }
             
             .stat-number {
-                font-size: 2rem;
+                font-size: 1.8rem;
             }
             
             .protocols-grid {
                 grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .protocol-card::before {
-                height: 150px;
-            }
-            
-            .card-image {
-                height: 120px;
+                gap: 12px;
             }
             
             .modal {
@@ -987,22 +878,18 @@
             }
             
             .modal-hero {
-                height: 150px;
+                height: 120px;
             }
             
             .modal-icon-large {
-                width: 70px;
-                height: 70px;
-                font-size: 2rem;
+                width: 56px;
+                height: 56px;
+                font-size: 1.3rem;
             }
             
             .modal-content {
                 padding: 20px;
-                max-height: calc(92vh - 230px);
-            }
-            
-            .modal-footer {
-                flex-direction: column;
+                max-height: calc(92vh - 200px);
             }
             
             .standard-plan-section {
@@ -1020,26 +907,12 @@
                 border-radius: 50%;
             }
             
-            .hero h1 {
-                font-size: 1.75rem;
-            }
-            
-            .hero p {
-                font-size: 0.95rem;
+            .card-header {
+                padding: 20px 20px 0;
             }
             
             .card-content {
-                padding: 20px 16px;
-            }
-            
-            .card-actions {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .card-action {
-                padding: 10px 14px;
-                font-size: 0.8rem;
+                padding: 12px 20px 20px;
             }
         }
     </style>
@@ -1069,11 +942,11 @@
     <header class="hero">
         <div class="hero-content">
             <div class="hero-badge">
-                <i class="fas fa-sparkles"></i>
-                11 специализирани протокола
+                <i class="fas fa-dna"></i>
+                11 клинични протокола
             </div>
-            <h1>Персонализирани<br>Клинични Протоколи</h1>
-            <p>Изберете протокол, създаден специално за вашето здравословно състояние. Получете научно обоснован хранителен план.</p>
+            <h1>Персонализирани<br><span class="accent">Клинични Протоколи</span></h1>
+            <p>Изберете протокол, съобразен с вашето здравословно състояние. Всеки план е изграден на база научни данни и индивидуален анализ.</p>
             <div class="hero-stats">
                 <div class="stat-item">
                     <div class="stat-number">11</div>
@@ -1100,8 +973,8 @@
         
         <!-- Standard Plan Section -->
         <section class="standard-plan-section">
-            <h3>🎯 Нямате специфично състояние?</h3>
-            <p>Получете стандартен персонализиран план, базиран на вашите цели – без клиничен протокол</p>
+            <h3>Нямате специфично състояние?</h3>
+            <p>Получете стандартен персонализиран план, базиран на вашите цели — без клиничен протокол</p>
             <button class="btn btn-primary" onclick="goToStandardQuestionnaire()">
                 <i class="fas fa-clipboard-list"></i>
                 Към стандартния въпросник
@@ -1125,12 +998,12 @@
                 </div>
                 
                 <div class="modal-section">
-                    <h4><i class="fas fa-info-circle"></i> За какво е този протокол?</h4>
+                    <h4><i class="fas fa-info-circle"></i> Какво представлява</h4>
                     <p id="modalDescription">Описание...</p>
                 </div>
                 
                 <div class="modal-section">
-                    <h4><i class="fas fa-bullseye"></i> Какво ще постигнете?</h4>
+                    <h4><i class="fas fa-gift"></i> Какво получавате</h4>
                     <p id="modalBenefits">Ползи...</p>
                 </div>
                 
@@ -1140,27 +1013,31 @@
                 </div>
                 
                 <div class="modal-section">
-                    <h4><i class="fas fa-ban"></i> Ограничаване</h4>
+                    <h4><i class="fas fa-minus-circle"></i> Ограничаване</h4>
                     <ul id="modalRestrictions" class="restrictions"></ul>
                 </div>
                 
                 <div class="modal-section">
-                    <h4><i class="fas fa-bolt"></i> Практични съвети</h4>
+                    <h4><i class="fas fa-lightbulb"></i> Практични съвети</h4>
                     <ul id="modalHacks" class="hacks-list"></ul>
                 </div>
                 
                 <div class="modal-section modal-section-forwhom">
-                    <h4><i class="fas fa-user-check"></i> За кого е?</h4>
+                    <h4><i class="fas fa-user-check"></i> За кого е подходящ</h4>
                     <p id="modalForWhom">За кого е...</p>
+                </div>
+                
+                <div class="modal-cta">
+                    <button class="btn btn-primary" id="modalSelectBtn" onclick="selectProtocol()">
+                        Изградете вашия персонален протокол
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <div class="modal-cta-subtitle">Отнема около 3 минути</div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal()">
                     Затвори
-                </button>
-                <button class="btn btn-primary" id="modalSelectBtn" onclick="selectProtocol()">
-                    <i class="fas fa-arrow-right"></i>
-                    Избери протокол
                 </button>
             </div>
         </div>
@@ -1183,220 +1060,220 @@
                 id: 'insulin_resistance',
                 name: 'Инсулинова резистентност',
                 shortName: 'Инсулинова резистентност / Диабет Т2',
-                icon: '🩸',
-                shortDescription: 'Спрете порочния кръг на захарните скокове — без диети, без глад',
+                icon: 'fa-tint',
+                shortDescription: 'Индивидуален протокол за стабилизиране на кръвната захар и предотвратяване на метаболитни усложнения.',
                 description: 'Този протокол е предназначен за хора с инсулинова резистентност или преддиабетно състояние. Фокусира се върху стабилизиране на кръвната захар чрез храни с нисък гликемичен индекс и правилно разпределение на макронутриентите.',
-                benefits: 'Не е вина на вашата воля — тялото ви е в метаболичен капан. Този протокол го отключва: стабилизира кръвната захар, намалява желанието за сладко и предотвратява диабет тип 2.',
+                benefits: 'Получавате персонализиран хранителен план, който стабилизира кръвната захар, намалява желанието за сладко и предотвратява прогресирането към диабет тип 2. Без стандартни диети — само научно обосновани решения за вашия метаболизъм.',
                 category: 'Метаболитно здраве',
                 forWhom: 'Хора с повишена кръвна захар, преддиабет, PCOS или фамилна обремененост с диабет тип 2',
                 emphasis: ['Храни с нисък ГИ', 'Ненишестени зеленчуци', 'Бобови култури', 'Пълнозърнести', 'Чист протеин'],
                 restrictions: ['Рафинирани въглехидрати', 'Захар', 'Бял хляб', 'Бял ориз', 'Сладки напитки'],
                 hacks: [
-                    '🥦 Метод на чинията: 50% зеленчуци, 25% протеин, 25% сложни въглехидрати',
-                    '📊 Избирайте храни с ГИ под 55 — овесени ядки, бобови, зеленчуци',
-                    '🚶 10 мин. разходка след хранене — понижава кръвната захар с до 30%',
-                    '⏰ Не пропускайте хранения — стабилизира инсулина през деня',
-                    '🫘 Добавете бобови към поне 1 хранене дневно — бавни въглехидрати + фибри'
+                    'Метод на чинията: 50% зеленчуци, 25% протеин, 25% сложни въглехидрати',
+                    'Избирайте храни с ГИ под 55 — овесени ядки, бобови, зеленчуци',
+                    '10 мин. разходка след хранене — понижава кръвната захар с до 30%',
+                    'Не пропускайте хранения — стабилизира инсулина през деня',
+                    'Добавете бобови към поне 1 хранене дневно — бавни въглехидрати + фибри'
                 ]
             },
             autoimmune_aip: {
                 id: 'autoimmune_aip',
                 name: 'Автоимунен протокол (AIP)',
                 shortName: 'Автоимунни заболявания',
-                icon: '🛡️',
-                shortDescription: 'Тялото ви се бори срещу себе си — помогнете му да разпознае приятел от враг',
+                icon: 'fa-shield-alt',
+                shortDescription: 'Терапевтичен подход за намаляване на системно възпаление и възстановяване на чревната бариера.',
                 description: 'Автоимунният протокол (AIP) е терапевтичен подход за хора с автоимунни заболявания като Хашимото, ревматоиден артрит, псориазис и др. Чрез елиминация на провокиращи храни се цели намаляване на системното възпаление.',
-                benefits: 'Знаем, че сте изтощени от безотговорно отношение. Този протокол намалява системното възпаление, възстановява чревната бариера и помага да идентифицирате кои храни тригерират симптомите ви.',
+                benefits: 'Ще получите структуриран план за идентифициране на храните, които тригерират вашите симптоми, намаляване на системното възпаление и възстановяване на чревната бариера. Включва стъпки за безопасна реинтродукция.',
                 category: 'Автоимунни състояния',
                 forWhom: 'Хора с Хашимото, ревматоиден артрит, псориазис, лупус или други автоимунни диагнози',
                 emphasis: ['Костни бульони', 'Омега-3 риби', 'Ферментирали зеленчуци', 'Зеленолистни', 'Органични меса'],
                 restrictions: ['Зърнени храни', 'Бобови', 'Млечни продукти', 'Яйца', 'Ядки', 'Семена', 'Нощни зеленчуци'],
                 hacks: [
-                    '🍖 Костните бульони са лечебни за чревната лигавица — пийте 1-2 чаши дневно',
-                    '🥬 Ферментирали зеленчуци подобряват чревната флора — добавете към всяко хранене',
-                    '🐟 Омега-3 мастни риби 3-4 пъти седмично за контрол на възпалението',
-                    '❌ Избягвайте нощни зеленчуци (домати, пиперки) — те влошават автоимунните процеси',
-                    '📝 Водете дневник на симптомите при реинтродукция на храни'
+                    'Костните бульони са лечебни за чревната лигавица — пийте 1-2 чаши дневно',
+                    'Ферментирали зеленчуци подобряват чревната флора — добавете към всяко хранене',
+                    'Омега-3 мастни риби 3-4 пъти седмично за контрол на възпалението',
+                    'Избягвайте нощни зеленчуци (домати, пиперки) — те влошават автоимунните процеси',
+                    'Водете дневник на симптомите при реинтродукция на храни'
                 ]
             },
             gi_issues: {
                 id: 'gi_issues',
                 name: 'Стомашно-чревни проблеми',
                 shortName: 'Запек и подуване',
-                icon: '🌿',
-                shortDescription: 'Край на подутия корем и неудобството — храносмилането ви работи отново',
+                icon: 'fa-leaf',
+                shortDescription: 'Протокол за възстановяване на чревната функция и елиминиране на дискомфорт след хранене.',
                 description: 'Протокол за хора със запек, подуване, IBS или други стомашно-чревни дискомфорти. Използва се стратегия SMART с акцент върху разтворими фибри и прокинетични храни.',
-                benefits: 'Ще си върнете комфорта и увереността: подобрена чревна регулярност, край на подуването, оптимално усвояване на хранителни вещества и здрава чревна флора.',
+                benefits: 'Ще получите план, който адресира конкретния ви чревен дискомфорт — подобрена чревна регулярност, край на подуването и оптимално усвояване на хранителни вещества. Базиран на SMART стратегия с доказана ефективност.',
                 category: 'Храносмилане',
                 forWhom: 'Хора със запек, подуване, IBS, нередовно храносмилане или дискомфорт след хранене',
                 emphasis: ['Псилиум и овес', 'Киви', 'Горчиви храни', 'Магнезиева вода', 'Ферментирали храни'],
                 restrictions: ['Газирани напитки', 'Дъвки без захар', 'Високи FODMAP', 'Пържени храни'],
                 hacks: [
-                    '🥝 2 кивита дневно — доказано подобряват перисталтиката',
-                    '💧 Пийте магнезиева вода (0.5-1L дневно) за нормална чревна функция',
-                    '🥗 Горчиви храни (артишок, рукола) стимулират жлъчката и храносмилането',
-                    '🚶 Разходка след хранене подобрява чревния транзит',
-                    '⏰ Яжте на редовни часове — подобрява чревния ритъм'
+                    '2 кивита дневно — доказано подобряват перисталтиката',
+                    'Пийте магнезиева вода (0.5-1L дневно) за нормална чревна функция',
+                    'Горчиви храни (артишок, рукола) стимулират жлъчката и храносмилането',
+                    'Разходка след хранене подобрява чревния транзит',
+                    'Яжте на редовни часове — подобрява чревния ритъм'
                 ]
             },
             menopause_sarcopenia: {
                 id: 'menopause_sarcopenia',
                 name: 'Менопауза и Саркопения',
                 shortName: 'Менопауза / Мускулна загуба',
-                icon: '💪',
-                shortDescription: 'Менопаузата не е край — тя е ново начало за тялото, което заслужава повече грижа',
+                icon: 'fa-heartbeat',
+                shortDescription: 'Специализиран план за запазване на мускулна маса и хормонален баланс при менопауза.',
                 description: 'Специализиран протокол за жени в перименопауза или менопауза. Фокусира се върху запазване на мускулната маса чрез адекватен протеин и фитоестрогени за хормонален баланс.',
-                benefits: 'Ще запазите силата и жизнеността си: повече мускулна маса, по-малко горещи вълни, здрави кости и нова енергия за живота, който заслужавате.',
+                benefits: 'Получавате план, съобразен с хормоналните промени: оптимално разпределение на протеина за запазване на мускулна маса, фитоестрогени за баланс, подкрепа за костната плътност и управление на горещи вълни.',
                 category: 'Жизненост 50+',
                 forWhom: 'Жени в перименопауза, менопауза или постменопауза, с мускулна загуба или хормонален дисбаланс',
                 emphasis: ['Високо протеинови храни', 'Фитоестрогени', 'Калций', 'Витамин D', 'Костни бульони'],
                 restrictions: ['Захар', 'Алкохол', 'Преработени храни', 'Прекомерен кофеин'],
                 hacks: [
-                    '💪 Разпределете протеина равномерно — мин. 25-30г на хранене за мускулна синтеза',
-                    '🫘 Включете фитоестрогени ежедневно — соя, ленено семе, нахут',
-                    '🦴 Калций от храна: броколи, бадеми, сардини, сусам',
-                    '🏋️ Силови тренировки 2-3 пъти седмично — критично за запазване на мускулна маса',
-                    '🌙 Магнезий вечер подобрява съня и намалява мускулните крампи'
+                    'Разпределете протеина равномерно — мин. 25-30г на хранене за мускулна синтеза',
+                    'Включете фитоестрогени ежедневно — соя, ленено семе, нахут',
+                    'Калций от храна: броколи, бадеми, сардини, сусам',
+                    'Силови тренировки 2-3 пъти седмично — критично за запазване на мускулна маса',
+                    'Магнезий вечер подобрява съня и намалява мускулните крампи'
                 ]
             },
             cellulite_reduction: {
                 id: 'cellulite_reduction',
                 name: 'Редукция на целулит',
                 shortName: 'Целулит',
-                icon: '✨',
-                shortDescription: 'Подобрете текстурата на кожата и намалете задържането на течности — без нереалистични обещания',
+                icon: 'fa-spa',
+                shortDescription: 'Научно базиран подход за подобряване на текстурата на кожата и намаляване на задържането на течности.',
                 description: 'Протокол, насочен към подобряване на вида на целулита чрез високопротеинова хипокалорична диета, полифеноли и подкрепа на лимфния дренаж. Целулитът е нормален — 90% от жените го имат.',
-                benefits: 'Ще видите реални подобрения в текстурата на кожата и задържането на течности. Укрепвате съединителната тъкан отвътре и стимулирате лимфния дренаж по естествен път.',
+                benefits: 'Този протокол работи отвътре навън: укрепва съединителната тъкан с подбрани хранителни вещества, стимулира лимфния дренаж и намалява задържането на течности. Без нереалистични обещания — само доказани стратегии.',
                 category: 'Естетично здраве',
                 forWhom: 'Жени, които искат да подобрят текстурата на кожата и да намалят задържането на течности',
                 emphasis: ['Колаген', 'Горски плодове', 'Зелен чай', 'Цитрусови', 'Витамин C'],
                 restrictions: ['Високо натриеви храни', 'Преработени храни', 'Рафинирани въглехидрати', 'Алкохол'],
                 hacks: [
-                    '🫐 Горски плодове ежедневно — полифеноли за здрава съединителна тъкан',
-                    '💧 Мин. 2.5л вода дневно + билкови чайове за лимфен дренаж',
-                    '🧂 Ограничете натрия под 2000mg дневно — намалява задържането на течности',
-                    '🍵 2-3 чаши зелен чай дневно — подобрява микроциркулацията',
-                    '🚶 Ежедневна разходка 30 мин. стимулира лимфния дренаж'
+                    'Горски плодове ежедневно — полифеноли за здрава съединителна тъкан',
+                    'Мин. 2.5л вода дневно + билкови чайове за лимфен дренаж',
+                    'Ограничете натрия под 2000mg дневно — намалява задържането на течности',
+                    '2-3 чаши зелен чай дневно — подобрява микроциркулацията',
+                    'Ежедневна разходка 30 мин. стимулира лимфния дренаж'
                 ]
             },
             chronic_stress: {
                 id: 'chronic_stress',
                 name: 'Хроничен стрес',
                 shortName: 'Кортизолова регулация',
-                icon: '🧘',
-                shortDescription: 'Стресът не е слабост — тялото ви е в режим на оцеляване. Време е да се отпусне',
+                icon: 'fa-brain',
+                shortDescription: 'Протокол за нормализиране на кортизола и възстановяване на нервната система чрез хранене.',
                 description: 'Протокол за хора с хроничен стрес, повишен кортизол или дисрегулация на HPA оста. Включва противовъзпалителна диета и адаптогенни добавки за възстановяване на баланса.',
-                benefits: 'Тялото ви казва: „безопасно е". Нормализирате кортизола, подобрявате съня, намалявате тревожността и повишавате устойчивостта на ежедневния стрес.',
+                benefits: 'Получавате план за хранене, който работи в синхрон с вашата нервна система: нормализира кортизола, подобрява съня, намалява тревожността и повишава вашата устойчивост. Включва стратегия за времето и състава на храненията.',
                 category: 'Психично здраве',
                 forWhom: 'Хора с хроничен стрес, безсъние, тревожност, сутрешна умора или емоционално прегаряне',
                 emphasis: ['Противовъзпалителни храни', 'Омега-3', 'Магнезий', 'Адаптогени', 'Сложни въглехидрати'],
                 restrictions: ['Кофеин на гладно', 'Рафинирани въглехидрати', 'Захар', 'Алкохол', 'Енергийни напитки'],
                 hacks: [
-                    '☕ Никога не пийте кафе на гладно — повишава кортизола допълнително',
-                    '🍽️ Всяко хранене трябва да съдържа протеин + мазнини + фибри за стабилна захар',
-                    '🧘 5 мин. дихателни упражнения преди хранене подобрява усвояването',
-                    '🌙 Магнезий вечер — намалява кортизола и подобрява съня',
-                    '🐟 Омега-3 мастни киселини ежедневно за контрол на възпалението'
+                    'Никога не пийте кафе на гладно — повишава кортизола допълнително',
+                    'Всяко хранене трябва да съдържа протеин + мазнини + фибри за стабилна захар',
+                    '5 мин. дихателни упражнения преди хранене подобрява усвояването',
+                    'Магнезий вечер — намалява кортизола и подобрява съня',
+                    'Омега-3 мастни киселини ежедневно за контрол на възпалението'
                 ]
             },
             postpartum_lactation: {
                 id: 'postpartum_lactation',
                 name: 'След бременност & Лактация',
                 shortName: 'Кърмене',
-                icon: '🤱',
-                shortDescription: 'Хранете себе си, за да може да храните бебето — без чувство за вина',
+                icon: 'fa-baby',
+                shortDescription: 'Оптимален хранителен план за възстановяване след раждане и подкрепа на кърменето.',
                 description: 'Протокол за жени в следродилния период или по време на кърмене. Осигурява допълнителни калории и критични хранителни вещества за майката и бебето.',
-                benefits: 'Заслужавате да се чувствате добре, докато правите най-важното. Оптимално хранене за вас и бебето, подкрепа на млекопроизводството и безопасно възстановяване на формата.',
+                benefits: 'План, който балансира вашите нужди и тези на бебето: оптимално хранене за подкрепа на млекопроизводството, осигуряване на критичните хранителни вещества и безопасно възстановяване на формата без да се компрометира здравето.',
                 category: 'Майчинство',
                 forWhom: 'Жени след раждане или по време на кърмене, които искат да осигурят оптимално хранене за себе си и бебето',
                 emphasis: ['Холин', 'Йод', 'Желязо', 'Калций', 'DHA Омега-3'],
                 restrictions: ['Алкохол', 'Прекомерен кофеин', 'Сурови морски продукти', 'Високо живачни риби'],
                 hacks: [
-                    '🥚 Яйцата са отличен източник на холин — 2 на ден при кърмене',
-                    '🐟 DHA от риба подобрява развитието на бебето — 2-3 порции седмично',
-                    '🍊 Приемайте желязо с витамин C за по-добро усвояване',
-                    '💧 Допълнителни 500мл вода при кърмене — критично за млекопроизводството',
-                    '⚖️ Безопасен темп на отслабване: макс. 0.5кг/седмица при лактация'
+                    'Яйцата са отличен източник на холин — 2 на ден при кърмене',
+                    'DHA от риба подобрява развитието на бебето — 2-3 порции седмично',
+                    'Приемайте желязо с витамин C за по-добро усвояване',
+                    'Допълнителни 500мл вода при кърмене — критично за млекопроизводството',
+                    'Безопасен темп на отслабване: макс. 0.5кг/седмица при лактация'
                 ]
             },
             visceral_fat: {
                 id: 'visceral_fat',
                 name: 'Висцерални мазнини',
                 shortName: 'Коремно отслабване',
-                icon: '🔥',
-                shortDescription: 'Невидимата опасност около органите — атакувайте коремните мазнини целенасочено',
+                icon: 'fa-fire-alt',
+                shortDescription: 'Целенасочена стратегия за намаляване на висцералните мазнини и подобряване на метаболитния профил.',
                 description: 'Протокол за намаляване на висцералните (коремни) мазнини — най-опасният тип мазнини, обвиващи вътрешните органи. Използва полифеноли и противовъзпалителни храни за метаболитно предимство.',
-                benefits: 'Ще намалите невидимата заплаха: по-малко коремни мазнини, по-добри метаболитни маркери, по-нисък риск от сърдечни заболявания и подобрена инсулинова чувствителност.',
+                benefits: 'Получавате стратегия, насочена конкретно към висцералните мазнини: подобрени метаболитни маркери, намален риск от сърдечни заболявания и подобрена инсулинова чувствителност. С включени полифеноли и специфични храни за метаболитно предимство.',
                 category: 'Отслабване',
                 forWhom: 'Хора с наднормена обиколка на талията (>94см мъже, >80см жени) или метаболитен синдром',
                 emphasis: ['Зелен чай', 'Куркума', 'Горски плодове', 'Зехтин EVOO', 'Омега-3 риби'],
                 restrictions: ['Транс мазнини', 'Рафинирани въглехидрати', 'Захар', 'Алкохол', 'Преработени храни'],
                 hacks: [
-                    '🍵 3-4 чаши зелен чай дневно — EGCG стимулира горенето на висцерални мазнини',
-                    '🫒 Зехтин екстра върджин като основна мазнина — мононенаситени за метаболизма',
-                    '🫐 Полифеноли от горски плодове и куркума „потъмняват" мастните клетки',
-                    '🚶 HIIT или бързо ходене — най-ефективни за висцерални мазнини',
-                    '🍺 Елиминирайте алкохола — директно увеличава коремните мазнини'
+                    '3-4 чаши зелен чай дневно — EGCG стимулира горенето на висцерални мазнини',
+                    'Зехтин екстра върджин като основна мазнина — мононенаситени за метаболизма',
+                    'Полифеноли от горски плодове и куркума „потъмняват" мастните клетки',
+                    'HIIT или бързо ходене — най-ефективни за висцерални мазнини',
+                    'Елиминирайте алкохола — директно увеличава коремните мазнини'
                 ]
             },
             post_smoking: {
                 id: 'post_smoking',
                 name: 'След спиране на цигарите',
                 shortName: 'Спиране на тютюнопушенето',
-                icon: '🚭',
-                shortDescription: 'Вече направихте най-трудното. Сега нека тялото ви усети свободата',
+                icon: 'fa-lungs',
+                shortDescription: 'Хранителна подкрепа за контрол на желанията и предотвратяване на наддаване след спиране на цигарите.',
                 description: 'Протокол за хора, които наскоро са спрели да пушат. Помага за контрол на желанието за никотин, подкрепя допаминовата система и предотвратява наддаване на тегло.',
-                benefits: 'Контролирате желанието за цигари без да го заменяте с храна. Подкрепяте детоксикацията от никотин, стабилизирате настроението и запазвате теглото.',
+                benefits: 'Получавате план, който подкрепя тялото ви в най-трудния преходен период: стабилизиране на допаминовата система, контрол на желанията без заместване с храна и подкрепа на естествената детоксикация от никотин.',
                 category: 'Възстановяване',
                 forWhom: 'Хора, които наскоро са спрели да пушат и искат да предотвратят наддаване на тегло',
                 emphasis: ['Обемни зеленчуци', 'Тирозин', 'Стабилизиращи захарта храни', 'Антиоксиданти'],
                 restrictions: ['Захарни храни', 'Рафинирани въглехидрати', 'Алкохол', 'Прекомерен кофеин'],
                 hacks: [
-                    '🥕 Дръжте нарязани моркови и целина наготово — заместват оралния рефлекс',
-                    '🍗 Тирозин от протеини подкрепя допаминовата система след никотина',
-                    '🩸 Стабилни хранения на 3-4 часа — предотвратяват „сривове" и желание за цигара',
-                    '💊 NAC намалява желанието за тютюнопушене — доказано в клинични проучвания',
-                    '💧 Повече вода — помага за детоксикация от никотиновите метаболити'
+                    'Дръжте нарязани моркови и целина наготово — заместват оралния рефлекс',
+                    'Тирозин от протеини подкрепя допаминовата система след никотина',
+                    'Стабилни хранения на 3-4 часа — предотвратяват „сривове" и желание за цигара',
+                    'NAC намалява желанието за тютюнопушене — доказано в клинични проучвания',
+                    'Повече вода — помага за детоксикация от никотиновите метаболити'
                 ]
             },
             longevity: {
                 id: 'longevity',
                 name: 'Дълголетие (Longevity)',
                 shortName: 'Антиейджинг / Longevity',
-                icon: '🧬',
-                shortDescription: 'Не спирайте времето — подобрете качеството на годините, които идват',
+                icon: 'fa-dna',
+                shortDescription: 'Протокол за клетъчно подмладяване и оптимизиране на биологичния ви възрастов профил.',
                 description: 'Протокол базиран на най-новите изследвания в областта на дълголетието. Използва времево-ограничено хранене и специфични молекули за клетъчно подмладяване и автофагия.',
-                benefits: 'Активирайте клетъчното подмладяване: автофагия за изчистване на стареещи клетки, повече енергия, по-острo мислене и забавяне на биологичния часовник.',
+                benefits: 'Получавате достъп до протокол, базиран на последните научни открития: стимулиране на автофагия за изчистване на стареещи клетки, оптимален mTOR баланс и конкретни хранителни стратегии за забавяне на биологичния часовник.',
                 category: 'Антиейджинг',
                 forWhom: 'Биохакери, здравни ентусиасти и хора над 40, които искат да оптимизират клетъчното здраве и жизнеността',
                 emphasis: ['Кръстоцветни зеленчуци', 'Полифеноли', 'Омега-3', 'Ферментирали храни', 'Автофагични храни'],
                 restrictions: ['Ултрапреработени храни', 'Рафинирани захари', 'Прекомерен протеин', 'Обгорели храни'],
                 hacks: [
-                    '⏰ TRF 16:8 — ядете в 8-часов прозорец за стимулиране на автофагия',
-                    '🥦 Кръстоцветни зеленчуци ежедневно — сулфорафан за клетъчна защита',
-                    '🐟 Protein Pacing: разпределете протеина на пулсове за оптимален mTOR баланс',
-                    '🍇 Полифеноли от тъмни плодове, зелен чай и зехтин за клетъчна младост',
-                    '🧬 Фисетин 2-3 дни месечно — сенолитик за изчистване на стареещи клетки'
+                    'TRF 16:8 — ядете в 8-часов прозорец за стимулиране на автофагия',
+                    'Кръстоцветни зеленчуци ежедневно — сулфорафан за клетъчна защита',
+                    'Protein Pacing: разпределете протеина на пулсове за оптимален mTOR баланс',
+                    'Полифеноли от тъмни плодове, зелен чай и зехтин за клетъчна младост',
+                    'Фисетин 2-3 дни месечно — сенолитик за изчистване на стареещи клетки'
                 ]
             },
             detox: {
                 id: 'detox',
                 name: 'Детоксикация',
                 shortName: 'Черен дроб и клетки',
-                icon: '🌱',
-                shortDescription: 'Помогнете на черния дроб да работи ефективно — без сокови диети, без гладуване',
+                icon: 'fa-seedling',
+                shortDescription: 'Подкрепа за естествените детоксикационни процеси и оптимизиране на чернодробната функция.',
                 description: 'Протокол за оптимизиране на естествените детоксикационни процеси на организма. Не наказвайте тялото си — подкрепете го. Фокус върху активиране на Nrf2 пътя и подкрепа на чернодробните фази на детоксикация.',
-                benefits: 'Подкрепете тялото си вместо да го наказвате. Подобрена чернодробна функция, повишен глутатион, изчистване на натрупани токсини и забележимо подобрение на общото самочувствие.',
+                benefits: 'Научно обоснован подход към детоксикацията — без гладуване и сокови диети. Получавате план за подобрена чернодробна функция, повишен глутатион и активиране на естествените Nrf2 детоксикационни пътища.',
                 category: 'Детокс',
                 forWhom: 'Хора с умора, проблеми с кожата, чувствителност към храни или след продължителна употреба на медикаменти',
                 emphasis: ['Кръстоцветни зеленчуци', 'Чесън и лук', 'Яйца', 'Високо фиброви храни', 'Цитрусови'],
                 restrictions: ['Алкохол', 'Преработени храни', 'Изкуствени оцветители', 'Пържени храни', 'Захар'],
                 hacks: [
-                    '🥦 Кръстоцветни зеленчуци ежедневно — активират Nrf2 детоксикационния път',
-                    '🧄 Чесън и лук с всяко хранене — серните съединения поддържат глутатиона',
-                    '🥚 Яйцата са източник на холин и сяра — ключови за чернодробната детоксикация',
-                    '💧 Мин. 3 литра вода дневно — критично за бъбречна филтрация',
-                    '🫘 Фибри над 35г/ден — свързват и извеждат токсините през червата'
+                    'Кръстоцветни зеленчуци ежедневно — активират Nrf2 детоксикационния път',
+                    'Чесън и лук с всяко хранене — серните съединения поддържат глутатиона',
+                    'Яйцата са източник на холин и сяра — ключови за чернодробната детоксикация',
+                    'Мин. 3 литра вода дневно — критично за бъбречна филтрация',
+                    'Фибри над 35г/ден — свързват и извеждат токсините през червата'
                 ]
             }
         };
@@ -1450,16 +1327,22 @@
             return div.innerHTML;
         }
         
-        // Handle image load error - replace with icon using safe DOM manipulation
-        function handleImageError(imgElement, iconText) {
-            const parent = imgElement.parentElement;
-            if (parent) {
-                const iconDiv = document.createElement('div');
-                iconDiv.className = 'card-icon';
-                iconDiv.textContent = iconText;
-                parent.innerHTML = '';
-                parent.appendChild(iconDiv);
-            }
+        // Get accent color for protocol
+        function getAccentColor(protocolId) {
+            const colors = {
+                insulin_resistance: '#0891b2',
+                autoimmune_aip: '#7c3aed',
+                gi_issues: '#d97706',
+                menopause_sarcopenia: '#db2777',
+                cellulite_reduction: '#e11d48',
+                chronic_stress: '#0d9488',
+                postpartum_lactation: '#9333ea',
+                visceral_fat: '#dc2626',
+                post_smoking: '#4f46e5',
+                longevity: '#0284c7',
+                detox: '#16a34a'
+            };
+            return colors[protocolId] || '#10b981';
         }
 
         // Theme management
@@ -1502,7 +1385,7 @@
             }
         });
 
-        // Render protocol cards with new design
+        // Render protocol cards with clean professional design
         function renderProtocolCards() {
             const grid = document.getElementById('protocolsGrid');
             if (!grid) return;
@@ -1512,45 +1395,35 @@
                 const card = document.createElement('div');
                 card.className = 'protocol-card';
                 card.setAttribute('data-protocol', protocol.id);
-                card.style.animationDelay = `${0.1 + index * 0.05}s`;
+                card.style.animationDelay = `${0.05 + index * 0.05}s`;
                 
                 // Check if there's a custom image URL from backend
                 const customImageUrl = protocolImages[protocol.id];
-                // Use DOM manipulation for fallback instead of innerHTML in onerror to prevent XSS
+                
+                // Build image section (only if custom image exists)
                 const imageHtml = customImageUrl 
-                    ? `<img src="${customImageUrl}" alt="${escapeHtml(protocol.name)}" onerror="handleImageError(this, '${escapeHtml(protocol.icon)}')">`
-                    : `<div class="card-icon">${escapeHtml(protocol.icon)}</div>`;
+                    ? `<div class="card-image-wrap has-image"><img src="${customImageUrl}" alt="${escapeHtml(protocol.name)}" onerror="this.parentElement.style.display='none'"></div>`
+                    : '';
                 
                 card.innerHTML = `
-                    <div class="card-image">
-                        ${imageHtml}
-                    </div>
-                    <div class="card-content">
-                        <span class="card-category">${escapeHtml(protocol.category)}</span>
-                        <h3>${escapeHtml(protocol.shortName)}</h3>
-                        <p>${escapeHtml(protocol.shortDescription)}</p>
-                        <div class="card-actions">
-                            <button class="card-action card-action-select" data-protocol-id="${escapeHtml(protocol.id)}" aria-label="Избери протокол ${escapeHtml(protocol.shortName)}">
-                                <i class="fas fa-check"></i> Избери
-                            </button>
-                            <button class="card-action card-action-info" data-protocol-id="${escapeHtml(protocol.id)}" aria-label="Виж детайли за ${escapeHtml(protocol.shortName)}">
-                                <i class="fas fa-info-circle"></i> Детайли
-                            </button>
+                    ${imageHtml}
+                    <div class="card-header">
+                        <div class="card-icon-wrap">
+                            <i class="fas ${escapeHtml(protocol.icon)}"></i>
+                        </div>
+                        <div class="card-header-text">
+                            <div class="card-category">${escapeHtml(protocol.category)}</div>
+                            <h3>${escapeHtml(protocol.shortName)}</h3>
                         </div>
                     </div>
+                    <div class="card-content">
+                        <p class="card-description">${escapeHtml(protocol.shortDescription)}</p>
+                    </div>
+                    <div class="card-arrow"><i class="fas fa-arrow-right"></i></div>
                 `;
                 
-                // Add event listeners to buttons (safer than inline onclick)
-                const selectBtn = card.querySelector('.card-action-select');
-                const infoBtn = card.querySelector('.card-action-info');
-                
-                selectBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    selectProtocolDirect(protocol.id);
-                });
-                
-                infoBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
+                // Clicking whole card opens modal
+                card.addEventListener('click', function() {
                     openModal(protocol.id);
                 });
                 
@@ -1573,7 +1446,7 @@
             detox: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
         };
 
-        // Modal functions - updated for new design
+        // Modal functions - updated for clean design
         function openModal(protocolId) {
             const protocol = PROTOCOLS[protocolId];
             if (!protocol) return;
@@ -1586,8 +1459,13 @@
                 modalHero.style.background = MODAL_GRADIENTS[protocolId] || 'linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%)';
             }
             
+            // Set modal icon (Font Awesome)
+            const modalIcon = document.getElementById('modalIcon');
+            if (modalIcon) {
+                modalIcon.innerHTML = `<i class="fas ${protocol.icon}" style="color: ${getAccentColor(protocolId)}"></i>`;
+            }
+            
             // Set modal content
-            document.getElementById('modalIcon').textContent = protocol.icon;
             document.getElementById('modalTitle').textContent = protocol.name;
             document.getElementById('modalCategory').textContent = protocol.category;
             document.getElementById('modalDescription').textContent = protocol.description;
