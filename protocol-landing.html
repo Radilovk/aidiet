@@ -1309,6 +1309,29 @@
             50% { transform: scale(1.1); opacity: 1; }
         }
         
+        /* Accessibility: Respect user's motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+            .modal-cta::before {
+                animation: none;
+            }
+            
+            .bg-blob,
+            .floating-element,
+            .hero h1 .accent {
+                animation: none;
+            }
+            
+            .protocol-card,
+            .hero-content,
+            .modal {
+                animation: none;
+            }
+            
+            * {
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
         .modal-cta .btn {
             width: 100%;
             padding: 18px 32px;
@@ -1593,7 +1616,7 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <i class="fas fa-dna"></i>
-                <span>11 научно-базирани протокола</span>
+                <span>11 научнобазирани протокола</span>
             </div>
             <h1>Персонализирани<br><span class="accent">Клинични Протоколи</span></h1>
             <p>Изберете протокол, съобразен с вашето здравословно състояние. Всеки план е изграден на база актуални научни данни и индивидуален анализ на вашите нужди.</p>
