@@ -3718,7 +3718,7 @@ function buildAIInterviewPrompt(profile, conversationHistory, questionNumber) {
     profile.foodTriggers ? `Тригери за хранене: ${Array.isArray(profile.foodTriggers) ? profile.foodTriggers.join(', ') : profile.foodTriggers}` : '',
     profile.eatingHabits ? `Хранителни навици: ${Array.isArray(profile.eatingHabits) ? profile.eatingHabits.join(', ') : profile.eatingHabits}` : '',
     profile.compensationMethods ? `Методи за компенсация: ${Array.isArray(profile.compensationMethods) ? profile.compensationMethods.join(', ') : profile.compensationMethods}` : '',
-    profile.socialComparison ? `Социално сравнение: ${profile.socialComparison}` : '',
+    profile.socialComparison ? `Социално сравнение: ${profile.socialComparison}` : '', // kept for backward compat with older submissions
     profile.dietPreference ? `Хранителни предпочитания: ${Array.isArray(profile.dietPreference) ? profile.dietPreference.join(', ') : profile.dietPreference}` : '',
     profile.dietDislike ? `Непоносимости/нелюбими: ${profile.dietDislike}` : '',
     profile.dietLove ? `Любими храни: ${profile.dietLove}` : '',

@@ -1057,7 +1057,7 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Хашимото / Заболяване на щитовидната жлеза", "Храносмилателни проблеми (IBS, IBD, рефлукс)", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам" },
+            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Щитовидна жлеза (Хашимото и др.)", "Храносмилателни проблеми (IBS, IBD, рефлукс)", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам" },
             { "id": "goal", "text": "Каква е основната ви цел?", "type": "checkbox", "options": ["Отслабване", "Подобряване на здравето", "Антиейджинг", "Стягане и оформяне на тялото", "Детокс и прочистване", "Изчистване на коремните мазнини", "Антицелулитна програма", "Възстановяване на тялото след бременност", "Друго"], "hasOtherInput": true },
             { "id": "lossKg", "text": "Колко килограма искате да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване" } },
             { "id": "sleepHours", "text": "Колко часа спите средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
@@ -1274,9 +1274,13 @@
         }
         
         // Skip health/goal questions when a protocol is pre-selected from the landing page URL.
+        // `healthConditions` is also skipped when a protocol is pre-selected because the chosen
+        // protocol already encodes the user's primary health context (e.g., selecting the
+        // insulin_resistance protocol implies that condition). Protocol-specific injected questions
+        // capture any additional detail needed.
         // answers.clinicalProtocol is set by handleProtocolFromURL() from the ?protocol= URL parameter.
         function skipProtocolRelatedQuestions() {
-            // When protocol is pre-selected from landing page, skip healthConditions and goal questions
+            // Skip healthConditions — protocol already provides the health context
             const healthConditionsIndex = currentQueue.findIndex(q => q.id === 'healthConditions');
             if (healthConditionsIndex !== -1) {
                 currentQueue.splice(healthConditionsIndex, 1);
@@ -2594,7 +2598,7 @@
             container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden;';
             document.body.appendChild(container);
             
-            for (let i = 0; i < 70; i++) {
+            for (let i = 0; i < 50; i++) {
                 const p = document.createElement('div');
                 const isRect = Math.random() > 0.45;
                 const color = colors[Math.floor(Math.random() * colors.length)];
@@ -2616,7 +2620,6 @@
                 `;
                 container.appendChild(p);
             }
-            // Auto-remove confetti after animation finishes
             setTimeout(() => container.remove(), 8000);
         }
 
@@ -2628,11 +2631,12 @@
         document.addEventListener('keydown', function(e) {
             if (e.key !== 'Enter') return;
             const active = document.activeElement;
-            // Skip if focus is on a textarea (those handle their own Enter)
-            if (active && active.tagName === 'TEXTAREA') return;
+            if (!active) return;
+            const tag = active.tagName;
+            // Skip: textareas (handle own Enter), buttons (allow native activation), links, selects
+            if (tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A' || tag === 'SELECT') return;
             // Skip if next button is hidden or disabled
             if (!nextBtn || nextBtn.style.display === 'none' || nextBtn.disabled) return;
-            // Trigger next step
             e.preventDefault();
             nextBtn.click();
         });
