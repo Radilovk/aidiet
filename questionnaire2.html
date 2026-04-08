@@ -798,172 +798,23 @@
             vertical-align: middle;
         }
 
-        /* === AI INTERVIEW PHASE STYLES === */
-        .ai-interview-container {
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            animation: fadeIn 0.5s forwards;
-        }
-
-        .ai-interview-header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .ai-interview-header .ai-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--soft-red);
-            color: var(--primary-red);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .ai-interview-counter {
-            font-size: 0.78rem;
-            color: var(--text-gray);
-            margin-top: 4px;
-        }
-
-        .ai-interview-axis {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            color: var(--text-gray);
-            background: var(--input-bg);
-            padding: 4px 10px;
-            border-radius: 12px;
-            margin-top: 8px;
-        }
-
-        .ai-question-text {
-            font-size: 1.35rem;
-            font-weight: 700;
-            line-height: 1.4;
-            color: var(--text-dark);
-            margin-bottom: 20px;
-        }
-
-        .ai-answer-input {
-            width: 100%;
-            padding: 16px;
-            font-size: 1.05rem;
-            border: 2px solid #d1d5db;
-            background: var(--card-bg);
-            color: var(--text-dark);
-            border-radius: var(--radius);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-            transition: var(--transition);
-            resize: vertical;
-            min-height: 80px;
-            max-height: 200px;
-            font-family: inherit;
-        }
-
-        .ai-answer-input:focus {
-            outline: none;
-            border-color: var(--primary-red);
-            box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
-        }
-
-        .ai-answer-input::placeholder {
-            color: var(--text-gray);
-            opacity: 0.7;
-        }
-
-        .ai-history-scroll {
-            max-height: 180px;
-            overflow-y: auto;
-            margin-bottom: 16px;
-            padding-right: 4px;
-        }
-
-        .ai-history-item {
-            background: var(--input-bg);
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-
-        .ai-history-item .history-q {
-            color: var(--primary-red);
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .ai-history-item .history-a {
-            color: var(--text-dark);
-        }
-
-        .ai-loading-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 20px;
-            color: var(--text-gray);
-            font-size: 0.9rem;
-        }
-
-        .ai-loading-indicator .dot-pulse {
-            display: inline-flex;
-            gap: 4px;
-        }
-
-        .ai-loading-indicator .dot-pulse span {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--primary-red);
-            animation: dotPulse 1.2s ease-in-out infinite;
-        }
-
-        .ai-loading-indicator .dot-pulse span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .ai-loading-indicator .dot-pulse span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes dotPulse {
-            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-
-        .ai-skip-btn {
+        /* === AI INTERVIEW PHASE STYLES (matches questionnaire look) === */
+        .ai-skip-link {
             display: block;
-            margin: 16px auto 0;
+            margin: 20px auto 0;
             background: transparent;
             border: none;
             color: var(--text-gray);
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             cursor: pointer;
             text-decoration: underline;
             padding: 4px 8px;
             transition: color 0.2s;
-        }
-
-        .ai-skip-btn:hover {
-            color: var(--text-dark);
-        }
-
-        .ai-error-msg {
             text-align: center;
-            color: #ef4444;
-            font-size: 0.9rem;
-            padding: 12px;
-            background: rgba(239,68,68,0.08);
-            border-radius: 10px;
-            margin-top: 12px;
+        }
+
+        .ai-skip-link:hover {
+            color: var(--text-dark);
         }
 
     </style>
@@ -1562,7 +1413,7 @@
             prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
             
             if(currentIndex === currentQueue.length - 1) {
-                nextBtn.innerHTML = 'AI Интервю <i class="fas fa-brain"></i>';
+                nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
             }
         }
         
@@ -2161,15 +2012,8 @@
         }
 
         // === AI INTERVIEW PHASE ===
-        
-        const AI_AXIS_LABELS = {
-            metabolism: '🔥 Метаболизъм и Енергетика',
-            neuro_endocrine: '🧠 Невро-Ендокринна ос',
-            immunity: '🛡️ Имунитет и Възпаление',
-            psycho_behavior: '💭 Психо-Поведение',
-            structure: '🦴 Структура и Тъкани',
-            unknown: '🔬 Диагностика'
-        };
+        // Renders using the SAME question-card / h2.q-text / modern-input pattern
+        // as the static questionnaire, so users see a seamless continuation.
         
         /**
          * Start the AI interview phase after all static questions are completed.
@@ -2180,10 +2024,6 @@
             aiInterviewHistory = [];
             aiCurrentQuestion = null;
             aiInterviewComplete = false;
-            
-            // Update progress bar to show AI interview phase
-            progressBar.style.width = '100%';
-            stepIndicator.textContent = 'AI Интервю — Въпрос 1 от ' + AI_INTERVIEW_MAX_QUESTIONS;
             
             // Fetch the first AI question
             fetchAIQuestion();
@@ -2295,108 +2135,91 @@
         }
         
         /**
-         * Render the AI interview UI in the question container.
+         * Render the AI interview UI using the SAME visual pattern as the static
+         * questionnaire: question-card → h2.q-text → modern-input textarea.
+         * No chat bubbles, no history, no badges — a seamless continuation.
          */
         function renderAIInterviewUI(question, loading, errorMsg) {
             container.scrollTop = 0;
             container.innerHTML = '';
-            container.classList.remove('compact');
             
-            // Update progress
-            const aiProgress = aiQuestionNumber / AI_INTERVIEW_MAX_QUESTIONS;
-            const totalStaticSteps = currentQueue.length;
-            // Show combined progress: all static steps are done, AI interview adds more
-            progressBar.style.width = '100%';
-            stepIndicator.textContent = `AI Интервю — Въпрос ${aiQuestionNumber} от ${AI_INTERVIEW_MAX_QUESTIONS}`;
+            // Calculate combined progress: static steps + AI steps
+            const totalSteps = currentQueue.length + AI_INTERVIEW_MAX_QUESTIONS;
+            const currentStep = currentQueue.length + aiQuestionNumber;
+            const percent = (currentStep / totalSteps) * 100;
+            progressBar.style.width = `${Math.min(percent, 99)}%`;
+            stepIndicator.textContent = `Стъпка ${currentStep} от ${totalSteps}`;
             
-            const wrapper = document.createElement('div');
-            wrapper.className = 'ai-interview-container';
-            
-            // Header
-            const header = document.createElement('div');
-            header.className = 'ai-interview-header';
-            header.innerHTML = `
-                <div class="ai-badge"><i class="fas fa-brain"></i> AI Диагностика</div>
-                <div class="ai-interview-counter">${aiQuestionNumber} / ${AI_INTERVIEW_MAX_QUESTIONS}</div>
-            `;
-            wrapper.appendChild(header);
-            
-            // History (collapsed, shows last 2 entries)
-            if (aiInterviewHistory.length > 0) {
-                const historyScroll = document.createElement('div');
-                historyScroll.className = 'ai-history-scroll';
-                
-                // Show last 2 Q&A pairs
-                const recentHistory = aiInterviewHistory.slice(-2);
-                recentHistory.forEach(entry => {
-                    const item = document.createElement('div');
-                    item.className = 'ai-history-item';
-                    item.innerHTML = `
-                        <div class="history-q"><i class="fas fa-robot" style="margin-right:4px;font-size:0.8rem;"></i>${escapeHTML(entry.question)}</div>
-                        <div class="history-a">${escapeHTML(entry.answer)}</div>
-                    `;
-                    historyScroll.appendChild(item);
-                });
-                
-                wrapper.appendChild(historyScroll);
-            }
+            const card = document.createElement('div');
+            card.className = 'question-card';
             
             if (loading) {
-                // Loading state
-                const loadingDiv = document.createElement('div');
-                loadingDiv.className = 'ai-loading-indicator';
-                loadingDiv.innerHTML = `
-                    <div class="dot-pulse"><span></span><span></span><span></span></div>
-                    <span>AI анализира отговорите...</span>
-                `;
-                wrapper.appendChild(loadingDiv);
+                // Loading state — same visual style as any questionnaire question
+                container.classList.remove('compact');
                 
-                // Hide next button during loading, keep prev visible
+                const h2 = document.createElement('h2');
+                h2.className = 'q-text';
+                h2.textContent = 'Зареждане на следващия въпрос...';
+                card.appendChild(h2);
+                
+                // Simple spinner using the existing section-icon pattern
+                const spinnerWrap = document.createElement('div');
+                spinnerWrap.style.cssText = 'text-align:center; padding: 30px 0;';
+                spinnerWrap.innerHTML = '<i class="fas fa-circle-notch fa-spin" style="font-size:2rem; color:var(--primary-red); opacity:0.6;"></i>';
+                card.appendChild(spinnerWrap);
+                
+                container.appendChild(card);
+                
+                // Hide "Напред", keep "Назад" visible
                 nextBtn.style.display = 'none';
                 prevBtn.style.visibility = 'visible';
                 
             } else if (errorMsg) {
-                // Error state
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'ai-error-msg';
-                errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${escapeHTML(errorMsg)}`;
-                wrapper.appendChild(errorDiv);
+                // Error state — same card layout
+                container.classList.remove('compact');
                 
-                // Retry button
+                const h2 = document.createElement('h2');
+                h2.className = 'q-text';
+                h2.textContent = 'Нещо се обърка';
+                card.appendChild(h2);
+                
+                const hint = document.createElement('div');
+                hint.style.cssText = 'color:#ef4444;font-size:0.9rem;margin-bottom:20px;';
+                hint.textContent = errorMsg;
+                card.appendChild(hint);
+                
+                // Retry button styled like primary button
                 const retryBtn = document.createElement('button');
                 retryBtn.className = 'btn btn-next';
-                retryBtn.style.cssText = 'margin: 16px auto; display: block;';
-                retryBtn.innerHTML = '<i class="fas fa-redo"></i> Опитай отново';
+                retryBtn.style.cssText = 'margin: 0 auto 12px; display: block;';
+                retryBtn.innerHTML = '<i class="fas fa-redo" style="margin-right:6px;"></i>Опитай отново';
                 retryBtn.onclick = () => fetchAIQuestion();
-                wrapper.appendChild(retryBtn);
+                card.appendChild(retryBtn);
                 
-                // Skip option on error
-                const skipBtn = document.createElement('button');
-                skipBtn.className = 'ai-skip-btn';
-                skipBtn.textContent = 'Пропусни AI интервюто';
-                skipBtn.onclick = skipAIInterview;
-                wrapper.appendChild(skipBtn);
+                // Skip link
+                const skipLink = document.createElement('button');
+                skipLink.className = 'ai-skip-link';
+                skipLink.textContent = 'Пропусни и завърши';
+                skipLink.onclick = skipAIInterview;
+                card.appendChild(skipLink);
+                
+                container.appendChild(card);
                 
                 nextBtn.style.display = 'none';
                 prevBtn.style.visibility = 'visible';
                 
             } else if (question) {
-                // Question display
-                if (question.axis && AI_AXIS_LABELS[question.axis]) {
-                    const axisLabel = document.createElement('div');
-                    axisLabel.className = 'ai-interview-axis';
-                    axisLabel.textContent = AI_AXIS_LABELS[question.axis];
-                    wrapper.appendChild(axisLabel);
-                }
+                // Normal question — identical to renderQuestion for textarea type
+                container.classList.toggle('compact', true);
                 
-                const qText = document.createElement('div');
-                qText.className = 'ai-question-text';
-                qText.textContent = question.text;
-                wrapper.appendChild(qText);
+                const h2 = document.createElement('h2');
+                h2.className = 'q-text';
+                h2.textContent = question.text;
+                card.appendChild(h2);
                 
-                // Answer input
+                // Standard textarea input, same class as existing questionnaire textareas
                 const input = document.createElement('textarea');
-                input.className = 'ai-answer-input';
+                input.className = 'modern-input';
                 input.id = 'aiAnswerInput';
                 input.placeholder = 'Вашият отговор...';
                 input.setAttribute('maxlength', String(AI_ANSWER_MAX_LENGTH));
@@ -2411,28 +2234,29 @@
                         if (input.value.trim()) submitAIAnswer();
                     }
                 };
-                wrapper.appendChild(input);
+                card.appendChild(input);
                 
-                // Skip interview button
-                const skipBtn = document.createElement('button');
-                skipBtn.className = 'ai-skip-btn';
-                skipBtn.textContent = 'Пропусни останалите AI въпроси';
-                skipBtn.onclick = skipAIInterview;
-                wrapper.appendChild(skipBtn);
+                // Subtle skip link below the input
+                const skipLink = document.createElement('button');
+                skipLink.className = 'ai-skip-link';
+                skipLink.textContent = 'Пропусни и завърши';
+                skipLink.onclick = skipAIInterview;
+                card.appendChild(skipLink);
                 
-                // Configure nav buttons
+                container.appendChild(card);
+                
+                // Standard nav buttons — same text as the rest of the questionnaire
                 nextBtn.style.display = '';
-                nextBtn.innerHTML = 'Отговори <i class="fas fa-arrow-right"></i>';
+                nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
                 nextBtn.disabled = true;
                 nextBtn.onclick = submitAIAnswer;
                 
                 prevBtn.style.visibility = 'visible';
                 
-                // Auto-focus the input
+                // Auto-focus
                 setTimeout(() => input.focus(), 100);
             }
             
-            container.appendChild(wrapper);
             positionFooterBelowContent();
         }
         
