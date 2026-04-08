@@ -1017,6 +1017,9 @@
         initializeTheme();
 
         // --- JSON DATA (Inserted directly from your file) ---
+        // BASE DATA QUESTIONS ONLY — after these, the AI interview takes over
+        // and dynamically asks follow-up questions tailored to each user's profile.
+        // All lifestyle, behavioral, dietary, and medical questions are handled by AI.
         const rawQuestions = [
             { "id": "name", "text": "Въведете вашето име:", "type": "text", "options": [] },
             { "id": "gender", "text": "Моля, изберете вашия пол:", "type": "radio", "options": ["Мъж", "Жена"] },
@@ -1025,38 +1028,16 @@
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
             { "id": "clinicalProtocol", "text": "Имате ли специфично здравословно състояние, за което искате протокол?", "type": "radio", "options": ["Не, искам стандартен план", "Инсулинова резистентност / Превенция Диабет Т2", "Автоимунни заболявания / Чревна бариера (AIP)", "Стомашно-чревни проблеми (Запек/Подуване)", "Менопауза и Саркопения", "Редукция на целулит", "Хроничен стрес (Кортизолова регулация)", "Възстановяване след бременност / Лактация", "Висцерални мазнини (Коремно отслабване)", "След спиране на тютюнопушенето", "Дълголетие (Longevity)", "Детоксикация (Черен дроб и клетки)"] },
-            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] }, "skipWhen": { "clinicalProtocol": ["insulin_resistance", "autoimmune_aip", "gi_issues", "menopause_sarcopenia", "cellulite_reduction", "chronic_stress", "postpartum_lactation", "visceral_fat", "post_smoking", "longevity", "detox"] } },
-            { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
-            { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
-            { "id": "chronotype", "text": "Вашият хронотип:", "type": "radio", "options": ["Сутрешен", "Вечерен", "Неутрален"] },
-            { "id": "dailyActivityLevel", "text": "Ниво на активност през деня:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
-            { "id": "stressLevel", "text": "Ниво на стрес:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
-            { "id": "sportActivity", "text": "Ниво на спортна активност:", "type": "radio", "options": ["Висока (5–7 дни седмично)", "Средна (2–4 дни седмично)", "Ниска (1–2 дни седмично)", "Никаква (0 дни седмично)"] },
-            { "id": "waterIntake", "text": "Колко вода пиете дневно?", "type": "radio", "options": ["под 1 л", "1–1.5 л", "1.5–2 л", "над 2 л"] },
-            { "id": "drinksSweet", "text": "Сокове, газирани напитки, фрешове:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
-            { "id": "drinksAlcohol", "text": "Напитки с алкохолно съдържание:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
-            { "id": "weightChange", "text": "Имали ли сте рязко покачване на теглото или отслабване в последната една година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и как се справихте с промяната?", "type": "textarea", "options": [] }] } },
-            { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
-            { "id": "overeatingFrequency", "text": "Колко често ядете повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
-            { "id": "foodCravings", "text": "Често изпитвате нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / междинни хранения", "Друго", "Не изпитвам такава"], "hasOtherInput": true, "negativeOption": "Не изпитвам такава" },
-            { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за храна?", "type": "checkbox", "options": ["Напрежение", "Скука", "Тъга", "Социални събития", "Друго", "Нито едно"], "hasOtherInput": true, "negativeOption": "Нито едно" },
-            { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна", "Нито една"], "negativeOption": "Нито една" },
-            { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true, "negativeOption": "Не" },
-            { "id": "socialComparison", "text": "Колко често се сравнявате с други хора (вкл. социални мрежи)?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
-            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго", "Нямам предпочитания"], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
-            { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [], "optional": true },
-            { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
-            { "id": "medicalConditions", "text": "Имате ли някое от следните медицински състояния?", "type": "checkbox", "options": ["Инсулинова резистентност", "Диабет", "Хашимото", "Депресия", "Тревожност", "IBS", "IBD", "Алергии", "Автоимунно", "Рефлукс", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам", "specialDetailOptions": ["Алергии", "Автоимунно"] },
-            { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
-            { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [] },
-            { "id": "medicalFiles", "text": "Прикачете файлове или снимки с изследвания (по желание):", "type": "file", "options": [] }
+            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] }, "skipWhen": { "clinicalProtocol": ["insulin_resistance", "autoimmune_aip", "gi_issues", "menopause_sarcopenia", "cellulite_reduction", "chronic_stress", "postpartum_lactation", "visceral_fat", "post_smoking", "longevity", "detox"] } }
         ];
 
         // --- PROTOCOL-SPECIFIC QUESTIONS ---
-        // Additional questions shown only when specific clinical protocol is selected
+        // Additional questions shown only when specific clinical protocol is selected.
+        // All are inserted after 'clinicalProtocol' since that's where the protocol is chosen.
+        // The remaining investigation is handled by the AI interview.
         const PROTOCOL_SPECIFIC_QUESTIONS = {
             insulin_resistance: {
-                addAfter: 'medicalConditions',
+                addAfter: 'clinicalProtocol',
                 questions: [
                     { "id": "bloodSugarLevels", "text": "Имате ли измервания на кръвна захар на гладно? Ако да, какви са стойностите?", "type": "textarea", "options": [], "optional": true },
                     { "id": "insulinResistanceSymptoms", "text": "Имате ли някои от следните симптоми?", "type": "checkbox", "options": ["Силно желание за сладко след хранене", "Умора след хранене", "Потъмняване на кожата (акантозис нигриканс)", "Затруднено отслабване в коремната област", "Чест глад между храненията", "Нито едно"], "negativeOption": "Нито едно" },
@@ -1065,7 +1046,7 @@
                 removeQuestions: []
             },
             autoimmune_aip: {
-                addAfter: 'medicalConditions',
+                addAfter: 'clinicalProtocol',
                 questions: [
                     { "id": "autoimmuneDiagnosis", "text": "Какво е вашето автоимунно заболяване? (напр. Хашимото, ревматоиден артрит, псориазис)", "type": "textarea", "options": [] },
                     { "id": "autoimmuneFlares", "text": "Колко често имате обостряния на симптомите?", "type": "radio", "options": ["Ежедневно", "Няколко пъти седмично", "Няколко пъти месечно", "Рядко"] },
@@ -1074,7 +1055,7 @@
                 removeQuestions: []
             },
             gi_issues: {
-                addAfter: 'medicalConditions',
+                addAfter: 'clinicalProtocol',
                 questions: [
                     { "id": "giSymptoms", "text": "Кои от следните симптоми имате?", "type": "checkbox", "options": ["Запек", "Подуване", "Газове", "Болки в корема", "Киселини/рефлукс", "Диария", "Нередовно изхождане", "Нито едно"], "negativeOption": "Нито едно" },
                     { "id": "bowelFrequency", "text": "Колко често имате изхождане?", "type": "radio", "options": ["Повече от 3 пъти дневно", "1-2 пъти дневно", "Веднъж дневно", "През ден", "По-рядко от през ден"] },
@@ -1101,7 +1082,7 @@
                 removeQuestions: []
             },
             chronic_stress: {
-                addAfter: 'stressLevel',
+                addAfter: 'clinicalProtocol',
                 questions: [
                     { "id": "stressSources", "text": "Кои са основните източници на стрес?", "type": "checkbox", "options": ["Работа", "Семейство", "Финанси", "Здраве", "Отношения", "Друго", "Не мога да определя"], "hasOtherInput": true, "negativeOption": "Не мога да определя" },
                     { "id": "stressSymptoms", "text": "Кои от следните симптоми изпитвате?", "type": "checkbox", "options": ["Безсъние", "Тревожност", "Раздразнителност", "Умора сутрин", "Затруднена концентрация", "Желание за сладко/солено", "Нито едно"], "negativeOption": "Нито едно" },
@@ -1128,7 +1109,7 @@
                 removeQuestions: []
             },
             post_smoking: {
-                addAfter: 'drinksAlcohol',
+                addAfter: 'clinicalProtocol',
                 questions: [
                     { "id": "smokingHistory", "text": "Колко дълго пушихте?", "type": "radio", "options": ["Под 5 години", "5-10 години", "10-20 години", "Над 20 години"] },
                     { "id": "quitDuration", "text": "От колко време сте спрели?", "type": "radio", "options": ["Под 1 месец", "1-3 месеца", "3-6 месеца", "6-12 месеца", "Над 1 година"] },
@@ -1138,7 +1119,7 @@
                 removeQuestions: []
             },
             longevity: {
-                addAfter: 'sportActivity',
+                addAfter: 'clinicalProtocol',
                 questions: [
                     { "id": "fastingExperience", "text": "Имате ли опит с периодично гладуване?", "type": "radio", "options": ["Да, практикувам редовно", "Опитвал/а съм", "Не, но искам да опитам", "Не ме интересува"] },
                     { "id": "longevityGoals", "text": "Кои аспекти на дълголетието са най-важни за вас?", "type": "checkbox", "options": ["Когнитивно здраве", "Физическа сила и мобилност", "Енергия и виталност", "Външен вид и кожа", "Превенция на болести", "Всички"], "negativeOption": "" },
@@ -1147,7 +1128,7 @@
                 removeQuestions: []
             },
             detox: {
-                addAfter: 'drinksAlcohol',
+                addAfter: 'clinicalProtocol',
                 questions: [
                     { "id": "detoxReason", "text": "Защо искате детокс програма?", "type": "checkbox", "options": ["Умора и липса на енергия", "Проблеми с кожата", "Храносмилателни проблеми", "Главоболие", "Желание за \"рестарт\"", "Друго"], "hasOtherInput": true },
                     { "id": "toxinExposure", "text": "Изложени ли сте на следните?", "type": "checkbox", "options": ["Замърсен въздух (град)", "Работа с химикали", "Честа употреба на лекарства", "Консумация на преработени храни", "Пушене (активно или пасивно)", "Нищо от изброените"], "negativeOption": "Нищо от изброените" },
@@ -1790,7 +1771,8 @@
 
         // --- TEST MODE: AUTO-FILL WITH "kakadu" ---
         function activateTestMode() {
-            // Sample test data for all questionnaire fields
+            // Sample test data for base questionnaire fields only
+            // (AI interview questions are dynamic and don't need test data)
             const testData = {
                 name: "kakadu",  // Using Latin for consistency with trigger
                 gender: "Жена",
@@ -1799,30 +1781,7 @@
                 weight: "70",
                 email: "test@example.com",
                 goal: "Отслабване",
-                lossKg: "5",
-                sleepHours: "7–8",
-                sleepInterrupt: "Не",
-                chronotype: "Сутрешен",
-                dailyActivityLevel: "Средно",
-                stressLevel: "Средно",
-                sportActivity: "Средна (2–4 дни седмично)",
-                waterIntake: "1.5–2 л",
-                drinksSweet: "Рядко",
-                drinksAlcohol: "Рядко",
-                weightChange: "Не",
-                dietHistory: "Не",
-                overeatingFrequency: "Понякога",
-                foodCravings: ["Сладко"],
-                foodTriggers: ["Стрес"],
-                eatingHabits: ["Не закусвам"],
-                compensationMethods: ["Не"],
-                socialComparison: "Рядко",
-                dietPreference: ["Средиземноморска"],
-                dietDislike: "Няма",
-                dietLove: "Плодове и зеленчуци",
-                medicalConditions: ["Нямам"],
-                medications: "Не",
-                additionalNotes: "Тестов режим активиран"
+                lossKg: "5"
             };
 
             // Fill all answers
@@ -1851,7 +1810,7 @@
         };
 
         function getFieldError(id, type, val, optional) {
-            if (optional || id === 'additionalNotes' || id === 'medicalFiles') return { valid: true, message: '' };
+            if (optional) return { valid: true, message: '' };
             const strVal = val !== undefined && val !== null ? String(val).trim() : '';
             if (!strVal) return { valid: false, message: '' };
             if (type === 'number' && FIELD_RULES[id]) {
@@ -1875,7 +1834,7 @@
             const step = currentQueue[currentIndex];
             const val = answers[step.id];
 
-            if (step.optional === true || step.id === 'additionalNotes' || step.id === 'medicalFiles') {
+            if (step.optional === true) {
                 nextBtn.disabled = false;
                 setFieldHint('');
                 return;
