@@ -2221,7 +2221,7 @@
                 const input = document.createElement('textarea');
                 input.className = 'modern-input';
                 input.id = 'aiAnswerInput';
-                input.placeholder = 'Вашият отговор...';
+                input.placeholder = 'Напишете тук...';
                 input.setAttribute('maxlength', String(AI_ANSWER_MAX_LENGTH));
                 input.oninput = () => {
                     const val = input.value.trim();
@@ -2258,15 +2258,6 @@
             }
             
             positionFooterBelowContent();
-        }
-        
-        /**
-         * Escape HTML to prevent XSS in dynamically rendered content.
-         */
-        function escapeHTML(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
         }
 
         // Simulate AI processing progress with visual feedback
