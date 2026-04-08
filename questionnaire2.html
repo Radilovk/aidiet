@@ -798,6 +798,174 @@
             vertical-align: middle;
         }
 
+        /* === AI INTERVIEW PHASE STYLES === */
+        .ai-interview-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        .ai-interview-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .ai-interview-header .ai-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--soft-red);
+            color: var(--primary-red);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .ai-interview-counter {
+            font-size: 0.78rem;
+            color: var(--text-gray);
+            margin-top: 4px;
+        }
+
+        .ai-interview-axis {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            background: var(--input-bg);
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-top: 8px;
+        }
+
+        .ai-question-text {
+            font-size: 1.35rem;
+            font-weight: 700;
+            line-height: 1.4;
+            color: var(--text-dark);
+            margin-bottom: 20px;
+        }
+
+        .ai-answer-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.05rem;
+            border: 2px solid #d1d5db;
+            background: var(--card-bg);
+            color: var(--text-dark);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            transition: var(--transition);
+            resize: vertical;
+            min-height: 80px;
+            max-height: 200px;
+            font-family: inherit;
+        }
+
+        .ai-answer-input:focus {
+            outline: none;
+            border-color: var(--primary-red);
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+        }
+
+        .ai-answer-input::placeholder {
+            color: var(--text-gray);
+            opacity: 0.7;
+        }
+
+        .ai-history-scroll {
+            max-height: 180px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            padding-right: 4px;
+        }
+
+        .ai-history-item {
+            background: var(--input-bg);
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .ai-history-item .history-q {
+            color: var(--primary-red);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .ai-history-item .history-a {
+            color: var(--text-dark);
+        }
+
+        .ai-loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 20px;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        .ai-loading-indicator .dot-pulse {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .ai-loading-indicator .dot-pulse span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary-red);
+            animation: dotPulse 1.2s ease-in-out infinite;
+        }
+
+        .ai-loading-indicator .dot-pulse span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .ai-loading-indicator .dot-pulse span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes dotPulse {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .ai-skip-btn {
+            display: block;
+            margin: 16px auto 0;
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 4px 8px;
+            transition: color 0.2s;
+        }
+
+        .ai-skip-btn:hover {
+            color: var(--text-dark);
+        }
+
+        .ai-error-msg {
+            text-align: center;
+            color: #ef4444;
+            font-size: 0.9rem;
+            padding: 12px;
+            background: rgba(239,68,68,0.08);
+            border-radius: 10px;
+            margin-top: 12px;
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -1142,10 +1310,22 @@
         // Question types that should use compact footer layout (closer to input field)
         const INPUT_ONLY_TYPES = ['text', 'number', 'email', 'textarea'];
 
+        // --- AI INTERVIEW CONFIGURATION ---
+        const AI_INTERVIEW_API_URL = 'https://aidiet.radilov-k.workers.dev/api/ai-interview-question';
+        const AI_INTERVIEW_MAX_QUESTIONS = 20;
+
         // --- STATE MANAGEMENT ---
         let currentQueue = [...rawQuestions]; // Queue that expands dynamically
         let currentIndex = 0;
         let answers = {};
+        
+        // AI Interview state
+        let aiInterviewActive = false;
+        let aiInterviewHistory = []; // Array of { question, answer, axis }
+        let aiCurrentQuestion = null;
+        let aiQuestionNumber = 0;
+        let aiInterviewComplete = false;
+        let aiInterviewLoading = false;
         
         // Load saved answers from localStorage if available
         const savedAnswers = localStorage.getItem('questionnaireAnswers');
@@ -1338,6 +1518,15 @@
         function renderStep() {
             const step = currentQueue[currentIndex];
             
+            // If returning from AI interview, reset AI state
+            if (aiInterviewActive) {
+                aiInterviewActive = false;
+            }
+            
+            // Reset nextBtn behavior (may have been changed by AI interview)
+            nextBtn.onclick = nextStep;
+            nextBtn.style.display = '';
+            
             // Hide quick complete banner when navigating away from first question
             if (currentIndex !== 0) {
                 hideQuickCompleteBanner();
@@ -1372,7 +1561,7 @@
             prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
             
             if(currentIndex === currentQueue.length - 1) {
-                nextBtn.innerHTML = 'Завърши <i class="fas fa-check"></i>';
+                nextBtn.innerHTML = 'AI Интервю <i class="fas fa-brain"></i>';
             }
         }
         
@@ -1919,11 +2108,36 @@
                 
                 renderStep();
             } else {
-                finishQuiz();
+                // Start AI interview phase instead of finishing directly
+                startAIInterview();
             }
         }
 
         function prevStep() {
+            // If in AI interview phase, go back to last static question
+            if (aiInterviewActive) {
+                if (aiQuestionNumber <= 1) {
+                    // Go back to last static question
+                    aiInterviewActive = false;
+                    aiCurrentQuestion = null;
+                    aiQuestionNumber = 0;
+                    aiInterviewHistory = [];
+                    renderStep();
+                } else {
+                    // Go back to previous AI question by removing last entry
+                    const lastEntry = aiInterviewHistory.pop();
+                    aiQuestionNumber--;
+                    // Remove the answer from the stored data
+                    if (lastEntry) {
+                        delete answers[`ai_q${aiQuestionNumber}`];
+                        localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                    }
+                    // Re-fetch a question (or use cached previous question)
+                    fetchAIQuestion();
+                }
+                return;
+            }
+            
             if (currentIndex > 0) {
                 // Here we might want to logic to "remove" injected children if answer changed, 
                 // but for simplicity in this demo, we just go back. 
@@ -1943,6 +2157,291 @@
                 
                 renderStep();
             }
+        }
+
+        // === AI INTERVIEW PHASE ===
+        
+        const AI_AXIS_LABELS = {
+            metabolism: '🔥 Метаболизъм и Енергетика',
+            neuro_endocrine: '🧠 Невро-Ендокринна ос',
+            immunity: '🛡️ Имунитет и Възпаление',
+            psycho_behavior: '💭 Психо-Поведение',
+            structure: '🦴 Структура и Тъкани',
+            unknown: '🔬 Диагностика'
+        };
+        
+        /**
+         * Start the AI interview phase after all static questions are completed.
+         */
+        function startAIInterview() {
+            aiInterviewActive = true;
+            aiQuestionNumber = 1;
+            aiInterviewHistory = [];
+            aiCurrentQuestion = null;
+            aiInterviewComplete = false;
+            
+            // Update progress bar to show AI interview phase
+            progressBar.style.width = '100%';
+            stepIndicator.textContent = 'AI Интервю — Въпрос 1 от ' + AI_INTERVIEW_MAX_QUESTIONS;
+            
+            // Fetch the first AI question
+            fetchAIQuestion();
+        }
+        
+        /**
+         * Fetch next AI question from the backend.
+         */
+        async function fetchAIQuestion() {
+            aiInterviewLoading = true;
+            renderAIInterviewUI(null, true);
+            
+            try {
+                const response = await fetch(AI_INTERVIEW_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        profile: answers,
+                        conversationHistory: aiInterviewHistory,
+                        questionNumber: aiQuestionNumber
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.isComplete) {
+                    // AI has enough information — finalize
+                    aiInterviewComplete = true;
+                    if (data.summary) {
+                        answers._aiInterviewSummary = data.summary;
+                    }
+                    answers._aiInterviewHistory = aiInterviewHistory;
+                    localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                    finishQuiz();
+                    return;
+                }
+                
+                aiCurrentQuestion = {
+                    text: data.question,
+                    axis: data.axis || 'unknown',
+                    hypothesis: data.hypothesis || null,
+                    number: data.questionNumber
+                };
+                
+                aiInterviewLoading = false;
+                renderAIInterviewUI(aiCurrentQuestion, false);
+                
+            } catch (error) {
+                console.error('AI Interview fetch error:', error);
+                aiInterviewLoading = false;
+                renderAIInterviewUI(null, false, error.message);
+            }
+        }
+        
+        /**
+         * Submit the user's answer to the current AI question and fetch the next one.
+         */
+        function submitAIAnswer() {
+            const input = document.getElementById('aiAnswerInput');
+            if (!input) return;
+            
+            const answerText = input.value.trim();
+            if (!answerText) return;
+            
+            // Save the answer
+            aiInterviewHistory.push({
+                question: aiCurrentQuestion.text,
+                answer: answerText,
+                axis: aiCurrentQuestion.axis
+            });
+            
+            // Store in answers object for persistence
+            answers[`ai_q${aiQuestionNumber}`] = {
+                question: aiCurrentQuestion.text,
+                answer: answerText,
+                axis: aiCurrentQuestion.axis
+            };
+            answers._aiInterviewHistory = aiInterviewHistory;
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            
+            // Move to next question
+            aiQuestionNumber++;
+            
+            // Check if we've hit the limit
+            if (aiQuestionNumber > AI_INTERVIEW_MAX_QUESTIONS) {
+                aiInterviewComplete = true;
+                finishQuiz();
+                return;
+            }
+            
+            // Fetch next question
+            fetchAIQuestion();
+        }
+        
+        /**
+         * Skip the AI interview entirely and go directly to submission.
+         */
+        function skipAIInterview() {
+            answers._aiInterviewHistory = aiInterviewHistory;
+            answers._aiInterviewSkipped = true;
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            aiInterviewComplete = true;
+            finishQuiz();
+        }
+        
+        /**
+         * Render the AI interview UI in the question container.
+         */
+        function renderAIInterviewUI(question, loading, errorMsg) {
+            container.scrollTop = 0;
+            container.innerHTML = '';
+            container.classList.remove('compact');
+            
+            // Update progress
+            const aiProgress = aiQuestionNumber / AI_INTERVIEW_MAX_QUESTIONS;
+            const totalStaticSteps = currentQueue.length;
+            // Show combined progress: all static steps are done, AI interview adds more
+            progressBar.style.width = '100%';
+            stepIndicator.textContent = `AI Интервю — Въпрос ${aiQuestionNumber} от ${AI_INTERVIEW_MAX_QUESTIONS}`;
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'ai-interview-container';
+            
+            // Header
+            const header = document.createElement('div');
+            header.className = 'ai-interview-header';
+            header.innerHTML = `
+                <div class="ai-badge"><i class="fas fa-brain"></i> AI Диагностика</div>
+                <div class="ai-interview-counter">${aiQuestionNumber} / ${AI_INTERVIEW_MAX_QUESTIONS}</div>
+            `;
+            wrapper.appendChild(header);
+            
+            // History (collapsed, shows last 2 entries)
+            if (aiInterviewHistory.length > 0) {
+                const historyScroll = document.createElement('div');
+                historyScroll.className = 'ai-history-scroll';
+                
+                // Show last 2 Q&A pairs
+                const recentHistory = aiInterviewHistory.slice(-2);
+                recentHistory.forEach(entry => {
+                    const item = document.createElement('div');
+                    item.className = 'ai-history-item';
+                    item.innerHTML = `
+                        <div class="history-q"><i class="fas fa-robot" style="margin-right:4px;font-size:0.8rem;"></i>${escapeHTML(entry.question)}</div>
+                        <div class="history-a">${escapeHTML(entry.answer)}</div>
+                    `;
+                    historyScroll.appendChild(item);
+                });
+                
+                wrapper.appendChild(historyScroll);
+            }
+            
+            if (loading) {
+                // Loading state
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'ai-loading-indicator';
+                loadingDiv.innerHTML = `
+                    <div class="dot-pulse"><span></span><span></span><span></span></div>
+                    <span>AI анализира отговорите...</span>
+                `;
+                wrapper.appendChild(loadingDiv);
+                
+                // Hide nav buttons during loading
+                nextBtn.style.display = 'none';
+                prevBtn.style.visibility = aiQuestionNumber <= 1 ? 'visible' : 'visible';
+                
+            } else if (errorMsg) {
+                // Error state
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'ai-error-msg';
+                errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${escapeHTML(errorMsg)}`;
+                wrapper.appendChild(errorDiv);
+                
+                // Retry button
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'btn btn-next';
+                retryBtn.style.cssText = 'margin: 16px auto; display: block;';
+                retryBtn.innerHTML = '<i class="fas fa-redo"></i> Опитай отново';
+                retryBtn.onclick = () => fetchAIQuestion();
+                wrapper.appendChild(retryBtn);
+                
+                // Skip option on error
+                const skipBtn = document.createElement('button');
+                skipBtn.className = 'ai-skip-btn';
+                skipBtn.textContent = 'Пропусни AI интервюто';
+                skipBtn.onclick = skipAIInterview;
+                wrapper.appendChild(skipBtn);
+                
+                nextBtn.style.display = 'none';
+                prevBtn.style.visibility = 'visible';
+                
+            } else if (question) {
+                // Question display
+                if (question.axis && AI_AXIS_LABELS[question.axis]) {
+                    const axisLabel = document.createElement('div');
+                    axisLabel.className = 'ai-interview-axis';
+                    axisLabel.textContent = AI_AXIS_LABELS[question.axis];
+                    wrapper.appendChild(axisLabel);
+                }
+                
+                const qText = document.createElement('div');
+                qText.className = 'ai-question-text';
+                qText.textContent = question.text;
+                wrapper.appendChild(qText);
+                
+                // Answer input
+                const input = document.createElement('textarea');
+                input.className = 'ai-answer-input';
+                input.id = 'aiAnswerInput';
+                input.placeholder = 'Вашият отговор...';
+                input.setAttribute('maxlength', '500');
+                input.oninput = () => {
+                    const val = input.value.trim();
+                    nextBtn.disabled = val.length === 0;
+                };
+                // Submit on Enter (without Shift)
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (input.value.trim()) submitAIAnswer();
+                    }
+                };
+                wrapper.appendChild(input);
+                
+                // Skip interview button
+                const skipBtn = document.createElement('button');
+                skipBtn.className = 'ai-skip-btn';
+                skipBtn.textContent = 'Пропусни останалите AI въпроси';
+                skipBtn.onclick = skipAIInterview;
+                wrapper.appendChild(skipBtn);
+                
+                // Configure nav buttons
+                nextBtn.style.display = '';
+                nextBtn.innerHTML = 'Отговори <i class="fas fa-arrow-right"></i>';
+                nextBtn.disabled = true;
+                nextBtn.onclick = submitAIAnswer;
+                
+                prevBtn.style.visibility = 'visible';
+                
+                // Auto-focus the input
+                setTimeout(() => input.focus(), 100);
+            }
+            
+            container.appendChild(wrapper);
+            positionFooterBelowContent();
+        }
+        
+        /**
+         * Escape HTML to prevent XSS in dynamically rendered content.
+         */
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
         }
 
         // Simulate AI processing progress with visual feedback
@@ -2251,6 +2750,13 @@
                 localStorage.removeItem('questionnaireAnswers');
                 
                 // Show success message
+                const aiInterviewInfo = aiInterviewHistory.length > 0 
+                    ? `<p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
+                            <i class="fas fa-brain" style="color: var(--primary-red); margin-right: 8px;"></i>
+                            AI диагностиката приключи с ${aiInterviewHistory.length} допълнителни въпроса за по-прецизен протокол.
+                       </p>` 
+                    : '';
+                
                 container.innerHTML = `
                     <div style="text-align:center; animation: fadeIn 0.5s; max-width: 600px; margin: 0 auto;">
                         <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 20px;">
@@ -2262,6 +2768,7 @@
                                 <i class="fas fa-info-circle" style="color: var(--primary-red); margin-right: 8px;"></i>
                                 Вашата информация беше получена успешно и беше изпратена автоматично на нашия екип.
                             </p>
+                            ${aiInterviewInfo}
                             <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
                                 <i class="fas fa-clock" style="color: var(--primary-red); margin-right: 8px;"></i>
                                 Скоро вашият персонален план за постигане на целта ще бъде готов.
