@@ -4451,6 +4451,10 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
   
   // If custom prompt exists, use it with variable replacement
   if (customPrompt) {
+    const _combinedNotes = buildCombinedAdditionalNotes(userData);
+    const additionalNotesSection = _combinedNotes
+      ? `═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ 🔥 ═══\n⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корекциите!\n${_combinedNotes}\n⚠️ ЗАДЪЛЖИТЕЛНО: Всички корекции трябва да уважават тази информация!\n═══════════════════════════════════════════════════════════════`
+      : '';
     let prompt = replacePromptVariables(customPrompt, {
       validationErrors: validationErrors,
       plan: plan,
@@ -4465,8 +4469,11 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
         medicalConditions: userData.medicalConditions,
         dietPreference: userData.dietPreference,
         dietDislike: userData.dietDislike,
-        dietLove: userData.dietLove
+        dietLove: userData.dietLove,
+        additionalNotes: _combinedNotes || undefined
       }, null, 2),
+      additionalNotes: _combinedNotes,
+      additionalNotesSection,
       MEAL_NAME_FORMAT_INSTRUCTIONS: MEAL_NAME_FORMAT_INSTRUCTIONS,
       MIN_DAILY_CALORIES: MIN_DAILY_CALORIES
     });
@@ -4501,19 +4508,15 @@ ${JSON.stringify({
   dietPreference: userData.dietPreference,
   dietDislike: userData.dietDislike,
   dietLove: userData.dietLove,
-  additionalNotes: userData.additionalNotes
+  additionalNotes: buildCombinedAdditionalNotes(userData) || undefined
 }, null, 2)}
 
-${userData.additionalNotes ? `
-═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ 🔥 ═══
+${(() => { const _n = buildCombinedAdditionalNotes(userData); return _n ? `═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ 🔥 ═══
 ⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корекциите!
-
-ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ ОТ ${userData.name}:
-${userData.additionalNotes}
-
+${_n}
 ⚠️ ЗАДЪЛЖИТЕЛНО: Всички корекции трябва да уважават тази информация!
 ═══════════════════════════════════════════════════════════════
-` : ''}
+` : ''; })()}
 
 ═══ ПРАВИЛА ЗА КОРИГИРАНЕ ═══
 

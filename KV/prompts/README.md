@@ -71,8 +71,11 @@
 Данни от стъпка 1 (компактни): `{analysisCompact.macroRatios}`, `{analysisCompact.macroGrams}`, `{analysisCompact.fiber}`
 Данни от стъпка 2 (пълна стратегия): `{strategyData.*}`, `{strategyCompact.*}`, `{dietaryModifier}`
 Изчислени: `{bmr}`, `{recommendedCalories}`, `{startDay}`, `{endDay}`, `{modificationsSection}`, `{previousDaysContext}`, `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
-Потребителски: `{userData.*}`, `{dietLove}`, `{dietDislike}`
+Потребителски: `{userData.*}`, `{dietLove}`, `{dietDislike}`, `{additionalNotes}` ← комбинирано (additionalNotes + протокол-специфични отговори)
 Константи: `{DAILY_CALORIE_TOLERANCE}`, `{MAX_LATE_SNACK_CALORIES}`, `{MEAL_NAME_FORMAT_INSTRUCTIONS}`
+
+#### Корекция – `admin_correction_prompt.txt`
+`{errorsFormatted}`, `{planJSON}`, `{userDataJSON}` (включва additionalNotes), `{additionalNotes}`, `{additionalNotesSection}`, `{MEAL_NAME_FORMAT_INSTRUCTIONS}`, `{MIN_DAILY_CALORIES}`
 
 #### Стъпка 4 – `admin_summary_prompt.txt`
 Данни от стъпка 1 (компактни): `{temperament}`, `{temperamentProbability}`, `{psychologicalProfile}`, `{keyProblems}`
@@ -115,11 +118,12 @@ cd /path/to/aidiet
 **ВАЖНО**: 
 - При редактиране на default промптове в worker.js, ЗАДЪЛЖИТЕЛНО актуализирайте съответния файл тук!
 - При редактиране на файловете тук, те стават активни САМО след качване в KV storage
-- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-02-22)
+- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-04-08)
+- **KV/prompts/ файловете са ЕДИНСТВЕНИЯ правилен начин за редактиране на промптовете!** Worker.js default-ите са само fallback — активните промпти са тези в KV storage.
 
 ## Бележки
 
 - Промптовете са на български език за по-добро разбиране от AI на локален контекст
 - Всеки промпт е оптимизиран за конкретната стъпка в процеса
 - Форматът е ИДЕНТИЧЕН с default промптовете hardcoded в worker.js
-- Промптовете съдържат JavaScript template literals и динамичен код, който се оценява при runtime
+- Промптовете използват `{varName}` placeholders — НЕ JavaScript template literals (`${...}`)
