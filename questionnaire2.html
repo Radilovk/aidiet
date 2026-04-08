@@ -1017,9 +1017,7 @@
         initializeTheme();
 
         // --- JSON DATA (Inserted directly from your file) ---
-        // BASE DATA QUESTIONS ONLY — after these, the AI interview takes over
-        // and dynamically asks follow-up questions tailored to each user's profile.
-        // All lifestyle, behavioral, dietary, and medical questions are handled by AI.
+        // ALL STATIC QUESTIONS — AI interview follows after these for additional clarification
         const rawQuestions = [
             { "id": "name", "text": "Въведете вашето име:", "type": "text", "options": [] },
             { "id": "gender", "text": "Моля, изберете вашия пол:", "type": "radio", "options": ["Мъж", "Жена"] },
@@ -1027,17 +1025,42 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "clinicalProtocol", "text": "Имате ли специфично здравословно състояние, за което искате протокол?", "type": "radio", "options": ["Не, искам стандартен план", "Инсулинова резистентност / Превенция Диабет Т2", "Автоимунни заболявания / Чревна бариера (AIP)", "Стомашно-чревни проблеми (Запек/Подуване)", "Менопауза и Саркопения", "Редукция на целулит", "Хроничен стрес (Кортизолова регулация)", "Възстановяване след бременност / Лактация", "Висцерални мазнини (Коремно отслабване)", "След спиране на тютюнопушенето", "Дълголетие (Longevity)", "Детоксикация (Черен дроб и клетки)"] },
-            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] }, "skipWhen": { "clinicalProtocol": ["insulin_resistance", "autoimmune_aip", "gi_issues", "menopause_sarcopenia", "cellulite_reduction", "chronic_stress", "postpartum_lactation", "visceral_fat", "post_smoking", "longevity", "detox"] } }
+            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния или заболявания?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Храносмилателни проблеми", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Тревожност", "Емоционално хранене", "След бременност", "Менопауза", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам" },
+            { "id": "goal", "text": "Каква е основната ви цел?", "type": "checkbox", "options": ["Отслабване", "Подобряване на здравето", "Антиейджинг", "Стягане и оформяне на тялото", "Детокс и прочистване", "Изчистване на коремните мазнини", "Антицелулитна програма", "Възстановяване на тялото след бременност", "Друго"], "hasOtherInput": true },
+            { "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване" } },
+            { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
+            { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
+            { "id": "chronotype", "text": "Вашият хронотип:", "type": "radio", "options": ["Сутрешен", "Вечерен", "Неутрален"] },
+            { "id": "dailyActivityLevel", "text": "Ниво на активност през деня:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
+            { "id": "stressLevel", "text": "Ниво на стрес:", "type": "radio", "options": ["Ниско", "Средно", "Високо"] },
+            { "id": "sportActivity", "text": "Ниво на спортна активност:", "type": "radio", "options": ["Висока (5–7 дни седмично)", "Средна (2–4 дни седмично)", "Ниска (1–2 дни седмично)", "Никаква (0 дни седмично)"] },
+            { "id": "waterIntake", "text": "Колко вода пиете дневно?", "type": "radio", "options": ["под 1 л", "1–1.5 л", "1.5–2 л", "над 2 л"] },
+            { "id": "drinksSweet", "text": "Сокове, газирани напитки, фрешове:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
+            { "id": "drinksAlcohol", "text": "Напитки с алкохолно съдържание:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
+            { "id": "weightChange", "text": "Имали ли сте рязко покачване на теглото или отслабване в последната една година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време, и как се справихте с промяната?", "type": "textarea", "options": [] }] } },
+            { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
+            { "id": "overeatingFrequency", "text": "Колко често ядете повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
+            { "id": "foodCravings", "text": "Често изпитвате нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / междинни хранения", "Друго", "Не изпитвам такава"], "hasOtherInput": true, "negativeOption": "Не изпитвам такава" },
+            { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за храна?", "type": "checkbox", "options": ["Напрежение", "Скука", "Тъга", "Социални събития", "Друго", "Нито едно"], "hasOtherInput": true, "negativeOption": "Нито едно" },
+            { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна", "Нито една"], "negativeOption": "Нито една" },
+            { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true, "negativeOption": "Не" },
+            { "id": "socialComparison", "text": "Колко често се сравнявате с други хора (вкл. социални мрежи)?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
+            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго", "Нямам предпочитания"], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
+            { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [], "optional": true },
+            { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
+            { "id": "medicalConditions", "text": "Имате ли някое от следните медицински състояния?", "type": "checkbox", "options": ["Инсулинова резистентност", "Диабет", "Хашимото", "Депресия", "Тревожност", "IBS", "IBD", "Алергии", "Автоимунно", "Рефлукс", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам", "specialDetailOptions": ["Алергии", "Автоимунно"] },
+            { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
+            { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [], "optional": true },
+            { "id": "medicalFiles", "text": "Прикачете файлове или снимки с изследвания (по желание):", "type": "file", "options": [] }
         ];
 
         // --- PROTOCOL-SPECIFIC QUESTIONS ---
-        // Additional questions shown only when specific clinical protocol is selected.
-        // All are inserted after 'clinicalProtocol' since that's where the protocol is chosen.
+        // Additional questions shown only when specific clinical protocol is selected from protocol landing page.
+        // These are inserted after the appropriate base question when protocol is pre-selected via URL.
         // The remaining investigation is handled by the AI interview.
         const PROTOCOL_SPECIFIC_QUESTIONS = {
             insulin_resistance: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "bloodSugarLevels", "text": "Имате ли измервания на кръвна захар на гладно? Ако да, какви са стойностите?", "type": "textarea", "options": [], "optional": true },
                     { "id": "insulinResistanceSymptoms", "text": "Имате ли някои от следните симптоми?", "type": "checkbox", "options": ["Силно желание за сладко след хранене", "Умора след хранене", "Потъмняване на кожата (акантозис нигриканс)", "Затруднено отслабване в коремната област", "Чест глад между храненията", "Нито едно"], "negativeOption": "Нито едно" },
@@ -1046,7 +1069,7 @@
                 removeQuestions: []
             },
             autoimmune_aip: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "autoimmuneDiagnosis", "text": "Какво е вашето автоимунно заболяване? (напр. Хашимото, ревматоиден артрит, псориазис)", "type": "textarea", "options": [] },
                     { "id": "autoimmuneFlares", "text": "Колко често имате обостряния на симптомите?", "type": "radio", "options": ["Ежедневно", "Няколко пъти седмично", "Няколко пъти месечно", "Рядко"] },
@@ -1055,7 +1078,7 @@
                 removeQuestions: []
             },
             gi_issues: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "giSymptoms", "text": "Кои от следните симптоми имате?", "type": "checkbox", "options": ["Запек", "Подуване", "Газове", "Болки в корема", "Киселини/рефлукс", "Диария", "Нередовно изхождане", "Нито едно"], "negativeOption": "Нито едно" },
                     { "id": "bowelFrequency", "text": "Колко често имате изхождане?", "type": "radio", "options": ["Повече от 3 пъти дневно", "1-2 пъти дневно", "Веднъж дневно", "През ден", "По-рядко от през ден"] },
@@ -1082,7 +1105,7 @@
                 removeQuestions: []
             },
             chronic_stress: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "stressSources", "text": "Кои са основните източници на стрес?", "type": "checkbox", "options": ["Работа", "Семейство", "Финанси", "Здраве", "Отношения", "Друго", "Не мога да определя"], "hasOtherInput": true, "negativeOption": "Не мога да определя" },
                     { "id": "stressSymptoms", "text": "Кои от следните симптоми изпитвате?", "type": "checkbox", "options": ["Безсъние", "Тревожност", "Раздразнителност", "Умора сутрин", "Затруднена концентрация", "Желание за сладко/солено", "Нито едно"], "negativeOption": "Нито едно" },
@@ -1109,7 +1132,7 @@
                 removeQuestions: []
             },
             post_smoking: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "smokingHistory", "text": "Колко дълго пушихте?", "type": "radio", "options": ["Под 5 години", "5-10 години", "10-20 години", "Над 20 години"] },
                     { "id": "quitDuration", "text": "От колко време сте спрели?", "type": "radio", "options": ["Под 1 месец", "1-3 месеца", "3-6 месеца", "6-12 месеца", "Над 1 година"] },
@@ -1119,7 +1142,7 @@
                 removeQuestions: []
             },
             longevity: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "fastingExperience", "text": "Имате ли опит с периодично гладуване?", "type": "radio", "options": ["Да, практикувам редовно", "Опитвал/а съм", "Не, но искам да опитам", "Не ме интересува"] },
                     { "id": "longevityGoals", "text": "Кои аспекти на дълголетието са най-важни за вас?", "type": "checkbox", "options": ["Когнитивно здраве", "Физическа сила и мобилност", "Енергия и виталност", "Външен вид и кожа", "Превенция на болести", "Всички"], "negativeOption": "" },
@@ -1128,7 +1151,7 @@
                 removeQuestions: []
             },
             detox: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "detoxReason", "text": "Защо искате детокс програма?", "type": "checkbox", "options": ["Умора и липса на енергия", "Проблеми с кожата", "Храносмилателни проблеми", "Главоболие", "Желание за \"рестарт\"", "Друго"], "hasOtherInput": true },
                     { "id": "toxinExposure", "text": "Изложени ли сте на следните?", "type": "checkbox", "options": ["Замърсен въздух (град)", "Работа с химикали", "Честа употреба на лекарства", "Консумация на преработени храни", "Пушене (активно или пасивно)", "Нищо от изброените"], "negativeOption": "Нищо от изброените" },
@@ -1222,14 +1245,20 @@
         }
         
         function skipClinicalProtocolQuestion() {
-            const protocolQuestionIndex = currentQueue.findIndex(q => q.id === 'clinicalProtocol');
-            if (protocolQuestionIndex !== -1) {
-                currentQueue.splice(protocolQuestionIndex, 1);
+            // When protocol is pre-selected from landing page, skip healthConditions and goal questions
+            const healthConditionsIndex = currentQueue.findIndex(q => q.id === 'healthConditions');
+            if (healthConditionsIndex !== -1) {
+                currentQueue.splice(healthConditionsIndex, 1);
             }
             
             const goalQuestionIndex = currentQueue.findIndex(q => q.id === 'goal');
             if (goalQuestionIndex !== -1 && answers.clinicalProtocol) {
                 currentQueue.splice(goalQuestionIndex, 1);
+            }
+            
+            const lossKgIndex = currentQueue.findIndex(q => q.id === 'lossKg');
+            if (lossKgIndex !== -1 && answers.clinicalProtocol) {
+                currentQueue.splice(lossKgIndex, 1);
             }
         }
         
@@ -1863,30 +1892,6 @@
         function nextStep() {
             const currentQ = currentQueue[currentIndex];
             
-            // CLINICAL PROTOCOL MAPPING: When user selects a protocol, map to backend ID
-            if (currentQ.id === 'clinicalProtocol' && answers.clinicalProtocol) {
-                const protocolMapping = {
-                    'Инсулинова резистентност / Превенция Диабет Т2': 'insulin_resistance',
-                    'Автоимунни заболявания / Чревна бариера (AIP)': 'autoimmune_aip',
-                    'Стомашно-чревни проблеми (Запек/Подуване)': 'gi_issues',
-                    'Менопауза и Саркопения': 'menopause_sarcopenia',
-                    'Редукция на целулит': 'cellulite_reduction',
-                    'Хроничен стрес (Кортизолова регулация)': 'chronic_stress',
-                    'Възстановяване след бременност / Лактация': 'postpartum_lactation',
-                    'Висцерални мазнини (Коремно отслабване)': 'visceral_fat',
-                    'След спиране на тютюнопушенето': 'post_smoking',
-                    'Дълголетие (Longevity)': 'longevity',
-                    'Детоксикация (Черен дроб и клетки)': 'detox'
-                };
-                const selectedLabel = answers.clinicalProtocol;
-                if (selectedLabel === 'Не, искам стандартен план') {
-                    delete answers.clinicalProtocol;
-                } else if (protocolMapping[selectedLabel]) {
-                    answers.clinicalProtocol = protocolMapping[selectedLabel];
-                }
-                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
-            }
-            
             // BRANCHING LOGIC: Check if current answer triggers children
             if (currentQ.children && answers[currentQ.id]) {
                 const answerVal = answers[currentQ.id];
@@ -1906,8 +1911,25 @@
             if (currentIndex < currentQueue.length - 1) {
                 currentIndex++;
                 
-                // SKIP LOGIC: Skip questions that should be hidden based on other answers
+                // SHOW WHEN LOGIC: Skip questions whose showWhen condition is not met
                 const nextQ = currentQueue[currentIndex];
+                if (nextQ && nextQ.showWhen) {
+                    let shouldShow = false;
+                    for (const [field, requiredValue] of Object.entries(nextQ.showWhen)) {
+                        const answer = answers[field];
+                        if (Array.isArray(answer)) {
+                            if (answer.includes(requiredValue)) { shouldShow = true; break; }
+                        } else if (answer === requiredValue) {
+                            shouldShow = true; break;
+                        }
+                    }
+                    if (!shouldShow) {
+                        nextStep();
+                        return;
+                    }
+                }
+                
+                // SKIP LOGIC: Skip questions that should be hidden based on other answers
                 if (nextQ && nextQ.skipWhen) {
                     for (const [field, skipValues] of Object.entries(nextQ.skipWhen)) {
                         if (answers[field] && skipValues.includes(answers[field])) {
@@ -1955,8 +1977,25 @@
                 // The forward logic handles re-injection.
                 currentIndex--;
                 
-                // SKIP LOGIC (reverse): Skip questions that should be hidden based on other answers
+                // SHOW WHEN LOGIC (reverse): Skip questions whose showWhen condition is not met
                 const prevQ = currentQueue[currentIndex];
+                if (prevQ && prevQ.showWhen) {
+                    let shouldShow = false;
+                    for (const [field, requiredValue] of Object.entries(prevQ.showWhen)) {
+                        const answer = answers[field];
+                        if (Array.isArray(answer)) {
+                            if (answer.includes(requiredValue)) { shouldShow = true; break; }
+                        } else if (answer === requiredValue) {
+                            shouldShow = true; break;
+                        }
+                    }
+                    if (!shouldShow) {
+                        prevStep();
+                        return;
+                    }
+                }
+                
+                // SKIP LOGIC (reverse): Skip questions that should be hidden based on other answers
                 if (prevQ && prevQ.skipWhen) {
                     for (const [field, skipValues] of Object.entries(prevQ.skipWhen)) {
                         if (answers[field] && skipValues.includes(answers[field])) {
