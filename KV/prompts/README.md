@@ -60,25 +60,30 @@
 ### Налични променливи по стъпки
 
 #### Стъпка 1 – `admin_analysis_prompt.txt`
-`{userData}`, `{backendCalculations}`, `{bmr}`, `{tdee}`, `{name}`, `{age}`, `{gender}`, `{weight}`, `{height}`, `{goal}`, `{sleepHours}`, `{sleepInterrupt}`, `{chronotype}`, `{sportActivity}`, `{dailyActivityLevel}`, `{stressLevel}`, `{waterIntake}`, `{waterMin}`, `{waterMax}`, `{medicalConditions}`, `{medications}`, `{medicationsText}`, `{eatingHabits}`, `{foodCravings}`, `{foodTriggers}`, `{compensationMethods}`, `{socialComparison}`, `{dietHistory}`, `{additionalNotes}`, `{additionalNotesSection}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`, `{HEALTH_STATUS_UNDERESTIMATE_PERCENT}`, `{MIN_RECOMMENDED_CALORIES}`, `{MIN_FAT_GRAMS}`, `{FIBER_MIN_GRAMS}`, `{FIBER_MAX_GRAMS}`
+`{userData}`, `{backendCalculations}`, `{bmr}`, `{tdee}`, `{name}`, `{age}`, `{gender}`, `{weight}`, `{height}`, `{goal}`, `{sleepHours}`, `{sleepInterrupt}`, `{chronotype}`, `{sportActivity}`, `{dailyActivityLevel}`, `{stressLevel}`, `{waterIntake}`, `{waterMin}`, `{waterMax}`, `{medicalConditions}`, `{medications}`, `{medicationsText}`, `{eatingHabits}`, `{foodCravings}`, `{foodTriggers}`, `{compensationMethods}`, `{socialComparison}`, `{dietHistory}`, `{additionalNotes}`, `{additionalNotesSection}`, `{clinicalProtocolSection}`, `{clinicalProtocolName}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`, `{HEALTH_STATUS_UNDERESTIMATE_PERCENT}`, `{MIN_RECOMMENDED_CALORIES}`, `{MIN_FAT_GRAMS}`, `{FIBER_MIN_GRAMS}`, `{FIBER_MAX_GRAMS}`
 
 #### Стъпка 2 – `admin_strategy_prompt.txt`
 Данни от стъпка 1 (само компактни полета): `{bmi}`, `{realBMR}`, `{realTDEE}`, `{temperament}`, `{temperamentProbability}`, `{add1}`
-Потребителски данни: `{name}`, `{age}`, `{goal}`, `{dietPreference}`, `{dietDislike}`, `{dietLove}`, `{eatingHabits}`, `{chronotype}`, `{additionalNotes}`, `{additionalNotesSection}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`
+Потребителски данни: `{name}`, `{age}`, `{goal}`, `{dietPreference}`, `{dietDislike}`, `{dietLove}`, `{eatingHabits}`, `{chronotype}`, `{additionalNotes}`, `{additionalNotesSection}`, `{clinicalProtocolSection}`, `{clinicalProtocolName}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`
 ⚠️ **Не са налични**: `{recommendedCalories}`, `{macroRatios}`, `{macroGrams}`, `{psychologicalProfile}`, `{successChance}`, `{keyProblems}` — използвай `{realTDEE}` вместо `{recommendedCalories}`
 
 #### Стъпка 3 – `admin_meal_plan_prompt.txt`
 Данни от стъпка 1 (компактни): `{analysisCompact.macroRatios}`, `{analysisCompact.macroGrams}`, `{analysisCompact.fiber}`
 Данни от стъпка 2 (пълна стратегия): `{strategyData.*}`, `{strategyCompact.*}`, `{dietaryModifier}`
 Изчислени: `{bmr}`, `{recommendedCalories}`, `{startDay}`, `{endDay}`, `{modificationsSection}`, `{previousDaysContext}`, `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
-Потребителски: `{userData.*}`, `{dietLove}`, `{dietDislike}`
+Потребителски: `{userData.*}`, `{dietLove}`, `{dietDislike}`, `{additionalNotes}` ← комбинирано (additionalNotes + протокол-специфични отговори)
+Клиничен протокол: `{clinicalProtocolSection}` ← пълен контекст: насоки, акцент, ограничения, суплементи (празно ако няма протокол)
 Константи: `{DAILY_CALORIE_TOLERANCE}`, `{MAX_LATE_SNACK_CALORIES}`, `{MEAL_NAME_FORMAT_INSTRUCTIONS}`
+
+#### Корекция – `admin_correction_prompt.txt`
+`{errorsFormatted}`, `{planJSON}`, `{userDataJSON}` (включва additionalNotes), `{additionalNotes}`, `{additionalNotesSection}`, `{MEAL_NAME_FORMAT_INSTRUCTIONS}`, `{MIN_DAILY_CALORIES}`
 
 #### Стъпка 4 – `admin_summary_prompt.txt`
 Данни от стъпка 1 (компактни): `{temperament}`, `{temperamentProbability}`, `{psychologicalProfile}`, `{keyProblems}`
 Данни от стъпка 2: `{dietType}`, `{psychologicalSupport}`, `{hydrationStrategy}`, `{supplementRecommendations}`
 Изчислени: `{bmr}`, `{recommendedCalories}`, `{avgCalories}`, `{avgProtein}`, `{avgCarbs}`, `{avgFats}`
 Потребителски: `{name}`, `{goal}`, `{medications}`, `{allergies}`
+Клиничен протокол: `{clinicalProtocolSection}`, `{clinicalProtocolSupplementSection}`, `{clinicalProtocolName}`
 Динамични списъци: `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
 
 #### EmoEat – `admin_emoeat_prompt.txt`
@@ -115,11 +120,12 @@ cd /path/to/aidiet
 **ВАЖНО**: 
 - При редактиране на default промптове в worker.js, ЗАДЪЛЖИТЕЛНО актуализирайте съответния файл тук!
 - При редактиране на файловете тук, те стават активни САМО след качване в KV storage
-- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-02-22)
+- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-04-08)
+- **KV/prompts/ файловете са ЕДИНСТВЕНИЯ правилен начин за редактиране на промптовете!** Worker.js default-ите са само fallback — активните промпти са тези в KV storage.
 
 ## Бележки
 
 - Промптовете са на български език за по-добро разбиране от AI на локален контекст
 - Всеки промпт е оптимизиран за конкретната стъпка в процеса
 - Форматът е ИДЕНТИЧЕН с default промптовете hardcoded в worker.js
-- Промптовете съдържат JavaScript template literals и динамичен код, който се оценява при runtime
+- Промптовете използват `{varName}` placeholders — НЕ JavaScript template literals (`${...}`)

@@ -12,6 +12,10 @@
 
 ЗДРАВНИ ДАННИ: Проблеми: {keyProblems} | Медикаменти: {medications}
 {dynamicWhitelistSection}{dynamicBlacklistSection}
+{clinicalProtocolSection}{clinicalProtocolSupplementSection}
+══════════════════════════════════════════════════════════
+📋 JSON ФОРМАТ НА ОТГОВОРА
+══════════════════════════════════════════════════════════
 
 JSON (ТОЧЕН ФОРМАТ):
 {

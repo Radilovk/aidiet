@@ -22,8 +22,8 @@
 === СЕДМИЧНА СТРУКТУРА С РАЗПРЕДЕЛЕНИЕ ПО ХРАНЕНИЯ (от стъпка 2) ===
 {strategyCompact.weeklyScheme}
 
-Потребителски бележки: {userData.additionalNotes}
-
+Потребителски бележки: {additionalNotes}
+{clinicalProtocolSection}
 === ADLE v5.1 - ИЗБОР НА ПРОДУКТИ ===
 Ти действаш като Advanced Dietary Logic Engine (ADLE) – избираш конкретни продукти, грамажи и комбинации по предписаната архитектура от Стъпка 2.
 
