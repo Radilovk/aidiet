@@ -3648,27 +3648,18 @@ async function handleAIInterviewQuestion(request, env) {
     // Build the system prompt for the AI interview
     const systemPrompt = buildAIInterviewPrompt(profile, conversationHistory, questionNumber);
     
-    // Call AI model (skip JSON enforcement - we use our own JSON instructions)
-    const aiResponse = await callAIModel(env, systemPrompt, 1000, 'ai_interview_q' + questionNumber, null, profile, null, false);
+    // Max tokens for a single interview question response
+    const AI_INTERVIEW_MAX_TOKENS = 1000;
     
-    // Parse AI response
-    let parsed;
-    try {
-      parsed = JSON.parse(aiResponse.trim().replace(/```json\s*/g, '').replace(/```\s*/g, ''));
-    } catch (parseError) {
-      // Try to extract JSON from response
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          parsed = JSON.parse(jsonMatch[0]);
-        } catch (e2) {
-          console.error('Failed to parse AI interview response:', aiResponse);
-          return jsonResponse({ error: 'Failed to parse AI response' }, 500);
-        }
-      } else {
-        console.error('No JSON found in AI interview response:', aiResponse);
-        return jsonResponse({ error: 'Invalid AI response format' }, 500);
-      }
+    // Call AI model
+    const aiResponse = await callAIModel(env, systemPrompt, AI_INTERVIEW_MAX_TOKENS, 'ai_interview_q' + questionNumber, null, profile, null, false);
+    
+    // Parse AI response using the existing robust parser
+    const parsed = parseAIResponse(aiResponse);
+    
+    if (!parsed || parsed.error) {
+      console.error('Failed to parse AI interview response:', aiResponse);
+      return jsonResponse({ error: 'Failed to parse AI response' }, 500);
     }
     
     // Check if AI decided to terminate early (>90% confidence)
@@ -3738,7 +3729,7 @@ function buildAIInterviewPrompt(profile, conversationHistory, questionNumber) {
     ).join('\n\n');
   }
   
-  const remainingQuestions = 20 - questionNumber + 1;
+  const remainingQuestions = 20 - questionNumber;
   
   return `[SYSTEM PROMPT: BIO-PSYCHO-SOCIAL OPTIMIZATION ENGINE]
 

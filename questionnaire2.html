@@ -1313,6 +1313,7 @@
         // --- AI INTERVIEW CONFIGURATION ---
         const AI_INTERVIEW_API_URL = 'https://aidiet.radilov-k.workers.dev/api/ai-interview-question';
         const AI_INTERVIEW_MAX_QUESTIONS = 20;
+        const AI_ANSWER_MAX_LENGTH = 500;
 
         // --- STATE MANAGEMENT ---
         let currentQueue = [...rawQuestions]; // Queue that expands dynamically
@@ -2350,9 +2351,9 @@
                 `;
                 wrapper.appendChild(loadingDiv);
                 
-                // Hide nav buttons during loading
+                // Hide next button during loading, keep prev visible
                 nextBtn.style.display = 'none';
-                prevBtn.style.visibility = aiQuestionNumber <= 1 ? 'visible' : 'visible';
+                prevBtn.style.visibility = 'visible';
                 
             } else if (errorMsg) {
                 // Error state
@@ -2398,7 +2399,7 @@
                 input.className = 'ai-answer-input';
                 input.id = 'aiAnswerInput';
                 input.placeholder = 'Вашият отговор...';
-                input.setAttribute('maxlength', '500');
+                input.setAttribute('maxlength', String(AI_ANSWER_MAX_LENGTH));
                 input.oninput = () => {
                     const val = input.value.trim();
                     nextBtn.disabled = val.length === 0;
