@@ -1197,6 +1197,7 @@ function detectGoalContradiction(data) {
 const RATE_LIMIT = {
   GENERATE_PLAN: { maxRequests: 3, windowSec: 60 },  // 3 plans/min per IP
   CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
+  AI_INTERVIEW:  { maxRequests: 25, windowSec: 60 },  // 25 questions/min per IP (max 20 questions per session + buffer)
 };
 
 /**
@@ -3601,6 +3602,174 @@ async function handleSaveClientData(request, env) {
     console.error('Error saving client data:', error);
     return jsonResponse({ error: `Failed to save client data: ${error.message}` }, 500);
   }
+}
+
+/**
+ * AI Interview - Dynamic Bio-Psycho-Social Optimization Engine
+ * Generates adaptive follow-up questions based on user profile and previous answers.
+ * 
+ * POST /api/ai-interview-question
+ * Body: {
+ *   profile: { age, gender, weight, height, goal, medicalConditions, ... },
+ *   conversationHistory: [ { question: "...", answer: "..." }, ... ],
+ *   questionNumber: 1-20
+ * }
+ * 
+ * Returns: {
+ *   question: "Next question text",
+ *   questionNumber: N,
+ *   isComplete: false,
+ *   axis: "metabolism|neuro_endocrine|immunity|psycho_behavior|structure"
+ * }
+ */
+async function handleAIInterviewQuestion(request, env) {
+  try {
+    const data = await request.json();
+    
+    // Validate required fields
+    if (!data.profile) {
+      return jsonResponse({ error: 'Missing required field: profile' }, 400);
+    }
+    
+    const profile = data.profile;
+    const conversationHistory = data.conversationHistory || [];
+    const questionNumber = data.questionNumber || (conversationHistory.length + 1);
+    
+    // Hard limit: max 20 questions
+    if (questionNumber > 20) {
+      return jsonResponse({
+        question: null,
+        questionNumber: questionNumber,
+        isComplete: true,
+        reason: 'max_questions_reached'
+      });
+    }
+    
+    // Build the system prompt for the AI interview
+    const systemPrompt = buildAIInterviewPrompt(profile, conversationHistory, questionNumber);
+    
+    // Max tokens for a single interview question response
+    const AI_INTERVIEW_MAX_TOKENS = 1000;
+    
+    // Call AI model
+    const aiResponse = await callAIModel(env, systemPrompt, AI_INTERVIEW_MAX_TOKENS, 'ai_interview_q' + questionNumber, null, profile, null, false);
+    
+    // Parse AI response using the existing robust parser
+    const parsed = parseAIResponse(aiResponse);
+    
+    if (!parsed || parsed.error) {
+      console.error('Failed to parse AI interview response:', aiResponse);
+      return jsonResponse({ error: 'Failed to parse AI response' }, 500);
+    }
+    
+    // Check if AI decided to terminate early (>90% confidence)
+    if (parsed.isComplete || parsed.done) {
+      return jsonResponse({
+        question: null,
+        questionNumber: questionNumber,
+        isComplete: true,
+        reason: parsed.reason || 'sufficient_data',
+        summary: parsed.summary || null
+      });
+    }
+    
+    return jsonResponse({
+      question: parsed.question || parsed.text,
+      questionNumber: questionNumber,
+      isComplete: false,
+      axis: parsed.axis || 'unknown',
+      hypothesis: parsed.hypothesis || null
+    });
+    
+  } catch (error) {
+    console.error('AI Interview error:', error);
+    return jsonResponse({ error: `AI Interview failed: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Build the system prompt for the AI Bio-Psycho-Social interview.
+ * Incorporates user profile, conversation history, and the 5-axis framework.
+ */
+function buildAIInterviewPrompt(profile, conversationHistory, questionNumber) {
+  // Build profile summary
+  const profileSummary = [
+    profile.age ? `Възраст: ${profile.age}` : '',
+    profile.gender ? `Пол: ${profile.gender}` : '',
+    profile.weight ? `Тегло: ${profile.weight} кг` : '',
+    profile.height ? `Ръст: ${profile.height} см` : '',
+    profile.goal ? `Цел: ${profile.goal}` : '',
+    profile.lossKg ? `Желано отслабване: ${profile.lossKg} кг` : '',
+    profile.clinicalProtocol ? `Клиничен протокол: ${profile.clinicalProtocol}` : '',
+    profile.medicalConditions ? `Заболявания: ${Array.isArray(profile.medicalConditions) ? profile.medicalConditions.join(', ') : profile.medicalConditions}` : '',
+    profile.medications === 'Да' && profile.medicationsDetails ? `Лекарства: ${profile.medicationsDetails}` : '',
+    profile.sleepHours ? `Сън: ${profile.sleepHours} часа` : '',
+    profile.stressLevel ? `Стрес: ${profile.stressLevel}` : '',
+    profile.sportActivity ? `Спорт: ${profile.sportActivity}` : '',
+    profile.waterIntake ? `Вода: ${profile.waterIntake}` : '',
+    profile.dietPreference ? `Хранителни предпочитания: ${Array.isArray(profile.dietPreference) ? profile.dietPreference.join(', ') : profile.dietPreference}` : '',
+    profile.dietDislike ? `Непоносимости/нелюбими: ${profile.dietDislike}` : '',
+    profile.dietLove ? `Любими храни: ${profile.dietLove}` : '',
+    profile.foodCravings ? `Крейвинги: ${Array.isArray(profile.foodCravings) ? profile.foodCravings.join(', ') : profile.foodCravings}` : '',
+    profile.foodTriggers ? `Тригери: ${Array.isArray(profile.foodTriggers) ? profile.foodTriggers.join(', ') : profile.foodTriggers}` : '',
+    profile.overeatingFrequency ? `Преяждане: ${profile.overeatingFrequency}` : '',
+    profile.dailyActivityLevel ? `Дневна активност: ${profile.dailyActivityLevel}` : '',
+    profile.chronotype ? `Хронотип: ${profile.chronotype}` : '',
+    profile.drinksAlcohol ? `Алкохол: ${profile.drinksAlcohol}` : '',
+    profile.drinksSweet ? `Сладки напитки: ${profile.drinksSweet}` : '',
+    profile.weightChange === 'Да' && profile.weightChangeDetails ? `Промяна в теглото: ${profile.weightChangeDetails}` : '',
+    profile.eatingHabits ? `Хранителни навици: ${Array.isArray(profile.eatingHabits) ? profile.eatingHabits.join(', ') : profile.eatingHabits}` : '',
+  ].filter(Boolean).join('\n');
+  
+  // Build conversation history string
+  let historyStr = '';
+  if (conversationHistory.length > 0) {
+    historyStr = '\n\n[ДОСЕГАШЕН ДИАЛОГ]\n' + conversationHistory.map((entry, i) => 
+      `Въпрос ${i + 1}: ${entry.question}\nОтговор: ${entry.answer}`
+    ).join('\n\n');
+  }
+  
+  const remainingQuestions = 20 - questionNumber;
+  
+  return `[SYSTEM PROMPT: BIO-PSYCHO-SOCIAL OPTIMIZATION ENGINE]
+
+[РОЛЯ И ЦЕЛ]
+Ти си експертен AI диагностичен алгоритъм за съставяне на интегрален здравен протокол (Хранене, Суплементация, Психология, Начин на живот). Приемаш подадения Базов Профил като факт. НЕ ги изискваш повторно. Директно генерираш следващия диагностичен въпрос.
+
+[ОПЕРАТИВНИ ПРАВИЛА]
+1. Итеративен лимит: Максимум 20 въпроса общо. Текущ въпрос: ${questionNumber}. Оставащи: ${remainingQuestions}.
+2. Формат: Строго 1 (ЕДИН) въпрос. Забранени са съставни въпроси (с "и"/"или").
+3. Комуникация: Изчистен български език, точна терминология. Нулев словесен шум — без емпатия, без морални оценки, без потвърждения.
+4. Байесово сондиране: Всеки въпрос е логическо следствие от предишния, целящ потвърждаване или отхвърляне на хипотеза по 5-те оси.
+5. Не повтаряй вече зададени въпроси и не питай за информация, която вече е налична в профила.
+
+[УНИВЕРСАЛНА РАМКА ЗА ДЕКОНСТРУКЦИЯ — 5 ОСИ]
+1. Метаболизъм и Енергетика (Инсулинова чувствителност, митохондрии)
+2. Невро-Ендокринна ос (Кортизол, щитовидна жлеза, полови хормони, сън)
+3. Имунитет и Възпаление (Микробиом, пропускливост, системно възпаление)
+4. Психо-Поведение (Допамин/Серотонин, стрес-респонс)
+5. Структура и Тъкани (Колаген, мускулен синтез, микроциркулация)
+
+[ЙЕРАРХИЯ НА ПРИОРИТИЗАЦИЯ]
+- Ниво 1 (Абсолютен приоритет): Безопасност и избягване на остри тригери (базирано на заболяванията).
+- Ниво 2: Системно възпаление и циркаден ритъм.
+- Ниво 3: Инсулинова и хормонална оптимизация.
+- Ниво 4: Естетика и рекомпозиция (само при стабилни Нива 1–3).
+
+[БАЗОВ ПРОФИЛ НА ПОТРЕБИТЕЛЯ]
+${profileSummary}
+${historyStr}
+
+[ИНСТРУКЦИИ ЗА ОТГОВОР]
+Върни САМО валиден JSON обект (без markdown, без код блокове) в следния формат:
+
+Ако имаш следващ въпрос:
+{"question": "Текст на въпроса на български", "axis": "metabolism|neuro_endocrine|immunity|psycho_behavior|structure", "hypothesis": "Кратко описание какво проверяваш", "isComplete": false}
+
+Ако имаш >=90% информационна сигурност и НЕ са нужни повече въпроси:
+{"isComplete": true, "reason": "Кратко обяснение защо е достатъчно", "summary": "Обобщение на ключовите открития по 5-те оси"}
+
+Генерирай ВЪПРОС ${questionNumber}:`;
 }
 
 /**
@@ -9796,6 +9965,10 @@ export default {
         return await handleReportProblem(request, env);
       } else if (url.pathname === '/api/save-client-data' && request.method === 'POST') {
         return await handleSaveClientData(request, env);
+      } else if (url.pathname === '/api/ai-interview-question' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'AI_INTERVIEW');
+        if (rlErr) return rlErr;
+        return await handleAIInterviewQuestion(request, env);
       } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
         return await handleGetReports(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
