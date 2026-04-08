@@ -3692,33 +3692,39 @@ async function handleAIInterviewQuestion(request, env) {
  * Incorporates user profile, conversation history, and the 5-axis framework.
  */
 function buildAIInterviewPrompt(profile, conversationHistory, questionNumber) {
-  // Build profile summary
+  // Build profile summary from ALL questionnaire answers
   const profileSummary = [
     profile.age ? `Възраст: ${profile.age}` : '',
     profile.gender ? `Пол: ${profile.gender}` : '',
     profile.weight ? `Тегло: ${profile.weight} кг` : '',
     profile.height ? `Ръст: ${profile.height} см` : '',
-    profile.goal ? `Цел: ${profile.goal}` : '',
+    profile.healthConditions ? `Здравословни състояния: ${Array.isArray(profile.healthConditions) ? profile.healthConditions.join(', ') : profile.healthConditions}` : '',
+    profile.goal ? `Цели: ${Array.isArray(profile.goal) ? profile.goal.join(', ') : profile.goal}` : '',
     profile.lossKg ? `Желано отслабване: ${profile.lossKg} кг` : '',
     profile.clinicalProtocol ? `Клиничен протокол: ${profile.clinicalProtocol}` : '',
-    profile.medicalConditions ? `Заболявания: ${Array.isArray(profile.medicalConditions) ? profile.medicalConditions.join(', ') : profile.medicalConditions}` : '',
-    profile.medications === 'Да' && profile.medicationsDetails ? `Лекарства: ${profile.medicationsDetails}` : '',
     profile.sleepHours ? `Сън: ${profile.sleepHours} часа` : '',
+    profile.sleepInterrupt ? `Прекъсвания на съня: ${profile.sleepInterrupt}` : '',
+    profile.chronotype ? `Хронотип: ${profile.chronotype}` : '',
+    profile.dailyActivityLevel ? `Дневна активност: ${profile.dailyActivityLevel}` : '',
     profile.stressLevel ? `Стрес: ${profile.stressLevel}` : '',
     profile.sportActivity ? `Спорт: ${profile.sportActivity}` : '',
     profile.waterIntake ? `Вода: ${profile.waterIntake}` : '',
+    profile.drinksSweet ? `Сладки напитки: ${profile.drinksSweet}` : '',
+    profile.drinksAlcohol ? `Алкохол: ${profile.drinksAlcohol}` : '',
+    profile.weightChange === 'Да' && profile.weightChangeDetails ? `Промяна в теглото: ${profile.weightChangeDetails}` : (profile.weightChange ? `Промяна в теглото: ${profile.weightChange}` : ''),
+    profile.dietHistory === 'Да' ? `Диетична история: Да${profile.dietType ? `, Тип: ${profile.dietType}` : ''}${profile.dietResult ? `, Резултат: ${profile.dietResult}` : ''}` : (profile.dietHistory ? `Диетична история: ${profile.dietHistory}` : ''),
+    profile.overeatingFrequency ? `Преяждане: ${profile.overeatingFrequency}` : '',
+    profile.foodCravings ? `Крейвинги: ${Array.isArray(profile.foodCravings) ? profile.foodCravings.join(', ') : profile.foodCravings}` : '',
+    profile.foodTriggers ? `Тригери за хранене: ${Array.isArray(profile.foodTriggers) ? profile.foodTriggers.join(', ') : profile.foodTriggers}` : '',
+    profile.eatingHabits ? `Хранителни навици: ${Array.isArray(profile.eatingHabits) ? profile.eatingHabits.join(', ') : profile.eatingHabits}` : '',
+    profile.compensationMethods ? `Методи за компенсация: ${Array.isArray(profile.compensationMethods) ? profile.compensationMethods.join(', ') : profile.compensationMethods}` : '',
+    profile.socialComparison ? `Социално сравнение: ${profile.socialComparison}` : '', // kept for backward compat with older submissions
     profile.dietPreference ? `Хранителни предпочитания: ${Array.isArray(profile.dietPreference) ? profile.dietPreference.join(', ') : profile.dietPreference}` : '',
     profile.dietDislike ? `Непоносимости/нелюбими: ${profile.dietDislike}` : '',
     profile.dietLove ? `Любими храни: ${profile.dietLove}` : '',
-    profile.foodCravings ? `Крейвинги: ${Array.isArray(profile.foodCravings) ? profile.foodCravings.join(', ') : profile.foodCravings}` : '',
-    profile.foodTriggers ? `Тригери: ${Array.isArray(profile.foodTriggers) ? profile.foodTriggers.join(', ') : profile.foodTriggers}` : '',
-    profile.overeatingFrequency ? `Преяждане: ${profile.overeatingFrequency}` : '',
-    profile.dailyActivityLevel ? `Дневна активност: ${profile.dailyActivityLevel}` : '',
-    profile.chronotype ? `Хронотип: ${profile.chronotype}` : '',
-    profile.drinksAlcohol ? `Алкохол: ${profile.drinksAlcohol}` : '',
-    profile.drinksSweet ? `Сладки напитки: ${profile.drinksSweet}` : '',
-    profile.weightChange === 'Да' && profile.weightChangeDetails ? `Промяна в теглото: ${profile.weightChangeDetails}` : '',
-    profile.eatingHabits ? `Хранителни навици: ${Array.isArray(profile.eatingHabits) ? profile.eatingHabits.join(', ') : profile.eatingHabits}` : '',
+    profile.medicalConditions ? `Медицински състояния: ${Array.isArray(profile.medicalConditions) ? profile.medicalConditions.join(', ') : profile.medicalConditions}` : '',
+    profile.medications === 'Да' && profile.medicationsDetails ? `Лекарства/добавки: ${profile.medicationsDetails}` : (profile.medications ? `Лекарства/добавки: ${profile.medications}` : ''),
+    profile.additionalNotes ? `Допълнителни бележки: ${profile.additionalNotes}` : '',
   ].filter(Boolean).join('\n');
   
   // Build conversation history string
@@ -3734,14 +3740,21 @@ function buildAIInterviewPrompt(profile, conversationHistory, questionNumber) {
   return `[SYSTEM PROMPT: BIO-PSYCHO-SOCIAL OPTIMIZATION ENGINE]
 
 [РОЛЯ И ЦЕЛ]
-Ти си експертен AI диагностичен алгоритъм за съставяне на интегрален здравен протокол (Хранене, Суплементация, Психология, Начин на живот). Приемаш подадения Базов Профил като факт. НЕ ги изискваш повторно. Директно генерираш следващия диагностичен въпрос.
+Ти си експертен AI диагностичен алгоритъм. Целта е да събереш достатъчно информация за изготвяне на:
+1. Персонализиран хранителен план
+2. Протокол за прием на хранителни добавки
+3. Психологическа подкрепа
+4. Общи здравни съвети и начин на живот
+
+Потребителят вече е попълнил детайлен въпросник (30+ въпроса). Приемаш подадения Базов Профил като факт. НЕ ги изискваш повторно. НЕ повтаряй информация, която вече е налична. Директно генерираш следващия диагностичен въпрос за ДОПЪЛНИТЕЛНО разяснение на области, които не са достатъчно покрити от въпросника.
 
 [ОПЕРАТИВНИ ПРАВИЛА]
 1. Итеративен лимит: Максимум 20 въпроса общо. Текущ въпрос: ${questionNumber}. Оставащи: ${remainingQuestions}.
 2. Формат: Строго 1 (ЕДИН) въпрос. Забранени са съставни въпроси (с "и"/"или").
 3. Комуникация: Изчистен български език, точна терминология. Нулев словесен шум — без емпатия, без морални оценки, без потвърждения.
 4. Байесово сондиране: Всеки въпрос е логическо следствие от предишния, целящ потвърждаване или отхвърляне на хипотеза по 5-те оси.
-5. Не повтаряй вече зададени въпроси и не питай за информация, която вече е налична в профила.
+5. НЕ повтаряй вече зададени въпроси от въпросника и НЕ питай за информация, която вече е налична в профила.
+6. Фокусирай се върху допълнителни разяснения — детайли, които биха подобрили качеството на хранителния план, суплементацията и психологическата подкрепа.
 
 [УНИВЕРСАЛНА РАМКА ЗА ДЕКОНСТРУКЦИЯ — 5 ОСИ]
 1. Метаболизъм и Енергетика (Инсулинова чувствителност, митохондрии)
@@ -3756,7 +3769,7 @@ function buildAIInterviewPrompt(profile, conversationHistory, questionNumber) {
 - Ниво 3: Инсулинова и хормонална оптимизация.
 - Ниво 4: Естетика и рекомпозиция (само при стабилни Нива 1–3).
 
-[БАЗОВ ПРОФИЛ НА ПОТРЕБИТЕЛЯ]
+[ПЪЛЕН ПРОФИЛ НА ПОТРЕБИТЕЛЯ — ОТ ВЪПРОСНИКА]
 ${profileSummary}
 ${historyStr}
 

@@ -799,22 +799,54 @@
         }
 
         /* === AI INTERVIEW PHASE STYLES (matches questionnaire look) === */
-        .ai-skip-link {
-            display: block;
-            margin: 20px auto 0;
-            background: transparent;
-            border: none;
-            color: var(--text-gray);
-            font-size: 0.8rem;
-            cursor: pointer;
-            text-decoration: underline;
-            padding: 4px 8px;
-            transition: color 0.2s;
-            text-align: center;
-        }
 
-        .ai-skip-link:hover {
-            color: var(--text-dark);
+        /* === SUCCESS / COMPLETION SCREEN === */
+        @keyframes confettiFall {
+            0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes checkDraw {
+            to { stroke-dashoffset: 0; }
+        }
+        @keyframes circleDraw {
+            to { stroke-dashoffset: 0; }
+        }
+        @keyframes successFadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .success-check-svg {
+            width: 90px;
+            height: 90px;
+            display: block;
+            margin: 0 auto 24px;
+        }
+        .success-check-svg .check-circle {
+            stroke: var(--primary-red);
+            stroke-width: 3;
+            fill: var(--soft-red);
+            stroke-dasharray: 283;
+            stroke-dashoffset: 283;
+            animation: circleDraw 0.6s ease-out 0.2s forwards;
+        }
+        .success-check-svg .check-tick {
+            stroke: var(--primary-red);
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            stroke-dasharray: 60;
+            stroke-dashoffset: 60;
+            animation: checkDraw 0.4s ease-out 0.8s forwards;
+        }
+        .success-title {
+            animation: successFadeUp 0.5s ease-out 1s both;
+        }
+        .success-body {
+            animation: successFadeUp 0.5s ease-out 1.3s both;
+        }
+        .success-action {
+            animation: successFadeUp 0.5s ease-out 1.6s both;
         }
 
     </style>
@@ -1017,27 +1049,47 @@
         initializeTheme();
 
         // --- JSON DATA (Inserted directly from your file) ---
-        // BASE DATA QUESTIONS ONLY — after these, the AI interview takes over
-        // and dynamically asks follow-up questions tailored to each user's profile.
-        // All lifestyle, behavioral, dietary, and medical questions are handled by AI.
+        // ALL STATIC QUESTIONS — AI interview follows after these for additional clarification
         const rawQuestions = [
             { "id": "name", "text": "Въведете вашето име:", "type": "text", "options": [] },
-            { "id": "gender", "text": "Моля, изберете вашия пол:", "type": "radio", "options": ["Мъж", "Жена"] },
+            { "id": "gender", "text": "Изберете вашия пол:", "type": "radio", "options": ["Мъж", "Жена"] },
             { "id": "age", "text": "Въведете вашата възраст:", "type": "number", "options": [] },
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "clinicalProtocol", "text": "Имате ли специфично здравословно състояние, за което искате протокол?", "type": "radio", "options": ["Не, искам стандартен план", "Инсулинова резистентност / Превенция Диабет Т2", "Автоимунни заболявания / Чревна бариера (AIP)", "Стомашно-чревни проблеми (Запек/Подуване)", "Менопауза и Саркопения", "Редукция на целулит", "Хроничен стрес (Кортизолова регулация)", "Възстановяване след бременност / Лактация", "Висцерални мазнини (Коремно отслабване)", "След спиране на тютюнопушенето", "Дълголетие (Longevity)", "Детоксикация (Черен дроб и клетки)"] },
-            { "id": "goal", "text": "Изберете основната си цел:", "type": "radio", "options": ["Подобряване на здравето", "Отслабване", "Покачване на мускулна маса", "Антиейджинг", "Друго"], "hasOtherInput": true, "children": { "Отслабване": [{ "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [] }] }, "skipWhen": { "clinicalProtocol": ["insulin_resistance", "autoimmune_aip", "gi_issues", "menopause_sarcopenia", "cellulite_reduction", "chronic_stress", "postpartum_lactation", "visceral_fat", "post_smoking", "longevity", "detox"] } }
+            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Щитовидна жлеза (Хашимото и др.)", "Храносмилателни проблеми (IBS, IBD, рефлукс)", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам" },
+            { "id": "goal", "text": "Каква е основната ви цел?", "type": "checkbox", "options": ["Отслабване", "Подобряване на здравето", "Антиейджинг", "Стягане и оформяне на тялото", "Детокс и прочистване", "Изчистване на коремните мазнини", "Антицелулитна програма", "Възстановяване на тялото след бременност", "Друго"], "hasOtherInput": true },
+            { "id": "lossKg", "text": "Колко килограма искате да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване" } },
+            { "id": "sleepHours", "text": "Колко часа спите средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
+            { "id": "sleepInterrupt", "text": "Будите ли се нощем?", "type": "radio", "options": ["Да, често", "Понякога", "Не"] },
+            { "id": "chronotype", "text": "По кое време на деня сте в най-добра форма?", "type": "radio", "options": ["Сутринта", "Вечерта", "Нямам предпочитание"] },
+            { "id": "dailyActivityLevel", "text": "Как бихте описали дневната си активност (без спорт)?", "type": "radio", "options": ["Предимно седяща работа", "Умерено активен", "Физически активна работа"] },
+            { "id": "stressLevel", "text": "Как бихте оценили нивото на стрес в ежедневието си?", "type": "radio", "options": ["Ниско", "Умерено", "Високо"] },
+            { "id": "sportActivity", "text": "Колко пъти седмично спортувате?", "type": "radio", "options": ["5–7 дни седмично", "2–4 дни седмично", "1–2 пъти седмично", "Не спортувам"] },
+            { "id": "waterIntake", "text": "Колко вода пиете дневно?", "type": "radio", "options": ["Под 1 л", "1–1.5 л", "1.5–2 л", "Над 2 л"] },
+            { "id": "drinksSweet", "text": "Колко често приемате сокове, газирани или плодови напитки?", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Всеки ден"] },
+            { "id": "drinksAlcohol", "text": "Колко често консумирате алкохол?", "type": "radio", "options": ["Не консумирам", "Рядко (1–2 пъти месечно)", "Понякога (1–2 пъти седмично)", "Редовно"] },
+            { "id": "weightChange", "text": "Имали ли сте значителна промяна в теглото през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за какъв период и при какви обстоятелства?", "type": "textarea", "options": [] }] } },
+            { "id": "dietHistory", "text": "Спазвали ли сте диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета (кето, нисковъглехидратна, веган и др.)?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
+            { "id": "overeatingFrequency", "text": "Колко често ядете повече, отколкото сте планирали?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
+            { "id": "foodCravings", "text": "Изпитвате ли тяга към определени храни?", "type": "checkbox", "options": ["Сладкиши и захар", "Хляб и тестени храни", "Тлъста и пържена храна", "Солени закуски (чипс и др.)", "Друго", "Не изпитвам тяга"], "hasOtherInput": true, "negativeOption": "Не изпитвам тяга" },
+            { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за хранене?", "type": "checkbox", "options": ["Стрес и напрежение", "Скука", "Тъга или самота", "Социални събирания", "Друго", "Нищо от изброените"], "hasOtherInput": true, "negativeOption": "Нищо от изброените" },
+            { "id": "eatingHabits", "text": "Кои от следните описват вашето хранене?", "type": "checkbox", "options": ["Пропускам закуска", "Хапвам набързо, на крак", "Основното ми хранене е вечер", "Хапвам сладко между храненията", "Ям пред телевизора или телефона", "Практикувам периодично гладуване (фастинг)", "Поръчвам готова храна или ям навън", "Нито едно от изброените"], "negativeOption": "Нито едно от изброените" },
+            { "id": "dietPreference", "text": "Придържате ли се към определен тип хранене?", "type": "checkbox", "options": ["Вегетарианско", "Средиземноморско", "Кето / нисковъглехидратно", "Веган", "Сезонно и местно", "Интермитентен фастинг", "Високопротеиново", "Друго", "Нямам предпочитание"], "hasOtherInput": true, "negativeOption": "Нямам предпочитание" },
+            { "id": "dietDislike", "text": "Храни, към които имате непоносимост, алергия или просто не обичате:", "type": "textarea", "options": [], "optional": true },
+            { "id": "dietLove", "text": "Любими храни и ястия, без които не можете:", "type": "textarea", "options": [], "optional": true },
+            { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Моля, посочете кои и в каква дозировка:", "type": "textarea", "options": [] }] } },
+            { "id": "additionalNotes", "text": "Има ли нещо важно, което не сме попитали?", "type": "textarea", "options": [], "optional": true },
+            { "id": "medicalFiles", "text": "Прикачете файлове с изследвания или анализи (по желание):", "type": "file", "options": [] }
         ];
 
         // --- PROTOCOL-SPECIFIC QUESTIONS ---
-        // Additional questions shown only when specific clinical protocol is selected.
-        // All are inserted after 'clinicalProtocol' since that's where the protocol is chosen.
+        // Additional questions shown only when specific clinical protocol is selected from protocol landing page.
+        // These are inserted after the appropriate base question when protocol is pre-selected via URL.
         // The remaining investigation is handled by the AI interview.
         const PROTOCOL_SPECIFIC_QUESTIONS = {
             insulin_resistance: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "bloodSugarLevels", "text": "Имате ли измервания на кръвна захар на гладно? Ако да, какви са стойностите?", "type": "textarea", "options": [], "optional": true },
                     { "id": "insulinResistanceSymptoms", "text": "Имате ли някои от следните симптоми?", "type": "checkbox", "options": ["Силно желание за сладко след хранене", "Умора след хранене", "Потъмняване на кожата (акантозис нигриканс)", "Затруднено отслабване в коремната област", "Чест глад между храненията", "Нито едно"], "negativeOption": "Нито едно" },
@@ -1046,7 +1098,7 @@
                 removeQuestions: []
             },
             autoimmune_aip: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "autoimmuneDiagnosis", "text": "Какво е вашето автоимунно заболяване? (напр. Хашимото, ревматоиден артрит, псориазис)", "type": "textarea", "options": [] },
                     { "id": "autoimmuneFlares", "text": "Колко често имате обостряния на симптомите?", "type": "radio", "options": ["Ежедневно", "Няколко пъти седмично", "Няколко пъти месечно", "Рядко"] },
@@ -1055,7 +1107,7 @@
                 removeQuestions: []
             },
             gi_issues: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "giSymptoms", "text": "Кои от следните симптоми имате?", "type": "checkbox", "options": ["Запек", "Подуване", "Газове", "Болки в корема", "Киселини/рефлукс", "Диария", "Нередовно изхождане", "Нито едно"], "negativeOption": "Нито едно" },
                     { "id": "bowelFrequency", "text": "Колко често имате изхождане?", "type": "radio", "options": ["Повече от 3 пъти дневно", "1-2 пъти дневно", "Веднъж дневно", "През ден", "По-рядко от през ден"] },
@@ -1082,7 +1134,7 @@
                 removeQuestions: []
             },
             chronic_stress: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "stressSources", "text": "Кои са основните източници на стрес?", "type": "checkbox", "options": ["Работа", "Семейство", "Финанси", "Здраве", "Отношения", "Друго", "Не мога да определя"], "hasOtherInput": true, "negativeOption": "Не мога да определя" },
                     { "id": "stressSymptoms", "text": "Кои от следните симптоми изпитвате?", "type": "checkbox", "options": ["Безсъние", "Тревожност", "Раздразнителност", "Умора сутрин", "Затруднена концентрация", "Желание за сладко/солено", "Нито едно"], "negativeOption": "Нито едно" },
@@ -1109,7 +1161,7 @@
                 removeQuestions: []
             },
             post_smoking: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "smokingHistory", "text": "Колко дълго пушихте?", "type": "radio", "options": ["Под 5 години", "5-10 години", "10-20 години", "Над 20 години"] },
                     { "id": "quitDuration", "text": "От колко време сте спрели?", "type": "radio", "options": ["Под 1 месец", "1-3 месеца", "3-6 месеца", "6-12 месеца", "Над 1 година"] },
@@ -1119,7 +1171,7 @@
                 removeQuestions: []
             },
             longevity: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "fastingExperience", "text": "Имате ли опит с периодично гладуване?", "type": "radio", "options": ["Да, практикувам редовно", "Опитвал/а съм", "Не, но искам да опитам", "Не ме интересува"] },
                     { "id": "longevityGoals", "text": "Кои аспекти на дълголетието са най-важни за вас?", "type": "checkbox", "options": ["Когнитивно здраве", "Физическа сила и мобилност", "Енергия и виталност", "Външен вид и кожа", "Превенция на болести", "Всички"], "negativeOption": "" },
@@ -1128,7 +1180,7 @@
                 removeQuestions: []
             },
             detox: {
-                addAfter: 'clinicalProtocol',
+                addAfter: 'email',
                 questions: [
                     { "id": "detoxReason", "text": "Защо искате детокс програма?", "type": "checkbox", "options": ["Умора и липса на енергия", "Проблеми с кожата", "Храносмилателни проблеми", "Главоболие", "Желание за \"рестарт\"", "Друго"], "hasOtherInput": true },
                     { "id": "toxinExposure", "text": "Изложени ли сте на следните?", "type": "checkbox", "options": ["Замърсен въздух (град)", "Работа с химикали", "Честа употреба на лекарства", "Консумация на преработени храни", "Пушене (активно или пасивно)", "Нищо от изброените"], "negativeOption": "Нищо от изброените" },
@@ -1194,7 +1246,7 @@
                     injectProtocolQuestions(protocolId);
                 }
                 
-                skipClinicalProtocolQuestion();
+                skipProtocolRelatedQuestions();
                 
                 console.log('Protocol loaded from URL:', protocolId);
             }
@@ -1221,15 +1273,28 @@
             }
         }
         
-        function skipClinicalProtocolQuestion() {
-            const protocolQuestionIndex = currentQueue.findIndex(q => q.id === 'clinicalProtocol');
-            if (protocolQuestionIndex !== -1) {
-                currentQueue.splice(protocolQuestionIndex, 1);
+        // Skip health/goal questions when a protocol is pre-selected from the landing page URL.
+        // `healthConditions` is also skipped when a protocol is pre-selected because the chosen
+        // protocol already encodes the user's primary health context (e.g., selecting the
+        // insulin_resistance protocol implies that condition). Protocol-specific injected questions
+        // capture any additional detail needed.
+        // answers.clinicalProtocol is set by handleProtocolFromURL() from the ?protocol= URL parameter.
+        function skipProtocolRelatedQuestions() {
+            // Skip healthConditions — protocol already provides the health context
+            const healthConditionsIndex = currentQueue.findIndex(q => q.id === 'healthConditions');
+            if (healthConditionsIndex !== -1) {
+                currentQueue.splice(healthConditionsIndex, 1);
             }
             
+            // Only skip goal and lossKg when clinicalProtocol was set via URL parameter
             const goalQuestionIndex = currentQueue.findIndex(q => q.id === 'goal');
             if (goalQuestionIndex !== -1 && answers.clinicalProtocol) {
                 currentQueue.splice(goalQuestionIndex, 1);
+            }
+            
+            const lossKgIndex = currentQueue.findIndex(q => q.id === 'lossKg');
+            if (lossKgIndex !== -1 && answers.clinicalProtocol) {
+                currentQueue.splice(lossKgIndex, 1);
             }
         }
         
@@ -1484,6 +1549,12 @@
                         if (lowerValue === 'kakadu' || lowerValue === 'какаду') {
                             activateTestMode();
                         }
+                    }
+                };
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (!nextBtn.disabled) nextBtn.click();
                     }
                 };
                 card.appendChild(input);
@@ -1863,30 +1934,6 @@
         function nextStep() {
             const currentQ = currentQueue[currentIndex];
             
-            // CLINICAL PROTOCOL MAPPING: When user selects a protocol, map to backend ID
-            if (currentQ.id === 'clinicalProtocol' && answers.clinicalProtocol) {
-                const protocolMapping = {
-                    'Инсулинова резистентност / Превенция Диабет Т2': 'insulin_resistance',
-                    'Автоимунни заболявания / Чревна бариера (AIP)': 'autoimmune_aip',
-                    'Стомашно-чревни проблеми (Запек/Подуване)': 'gi_issues',
-                    'Менопауза и Саркопения': 'menopause_sarcopenia',
-                    'Редукция на целулит': 'cellulite_reduction',
-                    'Хроничен стрес (Кортизолова регулация)': 'chronic_stress',
-                    'Възстановяване след бременност / Лактация': 'postpartum_lactation',
-                    'Висцерални мазнини (Коремно отслабване)': 'visceral_fat',
-                    'След спиране на тютюнопушенето': 'post_smoking',
-                    'Дълголетие (Longevity)': 'longevity',
-                    'Детоксикация (Черен дроб и клетки)': 'detox'
-                };
-                const selectedLabel = answers.clinicalProtocol;
-                if (selectedLabel === 'Не, искам стандартен план') {
-                    delete answers.clinicalProtocol;
-                } else if (protocolMapping[selectedLabel]) {
-                    answers.clinicalProtocol = protocolMapping[selectedLabel];
-                }
-                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
-            }
-            
             // BRANCHING LOGIC: Check if current answer triggers children
             if (currentQ.children && answers[currentQ.id]) {
                 const answerVal = answers[currentQ.id];
@@ -1906,8 +1953,25 @@
             if (currentIndex < currentQueue.length - 1) {
                 currentIndex++;
                 
-                // SKIP LOGIC: Skip questions that should be hidden based on other answers
+                // SHOW WHEN LOGIC: Skip questions whose showWhen condition is not met
                 const nextQ = currentQueue[currentIndex];
+                if (nextQ && nextQ.showWhen) {
+                    let shouldShow = false;
+                    for (const [field, requiredValue] of Object.entries(nextQ.showWhen)) {
+                        const answer = answers[field];
+                        if (Array.isArray(answer)) {
+                            if (answer.includes(requiredValue)) { shouldShow = true; break; }
+                        } else if (answer === requiredValue) {
+                            shouldShow = true; break;
+                        }
+                    }
+                    if (!shouldShow) {
+                        nextStep();
+                        return;
+                    }
+                }
+                
+                // SKIP LOGIC: Skip questions that should be hidden based on other answers
                 if (nextQ && nextQ.skipWhen) {
                     for (const [field, skipValues] of Object.entries(nextQ.skipWhen)) {
                         if (answers[field] && skipValues.includes(answers[field])) {
@@ -1955,8 +2019,25 @@
                 // The forward logic handles re-injection.
                 currentIndex--;
                 
-                // SKIP LOGIC (reverse): Skip questions that should be hidden based on other answers
+                // SHOW WHEN LOGIC (reverse): Skip questions whose showWhen condition is not met
                 const prevQ = currentQueue[currentIndex];
+                if (prevQ && prevQ.showWhen) {
+                    let shouldShow = false;
+                    for (const [field, requiredValue] of Object.entries(prevQ.showWhen)) {
+                        const answer = answers[field];
+                        if (Array.isArray(answer)) {
+                            if (answer.includes(requiredValue)) { shouldShow = true; break; }
+                        } else if (answer === requiredValue) {
+                            shouldShow = true; break;
+                        }
+                    }
+                    if (!shouldShow) {
+                        prevStep();
+                        return;
+                    }
+                }
+                
+                // SKIP LOGIC (reverse): Skip questions that should be hidden based on other answers
                 if (prevQ && prevQ.skipWhen) {
                     for (const [field, skipValues] of Object.entries(prevQ.skipWhen)) {
                         if (answers[field] && skipValues.includes(answers[field])) {
@@ -2082,18 +2163,7 @@
             fetchAIQuestion();
         }
         
-        /**
-         * Skip the AI interview entirely and go directly to submission.
-         */
-        function skipAIInterview() {
-            answers._aiInterviewHistory = aiInterviewHistory;
-            answers._aiInterviewSkipped = true;
-            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
-            aiInterviewComplete = true;
-            finishQuiz();
-        }
         
-        /**
          * Render the AI interview UI using the SAME visual pattern as the static
          * questionnaire: question-card → h2.q-text → modern-input textarea.
          * No chat bubbles, no history, no badges — a seamless continuation.
@@ -2113,15 +2183,13 @@
             card.className = 'question-card';
             
             if (loading) {
-                // Loading state — same visual style as any questionnaire question
                 container.classList.remove('compact');
                 
                 const h2 = document.createElement('h2');
                 h2.className = 'q-text';
-                h2.textContent = 'Зареждане на следващия въпрос...';
+                h2.textContent = 'Моля, изчакайте...';
                 card.appendChild(h2);
                 
-                // Simple spinner using the existing section-icon pattern
                 const spinnerWrap = document.createElement('div');
                 spinnerWrap.style.cssText = 'text-align:center; padding: 30px 0;';
                 spinnerWrap.innerHTML = '<i class="fas fa-circle-notch fa-spin" style="font-size:2rem; color:var(--primary-red); opacity:0.6;"></i>';
@@ -2129,12 +2197,10 @@
                 
                 container.appendChild(card);
                 
-                // Hide "Напред", keep "Назад" visible
                 nextBtn.style.display = 'none';
                 prevBtn.style.visibility = 'visible';
                 
             } else if (errorMsg) {
-                // Error state — same card layout
                 container.classList.remove('compact');
                 
                 const h2 = document.createElement('h2');
@@ -2147,7 +2213,6 @@
                 hint.textContent = errorMsg;
                 card.appendChild(hint);
                 
-                // Retry button styled like primary button
                 const retryBtn = document.createElement('button');
                 retryBtn.className = 'btn btn-next';
                 retryBtn.style.cssText = 'margin: 0 auto 12px; display: block;';
@@ -2155,20 +2220,12 @@
                 retryBtn.onclick = () => fetchAIQuestion();
                 card.appendChild(retryBtn);
                 
-                // Skip link
-                const skipLink = document.createElement('button');
-                skipLink.className = 'ai-skip-link';
-                skipLink.textContent = 'Пропусни и завърши';
-                skipLink.onclick = skipAIInterview;
-                card.appendChild(skipLink);
-                
                 container.appendChild(card);
                 
                 nextBtn.style.display = 'none';
                 prevBtn.style.visibility = 'visible';
                 
             } else if (question) {
-                // Normal question — identical to renderQuestion for textarea type
                 container.classList.toggle('compact', true);
                 
                 const h2 = document.createElement('h2');
@@ -2176,7 +2233,6 @@
                 h2.textContent = question.text;
                 card.appendChild(h2);
                 
-                // Standard textarea input, same class as existing questionnaire textareas
                 const input = document.createElement('textarea');
                 input.className = 'modern-input';
                 input.id = 'aiAnswerInput';
@@ -2195,16 +2251,8 @@
                 };
                 card.appendChild(input);
                 
-                // Subtle skip link below the input
-                const skipLink = document.createElement('button');
-                skipLink.className = 'ai-skip-link';
-                skipLink.textContent = 'Пропусни и завърши';
-                skipLink.onclick = skipAIInterview;
-                card.appendChild(skipLink);
-                
                 container.appendChild(card);
                 
-                // Standard nav buttons — same text as the rest of the questionnaire
                 nextBtn.style.display = '';
                 nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
                 nextBtn.disabled = true;
@@ -2212,7 +2260,6 @@
                 
                 prevBtn.style.visibility = 'visible';
                 
-                // Auto-focus
                 setTimeout(() => input.focus(), 100);
             }
             
@@ -2436,35 +2483,25 @@
         async function finishQuiz() {
             console.log("Final JSON:", JSON.stringify(answers, null, 2));
             
-            // Show loading state with simpler message
+            // Show sending state
             container.innerHTML = `
                 <div style="text-align:center; animation: fadeIn 0.5s; max-width: 500px; margin: 0 auto;">
-                    <!-- Animated Icon with Pulse -->
-                    <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 30px; animation: pulse 2s ease-in-out infinite;">
+                    <div class="section-icon" style="background:var(--soft-red); color:var(--primary-red); margin-bottom: 30px; animation: pulse 2s ease-in-out infinite;">
                         <i class="fas fa-paper-plane"></i>
                     </div>
-                    
-                    <h2 class="q-text" id="loadingTitle" style="transition: all 0.3s ease;">Изпращане на данните...</h2>
-                    <p style="color:var(--text-gray); margin-bottom:30px; font-size: 0.95rem; transition: all 0.3s ease;" id="loadingSubtitle">
-                        Моля, изчакайте...
-                    </p>
+                    <h2 class="q-text">Изпращане...</h2>
+                    <p style="color:var(--text-gray); font-size: 0.95rem;">Моля, изчакайте</p>
                 </div>
-                
                 <style>
-                    @keyframes pulse {
-                        0%, 100% { transform: scale(1); opacity: 1; }
-                        50% { transform: scale(1.05); opacity: 0.9; }
-                    }
+                    @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.06);opacity:.9} }
                 </style>
             `;
             document.querySelector('.nav-footer').style.display = 'none';
             document.querySelector('.progress-container').style.display = 'none';
 
             try {
-                // Generate a unique client ID based on timestamp and random number
                 const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
                 
-                // Prepare data for saving
                 const clientData = {
                     id: clientId,
                     timestamp: new Date().toISOString(),
@@ -2476,116 +2513,133 @@
                     const filePromises = Array.from(answers.medicalFiles).map(file => {
                         return new Promise((resolve, reject) => {
                             const reader = new FileReader();
-                            reader.onload = (e) => resolve({
-                                name: file.name,
-                                type: file.type,
-                                size: file.size,
-                                data: e.target.result
-                            });
+                            reader.onload = (e) => resolve({ name: file.name, type: file.type, size: file.size, data: e.target.result });
                             reader.onerror = reject;
                             reader.readAsDataURL(file);
                         });
                     });
-                    
                     clientData.files = await Promise.all(filePromises);
-                    // Remove File objects from answers as they can't be stringified
                     delete clientData.answers.medicalFiles;
                 }
                 
-                // Save to localStorage (as a backup)
                 localStorage.setItem(`questionnaire2_${clientId}`, JSON.stringify(clientData));
                 
-                // Send data to backend API for automatic saving
                 try {
                     const API_URL = 'https://aidiet.radilov-k.workers.dev/api/save-client-data';
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(clientData)
-                    });
-                    
+                    const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(clientData) });
                     const result = await response.json();
-                    
-                    if (!response.ok || !result.success) {
-                        throw new Error(result.error || 'Failed to save data to server');
-                    }
-                    
-                    console.log('Client data saved to backend:', result.clientId);
+                    if (!response.ok || !result.success) throw new Error(result.error || 'Failed to save');
+                    console.log('Client data saved:', result.clientId);
                 } catch (apiError) {
-                    console.error('Error saving to backend API:', apiError);
-                    // Continue anyway - data is still in localStorage
+                    console.error('Error saving to backend:', apiError);
                 }
                 
-                // Simulate short delay for better UX
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // Clear the saved questionnaire answers
+                await new Promise(resolve => setTimeout(resolve, 800));
                 localStorage.removeItem('questionnaireAnswers');
                 
-                // Show success message
-                const aiInterviewInfo = aiInterviewHistory.length > 0 
-                    ? `<p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
-                            <i class="fas fa-brain" style="color: var(--primary-red); margin-right: 8px;"></i>
-                            AI диагностиката приключи с ${aiInterviewHistory.length} допълнителни въпроса за по-прецизен протокол.
-                       </p>` 
-                    : '';
+                // Launch confetti
+                _launchConfetti();
                 
+                // Show success screen
                 container.innerHTML = `
-                    <div style="text-align:center; animation: fadeIn 0.5s; max-width: 600px; margin: 0 auto;">
-                        <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 20px;">
-                            <i class="fas fa-check-circle"></i>
+                    <div style="text-align:center; max-width:540px; margin:0 auto; padding: 20px 0 40px;">
+                        <svg class="success-check-svg" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+                            <circle class="check-circle" cx="45" cy="45" r="42" fill="none"/>
+                            <polyline class="check-tick" points="25,47 38,60 65,33"/>
+                        </svg>
+
+                        <div class="success-title">
+                            <h2 class="q-text" style="margin-bottom:12px;">Благодарим Ви!</h2>
                         </div>
-                        <h2 class="q-text" style="margin-bottom: 20px;">Благодарим Ви!</h2>
-                        <div style="background: var(--soft-red); padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: left;">
-                            <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
-                                <i class="fas fa-info-circle" style="color: var(--primary-red); margin-right: 8px;"></i>
-                                Вашата информация беше получена успешно и беше изпратена автоматично на нашия екип.
+
+                        <div class="success-body" style="background:var(--soft-red);padding:22px;border-radius:14px;text-align:left;margin-bottom:24px;">
+                            <p style="color:var(--text-dark);line-height:1.7;margin-bottom:12px;">
+                                <i class="fas fa-check-circle" style="color:var(--primary-red);margin-right:8px;"></i>
+                                Вашите данни бяха получени успешно.
                             </p>
-                            ${aiInterviewInfo}
-                            <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 15px;">
-                                <i class="fas fa-clock" style="color: var(--primary-red); margin-right: 8px;"></i>
-                                Скоро вашият персонален план за постигане на целта ще бъде готов.
+                            <p style="color:var(--text-dark);line-height:1.7;margin-bottom:12px;">
+                                <i class="fas fa-clock" style="color:var(--primary-red);margin-right:8px;"></i>
+                                Персоналният ви план ще бъде готов скоро.
                             </p>
-                            <p style="color: var(--text-dark); line-height: 1.8;">
-                                <i class="fas fa-envelope" style="color: var(--primary-red); margin-right: 8px;"></i>
-                                При необходимост от допълнителни въпроси, ще се свържем с вас на посочения имейл: <strong>${answers.email || 'N/A'}</strong>
+                            <p style="color:var(--text-dark);line-height:1.7;">
+                                <i class="fas fa-envelope" style="color:var(--primary-red);margin-right:8px;"></i>
+                                При нужда ще се свържем с вас на: <strong>${answers.email || '—'}</strong>
                             </p>
                         </div>
-                        <button class="btn" onclick="window.location.href='index.html'" style="margin: 10px auto; display: block; background: var(--text-gray);">
-                            <i class="fas fa-home" style="margin-right: 8px;"></i>Към началната страница
-                        </button>
+
+                        <div class="success-action">
+                            <button class="btn btn-next" onclick="window.location.href='index.html'" style="margin:0 auto;display:flex;">
+                                <i class="fas fa-home" style="margin-right:8px;"></i>Към началната страница
+                            </button>
+                        </div>
                     </div>
                 `;
                 
             } catch (error) {
                 console.error('Error saving data:', error);
-                
-                let errorMessage;
-                if (error.name === 'AbortError') {
-                    errorMessage = 'Заявката отне твърде дълго. Моля, проверете интернет връзката и опитайте отново.';
-                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    errorMessage = 'Няма връзка със сървъра. Проверете интернет връзката си и опитайте отново.';
-                } else {
-                    errorMessage = 'Възникна проблем при съхраняването на данните. Моля, опитайте отново.';
+                let errorMessage = 'Възникна проблем при запазването. Моля, опитайте отново.';
+                if (error.name === 'AbortError' || error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = 'Няма връзка. Проверете интернет и опитайте отново.';
                 }
-                
                 container.innerHTML = `
                     <div style="text-align:center; animation: fadeIn 0.5s;">
-                        <div class="section-icon" style="background:#fee2e2; color:#ef4444;">
-                            <i class="fas fa-exclamation-circle"></i>
-                        </div>
+                        <div class="section-icon" style="background:#fee2e2; color:#ef4444;"><i class="fas fa-exclamation-circle"></i></div>
                         <h2 class="q-text">Нещо се обърка</h2>
-                        <p style="color:#7f8c8d; margin-bottom:20px;">${errorMessage}</p>
+                        <p style="color:#7f8c8d;margin-bottom:20px;">${errorMessage}</p>
                         <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
                     </div>
                 `;
             }
         }
 
+        function _launchConfetti() {
+            const colors = ['var(--primary-red)', '#fbbf24', '#60a5fa', '#f87171', '#34d399', '#a78bfa', '#fb923c'];
+            const container = document.createElement('div');
+            container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden;';
+            document.body.appendChild(container);
+            
+            for (let i = 0; i < 50; i++) {
+                const p = document.createElement('div');
+                const isRect = Math.random() > 0.45;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const size = Math.random() * 10 + 5;
+                const x = Math.random() * 100;
+                const delay = Math.random() * 2.5;
+                const dur = Math.random() * 2 + 3;
+                p.style.cssText = `
+                    position:absolute;
+                    width:${isRect ? size * 1.6 : size}px;
+                    height:${isRect ? size * 0.65 : size}px;
+                    background:${color};
+                    border-radius:${isRect ? '3px' : '50%'};
+                    left:${x}vw;
+                    top:-20px;
+                    opacity:0.9;
+                    animation:confettiFall ${dur}s ${delay}s ease-in forwards;
+                    transform:rotate(${Math.random() * 360}deg);
+                `;
+                container.appendChild(p);
+            }
+            setTimeout(() => container.remove(), 8000);
+        }
+
         // Start
         init();
+
+        // --- GLOBAL ENTER KEY HANDLER ---
+        // Enter key = Напред for all question types except textareas (which have their own handler)
+        document.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            const active = document.activeElement;
+            if (!active) return;
+            const tag = active.tagName;
+            // Skip: textareas (handle own Enter), buttons (allow native activation), links, selects
+            if (tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A' || tag === 'SELECT') return;
+            // Skip if next button is hidden or disabled
+            if (!nextBtn || nextBtn.style.display === 'none' || nextBtn.disabled) return;
+            e.preventDefault();
+            nextBtn.click();
+        });
 
 
         // --- PWA Install Banner Functionality ---
