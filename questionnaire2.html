@@ -1217,7 +1217,7 @@
                     injectProtocolQuestions(protocolId);
                 }
                 
-                skipClinicalProtocolQuestion();
+                skipProtocolRelatedQuestions();
                 
                 console.log('Protocol loaded from URL:', protocolId);
             }
@@ -1244,13 +1244,16 @@
             }
         }
         
-        function skipClinicalProtocolQuestion() {
+        // Skip health/goal questions when a protocol is pre-selected from the landing page URL.
+        // answers.clinicalProtocol is set by handleProtocolFromURL() from the ?protocol= URL parameter.
+        function skipProtocolRelatedQuestions() {
             // When protocol is pre-selected from landing page, skip healthConditions and goal questions
             const healthConditionsIndex = currentQueue.findIndex(q => q.id === 'healthConditions');
             if (healthConditionsIndex !== -1) {
                 currentQueue.splice(healthConditionsIndex, 1);
             }
             
+            // Only skip goal and lossKg when clinicalProtocol was set via URL parameter
             const goalQuestionIndex = currentQueue.findIndex(q => q.id === 'goal');
             if (goalQuestionIndex !== -1 && answers.clinicalProtocol) {
                 currentQueue.splice(goalQuestionIndex, 1);
