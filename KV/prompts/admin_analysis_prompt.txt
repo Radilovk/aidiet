@@ -85,7 +85,7 @@ correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
 Д. Пречещи фактори за целта (тежест 1-3): стрес, сън/прекъсвания, навици, тригери от клиентските данни
 Е. Сумарен риск: припокриване на Г и Д → сумирай тежестта
 Ж. Реактивност на метаболизма (по activityScore от бекенд изчисленията, dietHistory, chronotype, stressLevel от клиентските данни): Бавен/Среден/Бърз, Адаптивност Ниска/Средна/Висока
-З. Ключови проблеми "keyProblems" (3–6): само Borderline/Risky/Critical severity, КРИТИЧНО и ПЛАШЕЩО описание
+З. Ключови проблеми "keyProblems" (3–6): само Borderline/Risky/Critical severity, описание относно сериозността на проблема
 И. Здравословно състояние: скала 0-100, ЗАНИЖЕНО с {HEALTH_STATUS_UNDERESTIMATE_PERCENT}% за мотивация
 К. Прогноза песимистична (12 месеца): ако продължи по същия начин
 Л. Прогноза оптимистична (12 месеца): след подобряване на всички проблеми
@@ -177,7 +177,7 @@ correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
   "keyProblems": [
     {
       "title": "заглавие (кратко)",
-      "description": "КРИТИЧНО и ПЛАШЕЩО описание защо е проблем",
+      "description": "кратко обяснение защо е проблем",
       "severity": "Borderline/Risky/Critical",
       "severityValue": число 0-100,
       "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical",
