@@ -1185,7 +1185,7 @@
             border-color: rgba(239, 68, 68, 0.3);
         }
         
-        /* Practical tips / Hacks - Direct numbered list */
+        /* Practical tips / Hacks - Teaser */
         .modal-section-hacks {
             background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
             border-left-color: var(--accent-gold);
@@ -1207,55 +1207,15 @@
             color: #fbbf24;
         }
         
-        .hacks-list {
-            list-style: none !important;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        .hacks-teaser {
             margin: 0;
-            padding: 0;
-        }
-        
-        .hacks-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            padding: 14px 16px;
-            border-radius: var(--radius-sm);
             font-size: 0.9rem;
-            line-height: 1.6;
-            background: white;
-            color: var(--text-dark);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            transition: all var(--transition-fast);
+            line-height: 1.7;
+            color: var(--text-medium);
         }
         
-        .hacks-list li:hover {
-            transform: translateX(4px);
-            border-color: var(--accent-gold);
-            box-shadow: var(--shadow-sm);
-        }
-        
-        [data-theme="dark"] .hacks-list li {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(245, 158, 11, 0.15);
-        }
-        
-        .hack-number {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: var(--accent-gold);
-            color: white;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-        
-        .hack-text {
-            flex: 1;
+        [data-theme="dark"] .hacks-teaser {
+            color: var(--text-light);
         }
         
         /* For whom section - purple accent */
@@ -1477,10 +1437,6 @@
                 padding: 16px;
             }
             
-            .hacks-list li {
-                padding: 12px 14px;
-            }
-            
             .standard-plan-section {
                 padding: 40px 24px;
                 margin-top: 60px;
@@ -1544,17 +1500,6 @@
                 font-size: 0.8rem;
             }
             
-            .hacks-list li {
-                gap: 10px;
-                padding: 10px 12px;
-                font-size: 0.85rem;
-            }
-            
-            .hack-number {
-                min-width: 22px;
-                height: 22px;
-                font-size: 0.7rem;
-            }
         }
         
         /* Smooth scroll for modal open */
@@ -1721,15 +1666,15 @@
                     <div id="modalRestrictions" class="modal-items-grid"></div>
                 </div>
                 
-                <!-- Practical tips - Direct numbered list -->
+                <!-- Practical tips teaser -->
                 <div class="modal-section modal-section-hacks">
                     <div class="modal-section-header">
                         <div class="modal-section-icon">
                             <i class="fas fa-lightbulb"></i>
                         </div>
-                        <h4>Практични съвети</h4>
+                        <h4>Персонализирани насоки</h4>
                     </div>
-                    <ul id="modalHacks" class="hacks-list"></ul>
+                    <p class="hacks-teaser">В готовия ви план ще намерите конкретни практически съвети и навици, подбрани специално за вашия протокол и индивидуален профил — малките детайли, които правят голямата разлика.</p>
                 </div>
                 
                 <!-- For whom -->
@@ -2189,20 +2134,6 @@
             restrictionsContainer.innerHTML = protocol.restrictions.map(item => 
                 `<div class="modal-item restriction"><i class="fas fa-times"></i>${escapeHtml(item)}</div>`
             ).join('');
-            
-            // Hacks list - Direct numbered list
-            const hacksList = document.getElementById('modalHacks');
-            if (hacksList && protocol.hacks && protocol.hacks.length > 0) {
-                hacksList.innerHTML = protocol.hacks.map((hack, index) => 
-                    `<li>
-                        <span class="hack-number">${index + 1}</span>
-                        <span class="hack-text">${escapeHtml(hack)}</span>
-                    </li>`
-                ).join('');
-                hacksList.closest('.modal-section').style.display = '';
-            } else if (hacksList) {
-                hacksList.closest('.modal-section').style.display = 'none';
-            }
             
             // ForWhom section
             const forWhomEl = document.getElementById('modalForWhom');
