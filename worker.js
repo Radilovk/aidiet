@@ -2509,7 +2509,9 @@ ${jsonExample.join(',\n')}
       MAX_LATE_SNACK_CALORIES,
       MEAL_NAME_FORMAT_INSTRUCTIONS,
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
-      sweetsCravingRule
+      sweetsCravingRule,
+      additionalNotes: buildCombinedAdditionalNotes(data),
+      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })()
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
@@ -2674,7 +2676,8 @@ ${modLines.join('\n')}
       dietLove: data.dietLove || 'няма',
       sweetsCravingRule: sweetsCravingRuleLegacy,
       additionalNotes: _combinedNotesMeal,
-      protocolSpecificAnswers: buildProtocolSpecificAnswersText(data)
+      protocolSpecificAnswers: buildProtocolSpecificAnswersText(data),
+      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })()
     });
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts

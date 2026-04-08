@@ -9,7 +9,7 @@
 Напитки: Сладко — {drinksSweet} | Алкохол — {drinksAlcohol} | История с диети: {dietHistory}
 
 {additionalNotesSection}
-
+{clinicalProtocolSection}
 ЗАДАЧА: определи тип диета спрямо целта, здравословно състояние, overeatingFrequency, diet History, chronotype, ако не е изрично отбелязана в "dietPreference". 
 Избери подходяща от следния списък и се аргументирай кратко: " 
 Отслабване: Средиземноморска диета, DASH, Периодично гладуване (16/8).

@@ -9,7 +9,7 @@
 {backendCalculations}
 
 {additionalNotesSection}
-
+{clinicalProtocolSection}
 ═══ АНАЛИЗ — СТЪПКИ ═══
 
 СТЪПКА 1: ТЕМПЕРАМЕНТ

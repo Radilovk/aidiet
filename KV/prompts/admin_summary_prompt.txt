@@ -34,7 +34,7 @@ BMR: {bmr} kcal | Препоръчителни калории: {recommendedCalor
 МЕДИЦИНСКИ СЪСТОЯНИЯ: {medicalConditions}
 ХРАНИТЕЛНИ ДЕФИЦИТИ: {deficiencies}
 {dynamicWhitelistSection}{dynamicBlacklistSection}
-
+{clinicalProtocolSection}{clinicalProtocolSupplementSection}
 ══════════════════════════════════════════════════════════
 📋 JSON ФОРМАТ НА ОТГОВОРА
 ══════════════════════════════════════════════════════════
