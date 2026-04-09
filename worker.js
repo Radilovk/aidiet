@@ -3645,8 +3645,16 @@ async function handleAIInterviewQuestion(request, env) {
       });
     }
     
+    // Load custom AI interview prompt from KV (if set via admin panel)
+    let customPromptTemplate = null;
+    try {
+      customPromptTemplate = await getCustomPrompt(env, 'admin_ai_interview_prompt');
+    } catch (e) {
+      console.warn('Could not load custom AI interview prompt:', e);
+    }
+    
     // Build the system prompt for the AI interview
-    const systemPrompt = buildAIInterviewPrompt(profile, conversationHistory, questionNumber);
+    const systemPrompt = buildAIInterviewPrompt(profile, conversationHistory, questionNumber, customPromptTemplate);
     
     // Max tokens for a single interview question response
     const AI_INTERVIEW_MAX_TOKENS = 1000;
@@ -3691,7 +3699,7 @@ async function handleAIInterviewQuestion(request, env) {
  * Build the system prompt for the AI Bio-Psycho-Social interview.
  * Incorporates user profile, conversation history, and the 5-axis framework.
  */
-function buildAIInterviewPrompt(profile, conversationHistory, questionNumber) {
+function buildAIInterviewPrompt(profile, conversationHistory, questionNumber, customPromptTemplate) {
   // Build profile summary from ALL questionnaire answers
   const profileSummary = [
     profile.age ? `Възраст: ${profile.age}` : '',
@@ -3737,6 +3745,16 @@ function buildAIInterviewPrompt(profile, conversationHistory, questionNumber) {
   
   const remainingQuestions = 20 - questionNumber;
   
+  // If a custom prompt template is provided (from admin panel), use it with variable substitution
+  if (customPromptTemplate && customPromptTemplate.trim()) {
+    return customPromptTemplate
+      .replace(/\{questionNumber\}/g, String(questionNumber))
+      .replace(/\{remainingQuestions\}/g, String(remainingQuestions))
+      .replace(/\{profileSummary\}/g, profileSummary)
+      .replace(/\{historyStr\}/g, historyStr);
+  }
+  
+  // Default hardcoded prompt
   return `[SYSTEM PROMPT: BIO-PSYCHO-SOCIAL OPTIMIZATION ENGINE]
 
 [РОЛЯ И ЦЕЛ]
@@ -7133,7 +7151,8 @@ function getPromptKVKey(type) {
     'meal_plan': 'admin_meal_plan_prompt',
     'summary': 'admin_summary_prompt',
     'plan': 'admin_plan_prompt',
-    'emoeat': 'admin_emoeat_prompt'
+    'emoeat': 'admin_emoeat_prompt',
+    'ai_interview': 'admin_ai_interview_prompt'
   };
   
   return keyMap[type] || 'admin_plan_prompt';
@@ -7201,13 +7220,14 @@ async function handleGetDefaultPrompt(request, env) {
       'consultation': 'admin_consultation_prompt',
       'modification': 'admin_modification_prompt',
       'correction': 'admin_correction_prompt',
-      'emoeat': 'admin_emoeat_prompt'
+      'emoeat': 'admin_emoeat_prompt',
+      'ai_interview': 'admin_ai_interview_prompt'
     };
     
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, ai_interview` 
       }, 400);
     }
     
@@ -7570,7 +7590,8 @@ async function handleGetConfig(request, env) {
       correctionPrompt,
       protocolProvider,
       protocolModelName,
-      emoeatPrompt
+      emoeatPrompt,
+      aiInterviewPrompt
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -7585,7 +7606,8 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_correction_prompt'),
       env.page_content.get('admin_protocol_provider'),
       env.page_content.get('admin_protocol_model_name'),
-      env.page_content.get('admin_emoeat_prompt')
+      env.page_content.get('admin_emoeat_prompt'),
+      env.page_content.get('admin_ai_interview_prompt')
     ]);
     
     return jsonResponse({ 
@@ -7603,7 +7625,8 @@ async function handleGetConfig(request, env) {
       correctionPrompt,
       protocolProvider: protocolProvider || null,
       protocolModelName: protocolModelName || null,
-      emoeatPrompt
+      emoeatPrompt,
+      aiInterviewPrompt
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
