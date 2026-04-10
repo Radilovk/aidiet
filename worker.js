@@ -1197,7 +1197,6 @@ function detectGoalContradiction(data) {
 const RATE_LIMIT = {
   GENERATE_PLAN: { maxRequests: 3, windowSec: 60 },  // 3 plans/min per IP
   CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
-  AI_INTERVIEW:  { maxRequests: 25, windowSec: 60 },  // 25 questions/min per IP (max 20 questions per session + buffer)
 };
 
 /**
@@ -3602,205 +3601,6 @@ async function handleSaveClientData(request, env) {
     console.error('Error saving client data:', error);
     return jsonResponse({ error: `Failed to save client data: ${error.message}` }, 500);
   }
-}
-
-/**
- * AI Interview - Dynamic Bio-Psycho-Social Optimization Engine
- * Generates adaptive follow-up questions based on user profile and previous answers.
- * 
- * POST /api/ai-interview-question
- * Body: {
- *   profile: { age, gender, weight, height, goal, medicalConditions, ... },
- *   conversationHistory: [ { question: "...", answer: "..." }, ... ],
- *   questionNumber: 1-20
- * }
- * 
- * Returns: {
- *   question: "Next question text",
- *   questionNumber: N,
- *   isComplete: false,
- *   axis: "metabolism|neuro_endocrine|immunity|psycho_behavior|structure"
- * }
- */
-async function handleAIInterviewQuestion(request, env) {
-  try {
-    const data = await request.json();
-    
-    // Validate required fields
-    if (!data.profile) {
-      return jsonResponse({ error: 'Missing required field: profile' }, 400);
-    }
-    
-    const profile = data.profile;
-    const conversationHistory = data.conversationHistory || [];
-    const questionNumber = data.questionNumber || (conversationHistory.length + 1);
-    
-    // Hard limit: max 20 questions
-    if (questionNumber > 20) {
-      return jsonResponse({
-        question: null,
-        questionNumber: questionNumber,
-        isComplete: true,
-        reason: 'max_questions_reached'
-      });
-    }
-    
-    // Load custom AI interview prompt from KV (if set via admin panel)
-    let customPromptTemplate = null;
-    try {
-      customPromptTemplate = await getCustomPrompt(env, 'admin_ai_interview_prompt');
-    } catch (e) {
-      console.warn('Could not load custom AI interview prompt:', e);
-    }
-    
-    // Build the system prompt for the AI interview
-    const systemPrompt = buildAIInterviewPrompt(profile, conversationHistory, questionNumber, customPromptTemplate);
-    
-    // Max tokens for a single interview question response
-    const AI_INTERVIEW_MAX_TOKENS = 1000;
-    
-    // Call AI model
-    const aiResponse = await callAIModel(env, systemPrompt, AI_INTERVIEW_MAX_TOKENS, 'ai_interview_q' + questionNumber, null, profile, null, false);
-    
-    // Parse AI response using the existing robust parser
-    const parsed = parseAIResponse(aiResponse);
-    
-    if (!parsed || parsed.error) {
-      console.error('Failed to parse AI interview response:', aiResponse);
-      return jsonResponse({ error: 'Failed to parse AI response' }, 500);
-    }
-    
-    // Check if AI decided to terminate early (>90% confidence)
-    if (parsed.isComplete || parsed.done) {
-      return jsonResponse({
-        question: null,
-        questionNumber: questionNumber,
-        isComplete: true,
-        reason: parsed.reason || 'sufficient_data',
-        summary: parsed.summary || null
-      });
-    }
-    
-    return jsonResponse({
-      question: parsed.question || parsed.text,
-      questionNumber: questionNumber,
-      isComplete: false,
-      axis: parsed.axis || 'unknown',
-      hypothesis: parsed.hypothesis || null
-    });
-    
-  } catch (error) {
-    console.error('AI Interview error:', error);
-    return jsonResponse({ error: `AI Interview failed: ${error.message}` }, 500);
-  }
-}
-
-/**
- * Build the system prompt for the AI Bio-Psycho-Social interview.
- * Incorporates user profile, conversation history, and the 5-axis framework.
- */
-function buildAIInterviewPrompt(profile, conversationHistory, questionNumber, customPromptTemplate) {
-  // Build profile summary from ALL questionnaire answers
-  const profileSummary = [
-    profile.age ? `Възраст: ${profile.age}` : '',
-    profile.gender ? `Пол: ${profile.gender}` : '',
-    profile.weight ? `Тегло: ${profile.weight} кг` : '',
-    profile.height ? `Ръст: ${profile.height} см` : '',
-    profile.healthConditions ? `Здравословни състояния: ${Array.isArray(profile.healthConditions) ? profile.healthConditions.join(', ') : profile.healthConditions}` : '',
-    profile.goal ? `Цели: ${Array.isArray(profile.goal) ? profile.goal.join(', ') : profile.goal}` : '',
-    profile.lossKg ? `Желано отслабване: ${profile.lossKg} кг` : '',
-    profile.clinicalProtocol ? `Клиничен протокол: ${profile.clinicalProtocol}` : '',
-    profile.sleepHours ? `Сън: ${profile.sleepHours} часа` : '',
-    profile.sleepInterrupt ? `Прекъсвания на съня: ${profile.sleepInterrupt}` : '',
-    profile.chronotype ? `Хронотип: ${profile.chronotype}` : '',
-    profile.dailyActivityLevel ? `Дневна активност: ${profile.dailyActivityLevel}` : '',
-    profile.stressLevel ? `Стрес: ${profile.stressLevel}` : '',
-    profile.sportActivity ? `Спорт: ${profile.sportActivity}` : '',
-    profile.waterIntake ? `Вода: ${profile.waterIntake}` : '',
-    profile.drinksSweet ? `Сладки напитки: ${profile.drinksSweet}` : '',
-    profile.drinksAlcohol ? `Алкохол: ${profile.drinksAlcohol}` : '',
-    profile.weightChange === 'Да' && profile.weightChangeDetails ? `Промяна в теглото: ${profile.weightChangeDetails}` : (profile.weightChange ? `Промяна в теглото: ${profile.weightChange}` : ''),
-    profile.dietHistory === 'Да' ? `Диетична история: Да${profile.dietType ? `, Тип: ${profile.dietType}` : ''}${profile.dietResult ? `, Резултат: ${profile.dietResult}` : ''}` : (profile.dietHistory ? `Диетична история: ${profile.dietHistory}` : ''),
-    profile.overeatingFrequency ? `Преяждане: ${profile.overeatingFrequency}` : '',
-    profile.foodCravings ? `Крейвинги: ${Array.isArray(profile.foodCravings) ? profile.foodCravings.join(', ') : profile.foodCravings}` : '',
-    profile.foodTriggers ? `Тригери за хранене: ${Array.isArray(profile.foodTriggers) ? profile.foodTriggers.join(', ') : profile.foodTriggers}` : '',
-    profile.eatingHabits ? `Хранителни навици: ${Array.isArray(profile.eatingHabits) ? profile.eatingHabits.join(', ') : profile.eatingHabits}` : '',
-    profile.compensationMethods ? `Методи за компенсация: ${Array.isArray(profile.compensationMethods) ? profile.compensationMethods.join(', ') : profile.compensationMethods}` : '',
-    profile.socialComparison ? `Социално сравнение: ${profile.socialComparison}` : '', // kept for backward compat with older submissions
-    profile.dietPreference ? `Хранителни предпочитания: ${Array.isArray(profile.dietPreference) ? profile.dietPreference.join(', ') : profile.dietPreference}` : '',
-    profile.dietDislike ? `Непоносимости/нелюбими: ${profile.dietDislike}` : '',
-    profile.dietLove ? `Любими храни: ${profile.dietLove}` : '',
-    profile.medicalConditions ? `Медицински състояния: ${Array.isArray(profile.medicalConditions) ? profile.medicalConditions.join(', ') : profile.medicalConditions}` : '',
-    profile.medications === 'Да' && profile.medicationsDetails ? `Лекарства/добавки: ${profile.medicationsDetails}` : (profile.medications ? `Лекарства/добавки: ${profile.medications}` : ''),
-    profile.additionalNotes ? `Допълнителни бележки: ${profile.additionalNotes}` : '',
-  ].filter(Boolean).join('\n');
-  
-  // Build conversation history string
-  let historyStr = '';
-  if (conversationHistory.length > 0) {
-    historyStr = '\n\n[ДОСЕГАШЕН ДИАЛОГ]\n' + conversationHistory.map((entry, i) => 
-      `Въпрос ${i + 1}: ${entry.question}\nОтговор: ${entry.answer}`
-    ).join('\n\n');
-  }
-  
-  const remainingQuestions = 20 - questionNumber;
-  
-  // If a custom prompt template is provided (from admin panel), use it with variable substitution
-  if (customPromptTemplate && customPromptTemplate.trim()) {
-    return customPromptTemplate
-      .replace(/\{questionNumber\}/g, String(questionNumber))
-      .replace(/\{remainingQuestions\}/g, String(remainingQuestions))
-      .replace(/\{profileSummary\}/g, profileSummary)
-      .replace(/\{historyStr\}/g, historyStr);
-  }
-  
-  // Default hardcoded prompt
-  return `[SYSTEM PROMPT: BIO-PSYCHO-SOCIAL OPTIMIZATION ENGINE]
-
-[РОЛЯ И ЦЕЛ]
-Ти си експертен AI диагностичен алгоритъм. Целта е да събереш достатъчно информация за изготвяне на:
-1. Персонализиран хранителен план
-2. Протокол за прием на хранителни добавки
-3. Психологическа подкрепа
-4. Общи здравни съвети и начин на живот
-
-Потребителят вече е попълнил детайлен въпросник (30+ въпроса). Приемаш подадения Базов Профил като факт. НЕ ги изискваш повторно. НЕ повтаряй информация, която вече е налична. Директно генерираш следващия диагностичен въпрос за ДОПЪЛНИТЕЛНО разяснение на области, които не са достатъчно покрити от въпросника.
-
-[ОПЕРАТИВНИ ПРАВИЛА]
-1. Итеративен лимит: Максимум 20 въпроса общо. Текущ въпрос: ${questionNumber}. Оставащи: ${remainingQuestions}.
-2. Формат: Строго 1 (ЕДИН) въпрос. Забранени са съставни въпроси (с "и"/"или").
-3. Комуникация: Изчистен български език, точна терминология. Нулев словесен шум — без емпатия, без морални оценки, без потвърждения.
-4. Байесово сондиране: Всеки въпрос е логическо следствие от предишния, целящ потвърждаване или отхвърляне на хипотеза по 5-те оси.
-5. НЕ повтаряй вече зададени въпроси от въпросника и НЕ питай за информация, която вече е налична в профила.
-6. Фокусирай се върху допълнителни разяснения — детайли, които биха подобрили качеството на хранителния план, суплементацията и психологическата подкрепа.
-
-[УНИВЕРСАЛНА РАМКА ЗА ДЕКОНСТРУКЦИЯ — 5 ОСИ]
-1. Метаболизъм и Енергетика (Инсулинова чувствителност, митохондрии)
-2. Невро-Ендокринна ос (Кортизол, щитовидна жлеза, полови хормони, сън)
-3. Имунитет и Възпаление (Микробиом, пропускливост, системно възпаление)
-4. Психо-Поведение (Допамин/Серотонин, стрес-респонс)
-5. Структура и Тъкани (Колаген, мускулен синтез, микроциркулация)
-
-[ЙЕРАРХИЯ НА ПРИОРИТИЗАЦИЯ]
-- Ниво 1 (Абсолютен приоритет): Безопасност и избягване на остри тригери (базирано на заболяванията).
-- Ниво 2: Системно възпаление и циркаден ритъм.
-- Ниво 3: Инсулинова и хормонална оптимизация.
-- Ниво 4: Естетика и рекомпозиция (само при стабилни Нива 1–3).
-
-[ПЪЛЕН ПРОФИЛ НА ПОТРЕБИТЕЛЯ — ОТ ВЪПРОСНИКА]
-${profileSummary}
-${historyStr}
-
-[ИНСТРУКЦИИ ЗА ОТГОВОР]
-Върни САМО валиден JSON обект (без markdown, без код блокове) в следния формат:
-
-Ако имаш следващ въпрос:
-{"question": "Текст на въпроса на български", "axis": "metabolism|neuro_endocrine|immunity|psycho_behavior|structure", "hypothesis": "Кратко описание какво проверяваш", "isComplete": false}
-
-Ако имаш >=90% информационна сигурност и НЕ са нужни повече въпроси:
-{"isComplete": true, "reason": "Кратко обяснение защо е достатъчно", "summary": "Обобщение на ключовите открития по 5-те оси"}
-
-Генерирай ВЪПРОС ${questionNumber}:`;
 }
 
 /**
@@ -7151,8 +6951,7 @@ function getPromptKVKey(type) {
     'meal_plan': 'admin_meal_plan_prompt',
     'summary': 'admin_summary_prompt',
     'plan': 'admin_plan_prompt',
-    'emoeat': 'admin_emoeat_prompt',
-    'ai_interview': 'admin_ai_interview_prompt'
+    'emoeat': 'admin_emoeat_prompt'
   };
   
   return keyMap[type] || 'admin_plan_prompt';
@@ -7220,14 +7019,13 @@ async function handleGetDefaultPrompt(request, env) {
       'consultation': 'admin_consultation_prompt',
       'modification': 'admin_modification_prompt',
       'correction': 'admin_correction_prompt',
-      'emoeat': 'admin_emoeat_prompt',
-      'ai_interview': 'admin_ai_interview_prompt'
+      'emoeat': 'admin_emoeat_prompt'
     };
     
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, ai_interview` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat` 
       }, 400);
     }
     
@@ -7590,8 +7388,7 @@ async function handleGetConfig(request, env) {
       correctionPrompt,
       protocolProvider,
       protocolModelName,
-      emoeatPrompt,
-      aiInterviewPrompt
+      emoeatPrompt
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -7606,8 +7403,7 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_correction_prompt'),
       env.page_content.get('admin_protocol_provider'),
       env.page_content.get('admin_protocol_model_name'),
-      env.page_content.get('admin_emoeat_prompt'),
-      env.page_content.get('admin_ai_interview_prompt')
+      env.page_content.get('admin_emoeat_prompt')
     ]);
     
     return jsonResponse({ 
@@ -7625,8 +7421,7 @@ async function handleGetConfig(request, env) {
       correctionPrompt,
       protocolProvider: protocolProvider || null,
       protocolModelName: protocolModelName || null,
-      emoeatPrompt,
-      aiInterviewPrompt
+      emoeatPrompt
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -10001,10 +9796,6 @@ export default {
         return await handleReportProblem(request, env);
       } else if (url.pathname === '/api/save-client-data' && request.method === 'POST') {
         return await handleSaveClientData(request, env);
-      } else if (url.pathname === '/api/ai-interview-question' && request.method === 'POST') {
-        const rlErr = await checkRateLimit(env, request, 'AI_INTERVIEW');
-        if (rlErr) return rlErr;
-        return await handleAIInterviewQuestion(request, env);
       } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
         return await handleGetReports(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
