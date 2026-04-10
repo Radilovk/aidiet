@@ -1049,7 +1049,6 @@
         initializeTheme();
 
         // --- JSON DATA (Inserted directly from your file) ---
-        // ALL STATIC QUESTIONS — AI interview follows after these for additional clarification
         const rawQuestions = [
             { "id": "name", "text": "Въведете вашето име:", "type": "text", "options": [] },
             { "id": "gender", "text": "Моля, изберете вашия пол:", "type": "radio", "options": ["Мъж", "Жена"] },
@@ -1086,7 +1085,6 @@
         // --- PROTOCOL-SPECIFIC QUESTIONS ---
         // Additional questions shown only when specific clinical protocol is selected from protocol landing page.
         // These are inserted after the appropriate base question when protocol is pre-selected via URL.
-        // The remaining investigation is handled by the AI interview.
         const PROTOCOL_SPECIFIC_QUESTIONS = {
             insulin_resistance: {
                 addAfter: 'email',
@@ -1194,23 +1192,10 @@
         // Question types that should use compact footer layout (closer to input field)
         const INPUT_ONLY_TYPES = ['text', 'number', 'email', 'textarea'];
 
-        // --- AI INTERVIEW CONFIGURATION ---
-        const AI_INTERVIEW_API_URL = 'https://aidiet.radilov-k.workers.dev/api/ai-interview-question';
-        const AI_INTERVIEW_MAX_QUESTIONS = 20;
-        const AI_ANSWER_MAX_LENGTH = 500;
-
         // --- STATE MANAGEMENT ---
         let currentQueue = [...rawQuestions]; // Queue that expands dynamically
         let currentIndex = 0;
         let answers = {};
-        
-        // AI Interview state
-        let aiInterviewActive = false;
-        let aiInterviewHistory = []; // Array of { question, answer, axis }
-        let aiCurrentQuestion = null;
-        let aiQuestionNumber = 0;
-        let aiInterviewComplete = false;
-        let aiInterviewLoading = false;
         
         // Load saved answers from localStorage if available
         const savedAnswers = localStorage.getItem('questionnaireAnswers');
@@ -1416,12 +1401,7 @@
         function renderStep() {
             const step = currentQueue[currentIndex];
             
-            // If returning from AI interview, reset AI state
-            if (aiInterviewActive) {
-                aiInterviewActive = false;
-            }
-            
-            // Reset nextBtn behavior (may have been changed by AI interview)
+            // Reset nextBtn behavior
             nextBtn.onclick = nextStep;
             nextBtn.style.display = '';
             
@@ -1983,36 +1963,11 @@
                 
                 renderStep();
             } else {
-                // Start AI interview phase instead of finishing directly
-                startAIInterview();
+                finishQuiz();
             }
         }
 
         function prevStep() {
-            // If in AI interview phase, go back to last static question
-            if (aiInterviewActive) {
-                if (aiQuestionNumber <= 1) {
-                    // Go back to last static question
-                    aiInterviewActive = false;
-                    aiCurrentQuestion = null;
-                    aiQuestionNumber = 0;
-                    aiInterviewHistory = [];
-                    renderStep();
-                } else {
-                    // Go back to previous AI question by removing last entry
-                    const lastEntry = aiInterviewHistory.pop();
-                    aiQuestionNumber--;
-                    // Remove the answer from the stored data
-                    if (lastEntry) {
-                        delete answers[`ai_q${aiQuestionNumber}`];
-                        localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
-                    }
-                    // Re-fetch a question (or use cached previous question)
-                    fetchAIQuestion();
-                }
-                return;
-            }
-            
             if (currentIndex > 0) {
                 // Here we might want to logic to "remove" injected children if answer changed, 
                 // but for simplicity in this demo, we just go back. 
@@ -2049,222 +2004,6 @@
                 
                 renderStep();
             }
-        }
-
-        // === AI INTERVIEW PHASE ===
-        // Renders using the SAME question-card / h2.q-text / modern-input pattern
-        // as the static questionnaire, so users see a seamless continuation.
-        
-        /**
-         * Start the AI interview phase after all static questions are completed.
-         */
-        function startAIInterview() {
-            aiInterviewActive = true;
-            aiQuestionNumber = 1;
-            aiInterviewHistory = [];
-            aiCurrentQuestion = null;
-            aiInterviewComplete = false;
-            
-            // Fetch the first AI question
-            fetchAIQuestion();
-        }
-        
-        /**
-         * Fetch next AI question from the backend.
-         */
-        async function fetchAIQuestion() {
-            aiInterviewLoading = true;
-            renderAIInterviewUI(null, true);
-            
-            try {
-                const response = await fetch(AI_INTERVIEW_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        profile: answers,
-                        conversationHistory: aiInterviewHistory,
-                        questionNumber: aiQuestionNumber
-                    })
-                });
-                
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.error || `HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.isComplete) {
-                    // AI has enough information — finalize
-                    aiInterviewComplete = true;
-                    if (data.summary) {
-                        answers._aiInterviewSummary = data.summary;
-                    }
-                    answers._aiInterviewHistory = aiInterviewHistory;
-                    localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
-                    finishQuiz();
-                    return;
-                }
-                
-                aiCurrentQuestion = {
-                    text: data.question,
-                    axis: data.axis || 'unknown',
-                    hypothesis: data.hypothesis || null,
-                    number: data.questionNumber
-                };
-                
-                aiInterviewLoading = false;
-                renderAIInterviewUI(aiCurrentQuestion, false);
-                
-            } catch (error) {
-                console.error('AI Interview fetch error:', error);
-                aiInterviewLoading = false;
-                renderAIInterviewUI(null, false, error.message);
-            }
-        }
-        
-        /**
-         * Submit the user's answer to the current AI question and fetch the next one.
-         */
-        function submitAIAnswer() {
-            const input = document.getElementById('aiAnswerInput');
-            if (!input) return;
-            
-            const answerText = input.value.trim();
-            if (!answerText) return;
-            
-            // Save the answer
-            aiInterviewHistory.push({
-                question: aiCurrentQuestion.text,
-                answer: answerText,
-                axis: aiCurrentQuestion.axis
-            });
-            
-            // Store in answers object for persistence
-            answers[`ai_q${aiQuestionNumber}`] = {
-                question: aiCurrentQuestion.text,
-                answer: answerText,
-                axis: aiCurrentQuestion.axis
-            };
-            answers._aiInterviewHistory = aiInterviewHistory;
-            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
-            
-            // Move to next question
-            aiQuestionNumber++;
-            
-            // Check if we've hit the limit
-            if (aiQuestionNumber > AI_INTERVIEW_MAX_QUESTIONS) {
-                aiInterviewComplete = true;
-                finishQuiz();
-                return;
-            }
-            
-            // Fetch next question
-            fetchAIQuestion();
-        }
-        
-        
-        /**
-         * Render the AI interview UI using the SAME visual pattern as the static
-         * questionnaire: question-card → h2.q-text → modern-input textarea.
-         * No chat bubbles, no history, no badges — a seamless continuation.
-         */
-        function renderAIInterviewUI(question, loading, errorMsg) {
-            container.scrollTop = 0;
-            container.innerHTML = '';
-            
-            // Calculate combined progress: static steps + AI steps
-            const totalSteps = currentQueue.length + AI_INTERVIEW_MAX_QUESTIONS;
-            const currentStep = currentQueue.length + aiQuestionNumber;
-            const percent = (currentStep / totalSteps) * 100;
-            progressBar.style.width = `${Math.min(percent, 99)}%`;
-            stepIndicator.textContent = `Стъпка ${currentStep} от ${totalSteps}`;
-            
-            const card = document.createElement('div');
-            card.className = 'question-card';
-            
-            if (loading) {
-                container.classList.remove('compact');
-                
-                const h2 = document.createElement('h2');
-                h2.className = 'q-text';
-                h2.textContent = 'Моля, изчакайте...';
-                card.appendChild(h2);
-                
-                const spinnerWrap = document.createElement('div');
-                spinnerWrap.style.cssText = 'text-align:center; padding: 30px 0;';
-                spinnerWrap.innerHTML = '<i class="fas fa-circle-notch fa-spin" style="font-size:2rem; color:var(--primary-red); opacity:0.6;"></i>';
-                card.appendChild(spinnerWrap);
-                
-                container.appendChild(card);
-                
-                nextBtn.style.display = 'none';
-                prevBtn.style.visibility = 'visible';
-                
-            } else if (errorMsg) {
-                container.classList.remove('compact');
-                
-                const h2 = document.createElement('h2');
-                h2.className = 'q-text';
-                h2.textContent = 'Нещо се обърка';
-                card.appendChild(h2);
-                
-                const hint = document.createElement('div');
-                hint.style.cssText = 'color:#ef4444;font-size:0.9rem;margin-bottom:20px;';
-                hint.textContent = errorMsg;
-                card.appendChild(hint);
-                
-                const retryBtn = document.createElement('button');
-                retryBtn.className = 'btn btn-next';
-                retryBtn.style.cssText = 'margin: 0 auto 12px; display: block;';
-                retryBtn.innerHTML = '<i class="fas fa-redo" style="margin-right:6px;"></i>Опитай отново';
-                retryBtn.onclick = () => fetchAIQuestion();
-                card.appendChild(retryBtn);
-                
-                container.appendChild(card);
-                
-                nextBtn.style.display = 'none';
-                prevBtn.style.visibility = 'visible';
-                
-            } else if (question) {
-                container.classList.toggle('compact', true);
-                
-                const h2 = document.createElement('h2');
-                h2.className = 'q-text';
-                h2.textContent = question.text;
-                card.appendChild(h2);
-                
-                const input = document.createElement('textarea');
-                input.className = 'modern-input';
-                input.id = 'aiAnswerInput';
-                input.placeholder = 'Напишете тук...';
-                input.setAttribute('maxlength', String(AI_ANSWER_MAX_LENGTH));
-                input.oninput = () => {
-                    const val = input.value.trim();
-                    nextBtn.disabled = val.length === 0;
-                };
-                // Submit on Enter (without Shift)
-                input.onkeydown = (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (input.value.trim()) submitAIAnswer();
-                    }
-                };
-                card.appendChild(input);
-                
-                container.appendChild(card);
-                
-                nextBtn.style.display = '';
-                nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
-                nextBtn.disabled = true;
-                nextBtn.onclick = submitAIAnswer;
-                
-                prevBtn.style.visibility = 'visible';
-                
-                setTimeout(() => input.focus(), 100);
-            }
-            
-            positionFooterBelowContent();
         }
 
         // Simulate AI processing progress with visual feedback
