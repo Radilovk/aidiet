@@ -1056,9 +1056,31 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Щитовидна жлеза (Хашимото и др.)", "Храносмилателни проблеми (IBS, IBD, рефлукс)", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам" },
-            { "id": "goal", "text": "Изберете основната си цел:", "type": "checkbox", "options": ["Отслабване", "Подобряване на здравето", "Антиейджинг", "Стягане и оформяне на тялото", "Детокс и прочистване", "Изчистване на коремните мазнини", "Антицелулитна програма", "Възстановяване на тялото след бременност", "Друго"], "hasOtherInput": true },
-            { "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване" } },
+            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)", "Мастен черен дроб (NAFLD)", "PCOS / Хормонален дисбаланс", "Храносмилателни проблеми (IBS, IBD, SIBO, подуване)", "Бърнаут / Хронична умора", "Саркопения / Остеопороза", "Нямам"], "negativeOption": "Нямам" },
+            { "id": "goal", "text": "Каква е основната ви цел?", "type": "radio", "options": ["Отслабване и метаболитен рестарт", "Оптимизация на дълголетието (Longevity)", "Когнитивна производителност и фокус (Biohacking)", "Циклично хранене и хормонален баланс", "Подкрепа при GLP-1 терапии (запазване на мускули)", "Чревен ресет и подобряване на храносмилането"] },
+            { "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване и метаболитен рестарт" } },
+            // --- CROSS-SEGMENTATION: PCOS + Goals ---
+            { "id": "cs_pcos_cycle_duration", "text": "Каква е средната продължителност на цикъла Ви (28, 30, 32+ дни) и редовен ли е?", "type": "textarea", "options": [], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Циклично хранене и хормонален баланс"] } },
+            { "id": "cs_pcos_cycle_pms", "text": "Изпитвате ли ПМС симптоми (подуване, главоболие) или болезнена менструация?", "type": "radio", "options": ["Да, силно изразени", "Да, леки", "Рядко", "Не"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Циклично хранене и хормонален баланс"] } },
+            { "id": "cs_pcos_weight_belly", "text": "Забелязвате ли натрупване на мазнини предимно в коремната област и имате ли интензивен глад за захар следобед?", "type": "radio", "options": ["Да, и двете", "Само коремни мазнини", "Само глад за захар", "Не"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Отслабване и метаболитен рестарт"] } },
+            { "id": "cs_pcos_weight_meds", "text": "Приемате ли Метформин или инозитол за управление на инсулина в момента?", "type": "radio", "options": ["Да, Метформин", "Да, Инозитол", "Да, и двете", "Не"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Отслабване и метаболитен рестарт"] } },
+            { "id": "cs_pcos_longevity_family", "text": "Имате ли в семейството история на диабет тип 2 или сърдечно-съдови заболявания?", "type": "radio", "options": ["Да, диабет тип 2", "Да, сърдечно-съдови", "Да, и двете", "Не", "Не знам"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Оптимизация на дълголетието (Longevity)"] } },
+            // --- CROSS-SEGMENTATION: Burnout + Goals ---
+            { "id": "cs_burnout_focus_brainfog", "text": "Колко често изпитвате \u201Eмозъчна мъгла\u201C (brain fog) или затруднена концентрация след обяд?", "type": "radio", "options": ["Ежедневно", "Няколко пъти седмично", "Понякога", "Рядко"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Когнитивна производителност и фокус (Biohacking)"] } },
+            { "id": "cs_burnout_focus_caffeine", "text": "Каква е Вашата зависимост от кофеин (брой кафета/стимуланти на ден)?", "type": "radio", "options": ["0 (не пия кафе)", "1-2", "3-4", "5+"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Когнитивна производителност и фокус (Biohacking)"] } },
+            { "id": "cs_burnout_longevity_recovery", "text": "Колко време Ви отнема да се възстановите след физическо натоварване или стресов период?", "type": "radio", "options": ["Под 24 часа", "1-2 дни", "3-5 дни", "Повече от седмица"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Оптимизация на дълголетието (Longevity)"] } },
+            { "id": "cs_burnout_longevity_wired", "text": "Усещате ли \u201Eизтощение, но напрегнатост\u201C (tired but wired) точно преди лягане?", "type": "radio", "options": ["Да, почти всяка вечер", "Да, понякога", "Рядко", "Не"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Оптимизация на дълголетието (Longevity)"] } },
+            { "id": "cs_burnout_gut_stress", "text": "Забелязвате ли влошаване на храносмилането (подуване, тежест) в периоди на висок стрес?", "type": "radio", "options": ["Да, винаги", "Да, понякога", "Рядко", "Не"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Чревен ресет и подобряване на храносмилането"] } },
+            // --- CROSS-SEGMENTATION: Metabolic Syndrome / Insulin Resistance + Goals ---
+            { "id": "cs_metab_glp1_nausea", "text": "Изпитвате ли гадене, запек или силно намален апетит след стартиране на терапията?", "type": "radio", "options": ["Да, силно изразени", "Да, леки", "Не, нямам оплаквания"], "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Подкрепа при GLP-1 терапии (запазване на мускули)"] } },
+            { "id": "cs_metab_glp1_protein", "text": "Колко грама протеин приемате ориентировъчно на ден и включвате ли силови тренировки?", "type": "textarea", "options": [], "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Подкрепа при GLP-1 терапии (запазване на мускули)"] } },
+            { "id": "cs_metab_weight_whr", "text": "Какъв е Вашият WHR (обиколка на талия към ханш), ако сте я измервали скоро?", "type": "textarea", "options": [], "optional": true, "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Отслабване и метаболитен рестарт"] } },
+            { "id": "cs_metab_weight_hangry", "text": "Чувствате ли се замаяни или раздразнителни, ако пропуснете хранене (hangry)?", "type": "radio", "options": ["Да, винаги", "Да, понякога", "Рядко", "Не"], "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Отслабване и метаболитен рестарт"] } },
+            { "id": "cs_metab_longevity_labs", "text": "Знаете ли нивата си на ApoB или HbA1c от последните си изследвания?", "type": "textarea", "options": [], "optional": true, "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Оптимизация на дълголетието (Longevity)"] } },
+            // --- CROSS-SEGMENTATION: GI Issues + Goals ---
+            { "id": "cs_gi_gut_bristol", "text": "Колко често имате изхождания и каква е тяхната консистенция (по скалата на Бристол)?", "type": "textarea", "options": [], "showWhenAll": { "healthConditions": ["Храносмилателни проблеми (IBS, IBD, SIBO, подуване)"], "goal": ["Чревен ресет и подобряване на храносмилането"] } },
+            { "id": "cs_gi_gut_sibo", "text": "Имате ли диагностициран SIBO или съмнения за хранителни непоносимости (глутен, лактоза, FODMAP)?", "type": "radio", "options": ["Да, диагностициран SIBO", "Съмнения за непоносимости", "И двете", "Не"], "showWhenAll": { "healthConditions": ["Храносмилателни проблеми (IBS, IBD, SIBO, подуване)"], "goal": ["Чревен ресет и подобряване на храносмилането"] } },
+            { "id": "cs_gi_focus_gutbrain", "text": "Забелязвате ли пряка връзка между подуването на стомаха и спада в менталната енергия?", "type": "radio", "options": ["Да, ясна връзка", "Понякога", "Не съм сигурен/а", "Не"], "showWhenAll": { "healthConditions": ["Храносмилателни проблеми (IBS, IBD, SIBO, подуване)"], "goal": ["Когнитивна производителност и фокус (Biohacking)"] } },
             { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
             { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
             { "id": "chronotype", "text": "Вашият хронотип:", "type": "radio", "options": ["Сутрешен", "Вечерен", "Неутрален"] },
@@ -1079,6 +1101,9 @@
             { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
             { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
             { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [], "optional": true },
+            // --- PART 5: FUNCTIONAL METRICS ---
+            { "id": "labValues", "text": "Ако имате наскоро направени изследвания, моля посочете стойностите на (ако ги знаете): Витамин D, Инсулин на гладно, Феритин, CRP (възпалителен маркер)", "type": "textarea", "options": [], "optional": true },
+            { "id": "balanceTest", "text": "Можете ли да направите 10-секунден тест за баланс на един крак със затворени очи? (маркер за биологична възраст)", "type": "radio", "options": ["Да", "Не"] },
             { "id": "medicalFiles", "text": "Прикачете файлове с изследвания или анализи (по желание):", "type": "file", "options": [], "optional": true }
         ];
 
@@ -1831,7 +1856,7 @@
                 height: "165",
                 weight: "70",
                 email: "test@example.com",
-                goal: "Отслабване",
+                goal: "Отслабване и метаболитен рестарт",
                 lossKg: "5"
             };
 
@@ -1911,6 +1936,28 @@
 
         // --- NAVIGATION & BRANCHING ---
 
+        // Helper: Check if a question's showWhenAll cross-segmentation conditions are met.
+        // showWhenAll requires ALL fields to match. For each field, the answer (array or string)
+        // must include at least one of the specified values (OR within field, AND across fields).
+        function checkShowWhenAll(question) {
+            if (!question || !question.showWhenAll) return true; // no condition = always show
+            for (const [field, requiredValues] of Object.entries(question.showWhenAll)) {
+                const answer = answers[field];
+                if (!answer) return false; // field not answered
+                const reqArr = Array.isArray(requiredValues) ? requiredValues : [requiredValues];
+                let fieldMatch = false;
+                if (Array.isArray(answer)) {
+                    // Checkbox answer: check if any required value is in the selected options
+                    fieldMatch = reqArr.some(rv => answer.includes(rv));
+                } else {
+                    // Radio/text answer: check if answer equals any required value
+                    fieldMatch = reqArr.includes(answer);
+                }
+                if (!fieldMatch) return false; // ALL fields must match
+            }
+            return true;
+        }
+
         function nextStep() {
             const currentQ = currentQueue[currentIndex];
             
@@ -1946,6 +1993,14 @@
                         }
                     }
                     if (!shouldShow) {
+                        nextStep();
+                        return;
+                    }
+                }
+                
+                // CROSS-SEGMENTATION LOGIC: Skip questions whose showWhenAll conditions are not ALL met
+                if (nextQ && nextQ.showWhenAll) {
+                    if (!checkShowWhenAll(nextQ)) {
                         nextStep();
                         return;
                     }
@@ -1987,6 +2042,14 @@
                         }
                     }
                     if (!shouldShow) {
+                        prevStep();
+                        return;
+                    }
+                }
+                
+                // CROSS-SEGMENTATION LOGIC (reverse): Skip questions whose showWhenAll conditions are not ALL met
+                if (prevQ && prevQ.showWhenAll) {
+                    if (!checkShowWhenAll(prevQ)) {
                         prevStep();
                         return;
                     }
