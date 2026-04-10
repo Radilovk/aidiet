@@ -1056,9 +1056,31 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Щитовидна жлеза (Хашимото и др.)", "Храносмилателни проблеми (IBS, IBD, рефлукс)", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам" },
-            { "id": "goal", "text": "Изберете основната си цел:", "type": "checkbox", "options": ["Отслабване", "Подобряване на здравето", "Антиейджинг", "Стягане и оформяне на тялото", "Детокс и прочистване", "Изчистване на коремните мазнини", "Антицелулитна програма", "Възстановяване на тялото след бременност", "Друго"], "hasOtherInput": true },
-            { "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване" } },
+            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)", "Омазнен черен дроб (NAFLD)", "PCOS / Хормонален дисбаланс", "Храносмилателни проблеми (IBS, подуване, газове)", "Бърнаут / Хронична умора", "Саркопения / Остеопороза", "Нямам"], "negativeOption": "Нямам" },
+            { "id": "goal", "text": "Каква е основната ви цел?", "type": "radio", "options": ["Отслабване и метаболитен рестарт", "Оптимизация на дълголетието (Longevity)", "Когнитивна производителност и фокус (Biohacking)", "Циклично хранене и хормонален баланс", "Подкрепа при GLP-1 терапии (запазване на мускули)", "Чревен ресет и подобряване на храносмилането"] },
+            { "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване и метаболитен рестарт" } },
+            // --- CROSS-SEGMENTATION: PCOS + Goals ---
+            { "id": "cs_pcos_cycle_duration", "text": "Каква е средната продължителност на менструалния Ви цикъл и редовен ли е?", "type": "radio", "options": ["Под 28 дни, редовен", "28–30 дни, редовен", "31–35 дни, редовен", "Над 35 дни или нередовен", "Нямам цикъл в момента"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Циклично хранене и хормонален баланс"] } },
+            { "id": "cs_pcos_cycle_pms", "text": "Изпитвате ли предменструални симптоми (подуване, главоболие, промени в настроението) или болезнена менструация?", "type": "radio", "options": ["Да, силно изразени", "Да, леки", "Рядко", "Не"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Циклично хранене и хормонален баланс"] } },
+            { "id": "cs_pcos_weight_belly", "text": "Забелязвате ли натрупване на мазнини предимно в коремната област и/или силен глад за сладко следобед?", "type": "radio", "options": ["Да, и двете", "Само коремни мазнини", "Само глад за сладко", "Не"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Отслабване и метаболитен рестарт"] } },
+            { "id": "cs_pcos_weight_meds", "text": "Приемате ли медикаменти за управление на инсулина (напр. Метформин, инозитол)?", "type": "radio", "options": ["Да, Метформин", "Да, инозитол", "Да, и двете", "Не"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Отслабване и метаболитен рестарт"] } },
+            { "id": "cs_pcos_longevity_family", "text": "Имате ли в семейството случаи на диабет тип 2 или сърдечно-съдови заболявания?", "type": "radio", "options": ["Да, диабет тип 2", "Да, сърдечно-съдови", "Да, и двете", "Не", "Не знам"], "showWhenAll": { "healthConditions": ["PCOS / Хормонален дисбаланс"], "goal": ["Оптимизация на дълголетието (Longevity)"] } },
+            // --- CROSS-SEGMENTATION: Burnout + Goals ---
+            { "id": "cs_burnout_focus_brainfog", "text": "Колко често изпитвате замъгленост на мисълта или затруднена концентрация, особено след обяд?", "type": "radio", "options": ["Ежедневно", "Няколко пъти седмично", "Понякога", "Рядко"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Когнитивна производителност и фокус (Biohacking)"] } },
+            { "id": "cs_burnout_focus_caffeine", "text": "Колко кафета или енергийни напитки пиете на ден?", "type": "radio", "options": ["Нито едно", "1–2", "3–4", "5 или повече"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Когнитивна производителност и фокус (Biohacking)"] } },
+            { "id": "cs_burnout_longevity_recovery", "text": "Колко време Ви отнема да се възстановите след физическо натоварване или стресов период?", "type": "radio", "options": ["Под 24 часа", "1–2 дни", "3–5 дни", "Повече от седмица"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Оптимизация на дълголетието (Longevity)"] } },
+            { "id": "cs_burnout_longevity_wired", "text": "Усещате ли се изтощени, но същевременно напрегнати и неспособни да заспите вечер?", "type": "radio", "options": ["Да, почти всяка вечер", "Да, понякога", "Рядко", "Не"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Оптимизация на дълголетието (Longevity)"] } },
+            { "id": "cs_burnout_gut_stress", "text": "Забелязвате ли влошаване на храносмилането (подуване, тежест) в периоди на висок стрес?", "type": "radio", "options": ["Да, винаги", "Да, понякога", "Рядко", "Не"], "showWhenAll": { "healthConditions": ["Бърнаут / Хронична умора"], "goal": ["Чревен ресет и подобряване на храносмилането"] } },
+            // --- CROSS-SEGMENTATION: Metabolic Syndrome / Insulin Resistance + Goals ---
+            { "id": "cs_metab_glp1_nausea", "text": "Изпитвате ли гадене, запек или силно намален апетит след стартиране на GLP-1 терапията?", "type": "radio", "options": ["Да, силно изразени", "Да, леки", "Не, нямам оплаквания"], "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Подкрепа при GLP-1 терапии (запазване на мускули)"] } },
+            { "id": "cs_metab_glp1_protein", "text": "Включвате ли достатъчно протеин (месо, риба, яйца, бобови) и силови тренировки в ежедневието си?", "type": "radio", "options": ["Да, и двете", "Само протеин", "Само тренировки", "Нито едно"], "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Подкрепа при GLP-1 терапии (запазване на мускули)"] } },
+            { "id": "cs_metab_weight_waist", "text": "Каква е приблизителната обиколка на талията Ви (в см)?", "type": "number", "options": [], "optional": true, "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Отслабване и метаболитен рестарт"] } },
+            { "id": "cs_metab_weight_hangry", "text": "Чувствате ли се замаяни или раздразнителни, ако пропуснете хранене?", "type": "radio", "options": ["Да, винаги", "Да, понякога", "Рядко", "Не"], "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Отслабване и метаболитен рестарт"] } },
+            { "id": "cs_metab_longevity_labs", "text": "Знаете ли нивата си на кръвна захар (HbA1c) или холестерол (ApoB) от последните си изследвания?", "type": "textarea", "options": [], "optional": true, "showWhenAll": { "healthConditions": ["Диабет / Инсулинова резистентност", "Метаболитен синдром (високо кръвно, коремни мазнини)"], "goal": ["Оптимизация на дълголетието (Longevity)"] } },
+            // --- CROSS-SEGMENTATION: GI Issues + Goals ---
+            { "id": "cs_gi_gut_bristol", "text": "Колко често имате изхождане на ден и каква е консистенцията (твърдо, нормално, рехаво/воднисто)?", "type": "textarea", "options": [], "showWhenAll": { "healthConditions": ["Храносмилателни проблеми (IBS, подуване, газове)"], "goal": ["Чревен ресет и подобряване на храносмилането"] } },
+            { "id": "cs_gi_gut_sibo", "text": "Имате ли поставена диагноза за свръхрастеж на бактерии в тънкото черво (SIBO) или съмнения за хранителни непоносимости (глутен, лактоза)?", "type": "radio", "options": ["Да, имам диагноза", "Съмнения за непоносимости", "И двете", "Не"], "showWhenAll": { "healthConditions": ["Храносмилателни проблеми (IBS, подуване, газове)"], "goal": ["Чревен ресет и подобряване на храносмилането"] } },
+            { "id": "cs_gi_focus_gutbrain", "text": "Забелязвате ли пряка връзка между подуването на стомаха и спад в умствената енергия или концентрация?", "type": "radio", "options": ["Да, ясна връзка", "Понякога", "Не съм сигурен/а", "Не"], "showWhenAll": { "healthConditions": ["Храносмилателни проблеми (IBS, подуване, газове)"], "goal": ["Когнитивна производителност и фокус (Biohacking)"] } },
             { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
             { "id": "sleepInterrupt", "text": "Имате ли прекъсвания на съня?", "type": "radio", "options": ["Да", "Не"] },
             { "id": "chronotype", "text": "Вашият хронотип:", "type": "radio", "options": ["Сутрешен", "Вечерен", "Неутрален"] },
@@ -1079,6 +1101,9 @@
             { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
             { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
             { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [], "optional": true },
+            // --- PART 5: FUNCTIONAL METRICS ---
+            { "id": "labValues", "text": "Ако разполагате с резултати от скорошни кръвни изследвания, моля посочете стойностите (по желание): Витамин D, Инсулин на гладно, Феритин, CRP", "type": "textarea", "options": [], "optional": true },
+            { "id": "balanceTest", "text": "Можете ли да стоите на един крак със затворени очи поне 10 секунди? (Показател за координация и биологична възраст)", "type": "radio", "options": ["Да", "Не"] },
             { "id": "medicalFiles", "text": "Прикачете файлове с изследвания или анализи (по желание):", "type": "file", "options": [], "optional": true }
         ];
 
@@ -1831,7 +1856,7 @@
                 height: "165",
                 weight: "70",
                 email: "test@example.com",
-                goal: "Отслабване",
+                goal: "Отслабване и метаболитен рестарт",
                 lossKg: "5"
             };
 
@@ -1858,6 +1883,7 @@
             height:            { min: 100, max: 250,  integer: false, label: 'Ръст',    unit: 'см' },
             lossKg:            { min: 1,   max: 150,  integer: false, label: 'Желано отслабване', unit: 'кг' },
             waistCircumference:{ min: 30,  max: 300,  integer: false, label: 'Обиколка на талия', unit: 'см' },
+            cs_metab_weight_waist: { min: 40, max: 200, integer: false, label: 'Обиколка на талия', unit: 'см' },
         };
 
         function getFieldError(id, type, val, optional) {
@@ -1911,6 +1937,28 @@
 
         // --- NAVIGATION & BRANCHING ---
 
+        // Helper: Check if a question's showWhenAll cross-segmentation conditions are met.
+        // showWhenAll requires ALL fields to match. For each field, the answer (array or string)
+        // must include at least one of the specified values (OR within field, AND across fields).
+        function checkShowWhenAll(question) {
+            if (!question || !question.showWhenAll) return true; // no condition = always show
+            for (const [field, requiredValues] of Object.entries(question.showWhenAll)) {
+                const answer = answers[field];
+                if (!answer) return false; // field not answered
+                const reqArr = Array.isArray(requiredValues) ? requiredValues : [requiredValues];
+                let fieldMatch = false;
+                if (Array.isArray(answer)) {
+                    // Checkbox answer: check if any required value is in the selected options
+                    fieldMatch = reqArr.some(rv => answer.includes(rv));
+                } else {
+                    // Radio/text answer: check if answer equals any required value
+                    fieldMatch = reqArr.includes(answer);
+                }
+                if (!fieldMatch) return false; // ALL fields must match
+            }
+            return true;
+        }
+
         function nextStep() {
             const currentQ = currentQueue[currentIndex];
             
@@ -1946,6 +1994,14 @@
                         }
                     }
                     if (!shouldShow) {
+                        nextStep();
+                        return;
+                    }
+                }
+                
+                // CROSS-SEGMENTATION LOGIC: Skip questions whose showWhenAll conditions are not ALL met
+                if (nextQ && nextQ.showWhenAll) {
+                    if (!checkShowWhenAll(nextQ)) {
                         nextStep();
                         return;
                     }
@@ -1987,6 +2043,14 @@
                         }
                     }
                     if (!shouldShow) {
+                        prevStep();
+                        return;
+                    }
+                }
+                
+                // CROSS-SEGMENTATION LOGIC (reverse): Skip questions whose showWhenAll conditions are not ALL met
+                if (prevQ && prevQ.showWhenAll) {
+                    if (!checkShowWhenAll(prevQ)) {
                         prevStep();
                         return;
                     }
