@@ -125,16 +125,6 @@ else
 fi
 echo ""
 
-# admin_ai_interview_prompt (AI dynamic questionnaire for questionnaire2)
-echo "📤 Качване на admin_ai_interview_prompt..."
-if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
-    "admin_ai_interview_prompt" --path="$KV_DIR/prompts/admin_ai_interview_prompt.txt"; then
-    echo "✅ admin_ai_interview_prompt качен успешно"
-else
-    echo "❌ Грешка при качване на admin_ai_interview_prompt"
-fi
-echo ""
-
 # admin_ai_model
 echo "📤 Качване на admin_ai_model..."
 if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
