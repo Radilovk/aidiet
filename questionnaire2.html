@@ -1071,7 +1071,7 @@
             { "id": "diabetesMedications", "text": "Приемате ли лекарства за диабет?", "type": "radio", "options": ["Да, метформин", "Да, инсулин", "Да, друго", "Не"], "showWhen": { "healthConditions": "Диабет / Инсулинова резистентност" } },
 
             // Автоимунни заболявания
-            { "id": "autoimmuneDiagnosisQ7", "text": "Кое автоимунно заболяване имате?", "type": "textarea", "options": [], "showWhen": { "healthConditions": "Автоимунни заболявания" } },
+            { "id": "autoimmuneConditionType", "text": "Кое автоимунно заболяване имате?", "type": "textarea", "options": [], "showWhen": { "healthConditions": "Автоимунни заболявания" } },
             { "id": "autoimmuneElimDiet", "text": "Спазвали ли сте елиминационна диета?", "type": "radio", "options": ["Да, помогна", "Да, не помогна", "Не", "Не знам какво е"], "showWhen": { "healthConditions": "Автоимунни заболявания" } },
             { "id": "autoimmuneMedication", "text": "Приемате ли имуносупресори или биологична терапия?", "type": "radio", "options": ["Да", "Не", "Не знам"], "showWhen": { "healthConditions": "Автоимунни заболявания" } },
 
@@ -2083,6 +2083,22 @@
 
         // --- NAVIGATION & BRANCHING ---
 
+        // Helper: Check if a question's showWhenAll conditions are all met (AND logic)
+        function checkShowWhenAll(question) {
+            if (!question || !question.showWhenAll) return true;
+            for (const [field, requiredValue] of Object.entries(question.showWhenAll)) {
+                const answer = answers[field];
+                let matches = false;
+                if (Array.isArray(answer)) {
+                    matches = answer.includes(requiredValue);
+                } else {
+                    matches = (answer === requiredValue);
+                }
+                if (!matches) return false;
+            }
+            return true;
+        }
+
         function nextStep() {
             const currentQ = currentQueue[currentIndex];
             
@@ -2134,25 +2150,9 @@
                 }
                 
                 // SHOW WHEN ALL LOGIC: Skip questions where ALL conditions must match (AND logic)
-                if (nextQ && nextQ.showWhenAll) {
-                    let shouldShow = true;
-                    for (const [field, requiredValue] of Object.entries(nextQ.showWhenAll)) {
-                        const answer = answers[field];
-                        let matches = false;
-                        if (Array.isArray(answer)) {
-                            matches = answer.includes(requiredValue);
-                        } else {
-                            matches = (answer === requiredValue);
-                        }
-                        if (!matches) {
-                            shouldShow = false;
-                            break;
-                        }
-                    }
-                    if (!shouldShow) {
-                        nextStep();
-                        return;
-                    }
+                if (!checkShowWhenAll(nextQ)) {
+                    nextStep();
+                    return;
                 }
                 
                 renderStep();
@@ -2197,25 +2197,9 @@
                 }
                 
                 // SHOW WHEN ALL LOGIC (reverse): Skip questions where ALL conditions must match (AND logic)
-                if (prevQ && prevQ.showWhenAll) {
-                    let shouldShow = true;
-                    for (const [field, requiredValue] of Object.entries(prevQ.showWhenAll)) {
-                        const answer = answers[field];
-                        let matches = false;
-                        if (Array.isArray(answer)) {
-                            matches = answer.includes(requiredValue);
-                        } else {
-                            matches = (answer === requiredValue);
-                        }
-                        if (!matches) {
-                            shouldShow = false;
-                            break;
-                        }
-                    }
-                    if (!shouldShow) {
-                        prevStep();
-                        return;
-                    }
+                if (!checkShowWhenAll(prevQ)) {
+                    prevStep();
+                    return;
                 }
                 
                 renderStep();
