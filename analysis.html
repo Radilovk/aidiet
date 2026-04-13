@@ -1574,7 +1574,12 @@
         }
 
         function goToPlan() {
-            window.location.href = 'plan.html';
+            const source = localStorage.getItem('planSource');
+            if (source === 'questionnaire2') {
+                window.location.href = 'plan-pending.html';
+            } else {
+                window.location.href = 'plan.html';
+            }
         }
 
         // Initialize on page load

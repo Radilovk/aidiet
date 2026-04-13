@@ -640,14 +640,33 @@ function buildProtocolSpecificAnswersText(data) {
  */
 function buildCombinedAdditionalNotes(data) {
   const specificAnswers = buildProtocolSpecificAnswersText(data);
+  const dynamicSubAnswers = buildDynamicSubQuestionsText(data);
   const baseNotes = data.additionalNotes || '';
-  if (baseNotes && specificAnswers) {
-    return `${baseNotes}\n\n[Специфични данни за клиничен протокол]\n${specificAnswers}`;
+  
+  const sections = [];
+  if (baseNotes) sections.push(baseNotes);
+  if (specificAnswers) sections.push(`[Специфични данни за клиничен протокол]\n${specificAnswers}`);
+  if (dynamicSubAnswers) sections.push(`[Допълнителни клинични отговори]\n${dynamicSubAnswers}`);
+  
+  return sections.join('\n\n');
+}
+
+/**
+ * Build formatted text from dynamic sub-question answers (dq_* fields).
+ * These are condition×goal specific questions from questionnaire2.
+ * @param {object} data - User data
+ * @returns {string} Formatted text or empty string
+ */
+function buildDynamicSubQuestionsText(data) {
+  const lines = [];
+  for (const key of Object.keys(data)) {
+    if (!key.startsWith('dq_')) continue;
+    const value = data[key];
+    if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) continue;
+    const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+    lines.push(`${key}: ${displayValue}`);
   }
-  if (specificAnswers) {
-    return `[Специфични данни за клиничен протокол]\n${specificAnswers}`;
-  }
-  return baseNotes;
+  return lines.join('\n');
 }
 
 // Meal name and description formatting instructions for AI prompts
@@ -3572,6 +3591,8 @@ async function handleSaveClientData(request, env) {
       timestamp: data.timestamp,
       answers: data.answers,
       files: data.files || [],
+      plan: data.plan || null,
+      planStatus: data.plan ? 'pending' : 'none',
       submittedAt: new Date().toISOString()
     };
     
@@ -3633,7 +3654,8 @@ async function handleGetClientsList(request, env) {
             submittedAt: clientData.submittedAt,
             name: clientData.answers?.name || 'N/A',
             email: clientData.answers?.email || 'N/A',
-            goal: clientData.answers?.goal || 'N/A'
+            goal: clientData.answers?.goal || 'N/A',
+            planStatus: clientData.planStatus || 'none'
           };
         }
         return null;
@@ -3693,6 +3715,95 @@ async function handleGetClientData(request, env) {
   } catch (error) {
     console.error('Error getting client data:', error);
     return jsonResponse({ error: `Failed to get client data: ${error.message}` }, 500);
+  }
+}
+
+// ─── Admin: Update client plan ───
+async function handleUpdateClientPlan(request, env) {
+  try {
+    const { clientId, plan } = await request.json();
+    if (!clientId || !plan) {
+      return jsonResponse({ error: 'Missing clientId or plan' }, 400);
+    }
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const raw = await env.page_content.get(`client:${clientId}`);
+    if (!raw) {
+      return jsonResponse({ error: 'Client not found' }, 404);
+    }
+    const clientData = JSON.parse(raw);
+    clientData.plan = plan;
+    clientData.planUpdatedAt = new Date().toISOString();
+    // Mark as pending review whenever a plan is attached or updated
+    if (clientData.planStatus !== 'activated') {
+      clientData.planStatus = 'pending';
+    }
+    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+    return jsonResponse({ success: true, message: 'Plan updated' });
+  } catch (error) {
+    console.error('Error updating client plan:', error);
+    return jsonResponse({ error: `Failed to update plan: ${error.message}` }, 500);
+  }
+}
+
+// ─── Admin: Activate client plan ───
+async function handleActivateClientPlan(request, env) {
+  try {
+    const { clientId } = await request.json();
+    if (!clientId) {
+      return jsonResponse({ error: 'Missing clientId' }, 400);
+    }
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const raw = await env.page_content.get(`client:${clientId}`);
+    if (!raw) {
+      return jsonResponse({ error: 'Client not found' }, 404);
+    }
+    const clientData = JSON.parse(raw);
+    if (!clientData.plan) {
+      return jsonResponse({ error: 'No plan to activate' }, 400);
+    }
+    clientData.planStatus = 'activated';
+    clientData.planActivatedAt = new Date().toISOString();
+    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+    return jsonResponse({ success: true, message: 'Plan activated', activatedAt: clientData.planActivatedAt });
+  } catch (error) {
+    console.error('Error activating client plan:', error);
+    return jsonResponse({ error: `Failed to activate plan: ${error.message}` }, 500);
+  }
+}
+
+// ─── Public: Check client plan status ───
+async function handleGetClientPlanStatus(request, env) {
+  try {
+    const url = new URL(request.url);
+    const clientId = url.searchParams.get('clientId');
+    if (!clientId) {
+      return jsonResponse({ error: 'Missing clientId' }, 400);
+    }
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const raw = await env.page_content.get(`client:${clientId}`);
+    if (!raw) {
+      return jsonResponse({ error: 'Client not found' }, 404);
+    }
+    const clientData = JSON.parse(raw);
+    const response = {
+      success: true,
+      planStatus: clientData.planStatus || 'none',
+      activatedAt: clientData.planActivatedAt || null
+    };
+    // If activated, include the plan so client can load it
+    if (clientData.planStatus === 'activated' && clientData.plan) {
+      response.plan = clientData.plan;
+    }
+    return jsonResponse(response);
+  } catch (error) {
+    console.error('Error checking plan status:', error);
+    return jsonResponse({ error: `Failed to check plan status: ${error.message}` }, 500);
   }
 }
 
@@ -9901,6 +10012,12 @@ export default {
         return await handleGetClientsList(request, env);
       } else if (url.pathname === '/api/admin/get-client-data' && request.method === 'GET') {
         return await handleGetClientData(request, env);
+      } else if (url.pathname === '/api/admin/update-client-plan' && request.method === 'POST') {
+        return await handleUpdateClientPlan(request, env);
+      } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
+        return await handleActivateClientPlan(request, env);
+      } else if (url.pathname === '/api/client-plan-status' && request.method === 'GET') {
+        return await handleGetClientPlanStatus(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }
