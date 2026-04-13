@@ -3017,6 +3017,7 @@
                     localStorage.setItem('dietPlan', JSON.stringify(result.plan));
                     localStorage.setItem('userId', result.userId);
                     localStorage.setItem('userData', JSON.stringify(planPayload));
+                    localStorage.setItem('planSource', 'questionnaire2');
                     
                     // Reset justification flag so modal shows on first load of new plan
                     localStorage.removeItem('hasSeenPlanJustification');
