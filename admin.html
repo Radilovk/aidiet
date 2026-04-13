@@ -4798,12 +4798,20 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     minute: '2-digit'
                 });
                 
+                // Plan status badge
+                let statusBadge = '';
+                if (client.planStatus === 'activated') {
+                    statusBadge = '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#d1fae5;color:#059669;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>';
+                } else if (client.planStatus === 'pending') {
+                    statusBadge = '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>';
+                }
+                
                 html += `
-                    <div class="client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}" style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                    <div class="client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}" style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid ${client.planStatus === 'pending' ? '#fbbf24' : client.planStatus === 'activated' ? '#10b981' : '#e0e0e0'}; transition: all 0.3s ease;">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                             <div style="flex: 1; min-width: 200px;">
                                 <h3 style="margin: 0 0 5px 0; color: var(--text-dark);">
-                                    <i class="fas fa-user"></i> ${escapeHtml(client.name)}
+                                    <i class="fas fa-user"></i> ${escapeHtml(client.name)} ${statusBadge}
                                 </h3>
                                 <p style="margin: 5px 0; color: var(--text-gray); font-size: 0.9rem;">
                                     <i class="fas fa-envelope"></i> ${escapeHtml(client.email)}
@@ -4941,6 +4949,50 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 </div>
                             ` : ''}
                             
+                            ${client.plan ? `
+                                <h3 style="color: var(--text-dark); margin: 20px 0 15px 0;">
+                                    <i class="fas fa-utensils"></i> Хранителен план
+                                    ${client.planStatus === 'activated' 
+                                        ? '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#d1fae5;color:#059669;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>' 
+                                        : '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>'}
+                                </h3>
+                                <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                        <button class="btn client-plan-toggle-btn" style="background: var(--accent-blue); font-size: 0.85rem; padding: 6px 14px;">
+                                            <i class="fas fa-eye"></i> Преглед на плана
+                                        </button>
+                                        <button class="btn client-plan-edit-btn" style="background: #6366f1; font-size: 0.85rem; padding: 6px 14px;">
+                                            <i class="fas fa-edit"></i> Редактирай
+                                        </button>
+                                        ${client.planStatus !== 'activated' ? `
+                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background: #10b981; font-size: 0.85rem; padding: 6px 14px;">
+                                                <i class="fas fa-rocket"></i> Активирай достъп
+                                            </button>
+                                        ` : `
+                                            <span style="display:flex;align-items:center;gap:4px;color:#059669;font-size:0.85rem;font-weight:600;">
+                                                <i class="fas fa-check-circle"></i> Активиран на ${client.planActivatedAt ? new Date(client.planActivatedAt).toLocaleString('bg-BG') : '—'}
+                                            </span>
+                                        `}
+                                    </div>
+                                    <div class="client-plan-preview" style="display: none; max-height: 400px; overflow-y: auto; font-size: 0.85rem; white-space: pre-wrap; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; color: var(--text-dark);">${escapeHtml(JSON.stringify(client.plan, null, 2))}</div>
+                                    <div class="client-plan-editor-wrap" style="display: none;">
+                                        <textarea class="client-plan-editor" style="width:100%;min-height:300px;font-family:monospace;font-size:0.82rem;border:2px solid #6366f1;border-radius:8px;padding:12px;resize:vertical;background:#f9fafb;color:var(--text-dark);">${escapeHtml(JSON.stringify(client.plan, null, 2))}</textarea>
+                                        <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end;">
+                                            <button class="btn client-plan-save-btn" data-client-id="${escapeHtml(client.id)}" style="background:#6366f1;font-size:0.85rem;padding:6px 14px;">
+                                                <i class="fas fa-save"></i> Запази промените
+                                            </button>
+                                            <button class="btn client-plan-cancel-btn" style="background:var(--text-gray);font-size:0.85rem;padding:6px 14px;">
+                                                <i class="fas fa-times"></i> Откажи
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="margin: 20px 0 15px 0; padding: 15px; background: #f3f4f6; border-radius: 8px; text-align: center; color: var(--text-gray);">
+                                    <i class="fas fa-info-circle"></i> Няма генериран план за този клиент.
+                                </div>
+                            `}
+                            
                             <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
                                 <button class="btn client-modal-download" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.answers.name || 'client')}" style="background: #28a745;">
                                     <i class="fas fa-download"></i> Изтегли JSON
@@ -4978,6 +5030,96 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     const clientName = this.getAttribute('data-client-name');
                     downloadClientData(clientId, clientName);
                 });
+                
+                // Plan toggle preview
+                const planToggleBtn = modal.querySelector('.client-plan-toggle-btn');
+                if (planToggleBtn) {
+                    planToggleBtn.addEventListener('click', function() {
+                        const preview = modal.querySelector('.client-plan-preview');
+                        preview.style.display = preview.style.display === 'none' ? 'block' : 'none';
+                    });
+                }
+                
+                // Plan edit button
+                const planEditBtn = modal.querySelector('.client-plan-edit-btn');
+                if (planEditBtn) {
+                    planEditBtn.addEventListener('click', function() {
+                        const editorWrap = modal.querySelector('.client-plan-editor-wrap');
+                        const preview = modal.querySelector('.client-plan-preview');
+                        preview.style.display = 'none';
+                        editorWrap.style.display = editorWrap.style.display === 'none' ? 'block' : 'none';
+                    });
+                }
+                
+                // Plan cancel edit
+                const planCancelBtn = modal.querySelector('.client-plan-cancel-btn');
+                if (planCancelBtn) {
+                    planCancelBtn.addEventListener('click', function() {
+                        modal.querySelector('.client-plan-editor-wrap').style.display = 'none';
+                    });
+                }
+                
+                // Plan save
+                const planSaveBtn = modal.querySelector('.client-plan-save-btn');
+                if (planSaveBtn) {
+                    planSaveBtn.addEventListener('click', async function() {
+                        const cId = this.getAttribute('data-client-id');
+                        const editor = modal.querySelector('.client-plan-editor');
+                        try {
+                            const updatedPlan = JSON.parse(editor.value);
+                            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Запазване...';
+                            this.disabled = true;
+                            const resp = await fetch(WORKER_URL + '/api/admin/update-client-plan', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ clientId: cId, plan: updatedPlan })
+                            });
+                            const res = await resp.json();
+                            if (res.success) {
+                                showSuccess('Планът е обновен успешно!');
+                                modal.querySelector('.client-plan-preview').textContent = JSON.stringify(updatedPlan, null, 2);
+                                modal.querySelector('.client-plan-editor-wrap').style.display = 'none';
+                            } else {
+                                throw new Error(res.error || 'Unknown error');
+                            }
+                        } catch (e) {
+                            showError('Грешка: ' + e.message);
+                        } finally {
+                            this.innerHTML = '<i class="fas fa-save"></i> Запази промените';
+                            this.disabled = false;
+                        }
+                    });
+                }
+                
+                // Activate plan
+                const activateBtn = modal.querySelector('.client-plan-activate-btn');
+                if (activateBtn) {
+                    activateBtn.addEventListener('click', async function() {
+                        const cId = this.getAttribute('data-client-id');
+                        if (!confirm('Сигурни ли сте, че искате да активирате достъпа до плана за този клиент?')) return;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Активиране...';
+                        this.disabled = true;
+                        try {
+                            const resp = await fetch(WORKER_URL + '/api/admin/activate-client-plan', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ clientId: cId })
+                            });
+                            const res = await resp.json();
+                            if (res.success) {
+                                showSuccess('Планът е активиран! Клиентът вече има достъп.');
+                                modal.remove();
+                                loadClientsList(); // Refresh client list to show updated status
+                            } else {
+                                throw new Error(res.error || 'Unknown error');
+                            }
+                        } catch (e) {
+                            showError('Грешка при активиране: ' + e.message);
+                            this.innerHTML = '<i class="fas fa-rocket"></i> Активирай достъп';
+                            this.disabled = false;
+                        }
+                    });
+                }
                 
             } catch (error) {
                 console.error('Error viewing client details:', error);

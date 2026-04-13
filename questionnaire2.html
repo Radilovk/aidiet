@@ -2842,8 +2842,10 @@
             simulateProgress();
 
             // Save client data (with files) in background — non-blocking
+            let savedClientId = null;
             try {
                 const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+                savedClientId = clientId;
                 const cleanAnswers = {};
                 for (const [key, val] of Object.entries(answers)) {
                     if (key === 'medicalFiles') continue;
@@ -3018,6 +3020,17 @@
                     localStorage.setItem('userId', result.userId);
                     localStorage.setItem('userData', JSON.stringify(planPayload));
                     localStorage.setItem('planSource', 'questionnaire2');
+                    
+                    // Save clientId so plan-pending can check status
+                    if (savedClientId) {
+                        localStorage.setItem('pendingClientId', savedClientId);
+                        // Update client record with the generated plan (fire-and-forget)
+                        fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ clientId: savedClientId, plan: result.plan })
+                        }).catch(e => console.error('Error saving plan to client record:', e));
+                    }
                     
                     // Reset justification flag so modal shows on first load of new plan
                     localStorage.removeItem('hasSeenPlanJustification');

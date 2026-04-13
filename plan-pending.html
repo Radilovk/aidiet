@@ -449,5 +449,52 @@
             <p>Можете да прегледате вашия здравословен анализ по всяко време.</p>
         </div>
     </div>
+
+    <script>
+        // Check plan activation status periodically
+        (function() {
+            const clientId = localStorage.getItem('pendingClientId');
+            if (!clientId) return;
+
+            async function checkStatus() {
+                try {
+                    const resp = await fetch('https://aidiet.radilov-k.workers.dev/api/client-plan-status?clientId=' + encodeURIComponent(clientId));
+                    const data = await resp.json();
+                    if (data.success && data.planStatus === 'activated') {
+                        // Plan is ready! Update localStorage with potentially edited plan
+                        if (data.plan) {
+                            localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                        }
+                        localStorage.removeItem('planSource');
+                        localStorage.removeItem('pendingClientId');
+                        // Update the UI to show plan is ready
+                        document.querySelector('.pp-title h1').textContent = 'Вашият план е готов!';
+                        document.querySelector('.pp-title p').textContent = 'Специалистът прегледа вашите данни и одобри персонализирания ви хранителен пакет.';
+                        document.querySelector('.hero-badge i').className = 'fas fa-check-double';
+                        document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                        // Update step 3 and 4
+                        const dots = document.querySelectorAll('.step-dot');
+                        if (dots[2]) { dots[2].classList.remove('active'); dots[2].classList.add('done'); dots[2].innerHTML = '<i class="fas fa-check" style="font-size:12px;"></i>'; }
+                        if (dots[3]) { dots[3].classList.remove('pending'); dots[3].classList.add('done'); dots[3].innerHTML = '<i class="fas fa-check" style="font-size:12px;"></i>'; }
+                        // Replace CTA with link to plan
+                        document.querySelector('.cta-section').innerHTML = `
+                            <button class="btn-back" onclick="window.location.href='plan.html'" style="background:var(--pp-primary);color:#fff;border-color:var(--pp-primary);">
+                                <i class="fas fa-utensils"></i>
+                                Виж моя план
+                            </button>
+                            <p style="margin-top:12px;font-size:0.82rem;color:var(--pp-text-secondary);">Вашият персонален хранителен план ви очаква.</p>
+                        `;
+                        clearInterval(pollInterval);
+                    }
+                } catch (e) {
+                    console.warn('Status check failed:', e);
+                }
+            }
+
+            // Check immediately, then every 30 seconds
+            checkStatus();
+            const pollInterval = setInterval(checkStatus, 30000);
+        })();
+    </script>
 </body>
 </html>
