@@ -441,60 +441,74 @@
         </div>
 
         <!-- CTA -->
-        <div class="cta-section">
+        <div class="cta-section" id="ctaSection">
             <button class="btn-back" onclick="window.location.href='analysis.html'">
                 <i class="fas fa-arrow-left"></i>
                 Обратно към анализа
             </button>
             <p>Можете да прегледате вашия здравословен анализ по всяко време.</p>
+            <button id="checkStatusBtn" onclick="checkPlanStatus()" style="margin-top:12px;background:none;border:2px solid var(--pp-primary);color:var(--pp-primary);border-radius:8px;padding:10px 20px;font-size:0.9rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
+                <i class="fas fa-sync-alt"></i>
+                Провери статус на плана
+            </button>
         </div>
     </div>
 
     <script>
-        // Check plan activation status periodically
-        (function() {
+        async function checkPlanStatus() {
             const clientId = localStorage.getItem('pendingClientId');
             if (!clientId) return;
 
-            async function checkStatus() {
-                try {
-                    const resp = await fetch('https://aidiet.radilov-k.workers.dev/api/client-plan-status?clientId=' + encodeURIComponent(clientId));
-                    const data = await resp.json();
-                    if (data.success && data.planStatus === 'activated') {
-                        // Plan is ready! Update localStorage with potentially edited plan
-                        if (data.plan) {
-                            localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-                        }
-                        localStorage.removeItem('planSource');
-                        localStorage.removeItem('pendingClientId');
-                        // Update the UI to show plan is ready
-                        document.querySelector('.pp-title h1').textContent = 'Вашият план е готов!';
-                        document.querySelector('.pp-title p').textContent = 'Специалистът прегледа вашите данни и одобри персонализирания ви хранителен пакет.';
-                        document.querySelector('.hero-badge i').className = 'fas fa-check-double';
-                        document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #10b981, #059669)';
-                        // Update step 3 and 4
-                        const dots = document.querySelectorAll('.step-dot');
-                        if (dots[2]) { dots[2].classList.remove('active'); dots[2].classList.add('done'); dots[2].innerHTML = '<i class="fas fa-check" style="font-size:12px;"></i>'; }
-                        if (dots[3]) { dots[3].classList.remove('pending'); dots[3].classList.add('done'); dots[3].innerHTML = '<i class="fas fa-check" style="font-size:12px;"></i>'; }
-                        // Replace CTA with link to plan
-                        document.querySelector('.cta-section').innerHTML = `
-                            <button class="btn-back" onclick="window.location.href='plan.html'" style="background:var(--pp-primary);color:#fff;border-color:var(--pp-primary);">
-                                <i class="fas fa-utensils"></i>
-                                Виж моя план
-                            </button>
-                            <p style="margin-top:12px;font-size:0.82rem;color:var(--pp-text-secondary);">Вашият персонален хранителен план ви очаква.</p>
-                        `;
-                        clearInterval(pollInterval);
-                    }
-                } catch (e) {
-                    console.warn('Status check failed:', e);
-                }
-            }
+            const btn = document.getElementById('checkStatusBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
 
-            // Check immediately, then every 30 seconds
-            checkStatus();
-            const pollInterval = setInterval(checkStatus, 30000);
-        })();
+            try {
+                const resp = await fetch('https://aidiet.radilov-k.workers.dev/api/client-plan-status?clientId=' + encodeURIComponent(clientId));
+                const data = await resp.json();
+
+                if (data.success && data.planStatus === 'activated') {
+                    // Plan is ready — load it and update the UI
+                    if (data.plan) {
+                        localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                    }
+                    localStorage.removeItem('planSource');
+                    localStorage.removeItem('pendingClientId');
+
+                    document.querySelector('.pp-title h1').textContent = 'Вашият план е готов!';
+                    document.querySelector('.pp-title p').textContent = 'Специалистът прегледа вашите данни и одобри персонализирания ви хранителен пакет.';
+                    document.querySelector('.hero-badge i').className = 'fas fa-check-double';
+                    document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #10b981, #059669)';
+
+                    const dots = document.querySelectorAll('.step-dot');
+                    if (dots[2]) { dots[2].classList.remove('active'); dots[2].classList.add('done'); dots[2].innerHTML = '<i class="fas fa-check" style="font-size:12px;"></i>'; }
+                    if (dots[3]) { dots[3].classList.remove('pending'); dots[3].classList.add('done'); dots[3].innerHTML = '<i class="fas fa-check" style="font-size:12px;"></i>'; }
+
+                    document.getElementById('ctaSection').innerHTML = `
+                        <button class="btn-back" onclick="window.location.href='plan.html'" style="background:var(--pp-primary);color:#fff;border-color:var(--pp-primary);">
+                            <i class="fas fa-utensils"></i>
+                            Виж моя план
+                        </button>
+                        <p style="margin-top:12px;font-size:0.82rem;color:var(--pp-text-secondary);">Вашият персонален хранителен план ви очаква.</p>
+                    `;
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sync-alt"></i> Провери статус на плана';
+                    // Show brief "not ready yet" feedback
+                    const note = document.createElement('p');
+                    note.style.cssText = 'margin-top:8px;font-size:0.82rem;color:#d97706;';
+                    note.textContent = 'Планът все още се преглежда. Опитайте отново по-късно.';
+                    const existing = document.querySelector('#ctaSection .status-note');
+                    if (existing) existing.remove();
+                    note.classList.add('status-note');
+                    document.getElementById('ctaSection').appendChild(note);
+                }
+            } catch (e) {
+                console.warn('Status check failed:', e);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Провери статус на плана';
+            }
+        }
     </script>
 </body>
 </html>

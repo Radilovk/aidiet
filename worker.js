@@ -3735,6 +3735,10 @@ async function handleUpdateClientPlan(request, env) {
     const clientData = JSON.parse(raw);
     clientData.plan = plan;
     clientData.planUpdatedAt = new Date().toISOString();
+    // Mark as pending review whenever a plan is attached or updated
+    if (clientData.planStatus !== 'activated') {
+      clientData.planStatus = 'pending';
+    }
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
     return jsonResponse({ success: true, message: 'Plan updated' });
   } catch (error) {
