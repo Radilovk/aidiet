@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bg">
+<html lang="bg" style="color-scheme: light;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -314,29 +314,7 @@
             color: var(--pp-text-secondary);
         }
 
-        /* ─── Dark theme ─── */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --pp-bg: #0f1a12;
-                --pp-card: #1a2b1e;
-                --pp-text: #e8f5e9;
-                --pp-text-secondary: #9ca3af;
-                --pp-shadow: 0 10px 40px rgba(0,0,0,0.35);
-            }
-            .feature-item { background: rgba(16,185,129,0.08); }
-            .email-notice { background: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(37,99,235,0.05)); }
-            .email-notice div h4 { color: #60a5fa; }
-            .email-notice div p { color: #93c5fd; }
-            .step-item::before { background: #374151; }
-            .step-dot.pending { background: #1f2937; color: #6b7280; }
-            .status-icon.received { background: rgba(5,150,105,0.15); }
-            .feature-icon.green  { background: rgba(5,150,105,0.15); }
-            .feature-icon.blue   { background: rgba(37,99,235,0.15); }
-            .feature-icon.purple { background: rgba(124,58,237,0.15); }
-            .feature-icon.amber  { background: rgba(217,119,6,0.15); }
-            .feature-icon.rose   { background: rgba(225,29,72,0.15); }
-            .feature-icon.cyan   { background: rgba(8,145,178,0.15); }
-        }
+        /* Dark theme removed – page is always light */
     </style>
 </head>
 <body>

@@ -4355,10 +4355,7 @@
                 mealContainer.appendChild(mealCard);
             });
 
-            // Show breakfast-note after meals (only when client does NOT skip breakfast)
-            if (bsEl) {
-                mealContainer.appendChild(bsEl);
-            }
+            // breakfast-note is only shown when the client skips breakfast (already appended above)
         }
 
         // --- Helper function to format text with bullet points ---
