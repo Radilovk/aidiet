@@ -313,6 +313,44 @@
         }
         .other-input-container.active { display: block; }
 
+        /* Group dropdown for condition sub-selection */
+        .group-dropdown-container {
+            margin-top: 10px;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        .group-dropdown-container.active { display: block; }
+        .group-dropdown-select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            background: var(--input-bg);
+            color: var(--text-dark);
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 14px;
+            padding-right: 40px;
+            transition: var(--transition);
+        }
+        .group-dropdown-select:focus {
+            border-color: var(--primary-red);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+        }
+        [data-theme="dark"] .group-dropdown-select {
+            border-color: #374151;
+            background-color: #1f2937;
+            color: #e5e7eb;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        }
+
         /* --- FOOTER NAVIGATION --- */
         .nav-footer {
             padding: var(--footer-padding-v) var(--footer-padding-h) calc(var(--footer-padding-v) + var(--safe-area-inset-bottom)) var(--footer-padding-h);
@@ -1056,7 +1094,7 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Щитовидна жлеза (Хашимото и др.)", "Храносмилателни проблеми (IBS, IBD, рефлукс)", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам", "specialDetailOptions": ["Алергии и хранителна непоносимост", "Автоимунни заболявания"] },
+            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Щитовидна жлеза (Хашимото и др.)", "Храносмилателни проблеми", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Метаболитни нарушения", "Мускулно-скелетни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Анемия", "Кожни проблеми", "Проблеми със съня", "Когнитивен спад", "Хронично възпаление и слаб имунитет", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам", "specialDetailOptions": ["Алергии и хранителна непоносимост"] },
             { "id": "goal", "text": "Изберете основната си цел:", "type": "checkbox", "options": ["Отслабване", "Подобряване на здравето", "Антиейджинг", "Стягане и оформяне на тялото", "Детокс и прочистване", "Изчистване на коремните мазнини", "Антицелулитна програма", "Възстановяване на тялото след бременност", "Друго"], "hasOtherInput": true },
             { "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване" } },
             { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
@@ -1083,6 +1121,64 @@
             { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [], "optional": true },
             { "id": "medicalFiles", "text": "Прикачете файлове с изследвания или анализи (по желание):", "type": "file", "options": [], "optional": true }
         ];
+
+        // --- CONDITION GROUPS (dropdown sub-options for grouped conditions) ---
+        // When a group checkbox is selected, a dropdown appears with specific conditions
+        const CONDITION_GROUPS = {
+            "Автоимунни заболявания": [
+                "Хашимото (тиреоидит)",
+                "Ревматоиден артрит",
+                "Системен лупус еритематозус",
+                "Псориазис",
+                "Множествена склероза",
+                "Болест на Крон",
+                "Улцерозен колит",
+                "Целиакия (глутенова ентеропатия)",
+                "Склеродермия",
+                "Витилиго",
+                "Друго автоимунно заболяване"
+            ],
+            "Сърдечно-съдови заболявания": [
+                "Хипертония (високо кръвно налягане)",
+                "Исхемична болест на сърцето",
+                "Сърдечна недостатъчност",
+                "Аритмия (предсърдно мъждене и други)",
+                "Атеросклероза",
+                "Варикозни вени",
+                "Друго сърдечно-съдово заболяване"
+            ],
+            "Ендокринни заболявания": [
+                "Синдром на поликистозните яйчници",
+                "Хормонален дисбаланс",
+                "Надбъбречна недостатъчност",
+                "Хиперпролактинемия",
+                "Друго ендокринно заболяване"
+            ],
+            "Храносмилателни проблеми": [
+                "Синдром на раздразненото черво",
+                "Възпалително чревно заболяване (Крон, улцерозен колит)",
+                "Гастроезофагеален рефлукс",
+                "Синдром на бактериалния свръхрастеж в тънкото черво",
+                "Хроничен гастрит",
+                "Друг храносмилателен проблем"
+            ],
+            "Метаболитни нарушения": [
+                "Метаболитен синдром",
+                "Мастна чернодробна болест (стеатоза)",
+                "Дислипидемия (висок холестерол или триглицериди)",
+                "Подагра",
+                "Друго метаболитно нарушение"
+            ],
+            "Мускулно-скелетни заболявания": [
+                "Остеопороза",
+                "Остеопения",
+                "Артрит (остеоартрит)",
+                "Фибромиалгия",
+                "Хронична болка в ставите",
+                "Дискова херния",
+                "Друго мускулно-скелетно заболяване"
+            ]
+        };
 
         // --- GENDER-BASED FILTERING ---
         // Conditions and goals that should only appear for specific genders
@@ -1133,7 +1229,7 @@
                     { id: "dq_slim_thyroid_3", text: "Имате ли проблем с хроничен запек или забавена чревна перисталтика, които не се повлияват от прием на фибри и вода?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_slim_thyroid_4", text: "Усещате ли екстремна трудност при събуждане сутрин и нужда от дълго време, за да влезете в работен режим?", type: "radio", options: ["Да", "Не"], optional: true }
                 ],
-                "Храносмилателни проблеми (IBS, IBD, рефлукс)": [
+                "Храносмилателни проблеми": [
                     { id: "dq_slim_gi_1", text: "Забелязвате ли, че коремът ви е плосък сутрин, но се подува прогресивно с напредването на деня?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_slim_gi_2", text: "Изпитвате ли постоянен глад за сладки или тестени изделия, дори скоро след като сте консумирали основно хранене?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_slim_gi_3", text: "Усещате ли «коремно напрежение», което прави носенето на по-тесни дрехи некомфортно в следобедните часове?", type: "radio", options: ["Да", "Не"], optional: true },
@@ -1212,7 +1308,7 @@
                     { id: "dq_health_thyroid_3", text: "Наблюдавате ли епизоди на внезапно сърцебиене или промени в пулса в състояние на покой?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_health_thyroid_4", text: "Забелязвате ли влошаване на краткосрочната памет или епизоди на «ментално блокиране»?", type: "radio", options: ["Да", "Не"], optional: true }
                 ],
-                "Храносмилателни проблеми (IBS, IBD, рефлукс)": [
+                "Храносмилателни проблеми": [
                     { id: "dq_health_gi_1", text: "Имате ли изразена чувствителност към специфични групи храни, която се проявява с подуване почти веднага след хранене?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_health_gi_2", text: "Наблюдавате ли промени в езика (бял налеп) или честа поява на афти в устната кухина?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_health_gi_3", text: "Усещате ли тежест в горната част на корема или «киселини», особено след кафе, алкохол или мазна храна?", type: "radio", options: ["Да", "Не"], optional: true },
@@ -1334,7 +1430,7 @@
                     { id: "dq_tone_thyroid_3", text: "Изпитвате ли необяснима мускулна слабост или липса на «експлозивност» по време на упражнения?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_tone_thyroid_4", text: "Колко често изпитвате мускулни крампи или скованост, които не са пряко свързани с интензивността на тренировката?", type: "radio", options: ["Често", "Понякога", "Рядко", "Не"], optional: true }
                 ],
-                "Храносмилателни проблеми (IBS, IBD, рефлукс)": [
+                "Храносмилателни проблеми": [
                     { id: "dq_tone_gi_1", text: "Забелязвате ли признаци на нутритивни дефицити, въпреки балансираното хранене (чупливи нокти, суха коса)?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_tone_gi_2", text: "Усещате ли гадене, тежест или сънливост след прием на по-голяма порция протеин или протеинови добавки?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_tone_gi_3", text: "Имате ли усещане за загуба на «мускулна плътност» и трудност при възстановяване на тъканите?", type: "radio", options: ["Да", "Не"], optional: true },
@@ -1395,7 +1491,7 @@
                 ]
             },
             "Детокс и прочистване": {
-                "Храносмилателни проблеми (IBS, IBD, рефлукс)": [
+                "Храносмилателни проблеми": [
                     { id: "dq_detox_gi_1", text: "Имате ли изразена чувствителност към специфични групи храни, която се проявява с подуване почти веднага след хранене?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_detox_gi_2", text: "Наблюдавате ли промени в езика (бял или жълтеникав налеп) или честа поява на афти в устната кухина?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_detox_gi_3", text: "Усещате ли тежест в горната част на корема или «киселини» (рефлукс), особено след кафе, алкохол или мазна храна?", type: "radio", options: ["Да", "Не"], optional: true },
@@ -1451,7 +1547,7 @@
                     { id: "dq_belly_meno_3", text: "Изпитвате ли засилен глад за сладко или чести пристъпи на глад вечер?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_belly_meno_4", text: "Усещате ли забавяне на метаболизма, изразено в трудно сваляне на килограми?", type: "radio", options: ["Да", "Не"], optional: true }
                 ],
-                "Храносмилателни проблеми (IBS, IBD, рефлукс)": [
+                "Храносмилателни проблеми": [
                     { id: "dq_belly_gi_1", text: "Забелязвате ли, че коремът ви е плосък сутрин, но се подува прогресивно с напредването на деня?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_belly_gi_2", text: "Усещате ли «коремно напрежение», което прави носенето на по-тесни дрехи некомфортно следобед?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_belly_gi_3", text: "Изпитвате ли постоянен глад за сладки или тестени изделия, дори скоро след основно хранене?", type: "radio", options: ["Да", "Не"], optional: true },
@@ -1495,7 +1591,7 @@
                     { id: "dq_cellulite_allergy_3", text: "Изпитвате ли сърбеж или леко зачервяване в зоните с целулит без видима причина?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_cellulite_allergy_4", text: "Наблюдавате ли подпухналост на цялото тяло в дните, когато целулитът е най-силно изразен?", type: "radio", options: ["Да", "Не"], optional: true }
                 ],
-                "Храносмилателни проблеми (IBS, IBD, рефлукс)": [
+                "Храносмилателни проблеми": [
                     { id: "dq_cellulite_gi_1", text: "Наблюдавате ли пряка връзка между подуването на корема и видимостта на целулита?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_cellulite_gi_2", text: "Усещате ли тялото си «интоксикирано» (главоболие, лош дъх, летаргия), когато храносмилането е затруднено?", type: "radio", options: ["Да", "Не"], optional: true },
                     { id: "dq_cellulite_gi_3", text: "Изпитвате ли системна липса на енергия, която ви пречи да извършвате ежедневни движения?", type: "radio", options: ["Да", "Не"], optional: true },
@@ -2230,6 +2326,37 @@
                             if(answers[`${step.id}_${opt}`]) detailInput.value = answers[`${step.id}_${opt}`];
                         }
                     }
+
+                    // Insert group dropdown for condition groups (e.g., Автоимунни заболявания → specific disease dropdown)
+                    if (step.id === 'healthConditions' && CONDITION_GROUPS[opt]) {
+                        const dropdownContainer = document.createElement('div');
+                        dropdownContainer.className = 'group-dropdown-container';
+                        dropdownContainer.id = `group_${step.id}_${opt}`;
+
+                        const selectEl = document.createElement('select');
+                        selectEl.className = 'group-dropdown-select';
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = 'Изберете конкретно състояние...';
+                        selectEl.appendChild(defaultOption);
+
+                        CONDITION_GROUPS[opt].forEach(subOpt => {
+                            const optionEl = document.createElement('option');
+                            optionEl.value = subOpt;
+                            optionEl.textContent = subOpt;
+                            selectEl.appendChild(optionEl);
+                        });
+
+                        selectEl.onchange = (e) => saveOther(`${step.id}_${opt}`, e.target.value);
+                        dropdownContainer.appendChild(selectEl);
+                        grid.appendChild(dropdownContainer);
+
+                        // Restore selection if user went back
+                        if (answers[step.id] && Array.isArray(answers[step.id]) && answers[step.id].includes(opt)) {
+                            dropdownContainer.classList.add('active');
+                            if (answers[`${step.id}_${opt}`]) selectEl.value = answers[`${step.id}_${opt}`];
+                        }
+                    }
                 });
                 
                 card.appendChild(grid);
@@ -2341,6 +2468,20 @@
                                 detailContainer.classList.add('active');
                             } else {
                                 detailContainer.classList.remove('active');
+                            }
+                        }
+                    });
+                }
+
+                // Handle group dropdown visibility for condition groups
+                if (qId === 'healthConditions') {
+                    Object.keys(CONDITION_GROUPS).forEach(groupName => {
+                        const dropdownContainer = document.getElementById(`group_${qId}_${groupName}`);
+                        if (dropdownContainer) {
+                            if (checked.includes(groupName)) {
+                                dropdownContainer.classList.add('active');
+                            } else {
+                                dropdownContainer.classList.remove('active');
                             }
                         }
                     });
@@ -2885,7 +3026,7 @@
                     'Диабет / Инсулинова резистентност': ['Инсулинова резистентност', 'Диабет'],
                     'Автоимунни заболявания': ['Автоимунно'],
                     'Щитовидна жлеза (Хашимото и др.)': ['Хашимото'],
-                    'Храносмилателни проблеми (IBS, IBD, рефлукс)': ['IBS', 'IBD', 'Рефлукс'],
+                    'Храносмилателни проблеми': ['IBS', 'IBD', 'Рефлукс'],
                     'Сърдечно-съдови заболявания': ['Сърдечно-съдови'],
                     'Ендокринни заболявания': ['Ендокринни'],
                     'Депресия': ['Депресия'],
