@@ -1056,7 +1056,7 @@
             { "id": "height", "text": "Въведете вашия ръст (в см):", "type": "number", "options": [] },
             { "id": "weight", "text": "Въведете вашето тегло (в кг):", "type": "number", "options": [] },
             { "id": "email", "text": "Въведете вашия имейл адрес:", "type": "email", "options": [] },
-            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Щитовидна жлеза (Хашимото и др.)", "Храносмилателни проблеми (IBS, IBD, рефлукс)", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам" },
+            { "id": "healthConditions", "text": "Имате ли някое от следните здравословни състояния?", "type": "checkbox", "options": ["Диабет / Инсулинова резистентност", "Автоимунни заболявания", "Щитовидна жлеза (Хашимото и др.)", "Храносмилателни проблеми (IBS, IBD, рефлукс)", "Сърдечно-съдови заболявания", "Ендокринни заболявания", "Депресия", "Тревожност", "Алергии и хранителна непоносимост", "Емоционално хранене", "Менопауза", "След бременност", "Друго", "Нямам"], "hasOtherInput": true, "negativeOption": "Нямам", "specialDetailOptions": ["Алергии и хранителна непоносимост", "Автоимунни заболявания"] },
             { "id": "goal", "text": "Изберете основната си цел:", "type": "checkbox", "options": ["Отслабване", "Подобряване на здравето", "Антиейджинг", "Стягане и оформяне на тялото", "Детокс и прочистване", "Изчистване на коремните мазнини", "Антицелулитна програма", "Възстановяване на тялото след бременност", "Друго"], "hasOtherInput": true },
             { "id": "lossKg", "text": "Колко килограма бихте искали да свалите?", "type": "number", "options": [], "showWhen": { "goal": "Отслабване" } },
             { "id": "sleepHours", "text": "Колко часа сън имате средно на нощ?", "type": "radio", "options": ["Под 5", "5–6", "6–7", "7–8", "Над 8"] },
@@ -2875,17 +2875,82 @@
 
             try {
                 // Build the payload for plan generation
-                // Map healthConditions → medicalConditions (worker.js expects medicalConditions)
+                // Adapt questionnaire2 data to the system's expected format
                 const planPayload = {};
+
+                // Map questionnaire2's descriptive healthConditions options → system's short medicalConditions values
+                const HEALTH_CONDITIONS_MAP = {
+                    'Диабет / Инсулинова резистентност': ['Инсулинова резистентност', 'Диабет'],
+                    'Автоимунни заболявания': ['Автоимунно'],
+                    'Щитовидна жлеза (Хашимото и др.)': ['Хашимото'],
+                    'Храносмилателни проблеми (IBS, IBD, рефлукс)': ['IBS', 'IBD', 'Рефлукс'],
+                    'Сърдечно-съдови заболявания': ['Сърдечно-съдови'],
+                    'Ендокринни заболявания': ['Ендокринни'],
+                    'Депресия': ['Депресия'],
+                    'Тревожност': ['Тревожност'],
+                    'Алергии и хранителна непоносимост': ['Алергии'],
+                    'Емоционално хранене': ['Емоционално хранене'],
+                    'Менопауза': ['Менопауза'],
+                    'След бременност': ['След бременност'],
+                    'Друго': ['Друго'],
+                    'Нямам': ['Нямам']
+                };
+
                 for (const [key, val] of Object.entries(answers)) {
                     if (key === 'medicalFiles') continue; // skip File objects
                     if (key === 'healthConditions') {
-                        planPayload.medicalConditions = val;
+                        // Convert descriptive options to system-expected short names
+                        const mapped = [];
+                        if (Array.isArray(val)) {
+                            for (const opt of val) {
+                                if (HEALTH_CONDITIONS_MAP[opt]) {
+                                    mapped.push(...HEALTH_CONDITIONS_MAP[opt]);
+                                } else {
+                                    mapped.push(opt);
+                                }
+                            }
+                        }
+                        planPayload.medicalConditions = mapped;
                     } else if (key === 'healthConditions_other') {
                         planPayload.medicalConditions_other = val;
+                    } else if (key.startsWith('healthConditions_')) {
+                        // Map detail fields to system-expected keys
+                        // System expects: medicalConditions_Алергии, medicalConditions_Автоимунно
+                        const DETAIL_FIELD_MAP = {
+                            'healthConditions_Алергии и хранителна непоносимост': 'medicalConditions_Алергии',
+                            'healthConditions_Автоимунни заболявания': 'medicalConditions_Автоимунно'
+                        };
+                        const mappedKey = DETAIL_FIELD_MAP[key];
+                        if (mappedKey) {
+                            planPayload[mappedKey] = val;
+                        } else {
+                            // Pass through any other detail fields
+                            const suffix = key.replace('healthConditions_', '');
+                            planPayload[`medicalConditions_${suffix}`] = val;
+                        }
+                    } else if (key === 'goal') {
+                        // System expects goal as a string, not an array
+                        // Use the primary (first) goal; store all goals in additionalNotes context
+                        if (Array.isArray(val) && val.length > 0) {
+                            planPayload.goal = val[0];
+                            if (val.length > 1) {
+                                planPayload._additionalGoals = val.slice(1);
+                            }
+                        } else {
+                            planPayload.goal = val;
+                        }
                     } else {
                         planPayload[key] = val;
                     }
+                }
+
+                // Append additional goals to additionalNotes so the AI receives them
+                if (planPayload._additionalGoals && planPayload._additionalGoals.length > 0) {
+                    const goalsText = `Допълнителни цели: ${planPayload._additionalGoals.join(', ')}`;
+                    planPayload.additionalNotes = planPayload.additionalNotes
+                        ? `${planPayload.additionalNotes}\n${goalsText}`
+                        : goalsText;
+                    delete planPayload._additionalGoals;
                 }
 
                 // HTTP request with 360-second timeout (6 minutes)
