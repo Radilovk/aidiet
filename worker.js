@@ -640,14 +640,33 @@ function buildProtocolSpecificAnswersText(data) {
  */
 function buildCombinedAdditionalNotes(data) {
   const specificAnswers = buildProtocolSpecificAnswersText(data);
+  const dynamicSubAnswers = buildDynamicSubQuestionsText(data);
   const baseNotes = data.additionalNotes || '';
-  if (baseNotes && specificAnswers) {
-    return `${baseNotes}\n\n[Специфични данни за клиничен протокол]\n${specificAnswers}`;
+  
+  const sections = [];
+  if (baseNotes) sections.push(baseNotes);
+  if (specificAnswers) sections.push(`[Специфични данни за клиничен протокол]\n${specificAnswers}`);
+  if (dynamicSubAnswers) sections.push(`[Допълнителни клинични отговори]\n${dynamicSubAnswers}`);
+  
+  return sections.join('\n\n');
+}
+
+/**
+ * Build formatted text from dynamic sub-question answers (dq_* fields).
+ * These are condition×goal specific questions from questionnaire2.
+ * @param {object} data - User data
+ * @returns {string} Formatted text or empty string
+ */
+function buildDynamicSubQuestionsText(data) {
+  const lines = [];
+  for (const key of Object.keys(data)) {
+    if (!key.startsWith('dq_')) continue;
+    const value = data[key];
+    if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) continue;
+    const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+    lines.push(`${key}: ${displayValue}`);
   }
-  if (specificAnswers) {
-    return `[Специфични данни за клиничен протокол]\n${specificAnswers}`;
-  }
-  return baseNotes;
+  return lines.join('\n');
 }
 
 // Meal name and description formatting instructions for AI prompts
@@ -1146,13 +1165,13 @@ function detectGoalContradiction(data) {
     }
     
     // Check for PCOS + high carb approach - validation handled in analysis
-    if (data.medicalConditions.includes('PCOS') || data.medicalConditions.includes('СПКЯ')) {
+    if (data.medicalConditions.some(c => c.includes('PCOS') || c.includes('СПКЯ'))) {
       // PCOS patients typically need lower carb approach - this will be flagged in analysis
       // No contradiction here, but AI should be aware via analysis prompt
     }
     
     // Check for anemia + vegetarian/vegan diet without iron awareness
-    if (data.medicalConditions.includes('Анемия') && 
+    if (data.medicalConditions.some(c => c.includes('Анемия')) && 
         data.dietPreference && 
         (data.dietPreference.includes('Вегетарианска') || data.dietPreference.includes('Веган'))) {
       hasContradiction = true;
@@ -4216,8 +4235,8 @@ function validatePlan(plan, userData, substitutions = []) {
   
   // 8. Check for medical conditions alignment (Step 2 - Strategy issue)
   if (userData.medicalConditions && Array.isArray(userData.medicalConditions)) {
-    // Check for diabetes + high carb plan
-    if (userData.medicalConditions.includes('Диабет')) {
+    // Check for diabetes + high carb plan (supports both "Диабет" and "Диабет / Инсулинова резистентност")
+    if (userData.medicalConditions.some(c => c.includes('Диабет'))) {
       const modifier = plan.strategy?.dietaryModifier || '';
       if (modifier.toLowerCase().includes('високовъглехидратно')) {
         const error = 'Планът съдържа високовъглехидратна диета, неподходяща при диабет';
@@ -4226,8 +4245,8 @@ function validatePlan(plan, userData, substitutions = []) {
       }
     }
     
-    // Check for IBS/IBD + raw fiber heavy plan
-    if (userData.medicalConditions.includes('IBS') || userData.medicalConditions.includes('IBD')) {
+    // Check for IBS/IBD + raw fiber heavy plan (supports both short and descriptive option names)
+    if (userData.medicalConditions.some(c => c.includes('IBS') || c.includes('IBD'))) {
       const modifier = plan.strategy?.dietaryModifier || '';
       if (!modifier.toLowerCase().includes('щадящ')) {
         // Warning, but not fatal error
@@ -4236,7 +4255,7 @@ function validatePlan(plan, userData, substitutions = []) {
     }
     
     // Check for PCOS + high carb plan
-    if (userData.medicalConditions.includes('PCOS') || userData.medicalConditions.includes('СПКЯ')) {
+    if (userData.medicalConditions.some(c => c.includes('PCOS') || c.includes('СПКЯ'))) {
       const modifier = plan.strategy?.dietaryModifier || '';
       if (modifier.toLowerCase().includes('високовъглехидратно') || modifier.toLowerCase().includes('балансирано')) {
         console.log('Warning: PCOS detected - should prefer lower carb approach');
@@ -4244,7 +4263,7 @@ function validatePlan(plan, userData, substitutions = []) {
     }
     
     // Check for anemia + vegetarian diet without iron supplementation (Step 4 - Final validation)
-    if (userData.medicalConditions.includes('Анемия') && 
+    if (userData.medicalConditions.some(c => c.includes('Анемия')) && 
         userData.dietPreference && 
         (userData.dietPreference.includes('Вегетарианска') || userData.dietPreference.includes('Веган'))) {
       const supplements = plan.supplements || [];
