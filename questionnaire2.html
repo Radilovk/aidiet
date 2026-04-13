@@ -1553,8 +1553,11 @@
             // Remove any previously injected dynamic sub-questions
             currentQueue = currentQueue.filter(q => !q._isDynamicSubQuestion);
 
-            const selectedConditions = answers.healthConditions || [];
-            const selectedGoals = answers.goal || [];
+            // Defensively ensure both values are arrays (checkbox always saves as array, but guard against edge cases)
+            const rawConditions = answers.healthConditions;
+            const rawGoals = answers.goal;
+            const selectedConditions = Array.isArray(rawConditions) ? rawConditions : (rawConditions ? [rawConditions] : []);
+            const selectedGoals = Array.isArray(rawGoals) ? rawGoals : (rawGoals ? [rawGoals] : []);
 
             if (!selectedConditions.length || !selectedGoals.length) return;
 
@@ -1586,10 +1589,11 @@
 
             if (subQuestionsToInject.length === 0) return;
 
-            // Find the insertion point: after lossKg (if it exists) or after goal
+            // Insert sub-questions after lossKg.
+            // lossKg is always present in the base queue (it self-skips via showWhen when not "Отслабване").
+            // If somehow not found, fall back to inserting after goal.
             let insertAfterId = 'goal';
-            const lossKgIdx = currentQueue.findIndex(q => q.id === 'lossKg');
-            if (lossKgIdx !== -1) {
+            if (currentQueue.findIndex(q => q.id === 'lossKg') !== -1) {
                 insertAfterId = 'lossKg';
             }
 
