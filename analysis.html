@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="description" content="Здравословен анализ и детайлни препоръки от NutriPlan за вашия хранителен режим.">
     <meta name="theme-color" content="#10b981">
     <meta name="mobile-web-app-capable" content="yes">
@@ -20,60 +20,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-red: #10b981;
-            --primary-red-hover: #059669;
-            --soft-red: #d1fae5;
-            --accent-yellow: #fbbf24;
-            --accent-blue: #3b82f6;
-            --accent-light-red: #f87171;
-            --text-dark: #1e3a20;
-            --text-gray: #6b7280;
-            --bg-color: #fefce8;
-            --card-bg: #ffffff;
-            --input-bg: #f3f4f6;
-            --shadow: 0 10px 30px rgba(16,185,129,0.12);
-            --radius: 16px;
-            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            
-            /* Severity colors */
-            --severity-normal: #10b981;
-            --severity-borderline: #fbbf24;
-            --severity-risky: #f97316;
-            --severity-critical: #ef4444;
-            
-            /* Safe area insets for mobile devices with notches/dynamic island */
-            --safe-area-inset-top: env(safe-area-inset-top, 0px);
-            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-            --safe-area-inset-left: env(safe-area-inset-left, 0px);
-            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+            /* Page-specific overrides — base variables provided by design-system.css */
+            --primary-red-hover: var(--ds-primary-600);
         }
 
-        /* Dark theme */
+        /* Dark theme — base variables provided by design-system.css */
         [data-theme="dark"] {
-            --primary-red: #34d399;
-            --primary-red-hover: #10b981;
-            --soft-red: #064e3b;
-            --accent-yellow: #fcd34d;
-            --accent-blue: #60a5fa;
-            --accent-light-red: #fca5a5;
-            --text-dark: #e5f3e8;
-            --text-gray: #9ca3af;
-            --bg-color: #0f1419;
-            --card-bg: #1a2028;
-            --input-bg: #252b35;
-            --shadow: 0 10px 30px rgba(52,211,153,0.25);
-            
-            --severity-normal: #34d399;
-            --severity-borderline: #fcd34d;
-            --severity-risky: #fb923c;
-            --severity-critical: #f87171;
+            --primary-red-hover: var(--ds-primary-500);
         }
 
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -1124,11 +1080,37 @@
                 min-height: 48px;
             }
         }
+        /* Enhanced severity indicators */
+        .severity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .severity-normal { background: rgba(16,185,129,0.12); color: var(--severity-normal); }
+        .severity-borderline { background: rgba(251,191,36,0.12); color: var(--severity-borderline); }
+        .severity-risky { background: rgba(249,115,22,0.12); color: var(--severity-risky); }
+        .severity-critical { 
+            background: rgba(239,68,68,0.12); 
+            color: var(--severity-critical);
+            animation: severityPulse 2s ease-in-out infinite;
+        }
+        @keyframes severityPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
+            50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+        }
+        [data-theme="dark"] .severity-normal { background: rgba(52,211,153,0.15); }
+        [data-theme="dark"] .severity-borderline { background: rgba(252,211,77,0.15); }
+        [data-theme="dark"] .severity-risky { background: rgba(251,146,60,0.15); }
+        [data-theme="dark"] .severity-critical { background: rgba(248,113,113,0.15); }
     </style>
 </head>
 <body>
     <!-- Theme Toggle -->
-    <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Смени тема" aria-label="Превключване на тема">
         <i class="fas fa-moon" id="themeIcon"></i>
     </button>
 
