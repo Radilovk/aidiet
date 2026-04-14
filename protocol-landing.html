@@ -208,7 +208,6 @@
 
         .hero h1 .accent {
             color: var(--primary);
-            -webkit-text-fill-color: var(--primary);
             background: none;
         }
 
@@ -624,8 +623,8 @@
             z-index: 1;
         }
 
-        .modal-icon-large i {
-            color: white !important;
+        .modal-hero .modal-icon-large i {
+            color: white;
         }
 
         [data-theme="dark"] .modal-icon-large {
@@ -1708,13 +1707,13 @@
             // Set modal hero gradient
             const modalHero = document.getElementById('modalHero');
             if (modalHero) {
-                modalHero.style.background = MODAL_GRADIENTS[protocolId] || 'linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%)';
+                modalHero.style.background = MODAL_GRADIENTS[protocolId] || 'linear-gradient(135deg, #059669 0%, #047857 100%)';
             }
             
-            // Set modal icon (Font Awesome)
+            // Set modal icon (Font Awesome) — inherits white from CSS
             const modalIcon = document.getElementById('modalIcon');
             if (modalIcon) {
-                modalIcon.innerHTML = `<i class="fas ${protocol.icon}" style="color: ${getAccentColor(protocolId)}"></i>`;
+                modalIcon.innerHTML = `<i class="fas ${protocol.icon}"></i>`;
             }
             
             // Set modal content
