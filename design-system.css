@@ -17,48 +17,48 @@
 /* ===========================
    FONT IMPORTS
    =========================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap');
 
 /* ===========================
    CSS CUSTOM PROPERTIES (TOKENS)
    =========================== */
 :root {
-    /* === COLORS - Primary Emerald Palette === */
-    --ds-primary-50: #ecfdf5;
-    --ds-primary-100: #d1fae5;
-    --ds-primary-200: #a7f3d0;
-    --ds-primary-300: #6ee7b7;
-    --ds-primary-400: #34d399;
-    --ds-primary-500: #10b981;
-    --ds-primary-600: #059669;
-    --ds-primary-700: #047857;
-    --ds-primary-800: #065f46;
-    --ds-primary-900: #064e3b;
-    --ds-primary-950: #022c22;
+    /* === COLORS - Primary Blue-Gray Palette === */
+    --ds-primary-50: #e8ecf0;
+    --ds-primary-100: #c5cdd8;
+    --ds-primary-200: #9faebf;
+    --ds-primary-300: #798fa6;
+    --ds-primary-400: #5c7893;
+    --ds-primary-500: #3A506B;
+    --ds-primary-600: #334760;
+    --ds-primary-700: #2b3b51;
+    --ds-primary-800: #233043;
+    --ds-primary-900: #1a2535;
+    --ds-primary-950: #0f1620;
     
-    /* === COLORS - Secondary Blue Palette === */
-    --ds-secondary-50: #eff6ff;
-    --ds-secondary-100: #dbeafe;
-    --ds-secondary-200: #bfdbfe;
-    --ds-secondary-300: #93c5fd;
-    --ds-secondary-400: #60a5fa;
-    --ds-secondary-500: #3b82f6;
-    --ds-secondary-600: #2563eb;
-    --ds-secondary-700: #1d4ed8;
-    --ds-secondary-800: #1e40af;
-    --ds-secondary-900: #1e3a8a;
+    /* === COLORS - Secondary Teal Palette === */
+    --ds-secondary-50: #e8f7f7;
+    --ds-secondary-100: #c6ebea;
+    --ds-secondary-200: #a0dedc;
+    --ds-secondary-300: #7ad1cf;
+    --ds-secondary-400: #5BC0BE;
+    --ds-secondary-500: #5BC0BE;
+    --ds-secondary-600: #4aafad;
+    --ds-secondary-700: #3a9a98;
+    --ds-secondary-800: #2d7a78;
+    --ds-secondary-900: #1f5b5a;
     
-    /* === COLORS - Accent Purple (EmoEat) === */
-    --ds-accent-purple-50: #faf5ff;
-    --ds-accent-purple-100: #f3e8ff;
-    --ds-accent-purple-200: #e9d5ff;
-    --ds-accent-purple-300: #d8b4fe;
-    --ds-accent-purple-400: #c084fc;
-    --ds-accent-purple-500: #a855f7;
-    --ds-accent-purple-600: #9333ea;
-    --ds-accent-purple-700: #7e22ce;
-    --ds-accent-purple-800: #6b21a8;
-    --ds-accent-purple-900: #581c87;
+    /* === COLORS - Accent Slate Blue === */
+    --ds-accent-purple-50: #eef1f5;
+    --ds-accent-purple-100: #dce3ec;
+    --ds-accent-purple-200: #b9c7d9;
+    --ds-accent-purple-300: #96abc6;
+    --ds-accent-purple-400: #778DA9;
+    --ds-accent-purple-500: #778DA9;
+    --ds-accent-purple-600: #627799;
+    --ds-accent-purple-700: #4e6186;
+    --ds-accent-purple-800: #3b4c6e;
+    --ds-accent-purple-900: #293755;
     
     /* === COLORS - Accent Cyan (Longevity) === */
     --ds-accent-cyan-50: #ecfeff;
@@ -97,10 +97,10 @@
     --ds-accent-rose-900: #881337;
     
     /* === COLORS - Semantic === */
-    --ds-success: var(--ds-primary-500);
+    --ds-success: var(--ds-secondary-500);
     --ds-warning: var(--ds-accent-gold-500);
-    --ds-error: #ef4444;
-    --ds-info: var(--ds-secondary-500);
+    --ds-error: #e74c3c;
+    --ds-info: #3498db;
     
     /* === COLORS - Neutral Gray === */
     --ds-gray-50: #f9fafb;
@@ -116,29 +116,29 @@
     --ds-gray-950: #030712;
     
     /* === LIGHT THEME SEMANTIC COLORS === */
-    --ds-bg-primary: #fefce8;
-    --ds-bg-secondary: var(--ds-gray-50);
+    --ds-bg-primary: #F0F4F8;
+    --ds-bg-secondary: #e6eff5;
     --ds-bg-tertiary: #ffffff;
     --ds-bg-card: #ffffff;
     --ds-bg-elevated: #ffffff;
     --ds-bg-overlay: rgba(0, 0, 0, 0.5);
-    --ds-bg-glass: rgba(255, 255, 255, 0.85);
+    --ds-bg-glass: rgba(255, 255, 255, 0.88);
     --ds-bg-glass-strong: rgba(255, 255, 255, 0.95);
     
-    --ds-text-primary: #1e3a20;
-    --ds-text-secondary: var(--ds-gray-600);
-    --ds-text-tertiary: var(--ds-gray-500);
-    --ds-text-muted: var(--ds-gray-400);
+    --ds-text-primary: #1C1F2E;
+    --ds-text-secondary: #4A5568;
+    --ds-text-tertiary: #7f8c8d;
+    --ds-text-muted: #9ca3af;
     --ds-text-inverse: #ffffff;
     
-    --ds-border-primary: var(--ds-gray-200);
-    --ds-border-secondary: var(--ds-gray-100);
-    --ds-border-focus: var(--ds-primary-500);
-    --ds-border-accent: rgba(16, 185, 129, 0.2);
+    --ds-border-primary: #d0d8e0;
+    --ds-border-secondary: #e1e8f0;
+    --ds-border-focus: var(--ds-secondary-500);
+    --ds-border-accent: rgba(91, 192, 190, 0.2);
     
     /* === TYPOGRAPHY === */
-    --ds-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --ds-font-family-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --ds-font-family: 'Inter', 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --ds-font-family-display: 'Inter', 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --ds-font-family-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
     
     /* Font sizes with fluid scaling */
@@ -225,18 +225,18 @@
     --ds-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
     
     /* Colored shadows */
-    --ds-shadow-primary: 0 10px 40px rgba(16, 185, 129, 0.15);
-    --ds-shadow-primary-lg: 0 20px 50px rgba(16, 185, 129, 0.2);
-    --ds-shadow-secondary: 0 10px 40px rgba(59, 130, 246, 0.15);
-    --ds-shadow-purple: 0 10px 40px rgba(139, 92, 246, 0.15);
-    --ds-shadow-cyan: 0 10px 40px rgba(6, 182, 212, 0.15);
+    --ds-shadow-primary: 0 10px 40px rgba(58, 80, 107, 0.15);
+    --ds-shadow-primary-lg: 0 20px 50px rgba(58, 80, 107, 0.2);
+    --ds-shadow-secondary: 0 10px 40px rgba(91, 192, 190, 0.15);
+    --ds-shadow-purple: 0 10px 40px rgba(119, 141, 169, 0.15);
+    --ds-shadow-cyan: 0 10px 40px rgba(91, 192, 190, 0.15);
     --ds-shadow-gold: 0 10px 40px rgba(245, 158, 11, 0.15);
     
     /* Glow effects */
-    --ds-glow-primary: 0 0 20px rgba(16, 185, 129, 0.4);
-    --ds-glow-secondary: 0 0 20px rgba(59, 130, 246, 0.4);
-    --ds-glow-purple: 0 0 20px rgba(139, 92, 246, 0.4);
-    --ds-glow-cyan: 0 0 20px rgba(6, 182, 212, 0.4);
+    --ds-glow-primary: 0 0 20px rgba(58, 80, 107, 0.4);
+    --ds-glow-secondary: 0 0 20px rgba(91, 192, 190, 0.4);
+    --ds-glow-purple: 0 0 20px rgba(119, 141, 169, 0.4);
+    --ds-glow-cyan: 0 0 20px rgba(91, 192, 190, 0.4);
     
     /* === TRANSITIONS & ANIMATIONS === */
     --ds-transition-fast: 150ms;
@@ -286,34 +286,34 @@
     --ds-glass-border: rgba(255, 255, 255, 0.2);
     
     /* === MESH GRADIENT COLORS === */
-    --ds-mesh-1: rgba(16, 185, 129, 0.08);
-    --ds-mesh-2: rgba(59, 130, 246, 0.06);
-    --ds-mesh-3: rgba(139, 92, 246, 0.04);
+    --ds-mesh-1: rgba(58, 80, 107, 0.08);
+    --ds-mesh-2: rgba(91, 192, 190, 0.06);
+    --ds-mesh-3: rgba(119, 141, 169, 0.04);
 }
 
 /* ===========================
    DARK THEME
    =========================== */
 [data-theme="dark"] {
-    --ds-bg-primary: #0a0f0d;
-    --ds-bg-secondary: #0f1419;
-    --ds-bg-tertiary: #151a22;
+    --ds-bg-primary: #0d1117;
+    --ds-bg-secondary: #131921;
+    --ds-bg-tertiary: #1a2028;
     --ds-bg-card: #1a2028;
     --ds-bg-elevated: #1f2937;
     --ds-bg-overlay: rgba(0, 0, 0, 0.75);
     --ds-bg-glass: rgba(26, 32, 40, 0.9);
     --ds-bg-glass-strong: rgba(26, 32, 40, 0.98);
     
-    --ds-text-primary: #e5f3e8;
-    --ds-text-secondary: var(--ds-gray-300);
-    --ds-text-tertiary: var(--ds-gray-400);
-    --ds-text-muted: var(--ds-gray-500);
+    --ds-text-primary: #e0e8f0;
+    --ds-text-secondary: #9ca3af;
+    --ds-text-tertiary: #7f8c8d;
+    --ds-text-muted: #6b7280;
     --ds-text-inverse: #111827;
     
-    --ds-border-primary: var(--ds-gray-700);
-    --ds-border-secondary: var(--ds-gray-800);
-    --ds-border-focus: var(--ds-primary-400);
-    --ds-border-accent: rgba(52, 211, 153, 0.3);
+    --ds-border-primary: #2d3748;
+    --ds-border-secondary: #1e2a3a;
+    --ds-border-focus: var(--ds-secondary-400);
+    --ds-border-accent: rgba(91, 192, 190, 0.3);
     
     /* Adjusted shadows for dark mode */
     --ds-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -323,20 +323,20 @@
     --ds-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
     --ds-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
     
-    --ds-shadow-primary: 0 10px 40px rgba(52, 211, 153, 0.2);
-    --ds-shadow-primary-lg: 0 20px 50px rgba(52, 211, 153, 0.25);
-    --ds-shadow-secondary: 0 10px 40px rgba(96, 165, 250, 0.2);
-    --ds-shadow-purple: 0 10px 40px rgba(167, 139, 250, 0.2);
-    --ds-shadow-cyan: 0 10px 40px rgba(34, 211, 238, 0.2);
+    --ds-shadow-primary: 0 10px 40px rgba(58, 80, 107, 0.25);
+    --ds-shadow-primary-lg: 0 20px 50px rgba(58, 80, 107, 0.3);
+    --ds-shadow-secondary: 0 10px 40px rgba(91, 192, 190, 0.2);
+    --ds-shadow-purple: 0 10px 40px rgba(119, 141, 169, 0.2);
+    --ds-shadow-cyan: 0 10px 40px rgba(91, 192, 190, 0.2);
     
     /* Glassmorphism for dark */
     --ds-glass-bg: rgba(26, 32, 40, 0.85);
     --ds-glass-border: rgba(255, 255, 255, 0.1);
     
     /* Mesh gradient for dark */
-    --ds-mesh-1: rgba(52, 211, 153, 0.06);
-    --ds-mesh-2: rgba(96, 165, 250, 0.04);
-    --ds-mesh-3: rgba(167, 139, 250, 0.03);
+    --ds-mesh-1: rgba(91, 192, 190, 0.06);
+    --ds-mesh-2: rgba(58, 80, 107, 0.04);
+    --ds-mesh-3: rgba(119, 141, 169, 0.03);
 }
 
 /* ===========================
