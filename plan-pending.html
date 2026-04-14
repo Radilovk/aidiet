@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Вашият персонален план се подготвя от специалист — NutriPlan">
-    <meta name="theme-color" content="#3A506B">
+    <meta name="theme-color" content="#10b981">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,17 +16,16 @@
     <title>Вашият план се подготвя</title>
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --pp-primary: #3A506B;
-            --pp-primary-dark: #2e3f56;
+            --pp-primary: #10b981;
+            --pp-primary-dark: #059669;
             --pp-accent: #fbbf24;
-            --pp-bg: #F0F4F8;
+            --pp-bg: #fefce8;
             --pp-card: #ffffff;
-            --pp-text: #1C1F2E;
+            --pp-text: #1e3a20;
             --pp-text-secondary: #6b7280;
-            --pp-shadow: 0 10px 40px rgba(58,80,107,0.15);
+            --pp-shadow: 0 10px 40px rgba(16,185,129,0.15);
             --pp-radius: 20px;
 
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -88,7 +87,7 @@
             margin: 0 auto 24px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--pp-primary), var(--pp-primary-dark));
-            box-shadow: 0 8px 32px rgba(58,80,107,0.3);
+            box-shadow: 0 8px 32px rgba(16,185,129,0.3);
             animation: pulseGlow 2s ease-in-out infinite;
         }
         .hero-badge i {
@@ -97,8 +96,8 @@
         }
 
         @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 8px 32px rgba(58,80,107,0.3); transform: scale(1); }
-            50% { box-shadow: 0 12px 48px rgba(58,80,107,0.5); transform: scale(1.05); }
+            0%, 100% { box-shadow: 0 8px 32px rgba(16,185,129,0.3); transform: scale(1); }
+            50% { box-shadow: 0 12px 48px rgba(16,185,129,0.5); transform: scale(1.05); }
         }
 
         /* ─── Title section ─── */
@@ -150,7 +149,7 @@
             justify-content: center;
             font-size: 22px;
         }
-        .status-icon.received { background: #e6eff5; color: #2e3f56; }
+        .status-icon.received { background: #d1fae5; color: #059669; }
         .status-header h3 {
             font-size: 1.1rem;
             font-weight: 700;
@@ -197,7 +196,7 @@
             font-weight: 700;
             z-index: 1;
         }
-        .step-dot.done { background: #e6eff5; color: #2e3f56; }
+        .step-dot.done { background: #d1fae5; color: #059669; }
         .step-dot.active { background: var(--pp-primary); color: #fff; animation: pulseGlow 2s ease-in-out infinite; }
         .step-dot.pending { background: #f3f4f6; color: #9ca3af; }
         .step-content h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 2px; }
@@ -244,7 +243,7 @@
             font-size: 20px;
             margin-bottom: 8px;
         }
-        .feature-icon.green  { background: #e6eff5; color: #2e3f56; }
+        .feature-icon.green  { background: #d1fae5; color: #059669; }
         .feature-icon.blue   { background: #dbeafe; color: #2563eb; }
         .feature-icon.purple { background: #ede9fe; color: #7c3aed; }
         .feature-icon.amber  { background: #fef3c7; color: #d97706; }
@@ -457,7 +456,7 @@
                     document.querySelector('.pp-title h1').textContent = 'Вашият план е готов!';
                     document.querySelector('.pp-title p').textContent = 'Специалистът прегледа вашите данни и одобри персонализирания ви хранителен пакет.';
                     document.querySelector('.hero-badge i').className = 'fas fa-check-double';
-                    document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #3A506B, #2e3f56)';
+                    document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #10b981, #059669)';
 
                     const dots = document.querySelectorAll('.step-dot');
                     if (dots[2]) { dots[2].classList.remove('active'); dots[2].classList.add('done'); dots[2].innerHTML = '<i class="fas fa-check" style="font-size:12px;"></i>'; }
