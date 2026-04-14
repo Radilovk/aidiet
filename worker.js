@@ -658,15 +658,21 @@ function buildCombinedAdditionalNotes(data) {
  * @returns {string} Formatted text or empty string
  */
 function buildDynamicSubQuestionsText(data) {
+  const textMap = data._dq_text_map || {};
   const lines = [];
   for (const key of Object.keys(data)) {
     if (!key.startsWith('dq_')) continue;
     const value = data[key];
     if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) continue;
     const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
-    lines.push(`${key}: ${displayValue}`);
+    const questionText = textMap[key];
+    if (questionText) {
+      lines.push(`Въпрос: ${questionText}\nОтговор: ${displayValue}`);
+    } else {
+      lines.push(`${key}: ${displayValue}`);
+    }
   }
-  return lines.join('\n');
+  return lines.join('\n\n');
 }
 
 // Meal name and description formatting instructions for AI prompts
