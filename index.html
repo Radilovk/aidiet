@@ -1227,14 +1227,17 @@
         function initScrollReveal() {
             const revealElements = document.querySelectorAll('.feature-card, .step, .section-title');
             if (!revealElements.length) return;
+            let revealCounter = 0;
             
             const observer = new IntersectionObserver((entries) => {
-                entries.forEach((entry, i) => {
+                entries.forEach((entry) => {
                     if (entry.isIntersecting) {
+                        const delay = revealCounter * 80;
+                        revealCounter++;
                         setTimeout(() => {
                             entry.target.style.opacity = '1';
                             entry.target.style.transform = 'translateY(0)';
-                        }, i * 80);
+                        }, delay);
                         observer.unobserve(entry.target);
                     }
                 });
