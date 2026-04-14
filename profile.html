@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Управлявайте вашия профил и преглеждайте вашия персонализиран хранителен план в NutriPlan.">
     <meta name="theme-color" content="#10b981">
     <meta name="mobile-web-app-capable" content="yes">
@@ -20,18 +20,44 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            /* Page-specific overrides — base variables provided by design-system.css */
-            --radius: 12px;
+            --primary-red: #10b981;
+            --soft-red: #d1fae5;
+            --accent-yellow: #fbbf24;
+            --accent-blue: #3b82f6;
+            --accent-light-red: #f87171;
+            --text-dark: #1e3a20;
+            --text-light: #6b7280;
+            --bg-color: #fefce8;
+            --card-bg: #ffffff;
             --shadow: 0 4px 6px rgba(16,185,129,0.1);
+            --radius: 12px;
+            /* Safe area insets for mobile devices with notches/dynamic island */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
         }
 
-        /* Dark theme — base variables provided by design-system.css */
+        /* Dark theme */
         [data-theme="dark"] {
-            --radius: 12px;
+            --primary-red: #34d399;
+            --soft-red: #064e3b;
+            --accent-yellow: #fcd34d;
+            --accent-blue: #60a5fa;
+            --accent-light-red: #fca5a5;
+            --text-dark: #e5f3e8;
+            --text-light: #9ca3af;
+            --bg-color: #0f1419;
+            --card-bg: #1a2028;
             --shadow: 0 4px 6px rgba(52,211,153,0.2);
+            --radius: 12px;
         }
 
         * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -1325,6 +1351,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             z-index: 9999;
             padding: 15px;
+            font-family: 'Poppins', sans-serif;
             animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -1408,142 +1435,6 @@
             width: 20px;
             height: 20px;
             vertical-align: middle;
-        }
-
-        /* --- PROFILE STATS CARDS --- */
-        .profile-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-bottom: 24px;
-            padding: 0 20px;
-        }
-        .stat-card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 20px 16px;
-            text-align: center;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(16,185,129,0.08);
-            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
-        }
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(16,185,129,0.15);
-        }
-        .stat-card .stat-icon {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-            display: block;
-        }
-        .stat-card .stat-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--primary-red);
-            margin-bottom: 4px;
-        }
-        .stat-card .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-light);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        /* --- ENHANCED AVATAR --- */
-        .profile-avatar-ring {
-            width: 96px;
-            height: 96px;
-            border-radius: 50%;
-            padding: 3px;
-            background: linear-gradient(135deg, var(--primary-red), var(--accent-blue), var(--primary-red));
-            background-size: 200% 200%;
-            animation: gradientRing 4s ease-in-out infinite;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 16px;
-        }
-        @keyframes gradientRing {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        .profile-avatar-ring .profile-avatar {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: var(--soft-red);
-            color: var(--primary-red);
-            font-size: 2rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 3px solid var(--card-bg);
-        }
-
-        /* --- QUICK LINKS --- */
-        .quick-links {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-bottom: 24px;
-            padding: 0 20px;
-        }
-        .quick-link-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding: 20px 12px;
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            border: 1px solid rgba(16,185,129,0.08);
-            text-decoration: none;
-            color: var(--text-dark);
-            box-shadow: var(--shadow);
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .quick-link-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(16,185,129,0.15);
-            border-color: var(--primary-red);
-        }
-        .quick-link-card i {
-            font-size: 1.3rem;
-            color: var(--primary-red);
-        }
-        .quick-link-card span {
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        /* --- DARK THEME: Stats, Avatar, Quick Links --- */
-        [data-theme="dark"] .stat-card {
-            background: var(--card-bg);
-            border-color: rgba(52, 211, 153, 0.1);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        [data-theme="dark"] .stat-card:hover {
-            box-shadow: 0 8px 24px rgba(52, 211, 153, 0.15);
-        }
-        [data-theme="dark"] .profile-avatar-ring {
-            background: linear-gradient(135deg, var(--primary-red), var(--accent-blue), var(--primary-red));
-            background-size: 200% 200%;
-        }
-        [data-theme="dark"] .profile-avatar-ring .profile-avatar {
-            background: var(--soft-red);
-            color: var(--primary-red);
-            border-color: var(--card-bg);
-        }
-        [data-theme="dark"] .quick-link-card {
-            background: var(--card-bg);
-            border-color: rgba(52, 211, 153, 0.1);
-            color: var(--text-dark);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        [data-theme="dark"] .quick-link-card:hover {
-            box-shadow: 0 8px 24px rgba(52, 211, 153, 0.15);
-            border-color: var(--primary-red);
         }
 
     </style>
@@ -1694,41 +1585,6 @@
                 <span>Приложението е инсталирано</span>
             </div>
         </div>
-
-    <!-- Stats Cards -->
-    <div class="profile-stats" id="profileStats">
-        <div class="stat-card">
-            <span class="stat-icon">📅</span>
-            <div class="stat-value" id="statDays">—</div>
-            <div class="stat-label">Дни в плана</div>
-        </div>
-        <div class="stat-card">
-            <span class="stat-icon">🍽️</span>
-            <div class="stat-value" id="statMeals">—</div>
-            <div class="stat-label">Хранения</div>
-        </div>
-        <div class="stat-card">
-            <span class="stat-icon">📊</span>
-            <div class="stat-value" id="statAnalysis">—</div>
-            <div class="stat-label">Последен анализ</div>
-        </div>
-    </div>
-
-    <!-- Quick Links -->
-    <div class="quick-links">
-        <a href="plan.html" class="quick-link-card">
-            <i class="fas fa-utensils"></i>
-            <span>Моят План</span>
-        </a>
-        <a href="analysis.html" class="quick-link-card">
-            <i class="fas fa-chart-line"></i>
-            <span>Анализ</span>
-        </a>
-        <a href="questionnaire2.html" class="quick-link-card">
-            <i class="fas fa-clipboard-list"></i>
-            <span>Нов въпросник</span>
-        </a>
-    </div>
 
         <div id="alertContainer"></div>
 
@@ -2111,15 +1967,9 @@
 
         // --- Theme Management ---
         function initializeTheme() {
-            const savedTheme = localStorage.getItem('theme');
-            if (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                updateThemeIcon('dark');
-                return;
-            }
-            const theme = savedTheme || 'light';
-            document.documentElement.setAttribute('data-theme', theme);
-            updateThemeIcon(theme);
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
         }
 
         function toggleTheme() {
@@ -3429,33 +3279,6 @@
         function getShareIconSvg() {
             return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E";
         }
-        // Populate profile stats
-        function populateProfileStats() {
-            try {
-                const planData = localStorage.getItem('dietPlan');
-                if (planData) {
-                    const plan = JSON.parse(planData);
-                    const days = plan.days || plan.dailyPlans;
-                    if (days) {
-                        document.getElementById('statDays').textContent = Array.isArray(days) ? days.length : Object.keys(days).length;
-                        let totalMeals = 0;
-                        const dayArray = Array.isArray(days) ? days : Object.values(days);
-                        dayArray.forEach(d => {
-                            if (d.meals) totalMeals += Object.keys(d.meals).length;
-                        });
-                        document.getElementById('statMeals').textContent = totalMeals || '—';
-                    }
-                }
-                const analysisDate = localStorage.getItem('lastAnalysisDate');
-                if (analysisDate) {
-                    const d = new Date(analysisDate);
-                    if (!isNaN(d.getTime())) {
-                        document.getElementById('statAnalysis').textContent = d.toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' });
-                    }
-                }
-            } catch(e) { /* stats are optional */ }
-        }
-        populateProfileStats();
     </script>
 </body>
 </html>
