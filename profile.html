@@ -1517,6 +1517,35 @@
             font-weight: 600;
         }
 
+        /* --- DARK THEME: Stats, Avatar, Quick Links --- */
+        [data-theme="dark"] .stat-card {
+            background: var(--card-bg);
+            border-color: rgba(52, 211, 153, 0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        [data-theme="dark"] .stat-card:hover {
+            box-shadow: 0 8px 24px rgba(52, 211, 153, 0.15);
+        }
+        [data-theme="dark"] .profile-avatar-ring {
+            background: linear-gradient(135deg, var(--primary-red), var(--accent-blue), var(--primary-red));
+            background-size: 200% 200%;
+        }
+        [data-theme="dark"] .profile-avatar-ring .profile-avatar {
+            background: var(--soft-red);
+            color: var(--primary-red);
+            border-color: var(--card-bg);
+        }
+        [data-theme="dark"] .quick-link-card {
+            background: var(--card-bg);
+            border-color: rgba(52, 211, 153, 0.1);
+            color: var(--text-dark);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        [data-theme="dark"] .quick-link-card:hover {
+            box-shadow: 0 8px 24px rgba(52, 211, 153, 0.15);
+            border-color: var(--primary-red);
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings

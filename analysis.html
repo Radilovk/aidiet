@@ -364,6 +364,14 @@
             border: 1px solid rgba(52,211,153,0.15);
             box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
         }
+        [data-theme="dark"] .score-card:hover {
+            box-shadow: 0 12px 32px rgba(52,211,153,0.15), 0 4px 8px rgba(0,0,0,0.3);
+            border-color: rgba(52,211,153,0.3);
+        }
+        [data-theme="dark"] .score-card-header {
+            background: linear-gradient(to bottom, rgba(52,211,153,0.06) 0%, transparent 100%);
+            border-bottom-color: rgba(52,211,153,0.1);
+        }
 
         .score-card:hover {
             transform: translateY(-4px);
@@ -734,6 +742,9 @@
         [data-theme="dark"] .loading-skeleton-card::after,
         [data-theme="dark"] .loading-skeleton-row::after {
             background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+        }
+        [data-theme="dark"] .loading-skeleton-card {
+            border-color: rgba(52, 211, 153, 0.1);
         }
         @keyframes skeletonShimmer {
             0% { transform: translateX(-100%); }
