@@ -2491,6 +2491,51 @@
             }
         }
 
+        /* Skeleton loader for initial load */
+        .plan-skeleton {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .plan-skeleton-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            border: 1px solid rgba(16,185,129,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+        .plan-skeleton-line {
+            height: 14px;
+            background: linear-gradient(90deg, var(--soft-red) 0%, rgba(16,185,129,0.03) 50%, var(--soft-red) 100%);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .plan-skeleton-line:nth-child(1) { width: 40%; height: 10px; }
+        .plan-skeleton-line:nth-child(2) { width: 70%; }
+        .plan-skeleton-line:nth-child(3) { width: 90%; }
+        .plan-skeleton-line:nth-child(4) { width: 50%; }
+        .plan-skeleton-line::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+            animation: planShimmer 1.5s ease-in-out infinite;
+            transform: translateX(-100%);
+        }
+        [data-theme="dark"] .plan-skeleton-line {
+            background: linear-gradient(90deg, var(--soft-red) 0%, rgba(52,211,153,0.03) 50%, var(--soft-red) 100%);
+        }
+        [data-theme="dark"] .plan-skeleton-line::after {
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+        }
+        @keyframes planShimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2664,6 +2709,27 @@
     <main class="container" id="main-content" role="main">
         
         <!-- MEAL PLAN SECTION -->
+        <!-- Skeleton loader shown during initial load -->
+        <div class="plan-skeleton" id="planSkeleton">
+            <div class="plan-skeleton-card">
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+            </div>
+            <div class="plan-skeleton-card">
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+            </div>
+            <div class="plan-skeleton-card">
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+            </div>
+        </div>
         <div id="mealContainer">
             <!-- Примерно съдържание (ще се замести от JSON logic) -->
             
@@ -4245,6 +4311,8 @@
                 return;
             }
 
+            const skeleton = document.getElementById('planSkeleton');
+            if (skeleton) skeleton.style.display = 'none';
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 
