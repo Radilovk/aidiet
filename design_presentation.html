@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ONE BODY — Дизайн Презентация (Светла Тема)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   ONE BODY — Design Presentation
+   Светла тема (Light Theme)
+   ============================================================ */
+
+/* ---------- Дизайн токени / Design Tokens ---------- */
+:root {
+  /* Цветова палитра — Светла тема */
+  --primary-color:   #3A506B;
+  --secondary-color: #5BC0BE;
+  --accent-color:    #778DA9;
+  --tertiary-color:  #CBBADD;
+
+  /* Текст */
+  --text-primary:   #1C1F2E;
+  --text-secondary: #4A5568;
+  --text-muted:     #7f8c8d;
+  --text-on-dark:   #FFFFFF;
+
+  /* Фонове и повърхности */
+  --bg:           #F0F4F8;
+  --bg-gradient:  linear-gradient(135deg, #e6eff5 0%, #f0f4f8 100%);
+  --surface:      #FFFFFF;
+  --card-bg:      rgba(255,255,255,0.88);
+  --card-bg-rgb:  255,255,255;
+  --glass-blur:   10px;
+
+  /* Граници */
+  --border:       #d0d8e0;
+  --border-soft:  #e1e8f0;
+
+  /* Сенки */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07);
+  --shadow-lg: 0 6px 24px rgba(0,0,0,0.12);
+
+  /* Статус цветове */
+  --success:  #2ecc71;
+  --warning:  #f39c12;
+  --danger:   #e74c3c;
+  --info:     #3498db;
+
+  /* Макро цветове */
+  --macro-protein: #5BC0BE;
+  --macro-fat:     #FFD166;
+  --macro-carbs:   #FF6B6B;
+  --macro-fiber:   #6FCF97;
+
+  /* Размери */
+  --header-h: 60px;
+  --tabs-h:   65px;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  /* Разстояния (8pt grid) */
+  --sp-xs: 8px;
+  --sp-sm: 16px;
+  --sp-md: 24px;
+  --sp-lg: 32px;
+  --sp-xl: 40px;
+
+  /* Шрифтове */
+  --font: 'Inter','Nunito Sans',system-ui,sans-serif;
+}
+
+/* ---------- Глобални стилове ---------- */
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 100%; scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.65;
+  background: var(--bg) var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  padding-bottom: 80px;
+}
+h1,h2,h3,h4 { font-family: var(--font); color: var(--primary-color); line-height: 1.3; }
+a { color: var(--secondary-color); text-decoration: none; }
+
+/* ============================================================
+   ПРЕЗЕНТАЦИОНЕН ОБВИВКА
+   Симулира 390px телефонен екран в центъра
+   ============================================================ */
+.pres-wrapper {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--sp-md);
+}
+
+.section-label {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  background: rgba(119,141,169,0.1);
+  border: 1px solid rgba(119,141,169,0.25);
+  border-radius: 100px;
+  padding: 3px 12px;
+  margin-bottom: var(--sp-sm);
+}
+
+.pres-section {
+  margin-bottom: var(--sp-xl);
+}
+
+.pres-section > .section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  border-bottom: 3px solid var(--secondary-color);
+  padding-bottom: var(--sp-xs);
+  margin-bottom: var(--sp-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-xs);
+}
+
+/* "телефон" обвивка */
+.phone-frame {
+  width: 390px;
+  min-height: 600px;
+  margin: 0 auto;
+  border-radius: 32px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.1);
+  overflow: hidden;
+  position: relative;
+  border: 3px solid #c8d4e0;
+  background: var(--bg);
+}
+
+@media (max-width: 430px) {
+  .phone-frame {
+    width: 100%;
+    border-radius: 16px;
+  }
+  .pres-wrapper { padding: var(--sp-sm); }
+}
+
+/* ============================================================
+   1. ХЕДЪР (Header)
+   ============================================================ */
+.app-header {
+  background: rgba(91,192,190,0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.header-logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.85) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.header-logo-text {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.header-user-name {
+  flex: 1;
+  text-align: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0 var(--sp-sm);
+}
+
+.header-menu-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: rgba(255,255,255,0.9);
+  transition: background 0.2s;
+}
+.header-menu-btn:hover { background: rgba(255,255,255,0.15); }
+.header-menu-btn svg { width: 24px; height: 24px; }
+
+/* ============================================================
+   2. ПАНЕЛ (Panel)
+   ============================================================ */
+.panel-content {
+  padding: var(--sp-sm);
+  padding-bottom: calc(var(--tabs-h) + var(--sp-sm));
+}
+
+/* ============================================================
+   3. ИНДЕКС КАРТИ (Index/KPI Cards)
+   ============================================================ */
+.index-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-xs);
+  margin-bottom: var(--sp-md);
+}
+
+.index-card {
+  background: rgba(var(--card-bg-rgb), 0.88);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--sp-sm);
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--primary-color);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+}
+.index-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.index-card.secondary { border-left-color: var(--secondary-color); }
+.index-card.accent    { border-left-color: var(--accent-color); }
+.index-card.success   { border-left-color: var(--success); }
+
+.index-card-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-xs);
+}
+
+.index-card-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  line-height: 1;
+  margin-bottom: var(--sp-xs);
+}
+.index-card.secondary .index-card-value { color: var(--secondary-color); }
+.index-card.accent    .index-card-value { color: var(--accent-color); }
+.index-card.success   .index-card-value { color: var(--success); }
+
+/* Прогрес бар */
+.progress-track {
+  background: #e9ecef;
+  border-radius: 6px;
+  height: 10px;
+  overflow: visible;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  position: relative;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: inherit;
+  border-radius: inherit;
+  filter: blur(4px);
+  opacity: 0.25;
+}
+
+.progress-fill.goal       { background: var(--primary-color); --w: 68%; width: 68%; }
+.progress-fill.engagement { background: var(--secondary-color); --w: 82%; width: 82%; }
+.progress-fill.health     { background: var(--success); --w: 74%; width: 74%; }
+.progress-fill.streak     { background: var(--warning); --w: 57%; width: 57%; }
+
+/* ============================================================
+   4. КАРТА (Card)
+   ============================================================ */
+.card {
+  background: rgba(var(--card-bg-rgb), 0.88);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--sp-sm);
+  border: 1px solid var(--border-soft);
+  margin-bottom: var(--sp-sm);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-sm);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(91,192,190,0.15);
+  color: var(--secondary-color);
+  border: 1px solid rgba(91,192,190,0.3);
+  border-radius: 100px;
+  padding: 2px 8px;
+}
+
+/* ============================================================
+   5. ХРАНИТЕЛЕН ПЛАН (Daily Meal Plan)
+   ============================================================ */
+.meal-list { list-style: none; padding: 0; }
+
+.meal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.meal-item:last-child { border-bottom: none; }
+
+.meal-checkbox {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.meal-checkbox.checked {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+  font-size: 12px;
+}
+
+.meal-info { flex: 1; }
+.meal-name  { font-weight: 600; font-size: 0.9375rem; color: var(--text-primary); }
+.meal-macro { font-size: 0.8125rem; color: var(--text-muted); margin-top: 2px; }
+
+.meal-kcal {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  white-space: nowrap;
+}
+
+/* Бутон за алтернативи */
+.meal-alt-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(91,192,190,0.1);
+  color: var(--secondary-color);
+  border: 1px solid rgba(91,192,190,0.3);
+  border-radius: 100px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+  display: inline-block;
+}
+.meal-alt-btn:hover { background: rgba(91,192,190,0.25); }
+
+/* ============================================================
+   6. МАКРО АНАЛИТИКА (Macro Ring Chart)
+   ============================================================ */
+.macro-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(91,192,190,0.06) 100%);
+  border-left: 4px solid var(--secondary-color);
+}
+
+.macro-chart-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+}
+
+.macro-ring-svg {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.macro-ring-track { fill: none; stroke: #e9ecef; stroke-width: 14; }
+.macro-ring-seg   { fill: none; stroke-width: 14; stroke-linecap: round; }
+
+.macro-ring-center {
+  font-size: 0.75rem;
+  font-weight: 700;
+  fill: var(--primary-color);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.macro-legend { flex: 1; }
+
+.macro-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--border-soft);
+}
+.macro-row:last-child { border-bottom: none; }
+
+.macro-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.macro-label-text {
+  flex: 1;
+  margin-left: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.macro-value-text {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   7. АКОРДЕОН (Accordion)
+   ============================================================ */
+.accordion {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--sp-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.accordion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-sm) var(--sp-sm);
+  cursor: pointer;
+  background: rgba(58,80,107,0.04);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--primary-color);
+  transition: background 0.2s;
+  border-bottom: 1px solid transparent;
+  user-select: none;
+}
+.accordion-head:hover { background: rgba(58,80,107,0.08); }
+.accordion-head.open  { border-bottom-color: rgba(58,80,107,0.15); }
+
+.accordion-arrow {
+  font-size: 0.75rem;
+  transition: transform 0.3s ease;
+  opacity: 0.6;
+}
+.accordion-head.open .accordion-arrow { transform: rotate(90deg); }
+
+.accordion-body {
+  display: none;
+  padding: var(--sp-sm);
+  background: #fff;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.accordion-body.open { display: block; }
+
+/* ============================================================
+   8. ДЕТАЙЛНИ МЕТРИКИ (Detailed Metrics)
+   ============================================================ */
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--sp-sm) 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.metric-item:last-child { border-bottom: none; }
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--primary-color);
+}
+
+.metric-values {
+  display: flex;
+  gap: 6px;
+}
+
+.metric-chip {
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.metric-chip.initial  { background: rgba(119,141,169,0.12); color: var(--accent-color); }
+.metric-chip.expected { background: rgba(91,192,190,0.12);  color: var(--secondary-color); }
+.metric-chip.current  { background: rgba(46,204,113,0.12);  color: var(--success); }
+
+.metric-mini-bar {
+  background: #e9ecef;
+  border-radius: 6px;
+  height: 6px;
+  overflow: hidden;
+}
+.metric-mini-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+  transition: width 0.8s ease;
+}
+
+/* ============================================================
+   9. ПРОФИЛ ПАНЕЛ (Profile Panel)
+   ============================================================ */
+.profile-list { list-style: none; padding: 0; }
+
+.profile-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--sp-sm) 0;
+  border-bottom: 1px dashed var(--border-soft);
+  gap: var(--sp-sm);
+}
+.profile-item:last-child { border-bottom: none; }
+
+.profile-key {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 0.9375rem;
+  flex-shrink: 0;
+}
+
+.profile-val {
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: right;
+  font-size: 0.9375rem;
+}
+
+.profile-unit {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-left: 3px;
+}
+
+/* Психо-тест карта */
+.psych-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm);
+  background: var(--surface);
+  border: 2px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: var(--sp-sm);
+}
+.psych-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 100%;
+  background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.3s ease;
+}
+.psych-card:hover { border-color: var(--secondary-color); transform: translateX(4px); box-shadow: var(--shadow-md); }
+.psych-card:hover::before { transform: scaleY(1); }
+
+.psych-icon {
+  width: 52px; height: 52px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(58,80,107,0.25);
+}
+
+.psych-info { flex: 1; }
+.psych-name   { font-weight: 700; font-size: 0.9375rem; color: var(--text-primary); }
+.psych-status { font-size: 0.8125rem; color: var(--text-muted); margin-top: 2px; }
+
+.psych-arrow { color: var(--accent-color); font-size: 1.1rem; }
+
+/* ============================================================
+   10. СЕДМИЧЕН ПЛАН (Week Plan)
+   ============================================================ */
+.week-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  background: var(--surface);
+  margin-bottom: var(--sp-sm);
+}
+
+.week-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 420px;
+}
+
+.week-table th {
+  background: rgba(58,80,107,0.06);
+  font-weight: 700;
+  color: var(--primary-color);
+  text-align: center;
+  padding: var(--sp-sm) var(--sp-xs);
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--border-soft);
+  position: sticky;
+  top: 0;
+}
+
+.week-table td {
+  text-align: center;
+  vertical-align: top;
+  padding: var(--sp-xs);
+  font-size: 0.8rem;
+  border: 1px solid var(--border-soft);
+  color: var(--text-secondary);
+}
+
+.week-table tbody tr:nth-child(even) { background: rgba(240,244,248,0.5); }
+.week-table tbody tr:hover { background: rgba(58,80,107,0.05); }
+
+.week-meal-name {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 0.8125rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* ============================================================
+   11. ПРЕПОРЪКИ (Recommendations)
+   ============================================================ */
+.rec-section { margin-bottom: var(--sp-lg); }
+
+.rec-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  border-bottom: 3px solid var(--primary-color);
+  padding: var(--sp-sm) var(--sp-sm);
+  margin-bottom: var(--sp-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.rec-card {
+  background: linear-gradient(135deg, #fff 0%, rgba(58,80,107,0.03) 100%);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-sm);
+  margin-bottom: var(--sp-sm);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.rec-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 5px; height: 100%;
+  background: var(--primary-color);
+  opacity: 0.7;
+  transition: width 0.3s ease;
+}
+.rec-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--primary-color); }
+.rec-card:hover::before { width: 8px; }
+
+.rec-card.success::before { background: var(--success); }
+.rec-card.warning::before { background: var(--warning); }
+.rec-card.info::before    { background: var(--info); }
+
+.rec-card-title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--primary-color);
+  margin-bottom: 6px;
+  margin-left: 10px;
+}
+
+.rec-card-body {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-left: 10px;
+}
+
+/* Нотификационни кутийки */
+.note {
+  padding: var(--sp-sm);
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+  font-size: 0.875rem;
+  margin-bottom: var(--sp-sm);
+}
+.note.critical { background: #ffebee; border-color: #b71c1c; color: #c62828; }
+.note.warning  { background: #fffde7; border-color: #ff8f00; color: #f57f17; }
+.note.info     { background: #e3f2fd; border-color: #1976d2; color: #0d47a1; }
+.note.success  { background: #e8f5e9; border-color: #2e7d32; color: #1b5e20; }
+
+/* ============================================================
+   12. НАВИГАЦИОННИ ТАБОВЕ (Bottom Tabs)
+   ============================================================ */
+.bottom-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  background: linear-gradient(135deg, #344e6a 0%, #3A506B 50%, #2e4259 100%);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.12), 0 -4px 24px rgba(0,0,0,0.08);
+  border-top: 1px solid rgba(255,255,255,0.15);
+  height: var(--tabs-h);
+  position: sticky;
+  bottom: 0;
+  z-index: 999;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 4px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.tab-btn:hover {
+  color: rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+.tab-btn.active {
+  color: #fff;
+  font-weight: 600;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+}
+
+/* Активен индикатор */
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 3px;
+  width: 0;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  transform: translateX(-50%);
+  border-radius: 0 0 3px 3px;
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 0 8px rgba(255,255,255,0.4);
+}
+.tab-btn.active::after { width: 75%; }
+
+.tab-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.tab-btn.active .tab-icon { transform: scale(1.18); opacity: 1; }
+.tab-btn:hover .tab-icon  { transform: translateY(-2px) scale(1.1); opacity: 1; }
+
+.tab-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  opacity: 0.85;
+  transition: opacity 0.3s;
+}
+.tab-btn.active .tab-label { opacity: 1; font-weight: 600; }
+
+/* ============================================================
+   13. ДНЕВЕН ДНЕВНИК (Daily Tracker)
+   ============================================================ */
+.tracker-group {
+  display: flex;
+  gap: var(--sp-xs);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-sm);
+}
+
+.tracker-tag {
+  flex: 1;
+  min-width: 80px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-xs) var(--sp-xs);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.tracker-tag:hover { border-color: var(--secondary-color); background: rgba(91,192,190,0.06); }
+.tracker-tag.selected {
+  border-color: var(--secondary-color);
+  background: rgba(91,192,190,0.1);
+  color: var(--secondary-color);
+  font-weight: 700;
+}
+
+.tracker-tag-emoji { display: block; font-size: 1.4rem; margin-bottom: 2px; }
+
+/* Streak grid */
+.streak-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  justify-items: center;
+  margin: var(--sp-sm) auto;
+  width: 80%;
+}
+
+.streak-day {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.2s;
+}
+.streak-day.logged { background: var(--success); }
+.streak-day.today  { background: var(--secondary-color); box-shadow: 0 0 6px rgba(91,192,190,0.5); }
+
+/* FAB - Чат бутон */
+.fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 16px rgba(58,80,107,0.4);
+  transition: all 0.3s ease;
+  position: fixed;
+  bottom: calc(var(--tabs-h) + 16px);
+  right: 16px;
+  z-index: 500;
+}
+.fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(58,80,107,0.5); }
+
+/* ============================================================
+   14. ПАЛИТРА (Colour Palette Showcase)
+   ============================================================ */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--sp-sm);
+}
+
+.palette-chip {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.palette-swatch {
+  height: 64px;
+  display: flex;
+  align-items: flex-end;
+  padding: 6px;
+}
+.palette-swatch-text {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  letter-spacing: 0.5px;
+}
+.palette-label {
+  background: var(--surface);
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ============================================================
+   15. ТИПОГРАФСКА СКАЛА (Typography Scale)
+   ============================================================ */
+.typo-grid { display: flex; flex-direction: column; gap: var(--sp-sm); }
+
+.typo-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+}
+
+.typo-meta {
+  min-width: 80px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   16. БУТОНИ (Buttons)
+   ============================================================ */
+.btn-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+  align-items: center;
+}
+
+.btn {
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 10px 20px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+  text-decoration: none;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary   { background: var(--primary-color);   color: #fff; box-shadow: 0 4px 12px rgba(58,80,107,0.3); }
+.btn-primary:hover   { background: #2e3f56; box-shadow: 0 6px 16px rgba(58,80,107,0.4); transform: translateY(-1px); }
+
+.btn-secondary { background: var(--secondary-color); color: #fff; box-shadow: 0 4px 12px rgba(91,192,190,0.3); }
+.btn-secondary:hover { background: #4aafad; box-shadow: 0 6px 16px rgba(91,192,190,0.4); transform: translateY(-1px); }
+
+.btn-outline   { background: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); }
+.btn-outline:hover   { background: var(--primary-color); color: #fff; }
+
+.btn-ghost     { background: rgba(58,80,107,0.08); color: var(--primary-color); }
+.btn-ghost:hover     { background: rgba(58,80,107,0.15); }
+
+.btn-danger    { background: var(--danger); color: #fff; box-shadow: 0 4px 12px rgba(231,76,60,0.3); }
+.btn-success   { background: var(--success); color: #fff; box-shadow: 0 4px 12px rgba(46,204,113,0.3); }
+
+.btn-sm { font-size: 0.875rem; padding: 6px 14px; min-height: 36px; }
+.btn-lg { font-size: 1.1rem; padding: 14px 28px; min-height: 52px; }
+
+/* ============================================================
+   17. ВИЗУАЛНЕН ТЕСТ КАРТА (Notification notes showcase)
+   ============================================================ */
+.notes-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-sm);
+}
+
+/* ============================================================
+   ОБВИВКА ЗА СЕКЦИИТЕ В ПРЕЗЕНТАЦИЯТА
+   ============================================================ */
+.pres-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-md);
+}
+
+@media (max-width: 700px) {
+  .pres-two-col { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   ЗАГЛАВНА СЕКЦИЯ НА ПРЕЗЕНТАЦИЯТА
+   ============================================================ */
+.pres-hero {
+  text-align: center;
+  padding: var(--sp-xl) var(--sp-md);
+  background: linear-gradient(135deg, #3A506B 0%, #5BC0BE 100%);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--sp-xl);
+  color: #fff;
+  box-shadow: 0 12px 40px rgba(58,80,107,0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.pres-hero::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 280px; height: 280px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+  pointer-events: none;
+}
+
+.pres-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -40px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  pointer-events: none;
+}
+
+.pres-hero h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: var(--sp-xs);
+  letter-spacing: -0.5px;
+}
+
+.pres-hero p {
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.88);
+  max-width: 540px;
+  margin: 0 auto var(--sp-md);
+}
+
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.hero-tag {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.95);
+  border-radius: 100px;
+  padding: 4px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* ============================================================
+   СТРАТЕГИЧЕСКИ ОБЯСНЕНИЯ
+   ============================================================ */
+.strategy-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-md);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--sp-md);
+}
+
+.strategy-card h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: var(--sp-xs);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strategy-card p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Animation helpers */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeInUp 0.5s ease both; }
+
+/* ============================================================
+   Симулиран мобилен интерфейс — специфично форматиране
+   ============================================================ */
+.sim-screen {
+  background: var(--bg);
+  min-height: 500px;
+  overflow: hidden;
+}
+
+.sim-scroll { 
+  height: 460px;
+  overflow-y: auto;
+  padding: var(--sp-sm);
+}
+.sim-scroll::-webkit-scrollbar { width: 4px; }
+.sim-scroll::-webkit-scrollbar-thumb { background: var(--secondary-color); border-radius: 4px; }
+
+</style>
+</head>
+<body>
+
+<div class="pres-wrapper">
+
+  <!-- =====================================================
+       ЗАГЛАВНА СЕКЦИЯ
+       ===================================================== -->
+  <div class="pres-hero fade-in">
+    <h1>🎨 ONE BODY — Дизайн Система</h1>
+    <p>Визуална презентация на UI/UX стратегиите, компонентите и дизайн токените, използвани в мобилното приложение</p>
+    <div class="hero-tags">
+      <span class="hero-tag">📱 Mobile-Only</span>
+      <span class="hero-tag">☀️ Светла тема</span>
+      <span class="hero-tag">8pt Grid</span>
+      <span class="hero-tag">Glassmorphism</span>
+      <span class="hero-tag">Inter / Nunito Sans</span>
+      <span class="hero-tag">CSS Variables</span>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 1 — ЦВЕТОВА ПАЛИТРА
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">01 — ЦВЕТОВА ПАЛИТРА</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      🎨 Цветови токени (Светла тема)
+    </div>
+    <div class="palette-grid">
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#3A506B;">
+          <span class="palette-swatch-text">#3A506B</span>
+        </div>
+        <div class="palette-label">Primary</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#5BC0BE;">
+          <span class="palette-swatch-text">#5BC0BE</span>
+        </div>
+        <div class="palette-label">Secondary</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#778DA9;">
+          <span class="palette-swatch-text">#778DA9</span>
+        </div>
+        <div class="palette-label">Accent</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#CBBADD;">
+          <span class="palette-swatch-text">#CBBADD</span>
+        </div>
+        <div class="palette-label">Tertiary</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#F0F4F8;">
+          <span class="palette-swatch-text" style="color:#3A506B;">#F0F4F8</span>
+        </div>
+        <div class="palette-label">Background</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#FFFFFF; border:1px solid #e1e8f0;">
+          <span class="palette-swatch-text" style="color:#3A506B;">#FFFFFF</span>
+        </div>
+        <div class="palette-label">Surface / Card</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#2ecc71;">
+          <span class="palette-swatch-text">#2ECC71</span>
+        </div>
+        <div class="palette-label">Success</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#f39c12;">
+          <span class="palette-swatch-text">#F39C12</span>
+        </div>
+        <div class="palette-label">Warning</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#e74c3c;">
+          <span class="palette-swatch-text">#E74C3C</span>
+        </div>
+        <div class="palette-label">Danger</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#3498db;">
+          <span class="palette-swatch-text">#3498DB</span>
+        </div>
+        <div class="palette-label">Info</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#5BC0BE;">
+          <span class="palette-swatch-text">#5BC0BE</span>
+        </div>
+        <div class="palette-label">Протеини</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#FFD166;">
+          <span class="palette-swatch-text" style="color:#3A506B;">#FFD166</span>
+        </div>
+        <div class="palette-label">Мазнини</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#FF6B6B;">
+          <span class="palette-swatch-text">#FF6B6B</span>
+        </div>
+        <div class="palette-label">Въглехидрати</div>
+      </div>
+      <div class="palette-chip">
+        <div class="palette-swatch" style="background:#6FCF97;">
+          <span class="palette-swatch-text">#6FCF97</span>
+        </div>
+        <div class="palette-label">Фибри</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 2 — ТИПОГРАФИЯ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">02 — ТИПОГРАФИЯ</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      🅰️ Типографска скала
+    </div>
+    <div class="typo-grid">
+      <div class="typo-row">
+        <span class="typo-meta">2rem / 700</span>
+        <h1 style="font-size:2rem;margin:0;line-height:1.2;">Заглавие H1 — ONE BODY</h1>
+      </div>
+      <div class="typo-row">
+        <span class="typo-meta">1.5rem / 600</span>
+        <h2 style="font-size:1.5rem;margin:0;line-height:1.3;">Заглавие H2 — Моят Профил</h2>
+      </div>
+      <div class="typo-row">
+        <span class="typo-meta">1.25rem / 700</span>
+        <h3 style="font-size:1.25rem;margin:0;line-height:1.3;">Заглавие H3 — Дневен план</h3>
+      </div>
+      <div class="typo-row">
+        <span class="typo-meta">1.0625rem / 600</span>
+        <h4 style="font-size:1.0625rem;margin:0;line-height:1.3;">Заглавие H4 — Хранителна информация</h4>
+      </div>
+      <div class="typo-row">
+        <span class="typo-meta">1rem / 400</span>
+        <p style="margin:0;font-size:1rem;color:var(--text-secondary);">Основен текст — Препоръчителен дневен прием на белтъчини е 120g.</p>
+      </div>
+      <div class="typo-row">
+        <span class="typo-meta">0.9375rem / 400</span>
+        <span style="font-size:0.9375rem;color:var(--text-secondary);">Вторичен текст — Базиран на Вашето тегло и цели</span>
+      </div>
+      <div class="typo-row">
+        <span class="typo-meta">0.8125rem / 400</span>
+        <span style="font-size:0.8125rem;color:var(--text-muted);">Допълнителен текст — Обновено днес в 08:32</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 3 — БУТОНИ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">03 — БУТОНИ И ИНТЕРАКТИВНИ ЕЛЕМЕНТИ</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      🔘 Бутони (Touch-Friendly — min 44px)
+    </div>
+    <div class="card" style="margin-bottom:var(--sp-sm);">
+      <div class="card-title" style="margin-bottom:var(--sp-sm);">Основни варианти</div>
+      <div class="btn-grid">
+        <button class="btn btn-primary">🎯 Запази план</button>
+        <button class="btn btn-secondary">📊 Аналитика</button>
+        <button class="btn btn-outline">Преглед</button>
+        <button class="btn btn-ghost">Настройки</button>
+        <button class="btn btn-success">✓ Потвърди</button>
+        <button class="btn btn-danger">Изтрий</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-sm);">Размери</div>
+      <div class="btn-grid">
+        <button class="btn btn-primary btn-sm">Малък</button>
+        <button class="btn btn-primary">Стандарт</button>
+        <button class="btn btn-primary btn-lg">Голям</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 4 — СИМУЛИРАН ТЕЛЕФОН С ХЕДЪР + ТАБОВЕ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">04 — HEADER + НАВИГАЦИОННИ ТАБОВЕ</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      📱 Навигационен Header + Bottom Tabs
+    </div>
+
+    <div class="phone-frame">
+      <!-- Хедър -->
+      <div class="app-header">
+        <a class="header-logo" href="#">
+          <div class="header-logo-icon">💪</div>
+          <span class="header-logo-text">ONE BODY</span>
+        </a>
+        <span class="header-user-name">Иван Петров</span>
+        <button class="header-menu-btn" aria-label="Меню">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Placeholder съдържание -->
+      <div style="height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-muted);font-size:0.9rem;background:var(--bg);">
+        <span style="font-size:2.5rem;">📋</span>
+        <span>Основно съдържание</span>
+        <span style="font-size:0.8rem;color:var(--border);">scroll area</span>
+      </div>
+
+      <!-- Долни табове -->
+      <div class="bottom-tabs">
+        <button class="tab-btn active" onclick="setTab(this)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span class="tab-label">Начало</span>
+        </button>
+        <button class="tab-btn" onclick="setTab(this)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+          </svg>
+          <span class="tab-label">Седмица</span>
+        </button>
+        <button class="tab-btn" onclick="setTab(this)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span class="tab-label">Профил</span>
+        </button>
+        <button class="tab-btn" onclick="setTab(this)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span class="tab-label">Съвети</span>
+        </button>
+        <button class="tab-btn" onclick="setTab(this)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="tab-label">Чат</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Стратегически обяснения -->
+    <div style="margin-top:var(--sp-md);">
+      <div class="strategy-card">
+        <h4>🎨 Glassmorphism Header</h4>
+        <p>Header-ът използва semi-прозрачен фон (rgba(91,192,190,0.9)) с backdrop-filter blur за стеклен ефект. Sticky позициониране осигурява непрекъснат достъп до навигацията докато се scroll-ва.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>📍 Bottom Tab Bar с Gradient Background</h4>
+        <p>Таб навигацията е fixed в долната част на екрана. Активният таб се маркира с: (1) бяла линия отгоре с glow ефект, (2) лек gradient background, (3) по-голяма икона (scale 1.18), (4) по-дебел шрифт. Всяка кнопка минимум 44×65px за iOS/Android съвместимост.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 5 — DASHBOARD ПАНЕЛ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">05 — НАЧАЛЕН ТАБ (DASHBOARD)</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      🏠 Начало — KPI Карти + Дневен План
+    </div>
+
+    <div class="phone-frame">
+      <div class="app-header">
+        <div class="header-logo">
+          <div class="header-logo-icon">💪</div>
+          <span class="header-logo-text">ONE BODY</span>
+        </div>
+        <span class="header-user-name">Иван Петров</span>
+        <button class="header-menu-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="sim-scroll">
+        <!-- KPI карти -->
+        <div class="index-grid">
+          <div class="index-card">
+            <div class="index-card-label">
+              🎯 Цел
+              <span style="font-size:0.8rem;color:var(--success);">+2%</span>
+            </div>
+            <div class="index-card-value">68%</div>
+            <div class="progress-track"><div class="progress-fill goal"></div></div>
+          </div>
+          <div class="index-card secondary">
+            <div class="index-card-label">
+              🔥 Ангажираност
+              <span style="font-size:0.8rem;color:var(--success);">▲</span>
+            </div>
+            <div class="index-card-value">82%</div>
+            <div class="progress-track"><div class="progress-fill engagement"></div></div>
+          </div>
+          <div class="index-card success">
+            <div class="index-card-label">
+              ❤️ Здраве
+            </div>
+            <div class="index-card-value">74%</div>
+            <div class="progress-track"><div class="progress-fill health"></div></div>
+          </div>
+          <div class="index-card accent">
+            <div class="index-card-label">
+              ⚡ Серия
+            </div>
+            <div class="index-card-value">7 дни</div>
+            <div class="streak-grid" style="margin:6px auto 0;width:100%;">
+              <div class="streak-day logged"></div>
+              <div class="streak-day logged"></div>
+              <div class="streak-day logged"></div>
+              <div class="streak-day logged"></div>
+              <div class="streak-day logged"></div>
+              <div class="streak-day logged"></div>
+              <div class="streak-day today"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Макро карта -->
+        <div class="card macro-card">
+          <div class="card-header-row">
+            <div class="card-title">📊 Макро аналитика</div>
+            <span class="card-badge">Днес</span>
+          </div>
+          <div class="macro-chart-wrapper">
+            <!-- SVG Donut Chart -->
+            <svg class="macro-ring-svg" viewBox="0 0 100 100">
+              <circle class="macro-ring-track" cx="50" cy="50" r="38"/>
+              <!-- Protein 35% -->
+              <circle class="macro-ring-seg" cx="50" cy="50" r="38" stroke="#5BC0BE"
+                stroke-dasharray="83.5 155"
+                stroke-dashoffset="0"/>
+              <!-- Fat 25% -->
+              <circle class="macro-ring-seg" cx="50" cy="50" r="38" stroke="#FFD166"
+                stroke-dasharray="59.7 155"
+                stroke-dashoffset="-83.5"/>
+              <!-- Carbs 30% -->
+              <circle class="macro-ring-seg" cx="50" cy="50" r="38" stroke="#FF6B6B"
+                stroke-dasharray="71.6 155"
+                stroke-dashoffset="-143.2"/>
+              <!-- Fiber 10% -->
+              <circle class="macro-ring-seg" cx="50" cy="50" r="38" stroke="#6FCF97"
+                stroke-dasharray="23.9 155"
+                stroke-dashoffset="-214.8"/>
+              <text transform="rotate(90, 50, 50)" class="macro-ring-center" x="50" y="50">
+                1840
+              </text>
+              <text transform="rotate(90, 50, 50)" class="macro-ring-center" x="50" y="62" style="font-size:0.55rem;fill:var(--text-muted);">
+                kcal
+              </text>
+            </svg>
+            <div class="macro-legend">
+              <div class="macro-row">
+                <div class="macro-dot" style="background:#5BC0BE;"></div>
+                <span class="macro-label-text">Протеини</span>
+                <span class="macro-value-text">120g <span style="color:var(--text-muted);font-weight:400;">35%</span></span>
+              </div>
+              <div class="macro-row">
+                <div class="macro-dot" style="background:#FFD166;"></div>
+                <span class="macro-label-text">Мазнини</span>
+                <span class="macro-value-text">51g <span style="color:var(--text-muted);font-weight:400;">25%</span></span>
+              </div>
+              <div class="macro-row">
+                <div class="macro-dot" style="background:#FF6B6B;"></div>
+                <span class="macro-label-text">Въглехидрати</span>
+                <span class="macro-value-text">138g <span style="color:var(--text-muted);font-weight:400;">30%</span></span>
+              </div>
+              <div class="macro-row">
+                <div class="macro-dot" style="background:#6FCF97;"></div>
+                <span class="macro-label-text">Фибри</span>
+                <span class="macro-value-text">24g <span style="color:var(--text-muted);font-weight:400;">10%</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Дневен план -->
+        <div class="card">
+          <div class="card-header-row">
+            <div class="card-title">🍽️ Днешното меню</div>
+            <span class="card-badge">14.04</span>
+          </div>
+          <ul class="meal-list">
+            <li class="meal-item">
+              <div class="meal-checkbox checked">✓</div>
+              <div class="meal-info">
+                <div class="meal-name">🌅 Закуска — Овесена каша</div>
+                <div class="meal-macro">Протеин: 18g · Мазнини: 9g · Въгл: 52g</div>
+                <span class="meal-alt-btn">⟳ Алтернативи</span>
+              </div>
+              <span class="meal-kcal">356 kcal</span>
+            </li>
+            <li class="meal-item">
+              <div class="meal-checkbox checked">✓</div>
+              <div class="meal-info">
+                <div class="meal-name">☀️ Обяд — Пилешко с ориз</div>
+                <div class="meal-macro">Протеин: 45g · Мазнини: 12g · Въгл: 68g</div>
+                <span class="meal-alt-btn">⟳ Алтернативи</span>
+              </div>
+              <span class="meal-kcal">572 kcal</span>
+            </li>
+            <li class="meal-item">
+              <div class="meal-checkbox"></div>
+              <div class="meal-info">
+                <div class="meal-name">🌙 Вечеря — Сьомга с броколи</div>
+                <div class="meal-macro">Протеин: 38g · Мазнини: 22g · Въгл: 18g</div>
+                <span class="meal-alt-btn">⟳ Алтернативи</span>
+              </div>
+              <span class="meal-kcal">418 kcal</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Долни табове -->
+      <div class="bottom-tabs">
+        <button class="tab-btn active">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span class="tab-label">Начало</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          <span class="tab-label">Седмица</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="tab-label">Профил</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <span class="tab-label">Съвети</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="tab-label">Чат</span>
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--sp-md);">
+      <div class="strategy-card">
+        <h4>📊 KPI Card Grid — 2 Колони</h4>
+        <p>Четирите основни показателя (Цел, Ангажираност, Здраве, Серия) се показват в 2×2 grid. Всяка карта има ляв цветен border индикатор за бърза визуална идентификация и прогрес бар с glow ефект.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>🍩 Donut/Ring Chart за Макроси</h4>
+        <p>SVG кръгова диаграма с 4 сегмента (протеини, мазнини, въглехидрати, фибри) с kcal в центъра. Легендата вдясно показва грамажа и процента. Карта с glassmorphism и secondary border accent.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 6 — ПРОФИЛ ПАНЕЛ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">06 — ПРОФИЛ ТАБ</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      👤 Профил — Данни + Психо-тестове
+    </div>
+
+    <div class="phone-frame">
+      <div class="app-header">
+        <div class="header-logo"><div class="header-logo-icon">💪</div><span class="header-logo-text">ONE BODY</span></div>
+        <span class="header-user-name">Иван Петров</span>
+        <button class="header-menu-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      </div>
+
+      <div class="sim-scroll">
+        <!-- Персонални данни -->
+        <div class="card">
+          <div class="card-header-row">
+            <div class="card-title">📋 Лични данни</div>
+          </div>
+          <ul class="profile-list">
+            <li class="profile-item">
+              <span class="profile-key">Възраст</span>
+              <span class="profile-val">34<span class="profile-unit">г.</span></span>
+            </li>
+            <li class="profile-item">
+              <span class="profile-key">Тегло (начало)</span>
+              <span class="profile-val">87<span class="profile-unit">кг</span></span>
+            </li>
+            <li class="profile-item">
+              <span class="profile-key">Тегло (текущо)</span>
+              <span class="profile-val">82.5<span class="profile-unit">кг</span></span>
+            </li>
+            <li class="profile-item">
+              <span class="profile-key">Височина</span>
+              <span class="profile-val">178<span class="profile-unit">см</span></span>
+            </li>
+            <li class="profile-item">
+              <span class="profile-key">ИТМ</span>
+              <span class="profile-val" style="color:var(--warning);font-weight:700;">26.0</span>
+            </li>
+            <li class="profile-item">
+              <span class="profile-key">Цел</span>
+              <span class="profile-val">Отслабване</span>
+            </li>
+            <li class="profile-item">
+              <span class="profile-key">Активност</span>
+              <span class="profile-val">Умерена</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Психологически тестове -->
+        <div class="card">
+          <div class="card-header-row">
+            <div class="card-title">🧠 Психологически тестове</div>
+          </div>
+          <a class="psych-card" href="#">
+            <div class="psych-icon">🧬</div>
+            <div class="psych-info">
+              <div class="psych-name">Личностен профил</div>
+              <div class="psych-status">✓ Завършен — 14.03.2024</div>
+            </div>
+            <span class="psych-arrow">›</span>
+          </a>
+          <a class="psych-card" href="#">
+            <div class="psych-icon" style="background:linear-gradient(135deg, var(--secondary-color), var(--tertiary-color));">🌀</div>
+            <div class="psych-info">
+              <div class="psych-name">Хранително поведение</div>
+              <div class="psych-status">○ Не е попълнен</div>
+            </div>
+            <span class="psych-arrow">›</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="bottom-tabs">
+        <button class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span class="tab-label">Начало</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          <span class="tab-label">Седмица</span>
+        </button>
+        <button class="tab-btn active">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="tab-label">Профил</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <span class="tab-label">Съвети</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="tab-label">Чат</span>
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--sp-md);">
+      <div class="strategy-card">
+        <h4>📋 Key-Value профилен списък</h4>
+        <p>Профилните данни се представят в key:value двойки с дясно подравняване на стойностите. Пунктирана долна граница разграничава редовете. Важните стойности (ИТМ, тегло) са цветово кодирани — warning/success/danger.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>🧠 Psych Test Cards с Slide-in Border</h4>
+        <p>Психологическите тестове са представени като кликаеми карти с лява accent-граница, която се reveal-ва при hover (scaleY animation). Иконите са квадратни с gradient background и box-shadow.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 7 — ПРЕПОРЪКИ ТАБ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">07 — СЪВЕТИ / ПРЕПОРЪКИ ТАБ</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      ⭐ Персонализирани препоръки
+    </div>
+
+    <div class="phone-frame">
+      <div class="app-header">
+        <div class="header-logo"><div class="header-logo-icon">💪</div><span class="header-logo-text">ONE BODY</span></div>
+        <span class="header-user-name">Иван Петров</span>
+        <button class="header-menu-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      </div>
+
+      <div class="sim-scroll">
+        <div class="rec-section">
+          <div class="rec-section-title">🥗 Разрешени храни</div>
+          <div class="rec-card success">
+            <div class="rec-card-title">Пилешко месо</div>
+            <div class="rec-card-body">Богато на белтъчини с ниско съдържание на мазнини. Препоръчителна порция 150–200g.</div>
+          </div>
+          <div class="rec-card success">
+            <div class="rec-card-title">Кафяв ориз и киноа</div>
+            <div class="rec-card-body">Сложни въглехидрати с нисък гликемичен индекс. Осигуряват дълготрайна енергия.</div>
+          </div>
+        </div>
+
+        <div class="rec-section">
+          <div class="rec-section-title">⚠️ За ограничаване</div>
+          <div class="rec-card warning">
+            <div class="rec-card-title">Преработени захари</div>
+            <div class="rec-card-body">Газирани напитки, бонбони, сладкиши. Ограничете до max 2 пъти седмично.</div>
+          </div>
+        </div>
+
+        <!-- Нотификационни бележки -->
+        <div class="note critical">
+          ⚡ <strong>Алергия:</strong> Избягвайте глутен-съдържащи продукти!
+        </div>
+        <div class="note info">
+          💧 <strong>Хидратация:</strong> Минимум 2.5L вода дневно.
+        </div>
+        <div class="note success">
+          ✅ Отличен напредък тази седмица!
+        </div>
+      </div>
+
+      <div class="bottom-tabs">
+        <button class="tab-btn"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="tab-label">Начало</span></button>
+        <button class="tab-btn"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="tab-label">Седмица</span></button>
+        <button class="tab-btn"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span class="tab-label">Профил</span></button>
+        <button class="tab-btn active"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><span class="tab-label">Съвети</span></button>
+        <button class="tab-btn"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="tab-label">Чат</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 8 — СЕДМИЧЕН ПЛАН ТАБ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">08 — СЕДМИЧЕН ПЛАН ТАБ</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      📅 Седмичен Хранителен План
+    </div>
+
+    <div style="max-width:600px;margin:0 auto;">
+      <div class="week-table-wrapper">
+        <table class="week-table">
+          <thead>
+            <tr>
+              <th>Ден</th>
+              <th>Закуска</th>
+              <th>Обяд</th>
+              <th>Вечеря</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong class="week-meal-name">Пон</strong></td>
+              <td><span class="week-meal-name">Овесена каша</span>356 kcal</td>
+              <td><span class="week-meal-name">Пилешко / ориз</span>572 kcal</td>
+              <td><span class="week-meal-name">Сьомга / броколи</span>418 kcal</td>
+            </tr>
+            <tr>
+              <td><strong class="week-meal-name">Вт</strong></td>
+              <td><span class="week-meal-name">Омлет / спанак</span>320 kcal</td>
+              <td><span class="week-meal-name">Говеждо / картоф</span>610 kcal</td>
+              <td><span class="week-meal-name">Гръцка салата</span>280 kcal</td>
+            </tr>
+            <tr>
+              <td><strong class="week-meal-name">Ср</strong></td>
+              <td><span class="week-meal-name">Кисело мляко</span>210 kcal</td>
+              <td><span class="week-meal-name">Леща супа</span>380 kcal</td>
+              <td><span class="week-meal-name">Пуешко / зеленчуци</span>395 kcal</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--sp-md);">
+      <div class="strategy-card">
+        <h4>📋 Хоризонтално скролираща таблица</h4>
+        <p>Седмичният план се представя в responsive таблица с overflow-x: auto. Sticky header редове, striped rows за четливост, hover highlight. На малки екрани имената на ястията се скриват за пестене на място.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 9 — КОМПОНЕНТИ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">09 — КОМПОНЕНТИ</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      🧩 Многократно използвани компоненти
+    </div>
+
+    <div class="pres-two-col">
+      <!-- Акордеон -->
+      <div>
+        <div class="card-title" style="margin-bottom:var(--sp-sm);font-size:1rem;">📂 Акордеон</div>
+        <div class="accordion">
+          <div class="accordion-head open" onclick="toggleAccordion(this)">
+            📊 Детайлни показатели
+            <span class="accordion-arrow">›</span>
+          </div>
+          <div class="accordion-body open">
+            <div class="metric-item">
+              <div class="metric-row">
+                <span class="metric-name">Тегло</span>
+                <div class="metric-values">
+                  <span class="metric-chip initial">87 кг</span>
+                  <span class="metric-chip expected">82 кг</span>
+                  <span class="metric-chip current">82.5 кг</span>
+                </div>
+              </div>
+              <div class="metric-mini-bar">
+                <div class="metric-mini-fill" style="width:74%;"></div>
+              </div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-row">
+                <span class="metric-name">Талия</span>
+                <div class="metric-values">
+                  <span class="metric-chip initial">96 см</span>
+                  <span class="metric-chip expected">90 см</span>
+                  <span class="metric-chip current">91 см</span>
+                </div>
+              </div>
+              <div class="metric-mini-bar">
+                <div class="metric-mini-fill" style="width:83%;background:var(--secondary-color);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="accordion">
+          <div class="accordion-head" onclick="toggleAccordion(this)">
+            💬 Бележки за деня
+            <span class="accordion-arrow">›</span>
+          </div>
+          <div class="accordion-body">
+            Добавете дневни наблюдения, симптоми или бележки за преглед от вашия нутриционист.
+          </div>
+        </div>
+      </div>
+
+      <!-- Нотификации -->
+      <div>
+        <div class="card-title" style="margin-bottom:var(--sp-sm);font-size:1rem;">🔔 Нотификационни бележки</div>
+        <div class="note critical">⚡ <strong>Критично:</strong> Над дневната норма на захари</div>
+        <div class="note warning">⚠️ <strong>Важно:</strong> Пийте повече вода</div>
+        <div class="note info">ℹ️ <strong>Инфо:</strong> Нов план ще бъде генериран</div>
+        <div class="note success">✅ <strong>Успех:</strong> Целта е постигната!</div>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--sp-md);">
+      <!-- Трекер теги -->
+      <div class="card-title" style="margin-bottom:var(--sp-sm);font-size:1rem;">📝 Дневен трекер — Как се чувстваш?</div>
+      <div class="tracker-group">
+        <div class="tracker-tag selected">
+          <span class="tracker-tag-emoji">😊</span>
+          Добре
+        </div>
+        <div class="tracker-tag">
+          <span class="tracker-tag-emoji">😴</span>
+          Уморен
+        </div>
+        <div class="tracker-tag">
+          <span class="tracker-tag-emoji">💪</span>
+          Енергичен
+        </div>
+        <div class="tracker-tag">
+          <span class="tracker-tag-emoji">🤒</span>
+          Нездрав
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       СЕКЦИЯ 10 — ДИЗАЙН СТРАТЕГИИ
+       ===================================================== -->
+  <div class="pres-section">
+    <div class="section-label">10 — ВИЗУАЛНИ СТРАТЕГИИ</div>
+    <div class="section-title" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);border-bottom:3px solid var(--secondary-color);padding-bottom:var(--sp-xs);margin-bottom:var(--sp-md);">
+      🔬 Ключови дизайн стратегии
+    </div>
+
+    <div class="pres-two-col">
+      <div class="strategy-card">
+        <h4>📐 8-Point Spacing Grid</h4>
+        <p>Всички отстояния са кратни на 8px: xs=8, sm=16, md=24, lg=32, xl=40. Осигурява визуална хармония и предвидими разстояния в целия интерфейс.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>🔵 CSS Design Tokens</h4>
+        <p>Пълна система от CSS Custom Properties (--primary-color, --card-bg, --shadow-md и др.) позволява лесно превключване между 3 теми: светла, тъмна и ярка (vivid).</p>
+      </div>
+      <div class="strategy-card">
+        <h4>🪟 Glassmorphism</h4>
+        <p>Картите и header-ът използват backdrop-filter: blur() с полупрозрачни фонове. rgba(255,255,255,0.88) за карти на светла тема — лека дълбочина без претрупаност.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>👆 Touch-First Sizing</h4>
+        <p>Минимален tap target: 44×44px (iOS стандарт). Бутони минимум 44px height. Tab buttons: пълна ширина на равен дял. Spacing между интерактивни елементи минимум 8px.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>✨ Micro-interactions</h4>
+        <p>translateY(-3px) при hover на карти, scale(0.97) при натискане на бутони, bounce animation на активния tab icon, ripple ефект при докосване на таб бутони.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>🌈 Семантично цветово кодиране</h4>
+        <p>Цветовете носят значение: зелено=успех/здраве, жълто=предупреждение, червено=критично, синьо=информация. Прилагано последователно в progress bars, нотификации и метрики.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>💡 Left Border Accent</h4>
+        <p>Картите в препоръките и KPI-тата използват 4px ляв border с цветов accent за бърза визуална категоризация. При hover border-ът нараства до 8px за feedback.</p>
+      </div>
+      <div class="strategy-card">
+        <h4>📱 Fixed Navigation</h4>
+        <p>Header: sticky top. Tab nav: fixed bottom. Основното съдържание scroll-ва между тях. padding-bottom на body равен на tabs-height за да не се скрива последното съдържание.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding:var(--sp-lg);color:var(--text-muted);font-size:0.875rem;border-top:1px solid var(--border-soft);margin-top:var(--sp-xl);">
+    <strong style="color:var(--primary-color);">ONE BODY</strong> — Дизайн Презентация
+    <span style="margin:0 8px;">·</span>
+    Светла тема (Light Theme)
+    <span style="margin:0 8px;">·</span>
+    Inter + Nunito Sans
+    <span style="margin:0 8px;">·</span>
+    Mobile-Only PWA
+  </div>
+
+</div><!-- /.pres-wrapper -->
+
+<script>
+  // Таб превключване в демото
+  function setTab(btn) {
+    const parent = btn.closest('.bottom-tabs');
+    parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // Акордеон
+  function toggleAccordion(head) {
+    const body = head.nextElementSibling;
+    head.classList.toggle('open');
+    body.classList.toggle('open');
+  }
+
+  // Meal checkbox toggle
+  document.querySelectorAll('.meal-checkbox:not(.checked)').forEach(cb => {
+    cb.addEventListener('click', () => {
+      cb.classList.toggle('checked');
+      if (cb.classList.contains('checked')) {
+        cb.textContent = '✓';
+        cb.style.background = 'var(--success)';
+        cb.style.borderColor = 'var(--success)';
+        cb.style.color = '#fff';
+      } else {
+        cb.textContent = '';
+        cb.style.background = '';
+        cb.style.borderColor = '';
+        cb.style.color = '';
+      }
+    });
+  });
+
+  // Tracker tags
+  document.querySelectorAll('.tracker-tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      document.querySelectorAll('.tracker-tag').forEach(t => t.classList.remove('selected'));
+      tag.classList.add('selected');
+    });
+  });
+
+  // Плавно появяване на секциите
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.pres-section').forEach(s => {
+    s.style.opacity = '0';
+    s.style.transform = 'translateY(20px)';
+    s.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(s);
+  });
+</script>
+
+</body>
+</html>
