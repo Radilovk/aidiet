@@ -7231,19 +7231,48 @@ async function handleSaveChatModeConfig(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    await env.page_content.put(
-      'admin_chat_modification_mode_enabled',
-      modificationModeEnabled ? 'true' : 'false'
-    );
+    const version = Date.now();
+    await Promise.all([
+      env.page_content.put('admin_chat_modification_mode_enabled', modificationModeEnabled ? 'true' : 'false'),
+      env.page_content.put('admin_chat_mode_version', version.toString())
+    ]);
 
     // Invalidate chat prompts cache so mode takes effect immediately
     chatPromptsCache = null;
     chatPromptsCacheTime = 0;
 
-    return jsonResponse({ success: true, message: 'Chat mode config saved successfully' });
+    return jsonResponse({ success: true, message: 'Chat mode config saved successfully', version });
   } catch (error) {
     console.error('Error saving chat mode config:', error);
     return jsonResponse({ error: 'Failed to save chat mode config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Lightweight endpoint for clients to check current chat mode config.
+ * Reads only 2 KV keys instead of the full get-config (15+ keys).
+ */
+async function handleGetChatModeConfig(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const [modificationModeEnabled, versionData] = await Promise.all([
+      env.page_content.get('admin_chat_modification_mode_enabled'),
+      env.page_content.get('admin_chat_mode_version')
+    ]);
+
+    return jsonResponse({
+      success: true,
+      modificationModeEnabled: modificationModeEnabled === 'true',
+      version: versionData ? parseInt(versionData) : 0
+    }, 200, {
+      cacheControl: 'public, max-age=300' // 5 min CDN cache (admin changes are infrequent)
+    });
+  } catch (error) {
+    console.error('Error getting chat mode config:', error);
+    return jsonResponse({ error: 'Failed to get chat mode config: ' + error.message }, 500);
   }
 }
 
@@ -9967,6 +9996,8 @@ export default {
         return await handleSaveModel(request, env);
       } else if (url.pathname === '/api/admin/save-chat-mode-config' && request.method === 'POST') {
         return await handleSaveChatModeConfig(request, env);
+      } else if (url.pathname === '/api/admin/chat-mode-config' && request.method === 'GET') {
+        return await handleGetChatModeConfig(request, env);
       } else if (url.pathname === '/api/admin/save-protocol-config' && request.method === 'POST') {
         return await handleSaveProtocolConfig(request, env);
       } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {

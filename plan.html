@@ -3980,15 +3980,29 @@
         });
 
         async function loadChatModeConfig() {
-            try {
-                const response = await fetch(`${WORKER_URL}/api/admin/get-config`);
-                if (!response.ok) throw new Error('Failed to load chat mode config');
-                const config = await response.json();
-                modificationModeEnabled = config.modificationModeEnabled ?? false;
-                localStorage.setItem('chatModificationModeEnabled', modificationModeEnabled ? 'true' : 'false');
-            } catch (error) {
-                console.warn('Failed to load chat mode config, using local fallback:', error);
-                modificationModeEnabled = localStorage.getItem('chatModificationModeEnabled') === 'true';
+            // Always read from localStorage first (zero backend calls on normal loads)
+            const cachedValue = localStorage.getItem('chatModificationModeEnabled');
+            const cachedTime = parseInt(localStorage.getItem('chatModeConfigFetchedAt') || '0', 10);
+            const CACHE_TTL = 60 * 60 * 1000; // 1 hour — admin changes are rare
+            const now = Date.now();
+
+            if (cachedValue !== null && (now - cachedTime) < CACHE_TTL) {
+                // Cache is fresh — use it immediately, no network request
+                modificationModeEnabled = cachedValue === 'true';
+            } else {
+                // Cache is missing or stale — fetch only the lightweight endpoint
+                try {
+                    const response = await fetch(`${WORKER_URL}/api/admin/chat-mode-config`);
+                    if (!response.ok) throw new Error('Failed to load chat mode config');
+                    const config = await response.json();
+                    modificationModeEnabled = config.modificationModeEnabled ?? false;
+                    localStorage.setItem('chatModificationModeEnabled', modificationModeEnabled ? 'true' : 'false');
+                    localStorage.setItem('chatModeConfigVersion', String(config.version || 0));
+                    localStorage.setItem('chatModeConfigFetchedAt', String(now));
+                } catch (error) {
+                    console.warn('Failed to load chat mode config, using local fallback:', error);
+                    modificationModeEnabled = cachedValue === 'true';
+                }
             }
 
             if (!modificationModeEnabled && chatMode === 'modification') {
