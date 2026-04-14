@@ -2653,7 +2653,8 @@
                             
                             <!-- Semicircular Gauge -->
                             <div style="position: relative; width: 200px; height: 115px; margin: 0 auto 10px;">
-                                <svg viewBox="0 0 200 110" width="200" height="110">
+                                <svg viewBox="0 0 200 110" width="200" height="110" role="img" aria-label="Здравословно състояние: ${healthScore}% - ${healthLabel}">
+                                    <title>Здравословно състояние: ${healthScore}%</title>
                                     <!-- Background arc -->
                                     <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="16" stroke-linecap="round"/>
                                     
@@ -2664,7 +2665,7 @@
                                     <path d="M 125 18 A 85 85 0 0 1 162 42" fill="none" stroke="#10b981" stroke-width="16" opacity="0.3"/>
                                     <path d="M 162 42 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
                                     
-                                    <!-- Active arc up to score -->
+                                    <!-- Active arc up to score (267 ≈ π × 85 = semicircle arc length for radius 85) -->
                                     <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="${gaugeColor}" stroke-width="16" stroke-linecap="round"
                                         stroke-dasharray="${(healthScore / 100) * 267} 267"
                                         style="filter: drop-shadow(0 0 4px ${gaugeColor}40);"/>
