@@ -1166,12 +1166,33 @@
                         <div class="score-card-subtitle">Текущо състояние</div>
                     </div>
                     <div class="single-score-container">
-                        <div class="score-value-container">
-                            <div class="score-value" id="healthScoreValue">--</div>
+                        <!-- Semicircular Gauge -->
+                        <div style="position: relative; width: 200px; height: 115px; margin: 0 auto 10px;">
+                            <svg id="healthGaugeSvg" viewBox="0 0 200 110" width="200" height="110" role="img" aria-label="Здравословен статус">
+                                <title id="healthGaugeTitle">Здравословен статус</title>
+                                <!-- Background arc -->
+                                <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="16" stroke-linecap="round"/>
+                                <!-- Color gradient segments: 25% each — red, orange, yellow, green -->
+                                <path d="M 15 100 A 85 85 0 0 1 40 40" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+                                <path d="M 40 40 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="16" opacity="0.3"/>
+                                <path d="M 100 15 A 85 85 0 0 1 160 40" fill="none" stroke="#fbbf24" stroke-width="16" opacity="0.3"/>
+                                <path d="M 160 40 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+                                <!-- Active arc up to score -->
+                                <path id="healthGaugeArc" d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round"
+                                    stroke-dasharray="0 267"/>
+                                <!-- Needle -->
+                                <g id="healthGaugeNeedle" transform="rotate(-90, 100, 100)">
+                                    <line x1="100" y1="100" x2="100" y2="28" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                                    <circle cx="100" cy="100" r="6" fill="#10b981" stroke="white" stroke-width="2"/>
+                                </g>
+                                <!-- Labels -->
+                                <text x="12" y="108" font-size="9" fill="var(--text-light, #888)" text-anchor="start">0</text>
+                                <text x="188" y="108" font-size="9" fill="var(--text-light, #888)" text-anchor="end">100</text>
+                            </svg>
                         </div>
-                        <div class="vertical-bar-chart">
-                            <div class="bar-column" id="healthScoreBarCurrent" style="height: 0%"></div>
-                        </div>
+                        <!-- Score display -->
+                        <div id="healthScoreValue" style="font-size: 2rem; font-weight: 800; color: #10b981; line-height: 1; margin-bottom: 4px;">--</div>
+                        <div id="healthScoreLabel" style="font-size: 0.9rem; font-weight: 600; color: #10b981;"></div>
                     </div>
                 </div>
             </div>
@@ -1424,18 +1445,44 @@
                 console.log('Using fallback health score calculation:', healthScore);
             }
             
-            // Update UI - Current health score only (no comparison, no success chance)
+            // Update UI - Current health score gauge
+            let gaugeColor, healthLabel;
+            if (healthScore < 25) {
+                gaugeColor = '#ef4444';
+                healthLabel = 'Влошено';
+            } else if (healthScore < 50) {
+                gaugeColor = '#f97316';
+                healthLabel = 'Нуждае се от внимание';
+            } else if (healthScore < 75) {
+                gaugeColor = '#fbbf24';
+                healthLabel = 'Умерено';
+            } else {
+                gaugeColor = '#10b981';
+                healthLabel = 'Добро';
+            }
+
             document.getElementById('healthScoreValue').textContent = healthScore + '%';
-            
-            // Store bar height as percentage for animation
-            document.getElementById('healthScoreBarCurrent').setAttribute('data-height', healthScore + '%');
-            
+            document.getElementById('healthScoreValue').style.color = gaugeColor;
+            document.getElementById('healthScoreLabel').textContent = healthLabel;
+            document.getElementById('healthScoreLabel').style.color = gaugeColor;
+            document.getElementById('healthGaugeTitle').textContent = 'Здравословен статус: ' + healthScore + '%';
+            document.getElementById('healthGaugeSvg').setAttribute('aria-label', 'Здравословен статус: ' + healthScore + '% - ' + healthLabel);
+
+            const needleAngle = -90 + (healthScore / 100) * 180;
+            const arc = document.getElementById('healthGaugeArc');
+            const needle = document.getElementById('healthGaugeNeedle');
+            arc.setAttribute('stroke', gaugeColor);
+            arc.style.filter = 'drop-shadow(0 0 4px ' + gaugeColor + '40)';
+            needle.querySelector('line').setAttribute('stroke', gaugeColor);
+            needle.querySelector('circle').setAttribute('fill', gaugeColor);
+
             // Show the overall score section
             document.getElementById('overallScoreSection').style.display = 'block';
-            
-            // Animate bar after a short delay
+
+            // Animate gauge after a short delay
             setTimeout(() => {
-                document.getElementById('healthScoreBarCurrent').style.height = healthScore + '%';
+                arc.setAttribute('stroke-dasharray', (healthScore / 100) * 267 + ' 267');
+                needle.setAttribute('transform', 'rotate(' + needleAngle + ', 100, 100)');
             }, 300);
 
             // ===== DISPLAY 1-YEAR FORECASTS =====
