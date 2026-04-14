@@ -3272,8 +3272,13 @@ async function handleChat(request, env) {
     // Use conversation history from client (defaults to empty array)
     const chatHistory = conversationHistory || [];
     
-    // Determine chat mode (default: consultation)
-    const chatMode = mode || 'consultation';
+    // Determine chat mode (default: consultation), enforcing admin mode configuration
+    const requestedMode = mode || 'consultation';
+    const chatPromptsConfig = await getChatPrompts(env);
+    const modificationModeEnabled = chatPromptsConfig.modificationEnabled === true;
+    const chatMode = (requestedMode === 'modification' && !modificationModeEnabled)
+      ? 'consultation'
+      : requestedMode;
     
     // Build chat prompt with context and mode
     const chatPrompt = await generateChatPrompt(env, message, effectiveUserData, effectiveUserPlan, chatHistory, chatMode);
@@ -6282,6 +6287,7 @@ async function getChatPrompts(env) {
 
   // Default prompts
   const prompts = {
+    modificationEnabled: false,
     consultation: `ТЕКУЩ РЕЖИМ: КОНСУЛТАЦИЯ
 
 ВАЖНИ ПРАВИЛА:
@@ -6381,14 +6387,16 @@ async function getChatPrompts(env) {
   };
 
   if (env.page_content) {
-    // Fetch custom prompts from KV in parallel
-    const [savedConsultation, savedModification] = await Promise.all([
+    // Fetch custom prompts and mode setting from KV in parallel
+    const [savedConsultation, savedModification, savedModificationModeEnabled] = await Promise.all([
       env.page_content.get('admin_consultation_prompt'),
-      env.page_content.get('admin_modification_prompt')
+      env.page_content.get('admin_modification_prompt'),
+      env.page_content.get('admin_chat_modification_mode_enabled')
     ]);
 
     if (savedConsultation) prompts.consultation = savedConsultation;
     if (savedModification) prompts.modification = savedModification;
+    prompts.modificationEnabled = savedModificationModeEnabled === 'true';
   }
 
   // Update cache
@@ -7209,6 +7217,66 @@ async function handleSaveModel(request, env) {
 }
 
 /**
+ * Admin: Save chat mode configuration to KV
+ */
+async function handleSaveChatModeConfig(request, env) {
+  try {
+    const { modificationModeEnabled } = await request.json();
+
+    if (typeof modificationModeEnabled !== 'boolean') {
+      return jsonResponse({ error: 'modificationModeEnabled must be boolean' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const version = Date.now();
+    await Promise.all([
+      env.page_content.put('admin_chat_modification_mode_enabled', modificationModeEnabled ? 'true' : 'false'),
+      env.page_content.put('admin_chat_mode_version', version.toString())
+    ]);
+
+    // Invalidate chat prompts cache so mode takes effect immediately
+    chatPromptsCache = null;
+    chatPromptsCacheTime = 0;
+
+    return jsonResponse({ success: true, message: 'Chat mode config saved successfully', version });
+  } catch (error) {
+    console.error('Error saving chat mode config:', error);
+    return jsonResponse({ error: 'Failed to save chat mode config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Lightweight endpoint for clients to check current chat mode config.
+ * Reads only 2 KV keys instead of the full get-config (15+ keys).
+ */
+async function handleGetChatModeConfig(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const [modificationModeEnabled, versionData] = await Promise.all([
+      env.page_content.get('admin_chat_modification_mode_enabled'),
+      env.page_content.get('admin_chat_mode_version')
+    ]);
+
+    return jsonResponse({
+      success: true,
+      modificationModeEnabled: modificationModeEnabled === 'true',
+      version: versionData ? parseInt(versionData) : 0
+    }, 200, {
+      cacheControl: 'public, max-age=300' // 5 min CDN cache (admin changes are infrequent)
+    });
+  } catch (error) {
+    console.error('Error getting chat mode config:', error);
+    return jsonResponse({ error: 'Failed to get chat mode config: ' + error.message }, 500);
+  }
+}
+
+/**
  * Admin: Save protocol AI config (provider, model) to KV
  */
 async function handleSaveProtocolConfig(request, env) {
@@ -7505,7 +7573,8 @@ async function handleGetConfig(request, env) {
       correctionPrompt,
       protocolProvider,
       protocolModelName,
-      emoeatPrompt
+      emoeatPrompt,
+      modificationModeEnabled
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -7520,9 +7589,12 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_correction_prompt'),
       env.page_content.get('admin_protocol_provider'),
       env.page_content.get('admin_protocol_model_name'),
-      env.page_content.get('admin_emoeat_prompt')
+      env.page_content.get('admin_emoeat_prompt'),
+      env.page_content.get('admin_chat_modification_mode_enabled')
     ]);
     
+    const parsedModificationModeEnabled = modificationModeEnabled === 'true';
+
     return jsonResponse({ 
       success: true, 
       provider: provider || 'openai',
@@ -7538,7 +7610,8 @@ async function handleGetConfig(request, env) {
       correctionPrompt,
       protocolProvider: protocolProvider || null,
       protocolModelName: protocolModelName || null,
-      emoeatPrompt
+      emoeatPrompt,
+      modificationModeEnabled: parsedModificationModeEnabled
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -9921,6 +9994,10 @@ export default {
         return await handleGetDefaultPrompt(request, env);
       } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
         return await handleSaveModel(request, env);
+      } else if (url.pathname === '/api/admin/save-chat-mode-config' && request.method === 'POST') {
+        return await handleSaveChatModeConfig(request, env);
+      } else if (url.pathname === '/api/admin/chat-mode-config' && request.method === 'GET') {
+        return await handleGetChatModeConfig(request, env);
       } else if (url.pathname === '/api/admin/save-protocol-config' && request.method === 'POST') {
         return await handleSaveProtocolConfig(request, env);
       } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {

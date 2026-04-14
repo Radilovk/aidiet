@@ -1118,6 +1118,23 @@
 
             <!-- Chat Prompt Editor - Modification Mode -->
             <div class="card">
+                <h2><i class="fas fa-toggle-on"></i> Настройка на Чат Режимите</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Контролира дали в потребителския чат е разрешен режимът „Промяна на план“.
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="modificationModeEnabled" style="width: 18px; height: 18px;">
+                        <span>Разреши режим „Промяна на план“ в чата</span>
+                    </label>
+                </div>
+                <button class="btn" onclick="saveChatModeConfig()">
+                    <i class="fas fa-save"></i> Запази Настройката
+                </button>
+            </div>
+
+            <!-- Chat Prompt Editor - Modification Mode -->
+            <div class="card">
                 <h2><i class="fas fa-edit"></i> AI Промпт за Чат Асистент - Режим Промяна на План</h2>
                 <div class="warning-box">
                     <strong>Внимание:</strong> Този промпт се използва когато потребителят иска да промени хранителния си план.
@@ -2966,6 +2983,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 document.getElementById('correctionPrompt').value = config.correctionPrompt;
                                 localStorage.setItem('adminCorrectionPrompt', config.correctionPrompt);
                             }
+                            if (typeof config.modificationModeEnabled === 'boolean') {
+                                document.getElementById('modificationModeEnabled').checked = config.modificationModeEnabled;
+                                localStorage.setItem('adminModificationModeEnabled', config.modificationModeEnabled ? 'true' : 'false');
+                            }
                             // Load protocol AI config from server
                             if (config.protocolProvider) {
                                 document.getElementById('protocolAiProvider').value = config.protocolProvider;
@@ -3012,6 +3033,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const savedCorrectionPrompt = localStorage.getItem('adminCorrectionPrompt') || '';
                 document.getElementById('correctionPrompt').value = savedCorrectionPrompt;
+
+                const savedModificationModeEnabled = localStorage.getItem('adminModificationModeEnabled');
+                document.getElementById('modificationModeEnabled').checked = savedModificationModeEnabled === 'true';
 
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -3147,6 +3171,32 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showSuccess('Промпт за промяна запазен успешно!');
             } catch (error) {
                 console.error('Error saving modification prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        async function saveChatModeConfig() {
+            const modificationModeEnabled = document.getElementById('modificationModeEnabled').checked;
+            localStorage.setItem('adminModificationModeEnabled', modificationModeEnabled ? 'true' : 'false');
+            // Keep plan.html's localStorage key in sync so it picks up the change
+            // without needing a backend call (plan.html is localStorage-only for this config).
+            localStorage.setItem('chatModificationModeEnabled', modificationModeEnabled ? 'true' : 'false');
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-chat-mode-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ modificationModeEnabled })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save chat mode configuration');
+                }
+
+                invalidateConfigCache();
+                showSuccess('Настройката за чат режимите е запазена успешно!');
+            } catch (error) {
+                console.error('Error saving chat mode config:', error);
                 showError('Грешка при записване: ' + error.message);
             }
         }

@@ -2902,6 +2902,7 @@
         let chatVisible = false;
         let conversationId = Date.now().toString();
         let chatMode = 'consultation'; // 'consultation', 'modification', or 'report'
+        let modificationModeEnabled = false;
         let chatHistory = []; // Store chat messages for persistence
         
         // REVOLUTIONARY OPTIMIZATION: Chat context caching state
@@ -2939,6 +2940,7 @@
         // Demo version: Total message limit
         let totalMessagesSent = 0;
         const MAX_TOTAL_MESSAGES = 10; // Demo version limit
+        let isDemoLimitUnlocked = false;
         
         /**
          * Check if a message is a duplicate of a recent message
@@ -3966,6 +3968,7 @@
         window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
             loadDietData();
+            loadChatModeConfig();
             // Enhancement #8: Load offline queue
             loadOfflineQueue();
             // Enhancement #6: Load plan history
@@ -3975,6 +3978,21 @@
             // Check for notification updates from backend (only call if admin changed)
             checkNotificationUpdates();
         });
+
+        function loadChatModeConfig() {
+            // Reads ONLY from localStorage — no backend call ever from plan.html.
+            // The setting is written to localStorage only by admin.html when the admin
+            // explicitly enables or disables the feature (that POST to the backend is
+            // the ONLY legitimate backend call for this config).
+            modificationModeEnabled = localStorage.getItem('chatModificationModeEnabled') === 'true';
+
+            if (!modificationModeEnabled && chatMode === 'modification') {
+                chatMode = 'consultation';
+                saveChatHistory();
+            }
+
+            if (chatVisible) updateModeUI();
+        }
 
         // --- Theme Management ---
         function initializeTheme() {
@@ -4849,6 +4867,14 @@
                 animation: slideUp 0.3s ease;
             `;
 
+            const modificationButtonHtml = modificationModeEnabled
+                ? `
+                        <button onclick="switchToMode('modification')" id="modificationBtn" style="background: var(--primary-red); color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-edit"></i>
+                            <span>Промени план</span>
+                        </button>`
+                : '';
+
             chatWindow.innerHTML = `
                 <div style="padding: 15px; background: var(--primary-red); color: white; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="margin: 0; font-size: 1rem;"><i class="fas fa-user-md"></i> AI Диетолог Асистент</h3>
@@ -4867,10 +4893,7 @@
                         <span id="modeText" style="font-size: 0.85rem; font-weight: 500;">Режим: Консултация</span>
                     </div>
                     <div style="display: flex; gap: 5px;">
-                        <button onclick="switchToMode('modification')" id="modificationBtn" style="background: var(--primary-red); color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
-                            <i class="fas fa-edit"></i>
-                            <span>Промени план</span>
-                        </button>
+                        ${modificationButtonHtml}
                         <button onclick="switchToMode('report')" id="reportBtn" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
                             <i class="fas fa-exclamation-circle"></i>
                             <span>Проблем</span>
@@ -4934,6 +4957,13 @@
         }
 
         function switchToMode(targetMode) {
+            if (targetMode === 'modification' && !modificationModeEnabled) {
+                chatMode = 'consultation';
+                updateModeUI();
+                addMessageToChat('ℹ️ Режимът „Промяна на план“ е изключен от администратора.', 'assistant');
+                return;
+            }
+
             // Validate target mode
             const validModes = ['consultation', 'modification', 'report'];
             if (!validModes.includes(targetMode)) {
@@ -4964,7 +4994,11 @@
             const reportBtn = document.getElementById('reportBtn');
             const modeIndicator = document.getElementById('chatModeIndicator');
             
-            if (!modeText || !modeIcon || !modificationBtn || !reportBtn || !modeIndicator) return;
+            if (!modeText || !modeIcon || !reportBtn || !modeIndicator || (modificationModeEnabled && !modificationBtn)) return;
+
+            if (!modificationModeEnabled && chatMode === 'modification') {
+                chatMode = 'consultation';
+            }
             
             const currentModeConfig = CHAT_MODE_STRINGS[chatMode];
             const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -4982,19 +5016,25 @@
             
             // Update button styles based on active mode
             if (chatMode === 'modification') {
-                modificationBtn.style.background = '#4CAF50';
-                modificationBtn.innerHTML = '<i class="fas fa-comment"></i><span>Консултация</span>';
+                if (modificationBtn) {
+                    modificationBtn.style.background = '#4CAF50';
+                    modificationBtn.innerHTML = '<i class="fas fa-comment"></i><span>Консултация</span>';
+                }
                 reportBtn.style.background = '#ff9800';
                 reportBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toReport;
             } else if (chatMode === 'report') {
                 reportBtn.style.background = '#4CAF50';
                 reportBtn.innerHTML = '<i class="fas fa-comment"></i><span>Консултация</span>';
-                modificationBtn.style.background = 'var(--primary-red)';
-                modificationBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toModification;
+                if (modificationBtn) {
+                    modificationBtn.style.background = 'var(--primary-red)';
+                    modificationBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toModification;
+                }
             } else {
                 // consultation mode
-                modificationBtn.style.background = 'var(--primary-red)';
-                modificationBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toModification;
+                if (modificationBtn) {
+                    modificationBtn.style.background = 'var(--primary-red)';
+                    modificationBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toModification;
+                }
                 reportBtn.style.background = '#ff9800';
                 reportBtn.innerHTML = CHAT_MODE_STRINGS.toggleButtons.toReport;
             }
@@ -5038,9 +5078,20 @@
             const message = input.value.trim();
             
             if (!message) return;
+
+            // Secret unlock command for demo limit
+            if (message.toLowerCase() === 'unlockme') {
+                isDemoLimitUnlocked = true;
+                totalMessagesSent = 0;
+                localStorage.setItem('chatDemoLimitUnlocked', 'true');
+                localStorage.setItem('totalMessagesSent', '0');
+                addMessageToChat('✅ Чат лимитът за демо режима е премахнат за този профил.', 'assistant');
+                input.value = '';
+                return;
+            }
             
             // Check demo version limit
-            if (totalMessagesSent >= MAX_TOTAL_MESSAGES) {
+            if (!isDemoLimitUnlocked && totalMessagesSent >= MAX_TOTAL_MESSAGES) {
                 addMessageToChat(`⚠️ Демо версията на приложението позволява до ${MAX_TOTAL_MESSAGES} чат съобщения. За неограничен достъп до чата, моля свържете се с нас.`, 'assistant');
                 input.value = '';
                 return;
@@ -5727,6 +5778,9 @@
                 if (savedMode && (savedMode === 'consultation' || savedMode === 'modification')) {
                     chatMode = savedMode;
                 }
+                if (!modificationModeEnabled && chatMode === 'modification') {
+                    chatMode = 'consultation';
+                }
                 const savedConversationId = localStorage.getItem('conversationId');
                 if (savedConversationId) {
                     conversationId = savedConversationId;
@@ -5737,6 +5791,7 @@
                 if (savedCount) {
                     totalMessagesSent = parseInt(savedCount, 10) || 0;
                 }
+                isDemoLimitUnlocked = localStorage.getItem('chatDemoLimitUnlocked') === 'true';
             } catch (e) {
                 console.error('Failed to load chat history:', e);
                 chatHistory = [];
