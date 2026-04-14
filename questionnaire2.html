@@ -3305,17 +3305,9 @@
 
                 // Build dq_ question text map so the AI model receives the actual question text
                 const dqTextMap = {};
-                for (const step of steps) {
+                for (const step of currentQueue) {
                     if (step.id && step.id.startsWith('dq_') && step.text && planPayload[step.id] != null) {
                         dqTextMap[step.id] = step.text;
-                    }
-                }
-                // Also check currentQueue for injected dynamic sub-questions
-                if (typeof currentQueue !== 'undefined') {
-                    for (const step of currentQueue) {
-                        if (step.id && step.id.startsWith('dq_') && step.text && planPayload[step.id] != null) {
-                            dqTextMap[step.id] = step.text;
-                        }
                     }
                 }
                 // Also scan DYNAMIC_SUB_QUESTIONS for any answered questions not yet in steps/currentQueue
