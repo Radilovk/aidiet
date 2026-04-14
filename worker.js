@@ -6396,7 +6396,11 @@ async function getChatPrompts(env) {
 
     if (savedConsultation) prompts.consultation = savedConsultation;
     if (savedModification) prompts.modification = savedModification;
-    if (savedModificationModeEnabled === 'true') prompts.modificationEnabled = true;
+    if (savedModificationModeEnabled === 'true') {
+      prompts.modificationEnabled = true;
+    } else if (savedModificationModeEnabled === 'false') {
+      prompts.modificationEnabled = false;
+    }
   }
 
   // Update cache
@@ -7564,6 +7568,10 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_chat_modification_mode_enabled')
     ]);
     
+    const parsedModificationModeEnabled = modificationModeEnabled === 'true'
+      ? true
+      : (modificationModeEnabled === 'false' ? false : false);
+
     return jsonResponse({ 
       success: true, 
       provider: provider || 'openai',
@@ -7580,7 +7588,7 @@ async function handleGetConfig(request, env) {
       protocolProvider: protocolProvider || null,
       protocolModelName: protocolModelName || null,
       emoeatPrompt,
-      modificationModeEnabled: modificationModeEnabled === 'true'
+      modificationModeEnabled: parsedModificationModeEnabled
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });

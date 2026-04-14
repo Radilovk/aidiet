@@ -4872,6 +4872,14 @@
                 animation: slideUp 0.3s ease;
             `;
 
+            const modificationButtonHtml = modificationModeEnabled
+                ? `
+                        <button onclick="switchToMode('modification')" id="modificationBtn" style="background: var(--primary-red); color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-edit"></i>
+                            <span>Промени план</span>
+                        </button>`
+                : '';
+
             chatWindow.innerHTML = `
                 <div style="padding: 15px; background: var(--primary-red); color: white; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="margin: 0; font-size: 1rem;"><i class="fas fa-user-md"></i> AI Диетолог Асистент</h3>
@@ -4890,11 +4898,7 @@
                         <span id="modeText" style="font-size: 0.85rem; font-weight: 500;">Режим: Консултация</span>
                     </div>
                     <div style="display: flex; gap: 5px;">
-                        ${modificationModeEnabled ? `
-                        <button onclick="switchToMode('modification')" id="modificationBtn" style="background: var(--primary-red); color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
-                            <i class="fas fa-edit"></i>
-                            <span>Промени план</span>
-                        </button>` : ''}
+                        ${modificationButtonHtml}
                         <button onclick="switchToMode('report')" id="reportBtn" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
                             <i class="fas fa-exclamation-circle"></i>
                             <span>Проблем</span>
@@ -4996,6 +5000,7 @@
             const modeIndicator = document.getElementById('chatModeIndicator');
             
             if (!modeText || !modeIcon || !reportBtn || !modeIndicator) return;
+            if (modificationModeEnabled && !modificationBtn) return;
 
             if (!modificationModeEnabled && chatMode === 'modification') {
                 chatMode = 'consultation';
