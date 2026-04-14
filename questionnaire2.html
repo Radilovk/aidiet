@@ -356,7 +356,7 @@
             padding: var(--footer-padding-v) var(--footer-padding-h) calc(var(--footer-padding-v) + var(--safe-area-inset-bottom)) var(--footer-padding-h);
             background: var(--card-bg);
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
             z-index: 100;
@@ -366,6 +366,17 @@
             right: 0;
             width: 100%;
             transition: var(--transition);
+        }
+
+        /* Floating "Напред" button — always visible, bottom-right, above keyboard */
+        #nextBtn {
+            position: fixed;
+            bottom: calc(20px + var(--safe-area-inset-bottom));
+            right: 20px;
+            z-index: 200;
+            border-radius: 50px;
+            min-width: 140px;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
         }
 
         .btn {
@@ -1060,10 +1071,11 @@
         <button class="btn btn-prev" id="prevBtn" onclick="prevStep()">
             <i class="fas fa-arrow-left"></i> &nbsp;Назад
         </button>
-        <button class="btn btn-next" id="nextBtn" onclick="nextStep()" disabled>
-            Напред <i class="fas fa-arrow-right"></i>
-        </button>
     </div>
+    <!-- Floating "Напред" button — sticky bottom-right, stays above keyboard -->
+    <button class="btn btn-next" id="nextBtn" onclick="nextStep()" disabled>
+        Напред <i class="fas fa-arrow-right"></i>
+    </button>
 
     <script>
         // --- Theme Management ---
@@ -3171,6 +3183,7 @@
                 </style>
             `;
             document.querySelector('.nav-footer').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
             document.querySelector('.progress-container').style.display = 'none';
 
             // Start progress animation
@@ -3505,6 +3518,26 @@
 
         // Start
         init();
+
+        // --- VISUAL VIEWPORT: keep "Напред" button above the on-screen keyboard ---
+        (function() {
+            const btn = document.getElementById('nextBtn');
+            if (!btn || !window.visualViewport) return;
+
+            // Cache safe area inset once (only changes on orientation change, handled by resize)
+            let cachedSafeBottom = parseFloat(getComputedStyle(document.documentElement)
+                .getPropertyValue('--safe-area-inset-bottom')) || 0;
+
+            function syncNextBtnToViewport() {
+                const vv = window.visualViewport;
+                // keyboard height = space between visual viewport bottom and layout viewport bottom
+                const keyboardHeight = Math.max(0, window.innerHeight - vv.height);
+                btn.style.bottom = (keyboardHeight + 20 + cachedSafeBottom) + 'px';
+            }
+
+            window.visualViewport.addEventListener('resize', syncNextBtnToViewport);
+            window.visualViewport.addEventListener('scroll', syncNextBtnToViewport);
+        })();
 
         // --- GLOBAL ENTER KEY HANDLER ---
         // Enter key = Напред for all question types except textareas (which have their own handler)
