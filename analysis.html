@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Здравословен анализ и детайлни препоръки от NutriPlan за вашия хранителен режим.">
-    <meta name="theme-color" content="#3A506B">
+    <meta name="theme-color" content="#10b981">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,23 +20,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-red: #3A506B;
-            --primary-red-hover: #2e3f56;
-            --soft-red: #e6eff5;
+            --primary-red: #10b981;
+            --primary-red-hover: #059669;
+            --soft-red: #d1fae5;
             --accent-yellow: #fbbf24;
             --accent-blue: #3b82f6;
             --accent-light-red: #f87171;
-            --text-dark: #1C1F2E;
+            --text-dark: #1e3a20;
             --text-gray: #6b7280;
-            --bg-color: #F0F4F8;
+            --bg-color: #fefce8;
             --card-bg: #ffffff;
             --input-bg: #f3f4f6;
-            --shadow: 0 10px 30px rgba(58,80,107,0.12);
+            --shadow: 0 10px 30px rgba(16,185,129,0.12);
             --radius: 16px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             
             /* Severity colors */
-            --severity-normal: #3A506B;
+            --severity-normal: #10b981;
             --severity-borderline: #fbbf24;
             --severity-risky: #f97316;
             --severity-critical: #ef4444;
@@ -50,20 +50,20 @@
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #5BC0BE;
-            --primary-red-hover: #3A506B;
-            --soft-red: #1a2533;
+            --primary-red: #34d399;
+            --primary-red-hover: #10b981;
+            --soft-red: #064e3b;
             --accent-yellow: #fcd34d;
             --accent-blue: #60a5fa;
             --accent-light-red: #fca5a5;
-            --text-dark: #e0e8f0;
+            --text-dark: #e5f3e8;
             --text-gray: #9ca3af;
             --bg-color: #0f1419;
             --card-bg: #1a2028;
             --input-bg: #252b35;
-            --shadow: 0 10px 30px rgba(91,192,190,0.25);
+            --shadow: 0 10px 30px rgba(52,211,153,0.25);
             
-            --severity-normal: #5BC0BE;
+            --severity-normal: #34d399;
             --severity-borderline: #fcd34d;
             --severity-risky: #fb923c;
             --severity-critical: #f87171;
@@ -73,7 +73,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', 'Nunito Sans', system-ui, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -166,7 +166,7 @@
 
         .problem-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 15px 40px rgba(58,80,107,0.2);
+            box-shadow: 0 15px 40px rgba(16,185,129,0.2);
         }
 
         .problem-card.severity-normal {
@@ -259,7 +259,7 @@
 
         .severity-badge.borderline {
             background: var(--severity-borderline);
-            color: #1C1F2E;
+            color: #1e3a20;
         }
 
         .severity-badge.risky {
@@ -338,7 +338,7 @@
             100% { transform: translateX(100%); }
         }
 
-        .meter-fill.normal { background: linear-gradient(90deg, var(--severity-normal), #2e3f56); }
+        .meter-fill.normal { background: linear-gradient(90deg, var(--severity-normal), #059669); }
         .meter-fill.borderline { background: linear-gradient(90deg, var(--severity-borderline), #f59e0b); }
         .meter-fill.risky { background: linear-gradient(90deg, var(--severity-risky), #ea580c); }
         .meter-fill.critical { background: linear-gradient(90deg, var(--severity-critical), #dc2626); }
@@ -400,26 +400,26 @@
             overflow: hidden;
             transition: var(--transition);
             box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
-            border: 1px solid rgba(58,80,107,0.1);
+            border: 1px solid rgba(16,185,129,0.1);
         }
 
         [data-theme="dark"] .score-card {
             background: var(--card-bg);
-            border: 1px solid rgba(91,192,190,0.15);
+            border: 1px solid rgba(52,211,153,0.15);
             box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
         }
 
         .score-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(58,80,107,0.12), 0 4px 8px rgba(0,0,0,0.08);
-            border-color: rgba(58,80,107,0.3);
+            box-shadow: 0 12px 32px rgba(16,185,129,0.12), 0 4px 8px rgba(0,0,0,0.08);
+            border-color: rgba(16,185,129,0.3);
         }
 
         .score-card-header {
             text-align: center;
             padding: 24px 20px 16px;
-            background: linear-gradient(to bottom, rgba(58,80,107,0.04) 0%, transparent 100%);
-            border-bottom: 1px solid rgba(58,80,107,0.08);
+            background: linear-gradient(to bottom, rgba(16,185,129,0.04) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(16,185,129,0.08);
         }
 
         .score-icon-wrapper {
@@ -506,7 +506,7 @@
             font-size: 3.5rem;
             font-weight: 800;
             line-height: 1;
-            background: linear-gradient(135deg, var(--primary-red) 0%, #2e3f56 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -536,7 +536,7 @@
         }
 
         .comparison-side.future {
-            background: linear-gradient(135deg, rgba(58,80,107,0.02) 0%, rgba(58,80,107,0.05) 100%);
+            background: linear-gradient(135deg, rgba(16,185,129,0.02) 0%, rgba(16,185,129,0.05) 100%);
             border-radius: 0 0 20px 0;
         }
 
@@ -582,7 +582,7 @@
         }
 
         .comparison-side.future .score-value {
-            background: linear-gradient(135deg, var(--primary-red) 0%, #2e3f56 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -617,11 +617,11 @@
 
         .bar-column {
             width: 40px;
-            background: linear-gradient(to top, var(--primary-red) 0%, #5BC0BE 100%);
+            background: linear-gradient(to top, var(--primary-red) 0%, #34d399 100%);
             border-radius: 8px 8px 0 0;
             position: relative;
             transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 -2px 10px rgba(58,80,107,0.3);
+            box-shadow: 0 -2px 10px rgba(16,185,129,0.3);
             animation: shimmer-bar 3s infinite;
             overflow: hidden;
         }
@@ -699,7 +699,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: var(--transition);
-            box-shadow: 0 4px 15px rgba(58, 80, 107, 0.4);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
             display: inline-flex;
             align-items: center;
             gap: 10px;
@@ -712,7 +712,7 @@
         .btn-primary:hover {
             background-color: var(--primary-red-hover);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(58, 80, 107, 0.5);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
         }
 
         .btn-primary:active {
@@ -803,7 +803,7 @@
 
         .forecast-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(58,80,107,0.2);
+            box-shadow: 0 15px 40px rgba(16,185,129,0.2);
         }
 
         .forecast-card.pessimistic {
@@ -839,7 +839,7 @@
         }
 
         .forecast-icon.success {
-            background: linear-gradient(135deg, rgba(58,80,107,0.1) 0%, rgba(58,80,107,0.2) 100%);
+            background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.2) 100%);
             color: var(--primary-red);
         }
 
@@ -894,7 +894,7 @@
         .forecast-improvements li {
             padding: 10px 12px;
             margin-bottom: 8px;
-            background: rgba(58,80,107,0.05);
+            background: rgba(16,185,129,0.05);
             border-left: 3px solid var(--primary-red);
             border-radius: 8px;
             font-size: 0.9rem;
@@ -1176,14 +1176,14 @@
                                 <path d="M 15 100 A 85 85 0 0 1 40 40" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
                                 <path d="M 40 40 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="16" opacity="0.3"/>
                                 <path d="M 100 15 A 85 85 0 0 1 160 40" fill="none" stroke="#fbbf24" stroke-width="16" opacity="0.3"/>
-                                <path d="M 160 40 A 85 85 0 0 1 185 100" fill="none" stroke="#3A506B" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+                                <path d="M 160 40 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
                                 <!-- Active arc up to score -->
-                                <path id="healthGaugeArc" d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="#3A506B" stroke-width="16" stroke-linecap="round"
+                                <path id="healthGaugeArc" d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round"
                                     stroke-dasharray="0 267"/>
                                 <!-- Needle -->
                                 <g id="healthGaugeNeedle" transform="rotate(-90, 100, 100)">
-                                    <line x1="100" y1="100" x2="100" y2="28" stroke="#3A506B" stroke-width="3" stroke-linecap="round"/>
-                                    <circle cx="100" cy="100" r="6" fill="#3A506B" stroke="white" stroke-width="2"/>
+                                    <line x1="100" y1="100" x2="100" y2="28" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                                    <circle cx="100" cy="100" r="6" fill="#10b981" stroke="white" stroke-width="2"/>
                                 </g>
                                 <!-- Labels -->
                                 <text x="12" y="108" font-size="9" fill="var(--text-light, #888)" text-anchor="start">0</text>
@@ -1191,8 +1191,8 @@
                             </svg>
                         </div>
                         <!-- Score display -->
-                        <div id="healthScoreValue" style="font-size: 2rem; font-weight: 800; color: #3A506B; line-height: 1; margin-bottom: 4px;">--</div>
-                        <div id="healthScoreLabel" style="font-size: 0.9rem; font-weight: 600; color: #3A506B;"></div>
+                        <div id="healthScoreValue" style="font-size: 2rem; font-weight: 800; color: #10b981; line-height: 1; margin-bottom: 4px;">--</div>
+                        <div id="healthScoreLabel" style="font-size: 0.9rem; font-weight: 600; color: #10b981;"></div>
                     </div>
                 </div>
             </div>
@@ -1457,7 +1457,7 @@
                 gaugeColor = '#fbbf24';
                 healthLabel = 'Умерено';
             } else {
-                gaugeColor = '#3A506B';
+                gaugeColor = '#10b981';
                 healthLabel = 'Добро';
             }
 

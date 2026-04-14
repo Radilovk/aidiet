@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Административна панел за управление на NutriPlan платформата.">
-    <meta name="theme-color" content="#3A506B">
+    <meta name="theme-color" content="#10b981">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,17 +20,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-red: #3A506B;
-            --primary-dark: #2e3f56;
-            --soft-red: #e6eff5;
+            --primary-red: #10b981;
+            --primary-dark: #059669;
+            --soft-red: #d1fae5;
             --accent-yellow: #fbbf24;
             --accent-blue: #3b82f6;
             --accent-light-red: #f87171;
-            --bg-color: #F0F4F8;
-            --text-dark: #1C1F2E;
+            --bg-color: #fefce8;
+            --text-dark: #1e3a20;
             --text-gray: #4b5563;
             --white: #ffffff;
-            --shadow: 0 10px 30px rgba(58,80,107,0.15);
+            --shadow: 0 10px 30px rgba(16,185,129,0.15);
             --radius: 16px;
             /* Safe area insets for mobile devices with notches/dynamic island */
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -41,17 +41,17 @@
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #5BC0BE;
-            --primary-dark: #3A506B;
-            --soft-red: #1a2533;
+            --primary-red: #34d399;
+            --primary-dark: #10b981;
+            --soft-red: #064e3b;
             --accent-yellow: #fcd34d;
             --accent-blue: #60a5fa;
             --accent-light-red: #fca5a5;
             --bg-color: #0f1419;
-            --text-dark: #e0e8f0;
+            --text-dark: #e5f3e8;
             --text-gray: #9ca3af;
             --white: #1a2028;
-            --shadow: 0 10px 30px rgba(91,192,190,0.3);
+            --shadow: 0 10px 30px rgba(52,211,153,0.3);
             --radius: 16px;
         }
 
@@ -59,7 +59,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', 'Nunito Sans', system-ui, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
@@ -564,7 +564,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             z-index: 9999;
             padding: 15px;
-            font-family: 'Inter', 'Nunito Sans', system-ui, sans-serif;
+            font-family: 'Poppins', sans-serif;
             animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -704,7 +704,7 @@
             background: var(--primary-red);
             color: white;
             border-color: var(--primary-dark);
-            box-shadow: 0 4px 12px rgba(58, 80, 107, 0.3); /* Matches primary green theme color */
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); /* Matches primary green theme color */
         }
 
         .tab-btn i {
@@ -907,7 +907,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                         <div class="form-group">
                             <label for="customPrimary">Основен Цвят (Primary):</label>
-                            <input type="color" id="customPrimary" value="#3A506B" style="width: 100%; height: 50px; cursor: pointer;">
+                            <input type="color" id="customPrimary" value="#10b981" style="width: 100%; height: 50px; cursor: pointer;">
                             <small style="display: block; margin-top: 5px; color: var(--text-gray);">За бутони и акценти</small>
                         </div>
                         <div class="form-group">
@@ -923,7 +923,7 @@
                     </div>
                 </div>
                 <div id="colorPreview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; padding: 20px; background: var(--bg-light); border-radius: 12px;">
-                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #3A506B;">
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #10b981;">
                         Зелено
                     </div>
                     <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #3b82f6;">
@@ -3244,11 +3244,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Color Scheme Functions
         const colorSchemes = {
             'purple-pink': {
-                primary: '#3A506B',
-                primaryAccent: '#5BC0BE',
+                primary: '#10b981',
+                primaryAccent: '#34d399',
                 secondary: '#3b82f6',
                 tertiary: '#ff7f6a',
-                soft: '#e6eff5',
+                soft: '#ecfdf5',
                 name: 'Зелено-Синьо-Корал'
             },
             'green-blue': {
@@ -3276,11 +3276,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 name: 'Оранжево-Червено-Корал'
             },
             'custom': {
-                primary: '#3A506B',
-                primaryAccent: '#5BC0BE',
+                primary: '#10b981',
+                primaryAccent: '#34d399',
                 secondary: '#3b82f6',
                 tertiary: '#ff7f6a',
-                soft: '#e6eff5',
+                soft: '#ecfdf5',
                 name: 'Персонализирана'
             }
         };
@@ -4801,13 +4801,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 // Plan status badge
                 let statusBadge = '';
                 if (client.planStatus === 'activated') {
-                    statusBadge = '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#e6eff5;color:#2e3f56;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>';
+                    statusBadge = '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#d1fae5;color:#059669;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>';
                 } else if (client.planStatus === 'pending') {
                     statusBadge = '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>';
                 }
                 
                 html += `
-                    <div class="client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}" style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid ${client.planStatus === 'pending' ? '#fbbf24' : client.planStatus === 'activated' ? '#3A506B' : '#e0e0e0'}; transition: all 0.3s ease;">
+                    <div class="client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}" style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid ${client.planStatus === 'pending' ? '#fbbf24' : client.planStatus === 'activated' ? '#10b981' : '#e0e0e0'}; transition: all 0.3s ease;">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                             <div style="flex: 1; min-width: 200px;">
                                 <h3 style="margin: 0 0 5px 0; color: var(--text-dark);">
@@ -4953,7 +4953,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 <h3 style="color: var(--text-dark); margin: 20px 0 15px 0;">
                                     <i class="fas fa-utensils"></i> Хранителен план
                                     ${client.planStatus === 'activated' 
-                                        ? '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#e6eff5;color:#2e3f56;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>' 
+                                        ? '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#d1fae5;color:#059669;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>' 
                                         : '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>'}
                                 </h3>
                                 <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
@@ -4965,11 +4965,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                             <i class="fas fa-edit"></i> Редактирай
                                         </button>
                                         ${client.planStatus !== 'activated' ? `
-                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background: #3A506B; font-size: 0.85rem; padding: 6px 14px;">
+                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background: #10b981; font-size: 0.85rem; padding: 6px 14px;">
                                                 <i class="fas fa-rocket"></i> Активирай достъп
                                             </button>
                                         ` : `
-                                            <span style="display:flex;align-items:center;gap:4px;color:#2e3f56;font-size:0.85rem;font-weight:600;">
+                                            <span style="display:flex;align-items:center;gap:4px;color:#059669;font-size:0.85rem;font-weight:600;">
                                                 <i class="fas fa-check-circle"></i> Активиран на ${client.planActivatedAt ? new Date(client.planActivatedAt).toLocaleString('bg-BG') : '—'}
                                             </span>
                                         `}
@@ -5988,9 +5988,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             
                             // Different explanations for desktop vs mobile
                             if (!isMobile && (isChrome || isEdge)) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3A506B');
-                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #3A506B; font-weight: bold; font-size: 14px');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3A506B');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #10b981; font-weight: bold; font-size: 14px');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
                                 console.log('%cINFO: On Desktop Chrome/Edge, the beforeinstallprompt event often does NOT fire.', 'color: #3b82f6; font-weight: bold');
                                 console.log('%cInstead, Chrome shows an INSTALL ICON in the address bar (omnibox).', 'color: #3b82f6; font-weight: bold');
                                 console.log('');
@@ -6000,7 +6000,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #3A506B');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
                             } else if (isAndroid && (isChrome || isEdge)) {
                                 console.log('- Possible reasons why event has not fired:');
                                 console.log('  1. User engagement criteria not met (needs 30+ seconds + interaction)');
@@ -6014,7 +6014,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             }
                         }
                     } else {
-                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #3A506B; font-weight: bold');
+                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #10b981; font-weight: bold');
                         console.log('PWA is ready for installation with custom install prompt.');
                     }
                 }, 3000);
