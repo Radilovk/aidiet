@@ -352,22 +352,6 @@
         }
 
         /* --- FOOTER NAVIGATION --- */
-        .nav-footer {
-            padding: var(--footer-padding-v) var(--footer-padding-h) calc(var(--footer-padding-v) + var(--safe-area-inset-bottom)) var(--footer-padding-h);
-            background: var(--card-bg);
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
-            z-index: 100;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            transition: var(--transition);
-        }
-
         /* Floating "Напред" button — always visible, bottom-right, above keyboard */
         #nextBtn {
             position: fixed;
@@ -377,6 +361,31 @@
             border-radius: 50px;
             min-width: 140px;
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        }
+
+        /* Floating "Назад" button — always visible, bottom-left, above keyboard */
+        #prevBtn {
+            position: fixed;
+            bottom: calc(20px + var(--safe-area-inset-bottom));
+            left: 20px;
+            z-index: 200;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            min-width: unset;
+            min-height: unset;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+            background: var(--card-bg);
+            color: var(--text-gray);
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        #prevBtn:active {
+            transform: scale(0.92);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
 
         .btn {
@@ -397,11 +406,6 @@
         .btn-prev {
             background: transparent;
             color: var(--text-gray);
-            min-width: 100px;
-        }
-        .btn-prev:active { 
-            color: var(--text-dark); 
-            transform: scale(0.95);
         }
 
         .btn-next {
@@ -1067,11 +1071,10 @@
     </div>
 
     <!-- Navigation -->
-    <div class="nav-footer">
-        <button class="btn btn-prev" id="prevBtn" onclick="prevStep()">
-            <i class="fas fa-arrow-left"></i> &nbsp;Назад
-        </button>
-    </div>
+    <!-- Floating "Назад" button — sticky bottom-left, undo arrow icon -->
+    <button class="btn btn-prev" id="prevBtn" onclick="prevStep()" aria-label="Назад">
+        <i class="fas fa-rotate-left"></i>
+    </button>
     <!-- Floating "Напред" button — sticky bottom-right, stays above keyboard -->
     <button class="btn btn-next" id="nextBtn" onclick="nextStep()" disabled>
         Напред <i class="fas fa-arrow-right"></i>
@@ -2262,9 +2265,6 @@
 
             container.appendChild(card);
             
-            // Position footer just below question content
-            positionFooterBelowContent();
-            
             // Manage Buttons
             prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
             
@@ -2274,44 +2274,7 @@
         }
         
         // --- FOOTER POSITIONING HELPERS ---
-        let _footerTimerId = null;
-        function positionFooterBelowContent() {
-            // Cancel any pending positioning from a previous render
-            if (_footerTimerId !== null) {
-                clearTimeout(_footerTimerId);
-            }
-            // Wait for DOM to render - using CSS variable for delay
-            const delay = parseInt(getComputedStyle(document.documentElement)
-                .getPropertyValue('--footer-position-delay-ms')) || 50;
-            
-            _footerTimerId = setTimeout(() => {
-                _footerTimerId = null;
-                const card = document.querySelector('.question-card');
-                const footer = document.querySelector('.nav-footer');
-                
-                if (card && footer) {
-                    const cardRect = card.getBoundingClientRect();
-                    const footerHeight = footer.offsetHeight;
-                    const viewportHeight = window.innerHeight;
-                    const gap = parseInt(getComputedStyle(document.documentElement)
-                        .getPropertyValue('--footer-content-gap')) || 24;
-                    
-                    const idealFooterTop = cardRect.bottom + gap;
-                    
-                    if (idealFooterTop + footerHeight <= viewportHeight) {
-                        // Content fits above viewport bottom — position footer right after content
-                        footer.style.position = 'fixed';
-                        footer.style.top = idealFooterTop + 'px';
-                        footer.style.bottom = 'auto';
-                    } else {
-                        // Content too long — keep footer anchored to bottom
-                        footer.style.position = 'fixed';
-                        footer.style.top = 'auto';
-                        footer.style.bottom = '0';
-                    }
-                }
-            }, delay);
-        }
+        // (no dynamic footer positioning needed — both nav buttons are fixed)
 
         // --- RENDER HELPERS ---
         function renderQuestion(card, step) {
@@ -2860,12 +2823,46 @@
             }
         }
 
+        // Recursively removes injected child questions from currentQueue and clears their answers.
+        // childDefs: array of child question definitions (from parent.children[answer])
+        // fromIndex: index in currentQueue to start searching from
+        function removeInjectedChildren(childDefs, fromIndex) {
+            for (const childDef of childDefs) {
+                const idx = currentQueue.findIndex((q, qi) => qi >= fromIndex && q.id === childDef.id);
+                if (idx === -1) continue;
+                const childQ = currentQueue[idx];
+                // Recursively remove this child's own injected children first
+                if (childQ.children && answers[childQ.id]) {
+                    const childAnswerVal = answers[childQ.id];
+                    const grandChildren = childQ.children[childAnswerVal];
+                    if (grandChildren && grandChildren.length > 0) {
+                        removeInjectedChildren(grandChildren, idx + 1);
+                    }
+                }
+                // Clear this child's answer and remove from queue
+                delete answers[childQ.id];
+                currentQueue.splice(idx, 1);
+            }
+        }
+
         function prevStep() {
             if (currentIndex > 0) {
-                // Here we might want to logic to "remove" injected children if answer changed, 
-                // but for simplicity in this demo, we just go back. 
-                // The forward logic handles re-injection.
                 currentIndex--;
+                
+                const targetQ = currentQueue[currentIndex];
+
+                // Remove any children that were injected into the queue based on this
+                // question's old answer, and clear their answers recursively.
+                if (targetQ.children && answers[targetQ.id]) {
+                    const oldAnswerVal = answers[targetQ.id];
+                    const injectedChildren = targetQ.children[oldAnswerVal];
+                    if (injectedChildren && injectedChildren.length > 0) {
+                        removeInjectedChildren(injectedChildren, currentIndex + 1);
+                    }
+                }
+
+                // Clear the answer for the question we're returning to so it appears fresh
+                delete answers[targetQ.id];
                 
                 // SHOW WHEN LOGIC (reverse): Skip questions whose showWhen condition is not met
                 const prevQ = currentQueue[currentIndex];
@@ -3182,7 +3179,7 @@
                     }
                 </style>
             `;
-            document.querySelector('.nav-footer').style.display = 'none';
+            document.getElementById('prevBtn').style.display = 'none';
             document.getElementById('nextBtn').style.display = 'none';
             document.querySelector('.progress-container').style.display = 'none';
 
