@@ -339,6 +339,35 @@
     --ds-mesh-3: rgba(167, 139, 250, 0.03);
 }
 
+/* Dark mode glow effects */
+[data-theme="dark"] .ds-btn-primary,
+[data-theme="dark"] .ds-card-interactive:hover {
+    box-shadow: var(--ds-shadow-lg), var(--ds-glow-primary);
+}
+
+/* Animated theme transition */
+html {
+    transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+/* System preference detection - apply dark if user hasn't manually chosen */
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme="light"]):not([data-theme="dark"]) {
+        --ds-bg-primary: #0a0f1a;
+        --ds-bg-secondary: #0f1419;
+        --ds-bg-tertiary: #151a22;
+        --ds-bg-card: #1a2028;
+        --ds-bg-elevated: #1f2937;
+        --ds-text-primary: #e5f3e8;
+        --ds-text-secondary: var(--ds-gray-300);
+        color-scheme: dark;
+    }
+}
+
 /* ===========================
    BASE RESET & DEFAULTS
    =========================== */
