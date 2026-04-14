@@ -97,8 +97,8 @@
     --ds-accent-rose-900: #881337;
     
     /* === COLORS - Semantic === */
-    --ds-success: #2ecc71;
-    --ds-warning: #f39c12;
+    --ds-success: var(--ds-secondary-500);
+    --ds-warning: var(--ds-accent-gold-500);
     --ds-error: #e74c3c;
     --ds-info: #3498db;
     
