@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="NutriPlan - Комплексна здравна платформа с екип от специалисти. Персонализиран план за хранене, психология, добавки и активности чрез 7-степенен AI анализ с 30+ критерия. 24/7 AI консултант и възможност за консултации с експерти.">
-    <meta name="theme-color" content="#10b981">
+    <meta name="theme-color" content="#3A506B">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -34,23 +34,23 @@
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         :root {
-            --primary-red: #10b981;
-            --primary-dark: #059669;
-            --soft-red: #d1fae5;
+            --primary-red: #3A506B;
+            --primary-dark: #2e3f56;
+            --soft-red: #e6eff5;
             --accent-yellow: #fbbf24;
-            --accent-blue: #3b82f6;
-            --secondary-accent: #3b82f6;
-            --accent-light-red: #f87171;
-            --bg-color: #fefce8;
-            --text-dark: #1e3a20;
-            --text-gray: #4b5563;
+            --accent-blue: #5BC0BE;
+            --secondary-accent: #5BC0BE;
+            --accent-light-red: #778DA9;
+            --bg-color: #F0F4F8;
+            --text-dark: #1C1F2E;
+            --text-gray: #4A5568;
             --white: #ffffff;
-            --shadow: 0 10px 30px rgba(16,185,129,0.15);
+            --shadow: 0 10px 30px rgba(58,80,107,0.15);
             --radius: 16px;
             /* Safe area insets for mobile devices with notches/dynamic island */
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -61,18 +61,18 @@
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #34d399;
-            --primary-dark: #10b981;
-            --soft-red: #064e3b;
+            --primary-red: #5BC0BE;
+            --primary-dark: #4aafad;
+            --soft-red: #1a2533;
             --accent-yellow: #fcd34d;
-            --accent-blue: #60a5fa;
-            --secondary-accent: #60a5fa;
-            --accent-light-red: #fca5a5;
-            --bg-color: #0f1419;
-            --text-dark: #e5f3e8;
+            --accent-blue: #778DA9;
+            --secondary-accent: #778DA9;
+            --accent-light-red: #CBBADD;
+            --bg-color: #0d1117;
+            --text-dark: #e0e8f0;
             --text-gray: #9ca3af;
             --white: #1a2028;
-            --shadow: 0 10px 30px rgba(52,211,153,0.3);
+            --shadow: 0 10px 30px rgba(91,192,190,0.3);
             --radius: 16px;
         }
 
@@ -80,7 +80,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', 'Nunito Sans', system-ui, sans-serif;
             scroll-behavior: smooth;
         }
 
@@ -126,7 +126,7 @@
             text-decoration: none;
             font-weight: 600;
             transition: 0.3s;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 15px rgba(58, 80, 107, 0.3);
         }
         .nav-btn:hover {
             background-color: var(--primary-dark);
@@ -347,7 +347,7 @@
         /* Decorational circle */
         .steps::before {
             content: ''; position: absolute; top: -100px; left: -100px; width: 300px; height: 300px;
-            background: rgba(16, 185, 129, 0.1); border-radius: 50%;
+            background: rgba(58, 80, 107, 0.1); border-radius: 50%;
         }
 
         .steps-container {
@@ -368,7 +368,7 @@
         .step-number {
             font-size: 4rem;
             font-weight: 800;
-            color: rgba(16, 185, 129, 0.2);
+            color: rgba(58, 80, 107, 0.2);
             position: absolute;
             top: -30px;
             left: 50%;
@@ -481,7 +481,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 15px rgba(58, 80, 107, 0.3);
             display: inline-flex;
             align-items: center;
             gap: 10px;
@@ -490,7 +490,7 @@
         .notification-btn:hover {
             background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 6px 20px rgba(58, 80, 107, 0.4);
         }
 
         .notification-btn:active {
@@ -700,7 +700,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             z-index: 9999;
             padding: 15px;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', 'Nunito Sans', system-ui, sans-serif;
             animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
