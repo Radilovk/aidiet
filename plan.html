@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="description" content="Вашият комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти с AI анализ.">
     <meta name="theme-color" content="#10b981">
     <meta name="mobile-web-app-capable" content="yes">
@@ -37,48 +37,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-red: #10b981;
-            --primary-accent: #34d399;
-            --secondary-accent: #3b82f6;
-            --tertiary-accent: #ff7f6a;
-            --soft-red: #ecfdf5;
-            --text-dark: #1e3a20;
-            --text-light: #6b7280;
-            --bg-color: #fefce8;
-            --card-bg: #ffffff;
-            --shadow: 0 10px 40px rgba(16, 185, 129, 0.12);
-            --shadow-hover: 0 20px 50px rgba(16, 185, 129, 0.18);
-            --shadow-accent: 0 8px 32px rgba(59, 130, 246, 0.25);
+            /* Page-specific overrides — base variables provided by design-system.css */
             --radius: 20px;
-            /* Safe area insets for mobile devices with notches/dynamic island */
-            --safe-area-inset-top: env(safe-area-inset-top, 0px);
-            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-            --safe-area-inset-left: env(safe-area-inset-left, 0px);
-            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+            --soft-red: #ecfdf5;
         }
 
-        /* Dark theme */
+        /* Dark theme — base variables provided by design-system.css */
         [data-theme="dark"] {
-            --primary-red: #34d399;
-            --primary-accent: #6ee7b7;
-            --secondary-accent: #60a5fa;
-            --tertiary-accent: #ff9580;
-            --soft-red: #064e3b;
-            --text-dark: #e5f3e8;
-            --text-light: #9ca3af;
-            --bg-color: #0f1419;
-            --card-bg: #1a2028;
-            --shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            --shadow-hover: 0 20px 50px rgba(0, 0, 0, 0.7);
-            --shadow-accent: 0 8px 32px rgba(96, 165, 250, 0.3);
             --radius: 20px;
+            --soft-red: #064e3b;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -2327,7 +2300,6 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             z-index: 9999;
             padding: 15px;
-            font-family: 'Poppins', sans-serif;
             animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -2519,6 +2491,54 @@
             }
         }
 
+        /* Skeleton loader for initial load */
+        .plan-skeleton {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .plan-skeleton-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            border: 1px solid rgba(16,185,129,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+        .plan-skeleton-line {
+            height: 14px;
+            background: linear-gradient(90deg, var(--soft-red) 0%, rgba(16,185,129,0.03) 50%, var(--soft-red) 100%);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .plan-skeleton-line:nth-child(1) { width: 40%; height: 10px; }
+        .plan-skeleton-line:nth-child(2) { width: 70%; }
+        .plan-skeleton-line:nth-child(3) { width: 90%; }
+        .plan-skeleton-line:nth-child(4) { width: 50%; }
+        .plan-skeleton-line::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+            animation: planShimmer 1.5s ease-in-out infinite;
+            transform: translateX(-100%);
+        }
+        [data-theme="dark"] .plan-skeleton-line {
+            background: linear-gradient(90deg, var(--soft-red) 0%, rgba(52,211,153,0.03) 50%, var(--soft-red) 100%);
+        }
+        [data-theme="dark"] .plan-skeleton-line::after {
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+        }
+        [data-theme="dark"] .plan-skeleton-card {
+            border-color: rgba(52, 211, 153, 0.08);
+        }
+        @keyframes planShimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2661,18 +2681,18 @@
     <!-- Header -->
     <header role="banner" aria-label="Главна навигация">
         <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
-        <a href="index.html?stay=1" class="home-btn" title="Начало" aria-label="Начална страница"><i class="fas fa-home" aria-hidden="true"></i></a>
+        <a href="index.html?stay=1" class="home-btn" title="Начало" aria-label="Начало"><i class="fas fa-home" aria-hidden="true"></i></a>
         <h1>Моят Хранителен План</h1>
         <div style="display: flex; align-items: center; gap: 10px;">
-            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Превключи тема">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Превключване на тема">
                 <i class="fas fa-moon" id="themeIcon" aria-hidden="true"></i>
             </button>
-            <button class="user-avatar" onclick="goToProfile()" onkeydown="if(event.key==='Enter'||event.key===' ')goToProfile()" style="cursor: pointer;" title="Моят профил" aria-label="Моят профил"></button>
+            <button class="user-avatar" onclick="goToProfile()" onkeydown="if(event.key==='Enter'||event.key===' ')goToProfile()" style="cursor: pointer;" title="Моят профил" aria-label="Потребителски профил"></button>
         </div>
     </header>
 
     <!-- Navigation: Days of the week -->
-    <nav class="days-nav" id="daysContainer" role="tablist" aria-label="Избор на ден">
+    <nav class="days-nav" id="daysContainer" role="tablist" aria-label="Навигация по дни">
         <!-- Will be populated by JS or Static -->
         <button class="day-chip active" onclick="selectDay(1)" role="tab" aria-selected="true" tabindex="0">Ден 1</button>
         <button class="day-chip" onclick="selectDay(2)" role="tab" aria-selected="false" tabindex="-1">Ден 2</button>
@@ -2692,6 +2712,27 @@
     <main class="container" id="main-content" role="main">
         
         <!-- MEAL PLAN SECTION -->
+        <!-- Skeleton loader shown during initial load -->
+        <div class="plan-skeleton" id="planSkeleton">
+            <div class="plan-skeleton-card">
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+            </div>
+            <div class="plan-skeleton-card">
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+            </div>
+            <div class="plan-skeleton-card">
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+                <div class="plan-skeleton-line"></div>
+            </div>
+        </div>
         <div id="mealContainer">
             <!-- Примерно съдържание (ще се замести от JSON logic) -->
             
@@ -3996,9 +4037,15 @@
 
         // --- Theme Management ---
         function initializeTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
+            const savedTheme = localStorage.getItem('theme');
+            if (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                updateThemeIcon('dark');
+                return;
+            }
+            const theme = savedTheme || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeIcon(theme);
         }
 
         function toggleTheme() {
@@ -4273,6 +4320,8 @@
                 return;
             }
 
+            const skeleton = document.getElementById('planSkeleton');
+            if (skeleton) skeleton.style.display = 'none';
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 

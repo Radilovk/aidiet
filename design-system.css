@@ -116,7 +116,7 @@
     --ds-gray-950: #030712;
     
     /* === LIGHT THEME SEMANTIC COLORS === */
-    --ds-bg-primary: #fefce8;
+    --ds-bg-primary: #fafbfc;
     --ds-bg-secondary: var(--ds-gray-50);
     --ds-bg-tertiary: #ffffff;
     --ds-bg-card: #ffffff;
@@ -295,7 +295,7 @@
    DARK THEME
    =========================== */
 [data-theme="dark"] {
-    --ds-bg-primary: #0a0f0d;
+    --ds-bg-primary: #0a0f1a;
     --ds-bg-secondary: #0f1419;
     --ds-bg-tertiary: #151a22;
     --ds-bg-card: #1a2028;
@@ -337,6 +337,35 @@
     --ds-mesh-1: rgba(52, 211, 153, 0.06);
     --ds-mesh-2: rgba(96, 165, 250, 0.04);
     --ds-mesh-3: rgba(167, 139, 250, 0.03);
+}
+
+/* Dark mode glow effects */
+[data-theme="dark"] .ds-btn-primary,
+[data-theme="dark"] .ds-card-interactive:hover {
+    box-shadow: var(--ds-shadow-lg), var(--ds-glow-primary);
+}
+
+/* Animated theme transition */
+html {
+    transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+/* System preference detection - apply dark if user hasn't manually chosen */
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme="light"]):not([data-theme="dark"]) {
+        --ds-bg-primary: #0a0f1a;
+        --ds-bg-secondary: #0f1419;
+        --ds-bg-tertiary: #151a22;
+        --ds-bg-card: #1a2028;
+        --ds-bg-elevated: #1f2937;
+        --ds-text-primary: #e5f3e8;
+        --ds-text-secondary: var(--ds-gray-300);
+        color-scheme: dark;
+    }
 }
 
 /* ===========================
@@ -1294,4 +1323,223 @@ body {
     --ds-shadow-primary: var(--ds-shadow-cyan);
     --ds-glow-primary: var(--ds-glow-cyan);
     --ds-mesh-1: rgba(6, 182, 212, 0.08);
+}
+
+/* ===========================
+   LEGACY VARIABLE COMPATIBILITY
+   Maps old variable names (--primary-red etc.) to design system tokens.
+   Pages that import design-system.css get these automatically.
+   =========================== */
+:root {
+    /* Primary colors */
+    --primary-red: var(--ds-primary-500);
+    --primary-dark: var(--ds-primary-600);
+    --primary-accent: var(--ds-primary-400);
+    --soft-red: var(--ds-primary-100);
+    
+    /* Secondary / accent colors */
+    --accent-yellow: var(--ds-accent-gold-400);
+    --accent-blue: var(--ds-secondary-500);
+    --secondary-accent: var(--ds-secondary-500);
+    --tertiary-accent: var(--ds-accent-rose-400);
+    --accent-light-red: var(--ds-accent-rose-400);
+    
+    /* Backgrounds */
+    --bg-color: var(--ds-bg-primary);
+    --card-bg: var(--ds-bg-card);
+    --input-bg: var(--ds-gray-100);
+    --white: var(--ds-bg-card);
+    
+    /* Text */
+    --text-dark: var(--ds-text-primary);
+    --text-gray: var(--ds-text-secondary);
+    --text-light: var(--ds-gray-500);
+    
+    /* Shadows */
+    --shadow: var(--ds-shadow-primary);
+    --shadow-hover: var(--ds-shadow-primary-lg);
+    --shadow-accent: var(--ds-shadow-secondary);
+    
+    /* Border radius */
+    --radius: var(--ds-radius-xl);
+    
+    /* Transitions */
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    
+    /* Safe area insets (legacy names) */
+    --safe-area-inset-top: var(--ds-safe-area-inset-top);
+    --safe-area-inset-bottom: var(--ds-safe-area-inset-bottom);
+    --safe-area-inset-left: var(--ds-safe-area-inset-left);
+    --safe-area-inset-right: var(--ds-safe-area-inset-right);
+    
+    /* Severity colors (for analysis) */
+    --severity-normal: var(--ds-primary-500);
+    --severity-borderline: var(--ds-accent-gold-400);
+    --severity-risky: #f97316;
+    --severity-critical: var(--ds-error);
+}
+
+[data-theme="dark"] {
+    --primary-red: var(--ds-primary-400);
+    --primary-dark: var(--ds-primary-500);
+    --primary-accent: var(--ds-primary-300);
+    --soft-red: var(--ds-primary-900);
+    
+    --accent-yellow: var(--ds-accent-gold-300);
+    --accent-blue: var(--ds-secondary-400);
+    --secondary-accent: var(--ds-secondary-400);
+    --tertiary-accent: #ff9580;
+    --accent-light-red: var(--ds-accent-rose-300);
+    
+    --bg-color: var(--ds-bg-primary);
+    --card-bg: var(--ds-bg-card);
+    --input-bg: #252b35;
+    --white: var(--ds-bg-card);
+    
+    --text-dark: var(--ds-text-primary);
+    --text-gray: var(--ds-text-secondary);
+    --text-light: var(--ds-gray-400);
+    
+    --shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 20px 50px rgba(0, 0, 0, 0.7);
+    --shadow-accent: 0 8px 32px rgba(96, 165, 250, 0.3);
+    
+    --severity-normal: var(--ds-primary-400);
+    --severity-borderline: var(--ds-accent-gold-300);
+    --severity-risky: #fb923c;
+    --severity-critical: var(--ds-accent-rose-400);
+}
+
+/* ===========================
+   SKELETON / SHIMMER LOADERS
+   =========================== */
+.ds-skeleton {
+    background: var(--ds-gray-200);
+    border-radius: var(--ds-radius-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .ds-skeleton {
+    background: var(--ds-gray-700);
+}
+
+.ds-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%
+    );
+    animation: ds-shimmer 1.5s ease-in-out infinite;
+    transform: translateX(-100%);
+}
+
+[data-theme="dark"] .ds-skeleton::after {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        transparent 100%
+    );
+}
+
+@keyframes ds-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.ds-skeleton-text {
+    height: 1em;
+    margin-bottom: var(--ds-space-2);
+    border-radius: var(--ds-radius-sm);
+}
+
+.ds-skeleton-text:last-child {
+    width: 60%;
+}
+
+.ds-skeleton-circle {
+    border-radius: var(--ds-radius-full);
+}
+
+.ds-skeleton-card {
+    height: 120px;
+    border-radius: var(--ds-radius-2xl);
+}
+
+/* ===========================
+   SCROLL REVEAL ANIMATIONS
+   =========================== */
+.ds-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: 
+        opacity var(--ds-transition-slow) var(--ds-ease-out),
+        transform var(--ds-transition-slow) var(--ds-ease-out);
+}
+
+.ds-reveal.ds-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.ds-reveal-delay-1 { transition-delay: 50ms; }
+.ds-reveal-delay-2 { transition-delay: 100ms; }
+.ds-reveal-delay-3 { transition-delay: 150ms; }
+.ds-reveal-delay-4 { transition-delay: 200ms; }
+.ds-reveal-delay-5 { transition-delay: 250ms; }
+
+/* ===========================
+   SHIMMER BUTTON EFFECT
+   =========================== */
+.ds-btn-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+.ds-btn-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.25) 50%,
+        transparent 100%
+    );
+    animation: ds-btn-shine 3s ease-in-out infinite;
+}
+
+@keyframes ds-btn-shine {
+    0% { left: -100%; }
+    50%, 100% { left: 100%; }
+}
+
+/* ===========================
+   GRADIENT BORDER HOVER
+   =========================== */
+.ds-gradient-border {
+    position: relative;
+}
+
+.ds-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--ds-primary-400), var(--ds-secondary-400), var(--ds-primary-500));
+    z-index: -1;
+    opacity: 0;
+    transition: opacity var(--ds-transition-normal) var(--ds-ease-default);
+}
+
+.ds-gradient-border:hover::before {
+    opacity: 1;
 }
