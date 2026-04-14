@@ -3414,7 +3414,9 @@
                 const analysisDate = localStorage.getItem('lastAnalysisDate');
                 if (analysisDate) {
                     const d = new Date(analysisDate);
-                    document.getElementById('statAnalysis').textContent = d.toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' });
+                    if (!isNaN(d.getTime())) {
+                        document.getElementById('statAnalysis').textContent = d.toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' });
+                    }
                 }
             } catch(e) { /* stats are optional */ }
         }
