@@ -6396,11 +6396,7 @@ async function getChatPrompts(env) {
 
     if (savedConsultation) prompts.consultation = savedConsultation;
     if (savedModification) prompts.modification = savedModification;
-    if (savedModificationModeEnabled === 'true') {
-      prompts.modificationEnabled = true;
-    } else if (savedModificationModeEnabled === 'false') {
-      prompts.modificationEnabled = false;
-    }
+    prompts.modificationEnabled = savedModificationModeEnabled === 'true';
   }
 
   // Update cache

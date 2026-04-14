@@ -3984,7 +3984,7 @@
                 const response = await fetch(`${WORKER_URL}/api/admin/get-config`);
                 if (!response.ok) throw new Error('Failed to load chat mode config');
                 const config = await response.json();
-                modificationModeEnabled = config.modificationModeEnabled === true;
+                modificationModeEnabled = config.modificationModeEnabled ?? false;
                 localStorage.setItem('chatModificationModeEnabled', modificationModeEnabled ? 'true' : 'false');
             } catch (error) {
                 console.warn('Failed to load chat mode config, using local fallback:', error);
