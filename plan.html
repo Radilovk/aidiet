@@ -4999,8 +4999,7 @@
             const reportBtn = document.getElementById('reportBtn');
             const modeIndicator = document.getElementById('chatModeIndicator');
             
-            if (!modeText || !modeIcon || !reportBtn || !modeIndicator) return;
-            if (modificationModeEnabled && !modificationBtn) return;
+            if (!modeText || !modeIcon || !reportBtn || !modeIndicator || (modificationModeEnabled && !modificationBtn)) return;
 
             if (!modificationModeEnabled && chatMode === 'modification') {
                 chatMode = 'consultation';

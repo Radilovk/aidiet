@@ -7568,9 +7568,7 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_chat_modification_mode_enabled')
     ]);
     
-    const parsedModificationModeEnabled = modificationModeEnabled === 'true'
-      ? true
-      : (modificationModeEnabled === 'false' ? false : false);
+    const parsedModificationModeEnabled = modificationModeEnabled === 'true';
 
     return jsonResponse({ 
       success: true, 
