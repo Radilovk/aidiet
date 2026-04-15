@@ -3589,7 +3589,7 @@
                 
                 // Update user avatar with first letter of name
                 const avatar = document.querySelector('.user-avatar');
-                if (userData.name) {
+                if (avatar && userData.name) {
                     avatar.textContent = userData.name.charAt(0).toUpperCase();
                 }
 
