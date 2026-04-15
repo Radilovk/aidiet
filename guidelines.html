@@ -145,6 +145,116 @@
             padding: 20px 16px;
         }
 
+        /* --- GUIDELINES ACCORDION --- */
+        .accordion {
+            margin-bottom: 20px;
+        }
+
+        .acc-item {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            box-shadow:
+                0 4px 16px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            overflow: hidden;
+            border: 1px solid rgba(16, 185, 129, 0.08);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        [data-theme="dark"] .acc-item {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+            box-shadow:
+                0 4px 16px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        .acc-header {
+            padding: 20px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .acc-header i {
+            color: var(--primary-red);
+            margin-right: 10px;
+        }
+
+        .chevron {
+            transition: transform 0.3s ease;
+            margin-right: 0 !important;
+            color: var(--text-light) !important;
+        }
+
+        .acc-item.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        .acc-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease;
+            background: var(--bg-color);
+        }
+
+        .acc-content-inner {
+            padding: 20px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--text-dark);
+        }
+
+        .good-list, .bad-list, .info-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .good-list li, .bad-list li, .info-list li {
+            margin-bottom: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: var(--text-dark);
+        }
+
+        .good-list li {
+            background: rgba(46, 213, 115, 0.1);
+            border-left: 4px solid #2ed573;
+        }
+
+        .good-list li:before {
+            content: '✓';
+            margin-right: 10px;
+            font-weight: 700;
+            color: #2ed573;
+        }
+
+        .bad-list li {
+            background: rgba(255, 71, 87, 0.1);
+            border-left: 4px solid #ff4757;
+        }
+
+        .bad-list li:before {
+            content: '✕';
+            margin-right: 10px;
+            font-weight: 700;
+            color: #ff4757;
+        }
+
+        .info-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: rgba(52, 211, 153, 0.08);
+            border-left: 3px solid rgba(52, 211, 153, 0.4);
+        }
+
         /* --- EMPTY STATE --- */
         .empty-state {
             text-align: center;
@@ -852,6 +962,80 @@
     </header>
 
     <div class="container">
+        <!-- GUIDELINES ACCORDION (moved from plan tab) -->
+        <div class="accordion">
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-check-circle"></i> Препоръчителни храни</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner">
+                        <ul class="good-list" id="recommendedFoodsList">
+                            <li>Вода (минимум 2.5л на ден)</li>
+                            <li>Зеленолистни зеленчуци</li>
+                            <li>Чисто месо (пилешко, пуешко)</li>
+                            <li>Риба и морски дарове</li>
+                            <li>Сурови ядки (в умерени количества)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-ban"></i> Забранени храни</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner">
+                        <ul class="bad-list" id="forbiddenFoodsList">
+                            <li>Газирани напитки със захар</li>
+                            <li>Пържени храни и фаст фуд</li>
+                            <li>Сладкиши и рафинирана захар</li>
+                            <li>Алкохол (особено концентрати)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-brain"></i> Психология и съвети</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner" id="psychologyContent">
+                        <p><strong>Не се обвинявайте:</strong> Ако "съгрешите" с едно хранене, просто продължете по план следващия път.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-pills"></i> Хранителни добавки</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner" id="supplementsContent">
+                        <p style="color: var(--text-light); font-style: italic;">Препоръки за хранителни добавки...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-bolt"></i> Практически хакове</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner" id="hacksContent">
+                        <p style="color: var(--text-light); font-style: italic;">Практически съвети за по-добри резултати...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- MACROS VISUALIZATION CONTAINER (on top) -->
         <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
             <div class="macros-viz-header">
@@ -1015,10 +1199,169 @@
             }
         }
 
+        function toggleAccordion(header) {
+            const item = header.parentElement;
+            const content = item.querySelector('.acc-content');
+            item.classList.toggle('open');
+            content.style.maxHeight = item.classList.contains('open') ? (content.scrollHeight + 'px') : '0';
+        }
+
         // --- Macros Visualization Loading ---
         function parseNumericValue(value) {
             const match = String(value).match(/(\d+(?:\.\d+)?)/);
             return match ? Math.round(parseFloat(match[1])) : 0;
+        }
+
+        const DEFAULT_MESSAGES = {
+            psychology: 'Консултирайте се с диетолог за допълнителни съвети',
+            supplements: 'Консултирайте се с лекар преди приемане на нови добавки'
+        };
+
+        const ICON_CLASSES = {
+            psychology: 'fa-brain',
+            supplements: 'fa-pills'
+        };
+
+        function formatContentWithBulletPoints(text, icon = 'fa-check-circle') {
+            if (!text || typeof text !== 'string') {
+                return `<p style="color: var(--text-light); font-style: italic;">Няма налични данни</p>`;
+            }
+
+            const lines = text.split('\n').filter(line => line.trim());
+            if (lines.length === 0) {
+                return `<p style="color: var(--text-light); font-style: italic;">Няма налични данни</p>`;
+            }
+
+            let formattedHTML = '<ul class="info-list">';
+            lines.forEach(line => {
+                const trimmedLine = line.trim().replace(/^[•\-\*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+                if (trimmedLine) {
+                    formattedHTML += `<li><i class="fas ${icon}" style="color: var(--primary-red);"></i>${trimmedLine}</li>`;
+                }
+            });
+            formattedHTML += '</ul>';
+            return formattedHTML;
+        }
+
+        function normalizeToThreeItems(data, defaultMessage) {
+            if (typeof data === 'string') {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (Array.isArray(parsed)) data = parsed;
+                    else return null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            if (!Array.isArray(data)) return null;
+            const items = data.slice(0, 3);
+            while (items.length < 3) items.push(defaultMessage);
+            return items;
+        }
+
+        function generateListItem(content, contentType, index) {
+            if (typeof content === 'string') {
+                const clean = content.replace(/^!\s*/, '').trim();
+                return clean ? `<li>${clean}</li>` : '';
+            }
+            if (typeof content === 'object' && content !== null) {
+                let details = content.title || content.name || (contentType === 'psychology' ? `Съвет ${index + 1}` : `Добавка ${index + 1}`);
+                if (content.description) details += ` - ${content.description}`;
+                if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
+                if (content.intake) details += ` - Прием: ${content.intake}`;
+                return `<li>${details}</li>`;
+            }
+            return '';
+        }
+
+        function loadGuidelinesAccordion() {
+            try {
+                const planDataStr = localStorage.getItem('dietPlan');
+                if (!planDataStr) return false;
+                const dietPlan = JSON.parse(planDataStr);
+                if (!dietPlan) return false;
+
+                const recommendedFoodsList = document.getElementById('recommendedFoodsList');
+                if (recommendedFoodsList && Array.isArray(dietPlan.recommendations) && dietPlan.recommendations.length > 0) {
+                    recommendedFoodsList.innerHTML = dietPlan.recommendations.map(item => `<li>${item}</li>`).join('');
+                }
+
+                const forbiddenFoodsList = document.getElementById('forbiddenFoodsList');
+                if (forbiddenFoodsList && Array.isArray(dietPlan.forbidden) && dietPlan.forbidden.length > 0) {
+                    forbiddenFoodsList.innerHTML = dietPlan.forbidden.map(item => `<li>${item}</li>`).join('');
+                }
+
+                const psychologyContent = document.getElementById('psychologyContent');
+                if (psychologyContent) {
+                    if (dietPlan.psychology) {
+                        const normalized = normalizeToThreeItems(dietPlan.psychology, DEFAULT_MESSAGES.psychology);
+                        if (normalized) {
+                            let html = '<ul class="info-list">';
+                            normalized.forEach((tip, index) => {
+                                const item = generateListItem(tip, 'psychology', index);
+                                if (item) {
+                                    const cleanItem = item.replace('<li>', '').replace('</li>', '');
+                                    html += `<li><i class="fas fa-brain" style="color: var(--primary-red);"></i>${cleanItem}</li>`;
+                                }
+                            });
+                            html += '</ul>';
+                            psychologyContent.innerHTML = html;
+                        } else if (typeof dietPlan.psychology === 'string') {
+                            psychologyContent.innerHTML = formatContentWithBulletPoints(dietPlan.psychology, ICON_CLASSES.psychology);
+                        } else {
+                            psychologyContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.psychology}</p>`;
+                        }
+                    } else {
+                        psychologyContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.psychology}</p>`;
+                    }
+                }
+
+                const supplementsContent = document.getElementById('supplementsContent');
+                if (supplementsContent) {
+                    if (dietPlan.supplements) {
+                        const normalized = normalizeToThreeItems(dietPlan.supplements, DEFAULT_MESSAGES.supplements);
+                        if (normalized) {
+                            let html = '<ul class="info-list">';
+                            normalized.forEach((supplement, index) => {
+                                const item = generateListItem(supplement, 'supplements', index);
+                                if (item) {
+                                    const cleanItem = item.replace('<li>', '').replace('</li>', '');
+                                    html += `<li><i class="fas fa-pills" style="color: var(--primary-red);"></i>${cleanItem}</li>`;
+                                }
+                            });
+                            html += '</ul>';
+                            supplementsContent.innerHTML = html;
+                        } else if (typeof dietPlan.supplements === 'string') {
+                            supplementsContent.innerHTML = formatContentWithBulletPoints(dietPlan.supplements, ICON_CLASSES.supplements);
+                        } else {
+                            supplementsContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.supplements}</p>`;
+                        }
+                    } else {
+                        supplementsContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.supplements}</p>`;
+                    }
+                }
+
+                const hacksContent = document.getElementById('hacksContent');
+                if (hacksContent) {
+                    if (Array.isArray(dietPlan.hacks) && dietPlan.hacks.length > 0) {
+                        let html = '<ul class="info-list">';
+                        dietPlan.hacks.forEach(hack => {
+                            const safeHack = String(hack).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            html += `<li><i class="fas fa-bolt" style="color: var(--primary-red);"></i>${safeHack}</li>`;
+                        });
+                        html += '</ul>';
+                        hacksContent.innerHTML = html;
+                    } else {
+                        hacksContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">Практически съвети за постигане на целта...</p>`;
+                    }
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error loading guidelines accordion:', error);
+                return false;
+            }
         }
 
         function loadMacrosVisualization() {
@@ -1162,11 +1505,12 @@
         window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
 
+            const hasAccordion = loadGuidelinesAccordion();
             const hasMacros = loadMacrosVisualization();
             const hasStrategy = loadStrategyPanel();
 
             // Show empty state if no data
-            if (!hasMacros && !hasStrategy) {
+            if (!hasAccordion && !hasMacros && !hasStrategy) {
                 const emptyState = document.getElementById('emptyState');
                 if (emptyState) {
                     emptyState.style.display = 'block';
