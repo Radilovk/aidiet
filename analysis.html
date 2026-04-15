@@ -1311,27 +1311,30 @@
                     </div>
                     <div class="single-score-container">
                         <!-- Semicircular Gauge -->
-                        <div style="position: relative; width: 200px; height: 115px; margin: 0 auto 10px;">
-                            <svg id="healthGaugeSvg" viewBox="0 0 200 110" width="200" height="110" role="img" aria-label="Здравословен статус">
+                        <div style="position: relative; width: 200px; height: 120px; margin: 0 auto 10px;">
+                            <svg id="healthGaugeSvg" viewBox="0 0 200 115" width="200" height="115" role="img" aria-label="Здравословен статус">
                                 <title id="healthGaugeTitle">Здравословен статус</title>
                                 <!-- Background arc -->
-                                <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="16" stroke-linecap="round"/>
+                                <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="14" stroke-linecap="round"/>
                                 <!-- Color gradient segments: 25% each — red, orange, yellow, green -->
-                                <path d="M 15 100 A 85 85 0 0 1 40 40" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
-                                <path d="M 40 40 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="16" opacity="0.3"/>
-                                <path d="M 100 15 A 85 85 0 0 1 160 40" fill="none" stroke="#fbbf24" stroke-width="16" opacity="0.3"/>
-                                <path d="M 160 40 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+                                <path d="M 15 100 A 85 85 0 0 1 39.9 39.9" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                <path d="M 39.9 39.9 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="14" opacity="0.25"/>
+                                <path d="M 100 15 A 85 85 0 0 1 160.1 39.9" fill="none" stroke="#fbbf24" stroke-width="14" opacity="0.25"/>
+                                <path d="M 160.1 39.9 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
                                 <!-- Active arc up to score -->
-                                <path id="healthGaugeArc" d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round"
-                                    stroke-dasharray="0 267"/>
+                                <path id="healthGaugeArc" d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round"
+                                    stroke-dasharray="0 267" style="transition: stroke-dasharray 0.8s ease-out;"/>
                                 <!-- Needle -->
-                                <g id="healthGaugeNeedle" transform="rotate(-90, 100, 100)">
-                                    <line x1="100" y1="100" x2="100" y2="28" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
-                                    <circle cx="100" cy="100" r="6" fill="#10b981" stroke="white" stroke-width="2"/>
+                                <g id="healthGaugeNeedle" transform="rotate(-90, 100, 100)" style="transition: transform 0.8s ease-out;">
+                                    <line x1="100" y1="98" x2="100" y2="30" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));"/>
+                                    <circle cx="100" cy="100" r="5" fill="#10b981" stroke="white" stroke-width="2"/>
                                 </g>
-                                <!-- Labels -->
-                                <text x="12" y="108" font-size="9" fill="var(--text-light, #888)" text-anchor="start">0</text>
-                                <text x="188" y="108" font-size="9" fill="var(--text-light, #888)" text-anchor="end">100</text>
+                                <!-- Tick marks at 0, 25, 50, 75, 100 -->
+                                <text x="8" y="108" font-size="8" fill="var(--text-light, #888)" text-anchor="start" font-weight="500">0</text>
+                                <text x="33" y="36" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">25</text>
+                                <text x="100" y="10" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">50</text>
+                                <text x="167" y="36" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">75</text>
+                                <text x="192" y="108" font-size="8" fill="var(--text-light, #888)" text-anchor="end" font-weight="500">100</text>
                             </svg>
                         </div>
                         <!-- Score display -->
@@ -1613,19 +1616,21 @@
             document.getElementById('healthGaugeSvg').setAttribute('aria-label', 'Здравословен статус: ' + healthScore + '% - ' + healthLabel);
 
             const needleAngle = -90 + (healthScore / 100) * 180;
+            // Arc length for semicircle with radius 85: π × 85
+            const arcLength = Math.PI * 85;
             const arc = document.getElementById('healthGaugeArc');
             const needle = document.getElementById('healthGaugeNeedle');
             arc.setAttribute('stroke', gaugeColor);
-            arc.style.filter = 'drop-shadow(0 0 4px ' + gaugeColor + '40)';
+            arc.style.filter = 'drop-shadow(0 0 6px ' + gaugeColor + '50)';
             needle.querySelector('line').setAttribute('stroke', gaugeColor);
             needle.querySelector('circle').setAttribute('fill', gaugeColor);
 
             // Show the overall score section
             document.getElementById('overallScoreSection').style.display = 'block';
 
-            // Animate gauge after a short delay
+            // Animate gauge after a short delay (CSS transition handles the smoothing)
             setTimeout(() => {
-                arc.setAttribute('stroke-dasharray', (healthScore / 100) * 267 + ' 267');
+                arc.setAttribute('stroke-dasharray', ((healthScore / 100) * arcLength).toFixed(1) + ' ' + arcLength.toFixed(1));
                 needle.setAttribute('transform', 'rotate(' + needleAngle + ', 100, 100)');
             }, 300);
 
