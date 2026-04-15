@@ -6724,7 +6724,7 @@ async function callOpenAIVision(env, textPrompt, base64Image, mimeType, modelNam
         role: 'user',
         content: [
           { type: 'text', text: textPrompt },
-          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'low' } }
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'auto' } }
         ]
       }],
       max_tokens: maxTokens,
@@ -6856,11 +6856,12 @@ async function handleAnalyzeFoodImage(request, env) {
       }
     }
 
-    // Validate image size (max 1MB of base64 data ≈ ~750KB image)
-    const MAX_IMAGE_SIZE_BYTES = 1048576; // 1MB
+    // Validate image size (max 20MB of base64 data — client compresses to ~300-500KB,
+    // but we allow large payloads in case compression is less aggressive)
+    const MAX_IMAGE_SIZE_BYTES = 20971520; // 20MB
     const estimatedSizeBytes = (base64Data.length * 3) / 4;
     if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
-      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение (до 1MB).' }, 400);
+      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение.' }, 400);
     }
 
     // Build diet context for the prompt
@@ -6883,8 +6884,19 @@ async function handleAnalyzeFoodImage(request, env) {
 
     const mealTime = mealContext || 'неуточнено';
 
-    // Build the analysis prompt
-    const analysisPrompt = `Ти си експерт диетолог с компютърно зрение. Анализирай това изображение на храна и върни САМО валиден JSON обект (без markdown, без \`\`\`).
+    // Try to load custom prompt from KV, fall back to hardcoded default
+    const customPrompt = await getCustomPrompt(env, 'admin_food_analysis_prompt');
+    
+    let analysisPrompt;
+    if (customPrompt && customPrompt.trim()) {
+      // Replace template variables in custom prompt
+      analysisPrompt = customPrompt
+        .replace(/\{dietContext\}/g, dietContext || 'Не е предоставен')
+        .replace(/\{planContext\}/g, planContext || 'Не е предоставен')
+        .replace(/\{mealTime\}/g, mealTime);
+    } else {
+      // Default hardcoded prompt
+      analysisPrompt = `Ти си експерт диетолог с компютърно зрение. Анализирай това изображение на храна и върни САМО валиден JSON обект (без markdown, без \`\`\`).
 
 ЗАДАЧА: Анализирай храната на снимката и дай количествена и качествена оценка.
 
@@ -6925,6 +6937,7 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
 - Ако не можеш да разпознаеш храната, постави confidence: "low" и обясни
 - Всички числа да са числа (не текст)
 - Отговори САМО с JSON, без допълнителен текст`;
+    }
 
     // Call AI with vision
     const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 1500);
@@ -7384,7 +7397,8 @@ function getPromptKVKey(type) {
     'meal_plan': 'admin_meal_plan_prompt',
     'summary': 'admin_summary_prompt',
     'plan': 'admin_plan_prompt',
-    'emoeat': 'admin_emoeat_prompt'
+    'emoeat': 'admin_emoeat_prompt',
+    'food_analysis': 'admin_food_analysis_prompt'
   };
   
   return keyMap[type] || 'admin_plan_prompt';
@@ -7452,13 +7466,14 @@ async function handleGetDefaultPrompt(request, env) {
       'consultation': 'admin_consultation_prompt',
       'modification': 'admin_modification_prompt',
       'correction': 'admin_correction_prompt',
-      'emoeat': 'admin_emoeat_prompt'
+      'emoeat': 'admin_emoeat_prompt',
+      'food_analysis': 'admin_food_analysis_prompt'
     };
     
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, food_analysis` 
       }, 400);
     }
     
@@ -7882,6 +7897,7 @@ async function handleGetConfig(request, env) {
       protocolProvider,
       protocolModelName,
       emoeatPrompt,
+      foodAnalysisPrompt,
       modificationModeEnabled
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
@@ -7898,6 +7914,7 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_protocol_provider'),
       env.page_content.get('admin_protocol_model_name'),
       env.page_content.get('admin_emoeat_prompt'),
+      env.page_content.get('admin_food_analysis_prompt'),
       env.page_content.get('admin_chat_modification_mode_enabled')
     ]);
     
@@ -7919,6 +7936,7 @@ async function handleGetConfig(request, env) {
       protocolProvider: protocolProvider || null,
       protocolModelName: protocolModelName || null,
       emoeatPrompt,
+      foodAnalysisPrompt,
       modificationModeEnabled: parsedModificationModeEnabled
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
