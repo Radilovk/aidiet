@@ -49,7 +49,7 @@
             --text-light: #9ca3af;
             --bg-color: #0f1419;
             --card-bg: #1a2028;
-            --shadow: 0 4px 6px rgba(52,211,153,0.2);
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             --radius: 16px;
         }
 
@@ -87,9 +87,9 @@
         }
 
         [data-theme="dark"] header {
-            background: rgba(30, 41, 59, 0.9);
-            border-bottom-color: rgba(52, 211, 153, 0.08);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            background: rgba(26, 32, 40, 0.92);
+            border-bottom-color: rgba(52, 211, 153, 0.1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
         }
 
         .back-btn {
@@ -427,6 +427,28 @@
             border-top-color: rgba(52, 211, 153, 0.1);
         }
 
+        /* --- PROFILE DARK THEME ENHANCEMENTS --- */
+        [data-theme="dark"] .form-section {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border: 1px solid rgba(52, 211, 153, 0.08);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        [data-theme="dark"] .questionnaire-container {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border-color: rgba(52, 211, 153, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        [data-theme="dark"] .analysis-container {
+            border-color: rgba(99, 102, 241, 0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        [data-theme="dark"] .profile-section {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+        }
+
         /* === BACK TO PLAN BUTTON === */
         .back-to-plan-container {
             display: flex;
@@ -605,13 +627,33 @@
         }
 
         [data-theme="dark"] .alert-info {
-            background: #1b3a1f;
+            background: rgba(52, 211, 153, 0.1);
             color: #a5d6a7;
+            border-color: rgba(52, 211, 153, 0.2);
         }
 
         [data-theme="dark"] .alert-warning {
-            background: #3e2723;
+            background: rgba(251, 191, 36, 0.1);
             color: #ffb74d;
+            border-color: rgba(251, 191, 36, 0.2);
+        }
+
+        [data-theme="dark"] .form-input, [data-theme="dark"] .form-textarea {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-dark);
+        }
+
+        [data-theme="dark"] .form-input:not(:disabled):focus, 
+        [data-theme="dark"] .form-textarea:not(:disabled):focus {
+            border-color: rgba(52, 211, 153, 0.5);
+            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+        }
+
+        [data-theme="dark"] .button-group {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border-color: rgba(52, 211, 153, 0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
         /* Loading spinner */
@@ -963,9 +1005,9 @@
             transform: translateZ(0);
         }
         [data-theme="dark"] .bottom-nav {
-            background: rgba(26, 32, 40, 0.92);
+            background: rgba(26, 32, 40, 0.95);
             border-top-color: rgba(52, 211, 153, 0.1);
-            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
         }
         .bottom-nav-item {
             display: flex;
@@ -1956,51 +1998,52 @@
                         const activeArc = (healthScore / 100) * arcLength;
 
                         html += `
-                            <div style="padding: 20px; background: var(--soft-red); border-radius: 12px; text-align: center;">
-                                <div style="font-weight: 700; color: var(--text-dark); font-size: 1rem; margin-bottom: 15px;">
+                            <div style="padding: 24px; background: linear-gradient(145deg, var(--soft-red), rgba(16,185,129,0.05)); border-radius: 16px; text-align: center; border: 1px solid rgba(16,185,129,0.1);">
+                                <div style="font-weight: 700; color: var(--text-dark); font-size: 1rem; margin-bottom: 16px;">
                                     <i class="fas fa-heartbeat" style="color: ${gaugeColor}; margin-right: 6px;"></i>
                                     Здравословен статус
                                 </div>
 
                                 <!-- Semicircular Gauge -->
-                                <div style="position: relative; width: 200px; height: 120px; margin: 0 auto 10px;">
+                                <div style="position: relative; width: 200px; height: 120px; margin: 0 auto 12px;">
                                     <svg viewBox="0 0 200 115" width="200" height="115" role="img" aria-label="Здравословен статус: ${healthScore}% - ${healthLabel}">
                                         <title>Здравословен статус: ${healthScore}%</title>
                                         <!-- Background arc -->
-                                        <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="14" stroke-linecap="round"/>
+                                        <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" opacity="0.1"/>
 
                                         <!-- Color gradient segments: 25% each — red, orange, yellow, green -->
-                                        <path d="M 15 100 A 85 85 0 0 1 39.9 39.9" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
-                                        <path d="M 39.9 39.9 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
-                                        <path d="M 100 15 A 85 85 0 0 1 160.1 39.9" fill="none" stroke="#fbbf24" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
-                                        <path d="M 160.1 39.9 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                        <path d="M 15 100 A 85 85 0 0 1 39.9 39.9" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
+                                        <path d="M 39.9 39.9 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
+                                        <path d="M 100 15 A 85 85 0 0 1 160.1 39.9" fill="none" stroke="#fbbf24" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
+                                        <path d="M 160.1 39.9 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
 
                                         <!-- Active arc up to score -->
                                         <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="${gaugeColor}" stroke-width="14" stroke-linecap="round"
                                             stroke-dasharray="${activeArc.toFixed(1)} ${arcLength.toFixed(1)}"
-                                            style="filter: drop-shadow(0 0 6px ${gaugeColor}50);"/>
+                                            style="filter: drop-shadow(0 0 8px ${gaugeColor}60);"/>
 
                                         <!-- Needle -->
                                         <g transform="rotate(${needleAngle}, 100, 100)">
-                                            <line x1="100" y1="98" x2="100" y2="30" stroke="${gaugeColor}" stroke-width="2.5" stroke-linecap="round" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));"/>
-                                            <circle cx="100" cy="100" r="5" fill="${gaugeColor}" stroke="white" stroke-width="2"/>
+                                            <line x1="100" y1="100" x2="100" y2="28" stroke="${gaugeColor}" stroke-width="3" stroke-linecap="round" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"/>
+                                            <circle cx="100" cy="100" r="7" fill="${gaugeColor}"/>
+                                            <circle cx="100" cy="100" r="3.5" fill="var(--card-bg, #ffffff)"/>
                                         </g>
 
                                         <!-- Tick marks at 0, 25, 50, 75, 100 -->
-                                        <text x="8" y="108" font-size="8" fill="var(--text-light, #888)" text-anchor="start" font-weight="500">0</text>
-                                        <text x="33" y="36" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">25</text>
-                                        <text x="100" y="10" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">50</text>
-                                        <text x="167" y="36" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">75</text>
-                                        <text x="192" y="108" font-size="8" fill="var(--text-light, #888)" text-anchor="end" font-weight="500">100</text>
+                                        <text x="8" y="112" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="start" font-weight="600">0</text>
+                                        <text x="33" y="36" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="middle" font-weight="600">25</text>
+                                        <text x="100" y="10" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="middle" font-weight="600">50</text>
+                                        <text x="167" y="36" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="middle" font-weight="600">75</text>
+                                        <text x="192" y="112" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="end" font-weight="600">100</text>
                                     </svg>
                                 </div>
 
                                 <!-- Score display -->
-                                <div style="font-size: 2rem; font-weight: 800; color: ${gaugeColor}; line-height: 1; margin-bottom: 4px;">${healthScore}%</div>
-                                <div style="font-size: 0.9rem; font-weight: 600; color: ${gaugeColor};">${healthLabel}</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; color: ${gaugeColor}; line-height: 1; margin-bottom: 6px; letter-spacing: -1px;">${healthScore}%</div>
+                                <div style="font-size: 0.9rem; font-weight: 600; color: ${gaugeColor}; text-transform: uppercase; letter-spacing: 0.5px;">${healthLabel}</div>
 
                                 ${totalProblems > 0 ? `
-                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06);">
+                                <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(16,185,129,0.12);">
                                     <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
                                         ${criticalCount > 0 ? `<span style="font-size: 0.8rem; color: #ef4444; font-weight: 600;"><i class="fas fa-exclamation-circle"></i> ${criticalCount} критични</span>` : ''}
                                         ${riskyCount > 0 ? `<span style="font-size: 0.8rem; color: #f97316; font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> ${riskyCount} рискови</span>` : ''}
