@@ -1254,17 +1254,7 @@
         .bottom-nav-item i { font-size: 20px; transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .bottom-nav-item.active { color: var(--primary-red); }
         .bottom-nav-item.active i { transform: scale(1.15); }
-        .bottom-nav-item.active::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--primary-red);
-        }
+        /* Active dot indicator removed */
         .bottom-nav-item:active { transform: scale(0.92); }
     </style>
 </head>
@@ -1784,7 +1774,7 @@
     </script>
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
-        <a href="index.html" class="bottom-nav-item">
+        <a href="index.html?stay=1" class="bottom-nav-item">
             <i class="fas fa-home"></i>
             <span>Начало</span>
         </a>
@@ -1792,9 +1782,9 @@
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="protocol-landing.html" class="bottom-nav-item">
-            <i class="fas fa-clipboard-list"></i>
-            <span>Протоколи</span>
+        <a href="guidelines.html" class="bottom-nav-item">
+            <i class="fas fa-compass"></i>
+            <span>Насоки</span>
         </a>
         <a href="profile.html" class="bottom-nav-item">
             <i class="fas fa-user"></i>
