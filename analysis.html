@@ -170,6 +170,12 @@
             transform: scale(0.95);
         }
 
+        .header-spacer {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+        }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -1263,9 +1269,7 @@
     <header class="analysis-header">
         <a href="plan.html" class="back-btn" aria-label="Назад"><i class="fas fa-arrow-left"></i></a>
         <h1>Здравословен Анализ</h1>
-        <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" aria-label="Превключи тема">
-            <i class="fas fa-moon" id="themeIcon"></i>
-        </button>
+        <div class="header-spacer" aria-hidden="true"></div>
     </header>
 
     <!-- Loading Screen -->

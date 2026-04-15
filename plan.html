@@ -198,6 +198,12 @@
             letter-spacing: -0.3px;
         }
 
+        .header-spacer {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+        }
+
         .user-avatar {
             width: 42px;
             height: 42px;
@@ -2283,12 +2289,7 @@
     <header role="banner" aria-label="Главна навигация">
         <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
         <h1>Моят Хранителен План</h1>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Превключи тема">
-                <i class="fas fa-moon" id="themeIcon" aria-hidden="true"></i>
-            </button>
-            <button class="user-avatar" onclick="goToProfile()" onkeydown="if(event.key==='Enter'||event.key===' ')goToProfile()" style="cursor: pointer;" title="Моят профил" aria-label="Моят профил"></button>
-        </div>
+        <div class="header-spacer" aria-hidden="true"></div>
     </header>
 
     <!-- Navigation: Days of the week -->
