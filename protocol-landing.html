@@ -498,7 +498,7 @@
         /* Protocol grid - Masonry-like layout */
         .protocols-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 24px;
         }
 
@@ -555,7 +555,8 @@
         }
         
         .protocol-card:active {
-            transform: translateY(-2px) scale(0.99);
+            transform: translateY(-2px) scale(0.97);
+            box-shadow: var(--shadow-md);
         }
         
         /* Card accent strip */
@@ -1523,6 +1524,18 @@
                 border: 1px solid #ddd !important;
             }
         }
+        /* --- MODAL DRAG HANDLE --- */
+        .modal-drag-handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(0,0,0,0.15);
+            border-radius: 2px;
+            margin: 0 auto 16px;
+            flex-shrink: 0;
+        }
+        [data-theme="dark"] .modal-drag-handle {
+            background: rgba(255,255,255,0.2);
+        }
     </style>
 </head>
 <body>
@@ -1610,6 +1623,7 @@
     <!-- Modal -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
         <div class="modal" onclick="event.stopPropagation()">
+                <div class="modal-drag-handle"></div>
             <div class="modal-hero" id="modalHero">
                 <button class="modal-close" onclick="closeModal()">
                     <i class="fas fa-times"></i>
