@@ -1898,96 +1898,119 @@
                     html += '<p style="color: var(--text-light); font-style: italic;">Не са открити проблемни области</p>';
                 }
                 
-                // Health status score (if available) - displayed as semicircular gauge
-                if (typeof analysis.successChance === 'number') {
-                    // Recalculate health status considering actual problems
-                    let healthScore = analysis.successChance;
-                    
-                    // Adjust score based on number and severity of problems
-                    const criticalCount = (analysis.keyProblems || []).filter(p => p.severity === 'Critical').length;
-                    const riskyCount = (analysis.keyProblems || []).filter(p => p.severity === 'Risky').length;
-                    const borderlineCount = (analysis.keyProblems || []).filter(p => p.severity === 'Borderline').length;
-                    const totalProblems = criticalCount + riskyCount + borderlineCount;
-                    
-                    // If there are many problems, cap the health score more aggressively
-                    if (totalProblems > 0) {
-                        const maxAllowed = Math.max(10, 100 - (criticalCount * 20) - (riskyCount * 10) - (borderlineCount * 5));
-                        healthScore = Math.min(healthScore, maxAllowed);
-                    }
-                    healthScore = Math.max(0, Math.min(100, healthScore));
-                    
-                    let gaugeColor = '#10b981';
-                    let healthLabel = 'Добро';
-                    
-                    if (healthScore < 25) {
-                        gaugeColor = '#ef4444';
-                        healthLabel = 'Влошено';
-                    } else if (healthScore < 50) {
-                        gaugeColor = '#f97316';
-                        healthLabel = 'Нуждае се от внимание';
-                    } else if (healthScore < 75) {
-                        gaugeColor = '#fbbf24';
-                        healthLabel = 'Умерено';
+                // Health status score - displayed as semicircular gauge
+                // Unified calculation: same logic as analysis.html
+                {
+                    const MIN_HEALTH_SCORE = 15;
+                    const MAX_HEALTH_SCORE = 100;
+                    let healthScore = null;
+
+                    // Primary: use AI-provided currentHealthStatus.score
+                    if (analysis.currentHealthStatus && typeof analysis.currentHealthStatus.score === 'number') {
+                        healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(analysis.currentHealthStatus.score)));
                     } else {
-                        gaugeColor = '#10b981';
-                        healthLabel = 'Добро';
+                        // Fallback: calculate from problem severityValues (same as analysis.html)
+                        const problems = (analysis.keyProblems || []).filter(p => p.severity !== 'Normal');
+                        if (problems.length > 0) {
+                            let totalSeverity = 0;
+                            problems.forEach(problem => {
+                                totalSeverity += (problem.severityValue || 50);
+                            });
+                            const avgSeverity = totalSeverity / problems.length;
+                            const cappedSeverity = Math.min(avgSeverity, MAX_HEALTH_SCORE);
+                            const rawHealthScore = MAX_HEALTH_SCORE - cappedSeverity;
+                            healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(rawHealthScore)));
+                            // Strategic adjustment: 10% reduction (same as analysis.html)
+                            const healthReduction = Math.floor(healthScore * 0.10);
+                            healthScore = Math.max(MIN_HEALTH_SCORE, healthScore - healthReduction);
+                        }
                     }
-                    
-                    // Semicircular gauge: 0% = -90deg (left), 100% = 90deg (right)
-                    const needleAngle = -90 + (healthScore / 100) * 180;
-                    
-                    html += `
-                        <div style="padding: 20px; background: var(--soft-red); border-radius: 12px; text-align: center;">
-                            <div style="font-weight: 700; color: var(--text-dark); font-size: 1rem; margin-bottom: 15px;">
-                                <i class="fas fa-heartbeat" style="color: ${gaugeColor}; margin-right: 6px;"></i>
-                                Здравословен статус
-                            </div>
-                            
-                            <!-- Semicircular Gauge -->
-                            <div style="position: relative; width: 200px; height: 115px; margin: 0 auto 10px;">
-                                <svg viewBox="0 0 200 110" width="200" height="110" role="img" aria-label="Здравословен статус: ${healthScore}% - ${healthLabel}">
-                                    <title>Здравословен статус: ${healthScore}%</title>
-                                    <!-- Background arc -->
-                                    <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="16" stroke-linecap="round"/>
-                                    
-                                    <!-- Color gradient segments: 25% each — red, orange, yellow, green -->
-                                    <path d="M 15 100 A 85 85 0 0 1 40 40" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
-                                    <path d="M 40 40 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="16" opacity="0.3"/>
-                                    <path d="M 100 15 A 85 85 0 0 1 160 40" fill="none" stroke="#fbbf24" stroke-width="16" opacity="0.3"/>
-                                    <path d="M 160 40 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
-                                    
-                                    <!-- Active arc up to score (267 ≈ π × 85 = semicircle arc length for radius 85) -->
-                                    <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="${gaugeColor}" stroke-width="16" stroke-linecap="round"
-                                        stroke-dasharray="${(healthScore / 100) * 267} 267"
-                                        style="filter: drop-shadow(0 0 4px ${gaugeColor}40);"/>
-                                    
-                                    <!-- Needle -->
-                                    <g transform="rotate(${needleAngle}, 100, 100)">
-                                        <line x1="100" y1="100" x2="100" y2="28" stroke="${gaugeColor}" stroke-width="3" stroke-linecap="round"/>
-                                        <circle cx="100" cy="100" r="6" fill="${gaugeColor}" stroke="white" stroke-width="2"/>
-                                    </g>
-                                    
-                                    <!-- Labels -->
-                                    <text x="12" y="108" font-size="9" fill="var(--text-light, #888)" text-anchor="start">0</text>
-                                    <text x="188" y="108" font-size="9" fill="var(--text-light, #888)" text-anchor="end">100</text>
-                                </svg>
-                            </div>
-                            
-                            <!-- Score display -->
-                            <div style="font-size: 2rem; font-weight: 800; color: ${gaugeColor}; line-height: 1; margin-bottom: 4px;">${healthScore}%</div>
-                            <div style="font-size: 0.9rem; font-weight: 600; color: ${gaugeColor};">${healthLabel}</div>
-                            
-                            ${totalProblems > 0 ? `
-                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06);">
-                                <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
-                                    ${criticalCount > 0 ? `<span style="font-size: 0.8rem; color: #ef4444; font-weight: 600;"><i class="fas fa-exclamation-circle"></i> ${criticalCount} критични</span>` : ''}
-                                    ${riskyCount > 0 ? `<span style="font-size: 0.8rem; color: #f97316; font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> ${riskyCount} рискови</span>` : ''}
-                                    ${borderlineCount > 0 ? `<span style="font-size: 0.8rem; color: #fbbf24; font-weight: 600;"><i class="fas fa-info-circle"></i> ${borderlineCount} гранични</span>` : ''}
+
+                    if (healthScore !== null) {
+                        const criticalCount = (analysis.keyProblems || []).filter(p => p.severity === 'Critical').length;
+                        const riskyCount = (analysis.keyProblems || []).filter(p => p.severity === 'Risky').length;
+                        const borderlineCount = (analysis.keyProblems || []).filter(p => p.severity === 'Borderline').length;
+                        const totalProblems = criticalCount + riskyCount + borderlineCount;
+
+                        let gaugeColor = '#10b981';
+                        let healthLabel = 'Добро';
+
+                        if (healthScore < 25) {
+                            gaugeColor = '#ef4444';
+                            healthLabel = 'Влошено';
+                        } else if (healthScore < 50) {
+                            gaugeColor = '#f97316';
+                            healthLabel = 'Нуждае се от внимание';
+                        } else if (healthScore < 75) {
+                            gaugeColor = '#fbbf24';
+                            healthLabel = 'Умерено';
+                        } else {
+                            gaugeColor = '#10b981';
+                            healthLabel = 'Добро';
+                        }
+
+                        // Semicircular gauge: 0% = -90deg (left), 100% = 90deg (right)
+                        const needleAngle = -90 + (healthScore / 100) * 180;
+                        // Arc length for semicircle with radius 85: π × 85 ≈ 267
+                        const arcLength = Math.PI * 85;
+                        const activeArc = (healthScore / 100) * arcLength;
+
+                        html += `
+                            <div style="padding: 20px; background: var(--soft-red); border-radius: 12px; text-align: center;">
+                                <div style="font-weight: 700; color: var(--text-dark); font-size: 1rem; margin-bottom: 15px;">
+                                    <i class="fas fa-heartbeat" style="color: ${gaugeColor}; margin-right: 6px;"></i>
+                                    Здравословен статус
                                 </div>
+
+                                <!-- Semicircular Gauge -->
+                                <div style="position: relative; width: 200px; height: 120px; margin: 0 auto 10px;">
+                                    <svg viewBox="0 0 200 115" width="200" height="115" role="img" aria-label="Здравословен статус: ${healthScore}% - ${healthLabel}">
+                                        <title>Здравословен статус: ${healthScore}%</title>
+                                        <!-- Background arc -->
+                                        <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="14" stroke-linecap="round"/>
+
+                                        <!-- Color gradient segments: 25% each — red, orange, yellow, green -->
+                                        <path d="M 15 100 A 85 85 0 0 1 39.9 39.9" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                        <path d="M 39.9 39.9 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                        <path d="M 100 15 A 85 85 0 0 1 160.1 39.9" fill="none" stroke="#fbbf24" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                        <path d="M 160.1 39.9 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+
+                                        <!-- Active arc up to score -->
+                                        <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="${gaugeColor}" stroke-width="14" stroke-linecap="round"
+                                            stroke-dasharray="${activeArc.toFixed(1)} ${arcLength.toFixed(1)}"
+                                            style="filter: drop-shadow(0 0 6px ${gaugeColor}50);"/>
+
+                                        <!-- Needle -->
+                                        <g transform="rotate(${needleAngle}, 100, 100)">
+                                            <line x1="100" y1="98" x2="100" y2="30" stroke="${gaugeColor}" stroke-width="2.5" stroke-linecap="round" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));"/>
+                                            <circle cx="100" cy="100" r="5" fill="${gaugeColor}" stroke="white" stroke-width="2"/>
+                                        </g>
+
+                                        <!-- Tick marks at 0, 25, 50, 75, 100 -->
+                                        <text x="8" y="108" font-size="8" fill="var(--text-light, #888)" text-anchor="start" font-weight="500">0</text>
+                                        <text x="33" y="36" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">25</text>
+                                        <text x="100" y="10" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">50</text>
+                                        <text x="167" y="36" font-size="8" fill="var(--text-light, #888)" text-anchor="middle" font-weight="500">75</text>
+                                        <text x="192" y="108" font-size="8" fill="var(--text-light, #888)" text-anchor="end" font-weight="500">100</text>
+                                    </svg>
+                                </div>
+
+                                <!-- Score display -->
+                                <div style="font-size: 2rem; font-weight: 800; color: ${gaugeColor}; line-height: 1; margin-bottom: 4px;">${healthScore}%</div>
+                                <div style="font-size: 0.9rem; font-weight: 600; color: ${gaugeColor};">${healthLabel}</div>
+
+                                ${totalProblems > 0 ? `
+                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06);">
+                                    <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                                        ${criticalCount > 0 ? `<span style="font-size: 0.8rem; color: #ef4444; font-weight: 600;"><i class="fas fa-exclamation-circle"></i> ${criticalCount} критични</span>` : ''}
+                                        ${riskyCount > 0 ? `<span style="font-size: 0.8rem; color: #f97316; font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> ${riskyCount} рискови</span>` : ''}
+                                        ${borderlineCount > 0 ? `<span style="font-size: 0.8rem; color: #fbbf24; font-weight: 600;"><i class="fas fa-info-circle"></i> ${borderlineCount} гранични</span>` : ''}
+                                    </div>
+                                </div>
+                                ` : ''}
                             </div>
-                            ` : ''}
-                        </div>
-                    `;
+                        `;
+                    }
                 }
                 
                 analysisContent.innerHTML = html;
