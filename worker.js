@@ -1222,6 +1222,7 @@ function detectGoalContradiction(data) {
 const RATE_LIMIT = {
   GENERATE_PLAN: { maxRequests: 3, windowSec: 60 },  // 3 plans/min per IP
   CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
+  FOOD_ANALYSIS: { maxRequests: 10, windowSec: 60 },  // 10 food analyses/min per IP
 };
 
 /**
@@ -6663,6 +6664,313 @@ async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = nul
 }
 
 /**
+ * Call AI model with vision (image) support for food analysis.
+ * Sends an image along with a text prompt to the configured AI provider.
+ * Supports OpenAI (gpt-4o, gpt-4o-mini), Claude (claude-3-5-sonnet), and Gemini (gemini-1.5-flash).
+ * @param {Object} env - Environment variables (API keys)
+ * @param {string} textPrompt - Text instructions for the AI
+ * @param {string} base64Image - Base64-encoded image data (without data URI prefix)
+ * @param {string} mimeType - Image MIME type (image/jpeg, image/png, image/webp)
+ * @param {number} maxTokens - Max tokens for the response
+ * @returns {Promise<string>} AI response text
+ */
+async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, maxTokens = 2000) {
+  const config = await getAdminConfig(env);
+  const preferredProvider = config.provider;
+
+  // Map of vision-capable models per provider
+  const visionModels = {
+    openai: 'gpt-4o-mini',
+    anthropic: 'claude-3-5-sonnet-20241022',
+    google: 'gemini-1.5-flash'
+  };
+
+  const startTime = Date.now();
+  let response;
+
+  try {
+    if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
+      response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, visionModels.openai, maxTokens);
+    } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
+      response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModels.anthropic, maxTokens);
+    } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModels.google, maxTokens);
+    } else if (env.OPENAI_API_KEY) {
+      response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, visionModels.openai, maxTokens);
+    } else if (env.ANTHROPIC_API_KEY) {
+      response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModels.anthropic, maxTokens);
+    } else if (env.GEMINI_API_KEY) {
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModels.google, maxTokens);
+    } else {
+      throw new Error('No AI provider configured for vision analysis.');
+    }
+  } catch (err) {
+    console.error('Vision AI call failed:', err);
+    throw err;
+  }
+
+  console.log(`Vision AI call completed in ${Date.now() - startTime}ms`);
+  return response;
+}
+
+/**
+ * OpenAI Vision API call (gpt-4o / gpt-4o-mini with image_url content)
+ */
+async function callOpenAIVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens) {
+  return await retryWithBackoff(async () => {
+    const requestBody = {
+      model: modelName,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: textPrompt },
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'low' } }
+        ]
+      }],
+      max_tokens: maxTokens,
+      temperature: 0.3
+    };
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI Vision API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.error) throw new Error(`OpenAI Vision error: ${data.error.message}`);
+    if (!data.choices?.[0]?.message?.content) throw new Error('OpenAI Vision returned invalid response');
+    return data.choices[0].message.content;
+  });
+}
+
+/**
+ * Claude Vision API call (claude-3-5-sonnet with inline image content)
+ */
+async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens) {
+  return await retryWithBackoff(async () => {
+    const requestBody = {
+      model: modelName,
+      max_tokens: maxTokens,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Image } },
+          { type: 'text', text: textPrompt }
+        ]
+      }]
+    };
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude Vision API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.error) throw new Error(`Claude Vision error: ${data.error.message}`);
+    if (!data.content?.[0]?.text) throw new Error('Claude Vision returned invalid response');
+    return data.content[0].text;
+  });
+}
+
+/**
+ * Gemini Vision API call (gemini-1.5-flash with inlineData)
+ */
+async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens) {
+  return await retryWithBackoff(async () => {
+    const requestBody = {
+      contents: [{
+        parts: [
+          { text: textPrompt },
+          { inlineData: { mimeType: mimeType, data: base64Image } }
+        ]
+      }],
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        temperature: 0.3,
+        responseMimeType: 'application/json'
+      }
+    };
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini Vision API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Gemini Vision returned invalid response');
+    }
+    return data.candidates[0].content.parts[0].text;
+  });
+}
+
+/**
+ * Handle food image analysis request.
+ * Accepts a base64 image, sends it to AI with vision capabilities,
+ * and returns nutritional analysis with diet suitability assessment.
+ */
+async function handleAnalyzeFoodImage(request, env) {
+  try {
+    const body = await request.json();
+    const { imageData, mimeType, userData, dietPlan, mealContext } = body;
+
+    // Validate required fields
+    if (!imageData) {
+      return jsonResponse({ error: 'Липсва изображение. Моля, направете снимка на храната.' }, 400);
+    }
+
+    // Validate mime type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const effectiveMimeType = allowedTypes.includes(mimeType) ? mimeType : 'image/jpeg';
+
+    // Extract base64 data (remove data URI prefix if present)
+    let base64Data = imageData;
+    if (imageData.startsWith('data:')) {
+      const commaIndex = imageData.indexOf(',');
+      if (commaIndex !== -1) {
+        base64Data = imageData.substring(commaIndex + 1);
+      }
+    }
+
+    // Validate image size (max 1MB of base64 data ≈ ~750KB image)
+    const estimatedSizeBytes = (base64Data.length * 3) / 4;
+    if (estimatedSizeBytes > 1048576) {
+      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение (до 1MB).' }, 400);
+    }
+
+    // Build diet context for the prompt
+    let dietContext = '';
+    if (userData) {
+      const parts = [];
+      if (userData.goal) parts.push(`Цел: ${userData.goal}`);
+      if (userData.weight) parts.push(`Тегло: ${userData.weight} кг`);
+      if (userData.height) parts.push(`Ръст: ${userData.height} см`);
+      if (userData.dietPreference) parts.push(`Диетичен предпочитание: ${userData.dietPreference}`);
+      if (userData.medicalConditions) parts.push(`Здравословни проблеми: ${userData.medicalConditions}`);
+      if (userData.dietDislike) parts.push(`Нежелани храни: ${userData.dietDislike}`);
+      dietContext = parts.join('. ');
+    }
+
+    let planContext = '';
+    if (dietPlan && dietPlan.summary) {
+      planContext = typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary);
+    }
+
+    const mealTime = mealContext || 'неуточнено';
+
+    // Build the analysis prompt
+    const analysisPrompt = `Ти си експерт диетолог с компютърно зрение. Анализирай това изображение на храна и върни САМО валиден JSON обект (без markdown, без \`\`\`).
+
+ЗАДАЧА: Анализирай храната на снимката и дай количествена и качествена оценка.
+
+${dietContext ? `КОНТЕКСТ НА КЛИЕНТА: ${dietContext}` : ''}
+${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
+МОМЕНТ НА ХРАНЕНЕ: ${mealTime}
+
+Върни ТОЧНО този JSON формат:
+{
+  "foods": [
+    {
+      "name": "Име на храната/продукта на български",
+      "estimatedWeight": "приблизителен грамаж (напр. 150г)",
+      "calories": число_калории,
+      "protein": число_грамове_протеин,
+      "carbs": число_грамове_въглехидрати,
+      "fats": число_грамове_мазнини,
+      "fiber": число_грамове_фибри
+    }
+  ],
+  "totalCalories": общо_калории_число,
+  "totalProtein": общо_протеин_число,
+  "totalCarbs": общо_въглехидрати_число,
+  "totalFats": общо_мазнини_число,
+  "totalFiber": общо_фибри_число,
+  "totalWeight": "общ_приблизителен_грамаж",
+  "dietSuitability": {
+    "score": число_от_1_до_10,
+    "verdict": "Подходяща" или "Частично подходяща" или "Неподходяща",
+    "explanation": "Кратко обяснение защо е или не е подходяща за текущата диета и момент"
+  },
+  "suggestions": "Препоръки за подобряване на хранението (кратко, 1-2 изречения)",
+  "confidence": "high" или "medium" или "low"
+}
+
+ВАЖНО:
+- Оценявай грамажа визуално спрямо размера на чинията/контейнера
+- Ако не можеш да разпознаеш храната, постави confidence: "low" и обясни
+- Всички числа да са числа (не текст)
+- Отговори САМО с JSON, без допълнителен текст`;
+
+    // Call AI with vision
+    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 1500);
+
+    // Parse the JSON response
+    let analysisResult;
+    try {
+      // Clean potential markdown wrapping
+      let cleanResponse = aiResponse.trim();
+      if (cleanResponse.startsWith('```json')) {
+        cleanResponse = cleanResponse.slice(7);
+      } else if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.slice(3);
+      }
+      if (cleanResponse.endsWith('```')) {
+        cleanResponse = cleanResponse.slice(0, -3);
+      }
+      cleanResponse = cleanResponse.trim();
+
+      analysisResult = JSON.parse(cleanResponse);
+    } catch (parseError) {
+      console.error('Failed to parse food analysis response:', parseError, 'Raw:', aiResponse.substring(0, 200));
+      return jsonResponse({
+        success: true,
+        analysis: null,
+        rawResponse: aiResponse,
+        parseError: true,
+        message: 'AI анализът е готов, но не успяхме да го структурираме. Вижте суровия отговор.'
+      });
+    }
+
+    return jsonResponse({
+      success: true,
+      analysis: analysisResult
+    });
+
+  } catch (error) {
+    console.error('Food image analysis error:', error);
+    return jsonResponse({
+      error: `Грешка при анализ на храната: ${error.message}`,
+      success: false
+    }, 500);
+  }
+}
+
+/**
  * Generate mock response for development
  * Note: Mock mode should only be used for testing. In production, always use real AI models.
  */
@@ -9982,6 +10290,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'CHAT');
         if (rlErr) return rlErr;
         return await handleChat(request, env);
+      } else if (url.pathname === '/api/analyze-food-image' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
+        if (rlErr) return rlErr;
+        return await handleAnalyzeFoodImage(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
         return await handleReportProblem(request, env);
       } else if (url.pathname === '/api/save-client-data' && request.method === 'POST') {

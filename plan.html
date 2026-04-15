@@ -2035,6 +2035,335 @@
         .skeleton-text.w80 { width: 80%; }
         .skeleton-text.w40 { width: 40%; }
 
+        /* --- FOOD ANALYSIS FAB BUTTON --- */
+        .fab-food-analysis {
+            position: fixed;
+            bottom: calc(154px + var(--safe-area-inset-bottom));
+            right: calc(24px + var(--safe-area-inset-right));
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4), 0 3px 10px rgba(59, 130, 246, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 22px;
+            border: none;
+            cursor: pointer;
+            z-index: 899;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .fab-food-analysis:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
+        }
+        .fab-food-analysis:active {
+            transform: scale(0.93);
+        }
+
+        /* --- FOOD ANALYSIS MODAL --- */
+        .food-analysis-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .food-analysis-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .food-analysis-modal {
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            background: var(--card-bg);
+            border-radius: 20px 20px 0 0;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            padding-bottom: calc(20px + var(--safe-area-inset-bottom));
+        }
+        .food-analysis-overlay.active .food-analysis-modal {
+            transform: translateY(0);
+        }
+        .food-analysis-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .food-analysis-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .food-analysis-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .food-analysis-body {
+            padding: 20px;
+        }
+
+        /* Camera/Upload area */
+        .food-capture-area {
+            border: 2px dashed rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--soft-red);
+            margin-bottom: 16px;
+        }
+        .food-capture-area:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+        }
+        .food-capture-area.has-image {
+            border-style: solid;
+            border-color: #3b82f6;
+            padding: 12px;
+        }
+        .food-capture-icon {
+            font-size: 2.5rem;
+            color: #3b82f6;
+            margin-bottom: 10px;
+        }
+        .food-capture-text {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .food-preview-img {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 12px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Analysis button */
+        .food-analyze-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            margin-bottom: 16px;
+        }
+        .food-analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .food-analyze-btn:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+        }
+
+        /* Results area */
+        .food-results {
+            display: none;
+        }
+        .food-results.visible {
+            display: block;
+            animation: fadeInUp 0.4s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .food-result-section {
+            background: var(--bg-color);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .food-result-section h4 {
+            margin: 0 0 12px;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .food-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-size: 0.88rem;
+        }
+        .food-item-row:last-child { border-bottom: none; }
+        .food-item-name {
+            font-weight: 500;
+            color: var(--text-dark);
+            flex: 1;
+        }
+        .food-item-weight {
+            color: var(--text-light);
+            font-size: 0.82rem;
+            margin-left: 8px;
+        }
+        .food-item-cals {
+            font-weight: 600;
+            color: var(--primary-red);
+            margin-left: 12px;
+            white-space: nowrap;
+        }
+
+        /* Macros bar */
+        .food-macros-bar {
+            display: flex;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .food-macro-segment {
+            transition: width 0.4s ease;
+        }
+        .food-macro-segment.protein { background: #3b82f6; }
+        .food-macro-segment.carbs { background: #f59e0b; }
+        .food-macro-segment.fats { background: #ef4444; }
+        .food-macro-segment.fiber { background: #10b981; }
+        .food-macros-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 0.82rem;
+        }
+        .food-macro-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-dark);
+        }
+        .food-macro-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .food-macro-dot.protein { background: #3b82f6; }
+        .food-macro-dot.carbs { background: #f59e0b; }
+        .food-macro-dot.fats { background: #ef4444; }
+        .food-macro-dot.fiber { background: #10b981; }
+
+        /* Suitability badge */
+        .food-suitability {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+        .food-suitability.suitable {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .food-suitability.partial {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .food-suitability.unsuitable {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .food-suitability-score {
+            font-size: 1.8rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .food-suitability.suitable .food-suitability-score { color: #10b981; }
+        .food-suitability.partial .food-suitability-score { color: #f59e0b; }
+        .food-suitability.unsuitable .food-suitability-score { color: #ef4444; }
+        .food-suitability-info {
+            flex: 1;
+        }
+        .food-suitability-verdict {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+        .food-suitability-explanation {
+            font-size: 0.82rem;
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+        .food-suggestions {
+            font-size: 0.85rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+            padding: 10px 14px;
+            background: rgba(59, 130, 246, 0.06);
+            border-radius: 10px;
+            border-left: 3px solid #3b82f6;
+        }
+
+        /* Spinner for loading */
+        .food-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: foodSpin 0.7s linear infinite;
+        }
+        @keyframes foodSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Confidence badge */
+        .food-confidence {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .food-confidence.high { background: rgba(16,185,129,0.15); color: #059669; }
+        .food-confidence.medium { background: rgba(245,158,11,0.15); color: #d97706; }
+        .food-confidence.low { background: rgba(239,68,68,0.15); color: #dc2626; }
+
         /* --- SCROLL TO TOP BUTTON --- */
         .scroll-top-btn {
             position: fixed;
@@ -2367,6 +2696,54 @@
     <button class="fab-chat" onclick="openChat()" aria-label="Отвори чат асистент">
         <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
     </button>
+
+    <!-- Food Analysis FAB Button -->
+    <button class="fab-food-analysis" onclick="openFoodAnalysis()" aria-label="Анализ на храна чрез снимка">
+        <i class="fas fa-camera"></i>
+    </button>
+
+    <!-- Hidden file input for camera/gallery -->
+    <input type="file" id="foodImageInput" accept="image/jpeg,image/png,image/webp" capture="environment" style="display:none">
+
+    <!-- Food Analysis Modal -->
+    <div class="food-analysis-overlay" id="foodAnalysisOverlay">
+        <div class="food-analysis-modal">
+            <div class="food-analysis-header">
+                <h3><i class="fas fa-utensils"></i> Анализ на Храна</h3>
+                <button class="food-analysis-close" onclick="closeFoodAnalysis()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="food-analysis-body">
+                <!-- Capture Area -->
+                <div class="food-capture-area" id="foodCaptureArea" onclick="triggerFoodCapture()">
+                    <div id="foodCaptureContent">
+                        <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
+                        <div class="food-capture-text">
+                            Натиснете за да направите снимка<br>или изберете от галерията
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meal Context Selector -->
+                <select id="foodMealContext" style="width:100%;padding:10px 14px;border:1px solid var(--text-light);border-radius:12px;font-size:0.9rem;background:var(--card-bg);color:var(--text-dark);margin-bottom:12px;outline:none;">
+                    <option value="Закуска">🌅 Закуска</option>
+                    <option value="Обяд" selected>🍽️ Обяд</option>
+                    <option value="Вечеря">🌙 Вечеря</option>
+                    <option value="Междинно хранене">🥤 Междинно хранене</option>
+                    <option value="Десерт">🍰 Десерт</option>
+                </select>
+
+                <!-- Analyze Button -->
+                <button class="food-analyze-btn" id="foodAnalyzeBtn" onclick="analyzeFoodImage()" disabled>
+                    <i class="fas fa-search"></i> Анализирай храната
+                </button>
+
+                <!-- Results Area -->
+                <div class="food-results" id="foodResults">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- INFO MODAL -->
     <div class="modal-overlay" id="infoModal">
@@ -5336,6 +5713,381 @@
         `;
         document.head.appendChild(style);
 
+
+        // ═══════════════════════════════════════════════════════════
+        // FOOD IMAGE ANALYSIS FEATURE
+        // ═══════════════════════════════════════════════════════════
+        
+        let foodAnalysisImageData = null;  // Base64 image data
+        let foodAnalysisImageMime = null;  // MIME type
+        let foodAnalysisInProgress = false;
+
+        function openFoodAnalysis() {
+            const overlay = document.getElementById('foodAnalysisOverlay');
+            if (overlay) {
+                overlay.classList.add('active');
+                // Reset state
+                resetFoodAnalysis();
+            }
+        }
+
+        function closeFoodAnalysis() {
+            const overlay = document.getElementById('foodAnalysisOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+            }
+        }
+
+        function resetFoodAnalysis() {
+            foodAnalysisImageData = null;
+            foodAnalysisImageMime = null;
+            foodAnalysisInProgress = false;
+
+            const captureArea = document.getElementById('foodCaptureArea');
+            if (captureArea) {
+                captureArea.classList.remove('has-image');
+            }
+            const captureContent = document.getElementById('foodCaptureContent');
+            if (captureContent) {
+                captureContent.innerHTML = `
+                    <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
+                    <div class="food-capture-text">
+                        Натиснете за да направите снимка<br>или изберете от галерията
+                    </div>
+                `;
+            }
+            const analyzeBtn = document.getElementById('foodAnalyzeBtn');
+            if (analyzeBtn) {
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<i class="fas fa-search"></i> Анализирай храната';
+            }
+            const results = document.getElementById('foodResults');
+            if (results) {
+                results.classList.remove('visible');
+                results.innerHTML = '';
+            }
+        }
+
+        function triggerFoodCapture() {
+            if (foodAnalysisInProgress) return;
+            const input = document.getElementById('foodImageInput');
+            if (input) {
+                input.value = '';
+                input.click();
+            }
+        }
+
+        // Handle file selection
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('foodImageInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFoodImageSelected);
+            }
+
+            // Close modal on overlay click
+            const overlay = document.getElementById('foodAnalysisOverlay');
+            if (overlay) {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) {
+                        closeFoodAnalysis();
+                    }
+                });
+            }
+
+            // Auto-select meal context based on time of day
+            autoSelectMealContext();
+        });
+
+        function autoSelectMealContext() {
+            const hour = new Date().getHours();
+            const select = document.getElementById('foodMealContext');
+            if (!select) return;
+            
+            if (hour >= 5 && hour < 10) {
+                select.value = 'Закуска';
+            } else if (hour >= 10 && hour < 14) {
+                select.value = 'Обяд';
+            } else if (hour >= 14 && hour < 17) {
+                select.value = 'Междинно хранене';
+            } else if (hour >= 17 && hour < 22) {
+                select.value = 'Вечеря';
+            } else {
+                select.value = 'Междинно хранене';
+            }
+        }
+
+        function handleFoodImageSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
+                alert('Моля, изберете JPEG, PNG или WebP изображение.');
+                return;
+            }
+
+            // Validate file size (max 5MB original, will compress)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Изображението е твърде голямо. Максимален размер: 5MB.');
+                return;
+            }
+
+            foodAnalysisImageMime = 'image/jpeg'; // We'll convert to JPEG for compression
+
+            // Compress and preview image
+            compressImage(file, function(compressedBase64) {
+                foodAnalysisImageData = compressedBase64;
+
+                // Show preview
+                const captureArea = document.getElementById('foodCaptureArea');
+                const captureContent = document.getElementById('foodCaptureContent');
+                if (captureArea && captureContent) {
+                    captureArea.classList.add('has-image');
+                    captureContent.innerHTML = `
+                        <img src="${compressedBase64}" class="food-preview-img" alt="Снимка на храна">
+                        <div style="margin-top:8px;font-size:0.8rem;color:var(--text-light);">
+                            <i class="fas fa-redo"></i> Натиснете за нова снимка
+                        </div>
+                    `;
+                }
+
+                // Enable analyze button
+                const analyzeBtn = document.getElementById('foodAnalyzeBtn');
+                if (analyzeBtn) {
+                    analyzeBtn.disabled = false;
+                }
+            });
+        }
+
+        /**
+         * Compress image to JPEG with max 800px dimension and quality 0.7
+         * This keeps base64 size well under 200KB for fast API calls
+         */
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_DIM = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > MAX_DIM || height > MAX_DIM) {
+                        if (width > height) {
+                            height = Math.round(height * MAX_DIM / width);
+                            width = MAX_DIM;
+                        } else {
+                            width = Math.round(width * MAX_DIM / height);
+                            height = MAX_DIM;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressed = canvas.toDataURL('image/jpeg', 0.7);
+                    callback(compressed);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function analyzeFoodImage() {
+            if (!foodAnalysisImageData || foodAnalysisInProgress) return;
+
+            foodAnalysisInProgress = true;
+            const analyzeBtn = document.getElementById('foodAnalyzeBtn');
+            const resultsDiv = document.getElementById('foodResults');
+
+            // Show loading state
+            if (analyzeBtn) {
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<div class="food-spinner"></div> Анализиране...';
+            }
+            if (resultsDiv) {
+                resultsDiv.classList.remove('visible');
+                resultsDiv.innerHTML = '';
+            }
+
+            try {
+                const mealContext = document.getElementById('foodMealContext')?.value || 'Обяд';
+
+                // Prepare compact user data and plan for context
+                const compactUserData = userData ? {
+                    name: userData.name,
+                    goal: userData.goal,
+                    weight: userData.weight,
+                    height: userData.height,
+                    gender: userData.gender,
+                    dietPreference: userData.dietPreference,
+                    medicalConditions: userData.medicalConditions,
+                    dietDislike: userData.dietDislike
+                } : null;
+
+                const compactPlan = dietPlan ? {
+                    summary: dietPlan.summary
+                } : null;
+
+                const response = await fetch(WORKER_URL + '/api/analyze-food-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageData: foodAnalysisImageData,
+                        mimeType: foodAnalysisImageMime,
+                        userData: compactUserData,
+                        dietPlan: compactPlan,
+                        mealContext: mealContext
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success && result.analysis) {
+                    renderFoodAnalysisResults(result.analysis);
+                } else if (result.parseError && result.rawResponse) {
+                    // Fallback: show raw AI response
+                    if (resultsDiv) {
+                        resultsDiv.innerHTML = `
+                            <div class="food-result-section">
+                                <h4><i class="fas fa-robot"></i> AI Анализ</h4>
+                                <p style="font-size:0.88rem;line-height:1.6;white-space:pre-line;">${escapeHtmlWithBreaks(result.rawResponse)}</p>
+                            </div>
+                        `;
+                        resultsDiv.classList.add('visible');
+                    }
+                } else {
+                    throw new Error(result.error || 'Неуспешен анализ');
+                }
+            } catch (error) {
+                console.error('Food analysis error:', error);
+                if (resultsDiv) {
+                    resultsDiv.innerHTML = `
+                        <div class="food-result-section" style="border-left:3px solid #ef4444;">
+                            <h4 style="color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Грешка</h4>
+                            <p style="font-size:0.88rem;color:var(--text-light);">${escapeHtmlWithBreaks(error.message)}</p>
+                        </div>
+                    `;
+                    resultsDiv.classList.add('visible');
+                }
+            } finally {
+                foodAnalysisInProgress = false;
+                if (analyzeBtn) {
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = '<i class="fas fa-search"></i> Анализирай отново';
+                }
+            }
+        }
+
+        function renderFoodAnalysisResults(analysis) {
+            const resultsDiv = document.getElementById('foodResults');
+            if (!resultsDiv) return;
+
+            let html = '';
+
+            // 1. Detected foods with weights and calories
+            if (analysis.foods && analysis.foods.length > 0) {
+                html += `<div class="food-result-section">
+                    <h4><i class="fas fa-drumstick-bite"></i> Разпознати храни 
+                        <span class="food-confidence ${analysis.confidence || 'medium'}">${
+                            analysis.confidence === 'high' ? '✓ Висока точност' :
+                            analysis.confidence === 'low' ? '⚠ Ниска точност' : '~ Средна точност'
+                        }</span>
+                    </h4>`;
+                
+                analysis.foods.forEach(function(food) {
+                    html += `<div class="food-item-row">
+                        <span class="food-item-name">${escapeHtmlWithBreaks(food.name)}</span>
+                        <span class="food-item-weight">${escapeHtmlWithBreaks(food.estimatedWeight || '')}</span>
+                        <span class="food-item-cals">${Math.round(food.calories || 0)} kcal</span>
+                    </div>`;
+                });
+
+                // Totals row
+                html += `<div class="food-item-row" style="font-weight:700;border-top:2px solid rgba(0,0,0,0.1);margin-top:4px;padding-top:10px;">
+                    <span class="food-item-name">Общо</span>
+                    <span class="food-item-weight">${escapeHtmlWithBreaks(analysis.totalWeight || '')}</span>
+                    <span class="food-item-cals">${Math.round(analysis.totalCalories || 0)} kcal</span>
+                </div>`;
+                html += '</div>';
+            }
+
+            // 2. Macronutrient breakdown
+            const totalP = analysis.totalProtein || 0;
+            const totalC = analysis.totalCarbs || 0;
+            const totalF = analysis.totalFats || 0;
+            const totalFi = analysis.totalFiber || 0;
+            const totalCals = (totalP * 4) + (totalC * 4) + (totalF * 9) + (totalFi * 2);
+
+            if (totalCals > 0) {
+                const pPct = Math.round((totalP * 4 / totalCals) * 100);
+                const cPct = Math.round((totalC * 4 / totalCals) * 100);
+                const fPct = Math.round((totalF * 9 / totalCals) * 100);
+                const fiPct = Math.max(0, 100 - pPct - cPct - fPct);
+
+                html += `<div class="food-result-section">
+                    <h4><i class="fas fa-chart-pie"></i> Макронутриенти</h4>
+                    <div class="food-macros-bar">
+                        <div class="food-macro-segment protein" style="width:${pPct}%"></div>
+                        <div class="food-macro-segment carbs" style="width:${cPct}%"></div>
+                        <div class="food-macro-segment fats" style="width:${fPct}%"></div>
+                        <div class="food-macro-segment fiber" style="width:${fiPct}%"></div>
+                    </div>
+                    <div class="food-macros-legend">
+                        <span class="food-macro-label"><span class="food-macro-dot protein"></span> Протеин: ${Math.round(totalP)}г (${pPct}%)</span>
+                        <span class="food-macro-label"><span class="food-macro-dot carbs"></span> Въглех.: ${Math.round(totalC)}г (${cPct}%)</span>
+                        <span class="food-macro-label"><span class="food-macro-dot fats"></span> Мазнини: ${Math.round(totalF)}г (${fPct}%)</span>
+                        <span class="food-macro-label"><span class="food-macro-dot fiber"></span> Фибри: ${Math.round(totalFi)}г</span>
+                    </div>
+                </div>`;
+            }
+
+            // 3. Diet suitability assessment
+            if (analysis.dietSuitability) {
+                const suit = analysis.dietSuitability;
+                const score = suit.score || 5;
+                const suitClass = score >= 7 ? 'suitable' : score >= 4 ? 'partial' : 'unsuitable';
+
+                html += `<div class="food-result-section">
+                    <h4><i class="fas fa-clipboard-check"></i> Оценка за диетата</h4>
+                    <div class="food-suitability ${suitClass}">
+                        <div class="food-suitability-score">${score}/10</div>
+                        <div class="food-suitability-info">
+                            <div class="food-suitability-verdict">${escapeHtmlWithBreaks(suit.verdict || '')}</div>
+                            <div class="food-suitability-explanation">${escapeHtmlWithBreaks(suit.explanation || '')}</div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            // 4. Suggestions
+            if (analysis.suggestions) {
+                html += `<div class="food-result-section">
+                    <h4><i class="fas fa-lightbulb"></i> Препоръки</h4>
+                    <div class="food-suggestions">${escapeHtmlWithBreaks(analysis.suggestions)}</div>
+                </div>`;
+            }
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('visible');
+
+            // Scroll to results
+            setTimeout(function() {
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // END FOOD IMAGE ANALYSIS FEATURE
+        // ═══════════════════════════════════════════════════════════
 
 
         // --- PWA Install Banner Functionality ---
