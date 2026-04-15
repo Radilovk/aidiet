@@ -2293,13 +2293,13 @@
     <!-- Navigation: Days of the week -->
     <nav class="days-nav" id="daysContainer" role="tablist" aria-label="Избор на ден">
         <!-- Will be populated by JS or Static -->
-        <button class="day-chip active" onclick="selectDay(1)" role="tab" aria-selected="true" tabindex="0">Понеделник</button>
-        <button class="day-chip" onclick="selectDay(2)" role="tab" aria-selected="false" tabindex="-1">Вторник</button>
-        <button class="day-chip" onclick="selectDay(3)" role="tab" aria-selected="false" tabindex="-1">Сряда</button>
-        <button class="day-chip" onclick="selectDay(4)" role="tab" aria-selected="false" tabindex="-1">Четвъртък</button>
-        <button class="day-chip" onclick="selectDay(5)" role="tab" aria-selected="false" tabindex="-1">Петък</button>
-        <button class="day-chip" onclick="selectDay(6)" role="tab" aria-selected="false" tabindex="-1">Събота</button>
-        <button class="day-chip" onclick="selectDay(7)" role="tab" aria-selected="false" tabindex="-1">Неделя</button>
+        <button class="day-chip active" onclick="selectDay(1)" role="tab" aria-selected="true" tabindex="0" aria-label="Понеделник">Пон.</button>
+        <button class="day-chip" onclick="selectDay(2)" role="tab" aria-selected="false" tabindex="-1" aria-label="Вторник">Вт.</button>
+        <button class="day-chip" onclick="selectDay(3)" role="tab" aria-selected="false" tabindex="-1" aria-label="Сряда">Ср.</button>
+        <button class="day-chip" onclick="selectDay(4)" role="tab" aria-selected="false" tabindex="-1" aria-label="Четвъртък">Чет.</button>
+        <button class="day-chip" onclick="selectDay(5)" role="tab" aria-selected="false" tabindex="-1" aria-label="Петък">Пет.</button>
+        <button class="day-chip" onclick="selectDay(6)" role="tab" aria-selected="false" tabindex="-1" aria-label="Събота">Съб.</button>
+        <button class="day-chip" onclick="selectDay(7)" role="tab" aria-selected="false" tabindex="-1" aria-label="Неделя">Нед.</button>
     </nav>
 
     <!-- Greeting Banner -->
@@ -3602,7 +3602,9 @@
                 }
 
                 // Render initial data – auto-select today's day (Mon=1 … Sun=7)
-                selectDay(getTodayPlanDay());
+                const todayPlanDay = getTodayPlanDay();
+                updateDayChipLabels(todayPlanDay);
+                selectDay(todayPlanDay);
                 
                 // REQUIREMENT 3: Display plan justification
                 displayPlanJustification();
@@ -4067,6 +4069,18 @@
 
         function goToProfile() {
             window.location.href = 'profile.html';
+        }
+
+        function updateDayChipLabels(todayDayNum) {
+            const fullDayNames = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
+            const shortDayNames = ['Пон.', 'Вт.', 'Ср.', 'Чет.', 'Пет.', 'Съб.', 'Нед.'];
+            const chips = document.querySelectorAll('.day-chip');
+
+            chips.forEach((chip, index) => {
+                const isToday = index + 1 === todayDayNum;
+                chip.textContent = isToday ? fullDayNames[index] : shortDayNames[index];
+                chip.setAttribute('aria-label', fullDayNames[index]);
+            });
         }
 
         function selectDay(dayNum) {
