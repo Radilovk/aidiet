@@ -151,29 +151,6 @@
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
         }
 
-        .home-btn {
-            background: linear-gradient(135deg, var(--soft-red) 0%, rgba(16, 185, 129, 0.06) 100%);
-            border: none;
-            font-size: 1.2rem;
-            color: var(--text-dark);
-            cursor: pointer;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 10px;
-            border-radius: 12px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
-
-        .home-btn:hover {
-            background: var(--primary-red);
-            color: white;
-            transform: scale(1.08);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-        }
-
         .theme-toggle-btn {
             background: linear-gradient(135deg, var(--secondary-accent) 0%, #2563eb 100%);
             border: none;
@@ -1821,501 +1798,7 @@
             }
         }
 
-        /* ===  MACROS VISUALIZATION CONTAINER === */
-        /* --- Macros Visualization Container - Premium Design (NO animation) --- */
-        .macros-viz-container {
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
-            border-radius: 24px;
-            padding: 28px 22px;
-            margin-bottom: 28px;
-            box-shadow: 
-                0 8px 32px rgba(16, 185, 129, 0.1),
-                0 2px 8px rgba(0, 0, 0, 0.04),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(16, 185, 129, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            /* Animation removed as per requirements */
-            position: relative;
-            overflow: hidden;
-        }
-
-        .macros-viz-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-red), var(--primary-accent), var(--secondary-accent), var(--primary-red));
-            /* Static gradient - no shimmer animation */
-        }
-
-        [data-theme="dark"] .macros-viz-container {
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border-color: rgba(52, 211, 153, 0.12);
-            box-shadow: 
-                0 8px 32px rgba(0, 0, 0, 0.25),
-                0 2px 8px rgba(0, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        }
-
-        .macros-viz-header {
-            text-align: center;
-            margin-bottom: 26px;
-        }
-
-        .macros-viz-title {
-            font-size: 1.35rem;
-            font-weight: 800;
-            color: var(--text-dark);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            line-height: 1.3;
-            letter-spacing: -0.3px;
-        }
-
-        .macros-viz-title i {
-            color: var(--primary-red);
-            font-size: 1.4rem;
-            flex-shrink: 0;
-        }
-
-        .macros-viz-subtitle {
-            font-size: 0.9rem;
-            color: var(--text-light);
-            font-weight: 500;
-            line-height: 1.6;
-            max-width: 85%;
-            margin: 0 auto;
-        }
-
-        .calories-display {
-            text-align: center;
-            margin-bottom: 28px;
-            padding: 22px 18px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
-            border-radius: 18px;
-            color: white;
-            box-shadow: 
-                0 10px 30px rgba(16, 185, 129, 0.35),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15);
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .calories-display::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
-            pointer-events: none;
-        }
-
-        .calories-display:hover {
-            transform: translateY(-4px);
-            box-shadow: 
-                0 16px 40px rgba(16, 185, 129, 0.45),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
-        }
-
-        .calories-label {
-            font-size: 0.85rem;
-            font-weight: 700;
-            opacity: 0.9;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        .calories-value {
-            font-size: 2.8rem;
-            font-weight: 800;
-            line-height: 1;
-            margin-bottom: 6px;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .calories-unit {
-            font-size: 0.95rem;
-            font-weight: 600;
-            opacity: 0.85;
-        }
-
-        .macros-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 14px;
-            margin-bottom: 24px;
-        }
-
-        .macro-card {
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
-            border-radius: 16px;
-            padding: 18px 12px;
-            text-align: center;
-            box-shadow: 
-                0 4px 16px rgba(0, 0, 0, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(0, 0, 0, 0.04);
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        [data-theme="dark"] .macro-card {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
-            box-shadow: 
-                0 4px 16px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .macro-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--macro-color);
-            transform: scaleX(0);
-            transition: transform 0.35s ease;
-        }
-
-        .macro-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 
-                0 12px 28px rgba(0, 0, 0, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            border-color: var(--macro-color);
-        }
-        
-        [data-theme="dark"] .macro-card:hover {
-            box-shadow: 
-                0 12px 28px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        }
-
-        .macro-card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .macro-card.protein {
-            --macro-color: #6366f1;
-        }
-
-        .macro-card.carbs {
-            --macro-color: #3b82f6;
-        }
-
-        .macro-card.fats {
-            --macro-color: #f59e0b;
-        }
-
-        .macro-icon {
-            font-size: 2rem;
-            margin-bottom: 12px;
-            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.12));
-            transition: transform 0.35s ease;
-        }
-        
-        .macro-card:hover .macro-icon {
-            transform: scale(1.1);
-        }
-
-        .macro-card.protein .macro-icon {
-            color: #6366f1;
-        }
-
-        .macro-card.carbs .macro-icon {
-            color: #3b82f6;
-        }
-
-        .macro-card.fats .macro-icon {
-            color: #f59e0b;
-        }
-
-        .macro-label {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--text-light);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        /* Main page macro-value styling (different from modal) */
-        .macro-card .macro-value {
-            font-size: 1.9rem;
-            font-weight: 800;
-            color: var(--text-dark);
-            line-height: 1;
-            margin-bottom: 4px;
-        }
-
-        .macro-unit {
-            font-size: 0.72rem;
-            color: var(--text-light);
-            font-weight: 600;
-        }
-
-        .macro-percentage {
-            font-size: 0.8rem;
-            color: var(--macro-color);
-            font-weight: 700;
-            margin-top: 10px;
-            padding: 5px 12px;
-            background: rgba(var(--macro-color-rgb), 0.1);
-            border-radius: 10px;
-            display: inline-block;
-        }
-
-        .macro-card.protein .macro-percentage {
-            background: rgba(99, 102, 241, 0.1);
-            color: #6366f1;
-        }
-
-        .macro-card.carbs .macro-percentage {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-        }
-
-        .macro-card.fats .macro-percentage {
-            background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
-        }
-
-        /* Main page macro bar container */
-        .macros-viz-container .macro-bar-container {
-            width: 100%;
-            height: 20px;
-            background: var(--card-bg);
-            border-radius: 10px;
-            overflow: hidden;
-            display: flex;
-            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
-            margin-bottom: 16px;
-            margin-top: 10px;
-        }
-
-        .macro-bar-label {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 16px;
-            text-align: center;
-            letter-spacing: 0.5px;
-            display: block;
-        }
-
-        .macro-bar {
-            height: 20px;
-            background: var(--card-bg);
-            border-radius: 10px;
-            overflow: hidden;
-            display: flex;
-            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
-            width: 80%;
-            margin: 0 auto;
-        }
-
-        .macro-bar-segment {
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.68rem;
-            font-weight: 700;
-            color: white;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            min-width: 40px;
-        }
-
-        .macro-bar-segment::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-            will-change: transform;
-        }
-
-        @keyframes shimmer {
-            to {
-                left: 100%;
-            }
-        }
-
-        .macro-bar-segment.protein {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        .macro-bar-segment.carbs {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-        }
-
-        .macro-bar-segment.fats {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-
-        .macro-legend {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-        }
-
-        .macro-legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-            color: var(--text-dark);
-            font-weight: 600;
-        }
-
-        .macro-legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .macros-viz-container {
-                padding: 18px 14px 20px;
-                margin-bottom: 20px;
-            }
-
-            .macros-viz-title {
-                font-size: 1.15rem;
-            }
-            
-            .macros-viz-subtitle {
-                font-size: 0.85rem;
-                line-height: 1.4;
-                padding: 0 8px;
-            }
-
-            .calories-display {
-                padding: 16px;
-                margin-bottom: 24px;
-            }
-
-            .calories-value {
-                font-size: 2.2rem;
-            }
-            
-            .calories-label {
-                font-size: 0.8rem;
-            }
-            
-            .calories-unit {
-                font-size: 0.9rem;
-            }
-
-            .macros-grid {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 10px;
-                margin-bottom: 20px;
-            }
-            
-            .macro-card {
-                padding: 14px 6px;
-                border-radius: 12px;
-            }
-            
-            .macro-icon {
-                font-size: 1.6rem;
-                margin-bottom: 8px;
-            }
-            
-            .macro-label {
-                font-size: 0.68rem;
-                margin-bottom: 6px;
-                letter-spacing: 0.3px;
-            }
-
-            .macro-value {
-                font-size: 1.6rem;
-                margin-bottom: 3px;
-            }
-            
-            .macro-unit {
-                font-size: 0.68rem;
-            }
-            
-            .macro-percentage {
-                font-size: 0.8rem;
-                padding: 3px 8px;
-                margin-top: 6px;
-            }
-
-            .macro-bar-container {
-                padding: 14px 12px;
-                margin-top: 20px;
-                border-radius: 12px;
-            }
-
-            .macro-bar-label {
-                font-size: 0.8rem;
-                margin-bottom: 16px;
-                letter-spacing: 0.3px;
-                display: block;
-            }
-
-            .macro-bar {
-                height: 36px;
-                border-radius: 18px;
-                width: 80%;
-                margin: 0 auto;
-            }
-
-            .macro-bar-segment {
-                font-size: 0.72rem;
-                min-width: 45px;
-            }
-
-            .macro-legend {
-                gap: 14px;
-                margin-top: 14px;
-                justify-content: space-around;
-            }
-            
-            .macro-legend-item {
-                font-size: 0.78rem;
-                gap: 6px;
-            }
-            
-            .macro-legend-color {
-                width: 14px;
-                height: 14px;
-            }
-        }
+        /* Macros visualization moved to guidelines.html */
 
         .ios-prompt {
             position: fixed;
@@ -2492,8 +1975,7 @@
 
             /* Remove backgrounds and shadows for ink economy */
             body, html { background: #fff !important; color: #000 !important; }
-            .meal-card, .acc-item, .macro-bar-container,
-            .macros-viz-container { box-shadow: none !important; border: 1px solid #ddd !important; }
+            .meal-card, .acc-item, .macro-bar-container { box-shadow: none !important; border: 1px solid #ddd !important; }
 
             /* Show all accordion content without interaction */
             .acc-content { max-height: none !important; overflow: visible !important; display: block !important; }
@@ -2623,17 +2105,7 @@
         .bottom-nav-item i { font-size: 20px; transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .bottom-nav-item.active { color: var(--primary-red); }
         .bottom-nav-item.active i { transform: scale(1.15); }
-        .bottom-nav-item.active::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--primary-red);
-        }
+        /* Active dot indicator removed */
         .bottom-nav-item:active { transform: scale(0.92); }
 
         /* --- AMBIENT MESH GRADIENT --- */
@@ -2809,7 +2281,6 @@
     <!-- Header -->
     <header role="banner" aria-label="Главна навигация">
         <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
-        <a href="index.html?stay=1" class="home-btn" title="Начало" aria-label="Начална страница"><i class="fas fa-home" aria-hidden="true"></i></a>
         <h1>Моят Хранителен План</h1>
         <div style="display: flex; align-items: center; gap: 10px;">
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Превключи тема">
@@ -4222,8 +3693,7 @@
                 // REQUIREMENT 3: Display plan justification
                 displayPlanJustification();
                 
-                // Display macros visualization
-                displayMacrosVisualization();
+                // Macros visualization moved to guidelines.html
                 
                 // Initialize client-side notification scheduler
                 scheduleNotifications();
@@ -4301,85 +3771,6 @@
                 console.error('Error displaying plan justification:', error);
             }
         }
-
-        // Display macros visualization
-        function displayMacrosVisualization() {
-            try {
-                if (!dietPlan || !dietPlan.summary) {
-                    return;
-                }
-                
-                const container = document.getElementById('macrosVizContainer');
-                if (!container) return;
-                
-                const summary = dietPlan.summary;
-                
-                // Extract calorie value with support for decimals
-                let dailyCalories = 2000; // default
-                if (summary.dailyCalories) {
-                    const match = String(summary.dailyCalories).match(/(\d+(?:\.\d+)?)/);
-                    if (match) {
-                        dailyCalories = Math.round(parseFloat(match[1]));
-                    }
-                }
-                
-                // Extract macro values with support for decimals
-                let protein = 0, carbs = 0, fats = 0;
-                
-                if (summary.macros) {
-                    // Try to parse protein
-                    if (summary.macros.protein) {
-                        const pMatch = String(summary.macros.protein).match(/(\d+(?:\.\d+)?)/);
-                        if (pMatch) protein = Math.round(parseFloat(pMatch[1]));
-                    }
-                    
-                    // Try to parse carbs
-                    if (summary.macros.carbs) {
-                        const cMatch = String(summary.macros.carbs).match(/(\d+(?:\.\d+)?)/);
-                        if (cMatch) carbs = Math.round(parseFloat(cMatch[1]));
-                    }
-                    
-                    // Try to parse fats
-                    if (summary.macros.fats) {
-                        const fMatch = String(summary.macros.fats).match(/(\d+(?:\.\d+)?)/);
-                        if (fMatch) fats = Math.round(parseFloat(fMatch[1]));
-                    }
-                }
-                
-                // If no macros found, calculate from calories
-                if (protein === 0 && carbs === 0 && fats === 0) {
-                    // Use typical distribution: 25% protein, 50% carbs, 25% fats
-                    protein = Math.round((dailyCalories * 0.25) / 4); // 4 cal per gram
-                    carbs = Math.round((dailyCalories * 0.50) / 4);
-                    fats = Math.round((dailyCalories * 0.25) / 9); // 9 cal per gram
-                }
-                
-                // Calculate total calories from macros
-                const totalMacroCalories = (protein * 4) + (carbs * 4) + (fats * 9);
-                
-                // Calculate percentages with division by zero protection
-                const proteinPercent = totalMacroCalories > 0 ? Math.round((protein * 4 / totalMacroCalories) * 100) : 0;
-                const carbsPercent = totalMacroCalories > 0 ? Math.round((carbs * 4 / totalMacroCalories) * 100) : 0;
-                const fatsPercent = totalMacroCalories > 0 ? Math.round((fats * 9 / totalMacroCalories) * 100) : 0;
-                
-                // Update display
-                document.getElementById('targetCalories').textContent = dailyCalories;
-                document.getElementById('targetProtein').textContent = protein;
-                document.getElementById('targetCarbs').textContent = carbs;
-                document.getElementById('targetFats').textContent = fats;
-                
-                document.getElementById('proteinPercentage').textContent = `${proteinPercent}%`;
-                document.getElementById('carbsPercentage').textContent = `${carbsPercent}%`;
-                document.getElementById('fatsPercentage').textContent = `${fatsPercent}%`;
-                
-                // Show container
-                container.style.display = 'block';
-                
-            } catch (error) {
-                console.error('Error displaying macros visualization:', error);
-            }
-        }
-
 
         // Show error message
         function showError(message, redirect = false) {
@@ -6613,7 +6004,7 @@
     </script>
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
-        <a href="index.html" class="bottom-nav-item">
+        <a href="index.html?stay=1" class="bottom-nav-item">
             <i class="fas fa-home"></i>
             <span>Начало</span>
         </a>
@@ -6621,9 +6012,9 @@
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="protocol-landing.html" class="bottom-nav-item">
-            <i class="fas fa-clipboard-list"></i>
-            <span>Протоколи</span>
+        <a href="guidelines.html" class="bottom-nav-item">
+            <i class="fas fa-compass"></i>
+            <span>Насоки</span>
         </a>
         <a href="profile.html" class="bottom-nav-item">
             <i class="fas fa-user"></i>
