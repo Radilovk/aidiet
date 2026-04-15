@@ -4,7 +4,7 @@ const BASE_PATH = '';
 
 // GLOBAL NOTIFICATION KILL SWITCH - set to true to disable ALL notifications
 const NOTIFICATIONS_DISABLED = true;
-const CACHE_NAME = 'nutriplan-v3';
+const CACHE_NAME = 'nutriplan-v4';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -15,6 +15,8 @@ const STATIC_CACHE = [
   `${BASE_PATH}/questionnaire2.html`,
   `${BASE_PATH}/plan.html`,
   `${BASE_PATH}/profile.html`,
+  `${BASE_PATH}/guidelines.html`,
+  `${BASE_PATH}/analysis.html`,
   `${BASE_PATH}/admin.html`,
   `${BASE_PATH}/design-system.css`,
   `${BASE_PATH}/icon-192x192.png`,
@@ -75,43 +77,47 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network first for HTML pages (to get latest content)
+  // Stale-while-revalidate for HTML pages: serve from cache immediately,
+  // update cache in the background so the next visit gets fresh content.
   const acceptHeader = request.headers.get('accept');
   if (acceptHeader && acceptHeader.includes('text/html')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Handle 404 responses for navigation requests - redirect to index.html
-          if (response.status === 404 && request.mode === 'navigate') {
-            return caches.match(`${BASE_PATH}/index.html`).then(cachedIndex => {
-              if (cachedIndex) {
-                return cachedIndex;
+      caches.open(CACHE_NAME).then((cache) => {
+        return cache.match(request).then((cachedResponse) => {
+          // Always kick off a background network request to refresh the cache
+          const networkFetch = fetch(request)
+            .then((response) => {
+              if (response.status === 404 && request.mode === 'navigate') {
+                return caches.match(`${BASE_PATH}/index.html`).then(cachedIndex => {
+                  const fallback = cachedIndex || fetch(`${BASE_PATH}/index.html`);
+                  return Promise.resolve(fallback).then(r => {
+                    cache.put(request, r.clone());
+                    return r;
+                  });
+                });
               }
-              return fetch(`${BASE_PATH}/index.html`);
+              if (response && response.status === 200) {
+                cache.put(request, response.clone());
+              }
+              return response;
+            })
+            .catch(() => {
+              // Network failed – fall back to cached index.html for navigation
+              if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === BASE_PATH || url.pathname === BASE_PATH + '/') {
+                return caches.match(`${BASE_PATH}/index.html`);
+              }
+              return new Response('Not found', { status: 404 });
             });
+
+          if (cachedResponse) {
+            // Serve stale cache immediately; keep SW alive until cache is updated
+            event.waitUntil(networkFetch);
+            return cachedResponse;
           }
-          
-          // Clone response and update cache
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        })
-        .catch(() => {
-          // If network fails, try cache
-          return caches.match(request).then(cachedResponse => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Fallback to index.html for navigation requests to root or app base paths
-            if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === BASE_PATH || url.pathname === BASE_PATH + '/') {
-              return caches.match(`${BASE_PATH}/index.html`);
-            }
-            // Return a basic 404 response
-            return new Response('Not found', { status: 404 });
-          });
-        })
+          // No cache yet – wait for network
+          return networkFetch;
+        });
+      })
     );
     return;
   }
