@@ -1214,7 +1214,9 @@
 
         const DEFAULT_MESSAGES = {
             psychology: 'Консултирайте се с диетолог за допълнителни съвети',
-            supplements: 'Консултирайте се с лекар преди приемане на нови добавки'
+            supplements: 'Консултирайте се с лекар преди приемане на нови добавки',
+            psychologyFallbackLabel: 'Съвет',
+            supplementsFallbackLabel: 'Добавка'
         };
 
         const ICON_CLASSES = {
@@ -1222,21 +1224,33 @@
             supplements: 'fa-pills'
         };
 
+        const MIN_ITEMS_COUNT = 3;
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function formatContentWithBulletPoints(text, icon = 'fa-check-circle') {
             if (!text || typeof text !== 'string') {
                 return `<p style="color: var(--text-light); font-style: italic;">Няма налични данни</p>`;
             }
 
-            const lines = text.split('\n').filter(line => line.trim());
+            const lines = text.split(/\r?\n/).filter(line => line.trim());
             if (lines.length === 0) {
                 return `<p style="color: var(--text-light); font-style: italic;">Няма налични данни</p>`;
             }
 
             let formattedHTML = '<ul class="info-list">';
             lines.forEach(line => {
-                const trimmedLine = line.trim().replace(/^[•\-\*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+                const trimmedLine = line.trim().replace(/^[\u2022\-\*]\s*/, '').replace(/^\d+\.\s*/, '');
                 if (trimmedLine) {
-                    formattedHTML += `<li><i class="fas ${icon}" style="color: var(--primary-red);"></i>${trimmedLine}</li>`;
+                    formattedHTML += `<li><i class="fas ${icon}" style="color: var(--primary-red);"></i>${escapeHtml(trimmedLine)}</li>`;
                 }
             });
             formattedHTML += '</ul>';
@@ -1250,27 +1264,31 @@
                     if (Array.isArray(parsed)) data = parsed;
                     else return null;
                 } catch (e) {
+                    console.debug('Could not parse guidelines content as JSON array:', e);
                     return null;
                 }
             }
 
             if (!Array.isArray(data)) return null;
-            const items = data.slice(0, 3);
-            while (items.length < 3) items.push(defaultMessage);
-            return items;
+            const items = data.slice(0, MIN_ITEMS_COUNT);
+            return items.length > 0 ? items : [defaultMessage];
         }
 
-        function generateListItem(content, contentType, index) {
+        function generateListItemText(content, contentType, index) {
             if (typeof content === 'string') {
+                // Backward compatibility: plans generated before 2025-12-27 could use "!" prefix for bullet-like entries.
                 const clean = content.replace(/^!\s*/, '').trim();
-                return clean ? `<li>${clean}</li>` : '';
+                return clean ? escapeHtml(clean) : '';
             }
             if (typeof content === 'object' && content !== null) {
-                let details = content.title || content.name || (contentType === 'psychology' ? `Съвет ${index + 1}` : `Добавка ${index + 1}`);
+                const fallbackPrefix = contentType === 'psychology'
+                    ? DEFAULT_MESSAGES.psychologyFallbackLabel
+                    : DEFAULT_MESSAGES.supplementsFallbackLabel;
+                let details = content.title || content.name || `${fallbackPrefix} ${index + 1}`;
                 if (content.description) details += ` - ${content.description}`;
                 if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
                 if (content.intake) details += ` - Прием: ${content.intake}`;
-                return `<li>${details}</li>`;
+                return escapeHtml(details);
             }
             return '';
         }
@@ -1284,12 +1302,12 @@
 
                 const recommendedFoodsList = document.getElementById('recommendedFoodsList');
                 if (recommendedFoodsList && Array.isArray(dietPlan.recommendations) && dietPlan.recommendations.length > 0) {
-                    recommendedFoodsList.innerHTML = dietPlan.recommendations.map(item => `<li>${item}</li>`).join('');
+                    recommendedFoodsList.innerHTML = dietPlan.recommendations.map(item => `<li>${escapeHtml(item)}</li>`).join('');
                 }
 
                 const forbiddenFoodsList = document.getElementById('forbiddenFoodsList');
                 if (forbiddenFoodsList && Array.isArray(dietPlan.forbidden) && dietPlan.forbidden.length > 0) {
-                    forbiddenFoodsList.innerHTML = dietPlan.forbidden.map(item => `<li>${item}</li>`).join('');
+                    forbiddenFoodsList.innerHTML = dietPlan.forbidden.map(item => `<li>${escapeHtml(item)}</li>`).join('');
                 }
 
                 const psychologyContent = document.getElementById('psychologyContent');
@@ -1299,10 +1317,9 @@
                         if (normalized) {
                             let html = '<ul class="info-list">';
                             normalized.forEach((tip, index) => {
-                                const item = generateListItem(tip, 'psychology', index);
-                                if (item) {
-                                    const cleanItem = item.replace('<li>', '').replace('</li>', '');
-                                    html += `<li><i class="fas fa-brain" style="color: var(--primary-red);"></i>${cleanItem}</li>`;
+                                const itemText = generateListItemText(tip, 'psychology', index);
+                                if (itemText) {
+                                    html += `<li><i class="fas fa-brain" style="color: var(--primary-red);"></i>${itemText}</li>`;
                                 }
                             });
                             html += '</ul>';
@@ -1324,10 +1341,9 @@
                         if (normalized) {
                             let html = '<ul class="info-list">';
                             normalized.forEach((supplement, index) => {
-                                const item = generateListItem(supplement, 'supplements', index);
-                                if (item) {
-                                    const cleanItem = item.replace('<li>', '').replace('</li>', '');
-                                    html += `<li><i class="fas fa-pills" style="color: var(--primary-red);"></i>${cleanItem}</li>`;
+                                const itemText = generateListItemText(supplement, 'supplements', index);
+                                if (itemText) {
+                                    html += `<li><i class="fas fa-pills" style="color: var(--primary-red);"></i>${itemText}</li>`;
                                 }
                             });
                             html += '</ul>';
@@ -1347,7 +1363,7 @@
                     if (Array.isArray(dietPlan.hacks) && dietPlan.hacks.length > 0) {
                         let html = '<ul class="info-list">';
                         dietPlan.hacks.forEach(hack => {
-                            const safeHack = String(hack).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            const safeHack = escapeHtml(hack);
                             html += `<li><i class="fas fa-bolt" style="color: var(--primary-red);"></i>${safeHack}</li>`;
                         });
                         html += '</ul>';
