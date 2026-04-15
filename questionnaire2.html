@@ -108,9 +108,12 @@
         }
         .progress-track {
             height: 8px;
-            background: #e0e0e0;
+            background: rgba(0, 0, 0, 0.1);
             border-radius: 10px;
             overflow: hidden;
+        }
+        [data-theme="dark"] .progress-track {
+            background: rgba(255, 255, 255, 0.1);
         }
         .progress-fill {
             height: 100%;
@@ -121,6 +124,11 @@
             border-radius: 10px;
             transition: width 0.5s ease;
             box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+        }
+        [data-theme="dark"] .progress-fill {
+            background: linear-gradient(90deg, var(--primary-red), #a7f3d0, var(--primary-red));
+            background-size: 200% 100%;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.4);
         }
         @keyframes progressGradient {
             0% { background-position: 200% 0; }

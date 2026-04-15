@@ -113,8 +113,8 @@
             letter-spacing: -0.3px;
         }
         .analysis-header .back-btn {
-            background: linear-gradient(135deg, var(--soft-red) 0%, rgba(16, 185, 129, 0.06) 100%);
-            border: none;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.15);
             font-size: 1.2rem;
             color: var(--text-dark);
             cursor: pointer;
@@ -127,9 +127,15 @@
             align-items: center;
             justify-content: center;
         }
+        [data-theme="dark"] .analysis-header .back-btn {
+            background: rgba(52, 211, 153, 0.1);
+            border-color: rgba(52, 211, 153, 0.2);
+            color: var(--text-dark);
+        }
         .analysis-header .back-btn:hover {
             background: var(--primary-red);
             color: white;
+            border-color: transparent;
         }
         .theme-toggle-btn {
             background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
@@ -333,7 +339,11 @@
 
         .severity-badge.borderline {
             background: var(--severity-borderline);
-            color: #1e3a20;
+            color: #1a1a00;
+        }
+
+        [data-theme="dark"] .severity-badge.borderline {
+            color: #1a1200;
         }
 
         .severity-badge.risky {
