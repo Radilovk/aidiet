@@ -589,6 +589,28 @@
             font-size: 1rem;
         }
 
+        .gauge-wrapper {
+            position: relative;
+            width: 200px;
+            height: 120px;
+            margin: 0 auto 10px;
+        }
+
+        .gauge-score-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 6px;
+            letter-spacing: -1px;
+        }
+
+        .gauge-score-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .score-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1424,7 +1446,7 @@
                     </div>
                     <div class="single-score-container">
                         <!-- Semicircular Gauge -->
-                        <div class="gauge-wrapper" style="position: relative; width: 200px; height: 120px; margin: 0 auto 10px;">
+                        <div class="gauge-wrapper">
                             <svg id="healthGaugeSvg" viewBox="0 0 200 115" width="200" height="115" role="img" aria-label="Здравословен статус">
                                 <title id="healthGaugeTitle">Здравословен статус</title>
                                 <!-- Background arc -->
@@ -1452,8 +1474,8 @@
                             </svg>
                         </div>
                         <!-- Score display -->
-                        <div id="healthScoreValue" class="gauge-score-value" style="font-size: 2.2rem; font-weight: 800; color: #10b981; line-height: 1; margin-bottom: 6px; letter-spacing: -1px;">--</div>
-                        <div id="healthScoreLabel" class="gauge-score-label" style="font-size: 0.9rem; font-weight: 600; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px;"></div>
+                        <div id="healthScoreValue" class="gauge-score-value" style="color: #10b981;">--</div>
+                        <div id="healthScoreLabel" class="gauge-score-label" style="color: #10b981;"></div>
                     </div>
                 </div>
             </div>
