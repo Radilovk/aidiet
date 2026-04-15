@@ -6592,7 +6592,7 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
-async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = null, jsonMode = false) {
+async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens = null, jsonMode = false) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
@@ -6666,7 +6666,7 @@ async function callGemini(env, prompt, modelName = 'gemini-pro', maxTokens = nul
 /**
  * Call AI model with vision (image) support for food analysis.
  * Sends an image along with a text prompt to the configured AI provider.
- * Supports OpenAI (gpt-4o, gpt-4o-mini), Claude (claude-3-5-sonnet), and Gemini (gemini-1.5-flash).
+ * Supports OpenAI (gpt-4o, gpt-4o-mini), Claude (claude-3-5-sonnet), and Gemini (gemini-2.0-flash).
  * @param {Object} env - Environment variables (API keys)
  * @param {string} textPrompt - Text instructions for the AI
  * @param {string} base64Image - Base64-encoded image data (without data URI prefix)
@@ -6682,7 +6682,7 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
   const visionModels = {
     openai: 'gpt-4o-mini',
     anthropic: 'claude-3-5-sonnet-20241022',
-    google: 'gemini-1.5-flash'
+    google: 'gemini-2.0-flash'
   };
 
   const startTime = Date.now();
@@ -6790,7 +6790,7 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
 }
 
 /**
- * Gemini Vision API call (gemini-1.5-flash with inlineData)
+ * Gemini Vision API call (gemini-2.0-flash with inlineData)
  */
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens) {
   return await retryWithBackoff(async () => {
