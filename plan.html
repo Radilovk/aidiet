@@ -2703,7 +2703,7 @@
     </button>
 
     <!-- Hidden file input for camera/gallery -->
-    <input type="file" id="foodImageInput" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="foodImageInput" accept="image/*" capture="environment" style="display:none" aria-label="Избор на изображение на храна">
 
     <!-- Food Analysis Modal -->
     <div class="food-analysis-overlay" id="foodAnalysisOverlay">
@@ -5822,7 +5822,7 @@
 
             // Validate file type — accept any image type, canvas will convert to JPEG
             if (!file.type.startsWith('image/')) {
-                alert('Моля, изберете изображение.');
+                alert('Файлът не е изображение. Моля, изберете изображение във формат JPG, PNG или WebP.');
                 return;
             }
 

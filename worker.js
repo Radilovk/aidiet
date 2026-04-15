@@ -6724,7 +6724,7 @@ async function callOpenAIVision(env, textPrompt, base64Image, mimeType, modelNam
         role: 'user',
         content: [
           { type: 'text', text: textPrompt },
-          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'auto' } }
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'auto' } } // 'auto' lets the API choose between low/high detail based on image content for optimal cost/quality
         ]
       }],
       max_tokens: maxTokens,
