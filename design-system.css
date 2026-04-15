@@ -1356,17 +1356,7 @@ body {
     transform: scale(1.15);
 }
 
-.ds-bottom-nav-item.active::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: var(--ds-radius-full);
-    background: var(--ds-primary-500);
-}
+/* Active dot indicator removed - was causing unwanted dot on selected tab */
 
 .ds-bottom-nav-item:active {
     transform: scale(0.92);
