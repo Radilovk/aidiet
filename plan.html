@@ -78,14 +78,14 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
         body {
             background: var(--bg-color);
             color: var(--text-dark);
-            padding-bottom: calc(90px + var(--safe-area-inset-bottom)); /* Място за чат бутона */
+            padding-bottom: calc(140px + var(--safe-area-inset-bottom)); /* Space for bottom nav + chat FAB */
             -webkit-overflow-scrolling: touch;
             transition: background-color 0.3s ease, color 0.3s ease;
             position: relative;
@@ -179,7 +179,7 @@
             border: none;
             width: 42px;
             height: 42px;
-            border-radius: 14px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -192,6 +192,7 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.2);
             position: relative;
             overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .theme-toggle-btn::before {
@@ -967,7 +968,7 @@
         /* --- CHAT FAB - Premium Design --- */
         .fab-chat {
             position: fixed;
-            bottom: calc(24px + var(--safe-area-inset-bottom));
+            bottom: calc(80px + var(--safe-area-inset-bottom));
             right: calc(24px + var(--safe-area-inset-right));
             width: 64px;
             height: 64px;
@@ -987,7 +988,6 @@
             z-index: 900;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
-            animation: fabPulse 3s ease-in-out infinite;
             overflow: hidden;
         }
         
@@ -1576,7 +1576,7 @@
                 width: 56px;
                 height: 56px;
                 font-size: 22px;
-                bottom: 15px;
+                bottom: calc(80px + var(--safe-area-inset-bottom));
                 right: 15px;
             }
             
@@ -2519,6 +2519,153 @@
             }
         }
 
+        /* --- SKELETON LOADER --- */
+        .skeleton-card {
+            background: linear-gradient(90deg, var(--soft-red) 25%, rgba(16,185,129,0.12) 50%, var(--soft-red) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+            border-radius: var(--radius);
+            height: 120px;
+            margin-bottom: 16px;
+        }
+        [data-theme="dark"] .skeleton-card {
+            background: linear-gradient(90deg, #1a2028 25%, #252b35 50%, #1a2028 75%);
+            background-size: 200% 100%;
+        }
+        [data-theme="dark"] .skeleton-text {
+            background: linear-gradient(90deg, #1a2028 25%, #252b35 50%, #1a2028 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-text { height: 14px; border-radius: 7px; margin-bottom: 8px; background: var(--soft-red); }
+        .skeleton-text.w60 { width: 60%; }
+        .skeleton-text.w80 { width: 80%; }
+        .skeleton-text.w40 { width: 40%; }
+
+        /* --- SCROLL TO TOP BUTTON --- */
+        .scroll-top-btn {
+            position: fixed;
+            bottom: calc(90px + var(--safe-area-inset-bottom));
+            left: 24px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid rgba(16,185,129,0.15);
+            color: var(--text-dark);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 800;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .scroll-top-btn.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .scroll-top-btn:active { transform: scale(0.92); }
+
+        /* --- BOTTOM NAVIGATION --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            height: calc(64px + var(--safe-area-inset-bottom));
+            padding-bottom: var(--safe-area-inset-bottom);
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-top: 1px solid rgba(16, 185, 129, 0.1);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+        }
+        [data-theme="dark"] .bottom-nav {
+            background: rgba(26, 32, 40, 0.92);
+            border-top-color: rgba(52, 211, 153, 0.1);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 6px 12px;
+            min-width: 64px;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+        }
+        .bottom-nav-item i { font-size: 20px; transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .bottom-nav-item.active { color: var(--primary-red); }
+        .bottom-nav-item.active i { transform: scale(1.15); }
+        .bottom-nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--primary-red);
+        }
+        .bottom-nav-item:active { transform: scale(0.92); }
+
+        /* --- AMBIENT MESH GRADIENT --- */
+        .ambient-mesh {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(16, 185, 129, 0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 40% 60%, rgba(139, 92, 246, 0.02) 0%, transparent 60%);
+            animation: meshShift 30s ease-in-out infinite alternate;
+        }
+        @keyframes meshShift {
+            0% { transform: scale(1) translate(0, 0); }
+            50% { transform: scale(1.02) translate(1%, 1%); }
+            100% { transform: scale(1.05) translate(2%, 2%); }
+        }
+
+        /* --- MODAL DRAG HANDLE --- */
+        .modal-drag-handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(0,0,0,0.15);
+            border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+        [data-theme="dark"] .modal-drag-handle {
+            background: rgba(255,255,255,0.2);
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2657,6 +2804,7 @@
     
     <!-- Animated Mesh Background -->
     <div class="ds-mesh-bg" aria-hidden="true"></div>
+    <div class="ambient-mesh" aria-hidden="true"></div>
 
     <!-- Header -->
     <header role="banner" aria-label="Главна навигация">
@@ -2819,6 +2967,10 @@
         </div>
     </main>
 
+    <button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Нагоре">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
     <!-- Chat Assistant Button -->
     <button class="fab-chat" onclick="openChat()" aria-label="Отвори чат асистент">
         <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
@@ -2827,6 +2979,7 @@
     <!-- INFO MODAL -->
     <div class="modal-overlay" id="infoModal">
         <div class="modal-card">
+                <div class="modal-drag-handle"></div>
             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
             <h3 class="modal-title" id="mTitle">Заглавие</h3>
             <div class="modal-body">
@@ -6445,6 +6598,37 @@
         function getShareIconSvg() {
             return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E";
         }
+
+    // Scroll-to-top button visibility
+    window.addEventListener('scroll', function() {
+        const btn = document.getElementById('scrollTopBtn');
+        if (btn) {
+            if (window.scrollY > 400) {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        }
+    });
     </script>
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" aria-label="Основна навигация">
+        <a href="index.html" class="bottom-nav-item">
+            <i class="fas fa-home"></i>
+            <span>Начало</span>
+        </a>
+        <a href="plan.html" class="bottom-nav-item active">
+            <i class="fas fa-utensils"></i>
+            <span>Моят План</span>
+        </a>
+        <a href="protocol-landing.html" class="bottom-nav-item">
+            <i class="fas fa-clipboard-list"></i>
+            <span>Протоколи</span>
+        </a>
+        <a href="profile.html" class="bottom-nav-item">
+            <i class="fas fa-user"></i>
+            <span>Профил</span>
+        </a>
+    </nav>
 </body>
 </html>
