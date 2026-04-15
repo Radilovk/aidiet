@@ -3601,8 +3601,8 @@
                     }
                 }
 
-                // Render initial data
-                renderDay(1);
+                // Render initial data – auto-select today's day (Mon=1 … Sun=7)
+                selectDay(getTodayPlanDay());
                 
                 // REQUIREMENT 3: Display plan justification
                 displayPlanJustification();
@@ -4077,6 +4077,22 @@
 
             // 2. Load day data
             renderDay(dayNum);
+        }
+
+        // --- Auto-select today's plan day (no backend required) ---
+        // Monday = day 1, Tuesday = day 2, …, Sunday = day 7.
+        // Falls back to day 1 if the weekday's slot is missing in the plan.
+        function getTodayPlanDay() {
+            const jsDay = new Date().getDay(); // 0 = Sun, 1 = Mon … 6 = Sat
+            // Convert JS Sunday-first → Monday-first (1–7)
+            const planDay = jsDay === 0 ? 7 : jsDay;
+
+            // If the plan actually has that day, use it; otherwise fall back to 1
+            if (dietPlan && dietPlan.weekPlan && dietPlan.weekPlan[`day${planDay}`] &&
+                    Array.isArray(dietPlan.weekPlan[`day${planDay}`].meals)) {
+                return planDay;
+            }
+            return 1;
         }
 
         // --- Accordion Logic ---
