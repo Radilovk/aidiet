@@ -256,7 +256,7 @@
             color: var(--text-dark);
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            min-width: 75px;
+            min-width: fit-content;
             text-align: center;
             display: flex;
             align-items: center;
@@ -267,6 +267,7 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.8);
             position: relative;
             overflow: hidden;
+            flex-shrink: 0;
         }
         
         [data-theme="dark"] .day-chip {
@@ -1564,7 +1565,7 @@
             .day-chip {
                 padding: 8px 14px;
                 font-size: 0.85rem;
-                min-width: 60px;
+                min-width: fit-content;
             }
             
             .meal-card {
