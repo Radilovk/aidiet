@@ -3603,7 +3603,6 @@
 
                 // Render initial data – auto-select today's day (Mon=1 … Sun=7)
                 const todayPlanDay = getTodayPlanDay();
-                updateDayChipLabels(todayPlanDay);
                 selectDay(todayPlanDay);
                 
                 // REQUIREMENT 3: Display plan justification
@@ -4071,23 +4070,24 @@
             window.location.href = 'profile.html';
         }
 
-        function updateDayChipLabels(todayDayNum) {
+        function updateDayChipLabels(activeDayNum) {
             const fullDayNames = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
             const shortDayNames = ['Пон.', 'Вт.', 'Ср.', 'Чет.', 'Пет.', 'Съб.', 'Нед.'];
             const chips = document.querySelectorAll('.day-chip');
 
             chips.forEach((chip, index) => {
-                const isToday = index + 1 === todayDayNum;
-                chip.textContent = isToday ? fullDayNames[index] : shortDayNames[index];
+                const isActive = index + 1 === activeDayNum;
+                chip.textContent = isActive ? fullDayNames[index] : shortDayNames[index];
                 chip.setAttribute('aria-label', fullDayNames[index]);
             });
         }
 
         function selectDay(dayNum) {
-            // 1. Update UI classes
+            // 1. Update UI classes and chip labels
             const chips = document.querySelectorAll('.day-chip');
             chips.forEach(chip => chip.classList.remove('active'));
             chips[dayNum - 1].classList.add('active');
+            updateDayChipLabels(dayNum);
 
             // 2. Load day data
             renderDay(dayNum);
