@@ -6803,8 +6803,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
       }],
       generationConfig: {
         maxOutputTokens: maxTokens,
-        temperature: 0.3,
-        responseMimeType: 'application/json'
+        temperature: 0.3
       }
     };
 
@@ -6858,8 +6857,9 @@ async function handleAnalyzeFoodImage(request, env) {
     }
 
     // Validate image size (max 1MB of base64 data ≈ ~750KB image)
+    const MAX_IMAGE_SIZE_BYTES = 1048576; // 1MB
     const estimatedSizeBytes = (base64Data.length * 3) / 4;
-    if (estimatedSizeBytes > 1048576) {
+    if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
       return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение (до 1MB).' }, 400);
     }
 
