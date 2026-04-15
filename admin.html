@@ -884,6 +884,32 @@
                 </button>
             </div>
 
+            <!-- Vision AI Model Selection -->
+            <div class="card">
+                <h2><i class="fas fa-camera"></i> AI Модел за Анализ на Изображения</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Изберете AI провайдър и модел специално за анализ на снимки на храна. Ако не е конфигурирано, се използва основният AI модел.
+                </div>
+                <div class="form-group">
+                    <label for="visionAiProvider">AI Провайдър за изображения:</label>
+                    <select id="visionAiProvider">
+                        <option value="openai">OpenAI</option>
+                        <option value="google">Google Gemini</option>
+                        <option value="anthropic">Anthropic Claude</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visionAiModel">Име на модел за изображения:</label>
+                    <input type="text" id="visionAiModel" placeholder="напр. gpt-4o-mini, gemini-2.0-flash, claude-3-5-sonnet-20241022">
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        Оставете празно за модел по подразбиране: OpenAI → gpt-4o-mini, Google → gemini-2.0-flash, Anthropic → claude-3-5-sonnet-20241022
+                    </small>
+                </div>
+                <button class="btn" onclick="saveVisionModel()">
+                    <i class="fas fa-save"></i> Запази Vision Модел
+                </button>
+            </div>
+
             <!-- Color Scheme Configuration -->
             <div class="card">
                 <h2><i class="fas fa-palette"></i> Цветова Схема</h2>
@@ -3030,6 +3056,15 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 document.getElementById('protocolAiModel').value = config.protocolModelName || '';
                                 localStorage.setItem('protocolAiModelName', config.protocolModelName || '');
                             }
+                            // Load vision AI config from server
+                            if (config.visionProvider) {
+                                document.getElementById('visionAiProvider').value = config.visionProvider;
+                                localStorage.setItem('visionAiProvider', config.visionProvider);
+                            }
+                            if (config.visionModelName !== null) {
+                                document.getElementById('visionAiModel').value = config.visionModelName || '';
+                                localStorage.setItem('visionAiModelName', config.visionModelName || '');
+                            }
                             return; // Successfully loaded from server
                         }
                 } catch (serverError) {
@@ -3073,6 +3108,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const savedModificationModeEnabled = localStorage.getItem('adminModificationModeEnabled');
                 document.getElementById('modificationModeEnabled').checked = savedModificationModeEnabled === 'true';
+
+                const savedVisionProvider = localStorage.getItem('visionAiProvider') || 'openai';
+                document.getElementById('visionAiProvider').value = savedVisionProvider;
+
+                const savedVisionModelName = localStorage.getItem('visionAiModelName') || '';
+                document.getElementById('visionAiModel').value = savedVisionModelName;
 
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -3122,7 +3163,34 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
-        // Save AI Prompt
+        // Save Vision AI Model
+        async function saveVisionModel() {
+            const provider = document.getElementById('visionAiProvider').value;
+            const modelName = document.getElementById('visionAiModel').value.trim();
+
+            localStorage.setItem('visionAiProvider', provider);
+            localStorage.setItem('visionAiModelName', modelName);
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-vision-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, modelName })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+
+                invalidateConfigCache();
+                showSuccess('Vision AI модел запазен успешно!');
+            } catch (error) {
+                console.error('Error saving vision model:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+
         async function saveAIPrompt() {
             const prompt = document.getElementById('aiPrompt').value.trim();
             

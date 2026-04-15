@@ -6255,18 +6255,24 @@ async function getAdminConfig(env) {
   // Fetch fresh config from KV
   const config = {
     provider: 'openai',
-    modelName: 'gpt-4o-mini'
+    modelName: 'gpt-4o-mini',
+    visionProvider: null,
+    visionModelName: null
   };
 
   if (env.page_content) {
-    // Use Promise.all to fetch both values in parallel
-    const [savedProvider, savedModelName] = await Promise.all([
+    // Use Promise.all to fetch all values in parallel
+    const [savedProvider, savedModelName, savedVisionProvider, savedVisionModelName] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
-      env.page_content.get('admin_ai_model_name')
+      env.page_content.get('admin_ai_model_name'),
+      env.page_content.get('admin_vision_provider'),
+      env.page_content.get('admin_vision_model_name')
     ]);
 
     if (savedProvider) config.provider = savedProvider;
     if (savedModelName) config.modelName = savedModelName;
+    if (savedVisionProvider) config.visionProvider = savedVisionProvider;
+    if (savedVisionModelName) config.visionModelName = savedVisionModelName;
   }
 
   // Update cache
@@ -6676,31 +6682,36 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
  */
 async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, maxTokens = 2000) {
   const config = await getAdminConfig(env);
-  const preferredProvider = config.provider;
 
-  // Map of vision-capable models per provider
-  const visionModels = {
+  // Use vision-specific provider/model if configured, otherwise fall back to main provider
+  const preferredProvider = config.visionProvider || config.provider;
+
+  // Map of default vision-capable models per provider
+  const defaultVisionModels = {
     openai: 'gpt-4o-mini',
     anthropic: 'claude-3-5-sonnet-20241022',
     google: 'gemini-2.0-flash'
   };
+
+  // Use vision-specific model name if set, otherwise use the default for the provider
+  const visionModelName = config.visionModelName || defaultVisionModels[preferredProvider] || defaultVisionModels.openai;
 
   const startTime = Date.now();
   let response;
 
   try {
     if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
-      response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, visionModels.openai, maxTokens);
+      response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModels.anthropic, maxTokens);
+      response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModels.google, maxTokens);
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
     } else if (env.OPENAI_API_KEY) {
-      response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, visionModels.openai, maxTokens);
+      response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.openai, maxTokens);
     } else if (env.ANTHROPIC_API_KEY) {
-      response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModels.anthropic, maxTokens);
+      response = await callClaudeVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.anthropic, maxTokens);
     } else if (env.GEMINI_API_KEY) {
-      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModels.google, maxTokens);
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.google, maxTokens);
     } else {
       throw new Error('No AI provider configured for vision analysis.');
     }
@@ -7631,8 +7642,41 @@ async function handleSaveProtocolConfig(request, env) {
 }
 
 /**
- * Generate a protocol using the stored AI provider/model config
+ * Admin: Save vision AI config (provider, model) to KV
  */
+async function handleSaveVisionConfig(request, env) {
+  try {
+    const { provider, modelName } = await request.json();
+
+    if (!provider) {
+      return jsonResponse({ error: 'Missing provider' }, 400);
+    }
+
+    if (!['openai', 'google', 'anthropic'].includes(provider)) {
+      return jsonResponse({ error: 'Invalid provider type' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    await Promise.all([
+      env.page_content.put('admin_vision_provider', provider),
+      env.page_content.put('admin_vision_model_name', modelName || '')
+    ]);
+
+    // Invalidate admin config cache so next vision call picks up the new settings
+    adminConfigCache = null;
+    adminConfigCacheTime = 0;
+
+    return jsonResponse({ success: true, message: 'Vision config saved successfully' });
+  } catch (error) {
+    console.error('Error saving vision config:', error);
+    return jsonResponse({ error: 'Failed to save vision config: ' + error.message }, 500);
+  }
+}
+
+
 async function handleGenerateProtocol(request, env) {
   try {
     const { prompt } = await request.json();
@@ -7898,7 +7942,9 @@ async function handleGetConfig(request, env) {
       protocolModelName,
       emoeatPrompt,
       foodAnalysisPrompt,
-      modificationModeEnabled
+      modificationModeEnabled,
+      visionProvider,
+      visionModelName
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -7915,7 +7961,9 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_protocol_model_name'),
       env.page_content.get('admin_emoeat_prompt'),
       env.page_content.get('admin_food_analysis_prompt'),
-      env.page_content.get('admin_chat_modification_mode_enabled')
+      env.page_content.get('admin_chat_modification_mode_enabled'),
+      env.page_content.get('admin_vision_provider'),
+      env.page_content.get('admin_vision_model_name')
     ]);
     
     const parsedModificationModeEnabled = modificationModeEnabled === 'true';
@@ -7937,7 +7985,9 @@ async function handleGetConfig(request, env) {
       protocolModelName: protocolModelName || null,
       emoeatPrompt,
       foodAnalysisPrompt,
-      modificationModeEnabled: parsedModificationModeEnabled
+      modificationModeEnabled: parsedModificationModeEnabled,
+      visionProvider: visionProvider || null,
+      visionModelName: visionModelName || null
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -10330,6 +10380,8 @@ export default {
         return await handleGetChatModeConfig(request, env);
       } else if (url.pathname === '/api/admin/save-protocol-config' && request.method === 'POST') {
         return await handleSaveProtocolConfig(request, env);
+      } else if (url.pathname === '/api/admin/save-vision-config' && request.method === 'POST') {
+        return await handleSaveVisionConfig(request, env);
       } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === '/api/generate-emoeat-analysis' && request.method === 'POST') {
