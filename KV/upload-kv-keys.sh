@@ -125,6 +125,16 @@ else
 fi
 echo ""
 
+# admin_food_analysis_prompt (food image analysis prompt)
+echo "📤 Качване на admin_food_analysis_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_food_analysis_prompt" --path="$KV_DIR/prompts/admin_food_analysis_prompt.txt"; then
+    echo "✅ admin_food_analysis_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_food_analysis_prompt"
+fi
+echo ""
+
 # admin_ai_model
 echo "📤 Качване на admin_ai_model..."
 if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
@@ -172,6 +182,11 @@ echo ""
 
 echo "Проверка на admin_correction_prompt:"
 wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_correction_prompt" | head -5
+echo "..."
+echo ""
+
+echo "Проверка на admin_food_analysis_prompt:"
+wrangler kv:key get --namespace-id=$NAMESPACE_ID "admin_food_analysis_prompt" | head -5
 echo "..."
 echo ""
 

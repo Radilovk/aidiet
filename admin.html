@@ -1187,6 +1187,36 @@
                 </button>
             </div>
 
+            <!-- Food Analysis Prompt Editor -->
+            <div class="card">
+                <h2><i class="fas fa-camera"></i> AI Промпт за Анализ на Храна от Снимка</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Този промпт се използва когато потребителят направи снимка на храна за AI анализ. AI моделът получава изображението заедно с този промпт и връща анализ на хранителната стойност.
+                </div>
+                <div class="info-box" style="background: #e8f5e9; border-left: 4px solid #4caf50;">
+                    <strong>📸 Как работи:</strong> Потребителят прави снимка → изображението се компресира до 1600px → изпраща се към AI Vision модела → AI анализира и връща JSON с храни, калории, макроси и оценка за диетата.
+                </div>
+                <div class="info-box" style="background: #fff9e6; border-left: 4px solid #f39c12;">
+                    <strong>🔄 Синхронизация:</strong> Промените се запазват <strong>веднага</strong> в бекенда. Има 5-минутен кеш за оптимизация, но кешът се <strong>изчиства автоматично</strong> при запазване. Новата версия се използва след следващата заявка.
+                </div>
+                <div class="form-group">
+                    <label for="foodAnalysisPrompt">Промпт за Анализ на Храна:</label>
+                    <textarea id="foodAnalysisPrompt" placeholder="Въведете промпт за анализ на храна от снимка..."></textarea>
+                </div>
+                <div class="info-box">
+                    <strong>Променливи:</strong> <code>{dietContext}</code> (данни за клиента - цел, тегло, ръст, предпочитания), <code>{planContext}</code> (резюме на текущия диетичен план), <code>{mealTime}</code> (момент на хранене - Закуска/Обяд/Вечеря/Междинно хранене)
+                </div>
+                <div class="info-box-warning">
+                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Промптът <strong>задължително</strong> трябва да указва на AI да върне JSON с полета: <code>foods</code> (масив), <code>totalCalories</code>, <code>totalProtein</code>, <code>totalCarbs</code>, <code>totalFats</code>, <code>totalFiber</code>, <code>totalWeight</code>, <code>dietSuitability</code> (обект с score/verdict/explanation), <code>suggestions</code>, <code>confidence</code>. Вижте стандартния промпт за референция.
+                </div>
+                <button class="btn" onclick="saveFoodAnalysisPrompt()">
+                    <i class="fas fa-save"></i> Запази Промпт за Анализ на Храна
+                </button>
+                <button class="btn" onclick="viewDefaultPrompt('food_analysis', 'foodAnalysisPrompt')" style="background: #3498db; margin-left: 10px;">
+                    <i class="fas fa-eye"></i> Виж Стандартен Промпт
+                </button>
+            </div>
+
             </div>
             <!-- End AI Prompts Tab -->
 
@@ -2983,6 +3013,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 document.getElementById('correctionPrompt').value = config.correctionPrompt;
                                 localStorage.setItem('adminCorrectionPrompt', config.correctionPrompt);
                             }
+                            if (config.foodAnalysisPrompt) {
+                                document.getElementById('foodAnalysisPrompt').value = config.foodAnalysisPrompt;
+                                localStorage.setItem('adminFoodAnalysisPrompt', config.foodAnalysisPrompt);
+                            }
                             if (typeof config.modificationModeEnabled === 'boolean') {
                                 document.getElementById('modificationModeEnabled').checked = config.modificationModeEnabled;
                                 localStorage.setItem('adminModificationModeEnabled', config.modificationModeEnabled ? 'true' : 'false');
@@ -3033,6 +3067,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const savedCorrectionPrompt = localStorage.getItem('adminCorrectionPrompt') || '';
                 document.getElementById('correctionPrompt').value = savedCorrectionPrompt;
+
+                const savedFoodAnalysisPrompt = localStorage.getItem('adminFoodAnalysisPrompt') || '';
+                document.getElementById('foodAnalysisPrompt').value = savedFoodAnalysisPrompt;
 
                 const savedModificationModeEnabled = localStorage.getItem('adminModificationModeEnabled');
                 document.getElementById('modificationModeEnabled').checked = savedModificationModeEnabled === 'true';
@@ -3171,6 +3208,35 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showSuccess('Промпт за промяна запазен успешно!');
             } catch (error) {
                 console.error('Error saving modification prompt:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        async function saveFoodAnalysisPrompt() {
+            const prompt = document.getElementById('foodAnalysisPrompt').value.trim();
+            
+            if (!prompt) {
+                showError('Промптът за анализ на храна не може да бъде празен!');
+                return;
+            }
+
+            localStorage.setItem('adminFoodAnalysisPrompt', prompt);
+            
+            // Save to KV via worker API
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'food_analysis', prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                showSuccess('Промпт за анализ на храна запазен успешно!');
+            } catch (error) {
+                console.error('Error saving food analysis prompt:', error);
                 showError('Грешка при записване: ' + error.message);
             }
         }
