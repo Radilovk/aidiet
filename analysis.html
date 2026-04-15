@@ -1231,6 +1231,8 @@
             -webkit-backdrop-filter: blur(24px) saturate(180%);
             border-top: 1px solid rgba(16, 185, 129, 0.1);
             box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+            transform: translateZ(0);
+            will-change: transform;
         }
         [data-theme="dark"] .bottom-nav {
             background: rgba(26, 32, 40, 0.92);
@@ -1253,11 +1255,15 @@
             font-weight: 500;
             text-decoration: none;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: color 0.15s ease, transform 0.15s ease;
             -webkit-tap-highlight-color: transparent;
             position: relative;
         }
-        .bottom-nav-item i { font-size: 20px; transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .bottom-nav-item i { 
+            font-size: 20px; 
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: transform;
+        }
         .bottom-nav-item.active { color: var(--primary-red); }
         .bottom-nav-item.active i { transform: scale(1.15); }
         /* Active dot indicator removed - was causing unwanted dot on selected tab */
