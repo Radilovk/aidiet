@@ -138,6 +138,12 @@
             box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
         }
 
+        .header-spacer {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+        }
+
         /* --- CONTAINER --- */
         .container {
             max-width: 600px;
@@ -954,11 +960,7 @@
     <header role="banner" aria-label="Главна навигация">
         <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
         <h1>Насоки</h1>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Превключи тема">
-                <i class="fas fa-moon" id="themeIcon" aria-hidden="true"></i>
-            </button>
-        </div>
+        <div class="header-spacer" aria-hidden="true"></div>
     </header>
 
     <div class="container">
