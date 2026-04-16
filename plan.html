@@ -4475,23 +4475,8 @@
                 });
             }
 
-            // Attach scroll listener once; re-renders chips centered on closest day when scroll ends
-            if (!container._scrollBound) {
-                container._scrollBound = true;
-                let t = null;
-                container.addEventListener('scroll', () => {
-                    clearTimeout(t);
-                    t = setTimeout(() => {
-                        const midX = container.scrollLeft + container.clientWidth / 2;
-                        let best = null, bestDist = Infinity;
-                        container.querySelectorAll('.day-chip').forEach(chip => {
-                            const d = Math.abs(chip.offsetLeft + chip.offsetWidth / 2 - midX);
-                            if (d < bestDist) { bestDist = d; best = chip; }
-                        });
-                        if (best) selectDay(parseInt(best.dataset.day));
-                    }, 150);
-                }, { passive: true });
-            }
+            // Scroll listener only for visual/accessibility — does NOT auto-select a day.
+            // Day selection only happens on explicit click.
         }
 
         function selectDay(dayNum) {
