@@ -4446,12 +4446,13 @@
             window.location.href = 'profile.html';
         }
 
-        // --- Infinite circular day-chip carousel ---
+        // Infinite circular day-chip carousel ---
         // We render _CHIP_COPIES full weeks so the user can scroll left/right indefinitely.
         // When they approach either edge we silently re-center on the same day.
-        const _CHIP_COPIES = 5;  // total copies of the 7-day week rendered in the carousel
-        const _MID_COPY    = 2;  // 0-based index of the canonical middle copy
-        let   _activeDayNum = 1; // tracks the currently selected day (1–7)
+        const _CHIP_COPIES       = 5;   // total copies of the 7-day week rendered in the carousel
+        const _MID_COPY          = 2;   // 0-based index of the canonical middle copy
+        const _SCROLL_END_DELAY  = 120; // ms to wait after last scroll event before acting
+        let   _activeDayNum      = 1;   // tracks the currently selected day (1–7)
 
         function renderDayChips(activeDayNum) {
             _activeDayNum = activeDayNum;
@@ -4503,7 +4504,7 @@
                 _scrollEndTimer = setTimeout(() => {
                     const midX = container.scrollLeft + container.clientWidth / 2;
 
-                    // Find the chip whose centre is closest to the container centre
+                    // Find the chip whose center is closest to the container center
                     let best = null, bestDist = Infinity;
                     container.querySelectorAll('.day-chip').forEach(chip => {
                         const cx   = chip.offsetLeft + chip.offsetWidth / 2;
@@ -4537,7 +4538,7 @@
                         chip.setAttribute('tabindex',      isCurrent ? '0' : '-1');
                         chip.textContent = isCurrent ? fullDayNames[d - 1] : shortDayNames[d - 1];
                     });
-                }, 120);
+                }, _SCROLL_END_DELAY);
             }
 
             container.addEventListener('scroll', onChipScroll, { passive: true });
