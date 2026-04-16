@@ -913,6 +913,74 @@
         /* Active dot indicator removed - was causing unwanted dot on selected tab */
         .bottom-nav-item:active { transform: scale(0.92); }
 
+        /* --- CHAT FAB BUTTON --- */
+        .fab-chat {
+            position: fixed;
+            bottom: calc(80px + var(--safe-area-inset-bottom));
+            right: calc(24px + var(--safe-area-inset-right));
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
+            border-radius: 20px;
+            box-shadow: 
+                0 8px 28px rgba(16, 185, 129, 0.45),
+                0 4px 12px rgba(16, 185, 129, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 26px;
+            border: none;
+            cursor: pointer;
+            z-index: 900;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            animation: fabPulse 3s ease-in-out infinite;
+        }
+        .fab-chat::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 50%);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+        @keyframes fabPulse {
+            0%, 100% {
+                box-shadow: 
+                    0 8px 28px rgba(16, 185, 129, 0.45),
+                    0 4px 12px rgba(16, 185, 129, 0.25),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 
+                    0 12px 36px rgba(16, 185, 129, 0.55),
+                    0 6px 16px rgba(16, 185, 129, 0.35),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+                transform: scale(1.02);
+            }
+        }
+        .fab-chat:hover {
+            transform: scale(1.12) rotate(5deg);
+            box-shadow: 
+                0 14px 40px rgba(16, 185, 129, 0.55),
+                0 8px 20px rgba(16, 185, 129, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            animation: none;
+        }
+        .fab-chat:active { 
+            transform: scale(0.95);
+        }
+        .chat-icon-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+        }
+
         /* --- BUTTON STYLES --- */
         .btn {
             display: inline-flex;
@@ -1547,6 +1615,11 @@
             }
         });
     </script>
+
+    <!-- Chat Assistant Button -->
+    <button class="fab-chat" onclick="window.location.href='plan.html?chat=1'" aria-label="Отвори чат асистент">
+        <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
+    </button>
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
