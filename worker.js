@@ -6880,17 +6880,32 @@ async function handleAnalyzeFoodImage(request, env) {
     if (userData) {
       const parts = [];
       if (userData.goal) parts.push(`Цел: ${userData.goal}`);
+      if (userData.age) parts.push(`Възраст: ${userData.age} г.`);
+      if (userData.gender) parts.push(`Пол: ${userData.gender}`);
       if (userData.weight) parts.push(`Тегло: ${userData.weight} кг`);
       if (userData.height) parts.push(`Ръст: ${userData.height} см`);
-      if (userData.dietPreference) parts.push(`Диетичен предпочитание: ${userData.dietPreference}`);
-      if (userData.medicalConditions) parts.push(`Здравословни проблеми: ${userData.medicalConditions}`);
-      if (userData.dietDislike) parts.push(`Нежелани храни: ${userData.dietDislike}`);
+      if (userData.dietPreference) parts.push(`Диетично предпочитание: ${userData.dietPreference}`);
+      if (userData.medicalConditions) {
+        const conditions = Array.isArray(userData.medicalConditions)
+          ? userData.medicalConditions.join(', ')
+          : userData.medicalConditions;
+        parts.push(`Здравен статус: ${conditions}`);
+      }
+      if (userData.medications === 'Да' && userData.medicationsDetails) {
+        parts.push(`Медикаменти: ${userData.medicationsDetails}`);
+      }
+      if (userData.dietDislike) parts.push(`Нежелани храни (от профил): ${userData.dietDislike}`);
       dietContext = parts.join('. ');
     }
 
     let planContext = '';
     if (dietPlan && dietPlan.summary) {
       planContext = typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary);
+    }
+
+    let forbiddenFoodsContext = '';
+    if (dietPlan && Array.isArray(dietPlan.forbidden) && dietPlan.forbidden.length > 0) {
+      forbiddenFoodsContext = dietPlan.forbidden.join(', ');
     }
 
     const mealTime = mealContext || 'неуточнено';
@@ -6904,15 +6919,17 @@ async function handleAnalyzeFoodImage(request, env) {
       analysisPrompt = customPrompt
         .replace(/\{dietContext\}/g, dietContext || 'Не е предоставен')
         .replace(/\{planContext\}/g, planContext || 'Не е предоставен')
+        .replace(/\{forbiddenFoods\}/g, forbiddenFoodsContext || 'не са посочени')
         .replace(/\{mealTime\}/g, mealTime);
     } else {
       // Default hardcoded prompt
       analysisPrompt = `Ти си експерт диетолог с компютърно зрение. Анализирай това изображение на храна и върни САМО валиден JSON обект (без markdown, без \`\`\`).
 
-ЗАДАЧА: Анализирай храната на снимката и дай количествена и качествена оценка.
+ЗАДАЧА: Анализирай храната на снимката и дай количествена и качествена оценка спрямо профила и здравния статус на клиента.
 
 ${dietContext ? `КОНТЕКСТ НА КЛИЕНТА: ${dietContext}` : ''}
 ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
+ЗАБРАНЕНИ/НЕПРЕПОРЪЧИТЕЛНИ ХРАНИ ЗА КЛИЕНТА: ${forbiddenFoodsContext || 'не са посочени'}
 МОМЕНТ НА ХРАНЕНЕ: ${mealTime}
 
 Върни ТОЧНО този JSON формат:
@@ -6937,7 +6954,7 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
   "dietSuitability": {
     "score": число_от_1_до_10,
     "verdict": "Подходяща" или "Частично подходяща" или "Неподходяща",
-    "explanation": "Кратко обяснение защо е или не е подходяща за текущата диета и момент"
+    "explanation": "Кратко обяснение защо е или не е подходяща — вземи предвид диетата, момента на хранене, здравния статус и забранените храни за клиента"
   },
   "suggestions": "Препоръки за подобряване на хранението (кратко, 1-2 изречения)",
   "confidence": "high" или "medium" или "low"
@@ -6945,6 +6962,8 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
 
 ВАЖНО:
 - Оценявай грамажа визуално спрямо размера на чинията/контейнера
+- Ако снимката съдържа забранени или непрепоръчителни храни, отрази това в оценката и обяснението
+- Отчитай здравния статус (заболявания, медикаменти) при оценката на подходящостта
 - Ако не можеш да разпознаеш храната, постави confidence: "low" и обясни
 - Всички числа да са числа (не текст)
 - Отговори САМО с JSON, без допълнителен текст`;
