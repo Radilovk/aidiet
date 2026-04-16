@@ -1495,8 +1495,9 @@
                     if (Array.isArray(p)) data = p;
                     else return [data];
                 } catch(e) {
-                    // Split by newlines
-                    var lines = data.split(/\n+/).map(function(l){ return l.replace(/^[-•*!]\s*/, '').trim(); }).filter(Boolean);
+                    // Split by newlines and strip common list-item prefixes (-, •, *, !)
+                    var BULLET_PREFIX = /^[-•*!]\s*/;
+                    var lines = data.split(/\n+/).map(function(l){ return l.replace(BULLET_PREFIX, '').trim(); }).filter(Boolean);
                     return lines.length > 0 ? lines : [defaultMsg];
                 }
             }
@@ -1627,16 +1628,28 @@
             var analysis = plan.analysis;
             var problems = analysis.keyProblems.filter(function(p) { return p.severity !== 'Normal'; });
 
-            // Health score
+            // Health score calculation
+            // MIN_HEALTH_SCORE (15): represents the floor — 0 would mean death, so 15
+            // indicates alive but in very poor health.
+            // STRATEGIC_REDUCTION (0.10): a 10% strategic reduction applied to the
+            // fallback calculation to slightly underestimate current status, encouraging
+            // user motivation to improve. Matches the logic in analysis.html.
+            var MIN_HEALTH_SCORE = 15;
+            var MAX_HEALTH_SCORE = 100;
+            var STRATEGIC_REDUCTION = 0.10;
+
             var healthScore = 50;
             if (analysis.currentHealthStatus && typeof analysis.currentHealthStatus.score === 'number') {
-                healthScore = Math.max(15, Math.min(100, Math.round(analysis.currentHealthStatus.score)));
+                // Use AI-provided score (already includes strategic reduction)
+                healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(analysis.currentHealthStatus.score)));
             } else if (problems.length > 0) {
+                // Fallback: derive score from average problem severity
                 var totalSev = 0;
                 problems.forEach(function(p) { totalSev += (p.severityValue || 50); });
                 var avg = totalSev / problems.length;
-                healthScore = Math.max(15, Math.round(100 - Math.min(avg, 100)));
-                healthScore = Math.max(15, healthScore - Math.floor(healthScore * 0.10));
+                var rawScore = Math.max(MIN_HEALTH_SCORE, Math.round(MAX_HEALTH_SCORE - Math.min(avg, MAX_HEALTH_SCORE)));
+                // Apply strategic reduction so the displayed score motivates improvement
+                healthScore = Math.max(MIN_HEALTH_SCORE, rawScore - Math.floor(rawScore * STRATEGIC_REDUCTION));
             }
 
             var gaugeColor, healthLabel;
@@ -2045,7 +2058,8 @@
                 var val = data[f.key];
                 if (!val && f.alt) val = data[f.alt];
                 if (!val || (typeof val === 'string' && val.trim() === '')) return;
-                // Skip protocol IDs like 'insulin_resistance' — show readable version or skip
+                // Skip machine-readable protocol identifiers (e.g. 'insulin_resistance',
+                // 'autoimmune_aip') — these are internal codes, not user-facing labels.
                 if (f.key === 'clinicalProtocol' && /^[a-z_]+$/.test(val)) return;
 
                 var displayVal = '';
