@@ -1438,7 +1438,7 @@
             margin-top: 4px;
         }
         
-        @media (max-width: 360px) {
+        @media (max-width: 480px) {
             .macro-legend {
                 grid-template-columns: 1fr;
                 gap: 10px;
@@ -2257,9 +2257,9 @@
         .food-macro-segment {
             transition: width 0.4s ease;
         }
-        .food-macro-segment.protein { background: #3b82f6; }
-        .food-macro-segment.carbs { background: #f59e0b; }
-        .food-macro-segment.fats { background: #ef4444; }
+        .food-macro-segment.protein { background: #6366f1; }
+        .food-macro-segment.fats { background: #fbbf24; }
+        .food-macro-segment.carbs { background: #f87171; }
         .food-macro-segment.fiber { background: #10b981; }
         .food-macros-legend {
             display: flex;
@@ -2278,9 +2278,9 @@
             height: 10px;
             border-radius: 50%;
         }
-        .food-macro-dot.protein { background: #3b82f6; }
-        .food-macro-dot.carbs { background: #f59e0b; }
-        .food-macro-dot.fats { background: #ef4444; }
+        .food-macro-dot.protein { background: #6366f1; }
+        .food-macro-dot.fats { background: #fbbf24; }
+        .food-macro-dot.carbs { background: #f87171; }
         .food-macro-dot.fiber { background: #10b981; }
 
         /* Suitability badge */
@@ -6057,14 +6057,14 @@
                     <h4><i class="fas fa-chart-pie"></i> Макронутриенти</h4>
                     <div class="food-macros-bar">
                         <div class="food-macro-segment protein" style="width:${pPct}%"></div>
-                        <div class="food-macro-segment carbs" style="width:${cPct}%"></div>
                         <div class="food-macro-segment fats" style="width:${fPct}%"></div>
+                        <div class="food-macro-segment carbs" style="width:${cPct}%"></div>
                         <div class="food-macro-segment fiber" style="width:${fiPct}%"></div>
                     </div>
                     <div class="food-macros-legend">
                         <span class="food-macro-label"><span class="food-macro-dot protein"></span> Протеин: ${Math.round(totalP)}г (${pPct}%)</span>
-                        <span class="food-macro-label"><span class="food-macro-dot carbs"></span> Въглех.: ${Math.round(totalC)}г (${cPct}%)</span>
                         <span class="food-macro-label"><span class="food-macro-dot fats"></span> Мазнини: ${Math.round(totalF)}г (${fPct}%)</span>
+                        <span class="food-macro-label"><span class="food-macro-dot carbs"></span> Въглех.: ${Math.round(totalC)}г (${cPct}%)</span>
                         <span class="food-macro-label"><span class="food-macro-dot fiber"></span> Фибри: ${Math.round(totalFi)}г</span>
                     </div>
                 </div>`;
