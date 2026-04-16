@@ -4446,110 +4446,56 @@
             window.location.href = 'profile.html';
         }
 
-        // Infinite circular day-chip carousel ---
-        // We render _CHIP_COPIES full weeks so the user can scroll left/right indefinitely.
-        // When they approach either edge we silently re-center on the same day.
-        const _CHIP_COPIES       = 5;   // total copies of the 7-day week rendered in the carousel
-        const _MID_COPY          = 2;   // 0-based index of the canonical middle copy
-        const _SCROLL_END_DELAY  = 120; // ms to wait after last scroll event before acting
-        let   _activeDayNum      = 1;   // tracks the currently selected day (1–7)
-
         function renderDayChips(activeDayNum) {
-            _activeDayNum = activeDayNum;
             const fullDayNames  = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
             const shortDayNames = ['Пон.', 'Вт.', 'Ср.', 'Чет.', 'Пет.', 'Съб.', 'Нед.'];
             const container     = document.getElementById('daysContainer');
-
-            // Remove previous scroll listener
-            if (container._chipScrollHandler) {
-                container.removeEventListener('scroll', container._chipScrollHandler);
-                container._chipScrollHandler = null;
-            }
-
             container.innerHTML = '';
 
-            // Build _CHIP_COPIES × 7 = 35 chips
-            for (let copy = 0; copy < _CHIP_COPIES; copy++) {
-                for (let d = 1; d <= 7; d++) {
-                    const isActive = (copy === _MID_COPY) && (d === activeDayNum);
-                    const btn = document.createElement('button');
-                    btn.className = 'day-chip' + (isActive ? ' active' : '');
-                    btn.dataset.dayNum = String(d);
-                    btn.dataset.copy   = String(copy);
-                    btn.setAttribute('role', 'tab');
-                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-                    btn.setAttribute('tabindex', isActive ? '0' : '-1');
-                    btn.setAttribute('aria-label', fullDayNames[d - 1]);
-                    btn.textContent = isActive ? fullDayNames[d - 1] : shortDayNames[d - 1];
-                    btn.addEventListener('click', () => selectDay(d));
-                    container.appendChild(btn);
-                }
+            let activeChip = null;
+            for (let offset = -3; offset <= 3; offset++) {
+                const dayNum   = ((activeDayNum - 1 + offset + 7) % 7) + 1;
+                const isActive = offset === 0;
+                const btn = document.createElement('button');
+                btn.className = 'day-chip' + (isActive ? ' active' : '');
+                btn.dataset.day = String(dayNum);
+                btn.setAttribute('role', 'tab');
+                btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                btn.setAttribute('tabindex', isActive ? '0' : '-1');
+                btn.setAttribute('aria-label', fullDayNames[dayNum - 1]);
+                btn.textContent = isActive ? fullDayNames[dayNum - 1] : shortDayNames[dayNum - 1];
+                btn.addEventListener('click', () => selectDay(dayNum));
+                container.appendChild(btn);
+                if (isActive) activeChip = btn;
             }
 
-            // Instantly scroll so the active chip (in the middle copy) is centered
-            const chips      = container.querySelectorAll('.day-chip');
-            const activeIdx  = _MID_COPY * 7 + (activeDayNum - 1);
-            const activeChip = chips[activeIdx];
             if (activeChip) {
                 requestAnimationFrame(() => {
-                    const scrollTo = activeChip.offsetLeft - (container.clientWidth - activeChip.offsetWidth) / 2;
-                    container.scrollLeft = Math.max(0, scrollTo);
+                    container.scrollLeft = activeChip.offsetLeft - (container.clientWidth - activeChip.offsetWidth) / 2;
                 });
             }
 
-            // Infinite scroll handler ─ fires after user stops scrolling
-            let _scrollEndTimer = null;
-            function onChipScroll() {
-                clearTimeout(_scrollEndTimer);
-                _scrollEndTimer = setTimeout(() => {
-                    const midX = container.scrollLeft + container.clientWidth / 2;
-
-                    // Find the chip whose center is closest to the container center
-                    let best = null, bestDist = Infinity;
-                    container.querySelectorAll('.day-chip').forEach(chip => {
-                        const cx   = chip.offsetLeft + chip.offsetWidth / 2;
-                        const dist = Math.abs(cx - midX);
-                        if (dist < bestDist) { bestDist = dist; best = chip; }
-                    });
-                    if (!best) return;
-
-                    const newDay  = parseInt(best.dataset.dayNum);
-                    const newCopy = parseInt(best.dataset.copy);
-
-                    // If the day changed, load the new day's data
-                    if (newDay !== _activeDayNum) {
-                        _activeDayNum = newDay;
-                        renderDay(newDay);
-                    }
-
-                    // Re-center silently when user drifted to an edge copy
-                    if (newCopy === 0 || newCopy === _CHIP_COPIES - 1) {
-                        renderDayChips(newDay);
-                        return;
-                    }
-
-                    // Otherwise just refresh the active styling in place
-                    container.querySelectorAll('.day-chip').forEach(chip => {
-                        const d          = parseInt(chip.dataset.dayNum);
-                        const c          = parseInt(chip.dataset.copy);
-                        const isCurrent  = (c === _MID_COPY) && (d === newDay);
-                        chip.classList.toggle('active', isCurrent);
-                        chip.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
-                        chip.setAttribute('tabindex',      isCurrent ? '0' : '-1');
-                        chip.textContent = isCurrent ? fullDayNames[d - 1] : shortDayNames[d - 1];
-                    });
-                }, _SCROLL_END_DELAY);
+            // Attach scroll listener once; re-renders chips centered on closest day when scroll ends
+            if (!container._scrollBound) {
+                container._scrollBound = true;
+                let t = null;
+                container.addEventListener('scroll', () => {
+                    clearTimeout(t);
+                    t = setTimeout(() => {
+                        const midX = container.scrollLeft + container.clientWidth / 2;
+                        let best = null, bestDist = Infinity;
+                        container.querySelectorAll('.day-chip').forEach(chip => {
+                            const d = Math.abs(chip.offsetLeft + chip.offsetWidth / 2 - midX);
+                            if (d < bestDist) { bestDist = d; best = chip; }
+                        });
+                        if (best) selectDay(parseInt(best.dataset.day));
+                    }, 150);
+                }, { passive: true });
             }
-
-            container.addEventListener('scroll', onChipScroll, { passive: true });
-            container._chipScrollHandler = onChipScroll;
         }
 
         function selectDay(dayNum) {
-            // 1. Re-render chips centered on the selected day (cyclic)
             renderDayChips(dayNum);
-
-            // 2. Load day data
             renderDay(dayNum);
         }
 
@@ -5873,6 +5819,11 @@
 
             // Auto-select meal context based on time of day
             autoSelectMealContext();
+
+            // Auto-open food analysis if navigated here with ?food=1
+            if (new URLSearchParams(window.location.search).get('food') === '1') {
+                openFoodAnalysis();
+            }
         });
 
         function autoSelectMealContext() {
