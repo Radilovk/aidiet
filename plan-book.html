@@ -90,15 +90,16 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--slate-200);
-            padding: 12px 24px;
+            padding: 14px 28px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
         }
 
         .screen-controls .back-link {
@@ -219,6 +220,7 @@
             break-after: page;
             position: relative;
             overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.03);
         }
 
         .page:last-child {
@@ -245,23 +247,45 @@
             align-items: center;
             justify-content: center;
             min-height: 700px;
-            background: linear-gradient(175deg, white 0%, var(--green-50) 100%);
+            background: linear-gradient(175deg, white 0%, var(--green-50) 50%, var(--blue-50) 100%);
+            position: relative;
+        }
+
+        .cover-page::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: linear-gradient(to top, rgba(22,163,74,0.04), transparent);
+            pointer-events: none;
         }
 
         .cover-page::before {
             height: 6px;
+            background: linear-gradient(90deg, var(--green-400), var(--green-600), var(--blue-500), var(--purple-500));
         }
 
         .cover-logo {
-            width: 80px;
-            height: 80px;
+            width: 88px;
+            height: 88px;
             background: linear-gradient(135deg, var(--green-500), var(--green-700));
-            border-radius: 22px;
+            border-radius: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 32px;
-            box-shadow: 0 8px 32px rgba(22,163,74,0.25);
+            box-shadow: 0 12px 40px rgba(22,163,74,0.3), 0 4px 12px rgba(22,163,74,0.15);
+            position: relative;
+        }
+
+        .cover-logo::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 28px;
+            border: 2px solid rgba(22,163,74,0.15);
         }
 
         .cover-logo i {
@@ -306,7 +330,7 @@
             border-radius: 14px;
             padding: 28px 32px;
             border: 1px solid var(--green-100);
-            box-shadow: 0 4px 16px rgba(22,163,74,0.08);
+            box-shadow: 0 8px 32px rgba(22,163,74,0.08), 0 2px 8px rgba(0,0,0,0.04);
             position: relative;
         }
 
@@ -357,6 +381,7 @@
             font-size: 1.2rem;
             color: white;
             flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .section-icon.green { background: linear-gradient(135deg, var(--green-500), var(--green-700)); }
@@ -383,10 +408,11 @@
         .health-score-display {
             text-align: center;
             margin-bottom: 32px;
-            padding: 28px;
+            padding: 32px;
             background: linear-gradient(135deg, var(--green-50), var(--blue-50));
-            border-radius: 14px;
+            border-radius: 16px;
             border: 1px solid var(--green-100);
+            box-shadow: inset 0 2px 8px rgba(22,163,74,0.06);
         }
 
         .health-score-label {
@@ -1062,6 +1088,76 @@
             line-height: 1.5;
         }
 
+        /* ===== QUESTIONNAIRE Q&A SECTION ===== */
+        .qa-section-intro {
+            background: linear-gradient(135deg, var(--blue-50), var(--green-50));
+            border-radius: 14px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            border: 1px solid var(--blue-100);
+            text-align: center;
+        }
+
+        .qa-section-intro p {
+            font-size: 0.9rem;
+            color: var(--slate-600);
+            line-height: 1.6;
+        }
+
+        .qa-item {
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-100);
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .qa-item .qa-question {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--slate-500);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.4;
+        }
+
+        .qa-item .qa-question i {
+            color: var(--green-500);
+            margin-top: 2px;
+            flex-shrink: 0;
+            font-size: 0.75rem;
+        }
+
+        .qa-item .qa-answer {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--slate-800);
+            line-height: 1.55;
+            padding-left: 24px;
+            white-space: pre-line;
+        }
+
+        .qa-item .qa-answer.multi-answer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding-left: 24px;
+        }
+
+        .qa-answer-tag {
+            display: inline-block;
+            background: var(--green-100);
+            color: var(--green-800);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 3px 12px;
+            border-radius: 16px;
+        }
+
         /* Page footer */
         .page-footer {
             margin-top: 32px;
@@ -1133,7 +1229,12 @@
 
         /* ===== PRINT STYLES ===== */
         @media print {
-            html { font-size: 11.5pt; }
+            @page {
+                size: A4;
+                margin: 18mm 15mm 18mm 15mm;
+            }
+
+            html { font-size: 10.5pt; }
 
             body {
                 background: white;
@@ -1155,9 +1256,10 @@
                 box-shadow: none;
                 border-radius: 0;
                 margin: 0;
-                padding: 48px 52px;
+                padding: 28px 20px;
                 page-break-after: always;
                 break-after: page;
+                border-bottom: none;
             }
 
             .page:last-child {
@@ -1165,11 +1267,56 @@
             }
 
             .page::before {
-                height: 4px;
+                height: 3px;
             }
 
             .cover-page {
                 min-height: 100vh;
+                padding: 48px 36px;
+            }
+
+            /* Prevent orphaned content on print pages */
+            .problem-card-book,
+            .forecast-card-book,
+            .strategy-card,
+            .meal-card-book,
+            .supplement-card,
+            .hack-item,
+            .user-data-card,
+            .qa-item,
+            .tips-list li,
+            .food-list li {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* Ensure section headers stay with their content */
+            .section-header {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            .day-header {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            /* Prevent page breaks right after headers */
+            h2, h3, h4 {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            /* Keep forecast grid together */
+            .forecast-grid-book {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            /* Keep macros row together */
+            .macros-row {
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
 
             .strategy-grid {
@@ -1189,6 +1336,46 @@
             }
 
             a { color: inherit; text-decoration: none; }
+
+            /* Tighter spacing for print to maximize content per page */
+            .section-header {
+                margin-bottom: 18px;
+                padding-bottom: 12px;
+            }
+
+            .meal-card-book {
+                margin-bottom: 12px;
+            }
+
+            .problem-card-book {
+                margin-bottom: 10px;
+                padding: 14px 18px;
+            }
+
+            .qa-item {
+                margin-bottom: 8px;
+                padding: 10px 16px;
+            }
+
+            .strategy-card {
+                padding: 16px 18px;
+            }
+
+            .page-footer {
+                margin-top: 20px;
+                padding-top: 10px;
+            }
+
+            /* Day pages: ensure each day starts on new page */
+            #dayPagesContainer .page {
+                page-break-before: always;
+                break-before: page;
+            }
+
+            #dayPagesContainer .page:first-child {
+                page-break-before: auto;
+                break-before: auto;
+            }
         }
 
         /* ===== RESPONSIVE ===== */
@@ -1424,6 +1611,11 @@
             </div>
         </div>
 
+        <!-- ===================== PAGES: QUESTIONNAIRE Q&A ===================== -->
+        <div id="questionnaireQAContainer">
+            <!-- Populated by JS: one or more .page elements with questionnaire Q&A -->
+        </div>
+
     </div><!-- /.book -->
 
     <script>
@@ -1570,6 +1762,7 @@
                 renderSupplements(dietPlan);
                 renderHacks(dietPlan);
                 renderUserData(userData, qaData);
+                renderQuestionnaireQA(qaData);
                 renderTOC();
 
             } catch (err) {
@@ -1756,9 +1949,7 @@
             if (s.breakfastStrategy) {
                 cards.push({ label: 'Сутрешен детокс', icon: 'fa-coffee', text: s.breakfastStrategy });
             }
-            if (s.communicationStyle) {
-                cards.push({ label: 'Комуникационен стил', icon: 'fa-comments', text: s.communicationStyle });
-            }
+            // communicationStyle removed per requirements
 
             grid.innerHTML = cards.map(function(c) {
                 return '<div class="strategy-card' + (c.full ? ' full-width' : '') + '">' +
@@ -2087,6 +2278,183 @@
             }).join('');
         }
 
+        // ===== QUESTIONNAIRE Q&A =====
+
+        function renderQuestionnaireQA(qaData) {
+            var container = document.getElementById('questionnaireQAContainer');
+
+            if (!qaData || Object.keys(qaData).length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            // Question mapping: id -> question text (matching questionnaire2.html)
+            var questionLabels = {
+                'name': 'Въведете вашето име:',
+                'firstName': 'Въведете вашето име:',
+                'lastName': 'Фамилия:',
+                'gender': 'Моля, изберете вашия пол:',
+                'age': 'Въведете вашата възраст:',
+                'height': 'Въведете вашия ръст (в см):',
+                'weight': 'Въведете вашето тегло (в кг):',
+                'email': 'Въведете вашия имейл адрес:',
+                'healthConditions': 'Имате ли някое от следните здравословни състояния?',
+                'goal': 'Изберете основната си цел:',
+                'lossKg': 'Колко килограма бихте искали да свалите?',
+                'sleepHours': 'Колко часа сън имате средно на нощ?',
+                'sleepInterrupt': 'Имате ли прекъсвания на съня?',
+                'chronotype': 'Вашият хронотип:',
+                'dailyActivityLevel': 'Ниво на активност през деня:',
+                'stressLevel': 'Ниво на стрес:',
+                'sportActivity': 'Ниво на спортна активност:',
+                'waterIntake': 'Колко вода пиете дневно?',
+                'drinksSweet': 'Сокове, газирани напитки, фрешове:',
+                'drinksAlcohol': 'Напитки с алкохолно съдържание:',
+                'weightChange': 'Имали ли сте рязко покачване на теглото или отслабване в последната една година?',
+                'weightChangeDetails': 'Колко килограма, за колко време, и как се справихте с промяната?',
+                'dietHistory': 'Спазвали ли сте диета през последната година?',
+                'dietType': 'Какъв тип диета?',
+                'dietResult': 'Какъв беше резултатът?',
+                'overeatingFrequency': 'Колко често ядете повече от планираното количество?',
+                'foodCravings': 'Често изпитвате нужда от:',
+                'foodTriggers': 'Кои ситуации предизвикват желание за храна?',
+                'eatingHabits': 'Кои от следните хранителни навици присъстват при вас?',
+                'compensationMethods': 'Използвате ли методи за компенсация след прекомерно хранене?',
+                'socialComparison': 'Колко често се сравнявате с други хора (вкл. социални мрежи)?',
+                'dietPreference': 'Предпочитани храни и тип диета:',
+                'dietDislike': 'Не обичам, имам непоносимост или алергия към:',
+                'dietLove': 'Не мога без, обичам:',
+                'medications': 'Приемате ли лекарства или хранителни добавки?',
+                'medicationsDetails': 'Кои и в каква дозировка?',
+                'additionalNotes': 'Допълнителни бележки:',
+                'clinicalProtocol': 'Клиничен протокол:',
+                'medicalConditions': 'Медицински състояния:',
+                'sportDays': 'Спортни дни в седмицата:'
+            };
+
+            // Ordered keys for display
+            var orderedKeys = [
+                'name', 'firstName', 'lastName', 'gender', 'age', 'height', 'weight', 'email',
+                'goal', 'lossKg', 'healthConditions', 'medicalConditions', 'clinicalProtocol',
+                'sleepHours', 'sleepInterrupt', 'chronotype',
+                'dailyActivityLevel', 'stressLevel', 'sportActivity', 'sportDays',
+                'waterIntake', 'drinksSweet', 'drinksAlcohol',
+                'weightChange', 'weightChangeDetails',
+                'dietHistory', 'dietType', 'dietResult',
+                'overeatingFrequency', 'foodCravings', 'foodTriggers',
+                'eatingHabits', 'compensationMethods', 'socialComparison',
+                'dietPreference', 'dietDislike', 'dietLove',
+                'medications', 'medicationsDetails',
+                'additionalNotes'
+            ];
+
+            // Skip internal/technical fields
+            var skipKeys = ['medicalFiles', 'planSource', 'timestamp', 'version'];
+
+            // Build QA items
+            var qaItems = [];
+            var usedKeys = {};
+
+            // Process ordered keys first
+            orderedKeys.forEach(function(key) {
+                if (usedKeys[key] || skipKeys.indexOf(key) >= 0) return;
+                var val = qaData[key];
+                if (val === undefined || val === null || val === '') return;
+                if (typeof val === 'string' && val.trim() === '') return;
+                // Skip machine-readable protocol identifiers
+                if (key === 'clinicalProtocol' && /^[a-z_]+$/.test(val)) return;
+                usedKeys[key] = true;
+                qaItems.push({ key: key, question: questionLabels[key] || key, answer: val });
+            });
+
+            // Then add any remaining keys (dynamic questions, condition-specific, etc.)
+            Object.keys(qaData).forEach(function(key) {
+                if (usedKeys[key] || skipKeys.indexOf(key) >= 0) return;
+                var val = qaData[key];
+                if (val === undefined || val === null || val === '') return;
+                if (typeof val === 'string' && val.trim() === '') return;
+                usedKeys[key] = true;
+
+                // Generate a readable label for dynamic question keys (dq_*)
+                var label = questionLabels[key] || key;
+                if (key.indexOf('dq_') === 0) {
+                    // These are dynamic questionnaire keys - use the key as-is
+                    // but try to make it more readable
+                    label = key.replace(/^dq_/, '').replace(/_/g, ' ');
+                    label = label.charAt(0).toUpperCase() + label.slice(1);
+                }
+
+                qaItems.push({ key: key, question: label, answer: val });
+            });
+
+            if (qaItems.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            // Group items into pages (14 items per page to fit A4 nicely)
+            var ITEMS_PER_PAGE = 14;
+            var pages = [];
+            for (var i = 0; i < qaItems.length; i += ITEMS_PER_PAGE) {
+                pages.push(qaItems.slice(i, i + ITEMS_PER_PAGE));
+            }
+
+            var html = '';
+            pages.forEach(function(pageItems, pageIdx) {
+                html += '<div class="page">';
+
+                // Header on first page only (or a continuation header on subsequent pages)
+                if (pageIdx === 0) {
+                    html += '<div class="section-header">';
+                    html += '<div class="section-icon green"><i class="fas fa-clipboard-list"></i></div>';
+                    html += '<div>';
+                    html += '<div class="section-title">Въпросник — Въпроси и Отговори</div>';
+                    html += '<div class="section-subtitle">Пълна информация от здравния въпросник на клиента</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '<div class="qa-section-intro"><p>По-долу са представени всички въпроси от здравния въпросник заедно с отговорите, предоставени от клиента.</p></div>';
+                } else {
+                    html += '<div class="section-header">';
+                    html += '<div class="section-icon green"><i class="fas fa-clipboard-list"></i></div>';
+                    html += '<div>';
+                    html += '<div class="section-title">Въпросник — Продължение</div>';
+                    html += '<div class="section-subtitle">Страница ' + (pageIdx + 1) + ' от ' + pages.length + '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                }
+
+                pageItems.forEach(function(item) {
+                    html += '<div class="qa-item">';
+                    html += '<div class="qa-question"><i class="fas fa-chevron-right"></i> ' + esc(item.question) + '</div>';
+
+                    if (Array.isArray(item.answer)) {
+                        var filtered = item.answer.filter(Boolean);
+                        if (filtered.length > 0) {
+                            html += '<div class="qa-answer multi-answer">';
+                            filtered.forEach(function(a) {
+                                html += '<span class="qa-answer-tag">' + esc(a) + '</span>';
+                            });
+                            html += '</div>';
+                        } else {
+                            html += '<div class="qa-answer">—</div>';
+                        }
+                    } else {
+                        html += '<div class="qa-answer">' + escNl(String(item.answer)) + '</div>';
+                    }
+
+                    html += '</div>';
+                });
+
+                html += '<div class="page-footer">';
+                html += '<div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>';
+                html += '<div>Въпросник — стр. ' + (pageIdx + 1) + ' / ' + pages.length + '</div>';
+                html += '</div>';
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+        }
+
         // ===== TABLE OF CONTENTS =====
 
         function renderTOC() {
@@ -2137,6 +2505,14 @@
             if (document.getElementById('userDataPage').style.display !== 'none') {
                 pageNum++;
                 items.push({ title: 'Потребителски Данни', page: pageNum });
+            }
+
+            // Count questionnaire Q&A pages
+            var qaPages = document.getElementById('questionnaireQAContainer').querySelectorAll('.page');
+            if (qaPages.length > 0) {
+                pageNum++;
+                items.push({ title: 'Въпросник — Въпроси и Отговори', page: pageNum });
+                pageNum += qaPages.length - 1;
             }
 
             var tocList = document.getElementById('tocList');
