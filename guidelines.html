@@ -17,6 +17,8 @@
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
             --primary-red: #10b981;
@@ -84,9 +86,9 @@
         }
 
         [data-theme="dark"] header {
-            background: rgba(30, 41, 59, 0.9);
-            border-bottom-color: rgba(52, 211, 153, 0.08);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            background: rgba(26, 32, 40, 0.92);
+            border-bottom-color: rgba(52, 211, 153, 0.1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
         }
 
         .back-btn {
@@ -106,10 +108,10 @@
         }
 
         header h1 {
-            font-size: 1.3rem;
+            font-size: 1.15rem;
             font-weight: 800;
             color: var(--text-dark);
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
             flex: 1;
             text-align: center;
         }
@@ -146,7 +148,7 @@
 
         /* --- HEADER FOOD ANALYSIS BUTTON --- */
         .header-food-btn {
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--accent-blue) 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
             border: none;
             width: 42px;
             height: 42px;
@@ -159,8 +161,12 @@
             cursor: pointer;
             flex-shrink: 0;
             box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-            transition: transform 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
+        }
+        .header-food-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 22px rgba(16, 185, 129, 0.5);
         }
         .header-food-btn:active { transform: scale(0.93); }
 

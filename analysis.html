@@ -18,6 +18,8 @@
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
             --primary-red: #10b981;
@@ -110,7 +112,10 @@
         .analysis-header h1 {
             font-size: 1.15rem;
             font-weight: 800;
+            color: var(--text-dark);
             letter-spacing: -0.3px;
+            flex: 1;
+            text-align: center;
         }
         .analysis-header .back-btn {
             background: rgba(16, 185, 129, 0.08);
