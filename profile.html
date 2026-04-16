@@ -100,8 +100,48 @@
             font-size: 1.2rem;
             color: var(--text-dark);
             cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
+        .back-btn:hover {
+            background: rgba(16, 185, 129, 0.08);
+            transform: translateX(-3px);
+        }
+
+        /* --- HEADER FOOD ANALYSIS BUTTON --- */
+        .header-food-btn {
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .header-food-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 22px rgba(16, 185, 129, 0.5);
+        }
+        .header-food-btn:active { transform: scale(0.93); }
+
+        /* --- THEME TOGGLE (inside content) --- */
         .theme-toggle-btn {
             background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
             border: none;
@@ -136,6 +176,34 @@
 
         .theme-toggle-btn:active {
             transform: scale(0.95);
+        }
+
+        /* --- APPEARANCE SETTINGS ROW --- */
+        .appearance-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(16, 185, 129, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        [data-theme="dark"] .appearance-card {
+            border-color: rgba(52, 211, 153, 0.1);
+        }
+        .appearance-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .appearance-label i {
+            font-size: 1.1rem;
+            color: var(--primary-red);
         }
 
         h1 {
@@ -1237,16 +1305,25 @@
     </div>
     
     <!-- Header -->
-    <header>
-        <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
+    <header role="banner" aria-label="Главна навигация">
+        <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
         <h1>Моят Профил</h1>
-        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема">
-            <i class="fas fa-moon" id="themeIcon"></i>
-        </button>
+        <button class="header-food-btn" onclick="window.location.href='plan.html?food=1'" aria-label="Анализ на храна чрез снимка"><i class="fas fa-camera"></i></button>
     </header>
 
     <!-- Main Content -->
     <div class="container">
+        <!-- Appearance Settings -->
+        <div class="appearance-card">
+            <div class="appearance-label">
+                <i class="fas fa-palette"></i>
+                <span>Тема на приложението</span>
+            </div>
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Смени тема">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+
         <div class="profile-header">
             <div class="profile-avatar" id="profileAvatar">И</div>
             <div class="profile-name" id="profileName">Име</div>
