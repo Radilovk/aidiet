@@ -2043,9 +2043,9 @@
             right: calc(24px + var(--safe-area-inset-right));
             width: 52px;
             height: 52px;
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
             border-radius: 16px;
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4), 0 3px 10px rgba(59, 130, 246, 0.2);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4), 0 3px 10px rgba(16, 185, 129, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2059,7 +2059,7 @@
         }
         .fab-food-analysis:hover {
             transform: scale(1.1);
-            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5);
         }
         .fab-food-analysis:active {
             transform: scale(0.93);
@@ -2100,7 +2100,7 @@
         }
         .food-analysis-header {
             padding: 16px 20px;
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
             color: white;
             display: flex;
             justify-content: space-between;
@@ -2133,7 +2133,7 @@
 
         /* Camera/Upload area */
         .food-capture-area {
-            border: 2px dashed rgba(59, 130, 246, 0.3);
+            border: 2px dashed rgba(16, 185, 129, 0.3);
             border-radius: 16px;
             padding: 30px 20px;
             text-align: center;
@@ -2143,17 +2143,17 @@
             margin-bottom: 16px;
         }
         .food-capture-area:hover {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.05);
+            border-color: var(--primary-red);
+            background: rgba(16, 185, 129, 0.05);
         }
         .food-capture-area.has-image {
             border-style: solid;
-            border-color: #3b82f6;
+            border-color: var(--primary-red);
             padding: 12px;
         }
         .food-capture-icon {
             font-size: 2.5rem;
-            color: #3b82f6;
+            color: var(--primary-red);
             margin-bottom: 10px;
         }
         .food-capture-text {
@@ -2174,7 +2174,7 @@
         .food-analyze-btn {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
             color: white;
             border: none;
             border-radius: 14px;
@@ -2194,7 +2194,7 @@
         }
         .food-analyze-btn:not(:disabled):hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
         }
 
         /* Results area */
@@ -2728,7 +2728,7 @@
 
                 <!-- Analyze Button -->
                 <button class="food-analyze-btn" id="foodAnalyzeBtn" onclick="analyzeFoodImage()" disabled>
-                    <i class="fas fa-search"></i> Анализирай храната
+                    <i class="fas fa-paper-plane"></i> Изпрати за анализ
                 </button>
 
                 <!-- Results Area -->
@@ -3893,6 +3893,13 @@
             loadChatHistory();
             // Check for notification updates from backend (only call if admin changed)
             checkNotificationUpdates();
+            // Auto-open chat if navigated with ?chat=1
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('chat') === '1') {
+                setTimeout(function() { openChat(); }, 500);
+                // Clean up URL
+                window.history.replaceState({}, '', window.location.pathname);
+            }
         });
 
         function loadChatModeConfig() {
@@ -5770,7 +5777,7 @@
             const analyzeBtn = document.getElementById('foodAnalyzeBtn');
             if (analyzeBtn) {
                 analyzeBtn.disabled = true;
-                analyzeBtn.innerHTML = '<i class="fas fa-search"></i> Анализирай храната';
+                analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за анализ';
             }
             const results = document.getElementById('foodResults');
             if (results) {
@@ -5867,6 +5874,7 @@
                 const analyzeBtn = document.getElementById('foodAnalyzeBtn');
                 if (analyzeBtn) {
                     analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за анализ';
                 }
             });
         }
@@ -6001,7 +6009,7 @@
                 foodAnalysisInProgress = false;
                 if (analyzeBtn) {
                     analyzeBtn.disabled = false;
-                    analyzeBtn.innerHTML = '<i class="fas fa-search"></i> Анализирай отново';
+                    analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за повторен анализ';
                 }
             }
         }
