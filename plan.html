@@ -962,7 +962,7 @@
             right: calc(24px + var(--safe-area-inset-right));
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent, #059669) 100%);
             border-radius: 20px;
             box-shadow: 
                 0 8px 28px rgba(16, 185, 129, 0.45),
@@ -979,6 +979,7 @@
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
             overflow: hidden;
+            animation: fabPulse 3s ease-in-out infinite;
         }
         
         .fab-chat::before {
@@ -988,23 +989,6 @@
             background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 50%);
             border-radius: inherit;
             pointer-events: none;
-        }
-        
-        .fab-chat::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 50%);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            pointer-events: none;
-        }
-        
-        .fab-chat:hover::after {
-            opacity: 1;
         }
 
         @keyframes fabPulse {
@@ -1035,9 +1019,6 @@
 
         .fab-chat:active { 
             transform: scale(0.95);
-            box-shadow: 
-                0 4px 16px rgba(16, 185, 129, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
         }
 
         .chat-icon-img {
@@ -1562,14 +1543,6 @@
 
         /* Mobile-specific improvements */
         @media (max-width: 600px) {
-            .fab-chat {
-                width: 56px;
-                height: 56px;
-                font-size: 22px;
-                bottom: calc(80px + var(--safe-area-inset-bottom));
-                right: 15px;
-            }
-            
             .days-nav {
                 padding: 10px 5px;
             }
@@ -1585,24 +1558,8 @@
                 font-size: 0.9rem;
             }
             
-            h1 {
-                font-size: 1rem;
-            }
-            
             .container {
                 padding: 10px 10px;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .theme-toggle-btn, .user-avatar {
-                width: 32px;
-                height: 32px;
-                font-size: 0.9rem;
-            }
-            
-            header {
-                padding: 12px 15px;
             }
         }
 
