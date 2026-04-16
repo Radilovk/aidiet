@@ -144,6 +144,26 @@
             flex-shrink: 0;
         }
 
+        /* --- HEADER FOOD ANALYSIS BUTTON --- */
+        .header-food-btn {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--accent-blue) 100%);
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+            transition: transform 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .header-food-btn:active { transform: scale(0.93); }
+
         /* --- CONTAINER --- */
         .container {
             max-width: 600px;
@@ -1039,7 +1059,7 @@
     <header role="banner" aria-label="Главна навигация">
         <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
         <h1>Насоки</h1>
-        <div class="header-spacer" aria-hidden="true"></div>
+        <button class="header-food-btn" onclick="window.location.href='plan.html?food=1'" aria-label="Анализ на храна чрез снимка"><i class="fas fa-camera"></i></button>
     </header>
 
     <div class="container">
