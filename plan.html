@@ -35,6 +35,8 @@
     <link rel="stylesheet" href="./design-system.css">
     <!-- Font Awesome за икони -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
             --primary-red: #10b981;
@@ -102,9 +104,9 @@
             z-index: -1;
         }
 
-        /* --- HEADER - Premium Glass Design --- */
+        /* --- HEADER --- */
         header {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.75) 100%);
+            background: rgba(255, 255, 255, 0.85);
             padding: calc(18px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) 18px calc(24px + var(--safe-area-inset-left));
             min-height: calc(64px + var(--safe-area-inset-top));
             display: flex;
@@ -113,12 +115,9 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 
-                0 4px 20px rgba(16, 185, 129, 0.08),
-                0 1px 3px rgba(0, 0, 0, 0.04),
-                inset 0 -1px 0 rgba(16, 185, 129, 0.08);
-            backdrop-filter: blur(24px) saturate(200%);
-            -webkit-backdrop-filter: blur(24px) saturate(200%);
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
             transition: all 0.35s ease;
             border-bottom: 1px solid rgba(16, 185, 129, 0.06);
         }
@@ -126,14 +125,11 @@
         [data-theme="dark"] header {
             background: rgba(26, 32, 40, 0.92);
             border-bottom: 1px solid rgba(52, 211, 153, 0.1);
-            box-shadow: 
-                0 4px 24px rgba(0, 0, 0, 0.35),
-                0 1px 3px rgba(0, 0, 0, 0.15),
-                inset 0 -1px 0 rgba(52, 211, 153, 0.05);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
         }
 
         .back-btn {
-            background: linear-gradient(135deg, var(--soft-red) 0%, rgba(16, 185, 129, 0.06) 100%);
+            background: none;
             border: none;
             font-size: 1.2rem;
             color: var(--text-dark);
@@ -141,14 +137,11 @@
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             padding: 10px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .back-btn:hover {
-            background: var(--primary-red);
-            color: white;
+            background: rgba(16, 185, 129, 0.08);
             transform: translateX(-3px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
         }
 
         .theme-toggle-btn {
@@ -196,6 +189,11 @@
             font-weight: 800;
             color: var(--text-dark);
             letter-spacing: -0.3px;
+        }
+
+        header h1 {
+            flex: 1;
+            text-align: center;
         }
 
         .header-spacer {
@@ -2040,7 +2038,7 @@
 
         /* --- HEADER FOOD ANALYSIS BUTTON --- */
         .header-food-btn {
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
             border: none;
             width: 42px;
             height: 42px;
@@ -2052,7 +2050,7 @@
             font-size: 1.1rem;
             cursor: pointer;
             flex-shrink: 0;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
         }
