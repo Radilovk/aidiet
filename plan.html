@@ -242,6 +242,7 @@
         .days-nav {
             display: flex;
             overflow-x: auto;
+            justify-content: center;
             padding: 20px 15px;
             background: var(--bg-color);
             -webkit-overflow-scrolling: touch;
@@ -2627,14 +2628,7 @@
 
     <!-- Navigation: Days of the week -->
     <nav class="days-nav" id="daysContainer" role="tablist" aria-label="Избор на ден">
-        <!-- Will be populated by JS or Static -->
-        <button class="day-chip active" onclick="selectDay(1)" role="tab" aria-selected="true" tabindex="0" aria-label="Понеделник">Пон.</button>
-        <button class="day-chip" onclick="selectDay(2)" role="tab" aria-selected="false" tabindex="-1" aria-label="Вторник">Вт.</button>
-        <button class="day-chip" onclick="selectDay(3)" role="tab" aria-selected="false" tabindex="-1" aria-label="Сряда">Ср.</button>
-        <button class="day-chip" onclick="selectDay(4)" role="tab" aria-selected="false" tabindex="-1" aria-label="Четвъртък">Чет.</button>
-        <button class="day-chip" onclick="selectDay(5)" role="tab" aria-selected="false" tabindex="-1" aria-label="Петък">Пет.</button>
-        <button class="day-chip" onclick="selectDay(6)" role="tab" aria-selected="false" tabindex="-1" aria-label="Събота">Съб.</button>
-        <button class="day-chip" onclick="selectDay(7)" role="tab" aria-selected="false" tabindex="-1" aria-label="Неделя">Нед.</button>
+        <!-- Populated dynamically by renderDayChips() -->
     </nav>
 
     <!-- Greeting Banner -->
@@ -4453,24 +4447,41 @@
             window.location.href = 'profile.html';
         }
 
-        function updateDayChipLabels(activeDayNum) {
+        function renderDayChips(activeDayNum) {
             const fullDayNames = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
             const shortDayNames = ['Пон.', 'Вт.', 'Ср.', 'Чет.', 'Пет.', 'Съб.', 'Нед.'];
-            const chips = document.querySelectorAll('.day-chip');
+            const container = document.getElementById('daysContainer');
+            container.innerHTML = '';
 
-            chips.forEach((chip, index) => {
-                const isActive = index + 1 === activeDayNum;
-                chip.textContent = isActive ? fullDayNames[index] : shortDayNames[index];
-                chip.setAttribute('aria-label', fullDayNames[index]);
-            });
+            let activeChip = null;
+            for (let offset = -3; offset <= 3; offset++) {
+                // Cyclic day number: 1 (Mon) … 7 (Sun).
+                // Adding 7 keeps the result positive for offsets as low as -3.
+                const dayNum = ((activeDayNum - 1 + offset + 7) % 7) + 1;
+                const isActive = offset === 0;
+
+                const btn = document.createElement('button');
+                btn.className = 'day-chip' + (isActive ? ' active' : '');
+                btn.addEventListener('click', () => selectDay(dayNum));
+                btn.setAttribute('role', 'tab');
+                btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                btn.setAttribute('tabindex', isActive ? '0' : '-1');
+                btn.setAttribute('aria-label', fullDayNames[dayNum - 1]);
+                btn.textContent = isActive ? fullDayNames[dayNum - 1] : shortDayNames[dayNum - 1];
+
+                container.appendChild(btn);
+                if (isActive) activeChip = btn;
+            }
+
+            // Ensure the active chip is centered in view on narrow screens
+            if (activeChip) {
+                activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
         }
 
         function selectDay(dayNum) {
-            // 1. Update UI classes and chip labels
-            const chips = document.querySelectorAll('.day-chip');
-            chips.forEach(chip => chip.classList.remove('active'));
-            chips[dayNum - 1].classList.add('active');
-            updateDayChipLabels(dayNum);
+            // 1. Re-render chips centered on the selected day (cyclic)
+            renderDayChips(dayNum);
 
             // 2. Load day data
             renderDay(dayNum);
