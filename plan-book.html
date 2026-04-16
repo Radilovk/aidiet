@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Вашият персонализиран хранителен план — пълна книжка за отпечатване с анализ, стратегия, менюта и насоки.">
+    <meta name="description" content="Вашият персонализиран хранителен план — пълен документ за отпечатване с анализ, стратегия, менюта и насоки.">
     <meta name="theme-color" content="#10b981">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="manifest" href="./manifest.json">
-    <title>Хранителен План — Книжка</title>
+    <title>Хранителен План</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* ===== CSS VARIABLES ===== */
@@ -1231,15 +1231,16 @@
         @media print {
             @page {
                 size: A4;
-                margin: 18mm 15mm 18mm 15mm;
+                margin: 16mm 18mm 20mm 18mm;
             }
 
-            html { font-size: 10.5pt; }
+            html { font-size: 10pt; }
 
             body {
                 background: white;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+                line-height: 1.55;
             }
 
             .screen-controls {
@@ -1252,30 +1253,102 @@
                 padding: 0;
             }
 
+            /* ---- Pages flow naturally — NO forced page breaks ---- */
             .page {
                 box-shadow: none;
                 border-radius: 0;
+                border: none;
                 margin: 0;
-                padding: 28px 20px;
-                page-break-after: always;
-                break-after: page;
-                border-bottom: none;
+                padding: 0 0 20pt 0;
+                page-break-after: auto;
+                break-after: auto;
+                overflow: visible;
+            }
+
+            .page::before {
+                display: none; /* Remove decorative top bars */
             }
 
             .page:last-child {
                 page-break-after: auto;
+                break-after: auto;
             }
 
-            .page::before {
-                height: 3px;
-            }
-
+            /* ---- Cover page: full A4, centered ---- */
             .cover-page {
                 min-height: 100vh;
-                padding: 48px 36px;
+                padding: 60pt 36pt 48pt 36pt;
+                page-break-after: always;
+                break-after: page;
+                background: white !important;
             }
 
-            /* Prevent orphaned content on print pages */
+            .cover-page::before {
+                display: block;
+                height: 4pt;
+                background: linear-gradient(90deg, var(--green-500), var(--green-700));
+            }
+
+            .cover-page::after {
+                display: none;
+            }
+
+            .cover-logo {
+                box-shadow: none;
+                border: 2px solid var(--green-500);
+            }
+
+            .cover-logo::after {
+                display: none;
+            }
+
+            .cover-welcome {
+                box-shadow: none;
+                border: 1px solid var(--green-200);
+            }
+
+            /* ---- TOC page: own page ---- */
+            #tocPage {
+                page-break-after: always;
+                break-after: page;
+                padding-top: 8pt;
+            }
+
+            /* ---- Section dividers: subtle top border in print ---- */
+            .page + .page {
+                border-top: 1pt solid var(--slate-200);
+                padding-top: 14pt;
+            }
+
+            .cover-page + .page {
+                border-top: none;
+            }
+
+            /* ---- Section headers: keep attached to content ---- */
+            .section-header {
+                margin-bottom: 14pt;
+                padding-bottom: 8pt;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            .section-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                font-size: 1rem;
+                box-shadow: none;
+            }
+
+            .section-title {
+                font-size: 14pt;
+            }
+
+            .section-subtitle {
+                font-size: 8pt;
+            }
+
+            /* ---- Prevent orphaned content ---- */
             .problem-card-book,
             .forecast-card-book,
             .strategy-card,
@@ -1290,21 +1363,14 @@
                 break-inside: avoid !important;
             }
 
-            /* Ensure section headers stay with their content */
-            .section-header {
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
             .day-header {
-                page-break-after: avoid;
-                break-after: avoid;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
 
-            /* Prevent page breaks right after headers */
             h2, h3, h4 {
-                page-break-after: avoid;
-                break-after: avoid;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
 
             /* Keep forecast grid together */
@@ -1319,62 +1385,324 @@
                 break-inside: avoid;
             }
 
-            .strategy-grid {
-                grid-template-columns: 1fr 1fr;
+            /* Keep health score together with problems */
+            .health-score-display {
+                page-break-after: avoid;
+                break-after: avoid;
             }
 
-            .forecast-grid-book {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .food-list {
-                columns: 2;
-            }
-
-            .user-data-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            a { color: inherit; text-decoration: none; }
-
-            /* Tighter spacing for print to maximize content per page */
-            .section-header {
-                margin-bottom: 18px;
-                padding-bottom: 12px;
-            }
-
-            .meal-card-book {
-                margin-bottom: 12px;
-            }
-
-            .problem-card-book {
-                margin-bottom: 10px;
-                padding: 14px 18px;
-            }
-
-            .qa-item {
-                margin-bottom: 8px;
-                padding: 10px 16px;
-            }
-
-            .strategy-card {
-                padding: 16px 18px;
-            }
-
-            .page-footer {
-                margin-top: 20px;
-                padding-top: 10px;
-            }
-
-            /* Day pages: ensure each day starts on new page */
+            /* ---- Day pages: each day starts on a new page ---- */
             #dayPagesContainer .page {
+                page-break-before: always;
+                break-before: page;
+                padding-top: 8pt;
+                border-top: none;
+            }
+
+            #dayPagesContainer .page:first-child {
                 page-break-before: always;
                 break-before: page;
             }
 
-            #dayPagesContainer .page:first-child {
+            /* ---- Tighter spacing for print — maximize content per page ---- */
+            .strategy-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10pt;
+            }
+
+            .strategy-card {
+                padding: 12pt 14pt;
+                border-radius: 6px;
+                background: var(--slate-50);
+            }
+
+            .strategy-card-label {
+                font-size: 7pt;
+                margin-bottom: 4pt;
+            }
+
+            .strategy-card-text {
+                font-size: 8.5pt;
+                line-height: 1.55;
+            }
+
+            .forecast-grid-book {
+                grid-template-columns: 1fr 1fr;
+                gap: 10pt;
+            }
+
+            .forecast-card-book {
+                padding: 14pt;
+                border-radius: 6px;
+            }
+
+            .food-list {
+                columns: 2;
+                column-gap: 24pt;
+            }
+
+            .user-data-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8pt;
+            }
+
+            .user-data-card {
+                padding: 10pt 14pt;
+                border-radius: 6px;
+            }
+
+            a { color: inherit; text-decoration: none; }
+
+            .meal-card-book {
+                margin-bottom: 10pt;
+                border-radius: 6px;
+            }
+
+            .meal-card-header {
+                padding: 10pt 16pt;
+            }
+
+            .meal-card-body {
+                padding: 12pt 16pt;
+            }
+
+            .meal-type-icon {
+                width: 32px;
+                height: 32px;
+                border-radius: 6px;
+                font-size: 0.9rem;
+            }
+
+            .meal-card-body .desc-text {
+                font-size: 8.5pt;
+                line-height: 1.55;
+                margin-bottom: 8pt;
+            }
+
+            .meal-card-body .benefits-box {
+                padding: 8pt 12pt;
+                margin-bottom: 8pt;
+                border-radius: 4px;
+            }
+
+            .meal-card-body .benefits-text {
+                font-size: 8pt;
+            }
+
+            .dessert-box {
+                padding: 8pt 12pt;
+                margin-bottom: 8pt;
+                border-radius: 4px;
+            }
+
+            .macros-row {
+                gap: 6pt;
+            }
+
+            .macro-item {
+                padding: 6pt 4pt;
+                border-radius: 4px;
+            }
+
+            .macro-item .macro-val {
+                font-size: 9pt;
+            }
+
+            .macro-item .macro-label {
+                font-size: 6pt;
+            }
+
+            .problem-card-book {
+                margin-bottom: 8pt;
+                padding: 12pt 16pt;
+                border-radius: 6px;
+            }
+
+            .problem-card-book .problem-title-text {
+                font-size: 9.5pt;
+            }
+
+            .problem-card-book .problem-desc {
+                font-size: 8.5pt;
+            }
+
+            .qa-item {
+                margin-bottom: 6pt;
+                padding: 8pt 14pt;
+                border-radius: 4px;
+            }
+
+            .qa-item .qa-question {
+                font-size: 8pt;
+                margin-bottom: 3pt;
+            }
+
+            .qa-item .qa-answer {
+                font-size: 8.5pt;
+            }
+
+            .supplement-card {
+                padding: 12pt 16pt;
+                margin-bottom: 8pt;
+                border-radius: 6px;
+            }
+
+            .hack-item {
+                padding: 8pt 0;
+            }
+
+            .tips-list li {
+                padding: 8pt 0;
+            }
+
+            .tips-list li .tip-icon {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                font-size: 0.75rem;
+            }
+
+            .tips-list li .tip-text {
+                font-size: 8.5pt;
+            }
+
+            /* Day header compact */
+            .day-header {
+                margin-bottom: 14pt;
+                padding-bottom: 10pt;
+            }
+
+            .day-number {
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                font-size: 1.2rem;
+                box-shadow: none;
+            }
+
+            .day-title {
+                font-size: 13pt;
+            }
+
+            .day-subtitle {
+                font-size: 7.5pt;
+            }
+
+            .day-total-calories .cal-num {
+                font-size: 13pt;
+            }
+
+            .day-total-calories .cal-label {
+                font-size: 6.5pt;
+            }
+
+            .free-day-banner-book {
+                padding: 10pt 16pt;
+                margin-bottom: 12pt;
+                border-radius: 6px;
+            }
+
+            /* ---- Page footer ---- */
+            .page-footer {
+                margin-top: 14pt;
+                padding-top: 8pt;
+                font-size: 7pt;
+            }
+
+            /* ---- Health score compact ---- */
+            .health-score-display {
+                padding: 18pt 24pt;
+                border-radius: 8px;
+                margin-bottom: 18pt;
+            }
+
+            .health-score-value {
+                font-size: 2.4rem;
+            }
+
+            .health-score-label {
+                font-size: 7pt;
+            }
+
+            /* ---- TOC compact ---- */
+            .toc-list li {
+                padding: 8pt 0;
+                font-size: 9.5pt;
+            }
+
+            .toc-list li .toc-num {
+                width: 26px;
+                height: 26px;
+                font-size: 8pt;
+                border-radius: 5px;
+                margin-right: 12pt;
+            }
+
+            /* ---- Analysis & Strategy: start on own page ---- */
+            #analysisPage {
+                page-break-before: always;
+                break-before: page;
+                padding-top: 8pt;
+                border-top: none;
+            }
+
+            #strategyPage {
+                page-break-before: always;
+                break-before: page;
+                padding-top: 8pt;
+                border-top: none;
+            }
+
+            /* ---- Guidelines pages flow naturally ---- */
+            #recommendedPage,
+            #forbiddenPage,
+            #psychologyPage,
+            #supplementsPage,
+            #hacksPage {
                 page-break-before: auto;
                 break-before: auto;
+            }
+
+            /* Keep each guideline section header with at least some of its content */
+            #recommendedPage .section-header,
+            #forbiddenPage .section-header,
+            #psychologyPage .section-header,
+            #supplementsPage .section-header,
+            #hacksPage .section-header,
+            #userDataPage .section-header {
+                page-break-before: auto;
+                break-before: auto;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            /* ---- User data / QA pages flow naturally ---- */
+            #userDataPage {
+                page-break-before: auto;
+                break-before: auto;
+            }
+
+            #questionnaireQAContainer .page {
+                page-break-before: auto;
+                break-before: auto;
+                padding-top: 14pt;
+                border-top: 1pt solid var(--slate-200);
+            }
+
+            #questionnaireQAContainer .page:first-child {
+                page-break-before: always;
+                break-before: page;
+                border-top: none;
+            }
+
+            .qa-section-intro {
+                padding: 12pt 18pt;
+                margin-bottom: 14pt;
+                border-radius: 6px;
+            }
+
+            .qa-section-intro p {
+                font-size: 8.5pt;
             }
         }
 
