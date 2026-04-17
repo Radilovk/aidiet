@@ -1354,6 +1354,97 @@
                 min-height: 48px;
             }
         }
+        /* ============================================
+           HEALTH STATUS CIRCULAR WIDGET
+           ============================================ */
+        .health-viz-wrap {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: healthWidgetIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes healthWidgetIn {
+            from { opacity: 0; transform: scale(0.88); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .health-ring-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            transform: rotate(-90deg); /* Start arc from 12 o'clock */
+            overflow: visible;
+        }
+
+        .health-ring-track {
+            stroke: currentColor;
+            opacity: 0.1;
+        }
+
+        [data-theme="dark"] .health-ring-track {
+            opacity: 0.16;
+        }
+
+        .health-silhouette-svg {
+            position: absolute;
+            width: 54%;
+            height: auto;
+            z-index: 2;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));
+            transition: filter 0.5s ease;
+        }
+
+        [data-theme="dark"] .health-silhouette-svg {
+            filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
+        }
+
+        /* Score display refinements */
+        .gauge-score-value {
+            font-size: 2.6rem !important;
+            font-weight: 900 !important;
+            letter-spacing: -2px !important;
+            line-height: 1 !important;
+            margin-bottom: 6px !important;
+        }
+
+        .gauge-score-label {
+            font-size: 0.82rem !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1.5px !important;
+        }
+
+        /* Status badges for problem counts */
+        .health-status-badges {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(16,185,129,0.12);
+        }
+
+        .health-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid transparent;
+        }
+
+        .health-badge.critical { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
+        .health-badge.risky    { color: #f97316; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.2); }
+        .health-badge.borderline { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
+
         /* --- BOTTOM NAVIGATION --- */
         .bottom-nav {
             position: fixed;
@@ -1450,32 +1541,47 @@
                         <div class="score-card-subtitle">Текущо състояние</div>
                     </div>
                     <div class="single-score-container">
-                        <!-- Semicircular Gauge -->
-                        <div class="gauge-wrapper">
-                            <svg id="healthGaugeSvg" viewBox="0 0 200 115" width="200" height="115" role="img" aria-label="Здравословен статус">
-                                <title id="healthGaugeTitle">Здравословен статус</title>
-                                <!-- Background arc -->
-                                <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" class="gauge-bg-arc" opacity="0.1"/>
-                                <!-- Color gradient segments: 25% each — red, orange, yellow, green -->
-                                <path d="M 15 100 A 85 85 0 0 1 39.9 39.9" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
-                                <path d="M 39.9 39.9 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
-                                <path d="M 100 15 A 85 85 0 0 1 160.1 39.9" fill="none" stroke="#fbbf24" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
-                                <path d="M 160.1 39.9 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
-                                <!-- Active arc up to score -->
-                                <path id="healthGaugeArc" d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round"
-                                    stroke-dasharray="0 267.0" style="transition: stroke-dasharray 1s cubic-bezier(0.4, 0, 0.2, 1);"/>
-                                <!-- Needle -->
-                                <g id="healthGaugeNeedle" transform="rotate(-90, 100, 100)" style="transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);">
-                                    <line x1="100" y1="100" x2="100" y2="28" stroke="#10b981" stroke-width="3" stroke-linecap="round" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"/>
-                                    <circle cx="100" cy="100" r="7" fill="#10b981" class="gauge-needle-center"/>
-                                    <circle cx="100" cy="100" r="3.5" fill="var(--card-bg, #ffffff)" class="gauge-needle-inner"/>
+                        <!-- Circular Health Widget with Silhouette -->
+                        <div class="health-viz-wrap">
+                            <!-- Circular progress ring -->
+                            <svg class="health-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="healthRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop id="healthRingColor" offset="0%" stop-color="#10b981"/>
+                                    </linearGradient>
+                                </defs>
+                                <!-- Decorative cardinal dots -->
+                                <g fill="currentColor" class="health-ring-track">
+                                    <circle cx="50" cy="4"  r="2.2"/>
+                                    <circle cx="96" cy="50" r="2.2"/>
+                                    <circle cx="50" cy="96" r="2.2"/>
+                                    <circle cx="4"  cy="50" r="2.2"/>
                                 </g>
-                                <!-- Tick marks at 0, 25, 50, 75, 100 -->
-                                <text x="8" y="112" font-size="9" fill="var(--text-gray, #888)" text-anchor="start" font-weight="600">0</text>
-                                <text x="33" y="36" font-size="9" fill="var(--text-gray, #888)" text-anchor="middle" font-weight="600">25</text>
-                                <text x="100" y="10" font-size="9" fill="var(--text-gray, #888)" text-anchor="middle" font-weight="600">50</text>
-                                <text x="167" y="36" font-size="9" fill="var(--text-gray, #888)" text-anchor="middle" font-weight="600">75</text>
-                                <text x="192" y="112" font-size="9" fill="var(--text-gray, #888)" text-anchor="end" font-weight="600">100</text>
+                                <!-- Background track (dashed) -->
+                                <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor"
+                                        stroke-width="4" stroke-dasharray="3 5" class="health-ring-track"/>
+                                <!-- Active progress ring -->
+                                <circle id="healthGaugeArc" cx="50" cy="50" r="44" fill="none"
+                                        stroke="url(#healthRingGrad)" stroke-width="5" stroke-linecap="round"
+                                        stroke-dasharray="276.46" stroke-dashoffset="276.46"
+                                        style="transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;"/>
+                            </svg>
+
+                            <!-- Human silhouette (centered inside ring) -->
+                            <svg id="healthGaugeSvg" class="health-silhouette-svg" viewBox="0 0 512 512"
+                                 role="img" aria-label="Здравословен статус">
+                                <title id="healthGaugeTitle">Здравословен статус</title>
+                                <defs>
+                                    <linearGradient id="healthBodyGrad" x1="0" y1="512" x2="0" y2="0"
+                                                    gradientUnits="userSpaceOnUse">
+                                        <stop id="healthBodyFill"  offset="0%" stop-color="#10b981"/>
+                                        <stop id="healthBodyEmpty" offset="0%" stop-color="rgba(128,128,128,0.15)"/>
+                                    </linearGradient>
+                                </defs>
+                                <g fill="url(#healthBodyGrad)">
+                                    <circle cx="256" cy="56" r="40"/>
+                                    <path d="M199.3,295.62h0l-30.4,172.2a24,24,0,0,0,19.5,27.8,23.76,23.76,0,0,0,27.6-19.5l21-119.9v.2s5.2-32.5,17.5-32.5h3.1c12.5,0,17.5,32.5,17.5,32.5v-.1l21,119.9a23.92,23.92,0,1,0,47.1-8.4l-30.4-172.2-4.9-29.7c-2.9-18.1-4.2-47.6.5-59.7,4-10.4,14.13-14.2,23.2-14.2H424a24,24,0,0,0,0-48H88a24,24,0,0,0,0,48h92.5c9.23,0,19.2,3.8,23.2,14.2,4.7,12.1,3.4,41.6.5,59.7Z"/>
+                                </g>
                             </svg>
                         </div>
                         <!-- Score display -->
@@ -1756,23 +1862,37 @@
             document.getElementById('healthGaugeTitle').textContent = 'Здравословен статус: ' + healthScore + '%';
             document.getElementById('healthGaugeSvg').setAttribute('aria-label', 'Здравословен статус: ' + healthScore + '% - ' + healthLabel);
 
-            const needleAngle = -90 + (healthScore / 100) * 180;
-            // Arc length for semicircle with radius 85: π × 85
-            const arcLength = Math.PI * 85;
+            // Circular ring (r=44, circumference ≈ 276.46)
+            const circumference = 2 * Math.PI * 44;
             const arc = document.getElementById('healthGaugeArc');
-            const needle = document.getElementById('healthGaugeNeedle');
             arc.setAttribute('stroke', gaugeColor);
-            arc.style.filter = 'drop-shadow(0 0 8px ' + gaugeColor + '60)';
-            needle.querySelector('line').setAttribute('stroke', gaugeColor);
-            needle.querySelector('.gauge-needle-center').setAttribute('fill', gaugeColor);
+            arc.style.filter = 'drop-shadow(0 0 7px ' + gaugeColor + '99)';
+
+            // Update ring gradient color
+            const ringColor = document.getElementById('healthRingColor');
+            if (ringColor) ringColor.setAttribute('stop-color', gaugeColor);
+
+            // Update silhouette fill gradient
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const emptyColor = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+            const bodyFill = document.getElementById('healthBodyFill');
+            const bodyEmpty = document.getElementById('healthBodyEmpty');
+            if (bodyFill) {
+                bodyFill.setAttribute('stop-color', gaugeColor);
+                bodyFill.setAttribute('offset', healthScore + '%');
+            }
+            if (bodyEmpty) {
+                bodyEmpty.setAttribute('stop-color', emptyColor);
+                bodyEmpty.setAttribute('offset', healthScore + '%');
+            }
 
             // Show the overall score section
             document.getElementById('overallScoreSection').style.display = 'block';
 
-            // Animate gauge after a short delay (CSS transition handles the smoothing)
+            // Animate circular ring after a short delay (CSS transition handles the smoothing)
             setTimeout(() => {
-                arc.setAttribute('stroke-dasharray', ((healthScore / 100) * arcLength).toFixed(1) + ' ' + arcLength.toFixed(1));
-                needle.setAttribute('transform', 'rotate(' + needleAngle + ', 100, 100)');
+                const dashOffset = circumference * (1 - healthScore / 100);
+                arc.style.strokeDashoffset = dashOffset.toFixed(2);
             }, 300);
 
             // ===== DISPLAY 1-YEAR FORECASTS =====
