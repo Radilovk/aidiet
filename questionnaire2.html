@@ -3376,7 +3376,7 @@
                 console.log('Running AI validation...');
                 try {
                     const valController = new AbortController();
-                    const valTimeoutId = setTimeout(() => valController.abort(), 60000); // 60s timeout for validation
+                    const valTimeoutId = setTimeout(() => valController.abort(), 20000); // 20s timeout for validation
                     
                     const valResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/validate-questionnaire', {
                         method: 'POST',

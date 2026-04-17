@@ -1284,7 +1284,7 @@ async function performAIValidation(env, data) {
 Ако НЯМА проблеми, отговори: {"hasIssues": false, "issues": []}`;
 
   try {
-    const aiResponse = await callAIModel(env, prompt, 1500, 'ai_validation', null, null, null, false);
+    const aiResponse = await callAIModel(env, prompt, 2000, 'ai_validation', null, null, null, false);
     const parsed = parseAIResponse(aiResponse);
     
     if (parsed && typeof parsed.hasIssues === 'boolean') {
@@ -1386,7 +1386,7 @@ const RATE_LIMIT = {
   GENERATE_PLAN: { maxRequests: 3, windowSec: 60 },  // 3 plans/min per IP
   CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
   FOOD_ANALYSIS: { maxRequests: 10, windowSec: 60 },  // 10 food analyses/min per IP
-  VALIDATE_QUESTIONNAIRE: { maxRequests: 5, windowSec: 60 },  // 5 validations/min per IP
+  VALIDATE_QUESTIONNAIRE: { maxRequests: 8, windowSec: 60 },  // 8 validations/min per IP
 };
 
 /**

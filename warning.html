@@ -22,6 +22,8 @@
             --primary-red-hover: #dc2626;
             --soft-red: #fee2e2;
             --accent-yellow: #fbbf24;
+            --severity-high: #ef4444;
+            --severity-medium: #f59e0b;
             --text-dark: #1e3a20;
             --text-gray: #6b7280;
             --bg-color: #fefce8;
@@ -41,6 +43,8 @@
             --primary-red-hover: #ef4444;
             --soft-red: #450a0a;
             --accent-yellow: #fcd34d;
+            --severity-high: #f87171;
+            --severity-medium: #fbbf24;
             --text-dark: #e5f3e8;
             --text-gray: #9ca3af;
             --bg-color: #0f1419;
@@ -453,11 +457,11 @@
                 </div>
                 ${highCount > 0 ? `<div class="info-row">
                     <span class="info-label">Сериозни проблеми:</span>
-                    <span class="info-value" style="color: #ef4444;">${highCount}</span>
+                    <span class="info-value" style="color: var(--severity-high);">${highCount}</span>
                 </div>` : ''}
                 ${mediumCount > 0 ? `<div class="info-row">
                     <span class="info-label">Умерени проблеми:</span>
-                    <span class="info-value" style="color: #f59e0b;">${mediumCount}</span>
+                    <span class="info-value" style="color: var(--severity-medium);">${mediumCount}</span>
                 </div>` : ''}
             `;
 
@@ -471,13 +475,13 @@
             const risksList = document.getElementById('risksList');
             risksList.innerHTML = issues.map((issue, index) => {
                 const icon = categoryIcons[issue.category] || 'fas fa-exclamation-circle';
-                const severityColor = issue.severity === 'high' ? '#ef4444' : '#f59e0b';
+                const severityVar = issue.severity === 'high' ? 'var(--severity-high)' : 'var(--severity-medium)';
                 const severityLabel = issue.severity === 'high' ? 'Сериозен' : 'Умерен';
                 return `
                     <li class="risk-item" style="animation-delay: ${index * 0.1}s">
-                        <i class="${icon} risk-icon" style="color: ${severityColor};"></i>
+                        <i class="${icon} risk-icon" style="color: ${severityVar};"></i>
                         <div>
-                            <div style="font-weight: 700; color: ${severityColor}; font-size: 0.85rem; margin-bottom: 4px;">
+                            <div style="font-weight: 700; color: ${severityVar}; font-size: 0.85rem; margin-bottom: 4px;">
                                 ${issue.category} <span style="font-weight: 400; opacity: 0.8;">(${severityLabel})</span>
                             </div>
                             <span class="risk-text">${issue.description}</span>
