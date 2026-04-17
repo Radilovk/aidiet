@@ -146,6 +146,15 @@
             box-shadow: 0 10px 28px rgba(13, 148, 136, 0.45);
         }
 
+        .nav-btn--success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.35);
+        }
+        .nav-btn--success:hover {
+            background: linear-gradient(135deg, #1aab52 0%, #14913f 100%);
+            box-shadow: 0 10px 28px rgba(34, 197, 94, 0.45);
+        }
+
 
         /* --- ANIMATED BLOB BACKGROUND --- */
         .blob-bg {
@@ -402,6 +411,24 @@
             font-size: 24px;
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
+        }
+
+        /* Icon box color variants for feature cards */
+        .icon-box--teal  { background: linear-gradient(135deg, #e0f7fa, #b2ebf2); color: #0097a7; }
+        .icon-box--indigo { background: linear-gradient(135deg, #e8eaf6, #c5cae9); color: #3949ab; }
+        .icon-box--blue  { background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #1976d2; }
+        .icon-box--rose  { background: linear-gradient(135deg, #fce4ec, #f8bbd0); color: #c2185b; }
+        .icon-box--green { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); color: #2e7d32; }
+        .icon-box--amber { background: linear-gradient(135deg, #fff8e1, #ffecb3); color: #f57f17; }
+
+        /* Screen header overlay (phone mockup) */
+        .screen-header--overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 44px 16px 0;
+            z-index: 5;
         }
 
         .feature-card h3 { margin-bottom: 10px; font-size: 1.2rem; }
@@ -1084,8 +1111,7 @@
     <nav role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="plan.html" class="nav-btn" id="myPlanBtn" style="display: none; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
-                <i class="fas fa-user-check" aria-hidden="true"></i> Моят План
+            <a href="plan.html" class="nav-btn nav-btn--success" id="myPlanBtn" style="display: none;">                <i class="fas fa-user-check" aria-hidden="true"></i> Моят План
             </a>
             <a href="questionnaire.html" class="nav-btn" id="startNowBtn" style="display: none;">Започни Сега</a>
         </div>
@@ -1107,7 +1133,7 @@
             <!-- CSS Phone Mockup representing the interface -->
             <div class="phone-mockup">
                 <div class="screen-content">
-                    <div class="screen-header" style="position: absolute; top: 0; left: 0; right: 0; padding: 44px 16px 0; z-index: 5;">
+                    <div class="screen-header screen-header--overlay">
                         <span class="screen-header-title">Моят План</span>
                         <div class="screen-header-avatar"></div>
                     </div>
@@ -1161,32 +1187,32 @@
 
         <div class="feature-grid">
             <div class="feature-card">
-                <div class="icon-box" style="background: linear-gradient(135deg, #e0f7fa, #b2ebf2); color: #0097a7;"><i class="fas fa-users"></i></div>
+                <div class="icon-box icon-box--teal"><i class="fas fa-users"></i></div>
                 <h3>Екип от Специалисти</h3>
                 <p>Реални професионалисти в областта на хранене, здраве, спорт и психология създават твоя индивидуален план.</p>
             </div>
             <div class="feature-card">
-                <div class="icon-box" style="background: linear-gradient(135deg, #e8eaf6, #c5cae9); color: #3949ab;"><i class="fas fa-brain"></i></div>
+                <div class="icon-box icon-box--indigo"><i class="fas fa-brain"></i></div>
                 <h3>7-Степенен AI Анализ</h3>
                 <p>Мощен алгоритъм анализира 30+ критерия и хиляди корелации за създаване на идеалния план за теб.</p>
             </div>
             <div class="feature-card">
-                <div class="icon-box" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #1976d2;"><i class="fas fa-comments"></i></div>
+                <div class="icon-box icon-box--blue"><i class="fas fa-comments"></i></div>
                 <h3>24/7 AI Консултант</h3>
                 <p>Личен AI асистент, запознат с твоя профил, цели и план. Винаги на разположение за съвети и подкрепа.</p>
             </div>
             <div class="feature-card">
-                <div class="icon-box" style="background: linear-gradient(135deg, #fce4ec, #f8bbd0); color: #c2185b;"><i class="fas fa-heart"></i></div>
+                <div class="icon-box icon-box--rose"><i class="fas fa-heart"></i></div>
                 <h3>Комплексен Подход</h3>
                 <p>Не само хранене - психологически съвети, хранителни добавки, физически активности и цялостна грижа.</p>
             </div>
             <div class="feature-card">
-                <div class="icon-box" style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9); color: #2e7d32;"><i class="fas fa-user-check"></i></div>
+                <div class="icon-box icon-box--green"><i class="fas fa-user-check"></i></div>
                 <h3>Консултации с Експерти</h3>
                 <p>Възможност за директни консултации с нашия екип от специалисти за персонализирана подкрепа.</p>
             </div>
             <div class="feature-card">
-                <div class="icon-box" style="background: linear-gradient(135deg, #fff8e1, #ffecb3); color: #f57f17;"><i class="fas fa-chart-line"></i></div>
+                <div class="icon-box icon-box--amber"><i class="fas fa-chart-line"></i></div>
                 <h3>Научен Подход</h3>
                 <p>Базирано на знания от хиляди медицински учебници и последни научни изследвания.</p>
             </div>
