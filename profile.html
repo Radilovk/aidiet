@@ -1542,6 +1542,22 @@
         // Fields that are stored as arrays (from checkbox questions in the questionnaire)
         const ARRAY_FIELDS = ['foodCravings', 'foodTriggers', 'eatingHabits', 'compensationMethods', 'dietPreference', 'medicalConditions'];
 
+        // Collect form data from all [data-field] inputs, restoring array types where needed
+        function collectFormData() {
+            const inputs = document.querySelectorAll('[data-field]');
+            const updatedData = { ...userData };
+            inputs.forEach(input => {
+                const field = input.getAttribute('data-field');
+                const value = input.value.trim();
+                if (input.getAttribute('data-is-array') === 'true' || ARRAY_FIELDS.includes(field)) {
+                    updatedData[field] = value ? value.split(',').map(s => s.trim()).filter(s => s) : [];
+                } else {
+                    updatedData[field] = value;
+                }
+            });
+            return updatedData;
+        }
+
         // --- Theme Management ---
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -1773,19 +1789,7 @@
             }
             
             // Collect updated data
-            const inputs = document.querySelectorAll('[data-field]');
-            const updatedData = { ...userData };
-
-            inputs.forEach(input => {
-                const field = input.getAttribute('data-field');
-                const value = input.value.trim();
-                // Restore array type for fields that were originally arrays
-                if (input.getAttribute('data-is-array') === 'true' || ARRAY_FIELDS.includes(field)) {
-                    updatedData[field] = value ? value.split(',').map(s => s.trim()).filter(s => s) : [];
-                } else {
-                    updatedData[field] = value;
-                }
-            });
+            const updatedData = collectFormData();
 
             try {
                 // Save to localStorage
@@ -1824,19 +1828,7 @@
             }
             
             // First save the changes
-            const inputs = document.querySelectorAll('[data-field]');
-            const updatedData = { ...userData };
-
-            inputs.forEach(input => {
-                const field = input.getAttribute('data-field');
-                const value = input.value.trim();
-                // Restore array type for fields that were originally arrays
-                if (input.getAttribute('data-is-array') === 'true' || ARRAY_FIELDS.includes(field)) {
-                    updatedData[field] = value ? value.split(',').map(s => s.trim()).filter(s => s) : [];
-                } else {
-                    updatedData[field] = value;
-                }
-            });
+            const updatedData = collectFormData();
 
             try {
                 // Save to localStorage
