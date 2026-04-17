@@ -2090,7 +2090,7 @@
                 renderSupplements(dietPlan);
                 renderHacks(dietPlan);
                 renderUserData(userData, qaData);
-                renderQuestionnaireQA(qaData);
+                renderQuestionnaireQA(Object.assign({}, userData, qaData));
                 renderTOC();
 
             } catch (err) {
@@ -2534,7 +2534,8 @@
 
         function renderUserData(userData, qaData) {
             var page = document.getElementById('userDataPage');
-            var data = Object.keys(qaData).length > 0 ? qaData : userData;
+            // Merge both sources so no field is lost regardless of which storage was used
+            var data = Object.assign({}, userData, qaData);
 
             if (!data || Object.keys(data).length === 0) {
                 page.style.display = 'none';
@@ -2545,32 +2546,52 @@
             var grid = document.getElementById('bookUserDataGrid');
             var cards = [];
 
-            // Define which fields to display
+            // Define which fields to display — mirrors profile.html questionnaire-container
             var fieldMap = [
+                // Основна информация
                 { key: 'firstName', alt: 'name', label: 'Име', icon: 'fa-user' },
                 { key: 'lastName', label: 'Фамилия', icon: 'fa-user' },
-                { key: 'age', label: 'Възраст', icon: 'fa-birthday-cake', suffix: ' г.' },
+                { key: 'email', label: 'Имейл', icon: 'fa-envelope' },
                 { key: 'gender', label: 'Пол', icon: 'fa-venus-mars' },
+                { key: 'age', label: 'Възраст', icon: 'fa-birthday-cake', suffix: ' г.' },
                 { key: 'height', label: 'Ръст', icon: 'fa-ruler-vertical', suffix: ' см' },
                 { key: 'weight', label: 'Тегло', icon: 'fa-weight', suffix: ' кг' },
                 { key: 'goal', label: 'Цел', icon: 'fa-bullseye' },
+                { key: 'lossKg', label: 'Желано отслабване', icon: 'fa-weight', suffix: ' кг' },
                 { key: 'clinicalProtocol', label: 'Клиничен протокол', icon: 'fa-notes-medical' },
+                // Начин на живот
                 { key: 'sleepHours', label: 'Часове сън', icon: 'fa-moon' },
+                { key: 'sleepInterrupt', label: 'Прекъсвания на съня', icon: 'fa-moon' },
+                { key: 'chronotype', label: 'Хронотип', icon: 'fa-clock' },
+                { key: 'dailyActivityLevel', label: 'Ниво на активност през деня', icon: 'fa-walking' },
                 { key: 'stressLevel', label: 'Ниво на стрес', icon: 'fa-bolt' },
+                { key: 'sportActivity', label: 'Ниво на спортна активност', icon: 'fa-running' },
                 { key: 'sportDays', label: 'Спортни дни', icon: 'fa-running' },
-                { key: 'dietPreference', label: 'Хранителни предпочитания', icon: 'fa-heart', full: true },
-                { key: 'dietDislike', label: 'Непоносимости / Алергии', icon: 'fa-times-circle', full: true },
-                { key: 'dietLove', label: 'Любими храни', icon: 'fa-star', full: true },
-                { key: 'eatingHabits', label: 'Хранителни навици', icon: 'fa-utensils', full: true },
-                { key: 'medicalConditions', label: 'Медицински състояния', icon: 'fa-heartbeat', full: true },
-                { key: 'medications', label: 'Лекарства', icon: 'fa-pills' },
-                { key: 'medicationsDetails', label: 'Детайли за лекарства', icon: 'fa-pills', full: true },
+                // Прием на течности
+                { key: 'waterIntake', label: 'Прием на вода', icon: 'fa-tint' },
+                { key: 'drinksSweet', label: 'Сладки напитки', icon: 'fa-glass-whiskey' },
+                { key: 'drinksAlcohol', label: 'Алкохол', icon: 'fa-wine-bottle' },
+                // Хранителни навици и поведение
                 { key: 'weightChange', label: 'Промяна в теглото', icon: 'fa-chart-line' },
                 { key: 'weightChangeDetails', label: 'Детайли за промяна в теглото', icon: 'fa-chart-line', full: true },
                 { key: 'dietHistory', label: 'Предишна диета', icon: 'fa-history' },
                 { key: 'dietType', label: 'Тип диета', icon: 'fa-utensils' },
                 { key: 'dietResult', label: 'Резултат от диетата', icon: 'fa-chart-bar', full: true },
-                { key: 'lossKg', label: 'Килограми за сваляне', icon: 'fa-weight', suffix: ' кг' }
+                { key: 'overeatingFrequency', label: 'Прекомерно хранене', icon: 'fa-exclamation-triangle' },
+                { key: 'foodCravings', label: 'Желания за храна', icon: 'fa-cookie-bite', full: true },
+                { key: 'foodTriggers', label: 'Тригери за хранене', icon: 'fa-fire', full: true },
+                { key: 'eatingHabits', label: 'Хранителни навици', icon: 'fa-utensils', full: true },
+                { key: 'compensationMethods', label: 'Компенсаторни методи', icon: 'fa-sync-alt', full: true },
+                { key: 'socialComparison', label: 'Социално сравнение', icon: 'fa-users' },
+                // Хранителни предпочитания
+                { key: 'dietPreference', label: 'Хранителни предпочитания', icon: 'fa-heart', full: true },
+                { key: 'dietDislike', label: 'Непоносимости / Алергии', icon: 'fa-times-circle', full: true },
+                { key: 'dietLove', label: 'Любими храни', icon: 'fa-star', full: true },
+                // Медицинска информация
+                { key: 'medicalConditions', label: 'Медицински състояния', icon: 'fa-heartbeat', full: true },
+                { key: 'medications', label: 'Лекарства', icon: 'fa-pills' },
+                { key: 'medicationsDetails', label: 'Детайли за лекарства', icon: 'fa-pills', full: true },
+                { key: 'additionalNotes', label: 'Допълнителни бележки', icon: 'fa-sticky-note', full: true }
             ];
 
             fieldMap.forEach(function(f) {
