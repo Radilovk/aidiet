@@ -1549,7 +1549,7 @@
             inputs.forEach(input => {
                 const field = input.getAttribute('data-field');
                 const value = input.value.trim();
-                if (input.getAttribute('data-is-array') === 'true' || ARRAY_FIELDS.includes(field)) {
+                if (input.getAttribute('data-is-array') === 'true') {
                     updatedData[field] = value ? value.split(',').map(s => s.trim()).filter(s => s) : [];
                 } else {
                     updatedData[field] = value;
@@ -1653,12 +1653,9 @@
 
                 if (value !== undefined && value !== null) {
                     // Handle arrays (checkboxes) — convert to display string
-                    if (Array.isArray(value)) {
+                    if (Array.isArray(value) || ARRAY_FIELDS.includes(field)) {
                         input.setAttribute('data-is-array', 'true');
-                        value = value.join(', ');
-                    } else if (ARRAY_FIELDS.includes(field)) {
-                        // Field should be an array but was previously saved as string
-                        input.setAttribute('data-is-array', 'true');
+                        value = Array.isArray(value) ? value.join(', ') : value;
                     }
                     input.value = value;
                 }
