@@ -211,7 +211,7 @@
 
         @keyframes avatarRing {
             0%, 100% { border-color: rgba(13, 148, 136, 0.4); transform: scale(1); }
-            50% { border-color: rgba(59, 130, 246, 0.5); transform: scale(1.02); }
+            50% { border-color: rgba(6, 182, 212, 0.5); transform: scale(1.02); }
         }
 
         [data-theme="dark"] .profile-avatar {
@@ -407,7 +407,7 @@
             margin-bottom: 20px;
             box-shadow: var(--shadow);
             overflow: hidden;
-            border: 1px solid rgba(59, 130, 246, 0.15);
+            border: 1px solid var(--glass-border);
             backdrop-filter: blur(var(--glass-blur)) saturate(180%);
             -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
         }
@@ -907,7 +907,7 @@
         .install-banner-btn:hover {
             background: #0F766E;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
         }
 
         .install-banner-btn:active {
@@ -1096,8 +1096,8 @@
             transform: translateZ(0);
         }
         [data-theme="dark"] .bottom-nav {
-            background: rgba(15, 35, 35, 0.95);
-            border-top-color: rgba(45, 212, 191, 0.1);
+            background: var(--card-bg);
+            border-top-color: var(--glass-border);
             box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
         }
         .bottom-nav-item {
