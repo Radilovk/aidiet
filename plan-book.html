@@ -1234,7 +1234,7 @@
                 margin: 16mm 18mm 20mm 18mm;
             }
 
-            html { font-size: 12pt; }
+            html { font-size: 10pt; }
 
             body {
                 background: white;
@@ -1345,7 +1345,7 @@
             }
 
             .section-subtitle {
-                font-size: 10pt;
+                font-size: 8pt;
             }
 
             /* ---- Prevent orphaned content ---- */
@@ -1391,7 +1391,7 @@
                 break-after: avoid;
             }
 
-            /* ---- Day pages: each day starts on a new page, 2-column meal layout ---- */
+            /* ---- Day pages: each day starts on a new page and MUST fit on one page ---- */
             #dayPagesContainer .page {
                 page-break-before: always;
                 break-before: page;
@@ -1400,11 +1400,8 @@
                 padding-top: 4pt;
                 padding-bottom: 0;
                 border-top: none;
-                /* 2-column grid: header/footer span full width, meal cards share two columns */
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                column-gap: 8pt;
-                align-items: start;
+                max-height: 261mm; /* A4 minus top 16mm and bottom 20mm margins */
+                overflow: hidden;
             }
 
             #dayPagesContainer .page:first-child {
@@ -1412,14 +1409,7 @@
                 break-before: page;
             }
 
-            /* Full-width rows inside the 2-column grid */
-            #dayPagesContainer .day-header,
-            #dayPagesContainer .free-day-banner-book,
-            #dayPagesContainer .page-footer {
-                grid-column: 1 / -1;
-            }
-
-            /* ---- Day page sizing with 12pt minimum fonts ---- */
+            /* ---- Day page compact sizing for one-page fit ---- */
             #dayPagesContainer .day-header {
                 margin-bottom: 6pt;
                 padding-bottom: 5pt;
@@ -1433,19 +1423,19 @@
             }
 
             #dayPagesContainer .day-title {
-                font-size: 13pt;
+                font-size: 11pt;
             }
 
             #dayPagesContainer .day-subtitle {
-                font-size: 10pt;
+                font-size: 6.5pt;
             }
 
             #dayPagesContainer .day-total-calories .cal-num {
-                font-size: 13pt;
+                font-size: 11pt;
             }
 
             #dayPagesContainer .day-total-calories .cal-label {
-                font-size: 9pt;
+                font-size: 5.5pt;
             }
 
             #dayPagesContainer .free-day-banner-book {
@@ -1459,11 +1449,11 @@
             }
 
             #dayPagesContainer .free-day-banner-book .title {
-                font-size: 12pt;
+                font-size: 8pt;
             }
 
             #dayPagesContainer .free-day-banner-book .subtitle {
-                font-size: 10pt;
+                font-size: 6.5pt;
                 margin-top: 1pt;
             }
 
@@ -1473,7 +1463,7 @@
             }
 
             #dayPagesContainer .meal-card-header {
-                padding: 5pt 8pt;
+                padding: 4pt 10pt;
             }
 
             #dayPagesContainer .meal-type-icon {
@@ -1484,74 +1474,74 @@
             }
 
             #dayPagesContainer .meal-type-label {
-                font-size: 9pt;
+                font-size: 6pt;
             }
 
             #dayPagesContainer .meal-name-text {
-                font-size: 12pt;
+                font-size: 8pt;
             }
 
             #dayPagesContainer .meal-cal {
-                font-size: 12pt;
+                font-size: 8pt;
             }
 
             #dayPagesContainer .meal-weight-text {
-                font-size: 9pt;
+                font-size: 6pt;
             }
 
             #dayPagesContainer .meal-card-body {
-                padding: 5pt 8pt;
+                padding: 4pt 10pt;
             }
 
             #dayPagesContainer .meal-card-body .desc-label {
-                font-size: 9pt;
+                font-size: 5.5pt;
                 margin-bottom: 1pt;
             }
 
             #dayPagesContainer .meal-card-body .desc-text {
-                font-size: 12pt;
+                font-size: 7pt;
                 line-height: 1.4;
                 margin-bottom: 3pt;
             }
 
             #dayPagesContainer .meal-card-body .benefits-box {
-                padding: 3pt 6pt;
+                padding: 3pt 8pt;
                 margin-bottom: 3pt;
                 border-radius: 3px;
             }
 
             #dayPagesContainer .meal-card-body .benefits-label {
-                font-size: 9pt;
+                font-size: 5.5pt;
                 margin-bottom: 1pt;
             }
 
             #dayPagesContainer .meal-card-body .benefits-text {
-                font-size: 12pt;
+                font-size: 6.5pt;
                 line-height: 1.35;
             }
 
             #dayPagesContainer .dessert-box {
-                padding: 3pt 6pt;
+                padding: 3pt 8pt;
                 margin-bottom: 3pt;
                 border-radius: 3px;
             }
 
             #dayPagesContainer .dessert-box .dessert-label {
-                font-size: 9pt;
+                font-size: 5.5pt;
                 margin-bottom: 1pt;
             }
 
             #dayPagesContainer .dessert-box .dessert-name-text {
-                font-size: 12pt;
+                font-size: 7pt;
             }
 
             #dayPagesContainer .dessert-box .dessert-desc {
-                font-size: 10pt;
+                font-size: 6.5pt;
                 margin-top: 1pt;
             }
 
             #dayPagesContainer .dessert-box .dessert-weight-text {
-                font-size: 9pt;
+                font-size: 6pt;
                 margin-top: 0;
             }
 
@@ -1565,17 +1555,17 @@
             }
 
             #dayPagesContainer .macro-item .macro-val {
-                font-size: 12pt;
+                font-size: 7pt;
             }
 
             #dayPagesContainer .macro-item .macro-label {
-                font-size: 9pt;
+                font-size: 5pt;
             }
 
             #dayPagesContainer .page-footer {
                 margin-top: 4pt;
                 padding-top: 3pt;
-                font-size: 9pt;
+                font-size: 6pt;
             }
 
             /* ---- Tighter spacing for print — maximize content per page ---- */
@@ -1591,12 +1581,12 @@
             }
 
             .strategy-card-label {
-                font-size: 9pt;
+                font-size: 7pt;
                 margin-bottom: 4pt;
             }
 
             .strategy-card-text {
-                font-size: 12pt;
+                font-size: 8.5pt;
                 line-height: 1.55;
             }
 
@@ -1648,7 +1638,7 @@
             }
 
             .meal-card-body .desc-text {
-                font-size: 12pt;
+                font-size: 8.5pt;
                 line-height: 1.55;
                 margin-bottom: 8pt;
             }
@@ -1660,7 +1650,7 @@
             }
 
             .meal-card-body .benefits-text {
-                font-size: 12pt;
+                font-size: 8pt;
             }
 
             .dessert-box {
@@ -1679,11 +1669,11 @@
             }
 
             .macro-item .macro-val {
-                font-size: 12pt;
+                font-size: 9pt;
             }
 
             .macro-item .macro-label {
-                font-size: 9pt;
+                font-size: 6pt;
             }
 
             .problem-card-book {
@@ -1693,11 +1683,11 @@
             }
 
             .problem-card-book .problem-title-text {
-                font-size: 12pt;
+                font-size: 9.5pt;
             }
 
             .problem-card-book .problem-desc {
-                font-size: 12pt;
+                font-size: 8.5pt;
             }
 
             .qa-item {
@@ -1707,12 +1697,12 @@
             }
 
             .qa-item .qa-question {
-                font-size: 12pt;
+                font-size: 8pt;
                 margin-bottom: 3pt;
             }
 
             .qa-item .qa-answer {
-                font-size: 12pt;
+                font-size: 8.5pt;
             }
 
             .supplement-card {
@@ -1737,7 +1727,7 @@
             }
 
             .tips-list li .tip-text {
-                font-size: 12pt;
+                font-size: 8.5pt;
             }
 
             /* Day header compact */
@@ -1759,7 +1749,7 @@
             }
 
             .day-subtitle {
-                font-size: 10pt;
+                font-size: 7.5pt;
             }
 
             .day-total-calories .cal-num {
@@ -1767,7 +1757,7 @@
             }
 
             .day-total-calories .cal-label {
-                font-size: 9pt;
+                font-size: 6.5pt;
             }
 
             .free-day-banner-book {
@@ -1780,7 +1770,7 @@
             .page-footer {
                 margin-top: 14pt;
                 padding-top: 8pt;
-                font-size: 9pt;
+                font-size: 7pt;
             }
 
             /* ---- Health score compact ---- */
@@ -1795,19 +1785,19 @@
             }
 
             .health-score-label {
-                font-size: 9pt;
+                font-size: 7pt;
             }
 
             /* ---- TOC compact ---- */
             .toc-list li {
                 padding: 8pt 0;
-                font-size: 12pt;
+                font-size: 9.5pt;
             }
 
             .toc-list li .toc-num {
                 width: 26px;
                 height: 26px;
-                font-size: 10pt;
+                font-size: 8pt;
                 border-radius: 5px;
                 margin-right: 12pt;
             }
@@ -1876,7 +1866,7 @@
             }
 
             .qa-section-intro p {
-                font-size: 12pt;
+                font-size: 8.5pt;
             }
         }
 
