@@ -1539,6 +1539,9 @@
         let originalData = {};
         let isEditing = false;
 
+        // Fields that are stored as arrays (from checkbox questions in the questionnaire)
+        const ARRAY_FIELDS = ['foodCravings', 'foodTriggers', 'eatingHabits', 'compensationMethods', 'dietPreference', 'medicalConditions'];
+
         // --- Theme Management ---
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -1633,9 +1636,13 @@
                 let value = userData[field];
 
                 if (value !== undefined && value !== null) {
-                    // Handle arrays (checkboxes)
+                    // Handle arrays (checkboxes) — convert to display string
                     if (Array.isArray(value)) {
+                        input.setAttribute('data-is-array', 'true');
                         value = value.join(', ');
+                    } else if (ARRAY_FIELDS.includes(field)) {
+                        // Field should be an array but was previously saved as string
+                        input.setAttribute('data-is-array', 'true');
                     }
                     input.value = value;
                 }
@@ -1704,7 +1711,13 @@
                 const field = input.getAttribute('data-field');
                 const isDietRelated = input.getAttribute('data-diet-related') === 'true';
                 const newValue = input.value.trim();
-                const oldValue = String(originalData[field] || '').trim();
+                // For array fields, compare using the same comma-separated format used for display
+                let oldValue;
+                if (Array.isArray(originalData[field])) {
+                    oldValue = originalData[field].join(', ');
+                } else {
+                    oldValue = String(originalData[field] || '').trim();
+                }
 
                 if (newValue !== oldValue) {
                     hasAnyChanges = true;
@@ -1765,7 +1778,13 @@
 
             inputs.forEach(input => {
                 const field = input.getAttribute('data-field');
-                updatedData[field] = input.value.trim();
+                const value = input.value.trim();
+                // Restore array type for fields that were originally arrays
+                if (input.getAttribute('data-is-array') === 'true' || ARRAY_FIELDS.includes(field)) {
+                    updatedData[field] = value ? value.split(',').map(s => s.trim()).filter(s => s) : [];
+                } else {
+                    updatedData[field] = value;
+                }
             });
 
             try {
@@ -1810,7 +1829,13 @@
 
             inputs.forEach(input => {
                 const field = input.getAttribute('data-field');
-                updatedData[field] = input.value.trim();
+                const value = input.value.trim();
+                // Restore array type for fields that were originally arrays
+                if (input.getAttribute('data-is-array') === 'true' || ARRAY_FIELDS.includes(field)) {
+                    updatedData[field] = value ? value.split(',').map(s => s.trim()).filter(s => s) : [];
+                } else {
+                    updatedData[field] = value;
+                }
             });
 
             try {
