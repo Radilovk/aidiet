@@ -3372,6 +3372,43 @@
                     delete planPayload._additionalGoals;
                 }
 
+                // Step 0: AI Validation - check for unrealistic/dangerous/contradictory data
+                console.log('Running AI validation...');
+                try {
+                    const valController = new AbortController();
+                    const valTimeoutId = setTimeout(() => valController.abort(), 60000); // 60s timeout for validation
+                    
+                    const valResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/validate-questionnaire', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(planPayload),
+                        signal: valController.signal
+                    });
+                    clearTimeout(valTimeoutId);
+                    
+                    if (valResponse.ok) {
+                        const valResult = await valResponse.json();
+                        if (valResult.hasIssues && valResult.issues && valResult.issues.length > 0) {
+                            console.log('AI validation found issues:', valResult.issues);
+                            // Store validation issues and redirect to warning page
+                            localStorage.setItem('validationIssues', JSON.stringify(valResult.issues));
+                            localStorage.setItem('validationSource', 'questionnaire2');
+                            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                            
+                            // Clear intervals
+                            if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+                            if (tipsInterval) { clearInterval(tipsInterval); tipsInterval = null; }
+                            
+                            window.location.href = 'warning.html';
+                            return;
+                        }
+                    }
+                    console.log('AI validation passed');
+                } catch (valError) {
+                    // If validation fails (timeout, network error), proceed with plan generation
+                    console.warn('AI validation skipped due to error:', valError.message);
+                }
+
                 // HTTP request with 360-second timeout (6 minutes)
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => {

@@ -360,7 +360,7 @@
             <div class="action-buttons">
                 <button class="btn btn-primary" onclick="goBackToQuestionnaire()">
                     <i class="fas fa-edit"></i>
-                    Промени целта си
+                    Към въпросника
                 </button>
                 <button class="btn btn-secondary" onclick="goToHome()">
                     <i class="fas fa-home"></i>
@@ -395,25 +395,109 @@
 
         initializeTheme();
 
-        // Load warning data from localStorage
-        function loadWarningData() {
+        // Determine which mode to use: AI validation issues or legacy warning data
+        function loadPageData() {
             try {
+                const validationIssuesStr = localStorage.getItem('validationIssues');
                 const warningDataStr = localStorage.getItem('warningData');
                 
-                if (!warningDataStr) {
-                    console.error('No warning data found');
+                if (validationIssuesStr) {
+                    // AI Validation mode
+                    const issues = JSON.parse(validationIssuesStr);
+                    displayValidationIssues(issues);
+                    // Clear after reading
+                    localStorage.removeItem('validationIssues');
+                } else if (warningDataStr) {
+                    // Legacy goal contradiction mode
+                    const warningData = JSON.parse(warningDataStr);
+                    displayWarningData(warningData);
+                    // Clear after reading
+                    localStorage.removeItem('warningData');
+                } else {
+                    console.error('No warning or validation data found');
                     window.location.href = 'questionnaire.html';
                     return;
                 }
-
-                const warningData = JSON.parse(warningDataStr);
-                displayWarningData(warningData);
             } catch (error) {
-                console.error('Error loading warning data:', error);
+                console.error('Error loading page data:', error);
                 window.location.href = 'questionnaire.html';
             }
         }
 
+        // Display AI validation issues
+        function displayValidationIssues(issues) {
+            // Update title and subtitle for validation mode
+            document.querySelector('.warning-title').textContent = 'Установени Проблеми';
+            document.querySelector('.warning-subtitle').textContent = 
+                'Нашият AI анализ установи потенциални проблеми с въведената информация. Моля, прегледайте ги и коригирайте данните си.';
+
+            // Category icons mapping
+            const categoryIcons = {
+                'НЕРЕАЛИСТИЧНА ЦЕЛ': 'fas fa-bullseye',
+                'ОПАСНА ЦЕЛ': 'fas fa-skull-crossbones',
+                'РИСКОВА КОМБИНАЦИЯ': 'fas fa-exclamation-triangle',
+                'НЕЛОГИЧНА ИНФОРМАЦИЯ': 'fas fa-puzzle-piece',
+                'ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ': 'fas fa-random',
+                'ЗДРАВОСЛОВЕН РИСК': 'fas fa-heartbeat',
+                'НЕВАЛИДНИ ДАННИ': 'fas fa-times-circle'
+            };
+
+            // Fill info section with issue count
+            const infoSection = document.getElementById('infoSection');
+            const highCount = issues.filter(i => i.severity === 'high').length;
+            const mediumCount = issues.filter(i => i.severity === 'medium').length;
+            infoSection.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">Брой установени проблеми:</span>
+                    <span class="info-value">${issues.length}</span>
+                </div>
+                ${highCount > 0 ? `<div class="info-row">
+                    <span class="info-label">Сериозни проблеми:</span>
+                    <span class="info-value" style="color: #ef4444;">${highCount}</span>
+                </div>` : ''}
+                ${mediumCount > 0 ? `<div class="info-row">
+                    <span class="info-label">Умерени проблеми:</span>
+                    <span class="info-value" style="color: #f59e0b;">${mediumCount}</span>
+                </div>` : ''}
+            `;
+
+            // Update risks section title
+            document.querySelector('.risks-title').innerHTML = `
+                <i class="fas fa-clipboard-check"></i>
+                Установени Проблеми
+            `;
+
+            // Fill risks list with issues
+            const risksList = document.getElementById('risksList');
+            risksList.innerHTML = issues.map((issue, index) => {
+                const icon = categoryIcons[issue.category] || 'fas fa-exclamation-circle';
+                const severityColor = issue.severity === 'high' ? '#ef4444' : '#f59e0b';
+                const severityLabel = issue.severity === 'high' ? 'Сериозен' : 'Умерен';
+                return `
+                    <li class="risk-item" style="animation-delay: ${index * 0.1}s">
+                        <i class="${icon} risk-icon" style="color: ${severityColor};"></i>
+                        <div>
+                            <div style="font-weight: 700; color: ${severityColor}; font-size: 0.85rem; margin-bottom: 4px;">
+                                ${issue.category} <span style="font-weight: 400; opacity: 0.8;">(${severityLabel})</span>
+                            </div>
+                            <span class="risk-text">${issue.description}</span>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+
+            // Update recommendation section
+            document.querySelector('.recommendation-title').innerHTML = `
+                <i class="fas fa-lightbulb"></i>
+                Какво да Направите
+            `;
+            document.getElementById('recommendationText').textContent = 
+                'Моля, върнете се към въпросника и прегледайте внимателно въведената информация. ' +
+                'Уверете се, че целите ви са реалистични и безопасни, и че данните не си противоречат. ' +
+                'Ако имате здравословни проблеми, препоръчваме консултация с лекар преди да започнете хранителен режим.';
+        }
+
+        // Display legacy warning data (goal contradictions)
         function displayWarningData(data) {
             // Fill info section
             const infoSection = document.getElementById('infoSection');
@@ -446,7 +530,14 @@
         }
 
         function goBackToQuestionnaire() {
-            window.location.href = 'questionnaire.html';
+            // Determine which questionnaire to return to
+            const source = localStorage.getItem('validationSource');
+            localStorage.removeItem('validationSource');
+            if (source === 'questionnaire2') {
+                window.location.href = 'questionnaire2.html';
+            } else {
+                window.location.href = 'questionnaire.html';
+            }
         }
 
         function goToHome() {
@@ -454,7 +545,7 @@
         }
 
         // Initialize on page load
-        window.addEventListener('load', loadWarningData);
+        window.addEventListener('load', loadPageData);
     </script>
 </body>
 </html>
