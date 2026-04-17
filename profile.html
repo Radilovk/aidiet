@@ -1086,19 +1086,19 @@
             display: flex;
             align-items: center;
             justify-content: space-around;
-            height: calc(64px + var(--safe-area-inset-bottom));
-            padding-bottom: var(--safe-area-inset-bottom);
-            background: var(--card-bg);
-            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-            border-top: 1px solid var(--glass-border);
-            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+            height: calc(68px + var(--safe-area-inset-bottom));
+            padding: 4px 8px var(--safe-area-inset-bottom);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-top: 1px solid rgba(13, 148, 136, 0.1);
+            box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(13, 148, 136, 0.06);
             transform: translateZ(0);
         }
         [data-theme="dark"] .bottom-nav {
-            background: var(--card-bg);
-            border-top-color: var(--glass-border);
-            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+            background: rgba(8, 22, 22, 0.96);
+            border-top: none;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(45, 212, 191, 0.08);
         }
         .bottom-nav-item {
             display: flex;
@@ -1106,8 +1106,9 @@
             align-items: center;
             justify-content: center;
             gap: 3px;
-            padding: 6px 12px;
+            padding: 7px 18px;
             min-width: 64px;
+            border-radius: 16px;
             border: none;
             background: transparent;
             color: var(--text-light);
@@ -1116,18 +1117,27 @@
             font-weight: 500;
             text-decoration: none;
             cursor: pointer;
-            transition: color 0.15s ease, transform 0.15s ease;
+            transition: color 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
             -webkit-tap-highlight-color: transparent;
             position: relative;
         }
         .bottom-nav-item i { 
             font-size: 20px; 
-            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .bottom-nav-item.active { color: var(--primary-red); }
-        .bottom-nav-item.active i { transform: scale(1.15); }
-        /* Active dot indicator removed - was causing unwanted dot on selected tab */
+        .bottom-nav-item.active {
+            color: var(--primary-red);
+            background: rgba(13, 148, 136, 0.1);
+        }
+        [data-theme="dark"] .bottom-nav-item.active {
+            background: rgba(45, 212, 191, 0.15);
+            color: var(--primary-red);
+        }
+        .bottom-nav-item.active i { transform: scale(1.1); }
         .bottom-nav-item:active { transform: scale(0.92); }
+        .bottom-nav-item:hover:not(.active) {
+            background: rgba(13, 148, 136, 0.05);
+        }
 
         /* --- CHAT FAB BUTTON --- */
         .fab-chat {
