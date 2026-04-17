@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Вашият персонализиран хранителен план — пълен документ за отпечатване с анализ, стратегия, менюта и насоки.">
+    <meta name="description" content="Вашият персонализиран хранителен план — анализ, стратегия, менюта и насоки.">
     <meta name="theme-color" content="#10b981">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="manifest" href="./manifest.json">
@@ -2331,8 +2331,7 @@
                 html += '<div class="day-number">' + d + '</div>';
                 html += '<div><div class="day-title">' + esc(fullDayNames[d - 1]) + '</div><div class="day-subtitle">Ден ' + d + ' от 7-дневния план</div></div>';
                 if (totalCal > 0) {
-                    html += '<div class="day-total-calories"><div class="cal-num">' + Math.round(totalCal) + '</div><div class="cal-label">kcal общо</div></div>';
-                }
+                    html += '<div class="day-total-calories"><div class="cal-num">' + Math.round(totalCal) + '</div><div class="cal-label">kcal общо</div></div>';                }
                 html += '</div>';
 
                 // Free day banner
