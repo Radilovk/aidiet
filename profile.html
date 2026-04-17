@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Управлявайте вашия профил и преглеждайте вашия персонализиран хранителен план в NutriPlan.">
-    <meta name="theme-color" content="#10b981">
+    <meta name="theme-color" content="#0D9488">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,18 +22,19 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
-            --primary-red: #10b981;
-            --soft-red: #d1fae5;
+            --primary-red: #0D9488;
+            --soft-red: #CCFBF1;
             --accent-yellow: #fbbf24;
-            --accent-blue: #3b82f6;
+            --accent-blue: #06B6D4;
             --accent-light-red: #f87171;
-            --text-dark: #1e3a20;
+            --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --bg-color: #fefce8;
-            --card-bg: #ffffff;
-            --shadow: 0 4px 6px rgba(16,185,129,0.1);
-            --radius: 16px;
-            /* Safe area insets for mobile devices with notches/dynamic island */
+            --bg-color: #F0FDFA;
+            --card-bg: rgba(255, 255, 255, 0.72);
+            --shadow: 0 4px 12px rgba(13,148,136,0.08);
+            --radius: 24px;
+            --glass-blur: 20px;
+            --glass-border: rgba(13, 148, 136, 0.1);
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
             --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
             --safe-area-inset-left: env(safe-area-inset-left, 0px);
@@ -42,17 +43,19 @@
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #34d399;
-            --soft-red: #064e3b;
+            --primary-red: #2DD4BF;
+            --soft-red: #134E4A;
             --accent-yellow: #fcd34d;
-            --accent-blue: #60a5fa;
+            --accent-blue: #22D3EE;
             --accent-light-red: #fca5a5;
-            --text-dark: #e5f3e8;
+            --text-dark: #E0F5F0;
             --text-light: #9ca3af;
-            --bg-color: #0f1419;
-            --card-bg: #1a2028;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            --radius: 16px;
+            --bg-color: #0A1A1A;
+            --card-bg: rgba(15, 35, 35, 0.72);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 4px rgba(45,212,191,0.08);
+            --radius: 24px;
+            --glass-blur: 20px;
+            --glass-border: rgba(45, 212, 191, 0.12);
         }
 
         * {
@@ -72,7 +75,7 @@
 
         /* --- HEADER --- */
         header {
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--card-bg);
             padding: calc(18px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) 18px calc(24px + var(--safe-area-inset-left));
             min-height: calc(64px + var(--safe-area-inset-top));
             display: flex;
@@ -81,16 +84,16 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border-bottom: 1px solid rgba(16, 185, 129, 0.06);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            border-bottom: 1px solid var(--glass-border);
             transition: all 0.35s ease;
         }
 
         [data-theme="dark"] header {
-            background: rgba(26, 32, 40, 0.92);
-            border-bottom-color: rgba(52, 211, 153, 0.1);
+            background: var(--card-bg);
+            border-bottom-color: var(--glass-border);
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
         }
 
@@ -111,7 +114,7 @@
         }
 
         .back-btn:hover {
-            background: rgba(16, 185, 129, 0.08);
+            background: rgba(13, 148, 136, 0.08);
             transform: translateX(-3px);
         }
 
@@ -180,7 +183,7 @@
         .profile-avatar {
             width: 88px;
             height: 88px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 50%, var(--accent-blue) 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 50%, var(--accent-blue) 100%);
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
@@ -189,7 +192,7 @@
             font-size: 2rem;
             font-weight: bold;
             margin-bottom: 10px;
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
             position: relative;
         }
 
@@ -198,21 +201,21 @@
             position: absolute;
             inset: -3px;
             border-radius: 50%;
-            border: 3px solid rgba(16, 185, 129, 0.4);
+            border: 3px solid rgba(13, 148, 136, 0.4);
             animation: avatarRing 3s ease-in-out infinite;
         }
 
         [data-theme="dark"] .profile-avatar::after {
-            border-color: rgba(52, 211, 153, 0.5);
+            border-color: rgba(45, 212, 191, 0.5);
         }
 
         @keyframes avatarRing {
-            0%, 100% { border-color: rgba(16, 185, 129, 0.4); transform: scale(1); }
+            0%, 100% { border-color: rgba(13, 148, 136, 0.4); transform: scale(1); }
             50% { border-color: rgba(59, 130, 246, 0.5); transform: scale(1.02); }
         }
 
         [data-theme="dark"] .profile-avatar {
-            box-shadow: 0 8px 24px rgba(52, 211, 153, 0.25);
+            box-shadow: 0 8px 24px rgba(45, 212, 191, 0.25);
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -250,9 +253,9 @@
         }
 
         .profile-install-btn:hover {
-            background: #059669;
+            background: #0F766E;
             transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 6px 12px rgba(13, 148, 136, 0.3);
         }
 
         .profile-install-btn:active {
@@ -303,17 +306,22 @@
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: var(--shadow);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            border: 1px solid var(--glass-border);
         }
 
         /* ===  MACROS VISUALIZATION CONTAINER for Profile Page === */
         /* === QUESTIONNAIRE COLLAPSIBLE CONTAINER === */
         .questionnaire-container {
             background: var(--card-bg);
-            border-radius: 20px;
+            border-radius: var(--radius);
             margin-bottom: 20px;
             box-shadow: var(--shadow);
             overflow: hidden;
-            border: 1px solid rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
         }
 
         .questionnaire-header {
@@ -322,7 +330,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: linear-gradient(135deg, var(--primary-red), #059669);
+            background: linear-gradient(135deg, var(--primary-red), #0F766E);
             color: #ffffff;
             transition: all 0.3s ease;
             user-select: none;
@@ -331,7 +339,7 @@
 
         .questionnaire-header:hover,
         .questionnaire-header:active {
-            background: linear-gradient(135deg, #059669, var(--primary-red));
+            background: linear-gradient(135deg, #0F766E, var(--primary-red));
         }
 
         .questionnaire-title {
@@ -379,13 +387,13 @@
             margin-bottom: 16px;
             border-radius: 16px;
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
-            border: 1px solid rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(13, 148, 136, 0.08);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
         }
 
         [data-theme="dark"] .questionnaire-body .form-section {
             background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%);
-            border-color: rgba(52, 211, 153, 0.1);
+            border-color: rgba(45, 212, 191, 0.1);
         }
 
         .questionnaire-body .form-section:last-child {
@@ -395,11 +403,13 @@
         /* === SEPARATE ANALYSIS CONTAINER === */
         .analysis-container {
             background: var(--card-bg);
-            border-radius: 20px;
+            border-radius: var(--radius);
             margin-bottom: 20px;
             box-shadow: var(--shadow);
             overflow: hidden;
             border: 1px solid rgba(59, 130, 246, 0.15);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
         }
 
         .analysis-header {
@@ -440,7 +450,7 @@
         /* === QUESTIONNAIRE ACTIONS (bottom of expanded container) === */
         .questionnaire-actions {
             padding: 15px 20px;
-            border-top: 1px solid rgba(16, 185, 129, 0.1);
+            border-top: 1px solid rgba(13, 148, 136, 0.1);
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
@@ -448,19 +458,19 @@
         }
 
         [data-theme="dark"] .questionnaire-actions {
-            border-top-color: rgba(52, 211, 153, 0.1);
+            border-top-color: rgba(45, 212, 191, 0.1);
         }
 
         /* --- PROFILE DARK THEME ENHANCEMENTS --- */
         [data-theme="dark"] .form-section {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border: 1px solid rgba(52, 211, 153, 0.08);
+            border: 1px solid rgba(45, 212, 191, 0.08);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
         [data-theme="dark"] .questionnaire-container {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border-color: rgba(52, 211, 153, 0.1);
+            border-color: rgba(45, 212, 191, 0.1);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
@@ -587,7 +597,7 @@
         .form-input:not(:disabled):focus, .form-textarea:not(:disabled):focus {
             outline: none;
             border-color: var(--primary-red);
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
         }
 
         .form-textarea {
@@ -606,7 +616,7 @@
             background: var(--card-bg);
             border-radius: 16px;
             box-shadow: var(--shadow);
-            border: 1px solid rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(13, 148, 136, 0.1);
         }
 
         .btn {
@@ -650,14 +660,14 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
             color: white;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
         }
 
         .btn-primary:active {
@@ -708,9 +718,9 @@
         }
 
         [data-theme="dark"] .alert-info {
-            background: rgba(52, 211, 153, 0.1);
+            background: rgba(45, 212, 191, 0.1);
             color: #a5d6a7;
-            border-color: rgba(52, 211, 153, 0.2);
+            border-color: rgba(45, 212, 191, 0.2);
         }
 
         [data-theme="dark"] .alert-warning {
@@ -727,13 +737,13 @@
 
         [data-theme="dark"] .form-input:not(:disabled):focus, 
         [data-theme="dark"] .form-textarea:not(:disabled):focus {
-            border-color: rgba(52, 211, 153, 0.5);
-            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+            border-color: rgba(45, 212, 191, 0.5);
+            box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.1);
         }
 
         [data-theme="dark"] .button-group {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border-color: rgba(52, 211, 153, 0.1);
+            border-color: rgba(45, 212, 191, 0.1);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
@@ -895,7 +905,7 @@
         }
 
         .install-banner-btn:hover {
-            background: #059669;
+            background: #0F766E;
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
         }
@@ -1078,16 +1088,16 @@
             justify-content: space-around;
             height: calc(64px + var(--safe-area-inset-bottom));
             padding-bottom: var(--safe-area-inset-bottom);
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border-top: 1px solid rgba(16, 185, 129, 0.1);
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            border-top: 1px solid var(--glass-border);
             box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
             transform: translateZ(0);
         }
         [data-theme="dark"] .bottom-nav {
-            background: rgba(26, 32, 40, 0.95);
-            border-top-color: rgba(52, 211, 153, 0.1);
+            background: rgba(15, 35, 35, 0.95);
+            border-top-color: rgba(45, 212, 191, 0.1);
             box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
         }
         .bottom-nav-item {
@@ -1126,11 +1136,11 @@
             right: calc(24px + var(--safe-area-inset-right));
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent, #059669) 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent, #0F766E) 100%);
             border-radius: 20px;
             box-shadow: 
-                0 8px 28px rgba(16, 185, 129, 0.45),
-                0 4px 12px rgba(16, 185, 129, 0.25),
+                0 8px 28px rgba(13, 148, 136, 0.45),
+                0 4px 12px rgba(13, 148, 136, 0.25),
                 inset 0 1px 0 rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
@@ -1156,15 +1166,15 @@
         @keyframes fabPulse {
             0%, 100% {
                 box-shadow: 
-                    0 8px 28px rgba(16, 185, 129, 0.45),
-                    0 4px 12px rgba(16, 185, 129, 0.25),
+                    0 8px 28px rgba(13, 148, 136, 0.45),
+                    0 4px 12px rgba(13, 148, 136, 0.25),
                     inset 0 1px 0 rgba(255, 255, 255, 0.2);
                 transform: scale(1);
             }
             50% {
                 box-shadow: 
-                    0 12px 36px rgba(16, 185, 129, 0.55),
-                    0 6px 16px rgba(16, 185, 129, 0.35),
+                    0 12px 36px rgba(13, 148, 136, 0.55),
+                    0 6px 16px rgba(13, 148, 136, 0.35),
                     inset 0 1px 0 rgba(255, 255, 255, 0.25);
                 transform: scale(1.02);
             }
@@ -1172,8 +1182,8 @@
         .fab-chat:hover {
             transform: scale(1.12) rotate(5deg);
             box-shadow: 
-                0 14px 40px rgba(16, 185, 129, 0.55),
-                0 8px 20px rgba(16, 185, 129, 0.35),
+                0 14px 40px rgba(13, 148, 136, 0.55),
+                0 8px 20px rgba(13, 148, 136, 0.35),
                 inset 0 1px 0 rgba(255, 255, 255, 0.25);
             animation: none;
         }
@@ -1193,12 +1203,12 @@
             const colorSchemes = {
                 'purple-pink': {
                     light: {
-                        '--primary-red': '#10b981',
-                        '--soft-red': '#d1fae5'
+                        '--primary-red': '#0D9488',
+                        '--soft-red': '#CCFBF1'
                     },
                     dark: {
-                        '--primary-red': '#34d399',
-                        '--soft-red': '#064e3b'
+                        '--primary-red': '#2DD4BF',
+                        '--soft-red': '#134E4A'
                     }
                 },
                 'green-blue': {
@@ -2066,7 +2076,7 @@
                             return;
                         }
                         
-                        let severityColor = '#10b981'; // default green
+                        let severityColor = '#0D9488'; // default teal
                         let severityIcon = 'fa-check-circle';
                         
                         if (problem.severity === 'Critical') {
@@ -2134,7 +2144,7 @@
                         const borderlineCount = (analysis.keyProblems || []).filter(p => p.severity === 'Borderline').length;
                         const totalProblems = criticalCount + riskyCount + borderlineCount;
 
-                        let gaugeColor = '#10b981';
+                        let gaugeColor = '#0D9488';
                         let healthLabel = 'Добро';
 
                         if (healthScore < 25) {
@@ -2147,7 +2157,7 @@
                             gaugeColor = '#fbbf24';
                             healthLabel = 'Умерено';
                         } else {
-                            gaugeColor = '#10b981';
+                            gaugeColor = '#0D9488';
                             healthLabel = 'Добро';
                         }
 
@@ -2748,9 +2758,9 @@
                             
                             // Different explanations for desktop vs mobile
                             if (!isMobile && (isChrome || isEdge)) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
-                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #10b981; font-weight: bold; font-size: 14px');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #0D9488');
+                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #0D9488; font-weight: bold; font-size: 14px');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #0D9488');
                                 console.log('%cINFO: On Desktop Chrome/Edge, the beforeinstallprompt event often does NOT fire.', 'color: #3b82f6; font-weight: bold');
                                 console.log('%cInstead, Chrome shows an INSTALL ICON in the address bar (omnibox).', 'color: #3b82f6; font-weight: bold');
                                 console.log('');
@@ -2760,7 +2770,7 @@
                                 console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #10b981');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #0D9488');
                             } else if (isAndroid && (isChrome || isEdge)) {
                                 console.log('- Possible reasons why event has not fired:');
                                 console.log('  1. User engagement criteria not met (needs 30+ seconds + interaction)');
@@ -2774,7 +2784,7 @@
                             }
                         }
                     } else {
-                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #10b981; font-weight: bold');
+                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #0D9488; font-weight: bold');
                         console.log('PWA is ready for installation with custom install prompt.');
                     }
                 }, 3000);
