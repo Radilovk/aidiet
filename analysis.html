@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="description" content="Здравословен анализ и детайлни препоръки от NutriPlan за вашия хранителен режим.">
+    <meta name="description" content="Здравен анализ и детайлни препоръки от NutriPlan за вашия хранителен режим.">
     <meta name="theme-color" content="#10b981">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192x192.png">
-    <title>Здравословен Анализ</title>
+    <title>Здравен Анализ</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1494,7 +1494,7 @@
     <!-- Sticky Header -->
     <header class="analysis-header">
         <a href="plan.html" class="back-btn" aria-label="Назад"><i class="fas fa-arrow-left"></i></a>
-        <h1>Здравословен Анализ</h1>
+        <h1>Здравен Анализ</h1>
         <div class="header-spacer" aria-hidden="true"></div>
     </header>
 
@@ -1510,7 +1510,7 @@
             <div class="header-icon">
                 <i class="fas fa-heartbeat"></i>
             </div>
-            <h1>Вашият Здравословен Анализ</h1>
+            <h1>Вашият Здравен Анализ</h1>
             <p>Идентифицирахме ключови области за подобрение, които могат да повлияят на вашето здраве и целите ви</p>
         </div>
 
@@ -1528,7 +1528,7 @@
                                 <i class="fas fa-heart-pulse"></i>
                             </div>
                         </div>
-                        <div class="score-card-title">Здравословен Статус</div>
+                        <div class="score-card-title">Здравен Статус</div>
                         <div class="score-card-subtitle">Текущо състояние</div>
                     </div>
                     <div class="single-score-container">
@@ -1551,8 +1551,8 @@
 
                             <!-- Human silhouette (centered inside ring) -->
                             <svg id="healthGaugeSvg" class="health-silhouette-svg" viewBox="0 0 512 512"
-                                 role="img" aria-label="Здравословен статус">
-                                <title id="healthGaugeTitle">Здравословен статус</title>
+                                 role="img" aria-label="Здравен статус">
+                                <title id="healthGaugeTitle">Здравен статус</title>
                                 <defs>
                                     <linearGradient id="healthBodyGrad" x1="0" y1="512" x2="0" y2="0"
                                                     gradientUnits="userSpaceOnUse">
@@ -1841,8 +1841,8 @@
             document.getElementById('healthScoreValue').style.color = gaugeColor;
             document.getElementById('healthScoreLabel').textContent = healthLabel;
             document.getElementById('healthScoreLabel').style.color = gaugeColor;
-            document.getElementById('healthGaugeTitle').textContent = 'Здравословен статус: ' + healthScore + '%';
-            document.getElementById('healthGaugeSvg').setAttribute('aria-label', 'Здравословен статус: ' + healthScore + '% - ' + healthLabel);
+            document.getElementById('healthGaugeTitle').textContent = 'Здравен статус: ' + healthScore + '%';
+            document.getElementById('healthGaugeSvg').setAttribute('aria-label', 'Здравен статус: ' + healthScore + '% - ' + healthLabel);
 
             // Circular ring (r=44, circumference ≈ 276.46)
             const circumference = 2 * Math.PI * 44;
