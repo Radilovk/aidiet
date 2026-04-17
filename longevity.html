@@ -42,17 +42,19 @@
             --accent-blue: #3b82f6;
             --accent-warm: #F59E0B;
             --accent-rose: #EC4899;
-            --accent-green: #10B981;
+            --accent-green: #0D9488;
             --accent-red: #ef4444;
             --text-dark: #1F2937;
             --text-gray: #6B7280;
             --text-light: #9CA3AF;
             --bg-color: #f0fdfc;
-            --card-bg: #FFFFFF;
+            --card-bg: rgba(255, 255, 255, 0.72);
             --input-bg: #F9FAFB;
             --shadow: 0 10px 40px rgba(0, 196, 200, 0.15);
             --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.05);
-            --radius: 20px;
+            --radius: 24px;
+            --glass-blur: 20px;
+            --glass-border: rgba(13, 148, 136, 0.1);
             --radius-sm: 12px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
@@ -75,9 +77,11 @@
             --text-gray: #9CA3AF;
             --text-light: #6B7280;
             --bg-color: #05091a;
-            --card-bg: #0f1629;
+            --card-bg: rgba(15, 35, 35, 0.72);
             --input-bg: #1a2035;
             --shadow: 0 10px 40px rgba(0, 196, 200, 0.2);
+            --glass-blur: 20px;
+            --glass-border: rgba(45, 212, 191, 0.12);
         }
 
         * {
@@ -341,7 +345,7 @@
         }
 
         .edu-icon.energy { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .edu-icon.cleanse { background: linear-gradient(135deg, #10b981, #059669); }
+        .edu-icon.cleanse { background: linear-gradient(135deg, #0D9488, #0F766E); }
         .edu-icon.protect { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
         .edu-icon.dna { background: linear-gradient(135deg, #ec4899, #be185d); }
         .edu-icon.structure { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
@@ -473,7 +477,7 @@
         }
 
         .marker-icon.warning { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .marker-icon.success { background: linear-gradient(135deg, #10b981, #059669); }
+        .marker-icon.success { background: linear-gradient(135deg, #0D9488, #0F766E); }
         .marker-icon.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 
         .marker-info h4 {
@@ -798,7 +802,7 @@
         }
 
         .result-icon.protocol { background: linear-gradient(135deg, var(--primary), var(--accent-gold)); }
-        .result-icon.lifestyle { background: linear-gradient(135deg, #10b981, #059669); }
+        .result-icon.lifestyle { background: linear-gradient(135deg, #0D9488, #0F766E); }
         .result-icon.supplements { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
         .result-icon.markers { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 
@@ -1188,7 +1192,7 @@
                             <i class="fas fa-microscope"></i> Клетъчно
                         </div>
                         <i class="fas fa-arrow-right" style="color: var(--text-light);"></i>
-                        <div class="level-box" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+                        <div class="level-box" style="background: linear-gradient(135deg, #0D9488, #0F766E); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
                             <i class="fas fa-grip-horizontal"></i> Тъканно
                         </div>
                         <i class="fas fa-arrow-right" style="color: var(--text-light);"></i>
@@ -1297,7 +1301,7 @@
                 <!-- Level 3: Tissue -->
                 <div class="edu-card" id="card-tissue">
                     <div class="edu-card-header" onclick="toggleCard('tissue')">
-                        <div class="edu-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #0D9488, #0F766E);">
                             <i class="fas fa-grip-horizontal"></i>
                         </div>
                         <div class="edu-card-title">
@@ -1332,10 +1336,10 @@
                             </div>
                         </div>
                         <div class="molecule-tags" style="margin-top: 12px;">
-                            <span class="molecule-tag" style="background: #10b981;">Колаген</span>
-                            <span class="molecule-tag" style="background: #10b981;">Фиброза</span>
-                            <span class="molecule-tag" style="background: #10b981;">IL-6</span>
-                            <span class="molecule-tag" style="background: #10b981;">TNF-α</span>
+                            <span class="molecule-tag" style="background: #0D9488;">Колаген</span>
+                            <span class="molecule-tag" style="background: #0D9488;">Фиброза</span>
+                            <span class="molecule-tag" style="background: #0D9488;">IL-6</span>
+                            <span class="molecule-tag" style="background: #0D9488;">TNF-α</span>
                         </div>
                     </div>
                 </div>
@@ -1507,17 +1511,17 @@
                         <h4 style="color: var(--accent-green); font-size: 0.9rem;"><i class="fas fa-puzzle-piece"></i> ИНТЕГРАТИВНИ (Системни последици)</h4>
                     </div>
                     
-                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981;">
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #0D9488;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="background: #10b981; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">8</span>
+                            <span style="background: #0D9488; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">8</span>
                             <strong style="color: var(--text-dark);">Изчерпване на Стволовите Клетки</strong>
                         </div>
                         <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Намален брой и функционалност на стволовите клетки. По-бавна регенерация на тъканите.</p>
                     </div>
                     
-                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981;">
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #0D9488;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="background: #10b981; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">9</span>
+                            <span style="background: #0D9488; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">9</span>
                             <strong style="color: var(--text-dark);">Нарушена Междуклетъчна Комуникация</strong>
                         </div>
                         <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Хронично възпаление (inflammaging), нарушена ендокринна сигнализация, промени в екстрацелуларния матрикс.</p>
@@ -1906,7 +1910,7 @@
                     <!-- Systemic Decline -->
                     <div style="background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #0D9488, #0F766E); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                 <i class="fas fa-project-diagram" style="color: white; font-size: 1.2rem;"></i>
                             </div>
                             <h4 style="color: var(--text-dark); font-size: 1.05rem;">Интегративен Спад</h4>
@@ -2179,12 +2183,12 @@
 
                 <!-- Nutrient Markers -->
                 <h3 style="color: var(--text-dark); font-size: 1.1rem; margin: 30px 0 16px; display: flex; align-items: center; gap: 8px;">
-                    <span style="background: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Нутриенти</span>
+                    <span style="background: #0D9488; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Нутриенти</span>
                     Ключови Витамини и Минерали
                 </h3>
                 <div class="markers-grid">
                     <div class="marker-card">
-                        <div class="marker-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #0D9488, #0F766E);">
                             <i class="fas fa-sun"></i>
                         </div>
                         <div class="marker-info">
@@ -2198,7 +2202,7 @@
                     </div>
 
                     <div class="marker-card">
-                        <div class="marker-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #0D9488, #0F766E);">
                             <i class="fas fa-magnet"></i>
                         </div>
                         <div class="marker-info">
@@ -2212,7 +2216,7 @@
                     </div>
 
                     <div class="marker-card">
-                        <div class="marker-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #0D9488, #0F766E);">
                             <i class="fas fa-fish"></i>
                         </div>
                         <div class="marker-info">
@@ -2226,7 +2230,7 @@
                     </div>
 
                     <div class="marker-card">
-                        <div class="marker-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #0D9488, #0F766E);">
                             <i class="fas fa-vial"></i>
                         </div>
                         <div class="marker-info">
@@ -2354,7 +2358,7 @@
                 <!-- Pillar 1: Nutrition -->
                 <div class="edu-card expanded" id="card-nutrition">
                     <div class="edu-card-header" onclick="toggleCard('nutrition')">
-                        <div class="edu-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #0D9488, #0F766E);">
                             <i class="fas fa-utensils"></i>
                         </div>
                         <div class="edu-card-title">

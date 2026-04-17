@@ -23,18 +23,18 @@
    CSS CUSTOM PROPERTIES (TOKENS)
    =========================== */
 :root {
-    /* === COLORS - Primary Emerald Palette === */
-    --ds-primary-50: #ecfdf5;
-    --ds-primary-100: #d1fae5;
-    --ds-primary-200: #a7f3d0;
-    --ds-primary-300: #6ee7b7;
-    --ds-primary-400: #34d399;
-    --ds-primary-500: #10b981;
-    --ds-primary-600: #059669;
-    --ds-primary-700: #047857;
-    --ds-primary-800: #065f46;
-    --ds-primary-900: #064e3b;
-    --ds-primary-950: #022c22;
+    /* === COLORS - Primary Teal Palette (Medical Glassmorphism) === */
+    --ds-primary-50: #F0FDFA;
+    --ds-primary-100: #CCFBF1;
+    --ds-primary-200: #99F6E4;
+    --ds-primary-300: #5EEAD4;
+    --ds-primary-400: #2DD4BF;
+    --ds-primary-500: #14B8A6;
+    --ds-primary-600: #0D9488;
+    --ds-primary-700: #0F766E;
+    --ds-primary-800: #115E59;
+    --ds-primary-900: #134E4A;
+    --ds-primary-950: #042F2E;
     
     /* === COLORS - Secondary Blue Palette === */
     --ds-secondary-50: #eff6ff;
@@ -115,26 +115,27 @@
     --ds-gray-900: #111827;
     --ds-gray-950: #030712;
     
-    /* === LIGHT THEME SEMANTIC COLORS === */
-    --ds-bg-primary: #fefce8;
-    --ds-bg-secondary: var(--ds-gray-50);
+    /* === LIGHT THEME SEMANTIC COLORS (Glassmorphism) === */
+    --ds-bg-primary: #F0FDFA;
+    --ds-bg-secondary: #F5FFFE;
     --ds-bg-tertiary: #ffffff;
-    --ds-bg-card: #ffffff;
-    --ds-bg-elevated: #ffffff;
-    --ds-bg-overlay: rgba(0, 0, 0, 0.5);
-    --ds-bg-glass: rgba(255, 255, 255, 0.85);
-    --ds-bg-glass-strong: rgba(255, 255, 255, 0.95);
+    --ds-bg-card: rgba(255, 255, 255, 0.72);
+    --ds-bg-card-rgb: 255, 255, 255;
+    --ds-bg-elevated: rgba(255, 255, 255, 0.88);
+    --ds-bg-overlay: rgba(0, 0, 0, 0.4);
+    --ds-bg-glass: rgba(255, 255, 255, 0.68);
+    --ds-bg-glass-strong: rgba(255, 255, 255, 0.88);
     
-    --ds-text-primary: #1e3a20;
+    --ds-text-primary: #0F2F2E;
     --ds-text-secondary: var(--ds-gray-600);
     --ds-text-tertiary: var(--ds-gray-500);
     --ds-text-muted: var(--ds-gray-400);
     --ds-text-inverse: #ffffff;
     
-    --ds-border-primary: var(--ds-gray-200);
-    --ds-border-secondary: var(--ds-gray-100);
+    --ds-border-primary: rgba(13, 148, 136, 0.12);
+    --ds-border-secondary: rgba(13, 148, 136, 0.06);
     --ds-border-focus: var(--ds-primary-500);
-    --ds-border-accent: rgba(16, 185, 129, 0.2);
+    --ds-border-accent: rgba(13, 148, 136, 0.2);
     
     /* === TYPOGRAPHY === */
     --ds-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -215,28 +216,28 @@
     --ds-radius-4xl: 2rem;     /* 32px */
     --ds-radius-full: 9999px;
     
-    /* === SHADOWS === */
-    --ds-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --ds-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-    --ds-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    --ds-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-    --ds-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    --ds-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    --ds-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+    /* === SHADOWS (Teal-tinted for Glassmorphism) === */
+    --ds-shadow-xs: 0 1px 2px rgba(13, 148, 136, 0.04);
+    --ds-shadow-sm: 0 2px 6px rgba(13, 148, 136, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --ds-shadow-md: 0 4px 12px rgba(13, 148, 136, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --ds-shadow-lg: 0 10px 24px rgba(13, 148, 136, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
+    --ds-shadow-xl: 0 20px 40px rgba(13, 148, 136, 0.12), 0 8px 16px rgba(0, 0, 0, 0.04);
+    --ds-shadow-2xl: 0 25px 50px rgba(13, 148, 136, 0.18);
+    --ds-shadow-inner: inset 0 2px 4px 0 rgba(13, 148, 136, 0.06);
     
     /* Colored shadows */
-    --ds-shadow-primary: 0 10px 40px rgba(16, 185, 129, 0.15);
-    --ds-shadow-primary-lg: 0 20px 50px rgba(16, 185, 129, 0.2);
-    --ds-shadow-secondary: 0 10px 40px rgba(59, 130, 246, 0.15);
+    --ds-shadow-primary: 0 10px 40px rgba(13, 148, 136, 0.15);
+    --ds-shadow-primary-lg: 0 20px 50px rgba(13, 148, 136, 0.2);
+    --ds-shadow-secondary: 0 10px 40px rgba(6, 182, 212, 0.15);
     --ds-shadow-purple: 0 10px 40px rgba(139, 92, 246, 0.15);
-    --ds-shadow-cyan: 0 10px 40px rgba(6, 182, 212, 0.15);
+    --ds-shadow-cyan: 0 10px 40px rgba(6, 182, 212, 0.18);
     --ds-shadow-gold: 0 10px 40px rgba(245, 158, 11, 0.15);
     
-    /* Glow effects */
-    --ds-glow-primary: 0 0 20px rgba(16, 185, 129, 0.4);
-    --ds-glow-secondary: 0 0 20px rgba(59, 130, 246, 0.4);
-    --ds-glow-purple: 0 0 20px rgba(139, 92, 246, 0.4);
-    --ds-glow-cyan: 0 0 20px rgba(6, 182, 212, 0.4);
+    /* Glow effects (neon accents) */
+    --ds-glow-primary: 0 0 24px rgba(13, 148, 136, 0.4), 0 0 48px rgba(13, 148, 136, 0.15);
+    --ds-glow-secondary: 0 0 24px rgba(6, 182, 212, 0.4), 0 0 48px rgba(6, 182, 212, 0.15);
+    --ds-glow-purple: 0 0 24px rgba(139, 92, 246, 0.4);
+    --ds-glow-cyan: 0 0 24px rgba(34, 211, 238, 0.5), 0 0 60px rgba(34, 211, 238, 0.15);
     
     /* === TRANSITIONS & ANIMATIONS === */
     --ds-transition-fast: 150ms;
@@ -279,64 +280,72 @@
     --ds-safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --ds-safe-area-inset-left: env(safe-area-inset-left, 0px);
     
-    /* === GLASSMORPHISM === */
-    --ds-glass-blur: 24px;
+    /* === GLASSMORPHISM (Enhanced Teal/Cyan) === */
+    --ds-glass-blur: 20px;
     --ds-glass-saturation: 180%;
-    --ds-glass-bg: rgba(255, 255, 255, 0.85);
-    --ds-glass-border: rgba(255, 255, 255, 0.2);
+    --ds-glass-bg: rgba(255, 255, 255, 0.68);
+    --ds-glass-border: rgba(13, 148, 136, 0.12);
+    --ds-glass-border-light: rgba(255, 255, 255, 0.35);
     
-    /* === MESH GRADIENT COLORS === */
-    --ds-mesh-1: rgba(16, 185, 129, 0.08);
-    --ds-mesh-2: rgba(59, 130, 246, 0.06);
-    --ds-mesh-3: rgba(139, 92, 246, 0.04);
+    /* === MESH GRADIENT COLORS (Teal/Cyan) === */
+    --ds-mesh-1: rgba(13, 148, 136, 0.08);
+    --ds-mesh-2: rgba(6, 182, 212, 0.06);
+    --ds-mesh-3: rgba(34, 211, 238, 0.04);
 }
 
 /* ===========================
-   DARK THEME
+   DARK THEME (Glassmorphism + Glow)
    =========================== */
 [data-theme="dark"] {
-    --ds-bg-primary: #0a0f0d;
-    --ds-bg-secondary: #0f1419;
-    --ds-bg-tertiary: #151a22;
-    --ds-bg-card: #1a2028;
-    --ds-bg-elevated: #1f2937;
-    --ds-bg-overlay: rgba(0, 0, 0, 0.75);
-    --ds-bg-glass: rgba(26, 32, 40, 0.9);
-    --ds-bg-glass-strong: rgba(26, 32, 40, 0.98);
+    --ds-bg-primary: #0A1A1A;
+    --ds-bg-secondary: #0D2626;
+    --ds-bg-tertiary: #112B2B;
+    --ds-bg-card: rgba(15, 35, 35, 0.72);
+    --ds-bg-card-rgb: 15, 35, 35;
+    --ds-bg-elevated: rgba(20, 45, 45, 0.85);
+    --ds-bg-overlay: rgba(0, 0, 0, 0.65);
+    --ds-bg-glass: rgba(15, 35, 35, 0.72);
+    --ds-bg-glass-strong: rgba(15, 35, 35, 0.92);
     
-    --ds-text-primary: #e5f3e8;
+    --ds-text-primary: #E0F5F0;
     --ds-text-secondary: var(--ds-gray-300);
     --ds-text-tertiary: var(--ds-gray-400);
     --ds-text-muted: var(--ds-gray-500);
-    --ds-text-inverse: #111827;
+    --ds-text-inverse: #0A1A1A;
     
-    --ds-border-primary: var(--ds-gray-700);
-    --ds-border-secondary: var(--ds-gray-800);
+    --ds-border-primary: rgba(45, 212, 191, 0.15);
+    --ds-border-secondary: rgba(45, 212, 191, 0.08);
     --ds-border-focus: var(--ds-primary-400);
-    --ds-border-accent: rgba(52, 211, 153, 0.3);
+    --ds-border-accent: rgba(45, 212, 191, 0.25);
     
-    /* Adjusted shadows for dark mode */
+    /* Dark shadows with glow effects */
     --ds-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --ds-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
-    --ds-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-    --ds-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-    --ds-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-    --ds-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    --ds-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 1px rgba(45, 212, 191, 0.1);
+    --ds-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 2px rgba(45, 212, 191, 0.12);
+    --ds-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.4), 0 0 4px rgba(45, 212, 191, 0.15);
+    --ds-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.45), 0 0 8px rgba(45, 212, 191, 0.1);
+    --ds-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.55), 0 0 12px rgba(45, 212, 191, 0.12);
     
-    --ds-shadow-primary: 0 10px 40px rgba(52, 211, 153, 0.2);
-    --ds-shadow-primary-lg: 0 20px 50px rgba(52, 211, 153, 0.25);
-    --ds-shadow-secondary: 0 10px 40px rgba(96, 165, 250, 0.2);
-    --ds-shadow-purple: 0 10px 40px rgba(167, 139, 250, 0.2);
-    --ds-shadow-cyan: 0 10px 40px rgba(34, 211, 238, 0.2);
+    --ds-shadow-primary: 0 8px 32px rgba(45, 212, 191, 0.2), 0 0 8px rgba(45, 212, 191, 0.1);
+    --ds-shadow-primary-lg: 0 16px 48px rgba(45, 212, 191, 0.25), 0 0 16px rgba(45, 212, 191, 0.12);
+    --ds-shadow-secondary: 0 8px 32px rgba(34, 211, 238, 0.2);
+    --ds-shadow-purple: 0 8px 32px rgba(167, 139, 250, 0.2);
+    --ds-shadow-cyan: 0 8px 32px rgba(34, 211, 238, 0.25), 0 0 12px rgba(34, 211, 238, 0.1);
     
     /* Glassmorphism for dark */
-    --ds-glass-bg: rgba(26, 32, 40, 0.85);
-    --ds-glass-border: rgba(255, 255, 255, 0.1);
+    --ds-glass-bg: rgba(15, 35, 35, 0.72);
+    --ds-glass-border: rgba(45, 212, 191, 0.12);
+    --ds-glass-border-light: rgba(255, 255, 255, 0.06);
+    
+    /* Neon glow effects for dark mode */
+    --ds-glow-primary: 0 0 24px rgba(45, 212, 191, 0.35), 0 0 60px rgba(45, 212, 191, 0.12);
+    --ds-glow-secondary: 0 0 24px rgba(34, 211, 238, 0.35), 0 0 60px rgba(34, 211, 238, 0.12);
+    --ds-glow-cyan: 0 0 24px rgba(34, 211, 238, 0.45), 0 0 60px rgba(34, 211, 238, 0.15);
     
     /* Mesh gradient for dark */
-    --ds-mesh-1: rgba(52, 211, 153, 0.06);
-    --ds-mesh-2: rgba(96, 165, 250, 0.04);
-    --ds-mesh-3: rgba(167, 139, 250, 0.03);
+    --ds-mesh-1: rgba(45, 212, 191, 0.05);
+    --ds-mesh-2: rgba(34, 211, 238, 0.04);
+    --ds-mesh-3: rgba(103, 232, 249, 0.03);
 }
 
 /* ===========================
@@ -469,24 +478,28 @@ body {
     backdrop-filter: blur(var(--ds-glass-blur)) saturate(var(--ds-glass-saturation));
     -webkit-backdrop-filter: blur(var(--ds-glass-blur)) saturate(var(--ds-glass-saturation));
     border: 1px solid var(--ds-glass-border);
+    border-radius: var(--ds-radius-3xl);
 }
 
 .ds-glass-strong {
-    background: var(--ds-glass-bg-strong);
+    background: var(--ds-bg-glass-strong);
     backdrop-filter: blur(32px) saturate(200%);
     -webkit-backdrop-filter: blur(32px) saturate(200%);
     border: 1px solid var(--ds-glass-border);
+    border-radius: var(--ds-radius-3xl);
 }
 
 /* ===========================
-   CARDS
+   CARDS (Glassmorphism)
    =========================== */
 .ds-card {
     background: var(--ds-bg-card);
-    border-radius: var(--ds-radius-2xl);
+    backdrop-filter: blur(var(--ds-glass-blur)) saturate(var(--ds-glass-saturation));
+    -webkit-backdrop-filter: blur(var(--ds-glass-blur)) saturate(var(--ds-glass-saturation));
+    border-radius: var(--ds-radius-3xl);
     padding: var(--ds-space-6);
     box-shadow: var(--ds-shadow-md);
-    border: 1px solid var(--ds-border-secondary);
+    border: 1px solid var(--ds-glass-border);
     transition: 
         transform var(--ds-transition-normal) var(--ds-ease-bounce),
         box-shadow var(--ds-transition-normal) var(--ds-ease-default);
@@ -510,13 +523,15 @@ body {
     transform: translateY(-2px) scale(0.99);
 }
 
-/* Bento-style card */
+/* Bento-style card (Glassmorphism) */
 .ds-card-bento {
     background: var(--ds-bg-card);
+    backdrop-filter: blur(var(--ds-glass-blur)) saturate(var(--ds-glass-saturation));
+    -webkit-backdrop-filter: blur(var(--ds-glass-blur)) saturate(var(--ds-glass-saturation));
     border-radius: var(--ds-radius-3xl);
     padding: var(--ds-space-5);
     box-shadow: var(--ds-shadow-sm);
-    border: 1px solid var(--ds-border-secondary);
+    border: 1px solid var(--ds-glass-border);
     position: relative;
     overflow: hidden;
     transition: all var(--ds-transition-normal) var(--ds-ease-bounce);
@@ -529,7 +544,7 @@ body {
     left: 0;
     width: 4px;
     height: 100%;
-    background: linear-gradient(180deg, var(--ds-primary-500) 0%, var(--ds-primary-400) 100%);
+    background: linear-gradient(180deg, var(--ds-primary-500) 0%, var(--ds-accent-cyan-400) 100%);
     opacity: 0;
     transition: opacity var(--ds-transition-normal) var(--ds-ease-default);
 }
@@ -579,13 +594,13 @@ body {
 .ds-btn-primary {
     background: linear-gradient(135deg, var(--ds-primary-500) 0%, var(--ds-primary-600) 100%);
     color: var(--ds-text-inverse);
-    box-shadow: var(--ds-shadow-sm), 0 4px 12px rgba(16, 185, 129, 0.25);
+    box-shadow: var(--ds-shadow-sm), 0 4px 12px rgba(13, 148, 136, 0.25);
 }
 
 .ds-btn-primary:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--ds-primary-400) 0%, var(--ds-primary-500) 100%);
     transform: translateY(-2px);
-    box-shadow: var(--ds-shadow-md), 0 8px 20px rgba(16, 185, 129, 0.35);
+    box-shadow: var(--ds-shadow-md), 0 8px 20px rgba(13, 148, 136, 0.35);
 }
 
 .ds-btn-primary:active:not(:disabled) {
@@ -656,7 +671,7 @@ body {
 .ds-input:focus {
     outline: none;
     border-color: var(--ds-border-focus);
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.15);
 }
 
 .ds-input::placeholder {
@@ -824,11 +839,11 @@ body {
 @keyframes ds-celebration-pulse {
     0%, 100% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
     }
     50% {
         transform: scale(1.05);
-        box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+        box-shadow: 0 0 0 20px rgba(13, 148, 136, 0);
     }
 }
 
@@ -857,7 +872,7 @@ body {
     z-index: var(--ds-z-fixed);
     box-shadow: 
         var(--ds-shadow-lg),
-        0 8px 24px rgba(16, 185, 129, 0.4);
+        0 8px 24px rgba(13, 148, 136, 0.4);
     transition: all var(--ds-transition-normal) var(--ds-ease-bounce);
     animation: ds-fab-pulse 3s ease-in-out infinite;
 }
@@ -866,12 +881,12 @@ body {
     0%, 100% {
         box-shadow: 
             var(--ds-shadow-lg),
-            0 8px 24px rgba(16, 185, 129, 0.4);
+            0 8px 24px rgba(13, 148, 136, 0.4);
     }
     50% {
         box-shadow: 
             var(--ds-shadow-xl),
-            0 12px 32px rgba(16, 185, 129, 0.5);
+            0 12px 32px rgba(13, 148, 136, 0.5);
     }
 }
 
@@ -880,7 +895,7 @@ body {
     animation: none;
     box-shadow: 
         var(--ds-shadow-2xl),
-        0 16px 40px rgba(16, 185, 129, 0.5);
+        0 16px 40px rgba(13, 148, 136, 0.5);
 }
 
 .ds-fab:active {
