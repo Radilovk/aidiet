@@ -2331,7 +2331,8 @@
                 html += '<div class="day-number">' + d + '</div>';
                 html += '<div><div class="day-title">' + esc(fullDayNames[d - 1]) + '</div><div class="day-subtitle">Ден ' + d + ' от 7-дневния план</div></div>';
                 if (totalCal > 0) {
-                    html += '<div class="day-total-calories"><div class="cal-num">' + Math.round(totalCal) + '</div><div class="cal-label">kcal общо</div></div>';                }
+                    html += '<div class="day-total-calories"><div class="cal-num">' + (effectiveHasFree ? '+' : '') + Math.round(totalCal) + '</div><div class="cal-label">kcal общо</div></div>';
+                }
                 html += '</div>';
 
                 // Free day banner
