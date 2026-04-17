@@ -496,15 +496,6 @@
             overflow: visible;
         }
 
-        .health-ring-track {
-            stroke: currentColor;
-            opacity: 0.1;
-        }
-
-        [data-theme="dark"] .health-ring-track {
-            opacity: 0.16;
-        }
-
         .health-silhouette-svg {
             position: absolute;
             width: 54%;
@@ -2173,14 +2164,7 @@
                                                 <stop id="profileHealthRingColor" offset="0%" stop-color="${gaugeColor}"/>
                                             </linearGradient>
                                         </defs>
-                                        <g fill="currentColor" class="health-ring-track">
-                                            <circle cx="50" cy="4"  r="2.2"/>
-                                            <circle cx="96" cy="50" r="2.2"/>
-                                            <circle cx="50" cy="96" r="2.2"/>
-                                            <circle cx="4"  cy="50" r="2.2"/>
-                                        </g>
-                                        <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor"
-                                                stroke-width="4" stroke-dasharray="3 5" class="health-ring-track"/>
+
                                         <circle id="profileHealthRing" cx="50" cy="50" r="44" fill="none"
                                                 stroke="url(#profileHealthRingGrad)" stroke-width="5" stroke-linecap="round"
                                                 stroke-dasharray="276.46" stroke-dashoffset="276.46"
