@@ -530,7 +530,7 @@
 
         .health-badge.critical { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
         .health-badge.risky    { color: #f97316; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.2); }
-        .health-badge.border   { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
+        .health-badge.borderline { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
 
         [data-theme="dark"] .profile-section {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
@@ -2208,7 +2208,7 @@
                                 <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(16,185,129,0.12);">
                                     ${criticalCount > 0 ? `<span class="health-badge critical"><i class="fas fa-exclamation-circle"></i> ${criticalCount} критични</span>` : ''}
                                     ${riskyCount > 0 ? `<span class="health-badge risky"><i class="fas fa-exclamation-triangle"></i> ${riskyCount} рискови</span>` : ''}
-                                    ${borderlineCount > 0 ? `<span class="health-badge border"><i class="fas fa-info-circle"></i> ${borderlineCount} гранични</span>` : ''}
+                                    ${borderlineCount > 0 ? `<span class="health-badge borderline"><i class="fas fa-info-circle"></i> ${borderlineCount} гранични</span>` : ''}
                                 </div>
                                 ` : ''}
                             </div>
