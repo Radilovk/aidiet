@@ -469,6 +469,69 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
+        /* ============================================
+           HEALTH STATUS CIRCULAR WIDGET (profile)
+           ============================================ */
+        .health-viz-wrap {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: healthWidgetIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes healthWidgetIn {
+            from { opacity: 0; transform: scale(0.88); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .health-ring-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            transform: rotate(-90deg);
+            overflow: visible;
+        }
+
+        .health-ring-track {
+            stroke: currentColor;
+            opacity: 0.1;
+        }
+
+        [data-theme="dark"] .health-ring-track {
+            opacity: 0.16;
+        }
+
+        .health-silhouette-svg {
+            position: absolute;
+            width: 54%;
+            height: auto;
+            z-index: 2;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));
+        }
+
+        [data-theme="dark"] .health-silhouette-svg {
+            filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
+        }
+
+        .health-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 11px;
+            border-radius: 20px;
+            border: 1px solid transparent;
+        }
+
+        .health-badge.critical { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
+        .health-badge.risky    { color: #f97316; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.2); }
+        .health-badge.border   { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
+
         [data-theme="dark"] .profile-section {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
         }
@@ -2038,8 +2101,9 @@
                     html += '<p style="color: var(--text-light); font-style: italic;">Не са открити проблемни области</p>';
                 }
                 
-                // Health status score - displayed as semicircular gauge
+                // Health status score - displayed as circular widget with silhouette
                 // Unified calculation: same logic as analysis.html
+                let profileHealthScoreForAnimation = null;
                 {
                     const MIN_HEALTH_SCORE = 15;
                     const MAX_HEALTH_SCORE = 100;
@@ -2089,64 +2153,62 @@
                             healthLabel = 'Добро';
                         }
 
-                        // Semicircular gauge: 0% = -90deg (left), 100% = 90deg (right)
-                        const needleAngle = -90 + (healthScore / 100) * 180;
-                        // Arc length for semicircle with radius 85: π × 85 ≈ 267
-                        const arcLength = Math.PI * 85;
-                        const activeArc = (healthScore / 100) * arcLength;
+                        profileHealthScoreForAnimation = healthScore;
+
+                        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        const emptyColor = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
 
                         html += `
-                            <div style="padding: 24px; background: linear-gradient(145deg, var(--soft-red), rgba(16,185,129,0.05)); border-radius: 16px; text-align: center; border: 1px solid rgba(16,185,129,0.1);">
-                                <div style="font-weight: 700; color: var(--text-dark); font-size: 1rem; margin-bottom: 16px;">
+                            <div style="padding: 24px 20px 20px; background: linear-gradient(145deg, var(--soft-red), rgba(16,185,129,0.03)); border-radius: 16px; text-align: center; border: 1px solid rgba(16,185,129,0.1);">
+                                <div style="font-weight: 700; color: var(--text-dark); font-size: 0.95rem; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
                                     <i class="fas fa-heartbeat" style="color: ${gaugeColor}; margin-right: 6px;"></i>
                                     Здравословен статус
                                 </div>
 
-                                <!-- Semicircular Gauge -->
-                                <div style="position: relative; width: 200px; height: 120px; margin: 0 auto 12px;">
-                                    <svg viewBox="0 0 200 115" width="200" height="115" role="img" aria-label="Здравословен статус: ${healthScore}% - ${healthLabel}">
-                                        <title>Здравословен статус: ${healthScore}%</title>
-                                        <!-- Background arc -->
-                                        <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" opacity="0.1"/>
-
-                                        <!-- Color gradient segments: 25% each — red, orange, yellow, green -->
-                                        <path d="M 15 100 A 85 85 0 0 1 39.9 39.9" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
-                                        <path d="M 39.9 39.9 A 85 85 0 0 1 100 15" fill="none" stroke="#f97316" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
-                                        <path d="M 100 15 A 85 85 0 0 1 160.1 39.9" fill="none" stroke="#fbbf24" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
-                                        <path d="M 160.1 39.9 A 85 85 0 0 1 185 100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
-
-                                        <!-- Active arc up to score -->
-                                        <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="${gaugeColor}" stroke-width="14" stroke-linecap="round"
-                                            stroke-dasharray="${activeArc.toFixed(1)} ${arcLength.toFixed(1)}"
-                                            style="filter: drop-shadow(0 0 8px ${gaugeColor}60);"/>
-
-                                        <!-- Needle -->
-                                        <g transform="rotate(${needleAngle}, 100, 100)">
-                                            <line x1="100" y1="100" x2="100" y2="28" stroke="${gaugeColor}" stroke-width="3" stroke-linecap="round" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"/>
-                                            <circle cx="100" cy="100" r="7" fill="${gaugeColor}"/>
-                                            <circle cx="100" cy="100" r="3.5" fill="var(--card-bg, #ffffff)"/>
+                                <!-- Circular Health Widget -->
+                                <div class="health-viz-wrap">
+                                    <svg class="health-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
+                                        <defs>
+                                            <linearGradient id="profileHealthRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop id="profileHealthRingColor" offset="0%" stop-color="${gaugeColor}"/>
+                                            </linearGradient>
+                                        </defs>
+                                        <g fill="currentColor" class="health-ring-track">
+                                            <circle cx="50" cy="4"  r="2.2"/>
+                                            <circle cx="96" cy="50" r="2.2"/>
+                                            <circle cx="50" cy="96" r="2.2"/>
+                                            <circle cx="4"  cy="50" r="2.2"/>
                                         </g>
-
-                                        <!-- Tick marks at 0, 25, 50, 75, 100 -->
-                                        <text x="8" y="112" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="start" font-weight="600">0</text>
-                                        <text x="33" y="36" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="middle" font-weight="600">25</text>
-                                        <text x="100" y="10" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="middle" font-weight="600">50</text>
-                                        <text x="167" y="36" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="middle" font-weight="600">75</text>
-                                        <text x="192" y="112" font-size="9" fill="var(--text-light, var(--text-gray, #888))" text-anchor="end" font-weight="600">100</text>
+                                        <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor"
+                                                stroke-width="4" stroke-dasharray="3 5" class="health-ring-track"/>
+                                        <circle id="profileHealthRing" cx="50" cy="50" r="44" fill="none"
+                                                stroke="url(#profileHealthRingGrad)" stroke-width="5" stroke-linecap="round"
+                                                stroke-dasharray="276.46" stroke-dashoffset="276.46"
+                                                style="transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1); filter: drop-shadow(0 0 7px ${gaugeColor}99);"/>
+                                    </svg>
+                                    <svg class="health-silhouette-svg" viewBox="0 0 512 512" aria-hidden="true">
+                                        <defs>
+                                            <linearGradient id="profileBodyGrad" x1="0" y1="512" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+                                                <stop offset="${healthScore}%" stop-color="${gaugeColor}"/>
+                                                <stop offset="${healthScore}%" stop-color="${emptyColor}"/>
+                                            </linearGradient>
+                                        </defs>
+                                        <g fill="url(#profileBodyGrad)">
+                                            <circle cx="256" cy="56" r="40"/>
+                                            <path d="M199.3,295.62h0l-30.4,172.2a24,24,0,0,0,19.5,27.8,23.76,23.76,0,0,0,27.6-19.5l21-119.9v.2s5.2-32.5,17.5-32.5h3.1c12.5,0,17.5,32.5,17.5,32.5v-.1l21,119.9a23.92,23.92,0,1,0,47.1-8.4l-30.4-172.2-4.9-29.7c-2.9-18.1-4.2-47.6.5-59.7,4-10.4,14.13-14.2,23.2-14.2H424a24,24,0,0,0,0-48H88a24,24,0,0,0,0,48h92.5c9.23,0,19.2,3.8,23.2,14.2,4.7,12.1,3.4,41.6.5,59.7Z"/>
+                                        </g>
                                     </svg>
                                 </div>
 
                                 <!-- Score display -->
-                                <div style="font-size: 2.2rem; font-weight: 800; color: ${gaugeColor}; line-height: 1; margin-bottom: 6px; letter-spacing: -1px;">${healthScore}%</div>
-                                <div style="font-size: 0.9rem; font-weight: 600; color: ${gaugeColor}; text-transform: uppercase; letter-spacing: 0.5px;">${healthLabel}</div>
+                                <div style="font-size: 2.4rem; font-weight: 900; color: ${gaugeColor}; line-height: 1; margin-bottom: 6px; letter-spacing: -2px;">${healthScore}%</div>
+                                <div style="font-size: 0.82rem; font-weight: 700; color: ${gaugeColor}; text-transform: uppercase; letter-spacing: 1.5px;">${healthLabel}</div>
 
                                 ${totalProblems > 0 ? `
-                                <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(16,185,129,0.12);">
-                                    <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
-                                        ${criticalCount > 0 ? `<span style="font-size: 0.8rem; color: #ef4444; font-weight: 600;"><i class="fas fa-exclamation-circle"></i> ${criticalCount} критични</span>` : ''}
-                                        ${riskyCount > 0 ? `<span style="font-size: 0.8rem; color: #f97316; font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> ${riskyCount} рискови</span>` : ''}
-                                        ${borderlineCount > 0 ? `<span style="font-size: 0.8rem; color: #fbbf24; font-weight: 600;"><i class="fas fa-info-circle"></i> ${borderlineCount} гранични</span>` : ''}
-                                    </div>
+                                <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(16,185,129,0.12);">
+                                    ${criticalCount > 0 ? `<span class="health-badge critical"><i class="fas fa-exclamation-circle"></i> ${criticalCount} критични</span>` : ''}
+                                    ${riskyCount > 0 ? `<span class="health-badge risky"><i class="fas fa-exclamation-triangle"></i> ${riskyCount} рискови</span>` : ''}
+                                    ${borderlineCount > 0 ? `<span class="health-badge border"><i class="fas fa-info-circle"></i> ${borderlineCount} гранични</span>` : ''}
                                 </div>
                                 ` : ''}
                             </div>
@@ -2155,6 +2217,18 @@
                 }
                 
                 analysisContent.innerHTML = html;
+
+                // Animate the circular health ring after DOM is ready
+                if (profileHealthScoreForAnimation !== null) {
+                    const circumference = 2 * Math.PI * 44; // ≈ 276.46
+                    setTimeout(() => {
+                        const ring = document.getElementById('profileHealthRing');
+                        if (ring) {
+                            const dashOffset = circumference * (1 - profileHealthScoreForAnimation / 100);
+                            ring.style.strokeDashoffset = dashOffset.toFixed(2);
+                        }
+                    }, 400);
+                }
                 
             } catch (error) {
                 console.error('Error loading analysis:', error);
