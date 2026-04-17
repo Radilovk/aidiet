@@ -1218,11 +1218,175 @@ function detectGoalContradiction(data) {
   return { hasContradiction, warningData };
 }
 
+/**
+ * AI-powered validation of questionnaire data.
+ * Checks for unrealistic, dangerous, unhealthy, risky, illogical goals,
+ * as well as contradictory or mismatching information.
+ * Returns { hasIssues: boolean, issues: Array<{category, description, severity}> }
+ */
+async function performAIValidation(env, data) {
+  const weight = parseFloat(data.weight) || 0;
+  const height = parseFloat(data.height) || 0;
+  const age = parseInt(data.age) || 0;
+  const heightM = height / 100;
+  const bmi = (heightM > 0) ? (weight / (heightM * heightM)).toFixed(1) : 'N/A';
+  
+  const medicalConditions = Array.isArray(data.medicalConditions) 
+    ? data.medicalConditions.join(', ') 
+    : (data.medicalConditions || 'Няма посочени');
+
+  const prompt = `Ти си медицински AI валидатор за хранително-диетично приложение. Анализирай следните данни от въпросник и провери за проблеми.
+
+ДАННИ НА ПОТРЕБИТЕЛЯ:
+- Име: ${data.name || 'Не е посочено'}
+- Възраст: ${age} години
+- Пол: ${data.gender || 'Не е посочен'}
+- Тегло: ${weight} кг
+- Височина: ${height} см
+- BMI: ${bmi}
+- Цел: ${data.goal || 'Не е посочена'}
+- Целево отслабване: ${data.lossKg ? data.lossKg + ' кг' : 'Не е посочено'}
+- Медицински състояния: ${medicalConditions}
+- Медикаменти: ${data.medicationsDetails || 'Няма'}
+- Спортна активност: ${data.sportActivity || 'Не е посочена'}
+- Часове сън: ${data.sleepHours || 'Не е посочено'}
+- Диетични предпочитания: ${data.dietPreference || 'Няма'}
+- Храни, които обича: ${data.dietLove || 'Не е посочено'}
+- Храни, които не харесва: ${data.dietDislike || 'Не е посочено'}
+- Допълнителни бележки: ${data.additionalNotes || 'Няма'}
+- История на тегло: ${data.weightChangeDetails || 'Не е посочена'}
+
+ПРОВЕРИ ЗА СЛЕДНИТЕ КАТЕГОРИИ ПРОБЛЕМИ:
+
+1. НЕРЕАЛИСТИЧНИ ЦЕЛИ - напр. желание за загуба на 20+ кг за седмица, достигане на опасно ниско тегло, цел за BMI под 16
+2. ОПАСНИ/НЕЗДРАВОСЛОВНИ ЦЕЛИ - напр. екстремен калориен дефицит при медицински състояния, отслабване при поднормено тегло, комбинация от медикаменти и екстремни диети
+3. РИСКОВИ КОМБИНАЦИИ - напр. диабет + нисковъглехидратна диета без медицински надзор, бременност + агресивно отслабване, сърдечни заболявания + интензивна спортна програма
+4. НЕЛОГИЧНА ИНФОРМАЦИЯ - напр. тегло 200 кг при височина 190 см и цел за качване на тегло, възраст 10 години и професионален спорт, противоречия между посочените данни
+5. ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ - напр. посочва алергия към млечни продукти но любимата храна е сирене, веган диета но яде месо, казва "няма заболявания" но изброява медикаменти
+
+ВАЖНО: 
+- Бъди строг само при РЕАЛНИ опасности за здравето. НЕ отхвърляй нормални цели за отслабване (1-2 кг на седмица е нормално).
+- Нормалните цели за отслабване, качване на тегло, поддържане или мускулна маса НЕ са проблем.
+- Леки несъответствия НЕ са проблем. Фокусирай се върху сериозни рискове.
+
+Отговори САМО в JSON формат:
+{
+  "hasIssues": true/false,
+  "issues": [
+    {
+      "category": "НЕРЕАЛИСТИЧНА ЦЕЛ" | "ОПАСНА ЦЕЛ" | "РИСКОВА КОМБИНАЦИЯ" | "НЕЛОГИЧНА ИНФОРМАЦИЯ" | "ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ",
+      "description": "Описание на проблема на български",
+      "severity": "high" | "medium"
+    }
+  ]
+}
+
+Ако НЯМА проблеми, отговори: {"hasIssues": false, "issues": []}`;
+
+  try {
+    const aiResponse = await callAIModel(env, prompt, 2000, 'ai_validation', null, null, null, false);
+    const parsed = parseAIResponse(aiResponse);
+    
+    if (parsed && typeof parsed.hasIssues === 'boolean') {
+      // Filter only high and medium severity issues
+      const validIssues = (parsed.issues || []).filter(
+        issue => issue && issue.category && issue.description && 
+                 (issue.severity === 'high' || issue.severity === 'medium')
+      );
+      return {
+        hasIssues: validIssues.length > 0,
+        issues: validIssues
+      };
+    }
+    
+    // If AI response couldn't be parsed, skip validation (don't block user)
+    console.warn('AI validation response could not be parsed, skipping validation');
+    return { hasIssues: false, issues: [] };
+  } catch (error) {
+    // If AI validation fails, don't block the user - just skip validation
+    console.error('AI validation failed, skipping:', error.message);
+    return { hasIssues: false, issues: [] };
+  }
+}
+
+/**
+ * Handle questionnaire AI validation endpoint.
+ * Called before plan generation to check for issues in user data.
+ */
+async function handleValidateQuestionnaire(request, env) {
+  try {
+    const data = await request.json();
+    
+    // Validate minimum required fields
+    if (!data.name || !data.age || !data.weight || !data.height) {
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+    
+    // Step 1: Run existing deterministic validations
+    const dataValidation = validateDataAdequacy(data);
+    if (!dataValidation.isValid) {
+      return jsonResponse({
+        valid: false,
+        hasIssues: true,
+        issues: [{
+          category: 'НЕВАЛИДНИ ДАННИ',
+          description: dataValidation.errorMessage,
+          severity: 'high'
+        }]
+      });
+    }
+    
+    // Step 2: Run existing goal contradiction detection
+    const { hasContradiction, warningData } = detectGoalContradiction(data);
+    if (hasContradiction) {
+      const issues = [{
+        category: 'РИСКОВА КОМБИНАЦИЯ',
+        description: warningData.recommendation,
+        severity: 'high'
+      }];
+      if (warningData.risks) {
+        warningData.risks.forEach(risk => {
+          issues.push({
+            category: 'ЗДРАВОСЛОВЕН РИСК',
+            description: risk,
+            severity: 'medium'
+          });
+        });
+      }
+      return jsonResponse({
+        valid: false,
+        hasIssues: true,
+        issues: issues
+      });
+    }
+    
+    // Step 3: Run AI-powered validation
+    const aiValidation = await performAIValidation(env, data);
+    
+    if (aiValidation.hasIssues) {
+      return jsonResponse({
+        valid: false,
+        hasIssues: true,
+        issues: aiValidation.issues
+      });
+    }
+    
+    // All checks passed
+    return jsonResponse({ valid: true, hasIssues: false, issues: [] });
+    
+  } catch (error) {
+    console.error('Error in questionnaire validation:', error);
+    // On error, allow user to proceed (don't block)
+    return jsonResponse({ valid: true, hasIssues: false, issues: [] });
+  }
+}
+
 // Rate limiting configuration for expensive AI endpoints
 const RATE_LIMIT = {
   GENERATE_PLAN: { maxRequests: 3, windowSec: 60 },  // 3 plans/min per IP
   CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
   FOOD_ANALYSIS: { maxRequests: 10, windowSec: 60 },  // 10 food analyses/min per IP
+  VALIDATE_QUESTIONNAIRE: { maxRequests: 8, windowSec: 60 },  // 8 validations/min per IP
 };
 
 /**
@@ -10348,7 +10512,11 @@ export default {
 
     try {
       // Route handling
-      if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
+      if (url.pathname === '/api/validate-questionnaire' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'VALIDATE_QUESTIONNAIRE');
+        if (rlErr) return rlErr;
+        return await handleValidateQuestionnaire(request, env);
+      } else if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'GENERATE_PLAN');
         if (rlErr) return rlErr;
         return await handleGeneratePlan(request, env);
