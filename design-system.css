@@ -671,7 +671,7 @@ body {
 .ds-input:focus {
     outline: none;
     border-color: var(--ds-border-focus);
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.15);
 }
 
 .ds-input::placeholder {
@@ -839,11 +839,11 @@ body {
 @keyframes ds-celebration-pulse {
     0%, 100% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
     }
     50% {
         transform: scale(1.05);
-        box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+        box-shadow: 0 0 0 20px rgba(13, 148, 136, 0);
     }
 }
 
@@ -872,7 +872,7 @@ body {
     z-index: var(--ds-z-fixed);
     box-shadow: 
         var(--ds-shadow-lg),
-        0 8px 24px rgba(16, 185, 129, 0.4);
+        0 8px 24px rgba(13, 148, 136, 0.4);
     transition: all var(--ds-transition-normal) var(--ds-ease-bounce);
     animation: ds-fab-pulse 3s ease-in-out infinite;
 }
@@ -881,12 +881,12 @@ body {
     0%, 100% {
         box-shadow: 
             var(--ds-shadow-lg),
-            0 8px 24px rgba(16, 185, 129, 0.4);
+            0 8px 24px rgba(13, 148, 136, 0.4);
     }
     50% {
         box-shadow: 
             var(--ds-shadow-xl),
-            0 12px 32px rgba(16, 185, 129, 0.5);
+            0 12px 32px rgba(13, 148, 136, 0.5);
     }
 }
 
@@ -895,7 +895,7 @@ body {
     animation: none;
     box-shadow: 
         var(--ds-shadow-2xl),
-        0 16px 40px rgba(16, 185, 129, 0.5);
+        0 16px 40px rgba(13, 148, 136, 0.5);
 }
 
 .ds-fab:active {

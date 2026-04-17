@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Здравен анализ и детайлни препоръки от NutriPlan за вашия хранителен режим.">
-    <meta name="theme-color" content="#10b981">
+    <meta name="theme-color" content="#0D9488">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,23 +22,23 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
-            --primary-red: #10b981;
-            --primary-red-hover: #059669;
-            --soft-red: #d1fae5;
+            --primary-red: #0D9488;
+            --primary-red-hover: #0F766E;
+            --soft-red: #CCFBF1;
             --accent-yellow: #fbbf24;
             --accent-blue: #3b82f6;
             --accent-light-red: #f87171;
-            --text-dark: #1e3a20;
+            --text-dark: #0F2F2E;
             --text-gray: #6b7280;
-            --bg-color: #fefce8;
+            --bg-color: #F0FDFA;
             --card-bg: #ffffff;
             --input-bg: #f3f4f6;
-            --shadow: 0 10px 30px rgba(16,185,129,0.12);
+            --shadow: 0 10px 30px rgba(13,148,136,0.12);
             --radius: 16px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             
             /* Severity colors */
-            --severity-normal: #10b981;
+            --severity-normal: #0D9488;
             --severity-borderline: #fbbf24;
             --severity-risky: #f97316;
             --severity-critical: #ef4444;
@@ -52,20 +52,20 @@
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #34d399;
-            --primary-red-hover: #10b981;
-            --soft-red: #064e3b;
+            --primary-red: #2DD4BF;
+            --primary-red-hover: #0D9488;
+            --soft-red: #134E4A;
             --accent-yellow: #fcd34d;
             --accent-blue: #60a5fa;
             --accent-light-red: #fca5a5;
-            --text-dark: #e5f3e8;
+            --text-dark: #E0F5F0;
             --text-gray: #9ca3af;
-            --bg-color: #0f1419;
-            --card-bg: #1a2028;
+            --bg-color: #0A1A1A;
+            --card-bg: #112B2B;
             --input-bg: #252b35;
             --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
             
-            --severity-normal: #34d399;
+            --severity-normal: #2DD4BF;
             --severity-borderline: #fcd34d;
             --severity-risky: #fb923c;
             --severity-critical: #f87171;
@@ -98,15 +98,15 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 4px 20px rgba(13, 148, 136, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border-bottom: 1px solid rgba(16, 185, 129, 0.06);
+            border-bottom: 1px solid rgba(13, 148, 136, 0.06);
             transition: all 0.35s ease;
         }
         [data-theme="dark"] .analysis-header {
             background: rgba(26, 32, 40, 0.92);
-            border-bottom-color: rgba(52, 211, 153, 0.1);
+            border-bottom-color: rgba(45, 212, 191, 0.1);
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
         }
         .analysis-header h1 {
@@ -118,8 +118,8 @@
             text-align: center;
         }
         .analysis-header .back-btn {
-            background: rgba(16, 185, 129, 0.08);
-            border: 1px solid rgba(16, 185, 129, 0.15);
+            background: rgba(13, 148, 136, 0.08);
+            border: 1px solid rgba(13, 148, 136, 0.15);
             font-size: 1.2rem;
             color: var(--text-dark);
             cursor: pointer;
@@ -133,20 +133,20 @@
             justify-content: center;
         }
         [data-theme="dark"] .analysis-header .back-btn {
-            background: rgba(52, 211, 153, 0.1);
-            border-color: rgba(52, 211, 153, 0.2);
+            background: rgba(45, 212, 191, 0.1);
+            border-color: rgba(45, 212, 191, 0.2);
             color: var(--text-dark);
         }
 
         /* --- DARK THEME ENHANCEMENTS --- */
         [data-theme="dark"] .header-icon {
-            background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(52, 211, 153, 0.08));
-            box-shadow: 0 8px 32px rgba(52, 211, 153, 0.2), inset 0 1px 0 rgba(52, 211, 153, 0.1);
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.15), rgba(45, 212, 191, 0.08));
+            box-shadow: 0 8px 32px rgba(45, 212, 191, 0.2), inset 0 1px 0 rgba(45, 212, 191, 0.1);
         }
 
         [data-theme="dark"] .problem-card {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border: 1px solid rgba(52, 211, 153, 0.08);
+            border: 1px solid rgba(45, 212, 191, 0.08);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
@@ -169,8 +169,8 @@
         }
 
         [data-theme="dark"] .problem-impact {
-            background: rgba(52, 211, 153, 0.08);
-            border: 1px solid rgba(52, 211, 153, 0.1);
+            background: rgba(45, 212, 191, 0.08);
+            border: 1px solid rgba(45, 212, 191, 0.1);
         }
 
         [data-theme="dark"] .meter-track {
@@ -180,7 +180,7 @@
 
         [data-theme="dark"] .overall-score-section {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border: 1px solid rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(45, 212, 191, 0.1);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
@@ -190,14 +190,14 @@
         }
 
         [data-theme="dark"] .score-card-header {
-            background: linear-gradient(to bottom, rgba(52, 211, 153, 0.06) 0%, transparent 100%);
-            border-bottom-color: rgba(52, 211, 153, 0.08);
+            background: linear-gradient(to bottom, rgba(45, 212, 191, 0.06) 0%, transparent 100%);
+            border-bottom-color: rgba(45, 212, 191, 0.08);
         }
 
         /* Forecast cards dark theme */
         [data-theme="dark"] .forecast-card {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border: 1px solid rgba(52, 211, 153, 0.08);
+            border: 1px solid rgba(45, 212, 191, 0.08);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
@@ -210,7 +210,7 @@
         }
 
         [data-theme="dark"] .forecast-card.optimistic {
-            border-top-color: rgba(52, 211, 153, 0.6);
+            border-top-color: rgba(45, 212, 191, 0.6);
         }
 
         [data-theme="dark"] .forecast-card-header {
@@ -224,23 +224,23 @@
         }
 
         [data-theme="dark"] .forecast-improvements li {
-            background: rgba(52, 211, 153, 0.06);
-            border-left-color: rgba(52, 211, 153, 0.4);
+            background: rgba(45, 212, 191, 0.06);
+            border-left-color: rgba(45, 212, 191, 0.4);
             color: var(--text-dark);
         }
 
         [data-theme="dark"] .cta-section {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border: 1px solid rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(45, 212, 191, 0.1);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
         [data-theme="dark"] .btn-primary {
-            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.3);
+            box-shadow: 0 4px 15px rgba(45, 212, 191, 0.3);
         }
 
         [data-theme="dark"] .btn-primary:hover {
-            box-shadow: 0 6px 20px rgba(52, 211, 153, 0.4);
+            box-shadow: 0 6px 20px rgba(45, 212, 191, 0.4);
         }
 
         [data-theme="dark"] .comparison-side.current {
@@ -248,7 +248,7 @@
         }
 
         [data-theme="dark"] .comparison-side.future {
-            background: linear-gradient(135deg, rgba(52, 211, 153, 0.03) 0%, rgba(52, 211, 153, 0.06) 100%);
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.03) 0%, rgba(45, 212, 191, 0.06) 100%);
         }
         .analysis-header .back-btn:hover {
             background: var(--primary-red);
@@ -349,7 +349,7 @@
             animation: slideUp 0.5s ease;
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(13, 148, 136, 0.08);
         }
 
         .problem-card::before {
@@ -365,7 +365,7 @@
 
         .problem-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 15px 40px rgba(16,185,129,0.2);
+            box-shadow: 0 15px 40px rgba(13,148,136,0.2);
         }
 
         .problem-card.severity-normal::before {
@@ -546,7 +546,7 @@
             100% { transform: translateX(100%); }
         }
 
-        .meter-fill.normal { background: linear-gradient(90deg, var(--severity-normal), #059669); }
+        .meter-fill.normal { background: linear-gradient(90deg, var(--severity-normal), #0F766E); }
         .meter-fill.borderline { background: linear-gradient(90deg, var(--severity-borderline), #f59e0b); }
         .meter-fill.risky { background: linear-gradient(90deg, var(--severity-risky), #ea580c); }
         .meter-fill.critical { background: linear-gradient(90deg, var(--severity-critical), #dc2626); }
@@ -630,26 +630,26 @@
             overflow: hidden;
             transition: var(--transition);
             box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
-            border: 1px solid rgba(16,185,129,0.1);
+            border: 1px solid rgba(13,148,136,0.1);
         }
 
         [data-theme="dark"] .score-card {
             background: var(--card-bg);
-            border: 1px solid rgba(52,211,153,0.15);
+            border: 1px solid rgba(45,212,191,0.15);
             box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
         }
 
         .score-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(16,185,129,0.12), 0 4px 8px rgba(0,0,0,0.08);
-            border-color: rgba(16,185,129,0.3);
+            box-shadow: 0 12px 32px rgba(13,148,136,0.12), 0 4px 8px rgba(0,0,0,0.08);
+            border-color: rgba(13,148,136,0.3);
         }
 
         .score-card-header {
             text-align: center;
             padding: 24px 20px 16px;
-            background: linear-gradient(to bottom, rgba(16,185,129,0.04) 0%, transparent 100%);
-            border-bottom: 1px solid rgba(16,185,129,0.08);
+            background: linear-gradient(to bottom, rgba(13,148,136,0.04) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(13,148,136,0.08);
         }
 
         .score-icon-wrapper {
@@ -736,7 +736,7 @@
             font-size: 3.5rem;
             font-weight: 800;
             line-height: 1;
-            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -766,7 +766,7 @@
         }
 
         .comparison-side.future {
-            background: linear-gradient(135deg, rgba(16,185,129,0.02) 0%, rgba(16,185,129,0.05) 100%);
+            background: linear-gradient(135deg, rgba(13,148,136,0.02) 0%, rgba(13,148,136,0.05) 100%);
             border-radius: 0 0 20px 0;
         }
 
@@ -812,7 +812,7 @@
         }
 
         .comparison-side.future .score-value {
-            background: linear-gradient(135deg, var(--primary-red) 0%, #059669 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -847,11 +847,11 @@
 
         .bar-column {
             width: 40px;
-            background: linear-gradient(to top, var(--primary-red) 0%, #34d399 100%);
+            background: linear-gradient(to top, var(--primary-red) 0%, #2DD4BF 100%);
             border-radius: 8px 8px 0 0;
             position: relative;
             transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 -2px 10px rgba(16,185,129,0.3);
+            box-shadow: 0 -2px 10px rgba(13,148,136,0.3);
             animation: shimmer-bar 3s infinite;
             overflow: hidden;
         }
@@ -929,7 +929,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: var(--transition);
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.4);
             display: inline-flex;
             align-items: center;
             gap: 10px;
@@ -942,7 +942,7 @@
         .btn-primary:hover {
             background-color: var(--primary-red-hover);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
         }
 
         .btn-primary:active {
@@ -1033,7 +1033,7 @@
 
         .forecast-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(16,185,129,0.2);
+            box-shadow: 0 15px 40px rgba(13,148,136,0.2);
         }
 
         .forecast-card.pessimistic {
@@ -1069,7 +1069,7 @@
         }
 
         .forecast-icon.success {
-            background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.2) 100%);
+            background: linear-gradient(135deg, rgba(13,148,136,0.1) 0%, rgba(13,148,136,0.2) 100%);
             color: var(--primary-red);
         }
 
@@ -1124,7 +1124,7 @@
         .forecast-improvements li {
             padding: 10px 12px;
             margin-bottom: 8px;
-            background: rgba(16,185,129,0.05);
+            background: rgba(13,148,136,0.05);
             border-left: 3px solid var(--primary-red);
             border-radius: 8px;
             font-size: 0.9rem;
@@ -1418,7 +1418,7 @@
             flex-wrap: wrap;
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid rgba(16,185,129,0.12);
+            border-top: 1px solid rgba(13,148,136,0.12);
         }
 
         .health-badge {
@@ -1451,13 +1451,13 @@
             background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border-top: 1px solid rgba(16, 185, 129, 0.1);
+            border-top: 1px solid rgba(13, 148, 136, 0.1);
             box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
             transform: translateZ(0);
         }
         [data-theme="dark"] .bottom-nav {
             background: rgba(26, 32, 40, 0.95);
-            border-top-color: rgba(52, 211, 153, 0.1);
+            border-top-color: rgba(45, 212, 191, 0.1);
             box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
         }
         .bottom-nav-item {
@@ -1538,7 +1538,7 @@
                             <svg class="health-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
                                 <defs>
                                     <linearGradient id="healthRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop id="healthRingColor" offset="0%" stop-color="#10b981"/>
+                                        <stop id="healthRingColor" offset="0%" stop-color="#0D9488"/>
                                     </linearGradient>
                                 </defs>
 
@@ -1556,7 +1556,7 @@
                                 <defs>
                                     <linearGradient id="healthBodyGrad" x1="0" y1="512" x2="0" y2="0"
                                                     gradientUnits="userSpaceOnUse">
-                                        <stop id="healthBodyFill"  offset="0%" stop-color="#10b981"/>
+                                        <stop id="healthBodyFill"  offset="0%" stop-color="#0D9488"/>
                                         <stop id="healthBodyEmpty" offset="0%" stop-color="rgba(128,128,128,0.15)"/>
                                     </linearGradient>
                                 </defs>
@@ -1567,8 +1567,8 @@
                             </svg>
                         </div>
                         <!-- Score display -->
-                        <div id="healthScoreValue" class="gauge-score-value" style="color: #10b981;">--</div>
-                        <div id="healthScoreLabel" class="gauge-score-label" style="color: #10b981;"></div>
+                        <div id="healthScoreValue" class="gauge-score-value" style="color: #0D9488;">--</div>
+                        <div id="healthScoreLabel" class="gauge-score-label" style="color: #0D9488;"></div>
                     </div>
                 </div>
             </div>
@@ -1833,7 +1833,7 @@
                 gaugeColor = '#fbbf24';
                 healthLabel = 'Умерено';
             } else {
-                gaugeColor = '#10b981';
+                gaugeColor = '#0D9488';
                 healthLabel = 'Добро';
             }
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Индивидуални клинични протоколи за различни здравословни състояния - инсулинова резистентност, автоимунни заболявания, менопауза, стрес и още. Изберете вашия персонализиран протокол.">
-    <meta name="theme-color" content="#10b981">
+    <meta name="theme-color" content="#0D9488">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,9 +23,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary: #059669;
+            --primary: #0F766E;
             --primary-hover: #047857;
-            --primary-light: #d1fae5;
+            --primary-light: #CCFBF1;
             --primary-lighter: #ecfdf5;
             --primary-50: #f0fdf4;
             --text-dark: #111827;
@@ -50,9 +50,9 @@
         }
 
         [data-theme="dark"] {
-            --primary: #34d399;
+            --primary: #2DD4BF;
             --primary-hover: #6ee7b7;
-            --primary-light: #064e3b;
+            --primary-light: #134E4A;
             --primary-lighter: #022c22;
             --primary-50: #022c22;
             --text-dark: #f3f4f6;
@@ -708,7 +708,7 @@
         }
 
         [data-theme="dark"] .modal-title .category-badge {
-            background: rgba(52, 211, 153, 0.12);
+            background: rgba(45, 212, 191, 0.12);
         }
 
         /* Modal sections — clean, no heavy borders */
@@ -812,7 +812,7 @@
         }
 
         [data-theme="dark"] .modal-item.emphasis {
-            background: rgba(52, 211, 153, 0.08);
+            background: rgba(45, 212, 191, 0.08);
             color: var(--text-body);
         }
 
@@ -1599,7 +1599,7 @@
                 longevity: '#0369a1',
                 detox: '#15803d'
             };
-            return colors[protocolId] || '#059669';
+            return colors[protocolId] || '#0F766E';
         }
 
         // Theme management
@@ -1720,7 +1720,7 @@
             // Set modal hero gradient
             const modalHero = document.getElementById('modalHero');
             if (modalHero) {
-                modalHero.style.background = MODAL_GRADIENTS[protocolId] || 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+                modalHero.style.background = MODAL_GRADIENTS[protocolId] || 'linear-gradient(135deg, #0F766E 0%, #047857 100%)';
             }
             
             // Set modal icon (Font Awesome) — inherits white from CSS
