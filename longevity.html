@@ -27,6 +27,7 @@
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
             /* Cyan-Gold theme for longevity/science content */
@@ -54,7 +55,7 @@
             --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.05);
             --radius: 24px;
             --glass-blur: 20px;
-            --glass-border: rgba(13, 148, 136, 0.1);
+            --glass-border: rgba(0, 196, 200, 0.1);
             --radius-sm: 12px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
@@ -81,7 +82,7 @@
             --input-bg: #1a2035;
             --shadow: 0 10px 40px rgba(0, 196, 200, 0.2);
             --glass-blur: 20px;
-            --glass-border: rgba(45, 212, 191, 0.12);
+            --glass-border: rgba(6, 214, 218, 0.12);
         }
 
         * {
@@ -251,6 +252,9 @@
             background: var(--card-bg);
             border-radius: var(--radius);
             box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
         }
 
         .tab-btn {
@@ -308,7 +312,9 @@
             box-shadow: var(--shadow-sm);
             transition: var(--transition);
             margin-bottom: 16px;
-            border: 1px solid transparent;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
         }
 
         .edu-card:hover {
@@ -463,6 +469,9 @@
             grid-template-columns: auto 1fr auto;
             gap: 16px;
             align-items: center;
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
         }
 
         .marker-icon {
@@ -513,6 +522,9 @@
             border-radius: var(--radius);
             padding: 30px;
             box-shadow: var(--shadow);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
         }
 
         .wizard-progress {
@@ -781,6 +793,9 @@
             padding: 24px;
             margin-bottom: 20px;
             box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
         }
 
         .result-header {
