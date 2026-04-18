@@ -2232,7 +2232,7 @@
                 // Update analysis-header background to match health status color
                 const analysisHeader = document.querySelector('.analysis-container .analysis-header');
                 if (analysisHeader) {
-                    analysisHeader.style.background = 'linear-gradient(135deg, ' + profileGaugeColor + ', ' + profileGaugeColor + 'cc)';
+                    analysisHeader.style.background = `linear-gradient(135deg, ${profileGaugeColor}, ${profileGaugeColor}cc)`;
                 }
 
                 // Animate the circular health ring after DOM is ready
