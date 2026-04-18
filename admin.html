@@ -18,6 +18,8 @@
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -31,7 +33,7 @@
             --text-gray: #4b5563;
             --white: #ffffff;
             --shadow: 0 10px 30px rgba(13,148,136,0.15);
-            --radius: 16px;
+            --radius: 24px;
             /* Safe area insets for mobile devices with notches/dynamic island */
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
             --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -52,14 +54,14 @@
             --text-gray: #9ca3af;
             --white: #112B2B;
             --shadow: 0 10px 30px rgba(45,212,191,0.3);
-            --radius: 16px;
+            --radius: 24px;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {

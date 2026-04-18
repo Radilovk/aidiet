@@ -16,6 +16,8 @@
     <link rel="apple-touch-icon" href="./icon-192x192.png">
     <title>Предупреждение - Медицински Риск</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="./design-system.css">
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
             --primary-red: #ef4444;
@@ -27,9 +29,11 @@
             --text-dark: #0F2F2E;
             --text-gray: #6b7280;
             --bg-color: #F0FDFA;
-            --card-bg: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.72);
             --shadow: 0 10px 30px rgba(239,68,68,0.2);
-            --radius: 16px;
+            --radius: 24px;
+            --glass-blur: 20px;
+            --glass-border: rgba(239, 68, 68, 0.1);
             /* Safe area insets for mobile devices with notches/dynamic island */
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
             --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -48,15 +52,16 @@
             --text-dark: #E0F5F0;
             --text-gray: #9ca3af;
             --bg-color: #0A1A1A;
-            --card-bg: #112B2B;
+            --card-bg: rgba(15, 35, 35, 0.72);
             --shadow: 0 10px 30px rgba(248,113,113,0.3);
+            --glass-border: rgba(248, 113, 113, 0.12);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -106,7 +111,10 @@
             border-radius: var(--radius);
             padding: 40px;
             box-shadow: var(--shadow);
+            border: 1px solid var(--glass-border);
             border-top: 8px solid var(--primary-red);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
         }
 
         .warning-icon {
@@ -377,7 +385,7 @@
     <script>
         // Theme Management
         function initializeTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
+            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
             document.documentElement.setAttribute('data-theme', savedTheme);
             updateThemeIcon(savedTheme);
         }
