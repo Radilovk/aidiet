@@ -136,14 +136,14 @@
             border-radius: 50px;
             text-decoration: none;
             font-weight: 700;
-            transition: 0.3s;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
             box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
             letter-spacing: 0.01em;
         }
         .nav-btn:hover {
             background: linear-gradient(135deg, #05C0B3 0%, #0B8478 60%, #0D6560 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 28px rgba(13, 148, 136, 0.45);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(13, 148, 136, 0.45);
         }
 
         .nav-btn--success {
@@ -243,11 +243,12 @@
         }
 
         .hero h1 {
-            font-size: 3.5rem;
-            line-height: 1.2;
+            font-size: clamp(2.2rem, 5vw, 3.8rem);
+            line-height: 1.15;
             font-weight: 800;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             color: var(--text-dark);
+            letter-spacing: -0.03em;
         }
 
         .hero h1 span {
@@ -266,30 +267,35 @@
         }
 
         .hero p {
-            font-size: 1.2rem;
+            font-size: clamp(1rem, 1.5vw, 1.2rem);
             color: var(--text-gray);
-            margin-bottom: 30px;
-            line-height: 1.6;
+            margin-bottom: 36px;
+            line-height: 1.7;
+            max-width: 540px;
         }
 
         .cta-group {
             display: flex;
-            gap: 15px;
+            gap: 16px;
+            align-items: center;
         }
 
         .btn-outline {
-            border: 2px solid rgba(13, 148, 136, 0.4);
+            border: 2px solid rgba(13, 148, 136, 0.3);
             color: var(--primary-red);
             padding: 12px 30px;
             border-radius: 50px;
             text-decoration: none;
             font-weight: 600;
-            transition: 0.3s;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            backdrop-filter: blur(8px);
         }
         .btn-outline:hover {
             background: linear-gradient(135deg, #06D6C8 0%, #0D9488 100%);
             border-color: transparent;
             color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
         }
 
         /* --- PHONE MOCKUP (CSS Only - Realistic iPhone Style) --- */
@@ -593,9 +599,10 @@
             margin-bottom: 60px;
         }
         .section-title h2 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            margin-bottom: 12px;
             color: var(--text-dark);
+            letter-spacing: -0.02em;
         }
         .section-title p {
             color: var(--text-gray);
@@ -606,18 +613,34 @@
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
+            gap: 24px;
         }
 
         .feature-card {
             background: var(--white);
             backdrop-filter: blur(var(--glass-blur)) saturate(180%);
             -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-            padding: 40px 30px;
+            padding: 36px 28px;
             border-radius: var(--radius);
-            transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             cursor: pointer;
             border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-red) 0%, var(--accent-blue) 100%);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .feature-card:hover::before {
+            opacity: 1;
         }
         [data-theme="dark"] .feature-card {
             background: rgba(20, 55, 55, 0.65);
@@ -625,9 +648,9 @@
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
         .feature-card:hover {
-            transform: translateY(-8px) scale(1.01);
+            transform: translateY(-6px) scale(1.01);
             box-shadow: var(--shadow), 0 0 0 1px rgba(13, 148, 136, 0.1);
-            border-color: rgba(13, 148, 136, 0.25);
+            border-color: rgba(13, 148, 136, 0.2);
         }
         [data-theme="dark"] .feature-card:hover {
             border-color: rgba(45, 212, 191, 0.3);
@@ -722,14 +745,14 @@
         /* Decorational circle */
         .steps::before {
             content: ''; position: absolute; top: -100px; left: -100px; width: 300px; height: 300px;
-            background: rgba(13, 148, 136, 0.1); border-radius: 50%;
+            background: rgba(13, 148, 136, 0.08); border-radius: 50%; filter: blur(60px);
         }
 
         .steps-container {
             display: flex;
             justify-content: space-around;
             flex-wrap: wrap;
-            gap: 40px;
+            gap: 32px;
             margin-top: 50px;
         }
 
@@ -738,26 +761,35 @@
             flex: 1;
             min-width: 250px;
             position: relative;
+            padding: 28px 20px;
+            background: var(--white);
+            border-radius: var(--radius);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .step-item:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
         }
 
         .step-number {
-            font-size: 3.5rem;
+            font-size: 3rem;
             font-weight: 900;
             background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             color: var(--primary-red);
-            position: absolute;
-            top: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 0;
-            opacity: 0.45;
+            display: block;
+            margin-bottom: 8px;
+            opacity: 0.65;
         }
 
         [data-theme="dark"] .step-number {
-            opacity: 0.55;
+            opacity: 0.7;
             background: linear-gradient(135deg, #2DD4BF, #22D3EE);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -768,14 +800,24 @@
             position: relative;
             z-index: 1;
         }
-        .step-content h3 { font-size: 1.3rem; margin-bottom: 10px; }
+        .step-content h3 { font-size: 1.2rem; margin-bottom: 10px; font-weight: 700; }
 
         /* --- FOOTER --- */
         footer {
-            background: #0F2F2E;
+            background: linear-gradient(180deg, #0F2F2E 0%, #0A2020 100%);
             color: #e0f5f0;
-            padding: 50px 5%;
+            padding: 60px 5% 40px;
             text-align: center;
+            position: relative;
+        }
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(45, 212, 191, 0.3) 50%, transparent 100%);
         }
         [data-theme="dark"] footer {
             background: #0A2020;
@@ -796,8 +838,8 @@
                 padding-top: 120px;
                 padding-bottom: 30px;
             }
-            .hero h1 { font-size: 2.2rem; line-height: 1.3; }
-            .hero p { font-size: 1rem; }
+            .hero h1 { font-size: 2.2rem; line-height: 1.2; }
+            .hero p { font-size: 1rem; line-height: 1.6; }
             .cta-group {
                 justify-content: center;
                 flex-direction: column;
@@ -850,8 +892,8 @@
         /* --- ANIMATION CLASSES (JS Triggered) --- */
         .reveal {
             opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.8s ease;
+            transform: translateY(24px);
+            transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .reveal.active {
             opacity: 1;
@@ -1456,7 +1498,7 @@
             <p>Единствената платформа, която съчетава персонализиран AI анализ, клинични протоколи, дълголетие и емоционална грижа — всичко на едно място.</p>
         </div>
 
-        <div class="feature-grid">
+        <div class="feature-grid ds-stagger">
             <div class="feature-card">
                 <div class="icon-box icon-box--teal"><i class="fas fa-users"></i></div>
                 <h3>Екип от Специалисти</h3>

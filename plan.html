@@ -110,7 +110,7 @@
 
         /* --- HEADER --- */
         header {
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--card-bg);
             padding: calc(18px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) 18px calc(24px + var(--safe-area-inset-left));
             min-height: calc(64px + var(--safe-area-inset-top));
             display: flex;
@@ -123,12 +123,12 @@
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%);
             transition: all 0.35s ease;
-            border-bottom: 1px solid rgba(13, 148, 136, 0.06);
+            border-bottom: 1px solid var(--glass-border);
         }
 
         [data-theme="dark"] header {
             background: rgba(20, 55, 55, 0.92);
-            border-bottom: 1px solid rgba(45, 212, 191, 0.12);
+            border-bottom-color: var(--glass-border);
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
         }
 
@@ -250,7 +250,7 @@
             display: flex;
             overflow-x: auto;
             justify-content: flex-start;
-            padding: 20px 15px;
+            padding: 10px 5px;
             background: var(--bg-color);
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none; /* Hide scrollbar Firefox */
@@ -262,11 +262,11 @@
         .day-chip {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.9) 100%);
             border: 1px solid rgba(13, 148, 136, 0.1);
-            padding: 12px 22px;
+            padding: 8px 14px;
             border-radius: 16px;
             margin: 0;
             white-space: nowrap;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: var(--text-dark);
             cursor: pointer;
@@ -335,14 +335,14 @@
 
         /* --- MAIN CONTAINER --- */
         .container {
-            padding: 10px 18px;
+            padding: 10px 10px;
         }
 
         /* --- MEAL CARDS - Enhanced Design --- */
         .meal-card {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
             border-radius: var(--radius);
-            padding: 24px;
+            padding: 14px;
             margin-bottom: 20px;
             box-shadow: 
                 0 4px 20px rgba(0, 0, 0, 0.06),
@@ -356,6 +356,7 @@
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(13, 148, 136, 0.08);
+            font-size: 0.9rem;
         }
         
         [data-theme="dark"] .meal-card {
@@ -392,12 +393,12 @@
         }
 
         .meal-card:hover {
-            transform: translateY(-6px) translateX(3px);
+            transform: translateY(-4px) translateX(2px);
             box-shadow: 
                 0 16px 40px rgba(13, 148, 136, 0.12),
                 0 8px 16px rgba(0, 0, 0, 0.06),
                 inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            border-color: rgba(13, 148, 136, 0.2);
+            border-color: rgba(13, 148, 136, 0.18);
         }
         
         [data-theme="dark"] .meal-card:hover {
@@ -1043,19 +1044,20 @@
             backdrop-filter: blur(16px) saturate(180%);
             -webkit-backdrop-filter: blur(16px) saturate(180%);
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
             z-index: 1000;
             opacity: 0;
             visibility: hidden;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: calc(24px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) calc(24px + var(--safe-area-inset-bottom)) calc(24px + var(--safe-area-inset-left));
+            padding: calc(12px + var(--safe-area-inset-top)) calc(12px + var(--safe-area-inset-right)) calc(12px + var(--safe-area-inset-bottom)) calc(12px + var(--safe-area-inset-left));
         }
-        
-        @media (max-width: 480px) {
+
+        /* Modal overlay: bottom-sheet on mobile */
+        @media (min-width: 481px) {
             .modal-overlay {
-                padding: calc(12px + var(--safe-area-inset-top)) calc(12px + var(--safe-area-inset-right)) calc(12px + var(--safe-area-inset-bottom)) calc(12px + var(--safe-area-inset-left));
-                align-items: flex-end;
+                padding: calc(24px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) calc(24px + var(--safe-area-inset-bottom)) calc(24px + var(--safe-area-inset-left));
+                align-items: center;
             }
         }
 
@@ -1066,13 +1068,13 @@
 
         .modal-card {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
-            border-radius: 28px;
-            padding: 32px;
+            border-radius: 28px 28px 0 0;
+            padding: 28px 20px calc(24px + var(--safe-area-inset-bottom));
             width: 100%;
             max-width: 460px;
-            max-height: calc(90vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+            max-height: calc(92vh - var(--safe-area-inset-top));
             overflow-y: auto;
-            transform: translateY(40px) scale(0.92);
+            transform: translateY(100%);
             transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
             box-shadow: 
@@ -1106,12 +1108,12 @@
             border-radius: 3px;
         }
         
-        @media (max-width: 480px) {
+        @media (min-width: 481px) {
             .modal-card {
-                border-radius: 28px 28px 0 0;
-                max-height: calc(92vh - var(--safe-area-inset-top));
-                padding: 28px 20px calc(24px + var(--safe-area-inset-bottom));
-                transform: translateY(100%);
+                border-radius: 28px;
+                max-height: calc(90vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+                padding: 32px;
+                transform: translateY(40px) scale(0.92);
             }
         }
 
@@ -1219,39 +1221,41 @@
             color: var(--primary-red);
         }
         
-        /* Welcome modal specific styles */
+        /* Welcome modal specific styles — mobile base */
         .welcome-modal-card {
             max-width: 600px;
-            max-height: calc(90vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+            max-height: calc(92vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            padding: 20px;
         }
         
         .welcome-modal-content {
             overflow-y: auto;
             overflow-x: hidden;
-            max-height: calc(90vh - 140px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-            padding-right: 10px;
+            max-height: calc(92vh - 120px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+            padding-right: 8px;
             scrollbar-width: thin;
             scrollbar-color: var(--primary-red) var(--soft-red);
             -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
-        
-        /* Mobile optimizations for welcome modal */
-        @media (max-width: 480px) {
+
+        .welcome-modal-body {
+            font-size: 0.95rem;
+        }
+
+        @media (min-width: 481px) {
             .welcome-modal-card {
-                max-height: calc(92vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-                padding: 20px;
+                max-height: calc(90vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+                padding: 32px;
             }
-            
             .welcome-modal-content {
-                max-height: calc(92vh - 120px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-                padding-right: 8px;
+                max-height: calc(90vh - 140px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+                padding-right: 10px;
             }
-            
             .welcome-modal-body {
-                font-size: 0.95rem;
+                font-size: 1rem;
             }
         }
         
@@ -1420,31 +1424,40 @@
             box-shadow: 0 0 12px rgba(45, 212, 191, 0.4);
         }
         
+        /* macro-legend: single column on mobile, 2-column on wider */
         .macro-legend {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            grid-template-columns: 1fr;
+            gap: 10px;
             padding: 0;
             margin-top: 4px;
         }
         
-        @media (max-width: 480px) {
+        @media (min-width: 481px) {
             .macro-legend {
-                grid-template-columns: 1fr;
-                gap: 10px;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
             }
         }
         
+        /* macro-legend-item: tiny screen base, scale up */
         .macro-legend-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
+            gap: 8px;
+            padding: 8px 12px;
             background: var(--card-bg);
             border-radius: 12px;
             border: 1px solid rgba(13, 148, 136, 0.08);
             transition: all 0.3s ease;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        @media (min-width: 401px) {
+            .macro-legend-item {
+                gap: 10px;
+                padding: 10px 14px;
+            }
         }
         
         .macro-legend-item:hover {
@@ -1482,37 +1495,31 @@
             background: linear-gradient(135deg, #2DD4BF, #0D9488);
         }
         
-        .macro-label {
-            font-weight: 600;
-            font-size: 0.78rem;
-            color: var(--text-light);
-            flex-shrink: 0;
-        }
-        
-        /* Proportionate macro-value font in modal context - uses modal-specific selector for specificity */
+        /* Proportionate macro-value font in modal context */
         .modal-card .macro-breakdown .macro-legend-item .macro-value,
         #infoModal .macro-legend-item .macro-value {
             font-weight: 700;
-            font-size: 0.82rem;
+            font-size: 0.75rem;
             color: var(--text-dark);
             margin-left: auto;
             white-space: nowrap;
             line-height: 1.3;
         }
-        
-        @media (max-width: 400px) {
+
+        .macro-label {
+            font-weight: 600;
+            font-size: 0.72rem;
+            color: var(--text-light);
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 401px) {
             .modal-card .macro-breakdown .macro-legend-item .macro-value,
             #infoModal .macro-legend-item .macro-value {
-                font-size: 0.75rem;
+                font-size: 0.82rem;
             }
-            
-            .macro-legend-item {
-                padding: 8px 12px;
-                gap: 8px;
-            }
-            
             .macro-label {
-                font-size: 0.72rem;
+                font-size: 0.78rem;
             }
         }
         
@@ -1545,25 +1552,21 @@
             }
         }
 
-        /* Mobile-specific improvements */
-        @media (max-width: 600px) {
+        /* Desktop enhancements for plan */
+        @media (min-width: 601px) {
             .days-nav {
-                padding: 10px 5px;
+                padding: 12px 8px;
             }
-            
             .day-chip {
-                padding: 8px 14px;
-                font-size: 0.85rem;
-                min-width: fit-content;
-            }
-            
-            .meal-card {
-                padding: 14px;
+                padding: 10px 18px;
                 font-size: 0.9rem;
             }
-            
+            .meal-card {
+                padding: 18px;
+                font-size: 0.95rem;
+            }
             .container {
-                padding: 10px 10px;
+                padding: 16px;
             }
         }
 
@@ -1597,20 +1600,21 @@
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
-            bottom: 20px;
+            bottom: 12px;
             left: 50%;
             transform: translateX(-50%);
             background: var(--card-bg);
             color: var(--text-dark);
-            padding: 20px;
+            padding: 20px 16px;
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             border: 1px solid rgba(0, 0, 0, 0.08);
             display: none;
+            flex-direction: column;
             align-items: center;
             gap: 16px;
             z-index: 1001;
-            max-width: 90%;
+            max-width: calc(100% - 24px);
             animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -1630,14 +1634,14 @@
         }
 
         .install-banner-icon {
-            font-size: 2.5rem;
+            font-size: 2.75rem;
             color: var(--primary-red);
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(220, 38, 38, 0.05));
             border-radius: 12px;
         }
@@ -1645,12 +1649,14 @@
         .install-banner-content {
             flex: 1;
             min-width: 0;
+            text-align: center;
+            width: 100%;
         }
 
         .install-banner-title {
             font-weight: 700;
-            margin-bottom: 6px;
-            font-size: 1rem;
+            margin-bottom: 8px;
+            font-size: 1.05rem;
             line-height: 1.3;
             color: var(--text-dark);
         }
@@ -1658,7 +1664,7 @@
         .install-banner-text {
             font-size: 0.875rem;
             color: var(--text-light);
-            line-height: 1.4;
+            line-height: 1.5;
         }
 
         .install-banner-browser {
@@ -1668,7 +1674,7 @@
             font-size: 0.75rem;
             color: var(--primary-red);
             font-weight: 600;
-            margin-top: 4px;
+            margin-top: 8px;
             padding: 4px 8px;
             background: rgba(220, 38, 38, 0.08);
             border-radius: 6px;
@@ -1678,22 +1684,26 @@
             display: flex;
             gap: 10px;
             flex-shrink: 0;
+            width: 100%;
+            flex-direction: column;
         }
 
         .install-banner-btn {
             background: var(--primary-red);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 14px 24px;
             border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             transition: all 0.2s ease;
             white-space: nowrap;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            width: 100%;
+            justify-content: center;
         }
 
         .install-banner-btn:hover {
@@ -1719,56 +1729,31 @@
             box-shadow: none;
         }
 
-        @media (max-width: 768px) {
+        @media (min-width: 769px) {
             .install-banner {
-                flex-direction: column;
-                padding: 20px 16px;
-                bottom: 12px;
-                max-width: calc(100% - 24px);
-                gap: 16px;
+                flex-direction: row;
+                padding: 24px;
+                bottom: calc(20px + var(--safe-area-inset-bottom));
+                max-width: 480px;
+                gap: 20px;
             }
-
             .install-banner-icon {
-                width: 56px;
-                height: 56px;
-                font-size: 2.75rem;
+                width: 48px;
+                height: 48px;
+                font-size: 2.5rem;
             }
-
             .install-banner-content {
-                text-align: center;
-                width: 100%;
+                text-align: left;
+                width: auto;
             }
-
-            .install-banner-title {
-                font-size: 1.05rem;
-                margin-bottom: 8px;
-            }
-
-            .install-banner-text {
-                font-size: 0.875rem;
-                line-height: 1.5;
-            }
-
-            .install-banner-browser {
-                display: inline-flex;
-                margin-top: 8px;
-            }
-
             .install-banner-actions {
-                width: 100%;
-                flex-direction: column;
+                width: auto;
+                flex-direction: row;
                 gap: 10px;
             }
-
             .install-banner-btn {
-                width: 100%;
-                justify-content: center;
-                padding: 14px 24px;
-                font-size: 0.95rem;
-            }
-
-            .install-banner-btn.dismiss {
-                padding: 12px 24px;
+                width: auto;
+                justify-content: flex-start;
             }
         }
 
@@ -1875,14 +1860,15 @@
         /* Bento-style meal cards grid */
         .meals-bento-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: 1fr;
             gap: var(--ds-space-4, 16px);
             margin-bottom: var(--ds-space-6, 24px);
         }
         
-        @media (max-width: 600px) {
+        /* meals-bento-grid: single column on mobile */
+        @media (min-width: 601px) {
             .meals-bento-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             }
         }
         
