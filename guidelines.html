@@ -463,36 +463,32 @@
             gap: 12px;
         }
 
-        @media (max-width: 380px) {
-            .macros-grid {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 6px;
-            }
+        /* macros-grid: mobile base, upgrade for wider screens */
+        @media (min-width: 381px) {
             .macro-card {
-                padding: 10px 6px;
+                padding: 14px 10px;
             }
             .macro-card .macro-label {
-                font-size: 0.65rem;
-                letter-spacing: 0;
-                white-space: nowrap;
+                font-size: 0.75rem;
+                white-space: normal;
             }
             .macro-card .macro-value {
-                font-size: 1.2rem;
+                font-size: 1.4rem;
             }
             .macro-icon {
-                font-size: 1.3rem;
-                margin-bottom: 4px;
+                font-size: 1.5rem;
+                margin-bottom: 6px;
             }
             .macro-percentage {
-                font-size: 0.65rem;
-                padding: 3px 6px;
+                font-size: 0.7rem;
+                padding: 4px 8px;
             }
         }
 
         .macro-card {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
             border-radius: 14px;
-            padding: 14px 10px;
+            padding: 10px 6px;
             text-align: center;
             box-shadow: 
                 0 3px 12px rgba(0, 0, 0, 0.04),
@@ -534,13 +530,13 @@
         }
 
         .macro-icon {
-            font-size: 1.6rem;
+            font-size: 1.3rem;
             margin-bottom: 8px;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
         }
 
         .macro-card .macro-label {
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             font-weight: 700;
             color: var(--text-light);
             margin-bottom: 6px;
@@ -549,7 +545,7 @@
         }
 
         .macro-card .macro-value {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: 800;
             color: var(--text-dark);
             line-height: 1;
@@ -599,7 +595,7 @@
         }
 
         .plan-justification-header {
-            padding: 18px 20px;
+            padding: 15px 16px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -608,7 +604,7 @@
             transition: all 0.3s ease;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-            min-height: 60px;
+            min-height: 56px;
         }
 
         .plan-justification-header:hover,
@@ -653,9 +649,10 @@
         }
 
         .plan-justification-body {
-            padding: 20px;
+            padding: 16px;
             color: var(--text-dark);
             line-height: 1.7;
+            font-size: 0.95rem;
         }
 
         [data-theme="dark"] .plan-justification-content {
@@ -666,24 +663,21 @@
             color: #ffffff;
         }
         
-        @media (max-width: 480px) {
+        @media (min-width: 481px) {
             .plan-justification-header {
-                padding: 15px 16px;
-                min-height: 56px;
+                padding: 18px 20px;
+                min-height: 64px;
             }
-            
             .plan-justification-title {
-                font-size: 1rem;
-                gap: 10px;
+                font-size: 1.05rem;
+                gap: 12px;
             }
-            
             .plan-justification-title i {
-                font-size: 1.2rem;
+                font-size: 1.3rem;
             }
-            
             .plan-justification-body {
-                padding: 16px;
-                font-size: 0.95rem;
+                padding: 20px;
+                font-size: 1rem;
             }
         }
 
@@ -755,10 +749,10 @@
 
         .strategy-modal-card {
             background: var(--card-bg);
-            border-radius: 20px;
+            border-radius: 16px;
             width: 100%;
             max-width: 560px;
-            max-height: 85vh;
+            max-height: 92vh;
             display: flex;
             flex-direction: column;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
@@ -775,7 +769,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 20px 20px 16px;
+            padding: 16px 16px 14px;
             background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
             flex-shrink: 0;
         }
@@ -817,7 +811,7 @@
 
         .strategy-modal-body {
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             flex: 1;
             -webkit-overflow-scrolling: touch;
         }
@@ -869,28 +863,25 @@
         }
 
         .strategy-modal-footer {
-            padding: 16px 20px;
+            padding: 14px 16px;
             border-top: 2px solid var(--soft-red);
             text-align: center;
             flex-shrink: 0;
         }
 
-        @media (max-width: 480px) {
+        @media (min-width: 481px) {
             .strategy-modal-card {
-                max-height: 92vh;
-                border-radius: 16px;
+                max-height: 85vh;
+                border-radius: 24px;
             }
-
             .strategy-modal-header {
-                padding: 16px 16px 14px;
+                padding: 20px 24px 16px;
             }
-
             .strategy-modal-body {
-                padding: 16px;
+                padding: 20px 24px;
             }
-
             .strategy-modal-footer {
-                padding: 14px 16px;
+                padding: 16px 24px;
             }
         }
 
