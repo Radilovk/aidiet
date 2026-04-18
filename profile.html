@@ -155,7 +155,7 @@
         }
 
         h1 {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
         }
 
@@ -172,7 +172,7 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
         }
 
         .profile-header {
@@ -181,15 +181,15 @@
         }
 
         .profile-avatar {
-            width: 88px;
-            height: 88px;
+            width: 70px;
+            height: 70px;
             background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 50%, var(--accent-blue) 100%);
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: bold;
             margin-bottom: 10px;
             box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
@@ -223,7 +223,7 @@
         }
 
         .profile-name {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 700;
             margin-bottom: 5px;
             letter-spacing: -0.01em;
@@ -244,9 +244,9 @@
             background: var(--primary-red);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 11px 20px;
             border-radius: var(--radius);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -294,10 +294,11 @@
             display: none;
         }
 
-        @media (max-width: 768px) {
+        /* .profile-install-btn base already uses 0.9rem via mobile-first — larger screens get more */
+        @media (min-width: 769px) {
             .profile-install-btn {
-                font-size: 0.9rem;
-                padding: 11px 20px;
+                font-size: 0.95rem;
+                padding: 12px 24px;
             }
         }
 
@@ -305,7 +306,7 @@
         .form-section {
             background: var(--card-bg);
             border-radius: var(--radius);
-            padding: 20px;
+            padding: 15px;
             margin-bottom: 20px;
             box-shadow: var(--shadow);
             backdrop-filter: blur(var(--glass-blur)) saturate(180%);
@@ -578,7 +579,7 @@
 
 
         .section-title {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: var(--primary-red);
             margin-bottom: 15px;
@@ -631,7 +632,7 @@
             display: flex;
             gap: 12px;
             margin-top: 24px;
-            padding: 20px;
+            padding: 16px;
             flex-wrap: wrap;
             justify-content: center;
             background: var(--card-bg);
@@ -641,7 +642,7 @@
         }
 
         .btn {
-            padding: 14px 24px;
+            padding: 14px 20px;
             border: none;
             border-radius: 12px;
             font-size: 0.95rem;
@@ -651,7 +652,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            flex: 1;
+            flex: 1 1 100%;
             min-width: 150px;
             justify-content: center;
             position: relative;
@@ -669,14 +670,13 @@
             pointer-events: none;
         }
 
-        @media (max-width: 600px) {
+        /* btn is full-width on mobile by default */
+        @media (min-width: 601px) {
             .btn {
-                flex: 1 1 100%;
-                padding: 14px 20px;
+                flex: 0 1 auto;
             }
-            
             .button-group {
-                padding: 16px;
+                padding: 20px;
             }
         }
 
@@ -783,63 +783,58 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Mobile-specific improvements */
-        @media (max-width: 768px) {
+        /* Desktop enhancements */
+        @media (min-width: 769px) {
             .container {
-                padding: 15px;
+                padding: 20px;
             }
-            
             .form-section {
-                padding: 15px;
+                padding: 20px;
             }
-            
             .profile-avatar {
-                width: 70px;
-                height: 70px;
-                font-size: 1.8rem;
+                width: 88px;
+                height: 88px;
+                font-size: 2rem;
             }
-            
             .profile-name {
-                font-size: 1.3rem;
+                font-size: 1.5rem;
             }
-            
             .section-title {
-                font-size: 1.1rem;
+                font-size: 1.2rem;
             }
         }
 
-        @media (max-width: 480px) {
+        /* Prevent iOS zoom on inputs — always needed */
+        .form-input, .form-textarea {
+            font-size: 16px;
+        }
+        @media (min-width: 481px) {
             .form-input, .form-textarea {
-                font-size: 16px; /* Prevent zoom on iOS */
-            }
-            
-            h1 {
                 font-size: 1rem;
             }
-            
-            .btn {
-                font-size: 0.95rem;
-                padding: 12px 16px;
+            h1 {
+                font-size: 1.1rem;
             }
         }
 
         /* PWA Install Banner */
         .install-banner {
             position: fixed;
-            bottom: calc(20px + var(--safe-area-inset-bottom));
+            bottom: 12px;
             left: 50%;
             transform: translateX(-50%);
             background: var(--card-bg);
             color: var(--text-dark);
-            padding: 20px;
+            padding: 20px 16px;
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             border: 1px solid rgba(0, 0, 0, 0.08);
             display: none;
             align-items: center;
-            gap: 16px;
+            flex-direction: column;
+            gap: 20px;
             z-index: 1001;
-            max-width: 90%;
+            max-width: calc(100% - 24px);
             animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -859,14 +854,14 @@
         }
 
         .install-banner-icon {
-            font-size: 2.5rem;
+            font-size: 2.75rem;
             color: var(--primary-red);
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(220, 38, 38, 0.05));
             border-radius: 12px;
         }
@@ -874,12 +869,14 @@
         .install-banner-content {
             flex: 1;
             min-width: 0;
+            text-align: center;
+            width: 100%;
         }
 
         .install-banner-title {
             font-weight: 700;
-            margin-bottom: 6px;
-            font-size: 1rem;
+            margin-bottom: 8px;
+            font-size: 1.05rem;
             line-height: 1.3;
             color: var(--text-dark);
         }
@@ -887,7 +884,7 @@
         .install-banner-text {
             font-size: 0.875rem;
             color: var(--text-light);
-            line-height: 1.4;
+            line-height: 1.5;
         }
 
         .install-banner-browser {
@@ -897,7 +894,7 @@
             font-size: 0.75rem;
             color: var(--primary-red);
             font-weight: 600;
-            margin-top: 4px;
+            margin-top: 8px;
             padding: 4px 8px;
             background: rgba(220, 38, 38, 0.08);
             border-radius: 6px;
@@ -905,6 +902,8 @@
 
         .install-banner-actions {
             display: flex;
+            width: 100%;
+            flex-direction: column;
             gap: 10px;
             flex-shrink: 0;
         }
@@ -913,16 +912,18 @@
             background: var(--primary-red);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 14px 24px;
             border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             transition: all 0.2s ease;
             white-space: nowrap;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            width: 100%;
+            justify-content: center;
         }
 
         .install-banner-btn:hover {
@@ -938,7 +939,7 @@
         .install-banner-btn.dismiss {
             background: transparent;
             color: var(--text-light);
-            padding: 12px 16px;
+            padding: 12px 24px;
         }
 
         .install-banner-btn.dismiss:hover {
@@ -948,56 +949,31 @@
             box-shadow: none;
         }
 
-        @media (max-width: 768px) {
+        @media (min-width: 769px) {
             .install-banner {
-                flex-direction: column;
-                padding: 20px 16px;
-                bottom: 12px;
-                max-width: calc(100% - 24px);
-                gap: 16px;
+                flex-direction: row;
+                padding: 24px;
+                bottom: calc(20px + var(--safe-area-inset-bottom));
+                max-width: 480px;
+                gap: 20px;
             }
-
             .install-banner-icon {
-                width: 56px;
-                height: 56px;
-                font-size: 2.75rem;
+                width: 48px;
+                height: 48px;
+                font-size: 2.5rem;
             }
-
             .install-banner-content {
-                text-align: center;
-                width: 100%;
+                text-align: left;
+                width: auto;
             }
-
-            .install-banner-title {
-                font-size: 1.05rem;
-                margin-bottom: 8px;
-            }
-
-            .install-banner-text {
-                font-size: 0.875rem;
-                line-height: 1.5;
-            }
-
-            .install-banner-browser {
-                display: inline-flex;
-                margin-top: 8px;
-            }
-
             .install-banner-actions {
-                width: 100%;
-                flex-direction: column;
+                width: auto;
+                flex-direction: row;
                 gap: 10px;
             }
-
             .install-banner-btn {
-                width: 100%;
-                justify-content: center;
-                padding: 14px 24px;
-                font-size: 0.95rem;
-            }
-
-            .install-banner-btn.dismiss {
-                padding: 12px 24px;
+                width: auto;
+                justify-content: flex-start;
             }
         }
 
