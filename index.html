@@ -68,21 +68,21 @@
         [data-theme="dark"] {
             --primary-red: #2DD4BF;
             --primary-dark: #14B8A6;
-            --soft-red: #134E4A;
+            --soft-red: #184040;
             --accent-yellow: #fcd34d;
             --accent-blue: #22D3EE;
             --secondary-accent: #22D3EE;
             --accent-light-red: #fca5a5;
-            --bg-color: #0A1A1A;
+            --bg-color: #0F2B2B;
             --text-dark: #E0F5F0;
-            --text-gray: #9ca3af;
-            --white: rgba(15, 35, 35, 0.72);
-            --white-solid: #112B2B;
-            --shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 8px rgba(45,212,191,0.1);
-            --shadow-glow: 0 0 24px rgba(45, 212, 191, 0.2);
+            --text-gray: #a8bfba;
+            --white: rgba(20, 55, 55, 0.78);
+            --white-solid: #184040;
+            --shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 8px rgba(45,212,191,0.12);
+            --shadow-glow: 0 0 24px rgba(45, 212, 191, 0.22);
             --radius: 24px;
             --glass-blur: 20px;
-            --glass-border: rgba(45, 212, 191, 0.12);
+            --glass-border: rgba(45, 212, 191, 0.18);
         }
 
         * {
@@ -203,7 +203,7 @@
             50% { transform: translate(-20px, 20px) scale(0.95); }
             75% { transform: translate(20px, 30px) scale(1.02); }
         }
-        [data-theme="dark"] .blob { opacity: 0.1; filter: blur(120px); }
+        [data-theme="dark"] .blob { opacity: 0.12; filter: blur(110px); }
 
         /* --- MESH GRADIENT OVERLAY --- */
         .mesh-overlay {
@@ -292,7 +292,7 @@
             color: white;
         }
 
-        /* --- PHONE MOCKUP (CSS Only) --- */
+        /* --- PHONE MOCKUP (CSS Only - Realistic iPhone Style) --- */
         .hero-image {
             flex: 1;
             display: flex;
@@ -303,70 +303,277 @@
         .phone-mockup {
             width: 280px;
             height: 560px;
-            background: var(--white);
-            border-radius: 40px;
-            border: 4px solid rgba(13, 148, 136, 0.2);
+            background: linear-gradient(160deg, #0D3D3D 0%, #0A2E2E 40%, #082828 100%);
+            border-radius: 44px;
+            border: 3px solid rgba(45, 212, 191, 0.25);
             position: relative;
             overflow: hidden;
-            box-shadow: 0 30px 60px rgba(13, 148, 136, 0.18), 0 8px 20px rgba(0,0,0,0.12);
+            box-shadow:
+                0 30px 60px rgba(0, 0, 0, 0.25),
+                0 8px 20px rgba(13, 148, 136, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 0 0 1px rgba(45, 212, 191, 0.1);
             animation: float 6s ease-in-out infinite;
+        }
+
+        [data-theme="dark"] .phone-mockup {
+            background: linear-gradient(160deg, #0D3D3D 0%, #0A2E2E 40%, #082828 100%);
+            border-color: rgba(45, 212, 191, 0.3);
+            box-shadow:
+                0 30px 60px rgba(0, 0, 0, 0.4),
+                0 8px 20px rgba(45, 212, 191, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                0 0 40px rgba(45, 212, 191, 0.08);
         }
 
         /* Fake Screen Content inside phone */
         .screen-content {
             padding: 0;
-            background: var(--bg-color);
+            background: linear-gradient(170deg, #0D3838 0%, #0A2E2E 50%, #082525 100%);
             height: 100%;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
-        /* Teal gradient header strip in phone mockup (like TechBank) */
-        .screen-content::before {
-            content: '';
-            display: block;
-            height: 90px;
-            background: linear-gradient(135deg, #06D6C8 0%, #0D9488 60%, #0F766E 100%);
-            flex-shrink: 0;
-        }
-        .screen-body {
-            padding: 12px 16px 16px;
-            flex: 1;
-            overflow: hidden;
-        }
+
+        /* Dynamic Island */
         .phone-mockup::before {
             content: '';
             position: absolute;
-            top: 8px;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            width: 80px;
-            height: 24px;
-            background: rgba(15, 47, 46, 0.8);
+            width: 90px;
+            height: 26px;
+            background: #000000;
+            border-radius: 20px;
+            z-index: 20;
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        /* Status bar */
+        .phone-status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 22px 0 22px;
+            height: 46px;
+            position: relative;
+            z-index: 15;
+        }
+        .phone-status-time {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+        }
+        .phone-status-icons {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .phone-status-icons i {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        .phone-status-battery {
+            width: 22px;
+            height: 10px;
+            border: 1.5px solid rgba(255, 255, 255, 0.7);
+            border-radius: 2.5px;
+            position: relative;
+            margin-left: 2px;
+        }
+        .phone-status-battery::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 3px;
+            bottom: 2px;
+            background: #2DD4BF;
+            border-radius: 1px;
+        }
+        .phone-status-battery::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -3px;
+            transform: translateY(-50%);
+            width: 1.5px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 0 1px 1px 0;
+        }
+
+        /* Gradient header in phone */
+        .screen-header-gradient {
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.4) 0%, rgba(6, 182, 212, 0.25) 100%);
+            padding: 8px 18px 14px;
+            border-bottom: 1px solid rgba(45, 212, 191, 0.15);
+        }
+        .screen-app-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .screen-app-title i {
+            font-size: 15px;
+            color: #2DD4BF;
+        }
+        .screen-app-subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.55);
+            margin-top: 2px;
+            letter-spacing: 0.3px;
+        }
+
+        /* Phone body content */
+        .screen-body {
+            padding: 10px 14px 14px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Meal cards inside phone */
+        .screen-card {
+            background: rgba(20, 60, 60, 0.65);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 11px 13px;
+            border: 1px solid rgba(45, 212, 191, 0.12);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+        .screen-card:hover {
+            border-color: rgba(45, 212, 191, 0.25);
+        }
+        .screen-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .screen-card-icon.breakfast { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .screen-card-icon.lunch { background: linear-gradient(135deg, #2DD4BF, #0D9488); }
+        .screen-card-icon.dinner { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
+        .screen-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .screen-meal-label {
+            font-size: 9px;
+            color: #2DD4BF;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+        .screen-meal-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #ffffff;
+            margin-top: 1px;
+        }
+        .screen-meal-amount {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 1px;
+        }
+        .screen-card-cal {
+            font-size: 11px;
+            font-weight: 700;
+            color: #2DD4BF;
+            white-space: nowrap;
+        }
+
+        /* Summary strip inside phone */
+        .screen-summary {
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.15), rgba(6, 182, 212, 0.1));
             border-radius: 12px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-around;
+            border: 1px solid rgba(45, 212, 191, 0.12);
+            margin-top: auto;
+        }
+        .screen-stat {
+            text-align: center;
+        }
+        .screen-stat-value {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+        .screen-stat-label {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 1px;
+        }
+
+        /* FAB inside phone */
+        .fab-mock {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #2DD4BF 0%, #0D9488 100%);
+            border-radius: 50%;
+            position: absolute; bottom: 16px; right: 16px;
+            display: flex; align-items: center; justify-content: center; color: white;
+            box-shadow: 0 4px 14px rgba(45, 212, 191, 0.4);
+            font-size: 14px;
             z-index: 10;
         }
-        .screen-header {
-            height: 40px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+
+        /* Phone bottom nav bar */
+        .screen-bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px 0 12px;
+            background: rgba(10, 35, 35, 0.9);
+            border-top: 1px solid rgba(45, 212, 191, 0.1);
         }
-        .screen-card {
-            background: white; border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
-            border-left: 3px solid #06D6C8;
-            box-shadow: 0 2px 8px rgba(13, 148, 136, 0.1);
+        .screen-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.4);
         }
-        .screen-line { height: 10px; background: var(--text-gray); border-radius: 5px; margin-bottom: 5px; width: 60%; opacity: 0.3; }
-        .screen-line.short { width: 40%; }
-        .screen-header-title { font-weight: bold; font-size: 13px; color: white; }
-        .screen-header-avatar { width: 26px; height: 26px; background: rgba(255,255,255,0.25); border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); }
-        .screen-meal-label { font-size: 9px; color: #06D6C8; font-weight: bold; margin-bottom: 4px; letter-spacing: 0.05em; }
-        .screen-meal-title { font-weight: 600; font-size: 13px; color: var(--text-dark); }
-        .screen-meal-amount { font-size: 11px; color: var(--text-gray); }
-        .fab-mock {
-            width: 44px; height: 44px;
-            background: linear-gradient(135deg, #06D6C8 0%, #0D9488 100%);
-            border-radius: 50%;
-            position: absolute; bottom: 20px; right: 20px;
-            display: flex; align-items: center; justify-content: center; color: white;
-            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+        .screen-nav-item i {
+            font-size: 14px;
+        }
+        .screen-nav-item.active {
+            color: #2DD4BF;
+        }
+
+        /* Home indicator */
+        .screen-home-indicator {
+            width: 100px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 0 auto 6px;
+        }
+
+        /* Light theme phone overrides */
+        [data-theme="light"] .phone-mockup,
+        :root:not([data-theme="dark"]) .phone-mockup {
+            background: linear-gradient(160deg, #0F4040 0%, #0B3333 40%, #092C2C 100%);
         }
 
         @keyframes float {
@@ -412,10 +619,19 @@
             cursor: pointer;
             border: 1px solid var(--glass-border);
         }
+        [data-theme="dark"] .feature-card {
+            background: rgba(20, 55, 55, 0.65);
+            border: 1px solid rgba(45, 212, 191, 0.15);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
         .feature-card:hover {
             transform: translateY(-8px) scale(1.01);
             box-shadow: var(--shadow), 0 0 0 1px rgba(13, 148, 136, 0.1);
             border-color: rgba(13, 148, 136, 0.25);
+        }
+        [data-theme="dark"] .feature-card:hover {
+            border-color: rgba(45, 212, 191, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 12px rgba(45, 212, 191, 0.1);
         }
 
         .icon-box {
@@ -437,15 +653,7 @@
         .icon-box--green { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); color: #2e7d32; }
         .icon-box--amber { background: linear-gradient(135deg, #fff8e1, #ffecb3); color: #f57f17; }
 
-        /* Screen header overlay (phone mockup) */
-        .screen-header--overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            padding: 44px 16px 0;
-            z-index: 5;
-        }
+        /* Screen header overlay (phone mockup) - removed, using new layout */
 
         .feature-card h3 { margin-bottom: 10px; font-size: 1.2rem; }
         .feature-card p { color: var(--text-gray); font-size: 0.95rem; line-height: 1.6; }
@@ -570,7 +778,7 @@
             text-align: center;
         }
         [data-theme="dark"] footer {
-            background: #061a1a;
+            background: #0A2020;
             color: #c8ece6;
         }
         .footer-logo { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; display: inline-block; color: #ffffff; }
@@ -610,8 +818,8 @@
                 padding: 8px 15px;
             }
             .hero-image { margin-top: 30px; width: 100%; }
-            .phone-mockup { width: 240px; height: 480px; }
-            .phone-mockup::before { width: 60px; height: 20px; top: 6px; }
+            .phone-mockup { width: 240px; height: 480px; border-radius: 38px; }
+            .phone-mockup::before { width: 72px; height: 22px; top: 8px; }
             .feature-grid {
                 grid-template-columns: 1fr;
             }
@@ -1154,31 +1362,73 @@
             <!-- CSS Phone Mockup representing the interface -->
             <div class="phone-mockup">
                 <div class="screen-content">
-                    <div class="screen-header screen-header--overlay">
-                        <span class="screen-header-title">Моят План</span>
-                        <div class="screen-header-avatar"></div>
+                    <!-- Status bar -->
+                    <div class="phone-status-bar">
+                        <span class="phone-status-time">9:41</span>
+                        <div class="phone-status-icons">
+                            <i class="fas fa-signal" aria-hidden="true"></i>
+                            <i class="fas fa-wifi" aria-hidden="true"></i>
+                            <div class="phone-status-battery"></div>
+                        </div>
                     </div>
+                    <!-- Header -->
+                    <div class="screen-header-gradient">
+                        <div class="screen-app-title"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</div>
+                        <div class="screen-app-subtitle">Твоят дневен план</div>
+                    </div>
+                    <!-- Body with meal cards -->
                     <div class="screen-body">
-                        <!-- Fake Card 1 -->
                         <div class="screen-card">
-                            <div class="screen-meal-label">ЗАКУСКА</div>
-                            <div class="screen-meal-title">Овесена каша</div>
-                            <div class="screen-meal-amount">250 гр.</div>
+                            <div class="screen-card-icon breakfast">☀️</div>
+                            <div class="screen-card-info">
+                                <div class="screen-meal-label">ЗАКУСКА</div>
+                                <div class="screen-meal-title">Овесена каша</div>
+                                <div class="screen-meal-amount">250 гр.</div>
+                            </div>
+                            <div class="screen-card-cal">320 kcal</div>
                         </div>
-                        <!-- Fake Card 2 -->
                         <div class="screen-card">
-                            <div class="screen-meal-label">ОБЯД</div>
-                            <div class="screen-meal-title">Пилешко филе</div>
-                            <div class="screen-meal-amount">350 гр.</div>
+                            <div class="screen-card-icon lunch">🥗</div>
+                            <div class="screen-card-info">
+                                <div class="screen-meal-label">ОБЯД</div>
+                                <div class="screen-meal-title">Пилешко филе</div>
+                                <div class="screen-meal-amount">350 гр.</div>
+                            </div>
+                            <div class="screen-card-cal">480 kcal</div>
                         </div>
-                        <!-- Fake Card 3 -->
                         <div class="screen-card">
-                            <div class="screen-meal-label">ВЕЧЕРЯ</div>
-                            <div class="screen-meal-title">Риба на скара</div>
-                            <div class="screen-meal-amount">300 гр.</div>
+                            <div class="screen-card-icon dinner">🐟</div>
+                            <div class="screen-card-info">
+                                <div class="screen-meal-label">ВЕЧЕРЯ</div>
+                                <div class="screen-meal-title">Риба на скара</div>
+                                <div class="screen-meal-amount">300 гр.</div>
+                            </div>
+                            <div class="screen-card-cal">390 kcal</div>
+                        </div>
+                        <!-- Summary strip -->
+                        <div class="screen-summary">
+                            <div class="screen-stat">
+                                <div class="screen-stat-value">1,190</div>
+                                <div class="screen-stat-label">kcal</div>
+                            </div>
+                            <div class="screen-stat">
+                                <div class="screen-stat-value">85g</div>
+                                <div class="screen-stat-label">протеин</div>
+                            </div>
+                            <div class="screen-stat">
+                                <div class="screen-stat-value">7</div>
+                                <div class="screen-stat-label">дни</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="fab-mock"><i class="fas fa-comment"></i></div>
+                    <!-- Bottom navigation -->
+                    <div class="screen-bottom-nav">
+                        <div class="screen-nav-item active"><i class="fas fa-utensils" aria-hidden="true"></i><span>План</span></div>
+                        <div class="screen-nav-item"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Анализ</span></div>
+                        <div class="screen-nav-item"><i class="fas fa-user" aria-hidden="true"></i><span>Профил</span></div>
+                    </div>
+                    <div class="screen-home-indicator"></div>
+                    <div class="fab-mock"><i class="fas fa-comment" aria-hidden="true"></i></div>
                 </div>
             </div>
         </div>
