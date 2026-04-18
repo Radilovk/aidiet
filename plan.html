@@ -1221,39 +1221,41 @@
             color: var(--primary-red);
         }
         
-        /* Welcome modal specific styles */
+        /* Welcome modal specific styles — mobile base */
         .welcome-modal-card {
             max-width: 600px;
-            max-height: calc(90vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+            max-height: calc(92vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            padding: 20px;
         }
         
         .welcome-modal-content {
             overflow-y: auto;
             overflow-x: hidden;
-            max-height: calc(90vh - 140px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-            padding-right: 10px;
+            max-height: calc(92vh - 120px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+            padding-right: 8px;
             scrollbar-width: thin;
             scrollbar-color: var(--primary-red) var(--soft-red);
             -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
-        
-        /* Mobile optimizations for welcome modal */
-        @media (max-width: 480px) {
+
+        .welcome-modal-body {
+            font-size: 0.95rem;
+        }
+
+        @media (min-width: 481px) {
             .welcome-modal-card {
-                max-height: calc(92vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-                padding: 20px;
+                max-height: calc(90vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+                padding: 32px;
             }
-            
             .welcome-modal-content {
-                max-height: calc(92vh - 120px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-                padding-right: 8px;
+                max-height: calc(90vh - 140px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+                padding-right: 10px;
             }
-            
             .welcome-modal-body {
-                font-size: 0.95rem;
+                font-size: 1rem;
             }
         }
         
@@ -1422,31 +1424,40 @@
             box-shadow: 0 0 12px rgba(45, 212, 191, 0.4);
         }
         
+        /* macro-legend: single column on mobile, 2-column on wider */
         .macro-legend {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            grid-template-columns: 1fr;
+            gap: 10px;
             padding: 0;
             margin-top: 4px;
         }
         
-        @media (max-width: 480px) {
+        @media (min-width: 481px) {
             .macro-legend {
-                grid-template-columns: 1fr;
-                gap: 10px;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
             }
         }
         
+        /* macro-legend-item: tiny screen base, scale up */
         .macro-legend-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
+            gap: 8px;
+            padding: 8px 12px;
             background: var(--card-bg);
             border-radius: 12px;
             border: 1px solid rgba(13, 148, 136, 0.08);
             transition: all 0.3s ease;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        @media (min-width: 401px) {
+            .macro-legend-item {
+                gap: 10px;
+                padding: 10px 14px;
+            }
         }
         
         .macro-legend-item:hover {
@@ -1484,37 +1495,31 @@
             background: linear-gradient(135deg, #2DD4BF, #0D9488);
         }
         
-        .macro-label {
-            font-weight: 600;
-            font-size: 0.78rem;
-            color: var(--text-light);
-            flex-shrink: 0;
-        }
-        
-        /* Proportionate macro-value font in modal context - uses modal-specific selector for specificity */
+        /* Proportionate macro-value font in modal context */
         .modal-card .macro-breakdown .macro-legend-item .macro-value,
         #infoModal .macro-legend-item .macro-value {
             font-weight: 700;
-            font-size: 0.82rem;
+            font-size: 0.75rem;
             color: var(--text-dark);
             margin-left: auto;
             white-space: nowrap;
             line-height: 1.3;
         }
-        
-        @media (max-width: 400px) {
+
+        .macro-label {
+            font-weight: 600;
+            font-size: 0.72rem;
+            color: var(--text-light);
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 401px) {
             .modal-card .macro-breakdown .macro-legend-item .macro-value,
             #infoModal .macro-legend-item .macro-value {
-                font-size: 0.75rem;
+                font-size: 0.82rem;
             }
-            
-            .macro-legend-item {
-                padding: 8px 12px;
-                gap: 8px;
-            }
-            
             .macro-label {
-                font-size: 0.72rem;
+                font-size: 0.78rem;
             }
         }
         
