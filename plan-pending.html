@@ -104,7 +104,7 @@
             z-index: 1;
             max-width: 520px;
             margin: 0 auto;
-            padding: 24px 20px 40px;
+            padding: 20px 16px 32px;
         }
 
         /* ─── Hero animation ─── */
@@ -112,8 +112,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             margin: 0 auto 24px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--primary-red), #0F766E);
@@ -121,7 +121,7 @@
             animation: pulseGlow 2s ease-in-out infinite;
         }
         .hero-badge i {
-            font-size: 44px;
+            font-size: 38px;
             color: #fff;
         }
 
@@ -137,7 +137,7 @@
             animation: fadeSlideUp 0.6s ease-out;
         }
         .pp-title h1 {
-            font-size: 1.65rem;
+            font-size: 1.5rem;
             font-weight: 800;
             color: var(--text-dark);
             margin-bottom: 10px;
@@ -406,6 +406,56 @@
         [data-theme="dark"] .hero-badge {
             box-shadow: 0 8px 32px rgba(45, 212, 191, 0.3);
         }
+        .pp-theme-btn {
+            position: fixed;
+            top: calc(12px + var(--safe-area-inset-top, 0px));
+            right: 16px;
+            z-index: 500;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: var(--card-bg);
+            color: var(--text-dark);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        [data-theme="dark"] .pp-theme-btn {
+            background: rgba(20, 55, 55, 0.9);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+        }
+        /* Mobile-first breakpoints */
+        @media (min-width: 480px) {
+            .pp-container {
+                padding: 32px 28px 48px;
+            }
+            .hero-badge {
+                width: 120px;
+                height: 120px;
+            }
+            .hero-badge i {
+                font-size: 54px;
+            }
+            .pp-title h1 {
+                font-size: 2rem;
+            }
+        }
+        @media (min-width: 769px) {
+            .pp-container {
+                padding: 40px 32px 56px;
+            }
+            .pp-title h1 {
+                font-size: 2.2rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -414,6 +464,10 @@
         <div class="orb orb-2"></div>
         <div class="orb orb-3"></div>
     </div>
+
+    <button type="button" class="pp-theme-btn" onclick="toggleTheme()" aria-label="Смени темата" title="Смени темата">
+        <i class="fas fa-moon" id="ppThemeIcon"></i>
+    </button>
 
     <div class="pp-container">
         <!-- Hero -->
@@ -524,6 +578,20 @@
     </div>
 
     <script>
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            const icon = document.getElementById('ppThemeIcon');
+            if (icon) icon.className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        (function() {
+            const t = document.documentElement.getAttribute('data-theme') || 'light';
+            const icon = document.getElementById('ppThemeIcon');
+            if (icon) icon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        })();
+
         async function checkPlanStatus() {
             const clientId = localStorage.getItem('pendingClientId');
             if (!clientId) return;
