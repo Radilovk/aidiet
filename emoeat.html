@@ -823,7 +823,18 @@
         }
 
         [data-theme="dark"] .mindful-section {
-            background: linear-gradient(135deg, #064E3B, #134E4A);
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+        }
+
+        [data-theme="dark"] .feature-card,
+        [data-theme="dark"] .profile-card,
+        [data-theme="dark"] .therapy-section,
+        [data-theme="dark"] .mindful-step,
+        [data-theme="dark"] .cross-pattern-card,
+        [data-theme="dark"] .insight-card,
+        [data-theme="dark"] .strategy-card {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
         .mindful-title {
