@@ -31,11 +31,13 @@
             --text-dark: #0F2F2E;
             --text-gray: #6b7280;
             --bg-color: #F0FDFA;
-            --card-bg: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.72);
             --input-bg: #f3f4f6;
             --shadow: 0 10px 30px rgba(13,148,136,0.12);
             --radius: 24px;
-            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --glass-blur: 20px;
+            --glass-border: rgba(13, 148, 136, 0.1);
+            --transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
             
             /* Severity colors */
             --severity-normal: #0D9488;
@@ -61,9 +63,10 @@
             --text-dark: #E0F5F0;
             --text-gray: #a8bfba;
             --bg-color: #0F2B2B;
-            --card-bg: #184040;
+            --card-bg: rgba(20, 55, 55, 0.78);
             --input-bg: #1e4545;
             --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            --glass-border: rgba(45, 212, 191, 0.15);
             
             --severity-normal: #2DD4BF;
             --severity-borderline: #fcd34d;
@@ -89,7 +92,7 @@
 
         /* --- STICKY HEADER --- */
         .analysis-header {
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--card-bg);
             padding: calc(18px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) 18px calc(24px + var(--safe-area-inset-left));
             min-height: calc(64px + var(--safe-area-inset-top));
             display: flex;
@@ -101,12 +104,12 @@
             box-shadow: 0 4px 20px rgba(13, 148, 136, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border-bottom: 1px solid rgba(13, 148, 136, 0.06);
+            border-bottom: 1px solid var(--glass-border);
             transition: all 0.35s ease;
         }
         [data-theme="dark"] .analysis-header {
             background: rgba(20, 55, 55, 0.92);
-            border-bottom-color: rgba(45, 212, 191, 0.12);
+            border-bottom-color: var(--glass-border);
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
         }
         .analysis-header h1 {
