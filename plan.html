@@ -2438,6 +2438,50 @@
             background: rgba(255,255,255,0.2);
         }
 
+        /* --- PRIMARY BUTTON WITH SHIMMER --- */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-red, #0D9488) 0%, #0F766E 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.4);
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.28) 50%,
+                transparent 100%
+            );
+            animation: btn-shimmer 2.4s ease-in-out infinite;
+        }
+        @keyframes btn-shimmer {
+            0% { left: -100%; }
+            60%, 100% { left: 150%; }
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(13, 148, 136, 0.5);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings

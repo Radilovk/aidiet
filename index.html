@@ -76,7 +76,7 @@
             --bg-color: #0A1A1A;
             --text-dark: #E0F5F0;
             --text-light: #9ca3af;
-            --text-gray: #9ca3af;
+            --text-gray: #A8C5C0;
             --white: rgba(20, 55, 55, 0.78);
             --white-solid: #134E4A;
             --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(45,212,191,0.1);
@@ -84,6 +84,11 @@
             --radius: 24px;
             --glass-blur: 20px;
             --glass-border: rgba(45, 212, 191, 0.15);
+        }
+        [data-theme="dark"] body {
+            background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(45, 212, 191, 0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(34, 211, 238, 0.03) 0%, transparent 60%),
+                        #0A1A1A;
         }
 
         * {
@@ -119,6 +124,11 @@
             border-bottom: 1px solid var(--glass-border);
             transition: background-color 0.3s ease;
         }
+        [data-theme="dark"] nav {
+            background: rgba(10, 28, 28, 0.92);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(45, 212, 191, 0.08);
+            border-bottom-color: rgba(45, 212, 191, 0.12);
+        }
 
         .logo {
             font-size: 1.5rem;
@@ -140,6 +150,30 @@
             transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
             box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
             letter-spacing: 0.01em;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.28) 50%,
+                transparent 100%
+            );
+            animation: nav-btn-shimmer 2.4s ease-in-out infinite;
+        }
+        @keyframes nav-btn-shimmer {
+            0% { left: -100%; }
+            60%, 100% { left: 150%; }
         }
         .nav-btn:hover {
             background: linear-gradient(135deg, #05C0B3 0%, #0B8478 60%, #0D6560 100%);
@@ -237,6 +271,9 @@
             padding: 120px 5% 50px 5%;
             background: var(--white);
             position: relative;
+        }
+        [data-theme="dark"] .hero {
+            background: transparent;
         }
 
         .hero-content {
@@ -596,6 +633,9 @@
             padding: 80px 5%;
             background: var(--white);
         }
+        [data-theme="dark"] .features {
+            background: #0A1A1A;
+        }
 
         .section-title {
             text-align: center;
@@ -646,7 +686,7 @@
             opacity: 1;
         }
         [data-theme="dark"] .feature-card {
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+            background: linear-gradient(145deg, var(--white) 0%, rgba(30, 41, 59, 0.95) 100%);
             border: 1px solid rgba(45, 212, 191, 0.15);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
@@ -678,6 +718,14 @@
         .icon-box--rose  { background: linear-gradient(135deg, #fce4ec, #f8bbd0); color: #c2185b; }
         .icon-box--green { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); color: #2e7d32; }
         .icon-box--amber { background: linear-gradient(135deg, #fff8e1, #ffecb3); color: #f57f17; }
+
+        /* Dark mode icon-box overrides */
+        [data-theme="dark"] .icon-box--teal  { background: linear-gradient(135deg, rgba(0,151,167,0.2), rgba(0,151,167,0.1)); color: #26C6DA; }
+        [data-theme="dark"] .icon-box--indigo { background: linear-gradient(135deg, rgba(57,73,171,0.22), rgba(57,73,171,0.12)); color: #7986CB; }
+        [data-theme="dark"] .icon-box--blue  { background: linear-gradient(135deg, rgba(25,118,210,0.22), rgba(25,118,210,0.12)); color: #64B5F6; }
+        [data-theme="dark"] .icon-box--rose  { background: linear-gradient(135deg, rgba(194,24,91,0.22), rgba(194,24,91,0.12)); color: #F48FB1; }
+        [data-theme="dark"] .icon-box--green { background: linear-gradient(135deg, rgba(46,125,50,0.22), rgba(46,125,50,0.12)); color: #81C784; }
+        [data-theme="dark"] .icon-box--amber { background: linear-gradient(135deg, rgba(245,127,23,0.22), rgba(245,127,23,0.12)); color: #FFD54F; }
 
         /* Screen header overlay (phone mockup) - removed, using new layout */
 
@@ -745,6 +793,9 @@
             position: relative;
             overflow: hidden;
         }
+        [data-theme="dark"] .steps {
+            background: linear-gradient(180deg, #0C2020 0%, #0A1A1A 100%);
+        }
         /* Decorational circle */
         .steps::before {
             content: ''; position: absolute; top: -100px; left: -100px; width: 300px; height: 300px;
@@ -771,6 +822,11 @@
             backdrop-filter: blur(var(--glass-blur));
             -webkit-backdrop-filter: blur(var(--glass-blur));
             transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        [data-theme="dark"] .step-item {
+            background: linear-gradient(145deg, rgba(20, 55, 55, 0.78) 0%, rgba(30, 41, 59, 0.9) 100%);
+            border-color: rgba(45, 212, 191, 0.15);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
         }
 
         .step-item:hover {
@@ -909,6 +965,11 @@
             text-align: center;
             background: var(--soft-red);
         }
+        [data-theme="dark"] .notification-section {
+            background: linear-gradient(180deg, #0A1A1A 0%, #0C2020 100%);
+            border-top: 1px solid rgba(45, 212, 191, 0.08);
+            border-bottom: 1px solid rgba(45, 212, 191, 0.08);
+        }
 
         .notification-btn {
             background: linear-gradient(135deg, #06D6C8 0%, #0D9488 60%, #0F766E 100%);
@@ -968,6 +1029,11 @@
             z-index: 1001;
             max-width: 90%;
             animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        [data-theme="dark"] .install-banner {
+            background: rgba(16, 45, 45, 0.96);
+            border-color: rgba(45, 212, 191, 0.18);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(45, 212, 191, 0.1);
         }
 
         .install-banner.show {
@@ -1141,6 +1207,11 @@
             padding: 15px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             animation: slideUpIOS 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        [data-theme="dark"] .ios-prompt {
+            background: rgba(16, 45, 45, 0.96);
+            border: 1px solid rgba(45, 212, 191, 0.18);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(45, 212, 191, 0.1);
         }
 
         @keyframes slideUpIOS {
