@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="KidFood AI — Умен анализ на храна за деца. Снимай храната и разбери дали е подходяща за твоето дете.">
+    <meta name="theme-color" content="#FF6B9D">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KidFood">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://biocode.website/kids.html">
+    <meta property="og:title" content="KidFood AI — Подходяща ли е тази храна за деца?">
+    <meta property="og:description" content="Снимай храната и разбери дали е безопасна и подходяща за твоето дете. AI анализ на хранителна стойност, алергени, добавки и рискове.">
+    <meta property="og:image" content="https://biocode.website/icon-512x512.png">
+    <meta property="og:locale" content="bg_BG">
+
+    <link rel="canonical" href="https://biocode.website/kids.html">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    <title>KidFood AI — Анализ на Храна за Деца</title>
+    <!-- Design System 2026 -->
+    <link rel="stylesheet" href="./design-system.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Inline theme init -->
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+    <style>
+        :root {
+            /* Playful child-friendly color palette */
+            --kid-pink: #FF6B9D;
+            --kid-pink-hover: #E85588;
+            --kid-pink-light: #FFF0F5;
+            --kid-orange: #FF9F43;
+            --kid-yellow: #FECA57;
+            --kid-green: #26DE81;
+            --kid-green-dark: #20C997;
+            --kid-blue: #45AAF2;
+            --kid-purple: #A55EEA;
+            --kid-red: #FC5C65;
+            --kid-cyan: #2BCBBA;
+            --kid-bg: #FFF5F8;
+            --kid-card: rgba(255, 255, 255, 0.85);
+            --kid-text: #2D3436;
+            --kid-text-light: #636E72;
+            --kid-text-muted: #B2BEC3;
+            --kid-shadow: 0 8px 30px rgba(255, 107, 157, 0.15);
+            --kid-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --kid-radius: 24px;
+            --kid-radius-sm: 14px;
+            --kid-glass-border: rgba(255, 107, 157, 0.12);
+            --kid-gradient: linear-gradient(135deg, #FF6B9D 0%, #FF9F43 50%, #FECA57 100%);
+            --kid-gradient-green: linear-gradient(135deg, #26DE81 0%, #2BCBBA 100%);
+            --kid-gradient-danger: linear-gradient(135deg, #FC5C65 0%, #FF6B9D 100%);
+
+            /* Safe area insets */
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+        }
+
+        /* Dark theme for kids */
+        [data-theme="dark"] {
+            --kid-pink: #FF85AD;
+            --kid-pink-hover: #FF6B9D;
+            --kid-pink-light: #2A1520;
+            --kid-orange: #FFB366;
+            --kid-yellow: #FFD873;
+            --kid-green: #55E89D;
+            --kid-green-dark: #45D9A0;
+            --kid-blue: #68BBF5;
+            --kid-purple: #B880EE;
+            --kid-red: #FD7A82;
+            --kid-cyan: #55D6C8;
+            --kid-bg: #1A1125;
+            --kid-card: rgba(40, 25, 55, 0.85);
+            --kid-text: #F0E6F6;
+            --kid-text-light: #B8A9C8;
+            --kid-text-muted: #7A6B8A;
+            --kid-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            --kid-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+            --kid-glass-border: rgba(255, 133, 173, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--kid-bg);
+            color: var(--kid-text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding-bottom: calc(40px + var(--safe-area-inset-bottom));
+            overflow-x: hidden;
+        }
+
+        /* ═══ HEADER ═══ */
+        .kids-header {
+            background: var(--kid-card);
+            padding: calc(14px + var(--safe-area-inset-top)) calc(16px + var(--safe-area-inset-right)) 14px calc(16px + var(--safe-area-inset-left));
+            min-height: calc(56px + var(--safe-area-inset-top));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(255, 107, 157, 0.1);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-bottom: 1px solid var(--kid-glass-border);
+        }
+        [data-theme="dark"] .kids-header {
+            background: rgba(40, 25, 55, 0.92);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+        .kids-header h1 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--kid-text);
+            letter-spacing: -0.3px;
+            flex: 1;
+            text-align: center;
+        }
+        .kids-header h1 .header-emoji {
+            font-size: 1.3rem;
+            margin-right: 6px;
+        }
+        .back-btn {
+            background: rgba(255, 107, 157, 0.1);
+            border: 1px solid rgba(255, 107, 157, 0.2);
+            font-size: 1.1rem;
+            color: var(--kid-text);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 9px;
+            border-radius: 12px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            min-height: 38px;
+        }
+        .back-btn:hover {
+            background: rgba(255, 107, 157, 0.18);
+        }
+        [data-theme="dark"] .back-btn {
+            background: rgba(255, 133, 173, 0.12);
+            border-color: rgba(255, 133, 173, 0.2);
+        }
+        .theme-btn {
+            background: rgba(255, 107, 157, 0.1);
+            border: 1px solid rgba(255, 107, 157, 0.2);
+            font-size: 1.1rem;
+            color: var(--kid-text);
+            cursor: pointer;
+            padding: 9px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            min-height: 38px;
+            transition: all 0.3s ease;
+        }
+        .theme-btn:hover {
+            background: rgba(255, 107, 157, 0.18);
+        }
+        [data-theme="dark"] .theme-btn {
+            background: rgba(255, 133, 173, 0.12);
+            border-color: rgba(255, 133, 173, 0.2);
+        }
+
+        /* ═══ MAIN CONTENT ═══ */
+        .kids-main {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 20px 16px;
+        }
+
+        /* ═══ HERO SECTION ═══ */
+        .kids-hero {
+            text-align: center;
+            padding: 24px 16px 20px;
+            margin-bottom: 20px;
+        }
+        .kids-hero-emoji {
+            font-size: 3.5rem;
+            margin-bottom: 12px;
+            display: block;
+            animation: heroBounce 2s ease-in-out infinite;
+        }
+        @keyframes heroBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .kids-hero h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--kid-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+        .kids-hero p {
+            font-size: 0.92rem;
+            color: var(--kid-text-light);
+            line-height: 1.5;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        /* ═══ AGE SELECTOR ═══ */
+        .age-selector {
+            background: var(--kid-card);
+            border-radius: var(--kid-radius);
+            padding: 18px;
+            margin-bottom: 16px;
+            border: 1px solid var(--kid-glass-border);
+            box-shadow: var(--kid-shadow-sm);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .age-selector label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--kid-text);
+            margin-bottom: 12px;
+        }
+        .age-selector label .label-emoji {
+            font-size: 1.2rem;
+        }
+        .age-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .age-btn {
+            padding: 10px 6px;
+            border: 2px solid var(--kid-glass-border);
+            border-radius: var(--kid-radius-sm);
+            background: transparent;
+            color: var(--kid-text);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .age-btn .age-emoji {
+            display: block;
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        }
+        .age-btn:hover {
+            border-color: var(--kid-pink);
+            background: rgba(255, 107, 157, 0.06);
+        }
+        .age-btn.active {
+            border-color: var(--kid-pink);
+            background: rgba(255, 107, 157, 0.12);
+            color: var(--kid-pink);
+            box-shadow: 0 4px 15px rgba(255, 107, 157, 0.2);
+        }
+        [data-theme="dark"] .age-btn.active {
+            background: rgba(255, 133, 173, 0.15);
+            color: var(--kid-pink);
+        }
+
+        /* ═══ CAPTURE AREA ═══ */
+        .capture-card {
+            background: var(--kid-card);
+            border-radius: var(--kid-radius);
+            padding: 18px;
+            margin-bottom: 16px;
+            border: 1px solid var(--kid-glass-border);
+            box-shadow: var(--kid-shadow-sm);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .capture-area {
+            border: 2.5px dashed rgba(255, 107, 157, 0.35);
+            border-radius: 18px;
+            padding: 36px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--kid-pink-light);
+            margin-bottom: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .capture-area:hover {
+            border-color: var(--kid-pink);
+            background: rgba(255, 107, 157, 0.08);
+            transform: translateY(-2px);
+        }
+        .capture-area:active {
+            transform: translateY(0);
+        }
+        .capture-area.has-image {
+            border-style: solid;
+            border-color: var(--kid-green);
+            padding: 12px;
+            background: transparent;
+        }
+        .capture-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .capture-text {
+            color: var(--kid-text-light);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        .capture-text strong {
+            color: var(--kid-pink);
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .preview-img {
+            max-width: 100%;
+            max-height: 260px;
+            border-radius: 14px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+        .retake-hint {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: var(--kid-text-muted);
+        }
+        .retake-hint i {
+            margin-right: 4px;
+        }
+
+        /* ═══ ANALYZE BUTTON ═══ */
+        .analyze-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--kid-gradient);
+            color: white;
+            border: none;
+            border-radius: var(--kid-radius-sm);
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(255, 107, 157, 0.3);
+            letter-spacing: 0.3px;
+        }
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .analyze-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 157, 0.4);
+        }
+        .analyze-btn:not(:disabled):active {
+            transform: translateY(0);
+        }
+
+        /* ═══ SPINNER ═══ */
+        .kids-spinner {
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: kidsSpin 0.7s linear infinite;
+        }
+        @keyframes kidsSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ═══ RESULTS AREA ═══ */
+        .results-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .results-container.visible {
+            display: block;
+            animation: resultsFadeIn 0.5s ease;
+        }
+        @keyframes resultsFadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Verdict Card */
+        .verdict-card {
+            border-radius: var(--kid-radius);
+            padding: 24px 20px;
+            text-align: center;
+            margin-bottom: 16px;
+            border: 2px solid;
+            position: relative;
+            overflow: hidden;
+        }
+        .verdict-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.06;
+            z-index: 0;
+        }
+        .verdict-card > * {
+            position: relative;
+            z-index: 1;
+        }
+        .verdict-card.safe {
+            background: rgba(38, 222, 129, 0.08);
+            border-color: rgba(38, 222, 129, 0.3);
+        }
+        .verdict-card.safe::before {
+            background: var(--kid-gradient-green);
+        }
+        .verdict-card.caution {
+            background: rgba(255, 159, 67, 0.08);
+            border-color: rgba(255, 159, 67, 0.3);
+        }
+        .verdict-card.caution::before {
+            background: linear-gradient(135deg, #FF9F43, #FECA57);
+        }
+        .verdict-card.danger {
+            background: rgba(252, 92, 101, 0.08);
+            border-color: rgba(252, 92, 101, 0.3);
+        }
+        .verdict-card.danger::before {
+            background: var(--kid-gradient-danger);
+        }
+        [data-theme="dark"] .verdict-card.safe {
+            background: rgba(38, 222, 129, 0.1);
+            border-color: rgba(85, 232, 157, 0.3);
+        }
+        [data-theme="dark"] .verdict-card.caution {
+            background: rgba(255, 159, 67, 0.1);
+            border-color: rgba(255, 179, 102, 0.3);
+        }
+        [data-theme="dark"] .verdict-card.danger {
+            background: rgba(252, 92, 101, 0.1);
+            border-color: rgba(253, 122, 130, 0.3);
+        }
+        .verdict-emoji {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .verdict-text {
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+        .verdict-card.safe .verdict-text { color: var(--kid-green); }
+        .verdict-card.caution .verdict-text { color: var(--kid-orange); }
+        .verdict-card.danger .verdict-text { color: var(--kid-red); }
+
+        .verdict-explanation {
+            font-size: 0.88rem;
+            color: var(--kid-text-light);
+            line-height: 1.5;
+        }
+
+        /* Score badge */
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .verdict-card.safe .score-badge {
+            background: rgba(38, 222, 129, 0.15);
+            color: var(--kid-green-dark);
+        }
+        .verdict-card.caution .score-badge {
+            background: rgba(255, 159, 67, 0.15);
+            color: #E67E22;
+        }
+        .verdict-card.danger .score-badge {
+            background: rgba(252, 92, 101, 0.15);
+            color: var(--kid-red);
+        }
+
+        /* Result Section Cards */
+        .result-section {
+            background: var(--kid-card);
+            border-radius: var(--kid-radius);
+            padding: 18px;
+            margin-bottom: 14px;
+            border: 1px solid var(--kid-glass-border);
+            box-shadow: var(--kid-shadow-sm);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        [data-theme="dark"] .result-section {
+            background: var(--kid-card);
+            border-color: var(--kid-glass-border);
+        }
+        .result-section h4 {
+            margin: 0 0 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--kid-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .result-section h4 .section-emoji {
+            font-size: 1.15rem;
+        }
+
+        /* Risk items */
+        .risk-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--kid-radius-sm);
+            margin-bottom: 8px;
+            font-size: 0.86rem;
+            line-height: 1.5;
+        }
+        .risk-item:last-child {
+            margin-bottom: 0;
+        }
+        .risk-item.risk-high {
+            background: rgba(252, 92, 101, 0.08);
+            border-left: 3px solid var(--kid-red);
+        }
+        .risk-item.risk-medium {
+            background: rgba(255, 159, 67, 0.08);
+            border-left: 3px solid var(--kid-orange);
+        }
+        .risk-item.risk-low {
+            background: rgba(254, 202, 87, 0.08);
+            border-left: 3px solid var(--kid-yellow);
+        }
+        .risk-item.risk-none {
+            background: rgba(38, 222, 129, 0.08);
+            border-left: 3px solid var(--kid-green);
+        }
+        [data-theme="dark"] .risk-item.risk-high {
+            background: rgba(252, 92, 101, 0.12);
+        }
+        [data-theme="dark"] .risk-item.risk-medium {
+            background: rgba(255, 159, 67, 0.12);
+        }
+        [data-theme="dark"] .risk-item.risk-low {
+            background: rgba(254, 202, 87, 0.1);
+        }
+        [data-theme="dark"] .risk-item.risk-none {
+            background: rgba(38, 222, 129, 0.1);
+        }
+        .risk-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .risk-content {
+            flex: 1;
+        }
+        .risk-label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 2px;
+            color: var(--kid-text);
+        }
+        .risk-detail {
+            color: var(--kid-text-light);
+            font-size: 0.82rem;
+        }
+
+        /* Nutrition mini-cards */
+        .nutrition-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .nutrition-item {
+            padding: 12px;
+            border-radius: var(--kid-radius-sm);
+            text-align: center;
+            border: 1px solid var(--kid-glass-border);
+        }
+        .nutrition-item .nut-emoji {
+            font-size: 1.3rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .nutrition-item .nut-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--kid-text);
+            display: block;
+        }
+        .nutrition-item .nut-label {
+            font-size: 0.72rem;
+            color: var(--kid-text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Alternatives list */
+        .alternatives-list {
+            list-style: none;
+            padding: 0;
+        }
+        .alternatives-list li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            font-size: 0.88rem;
+            color: var(--kid-text);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+        .alternatives-list li:last-child {
+            border-bottom: none;
+        }
+        [data-theme="dark"] .alternatives-list li {
+            border-bottom-color: rgba(255, 255, 255, 0.06);
+        }
+        .alt-emoji {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* Detected food name */
+        .detected-food {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--kid-pink-light);
+            border-radius: var(--kid-radius-sm);
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        [data-theme="dark"] .detected-food {
+            background: rgba(255, 133, 173, 0.1);
+        }
+        .detected-food-emoji {
+            font-size: 1.2rem;
+        }
+
+        /* Age note */
+        .age-note {
+            padding: 12px 14px;
+            border-radius: var(--kid-radius-sm);
+            background: rgba(69, 170, 242, 0.08);
+            border: 1px solid rgba(69, 170, 242, 0.2);
+            font-size: 0.84rem;
+            color: var(--kid-text-light);
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        [data-theme="dark"] .age-note {
+            background: rgba(104, 187, 245, 0.1);
+            border-color: rgba(104, 187, 245, 0.2);
+        }
+        .age-note-emoji {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* Error state */
+        .error-card {
+            background: var(--kid-card);
+            border-radius: var(--kid-radius);
+            padding: 24px 20px;
+            text-align: center;
+            border: 2px solid rgba(252, 92, 101, 0.3);
+            margin-bottom: 14px;
+        }
+        .error-card .error-emoji {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .error-card .error-text {
+            font-size: 0.9rem;
+            color: var(--kid-text-light);
+            line-height: 1.5;
+        }
+
+        /* Footer disclaimer */
+        .kids-footer {
+            text-align: center;
+            padding: 20px 16px;
+            font-size: 0.75rem;
+            color: var(--kid-text-muted);
+            line-height: 1.5;
+            max-width: 380px;
+            margin: 0 auto;
+        }
+        .kids-footer i {
+            color: var(--kid-blue);
+            margin-right: 4px;
+        }
+
+        /* ═══ DECORATIVE FLOATING SHAPES ═══ */
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: -1;
+        }
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.05;
+            animation: floatShape 20s ease-in-out infinite;
+        }
+        .shape-1 {
+            width: 200px;
+            height: 200px;
+            background: var(--kid-pink);
+            top: -60px;
+            right: -40px;
+            animation-delay: 0s;
+        }
+        .shape-2 {
+            width: 150px;
+            height: 150px;
+            background: var(--kid-orange);
+            bottom: 20%;
+            left: -40px;
+            animation-delay: -7s;
+        }
+        .shape-3 {
+            width: 100px;
+            height: 100px;
+            background: var(--kid-yellow);
+            top: 40%;
+            right: -20px;
+            animation-delay: -14s;
+        }
+        @keyframes floatShape {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(20px, -30px) scale(1.05); }
+            66% { transform: translate(-15px, 15px) scale(0.95); }
+        }
+        [data-theme="dark"] .shape { opacity: 0.03; }
+
+        /* ═══ RESPONSIVE DESKTOP ═══ */
+        @media (min-width: 600px) {
+            .kids-main {
+                max-width: 520px;
+                padding: 28px 24px;
+            }
+            .kids-hero h2 {
+                font-size: 1.7rem;
+            }
+            .capture-area {
+                padding: 44px 24px;
+            }
+            .nutrition-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating decorative shapes -->
+    <div class="floating-shapes" aria-hidden="true">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="kids-header">
+        <a href="./index.html" class="back-btn" aria-label="Назад">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1><span class="header-emoji">🧒</span> KidFood AI</h1>
+        <button class="theme-btn" onclick="toggleTheme()" aria-label="Смяна на тема">
+            <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="kids-main">
+        <!-- Hero -->
+        <section class="kids-hero">
+            <span class="kids-hero-emoji" aria-hidden="true">🍽️</span>
+            <h2>Подходяща ли е тази храна за детето?</h2>
+            <p>Снимай храната и нашият AI ще анализира дали е безопасна и здравословна за деца</p>
+        </section>
+
+        <!-- Age Selector -->
+        <div class="age-selector">
+            <label>
+                <span class="label-emoji">👶</span>
+                Възраст на детето
+            </label>
+            <div class="age-buttons">
+                <button class="age-btn" data-age="0-1" onclick="selectAge(this)">
+                    <span class="age-emoji">🍼</span>
+                    0–1 г.
+                </button>
+                <button class="age-btn" data-age="1-3" onclick="selectAge(this)">
+                    <span class="age-emoji">👶</span>
+                    1–3 г.
+                </button>
+                <button class="age-btn active" data-age="3-7" onclick="selectAge(this)">
+                    <span class="age-emoji">🧒</span>
+                    3–7 г.
+                </button>
+                <button class="age-btn" data-age="7-12" onclick="selectAge(this)">
+                    <span class="age-emoji">👦</span>
+                    7–12 г.
+                </button>
+                <button class="age-btn" data-age="12-16" onclick="selectAge(this)">
+                    <span class="age-emoji">🧑</span>
+                    12–16 г.
+                </button>
+                <button class="age-btn" data-age="16-18" onclick="selectAge(this)">
+                    <span class="age-emoji">👩‍🎓</span>
+                    16–18 г.
+                </button>
+            </div>
+        </div>
+
+        <!-- Capture Card -->
+        <div class="capture-card">
+            <div class="capture-area" id="captureArea" onclick="triggerCapture()">
+                <div id="captureContent">
+                    <span class="capture-icon" aria-hidden="true">📸</span>
+                    <div class="capture-text">
+                        <strong>Снимай храната!</strong>
+                        Натисни тук за снимка или избери от галерията
+                    </div>
+                </div>
+            </div>
+
+            <button class="analyze-btn" id="analyzeBtn" onclick="analyzeKidsFood()" disabled>
+                <i class="fas fa-magic"></i> Провери дали е OK за дете
+            </button>
+        </div>
+
+        <!-- Hidden file input for camera/gallery -->
+        <input type="file" id="foodImageInput" accept="image/*" capture="environment" style="display:none" aria-label="Избор на изображение на храна">
+
+        <!-- Results Area -->
+        <div class="results-container" id="resultsContainer">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Footer -->
+        <div class="kids-footer">
+            <i class="fas fa-info-circle"></i>
+            Този анализ е информативен и не замества консултацията с педиатър или детски диетолог. При алергии или здравословни проблеми, консултирайте се с лекар.
+        </div>
+    </main>
+
+    <script>
+        // ═══════════════════════════════════════
+        // CONFIGURATION
+        // ═══════════════════════════════════════
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+
+        // ═══════════════════════════════════════
+        // STATE
+        // ═══════════════════════════════════════
+        let kidsImageData = null;
+        let kidsImageMime = null;
+        let analysisInProgress = false;
+        let selectedAge = '3-7';
+
+        // ═══════════════════════════════════════
+        // THEME
+        // ═══════════════════════════════════════
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateThemeIcon(next);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        // Init theme icon on load
+        updateThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
+
+        // ═══════════════════════════════════════
+        // AGE SELECTOR
+        // ═══════════════════════════════════════
+        function selectAge(btn) {
+            document.querySelectorAll('.age-btn').forEach(function(b) {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            selectedAge = btn.getAttribute('data-age');
+        }
+
+        // ═══════════════════════════════════════
+        // CAPTURE / IMAGE HANDLING
+        // ═══════════════════════════════════════
+        function triggerCapture() {
+            if (analysisInProgress) return;
+            var input = document.getElementById('foodImageInput');
+            if (input) {
+                input.value = '';
+                input.click();
+            }
+        }
+
+        function resetCapture() {
+            kidsImageData = null;
+            kidsImageMime = null;
+            analysisInProgress = false;
+
+            var captureArea = document.getElementById('captureArea');
+            if (captureArea) captureArea.classList.remove('has-image');
+
+            var captureContent = document.getElementById('captureContent');
+            if (captureContent) {
+                captureContent.innerHTML =
+                    '<span class="capture-icon" aria-hidden="true">📸</span>' +
+                    '<div class="capture-text">' +
+                    '<strong>Снимай храната!</strong>' +
+                    'Натисни тук за снимка или избери от галерията' +
+                    '</div>';
+            }
+
+            var btn = document.getElementById('analyzeBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Провери дали е OK за дете';
+            }
+
+            var results = document.getElementById('resultsContainer');
+            if (results) {
+                results.classList.remove('visible');
+                results.innerHTML = '';
+            }
+        }
+
+        function handleImageSelected(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Моля, изберете изображение (JPG, PNG или WebP).');
+                return;
+            }
+
+            kidsImageMime = 'image/jpeg';
+
+            var btn = document.getElementById('analyzeBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<div class="kids-spinner"></div> Обработка...';
+            }
+
+            compressImage(file, function(compressedBase64) {
+                kidsImageData = compressedBase64;
+
+                var captureArea = document.getElementById('captureArea');
+                var captureContent = document.getElementById('captureContent');
+                if (captureArea && captureContent) {
+                    captureArea.classList.add('has-image');
+                    captureContent.innerHTML =
+                        '<img src="' + compressedBase64 + '" class="preview-img" alt="Снимка на храна">' +
+                        '<div class="retake-hint"><i class="fas fa-redo"></i> Натисни за нова снимка</div>';
+                }
+
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-magic"></i> Провери дали е OK за дете';
+                }
+            });
+        }
+
+        /**
+         * Compress image to JPEG with max 1600px dimension and quality 0.85
+         */
+        function compressImage(file, callback) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    var MAX_DIM = 1600;
+                    var width = img.width;
+                    var height = img.height;
+
+                    if (width > MAX_DIM || height > MAX_DIM) {
+                        if (width > height) {
+                            height = Math.round(height * MAX_DIM / width);
+                            width = MAX_DIM;
+                        } else {
+                            width = Math.round(width * MAX_DIM / height);
+                            height = MAX_DIM;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    var compressed = canvas.toDataURL('image/jpeg', 0.85);
+                    callback(compressed);
+                };
+                img.onerror = function() {
+                    alert('Неуспешно зареждане на изображението. Опитайте с друго.');
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() {
+                alert('Неуспешно четене на файла. Опитайте отново.');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ═══════════════════════════════════════
+        // ANALYZE
+        // ═══════════════════════════════════════
+        async function analyzeKidsFood() {
+            if (!kidsImageData || analysisInProgress) return;
+
+            analysisInProgress = true;
+            var analyzeBtn = document.getElementById('analyzeBtn');
+            var resultsDiv = document.getElementById('resultsContainer');
+
+            if (analyzeBtn) {
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<div class="kids-spinner"></div> Анализиране... 🔍';
+            }
+            if (resultsDiv) {
+                resultsDiv.classList.remove('visible');
+                resultsDiv.innerHTML = '';
+            }
+
+            try {
+                var response = await fetch(WORKER_URL + '/api/analyze-kids-food', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageData: kidsImageData,
+                        mimeType: kidsImageMime,
+                        ageGroup: selectedAge
+                    })
+                });
+
+                if (!response.ok) {
+                    var errorData = {};
+                    try { errorData = await response.json(); } catch(e) { /* ignore */ }
+                    throw new Error(errorData.error || 'HTTP ' + response.status);
+                }
+
+                var result = await response.json();
+
+                if (result.success && result.analysis) {
+                    renderKidsResults(result.analysis);
+                } else if (result.parseError && result.rawResponse) {
+                    if (resultsDiv) {
+                        resultsDiv.innerHTML =
+                            '<div class="result-section">' +
+                            '<h4><span class="section-emoji">🤖</span> AI Анализ</h4>' +
+                            '<p style="font-size:0.88rem;line-height:1.6;white-space:pre-line;">' +
+                            escapeHtml(result.rawResponse) + '</p></div>';
+                        resultsDiv.classList.add('visible');
+                    }
+                } else {
+                    throw new Error(result.error || 'Неуспешен анализ');
+                }
+            } catch (error) {
+                console.error('Kids food analysis error:', error);
+                if (resultsDiv) {
+                    resultsDiv.innerHTML =
+                        '<div class="error-card">' +
+                        '<span class="error-emoji">😔</span>' +
+                        '<div class="error-text">Опа! Нещо не се получи.<br>' +
+                        escapeHtml(error.message) + '</div></div>';
+                    resultsDiv.classList.add('visible');
+                }
+            } finally {
+                analysisInProgress = false;
+                if (analyzeBtn) {
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = '<i class="fas fa-magic"></i> Провери отново';
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // RENDER RESULTS
+        // ═══════════════════════════════════════
+        function renderKidsResults(analysis) {
+            var resultsDiv = document.getElementById('resultsContainer');
+            if (!resultsDiv) return;
+
+            var html = '';
+
+            // 1. Main Verdict Card
+            var score = analysis.safetyScore || 5;
+            var verdictClass = score >= 7 ? 'safe' : score >= 4 ? 'caution' : 'danger';
+            var verdictEmoji = score >= 7 ? '✅' : score >= 4 ? '⚠️' : '🚫';
+            var verdictLabel = score >= 7 ? 'Подходяща за деца!' : score >= 4 ? 'С внимание' : 'Неподходяща!';
+
+            html += '<div class="verdict-card ' + verdictClass + '">';
+            html += '<span class="verdict-emoji">' + verdictEmoji + '</span>';
+            html += '<div class="score-badge">⭐ ' + score + '/10</div>';
+            html += '<div class="verdict-text">' + verdictLabel + '</div>';
+            if (analysis.verdict) {
+                html += '<div class="verdict-explanation">' + escapeHtml(analysis.verdict) + '</div>';
+            }
+            html += '</div>';
+
+            // 2. Detected Food
+            if (analysis.foodName) {
+                html += '<div class="result-section">';
+                html += '<div class="detected-food">';
+                html += '<span class="detected-food-emoji">🍽️</span> ';
+                html += escapeHtml(analysis.foodName);
+                html += '</div>';
+                if (analysis.foodDescription) {
+                    html += '<p style="font-size:0.86rem;color:var(--kid-text-light);line-height:1.5;margin-top:6px;">' +
+                        escapeHtml(analysis.foodDescription) + '</p>';
+                }
+                html += '</div>';
+            }
+
+            // 3. Safety Risks
+            if (analysis.risks && analysis.risks.length > 0) {
+                html += '<div class="result-section">';
+                html += '<h4><span class="section-emoji">🛡️</span> Безопасност и Рискове</h4>';
+                analysis.risks.forEach(function(risk) {
+                    var riskLevel = (risk.level || 'low').toLowerCase();
+                    var riskClass = 'risk-' + (riskLevel === 'high' ? 'high' : riskLevel === 'medium' ? 'medium' : riskLevel === 'none' ? 'none' : 'low');
+                    var riskIcon = riskLevel === 'high' ? '🔴' : riskLevel === 'medium' ? '🟠' : riskLevel === 'none' ? '🟢' : '🟡';
+                    html += '<div class="risk-item ' + riskClass + '">';
+                    html += '<span class="risk-icon">' + riskIcon + '</span>';
+                    html += '<div class="risk-content">';
+                    html += '<span class="risk-label">' + escapeHtml(risk.category || '') + '</span>';
+                    html += '<span class="risk-detail">' + escapeHtml(risk.detail || '') + '</span>';
+                    html += '</div></div>';
+                });
+                html += '</div>';
+            }
+
+            // 4. Nutrition Summary
+            if (analysis.nutrition) {
+                var n = analysis.nutrition;
+                html += '<div class="result-section">';
+                html += '<h4><span class="section-emoji">📊</span> Хранителна Стойност</h4>';
+                html += '<div class="nutrition-grid">';
+                html += nutritionItem('🔥', Math.round(n.calories || 0), 'kcal', 'Калории');
+                html += nutritionItem('🥩', Math.round(n.protein || 0) + 'г', '', 'Протеин');
+                html += nutritionItem('🍞', Math.round(n.carbs || 0) + 'г', '', 'Въглехидрати');
+                html += nutritionItem('🧈', Math.round(n.fats || 0) + 'г', '', 'Мазнини');
+                if (n.sugar !== undefined) {
+                    html += nutritionItem('🍬', Math.round(n.sugar || 0) + 'г', '', 'Захар');
+                }
+                if (n.fiber !== undefined) {
+                    html += nutritionItem('🌾', Math.round(n.fiber || 0) + 'г', '', 'Фибри');
+                }
+                if (n.sodium !== undefined) {
+                    html += nutritionItem('🧂', Math.round(n.sodium || 0) + 'мг', '', 'Натрий');
+                }
+                if (n.calcium !== undefined) {
+                    html += nutritionItem('🦴', Math.round(n.calcium || 0) + 'мг', '', 'Калций');
+                }
+                html += '</div></div>';
+            }
+
+            // 5. Age-specific note
+            if (analysis.ageNote) {
+                html += '<div class="result-section">';
+                html += '<div class="age-note">';
+                html += '<span class="age-note-emoji">👶</span>';
+                html += '<span>' + escapeHtml(analysis.ageNote) + '</span>';
+                html += '</div></div>';
+            }
+
+            // 6. Healthier Alternatives
+            if (analysis.alternatives && analysis.alternatives.length > 0) {
+                html += '<div class="result-section">';
+                html += '<h4><span class="section-emoji">💡</span> По-Здравословни Алтернативи</h4>';
+                html += '<ul class="alternatives-list">';
+                analysis.alternatives.forEach(function(alt) {
+                    html += '<li><span class="alt-emoji">🥗</span> ' + escapeHtml(alt) + '</li>';
+                });
+                html += '</ul></div>';
+            }
+
+            // 7. Allergy Warnings
+            if (analysis.allergens && analysis.allergens.length > 0) {
+                html += '<div class="result-section">';
+                html += '<h4><span class="section-emoji">⚠️</span> Потенциални Алергени</h4>';
+                analysis.allergens.forEach(function(allergen) {
+                    html += '<div class="risk-item risk-medium">';
+                    html += '<span class="risk-icon">⚠️</span>';
+                    html += '<div class="risk-content">';
+                    html += '<span class="risk-label">' + escapeHtml(allergen) + '</span>';
+                    html += '</div></div>';
+                });
+                html += '</div>';
+            }
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('visible');
+
+            // Scroll to results
+            setTimeout(function() {
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+        }
+
+        function nutritionItem(emoji, value, unit, label) {
+            return '<div class="nutrition-item">' +
+                '<span class="nut-emoji">' + emoji + '</span>' +
+                '<span class="nut-value">' + value + (unit ? ' ' + unit : '') + '</span>' +
+                '<span class="nut-label">' + label + '</span>' +
+                '</div>';
+        }
+
+        // ═══════════════════════════════════════
+        // HELPERS
+        // ═══════════════════════════════════════
+        function escapeHtml(text) {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        // ═══════════════════════════════════════
+        // EVENT LISTENERS
+        // ═══════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', function() {
+            var fileInput = document.getElementById('foodImageInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', handleImageSelected);
+            }
+        });
+    </script>
+</body>
+</html>

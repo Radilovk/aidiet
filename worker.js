@@ -7159,6 +7159,151 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
 }
 
 /**
+ * Handle Kids Food Image Analysis
+ * Analyzes food images specifically for child safety and suitability.
+ * Considers allergens, choking hazards, additives, sugar content,
+ * age-appropriateness, and nutritional value for children.
+ */
+async function handleAnalyzeKidsFoodImage(request, env) {
+  try {
+    const body = await request.json();
+    const { imageData, mimeType, ageGroup } = body;
+
+    // Validate required fields
+    if (!imageData) {
+      return jsonResponse({ error: 'Липсва изображение. Моля, направете снимка на храната.' }, 400);
+    }
+
+    // Validate mime type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const effectiveMimeType = allowedTypes.includes(mimeType) ? mimeType : 'image/jpeg';
+
+    // Extract base64 data (remove data URI prefix if present)
+    let base64Data = imageData;
+    if (imageData.startsWith('data:')) {
+      const commaIndex = imageData.indexOf(',');
+      if (commaIndex !== -1) {
+        base64Data = imageData.substring(commaIndex + 1);
+      }
+    }
+
+    // Validate image size (max 20MB)
+    const MAX_IMAGE_SIZE_BYTES = 20971520;
+    const estimatedSizeBytes = (base64Data.length * 3) / 4;
+    if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
+      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение.' }, 400);
+    }
+
+    const ageLabel = ageGroup || '3-7';
+
+    // Age-specific context for the prompt
+    const ageContextMap = {
+      '0-1': 'бебе (0-1 години) — ИЗКЛЮЧИТЕЛНО СТРОГИ критерии. Само кърма/адаптирано мляко, пюрета без сол/захар, без мед, без цели ядки, без цели зърна грозде/чери домати (риск от задавяне). Без глутен до 6м. Без краве мляко като основна напитка.',
+      '1-3': 'малко дете (1-3 години) — СТРОГИ критерии. Без мед до 1г, без цели ядки/бонбони/грозде (задавяне), минимум сол и захар, без преработени меса (нитрати), ограничена захар, внимание за алергени.',
+      '3-7': 'предучилищна възраст (3-7 години) — Умерени критерии. Балансирана храна, ограничени добавки (Е-номера), минимум захар и сол, без кофеин, без енергийни напитки, внимание за размер на порциите.',
+      '7-12': 'училищна възраст (7-12 години) — Балансирано хранене. Достатъчно калций за растеж, без кофеин и енергийни напитки, ограничена захар, внимание за прекалено преработени храни.',
+      '12-16': 'тийнейджър (12-16 години) — Повишени нужди от протеин и калций. Без алкохол, ограничен кофеин, внимание за хранителни разстройства, достатъчно желязо.',
+      '16-18': 'юноша (16-18 години) — Подобни на възрастни, но без алкохол, ограничен кофеин, повишени нужди от калций и желязо за растеж.'
+    };
+
+    const ageContext = ageContextMap[ageLabel] || ageContextMap['3-7'];
+
+    const analysisPrompt = `Ти си водещ детски диетолог и педиатър-нутриционист. Анализирай това изображение на храна/напитка и определи дали е БЕЗОПАСНА и ПОДХОДЯЩА за ${ageContext}
+
+ЗАДАЧА: Анализирай храната/напитката от снимката с фокус върху ДЕТСКО здраве и безопасност.
+
+КРИТЕРИИ ЗА ОЦЕНКА (по приоритет):
+1. БЕЗОПАСНОСТ: Риск от задавяне, алергени, токсични за деца съставки
+2. ДОБАВКИ: Изкуствени оцветители (E102, E110, E122, E124, E129, E133 и др.), консерванти, овкусители
+3. ЗАХАР: Добавена захар, скрита захар, подсладители (изкуствени подсладители са опасни за деца)
+4. СОЛ/НАТРИЙ: Твърде много сол за детски организъм
+5. КОФЕИН: Абсолютно забранен за малки деца
+6. МАЗНИНИ: Транс-мазнини, наситени мазнини, пържени храни
+7. ПРЕРАБОТКА: Степен на преработка (ултрапреработени храни)
+8. ХРАНИТЕЛНА СТОЙНОСТ: Калории, протеин, витамини, минерали подходящи за възрастта
+9. ПОРЦИЯ: Подходящ ли е размерът за дете от тази възраст
+
+Върни САМО валиден JSON обект (без markdown, без \`\`\`):
+{
+  "foodName": "Име на храната/напитката на български",
+  "foodDescription": "Кратко описание какво виждаш на снимката",
+  "safetyScore": число_от_1_до_10,
+  "verdict": "Кратко обяснение на оценката — защо е или не е подходяща за дете на тази възраст (2-3 изречения)",
+  "risks": [
+    {
+      "category": "Име на риска (напр. Захар, Алергени, Задавяне, Добавки, Кофеин, Сол)",
+      "level": "high" или "medium" или "low" или "none",
+      "detail": "Конкретно обяснение на риска за деца"
+    }
+  ],
+  "nutrition": {
+    "calories": число,
+    "protein": число_грамове,
+    "carbs": число_грамове,
+    "fats": число_грамове,
+    "sugar": число_грамове,
+    "fiber": число_грамове,
+    "sodium": число_милиграма,
+    "calcium": число_милиграма
+  },
+  "allergens": ["списък", "на", "потенциални", "алергени"],
+  "ageNote": "Специфична бележка за тази възрастова група — какво трябва да знае родителят",
+  "alternatives": ["По-здравословна алтернатива 1", "По-здравословна алтернатива 2"],
+  "confidence": "high" или "medium" или "low"
+}
+
+ВАЖНО:
+- Бъди СТРОГ при оценяването — здравето на децата е приоритет
+- При съмнение, дай по-ниска оценка (по-безопасно е)
+- Рисковете (risks) трябва да покриват: Задавяне, Алергени, Захар, Добавки, Сол, Кофеин като минимум
+- Ако храната е явно неподходяща (алкохол, кафе, енергийни напитки) — safetyScore трябва да е 1-2
+- Всички числа да са числа (не текст)
+- Отговори САМО с JSON, без допълнителен текст`;
+
+    // Call AI with vision
+    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 2000);
+
+    // Parse the JSON response
+    let analysisResult;
+    try {
+      let cleanResponse = aiResponse.trim();
+      if (cleanResponse.startsWith('```json')) {
+        cleanResponse = cleanResponse.slice(7);
+      } else if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.slice(3);
+      }
+      if (cleanResponse.endsWith('```')) {
+        cleanResponse = cleanResponse.slice(0, -3);
+      }
+      cleanResponse = cleanResponse.trim();
+
+      analysisResult = JSON.parse(cleanResponse);
+    } catch (parseError) {
+      console.error('Failed to parse kids food analysis response:', parseError, 'Raw:', aiResponse.substring(0, 200));
+      return jsonResponse({
+        success: true,
+        analysis: null,
+        rawResponse: aiResponse,
+        parseError: true,
+        message: 'AI анализът е готов, но не успяхме да го структурираме.'
+      });
+    }
+
+    return jsonResponse({
+      success: true,
+      analysis: analysisResult
+    });
+
+  } catch (error) {
+    console.error('Kids food image analysis error:', error);
+    return jsonResponse({
+      error: `Грешка при анализ на храната: ${error.message}`,
+      success: false
+    }, 500);
+  }
+}
+
+/**
  * Generate mock response for development
  * Note: Mock mode should only be used for testing. In production, always use real AI models.
  */
@@ -10530,6 +10675,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
         return await handleAnalyzeFoodImage(request, env);
+      } else if (url.pathname === '/api/analyze-kids-food' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
+        if (rlErr) return rlErr;
+        return await handleAnalyzeKidsFoodImage(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
         return await handleReportProblem(request, env);
       } else if (url.pathname === '/api/save-client-data' && request.method === 'POST') {
