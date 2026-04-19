@@ -224,28 +224,146 @@
             margin: 0 auto;
         }
 
-        /* ═══ AGE SELECTOR ═══ */
-        .age-selector {
+        /* ═══ SETTINGS PANEL (Expandable) ═══ */
+        .settings-panel {
             background: var(--kid-card);
             border-radius: var(--kid-radius);
-            padding: 18px;
             margin-bottom: 16px;
             border: 1px solid var(--kid-glass-border);
             box-shadow: var(--kid-shadow-sm);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            overflow: hidden;
         }
-        .age-selector label {
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+        .settings-header:hover {
+            background: rgba(255, 107, 157, 0.04);
+        }
+        .settings-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .settings-header-emoji {
+            font-size: 1.3rem;
+        }
+        .settings-header-text {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--kid-text);
+        }
+        .settings-header-sub {
+            font-size: 0.78rem;
+            color: var(--kid-text-muted);
+            font-weight: 500;
+        }
+        .settings-chevron {
+            font-size: 0.85rem;
+            color: var(--kid-text-muted);
+            transition: transform 0.3s ease;
+        }
+        .settings-panel.open .settings-chevron {
+            transform: rotate(180deg);
+        }
+        .settings-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.3s ease;
+            padding: 0 18px;
+        }
+        .settings-panel.open .settings-body {
+            max-height: 800px;
+            padding: 0 18px 18px;
+        }
+        .settings-divider {
+            height: 1px;
+            background: var(--kid-glass-border);
+            margin: 14px 0;
+        }
+
+        /* ═══ ROLE TOGGLE (Parent / Child) ═══ */
+        .role-section-label {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             font-weight: 600;
             color: var(--kid-text);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
-        .age-selector label .label-emoji {
-            font-size: 1.2rem;
+        .role-section-label .label-emoji {
+            font-size: 1.1rem;
+        }
+        .role-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .role-btn {
+            padding: 12px 8px;
+            border: 2px solid var(--kid-glass-border);
+            border-radius: var(--kid-radius-sm);
+            background: transparent;
+            color: var(--kid-text);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .role-btn .role-emoji {
+            display: block;
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+        .role-btn .role-desc {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--kid-text-muted);
+            margin-top: 2px;
+            font-weight: 500;
+        }
+        .role-btn:hover {
+            border-color: var(--kid-pink);
+            background: rgba(255, 107, 157, 0.06);
+        }
+        .role-btn.active {
+            border-color: var(--kid-pink);
+            background: rgba(255, 107, 157, 0.12);
+            color: var(--kid-pink);
+            box-shadow: 0 4px 15px rgba(255, 107, 157, 0.2);
+        }
+        .role-btn.active .role-desc {
+            color: var(--kid-pink);
+            opacity: 0.75;
+        }
+        [data-theme="dark"] .role-btn.active {
+            background: rgba(255, 133, 173, 0.15);
+            color: var(--kid-pink);
+        }
+
+        /* ═══ AGE SELECTOR ═══ */
+        .age-section-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--kid-text);
+            margin-bottom: 10px;
+        }
+        .age-section-label .label-emoji {
+            font-size: 1.1rem;
         }
         .age-buttons {
             display: grid;
@@ -283,6 +401,74 @@
         [data-theme="dark"] .age-btn.active {
             background: rgba(255, 133, 173, 0.15);
             color: var(--kid-pink);
+        }
+
+        /* ═══ HEALTH CONDITIONS ═══ */
+        .health-section-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--kid-text);
+            margin-bottom: 10px;
+        }
+        .health-section-label .label-emoji {
+            font-size: 1.1rem;
+        }
+        .health-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .health-chip {
+            padding: 7px 14px;
+            border: 1.5px solid var(--kid-glass-border);
+            border-radius: 20px;
+            background: transparent;
+            color: var(--kid-text);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .health-chip .chip-emoji {
+            font-size: 0.95rem;
+        }
+        .health-chip:hover {
+            border-color: var(--kid-orange);
+            background: rgba(255, 159, 67, 0.06);
+        }
+        .health-chip.active {
+            border-color: var(--kid-orange);
+            background: rgba(255, 159, 67, 0.12);
+            color: var(--kid-orange);
+        }
+        [data-theme="dark"] .health-chip.active {
+            background: rgba(255, 179, 102, 0.15);
+            color: var(--kid-orange);
+        }
+        .health-other-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--kid-glass-border);
+            border-radius: var(--kid-radius-sm);
+            background: transparent;
+            color: var(--kid-text);
+            font-size: 0.84rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        .health-other-input:focus {
+            border-color: var(--kid-pink);
+        }
+        .health-other-input::placeholder {
+            color: var(--kid-text-muted);
         }
 
         /* ═══ CAPTURE AREA ═══ */
@@ -831,37 +1017,101 @@
             <p>Снимай храната и нашият AI ще анализира дали е безопасна и здравословна за деца</p>
         </section>
 
-        <!-- Age Selector -->
-        <div class="age-selector">
-            <label>
-                <span class="label-emoji">👶</span>
-                Възраст на детето
-            </label>
-            <div class="age-buttons">
-                <button class="age-btn" data-age="0-1" onclick="selectAge(this)">
-                    <span class="age-emoji">🍼</span>
-                    0–1 г.
-                </button>
-                <button class="age-btn" data-age="1-3" onclick="selectAge(this)">
-                    <span class="age-emoji">👶</span>
-                    1–3 г.
-                </button>
-                <button class="age-btn active" data-age="3-7" onclick="selectAge(this)">
-                    <span class="age-emoji">🧒</span>
-                    3–7 г.
-                </button>
-                <button class="age-btn" data-age="7-12" onclick="selectAge(this)">
-                    <span class="age-emoji">👦</span>
-                    7–12 г.
-                </button>
-                <button class="age-btn" data-age="12-16" onclick="selectAge(this)">
-                    <span class="age-emoji">🧑</span>
-                    12–16 г.
-                </button>
-                <button class="age-btn" data-age="16-18" onclick="selectAge(this)">
-                    <span class="age-emoji">👩‍🎓</span>
-                    16–18 г.
-                </button>
+        <!-- Settings Panel (Expandable) -->
+        <div class="settings-panel open" id="settingsPanel">
+            <div class="settings-header" onclick="toggleSettings()">
+                <div class="settings-header-left">
+                    <span class="settings-header-emoji">⚙️</span>
+                    <div>
+                        <div class="settings-header-text" id="settingsTitle">Настройки</div>
+                        <div class="settings-header-sub" id="settingsSummary">Родител · 3–7 г.</div>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-down settings-chevron"></i>
+            </div>
+            <div class="settings-body">
+
+                <!-- Role Toggle: Parent / Child -->
+                <div class="role-section-label">
+                    <span class="label-emoji">👤</span>
+                    <span id="roleSectionText">Кой използва приложението?</span>
+                </div>
+                <div class="role-toggle">
+                    <button class="role-btn active" data-role="parent" onclick="selectRole(this)">
+                        <span class="role-emoji">👨‍👩‍👧</span>
+                        Родител
+                        <span class="role-desc">Следя храненето на детето</span>
+                    </button>
+                    <button class="role-btn" data-role="child" onclick="selectRole(this)">
+                        <span class="role-emoji">🧒</span>
+                        Дете
+                        <span class="role-desc">Искам сам/а да проверя</span>
+                    </button>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <!-- Age Group -->
+                <div class="age-section-label">
+                    <span class="label-emoji">🎂</span>
+                    <span id="ageSectionText">Възраст на детето</span>
+                </div>
+                <div class="age-buttons" id="ageButtons">
+                    <button class="age-btn" data-age="0-1" onclick="selectAge(this)">
+                        <span class="age-emoji">🍼</span>
+                        0–1 г.
+                    </button>
+                    <button class="age-btn" data-age="1-3" onclick="selectAge(this)">
+                        <span class="age-emoji">👶</span>
+                        1–3 г.
+                    </button>
+                    <button class="age-btn active" data-age="3-7" onclick="selectAge(this)">
+                        <span class="age-emoji">🧒</span>
+                        3–7 г.
+                    </button>
+                    <button class="age-btn" data-age="7-12" onclick="selectAge(this)">
+                        <span class="age-emoji">👦</span>
+                        7–12 г.
+                    </button>
+                    <button class="age-btn" data-age="12-16" onclick="selectAge(this)">
+                        <span class="age-emoji">🧑</span>
+                        12–16 г.
+                    </button>
+                    <button class="age-btn" data-age="16-18" onclick="selectAge(this)">
+                        <span class="age-emoji">👩‍🎓</span>
+                        16–18 г.
+                    </button>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <!-- Health Conditions -->
+                <div class="health-section-label">
+                    <span class="label-emoji">🏥</span>
+                    <span id="healthSectionText">Здравословно състояние</span>
+                </div>
+                <div class="health-chips" id="healthChips">
+                    <button class="health-chip" data-condition="allergy-milk" onclick="toggleHealthChip(this)">
+                        <span class="chip-emoji">🥛</span> Алергия към мляко
+                    </button>
+                    <button class="health-chip" data-condition="allergy-gluten" onclick="toggleHealthChip(this)">
+                        <span class="chip-emoji">🌾</span> Глутен
+                    </button>
+                    <button class="health-chip" data-condition="allergy-nuts" onclick="toggleHealthChip(this)">
+                        <span class="chip-emoji">🥜</span> Ядки
+                    </button>
+                    <button class="health-chip" data-condition="allergy-eggs" onclick="toggleHealthChip(this)">
+                        <span class="chip-emoji">🥚</span> Яйца
+                    </button>
+                    <button class="health-chip" data-condition="diabetes" onclick="toggleHealthChip(this)">
+                        <span class="chip-emoji">💉</span> Диабет
+                    </button>
+                    <button class="health-chip" data-condition="obesity" onclick="toggleHealthChip(this)">
+                        <span class="chip-emoji">⚖️</span> Наднормено тегло
+                    </button>
+                </div>
+                <input type="text" class="health-other-input" id="healthOtherInput"
+                    placeholder="Друго (напр. непоносимост към лактоза)...">
             </div>
         </div>
 
@@ -913,6 +1163,285 @@
         let kidsImageMime = null;
         let analysisInProgress = false;
         let selectedAge = '3-7';
+        let selectedRole = 'parent';
+        let selectedConditions = [];
+
+        // ═══════════════════════════════════════
+        // AGE GROUP LABELS
+        // ═══════════════════════════════════════
+        const AGE_LABELS = {
+            '0-1': '0–1 г.',
+            '1-3': '1–3 г.',
+            '3-7': '3–7 г.',
+            '7-12': '7–12 г.',
+            '12-16': '12–16 г.',
+            '16-18': '16–18 г.'
+        };
+
+        // ═══════════════════════════════════════
+        // UI TEXT PROFILES
+        // ═══════════════════════════════════════
+        function getUIProfile() {
+            var isParent = selectedRole === 'parent';
+            var age = selectedAge;
+
+            if (isParent) {
+                // Parent mode — informative, professional tone
+                switch (age) {
+                    case '0-1':
+                        return {
+                            heroEmoji: '👶',
+                            heroTitle: 'Безопасна ли е храната за бебето?',
+                            heroDesc: 'Снимайте храната и AI ще анализира дали е подходяща и безопасна за Вашето бебе (0–1 г.)',
+                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            analyzeText: 'Анализирай за бебе (0–1 г.)',
+                            ageSectionText: 'Възраст на бебето/детето',
+                            settingsEmoji: '⚙️'
+                        };
+                    case '1-3':
+                        return {
+                            heroEmoji: '🥄',
+                            heroTitle: 'Подходяща ли е храната за малчугана?',
+                            heroDesc: 'Снимайте храната и AI ще анализира дали е безопасна за Вашето дете (1–3 г.)',
+                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            analyzeText: 'Провери за дете (1–3 г.)',
+                            ageSectionText: 'Възраст на детето',
+                            settingsEmoji: '⚙️'
+                        };
+                    case '3-7':
+                        return {
+                            heroEmoji: '🍽️',
+                            heroTitle: 'Подходяща ли е тази храна за детето?',
+                            heroDesc: 'Снимайте храната и нашият AI ще анализира дали е безопасна и здравословна за Вашето дете',
+                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            analyzeText: 'Провери дали е OK за дете',
+                            ageSectionText: 'Възраст на детето',
+                            settingsEmoji: '⚙️'
+                        };
+                    case '7-12':
+                        return {
+                            heroEmoji: '📚',
+                            heroTitle: 'Подходяща ли е храната за ученика?',
+                            heroDesc: 'Проверете дали храната е здравословна и балансирана за Вашето дете в училищна възраст',
+                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            analyzeText: 'Анализирай за ученик (7–12 г.)',
+                            ageSectionText: 'Възраст на детето',
+                            settingsEmoji: '⚙️'
+                        };
+                    case '12-16':
+                        return {
+                            heroEmoji: '🏃',
+                            heroTitle: 'Здравословна ли е храната за тийнейджъра?',
+                            heroDesc: 'Анализирайте храната с фокус върху хранителните нужди на подрастващите (12–16 г.)',
+                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            analyzeText: 'Анализирай за тийнейджър',
+                            ageSectionText: 'Възраст на детето',
+                            settingsEmoji: '⚙️'
+                        };
+                    case '16-18':
+                        return {
+                            heroEmoji: '🎓',
+                            heroTitle: 'Подходяща ли е храната за младежа?',
+                            heroDesc: 'Проверете хранителната стойност и безопасността на храната за Вашия тийнейджър (16–18 г.)',
+                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            analyzeText: 'Анализирай за младеж (16–18 г.)',
+                            ageSectionText: 'Възраст на детето',
+                            settingsEmoji: '⚙️'
+                        };
+                    default:
+                        return {
+                            heroEmoji: '🍽️',
+                            heroTitle: 'Подходяща ли е тази храна за детето?',
+                            heroDesc: 'Снимайте храната и нашият AI ще анализира дали е безопасна и здравословна за Вашето дете',
+                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            analyzeText: 'Провери дали е OK за дете',
+                            ageSectionText: 'Възраст на детето',
+                            settingsEmoji: '⚙️'
+                        };
+                }
+            } else {
+                // Child mode — playful, friendly, encouraging tone
+                switch (age) {
+                    case '0-1':
+                    case '1-3':
+                        // Toddlers wouldn't use the app themselves, but keep the option
+                        return {
+                            heroEmoji: '🧸',
+                            heroTitle: 'Хайде да проверим храничката! 🎉',
+                            heroDesc: 'Снимай какво ще ядеш и ще разбереш дали е вкусно И полезно!',
+                            captureText: '<strong>📸 Снимай храничката!</strong> Натисни тук!',
+                            analyzeText: '🔍 Провери!',
+                            ageSectionText: 'На колко годинки си?',
+                            settingsEmoji: '🎮'
+                        };
+                    case '3-7':
+                        return {
+                            heroEmoji: '🦸',
+                            heroTitle: 'Супер! Хайде да проверим храната! 🎉',
+                            heroDesc: 'Снимай какво ще ядеш и ще разбереш дали е здравословно за теб!',
+                            captureText: '<strong>📸 Снимай храната!</strong> Натисни тук за снимка!',
+                            analyzeText: '🔍 Добра ли е за мен?',
+                            ageSectionText: 'На колко години си?',
+                            settingsEmoji: '🎮'
+                        };
+                    case '7-12':
+                        return {
+                            heroEmoji: '🕵️',
+                            heroTitle: 'Хей, детектив на храната! 🔍',
+                            heroDesc: 'Снимай храната и разбери дали е здравословна. Бъди умен избор!',
+                            captureText: '<strong>📸 Снимай храната!</strong> Натисни тук за снимка или избери от галерията',
+                            analyzeText: '🔍 Анализирай!',
+                            ageSectionText: 'На колко години си?',
+                            settingsEmoji: '🎮'
+                        };
+                    case '12-16':
+                        return {
+                            heroEmoji: '💪',
+                            heroTitle: 'Провери храната си! 🍕',
+                            heroDesc: 'Снимай какво ядеш и разбери дали ти дава нужната енергия и хранителни вещества',
+                            captureText: '<strong>Снимай храната</strong> Натисни тук за снимка или избери от галерията',
+                            analyzeText: '🔍 Провери',
+                            ageSectionText: 'Твоята възраст',
+                            settingsEmoji: '⚙️'
+                        };
+                    case '16-18':
+                        return {
+                            heroEmoji: '🎯',
+                            heroTitle: 'Анализирай храната си',
+                            heroDesc: 'Снимай и разбери дали храната ти е балансирана и здравословна',
+                            captureText: '<strong>Снимай храната</strong> Натисни тук за снимка или избери от галерията',
+                            analyzeText: '🔍 Анализирай',
+                            ageSectionText: 'Твоята възраст',
+                            settingsEmoji: '⚙️'
+                        };
+                    default:
+                        return {
+                            heroEmoji: '🦸',
+                            heroTitle: 'Хайде да проверим храната! 🎉',
+                            heroDesc: 'Снимай какво ще ядеш и ще разбереш дали е здравословно!',
+                            captureText: '<strong>📸 Снимай храната!</strong> Натисни тук!',
+                            analyzeText: '🔍 Провери!',
+                            ageSectionText: 'На колко години си?',
+                            settingsEmoji: '🎮'
+                        };
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // UPDATE UI BASED ON PROFILE
+        // ═══════════════════════════════════════
+        function updateUIForProfile() {
+            var profile = getUIProfile();
+            var isParent = selectedRole === 'parent';
+
+            // Hero section
+            var heroEmoji = document.querySelector('.kids-hero-emoji');
+            var heroTitle = document.querySelector('.kids-hero h2');
+            var heroDesc = document.querySelector('.kids-hero p');
+            if (heroEmoji) heroEmoji.textContent = profile.heroEmoji;
+            if (heroTitle) heroTitle.textContent = profile.heroTitle;
+            if (heroDesc) heroDesc.textContent = profile.heroDesc;
+
+            // Capture area (only if no image loaded)
+            if (!kidsImageData) {
+                var captureContent = document.getElementById('captureContent');
+                if (captureContent) {
+                    captureContent.innerHTML =
+                        '<span class="capture-icon" aria-hidden="true">📸</span>' +
+                        '<div class="capture-text">' + profile.captureText + '</div>';
+                }
+            }
+
+            // Analyze button (only if not in progress)
+            if (!analysisInProgress) {
+                var btn = document.getElementById('analyzeBtn');
+                if (btn && !kidsImageData) {
+                    btn.innerHTML = '<i class="fas fa-magic"></i> ' + profile.analyzeText;
+                } else if (btn && kidsImageData) {
+                    btn.innerHTML = '<i class="fas fa-magic"></i> ' + profile.analyzeText;
+                }
+            }
+
+            // Settings panel labels
+            var ageSectionText = document.getElementById('ageSectionText');
+            if (ageSectionText) ageSectionText.textContent = profile.ageSectionText;
+
+            var healthSectionText = document.getElementById('healthSectionText');
+            if (healthSectionText) {
+                healthSectionText.textContent = isParent
+                    ? 'Здравословно състояние на детето'
+                    : 'Имаш ли алергии или проблеми?';
+            }
+
+            var roleSectionText = document.getElementById('roleSectionText');
+            if (roleSectionText) {
+                roleSectionText.textContent = isParent
+                    ? 'Кой използва приложението?'
+                    : 'Кой си ти?';
+            }
+
+            // Settings summary
+            updateSettingsSummary();
+
+            // Header title
+            var headerTitle = document.querySelector('.kids-header h1');
+            if (headerTitle) {
+                if (!isParent && (selectedAge === '3-7' || selectedAge === '1-3' || selectedAge === '0-1')) {
+                    headerTitle.innerHTML = '<span class="header-emoji">🦸</span> KidFood AI';
+                } else {
+                    headerTitle.innerHTML = '<span class="header-emoji">🧒</span> KidFood AI';
+                }
+            }
+
+            // Footer text adapted
+            var footer = document.querySelector('.kids-footer');
+            if (footer) {
+                if (isParent) {
+                    footer.innerHTML = '<i class="fas fa-info-circle"></i> ' +
+                        'Този анализ е информативен и не замества консултацията с педиатър или детски диетолог. При алергии или здравословни проблеми, консултирайте се с лекар.';
+                } else {
+                    if (selectedAge === '0-1' || selectedAge === '1-3' || selectedAge === '3-7') {
+                        footer.innerHTML = '<i class="fas fa-info-circle"></i> ' +
+                            'Това е за информация! Винаги питай мама или татко преди да ядеш нещо ново! 💕';
+                    } else if (selectedAge === '7-12') {
+                        footer.innerHTML = '<i class="fas fa-info-circle"></i> ' +
+                            'Този анализ е информативен. Ако имаш алергии, попитай родителите си или лекар. 💕';
+                    } else {
+                        footer.innerHTML = '<i class="fas fa-info-circle"></i> ' +
+                            'Анализът е информативен и не замества медицински съвет. При здравословни проблеми, консултирай се с лекар.';
+                    }
+                }
+            }
+
+            // Health chip placeholders adapted
+            var healthInput = document.getElementById('healthOtherInput');
+            if (healthInput) {
+                healthInput.placeholder = isParent
+                    ? 'Друго (напр. непоносимост към лактоза)...'
+                    : 'Друго (напиши ако имаш нещо друго)...';
+            }
+        }
+
+        function updateSettingsSummary() {
+            var summary = document.getElementById('settingsSummary');
+            if (!summary) return;
+
+            var roleLabel = selectedRole === 'parent' ? 'Родител' : 'Дете';
+            var ageLabel = AGE_LABELS[selectedAge] || selectedAge;
+            var parts = [roleLabel, ageLabel];
+
+            if (selectedConditions.length > 0) {
+                parts.push(selectedConditions.length + ' състояния');
+            }
+
+            var otherInput = document.getElementById('healthOtherInput');
+            if (otherInput && otherInput.value.trim()) {
+                parts.push('+ друго');
+            }
+
+            summary.textContent = parts.join(' · ');
+        }
 
         // ═══════════════════════════════════════
         // THEME
@@ -937,6 +1466,26 @@
         updateThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
 
         // ═══════════════════════════════════════
+        // SETTINGS PANEL
+        // ═══════════════════════════════════════
+        function toggleSettings() {
+            var panel = document.getElementById('settingsPanel');
+            if (panel) panel.classList.toggle('open');
+        }
+
+        // ═══════════════════════════════════════
+        // ROLE SELECTOR
+        // ═══════════════════════════════════════
+        function selectRole(btn) {
+            document.querySelectorAll('.role-btn').forEach(function(b) {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            selectedRole = btn.getAttribute('data-role');
+            updateUIForProfile();
+        }
+
+        // ═══════════════════════════════════════
         // AGE SELECTOR
         // ═══════════════════════════════════════
         function selectAge(btn) {
@@ -945,6 +1494,41 @@
             });
             btn.classList.add('active');
             selectedAge = btn.getAttribute('data-age');
+            updateUIForProfile();
+        }
+
+        // ═══════════════════════════════════════
+        // HEALTH CONDITIONS
+        // ═══════════════════════════════════════
+        function toggleHealthChip(chip) {
+            chip.classList.toggle('active');
+            var condition = chip.getAttribute('data-condition');
+            var idx = selectedConditions.indexOf(condition);
+            if (idx > -1) {
+                selectedConditions.splice(idx, 1);
+            } else {
+                selectedConditions.push(condition);
+            }
+            updateSettingsSummary();
+        }
+
+        function getHealthConditionsText() {
+            var conditions = [];
+            selectedConditions.forEach(function(c) {
+                switch (c) {
+                    case 'allergy-milk': conditions.push('алергия към мляко'); break;
+                    case 'allergy-gluten': conditions.push('алергия към глутен'); break;
+                    case 'allergy-nuts': conditions.push('алергия към ядки'); break;
+                    case 'allergy-eggs': conditions.push('алергия към яйца'); break;
+                    case 'diabetes': conditions.push('диабет'); break;
+                    case 'obesity': conditions.push('наднормено тегло'); break;
+                }
+            });
+            var otherInput = document.getElementById('healthOtherInput');
+            if (otherInput && otherInput.value.trim()) {
+                conditions.push(otherInput.value.trim());
+            }
+            return conditions.join(', ');
         }
 
         // ═══════════════════════════════════════
@@ -967,20 +1551,18 @@
             var captureArea = document.getElementById('captureArea');
             if (captureArea) captureArea.classList.remove('has-image');
 
+            var profile = getUIProfile();
             var captureContent = document.getElementById('captureContent');
             if (captureContent) {
                 captureContent.innerHTML =
                     '<span class="capture-icon" aria-hidden="true">📸</span>' +
-                    '<div class="capture-text">' +
-                    '<strong>Снимай храната!</strong>' +
-                    'Натисни тук за снимка или избери от галерията' +
-                    '</div>';
+                    '<div class="capture-text">' + profile.captureText + '</div>';
             }
 
             var btn = document.getElementById('analyzeBtn');
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-magic"></i> Провери дали е OK за дете';
+                btn.innerHTML = '<i class="fas fa-magic"></i> ' + profile.analyzeText;
             }
 
             var results = document.getElementById('resultsContainer');
@@ -1021,7 +1603,8 @@
 
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-magic"></i> Провери дали е OK за дете';
+                    var profile = getUIProfile();
+                    btn.innerHTML = '<i class="fas fa-magic"></i> ' + profile.analyzeText;
                 }
             });
         }
@@ -1093,7 +1676,9 @@
                     body: JSON.stringify({
                         imageData: kidsImageData,
                         mimeType: kidsImageMime,
-                        ageGroup: selectedAge
+                        ageGroup: selectedAge,
+                        userRole: selectedRole,
+                        healthConditions: getHealthConditionsText()
                     })
                 });
 
@@ -1135,6 +1720,9 @@
                     analyzeBtn.disabled = false;
                     analyzeBtn.innerHTML = '<i class="fas fa-magic"></i> Провери отново';
                 }
+                // Auto-collapse settings after analysis
+                var panel = document.getElementById('settingsPanel');
+                if (panel) panel.classList.remove('open');
             }
         }
 
@@ -1145,17 +1733,40 @@
             var resultsDiv = document.getElementById('resultsContainer');
             if (!resultsDiv) return;
 
+            var isParent = selectedRole === 'parent';
             var html = '';
 
-            // 1. Main Verdict Card
-            var score = analysis.safetyScore || 5;
-            var verdictClass = score >= 7 ? 'safe' : score >= 4 ? 'caution' : 'danger';
-            var verdictEmoji = score >= 7 ? '✅' : score >= 4 ? '⚠️' : '🚫';
-            var verdictLabel = score >= 7 ? 'Подходяща за деца!' : score >= 4 ? 'С внимание' : 'Неподходяща!';
+            // 1. Main Verdict Card — Score 0–5
+            var rawScore = analysis.safetyScore || 5;
+            // Scale from 0-10 to 0-5 if the API returns 0-10
+            var score = rawScore > 5 ? Math.round((rawScore / 2) * 10) / 10 : rawScore;
+            score = Math.max(0, Math.min(5, score));
+            // Round to one decimal
+            score = Math.round(score * 10) / 10;
+
+            var verdictClass = score >= 4 ? 'safe' : score >= 2 ? 'caution' : 'danger';
+            var verdictEmoji, verdictLabel;
+
+            if (isParent) {
+                verdictEmoji = score >= 4 ? '✅' : score >= 2 ? '⚠️' : '🚫';
+                verdictLabel = score >= 4 ? 'Подходяща за деца' : score >= 2 ? 'С повишено внимание' : 'Неподходяща за деца';
+            } else {
+                // Child-friendly verdicts
+                if (selectedAge === '0-1' || selectedAge === '1-3' || selectedAge === '3-7') {
+                    verdictEmoji = score >= 4 ? '🌟' : score >= 2 ? '🤔' : '😟';
+                    verdictLabel = score >= 4 ? 'Супер! Можеш да ядеш! 🎉' : score >= 2 ? 'Хмм, внимавай малко...' : 'По-добре не яж това!';
+                } else if (selectedAge === '7-12') {
+                    verdictEmoji = score >= 4 ? '👍' : score >= 2 ? '🤔' : '👎';
+                    verdictLabel = score >= 4 ? 'Добър избор!' : score >= 2 ? 'Може, но внимавай' : 'Не е подходящо за теб';
+                } else {
+                    verdictEmoji = score >= 4 ? '✅' : score >= 2 ? '⚠️' : '🚫';
+                    verdictLabel = score >= 4 ? 'Подходяща храна' : score >= 2 ? 'С внимание' : 'Неподходяща';
+                }
+            }
 
             html += '<div class="verdict-card ' + verdictClass + '">';
             html += '<span class="verdict-emoji">' + verdictEmoji + '</span>';
-            html += '<div class="score-badge">⭐ ' + score + '/10</div>';
+            html += '<div class="score-badge">⭐ ' + score + '/5</div>';
             html += '<div class="verdict-text">' + verdictLabel + '</div>';
             if (analysis.verdict) {
                 html += '<div class="verdict-explanation">' + escapeHtml(analysis.verdict) + '</div>';
@@ -1179,7 +1790,8 @@
             // 3. Safety Risks
             if (analysis.risks && analysis.risks.length > 0) {
                 html += '<div class="result-section">';
-                html += '<h4><span class="section-emoji">🛡️</span> Безопасност и Рискове</h4>';
+                html += '<h4><span class="section-emoji">🛡️</span> ' +
+                    (isParent ? 'Безопасност и Рискове' : (selectedAge === '3-7' || selectedAge === '1-3' || selectedAge === '0-1' ? 'Внимание!' : 'Рискове')) + '</h4>';
                 analysis.risks.forEach(function(risk) {
                     var riskLevel = (risk.level || 'low').toLowerCase();
                     var riskClass = 'risk-' + (riskLevel === 'high' ? 'high' : riskLevel === 'medium' ? 'medium' : riskLevel === 'none' ? 'none' : 'low');
@@ -1198,7 +1810,8 @@
             if (analysis.nutrition) {
                 var n = analysis.nutrition;
                 html += '<div class="result-section">';
-                html += '<h4><span class="section-emoji">📊</span> Хранителна Стойност</h4>';
+                html += '<h4><span class="section-emoji">📊</span> ' +
+                    (isParent ? 'Хранителна Стойност' : 'Какво има вътре?') + '</h4>';
                 html += '<div class="nutrition-grid">';
                 html += nutritionItem('🔥', Math.round(n.calories || 0), 'kcal', 'Калории');
                 html += nutritionItem('🥩', Math.round(n.protein || 0) + 'г', '', 'Протеин');
@@ -1231,7 +1844,8 @@
             // 6. Healthier Alternatives
             if (analysis.alternatives && analysis.alternatives.length > 0) {
                 html += '<div class="result-section">';
-                html += '<h4><span class="section-emoji">💡</span> По-Здравословни Алтернативи</h4>';
+                html += '<h4><span class="section-emoji">💡</span> ' +
+                    (isParent ? 'По-Здравословни Алтернативи' : 'По-добри варианти') + '</h4>';
                 html += '<ul class="alternatives-list">';
                 analysis.alternatives.forEach(function(alt) {
                     html += '<li><span class="alt-emoji">🥗</span> ' + escapeHtml(alt) + '</li>';
@@ -1242,7 +1856,8 @@
             // 7. Allergy Warnings
             if (analysis.allergens && analysis.allergens.length > 0) {
                 html += '<div class="result-section">';
-                html += '<h4><span class="section-emoji">⚠️</span> Потенциални Алергени</h4>';
+                html += '<h4><span class="section-emoji">⚠️</span> ' +
+                    (isParent ? 'Потенциални Алергени' : 'Внимание за алергии!') + '</h4>';
                 analysis.allergens.forEach(function(allergen) {
                     html += '<div class="risk-item risk-medium">';
                     html += '<span class="risk-icon">⚠️</span>';
@@ -1288,6 +1903,17 @@
             if (fileInput) {
                 fileInput.addEventListener('change', handleImageSelected);
             }
+
+            // Listen for health input changes
+            var healthInput = document.getElementById('healthOtherInput');
+            if (healthInput) {
+                healthInput.addEventListener('input', function() {
+                    updateSettingsSummary();
+                });
+            }
+
+            // Initialize UI for the default profile
+            updateUIForProfile();
         });
     </script>
 </body>
