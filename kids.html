@@ -1737,7 +1737,7 @@
             var html = '';
 
             // 1. Main Verdict Card — Score 0–5
-            var rawScore = analysis.safetyScore || 5;
+            var rawScore = analysis.safetyScore != null ? analysis.safetyScore : 5;
             // Scale from 0-10 to 0-5 if the API returns 0-10
             var score = rawScore > 5 ? Math.round((rawScore / 2) * 10) / 10 : rawScore;
             score = Math.max(0, Math.min(5, score));
