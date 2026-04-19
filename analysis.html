@@ -1982,7 +1982,7 @@
                     risksContainer.innerHTML = `
                         <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
                         <ul>
-                            ${risks.map(risk => `<li>❗ ${risk}</li>`).join('')}
+                            ${risks.map(risk => `<li><span aria-hidden="true">❗</span> ${risk}</li>`).join('')}
                         </ul>
                     `;
                 } else {
