@@ -6855,8 +6855,9 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
     // If the error is specifically about responseMimeType not being supported
     // (some experimental models don't support JSON mode), retry without it.
     // The prompt-level JSON enforcement (enforceJSONOnlyPrompt) still ensures JSON output.
-    if (jsonMode && error.message && error.message.includes('responseMimeType')) {
+    if (jsonMode && error.message && (error.message.includes('responseMimeType') || error.message.includes('response_mime_type'))) {
       console.warn(`Gemini model ${modelName} does not support responseMimeType. Retrying without JSON mode.`);
+      // Safe: passes jsonMode=false so this branch cannot trigger again (no infinite recursion)
       return await callGemini(env, prompt, modelName, maxTokens, false);
     }
     console.error('Gemini API call failed:', error);
