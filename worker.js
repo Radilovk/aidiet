@@ -6610,7 +6610,12 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = nu
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+        let errBody = '';
+        try {
+          const errData = await response.json();
+          errBody = errData.error?.message || JSON.stringify(errData);
+        } catch (e) { /* ignore parse errors */ }
+        throw new Error(`OpenAI API error: ${response.status}${errBody ? ` - ${errBody}` : ''}`);
       }
 
       const data = await response.json();
@@ -6629,15 +6634,16 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = nu
       // Check finish_reason for content filtering or other issues
       if (choice.finish_reason && choice.finish_reason !== 'stop') {
         const reason = choice.finish_reason;
-        let errorMessage = `OpenAI API завърши с причина: ${reason}`;
         
         if (reason === 'content_filter') {
-          errorMessage = 'OpenAI AI отказа да генерира отговор поради филтър за съдържание. Моля, опитайте с различни данни.';
+          throw new Error('OpenAI AI отказа да генерира отговор поради филтър за съдържание. Моля, опитайте с различни данни.');
         } else if (reason === 'length') {
-          errorMessage = 'OpenAI AI достигна лимита на дължина. Опитайте да опростите въпроса.';
+          // Response was truncated at max_tokens – return the partial content and let
+          // parseAIResponse attempt to extract a valid JSON object from it.
+          console.warn(`OpenAI response truncated at max_tokens (finish_reason=length). Returning partial content for downstream handling.`);
+        } else {
+          console.warn(`OpenAI API завърши с причина: ${reason}`);
         }
-        
-        throw new Error(errorMessage);
       }
       
       return choice.message.content;
@@ -6725,7 +6731,12 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
       });
 
       if (!response.ok) {
-        throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+        let errBody = '';
+        try {
+          const errData = await response.json();
+          errBody = errData.error?.message || JSON.stringify(errData);
+        } catch (e) { /* ignore parse errors */ }
+        throw new Error(`Claude API error: ${response.status}${errBody ? ` - ${errBody}` : ''}`);
       }
 
       const data = await response.json();
@@ -6792,7 +6803,12 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
       );
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        let errBody = '';
+        try {
+          const errData = await response.json();
+          errBody = errData.error?.message || JSON.stringify(errData);
+        } catch (e) { /* ignore parse errors */ }
+        throw new Error(`Gemini API error: ${response.status}${errBody ? ` - ${errBody}` : ''}`);
       }
 
       const data = await response.json();
@@ -6804,17 +6820,23 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
         // Check if response was blocked or filtered
         if (candidate.finishReason && candidate.finishReason !== 'STOP') {
           const reason = candidate.finishReason;
-          let errorMessage = `Gemini API отказ: ${reason}`;
           
           if (reason === 'SAFETY') {
-            errorMessage = 'Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитайте с различни данни или контактирайте поддръжката.';
+            throw new Error('Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитайте с различни данни или контактирайте поддръжката.');
           } else if (reason === 'RECITATION') {
-            errorMessage = 'Gemini AI отказа да генерира отговор поради потенциално копиране на съдържание.';
+            throw new Error('Gemini AI отказа да генерира отговор поради потенциално копиране на съдържание.');
           } else if (reason === 'MAX_TOKENS') {
-            errorMessage = 'Gemini AI достигна лимита на токени. Опитайте да опростите въпроса.';
+            // Response was truncated at maxOutputTokens – return the partial content and
+            // let parseAIResponse attempt to extract a valid JSON object from it.
+            const partialText = candidate.content?.parts?.[0]?.text;
+            if (partialText) {
+              console.warn(`Gemini response truncated at maxOutputTokens (finishReason=MAX_TOKENS). Returning partial content for downstream handling.`);
+              return partialText;
+            }
+            throw new Error('Gemini AI достигна лимита на токени и отговорът е празен.');
+          } else {
+            console.warn(`Gemini API завърши с причина: ${reason}`);
           }
-          
-          throw new Error(errorMessage);
         }
         
         // Check if content exists
@@ -6916,7 +6938,9 @@ async function callOpenAIVision(env, textPrompt, base64Image, mimeType, modelNam
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI Vision API error: ${response.status} ${response.statusText}`);
+      let errBody = '';
+      try { const errData = await response.json(); errBody = errData.error?.message || JSON.stringify(errData); } catch (e) { /* ignore */ }
+      throw new Error(`OpenAI Vision API error: ${response.status}${errBody ? ` - ${errBody}` : ''}`);
     }
 
     const data = await response.json();
@@ -6954,7 +6978,9 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
     });
 
     if (!response.ok) {
-      throw new Error(`Claude Vision API error: ${response.status} ${response.statusText}`);
+      let errBody = '';
+      try { const errData = await response.json(); errBody = errData.error?.message || JSON.stringify(errData); } catch (e) { /* ignore */ }
+      throw new Error(`Claude Vision API error: ${response.status}${errBody ? ` - ${errBody}` : ''}`);
     }
 
     const data = await response.json();
@@ -6992,7 +7018,9 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini Vision API error: ${response.status} ${response.statusText}`);
+      let errBody = '';
+      try { const errData = await response.json(); errBody = errData.error?.message || JSON.stringify(errData); } catch (e) { /* ignore */ }
+      throw new Error(`Gemini Vision API error: ${response.status}${errBody ? ` - ${errBody}` : ''}`);
     }
 
     const data = await response.json();
