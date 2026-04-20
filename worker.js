@@ -1885,6 +1885,19 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   const preferredProvider = config.provider;
   const modelName = config.modelName;
 
+  // Apply per-step token limit override if configured by admin
+  const stepKey = getStepKey(stepName);
+  if (stepKey && config.stepTokenLimits && config.stepTokenLimits[stepKey]) {
+    maxTokens = config.stepTokenLimits[stepKey];
+  }
+
+  // Plan generation steps (step1–4 and their fallbacks) must always run on the same
+  // configured model without thinking to ensure consistency and prevent MAX_TOKENS
+  // errors caused by internal reasoning consuming the token budget.
+  const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4'].includes(stepKey);
+  // For Gemini: plan steps always disable thinking; other steps use admin config.
+  const effectiveThinkingBudget = isPlanStep ? 0 : config.thinkingBudget;
+
   // Build request data object in memory (not written to cache here; combined with
   // the response in logAIResponse to reduce Cache API subrequests per call from 4 to 1).
   const requestData = {
@@ -1921,7 +1934,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
       success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget);
       success = true;
     } else {
       // Fallback hierarchy if preferred not available
@@ -1935,7 +1948,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Google Gemini.');
-        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget);
         success = true;
       } else {
         throw new Error('No AI provider configured. Please configure at least one provider.');
@@ -6407,6 +6420,18 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
 
 /**
+ * Parse a KV thinking-budget value into a numeric budget or undefined.
+ * - null / "" → undefined  (no override; callGemini falls back to hardcoded logic)
+ * - "0"       → 0          (disable thinking)
+ * - "N"       → N          (limit thinking to N tokens)
+ */
+function parseThinkingBudget(raw) {
+  if (raw === null || raw === undefined || raw === '') return undefined;
+  const n = parseInt(raw, 10);
+  return isNaN(n) ? undefined : n;
+}
+
+/**
  * Get admin configuration with caching to reduce KV reads
  */
 async function getAdminConfig(env) {
@@ -6421,22 +6446,42 @@ async function getAdminConfig(env) {
     provider: 'openai',
     modelName: 'gpt-4o-mini',
     visionProvider: null,
-    visionModelName: null
+    visionModelName: null,
+    // thinkingBudget: undefined = use hardcoded fallback, 0 = disable, N = limit
+    thinkingBudget: undefined,
+    visionThinkingBudget: undefined,
+    stepTokenLimits: {}
   };
 
   if (env.page_content) {
     // Use Promise.all to fetch all values in parallel
-    const [savedProvider, savedModelName, savedVisionProvider, savedVisionModelName] = await Promise.all([
+    const [
+      savedProvider,
+      savedModelName,
+      savedVisionProvider,
+      savedVisionModelName,
+      savedThinkingBudget,
+      savedVisionThinkingBudget,
+      savedStepTokenLimits
+    ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
       env.page_content.get('admin_vision_provider'),
-      env.page_content.get('admin_vision_model_name')
+      env.page_content.get('admin_vision_model_name'),
+      env.page_content.get('admin_ai_thinking_budget'),
+      env.page_content.get('admin_vision_thinking_budget'),
+      env.page_content.get('admin_step_token_limits')
     ]);
 
     if (savedProvider) config.provider = savedProvider;
     if (savedModelName) config.modelName = savedModelName;
     if (savedVisionProvider) config.visionProvider = savedVisionProvider;
     if (savedVisionModelName) config.visionModelName = savedVisionModelName;
+    config.thinkingBudget = parseThinkingBudget(savedThinkingBudget);
+    config.visionThinkingBudget = parseThinkingBudget(savedVisionThinkingBudget);
+    if (savedStepTokenLimits) {
+      try { config.stepTokenLimits = JSON.parse(savedStepTokenLimits); } catch (_) {}
+    }
   }
 
   // Update cache
@@ -6444,6 +6489,20 @@ async function getAdminConfig(env) {
   adminConfigCacheTime = now;
 
   return config;
+}
+
+/**
+ * Map a callAIModel stepName to a step key used in stepTokenLimits.
+ * Returns null when no per-step override should apply.
+ */
+function getStepKey(stepName) {
+  if (!stepName) return null;
+  if (stepName.startsWith('step1')) return 'step1';
+  if (stepName.startsWith('step2')) return 'step2';
+  if (stepName.startsWith('step3') || stepName === 'fallback_plan') return 'step3';
+  if (stepName.startsWith('step4') || stepName === 'fallback_summary') return 'step4';
+  if (stepName.startsWith('chat')) return 'chat';
+  return null;
 }
 
 /**
@@ -6771,7 +6830,7 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
-async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens = null, jsonMode = false) {
+async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
@@ -6783,11 +6842,14 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
       if (maxTokens) {
         generationConfig.maxOutputTokens = maxTokens;
       }
-      // Gemini 2.5 Flash is a "thinking" model: thinking tokens are deducted from the
-      // maxOutputTokens budget, so a 4000-token limit can be exhausted entirely by internal
-      // reasoning, leaving 0 tokens for the actual response (finishReason: MAX_TOKENS).
-      // Disabling thinking ensures the full token budget is available for output.
-      if (modelName.includes('gemini-2.5-flash')) {
+      // Thinking configuration for models that support it (e.g. Gemini 2.5 Flash/Pro).
+      // thinkingBudget === undefined → use hardcoded default (disable for 2.5-flash to
+      //   prevent spurious MAX_TOKENS errors from internal reasoning exhausting the budget).
+      // thinkingBudget === 0         → disable thinking explicitly.
+      // thinkingBudget > 0           → allow thinking up to that many tokens.
+      if (thinkingBudget !== undefined) {
+        generationConfig.thinkingConfig = { thinkingBudget };
+      } else if (modelName.includes('gemini-2.5-flash')) {
         generationConfig.thinkingConfig = { thinkingBudget: 0 };
       }
       // Enforce JSON-only output at the API level to prevent markdown-wrapped responses
@@ -6892,13 +6954,13 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens, config.visionThinkingBudget);
     } else if (env.OPENAI_API_KEY) {
       response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.openai, maxTokens);
     } else if (env.ANTHROPIC_API_KEY) {
       response = await callClaudeVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.anthropic, maxTokens);
     } else if (env.GEMINI_API_KEY) {
-      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.google, maxTokens);
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.google, maxTokens, config.visionThinkingBudget);
     } else {
       throw new Error('No AI provider configured for vision analysis.');
     }
@@ -6990,17 +7052,16 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
 /**
  * Gemini Vision API call (gemini-2.0-flash with inlineData)
  */
-async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens) {
+async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens, thinkingBudget = undefined) {
   return await retryWithBackoff(async () => {
     const generationConfig = {
       maxOutputTokens: maxTokens,
       temperature: 0.3
     };
-    // Gemini 2.5 Flash is a "thinking" model: thinking tokens are deducted from the
-    // maxOutputTokens budget, which can exhaust the token limit before any output is
-    // produced (finishReason: MAX_TOKENS). Disable thinking so the full budget is
-    // available for the actual response.
-    if (modelName && modelName.includes('gemini-2.5-flash')) {
+    // Thinking configuration (see callGemini for full explanation).
+    if (thinkingBudget !== undefined) {
+      generationConfig.thinkingConfig = { thinkingBudget };
+    } else if (modelName && modelName.includes('gemini-2.5-flash')) {
       generationConfig.thinkingConfig = { thinkingBudget: 0 };
     }
     const requestBody = {
@@ -7874,7 +7935,7 @@ async function handleGetDefaultPrompt(request, env) {
  */
 async function handleSaveModel(request, env) {
   try {
-    const { provider, modelName } = await request.json();
+    const { provider, modelName, thinkingBudget } = await request.json();
     
     if (!provider || !modelName) {
       return jsonResponse({ error: 'Missing provider or modelName' }, 400);
@@ -7888,11 +7949,17 @@ async function handleSaveModel(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    // Use Promise.all to save both values in parallel
-    await Promise.all([
+    const puts = [
       env.page_content.put('admin_ai_provider', provider),
       env.page_content.put('admin_ai_model_name', modelName)
-    ]);
+    ];
+    // thinkingBudget: null/undefined → clear, number → store as string
+    if (thinkingBudget !== undefined && thinkingBudget !== null && thinkingBudget !== '') {
+      puts.push(env.page_content.put('admin_ai_thinking_budget', String(thinkingBudget)));
+    } else {
+      puts.push(env.page_content.put('admin_ai_thinking_budget', ''));
+    }
+    await Promise.all(puts);
     
     // Invalidate cache so next request gets fresh config
     adminConfigCache = null;
@@ -7970,7 +8037,7 @@ async function handleGetChatModeConfig(request, env) {
  */
 async function handleSaveProtocolConfig(request, env) {
   try {
-    const { provider, modelName } = await request.json();
+    const { provider, modelName, thinkingBudget } = await request.json();
 
     if (!provider) {
       return jsonResponse({ error: 'Missing provider' }, 400);
@@ -7984,10 +8051,16 @@ async function handleSaveProtocolConfig(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    await Promise.all([
+    const puts = [
       env.page_content.put('admin_protocol_provider', provider),
       env.page_content.put('admin_protocol_model_name', modelName || '')
-    ]);
+    ];
+    if (thinkingBudget !== undefined && thinkingBudget !== null && thinkingBudget !== '') {
+      puts.push(env.page_content.put('admin_protocol_thinking_budget', String(thinkingBudget)));
+    } else {
+      puts.push(env.page_content.put('admin_protocol_thinking_budget', ''));
+    }
+    await Promise.all(puts);
 
     return jsonResponse({ success: true, message: 'Protocol config saved successfully' });
   } catch (error) {
@@ -8001,7 +8074,7 @@ async function handleSaveProtocolConfig(request, env) {
  */
 async function handleSaveVisionConfig(request, env) {
   try {
-    const { provider, modelName } = await request.json();
+    const { provider, modelName, thinkingBudget } = await request.json();
 
     if (!provider) {
       return jsonResponse({ error: 'Missing provider' }, 400);
@@ -8015,10 +8088,16 @@ async function handleSaveVisionConfig(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    await Promise.all([
+    const puts = [
       env.page_content.put('admin_vision_provider', provider),
       env.page_content.put('admin_vision_model_name', modelName || '')
-    ]);
+    ];
+    if (thinkingBudget !== undefined && thinkingBudget !== null && thinkingBudget !== '') {
+      puts.push(env.page_content.put('admin_vision_thinking_budget', String(thinkingBudget)));
+    } else {
+      puts.push(env.page_content.put('admin_vision_thinking_budget', ''));
+    }
+    await Promise.all(puts);
 
     // Invalidate admin config cache so next vision call picks up the new settings
     adminConfigCache = null;
@@ -8028,6 +8107,39 @@ async function handleSaveVisionConfig(request, env) {
   } catch (error) {
     console.error('Error saving vision config:', error);
     return jsonResponse({ error: 'Failed to save vision config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Save per-step token limits to KV
+ * Body: { step1: number, step2: number, step3: number, step4: number, chat: number }
+ */
+async function handleSaveStepTokenLimits(request, env) {
+  try {
+    const limits = await request.json();
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    // Accept only valid numeric positive values; ignore anything else
+    const allowed = ['step1', 'step2', 'step3', 'step4', 'chat'];
+    const clean = {};
+    for (const key of allowed) {
+      const v = parseInt(limits[key], 10);
+      if (!isNaN(v) && v > 0) clean[key] = v;
+    }
+
+    await env.page_content.put('admin_step_token_limits', JSON.stringify(clean));
+
+    // Invalidate admin config cache so the next callAIModel picks up new limits
+    adminConfigCache = null;
+    adminConfigCacheTime = 0;
+
+    return jsonResponse({ success: true, message: 'Step token limits saved successfully', limits: clean });
+  } catch (error) {
+    console.error('Error saving step token limits:', error);
+    return jsonResponse({ error: 'Failed to save step token limits: ' + error.message }, 500);
   }
 }
 
@@ -8044,19 +8156,21 @@ async function handleGenerateProtocol(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const [savedProvider, savedModelName] = await Promise.all([
+    const [savedProvider, savedModelName, savedProtocolThinkingBudget] = await Promise.all([
       env.page_content.get('admin_protocol_provider'),
-      env.page_content.get('admin_protocol_model_name')
+      env.page_content.get('admin_protocol_model_name'),
+      env.page_content.get('admin_protocol_thinking_budget')
     ]);
 
     const provider = savedProvider || 'openai';
     const modelName = savedModelName || '';
+    const protocolThinkingBudget = parseThinkingBudget(savedProtocolThinkingBudget);
 
     let response;
     if (provider === 'openai' && env.OPENAI_API_KEY) {
       response = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', 4000, false);
     } else if (provider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', 4000, false);
+      response = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', 4000, false, protocolThinkingBudget);
     } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       response = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', 4000, false);
     } else {
@@ -8232,19 +8346,21 @@ async function handleGenerateLongevityProtocol(request, env) {
     const LONGEVITY_TOKEN_LIMIT = 4000;
 
     // Get AI provider settings (reuse protocol settings)
-    const [savedProvider, savedModelName] = await Promise.all([
+    const [savedProvider, savedModelName, savedProtocolThinkingBudget] = await Promise.all([
       env.page_content?.get('admin_protocol_provider'),
-      env.page_content?.get('admin_protocol_model_name')
+      env.page_content?.get('admin_protocol_model_name'),
+      env.page_content?.get('admin_protocol_thinking_budget')
     ]);
 
     const provider = savedProvider || 'openai';
     const modelName = savedModelName || '';
+    const protocolThinkingBudget = parseThinkingBudget(savedProtocolThinkingBudget);
 
     let aiResponse;
     if (provider === 'openai' && env.OPENAI_API_KEY) {
       aiResponse = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', LONGEVITY_TOKEN_LIMIT, true);
     } else if (provider === 'google' && env.GEMINI_API_KEY) {
-      aiResponse = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', LONGEVITY_TOKEN_LIMIT, true);
+      aiResponse = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', LONGEVITY_TOKEN_LIMIT, true, protocolThinkingBudget);
     } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       aiResponse = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', LONGEVITY_TOKEN_LIMIT, true);
     } else {
@@ -8299,7 +8415,11 @@ async function handleGetConfig(request, env) {
       foodAnalysisPrompt,
       modificationModeEnabled,
       visionProvider,
-      visionModelName
+      visionModelName,
+      aiThinkingBudget,
+      visionThinkingBudget,
+      protocolThinkingBudget,
+      stepTokenLimits
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -8318,10 +8438,16 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_food_analysis_prompt'),
       env.page_content.get('admin_chat_modification_mode_enabled'),
       env.page_content.get('admin_vision_provider'),
-      env.page_content.get('admin_vision_model_name')
+      env.page_content.get('admin_vision_model_name'),
+      env.page_content.get('admin_ai_thinking_budget'),
+      env.page_content.get('admin_vision_thinking_budget'),
+      env.page_content.get('admin_protocol_thinking_budget'),
+      env.page_content.get('admin_step_token_limits')
     ]);
     
     const parsedModificationModeEnabled = modificationModeEnabled === 'true';
+    let parsedStepTokenLimits = {};
+    if (stepTokenLimits) { try { parsedStepTokenLimits = JSON.parse(stepTokenLimits); } catch (_) {} }
 
     return jsonResponse({ 
       success: true, 
@@ -8342,7 +8468,11 @@ async function handleGetConfig(request, env) {
       foodAnalysisPrompt,
       modificationModeEnabled: parsedModificationModeEnabled,
       visionProvider: visionProvider || null,
-      visionModelName: visionModelName || null
+      visionModelName: visionModelName || null,
+      aiThinkingBudget: aiThinkingBudget || '',
+      visionThinkingBudget: visionThinkingBudget || '',
+      protocolThinkingBudget: protocolThinkingBudget || '',
+      stepTokenLimits: parsedStepTokenLimits
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -10745,6 +10875,8 @@ export default {
         return await handleSaveProtocolConfig(request, env);
       } else if (url.pathname === '/api/admin/save-vision-config' && request.method === 'POST') {
         return await handleSaveVisionConfig(request, env);
+      } else if (url.pathname === '/api/admin/save-step-token-limits' && request.method === 'POST') {
+        return await handleSaveStepTokenLimits(request, env);
       } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === '/api/generate-emoeat-analysis' && request.method === 'POST') {
