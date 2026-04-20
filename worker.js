@@ -1692,7 +1692,6 @@ function repairTruncatedJSON(text) {
   // Strategy: try closing at progressively earlier truncation points.
   // First try closing right at the end, then back up to last comma.
   function tryClose(s) {
-    // Close open string
     let candidate = s;
     // Re-check if we end inside a string
     let isInStr = false;
@@ -1705,8 +1704,7 @@ function repairTruncatedJSON(text) {
     }
     if (isInStr) candidate += '"';
 
-    // Remove trailing incomplete fragments: commas, colons, dangling key names
-    candidate = candidate.replace(/,\s*$/, '');
+    // Remove trailing incomplete fragments: dangling "key":, lone "key", trailing colon, trailing comma
     candidate = candidate.replace(/,?\s*"[^"]*"\s*:\s*$/, '');
     candidate = candidate.replace(/,?\s*"[^"]*"\s*$/, '');
     candidate = candidate.replace(/:\s*$/, '');
