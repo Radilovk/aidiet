@@ -16,17 +16,11 @@
  * - Strategy is used 5 times, analysis 1 time, so compact format has multiplied effect
  * 
  * ARCHITECTURE - Plan Generation (Reorganized for efficiency):
- * Структура: 5 основни стъпки, стъпка 3 с 4 подстъпки = 8 заявки
+ * Структура: 4 основни стъпки, стъпка 3 с 4 подстъпки = 7 заявки
  * 
- *   1A. Core Analysis Request (3k token limit)
+ *   1. Analysis Request (4k token limit)
  *      - Input: Full user data (profile, habits, medical, preferences)
- *      - Output: Temperament, psycho-profile, metabolic corrections, final calories/macros,
- *               key problems, nutritional needs, health risks
- *   
- *   1B. Display Analysis Request (2k token limit)
- *      - Input: Compact core analysis results + minimal user data
- *      - Output: BMI, physiological phase, water deficit, health factors,
- *               forecasts, health status score (frontend display data)
+ *      - Output: Holistic health analysis with correlations
  *   
  *   2. Strategy Request (4k token limit)
  *      - Input: User data + COMPACT analysis results
@@ -45,7 +39,7 @@
  *      - Output: Summary, recommendations, supplements
  *      - SIMPLIFICATION: Removed verbose guidelines, kept AI flexibility
  * 
- * Total: 2 (analysis: core + display) + 1 (strategy) + 4 (meal plan sub-steps) + 1 (summary) = 8 steps
+ * Total: 1 (analysis) + 1 (strategy) + 4 (meal plan sub-steps) + 1 (summary) = 7 steps
  * 
  * OPTIMIZATION STRATEGY (Reorganization, NOT just adding tokens):
  *   - Step 3: Removed ~200 lines of duplicate ADLE rules (70% prompt reduction)
@@ -3994,20 +3988,19 @@ async function handleGetClientPlanStatus(request, env) {
  * Multi-step plan generation for better individualization
  * 
  * This approach uses MULTIPLE AI requests for maximum precision and personalization:
- * Step 1A: Core analysis — temperament, corrections, calories, macros, key problems
- * Step 1B: Display analysis — BMI, forecasts, health factors (frontend data)
+ * Step 1: Analyze user profile and health status (holistic health analysis)
  * Step 2: Determine dietary strategy and restrictions (personalized strategy)
  * Step 3: Generate detailed meal plan (specific meals based on analysis + strategy)
  * 
- * Benefits of split analysis (1A + 1B):
- * ✅ Reduced token load — AI focuses on calculations without display noise
- * ✅ Better quality — dedicated focus on core calculations vs. display text
- * ✅ Resilient — display failure doesn't block plan generation (fallback exists)
- * ✅ Clinical protocols don't bloat display prompt
+ * Benefits of multi-step approach:
+ * ✅ Better individualization - Each step builds on previous insights
+ * ✅ More precise analysis - Dedicated AI focus per step
+ * ✅ Higher quality output - Strategy informs meal generation
+ * ✅ Deeper understanding - Correlations between health parameters
+ * ✅ Can be extended - Additional steps can be added for more data/precision
  * 
  * Each step receives progressively more refined context:
- * - Step 1A: Raw user data → Core calculations (calories, macros, corrections)
- * - Step 1B: Core results + minimal user data → Display data (BMI, forecasts)
+ * - Step 1: Raw user data → Health analysis
  * - Step 2: User data + Analysis → Dietary strategy
  * - Step 3: User data + Analysis + Strategy → Complete meal plan
  */
@@ -4022,10 +4015,10 @@ const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's cl
 const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
 // Note: DAILY_CALORIE_TOLERANCE and MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
 const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts before failing.
-// Reduced from 4 to 1: each correction attempt generates up to 8 AI calls (fetch subrequests).
-// With the analysis split (core + display), baseline is 8 calls per generation:
-// 2 (analysis: core + display) + 1 (strategy) + 4 (meal plan chunks) + 1 (summary) = 8 steps.
-// With 1 correction attempt we stay within Cloudflare's 50-subrequest limit.
+// Reduced from 4 to 1: each correction attempt generates up to 7 AI calls (fetch subrequests).
+// With 4 corrections the baseline alone was ~94 subrequests — well above Cloudflare's 50-subrequest
+// limit per Worker invocation. With 1 correction the baseline is 46 (safe), and even with a
+// handful of transient Gemini retries we stay comfortably under the limit.
 const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Свободно хранене': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Свободно хранене', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
@@ -4904,53 +4897,26 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
   try {
     // Step 1: Analysis (regenerate if this step has errors, otherwise reuse)
     if (earliestErrorStep === 'step1_analysis') {
-      console.log('Regenerating Step 1 (Analysis) with error prevention — split into core + display');
+      console.log('Regenerating Step 1 (Analysis) with error prevention');
+      const analysisPrompt = await generateAnalysisPrompt(data, env, errorPreventionComment);
+      const analysisInputTokens = estimateTokenCount(analysisPrompt);
+      cumulativeTokens.input += analysisInputTokens;
       
-      // Step 1A: Core analysis with error prevention
-      const corePrompt = await generateAnalysisCorePrompt(data, env, errorPreventionComment);
-      const coreInputTokens = estimateTokenCount(corePrompt);
-      cumulativeTokens.input += coreInputTokens;
-      
-      const coreResponse = await callAIModel(env, corePrompt, 3000, 'step1a_analysis_core_regen', sessionId, data, null);
-      const coreOutputTokens = estimateTokenCount(coreResponse);
-      cumulativeTokens.output += coreOutputTokens;
+      const analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis_regen', sessionId, data, null);
+      const analysisOutputTokens = estimateTokenCount(analysisResponse);
+      cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
-      const coreAnalysis = parseAIResponse(coreResponse);
+      analysis = parseAIResponse(analysisResponse);
       
-      if (!coreAnalysis || coreAnalysis.error) {
-        throw new Error(`Регенерацията на основния анализ се провали: ${coreAnalysis?.error || 'Невалиден формат'}`);
+      if (!analysis || analysis.error) {
+        throw new Error(`Регенерацията на анализа се провали: ${analysis?.error || 'Невалиден формат'}`);
       }
       
       // Filter out "Normal" severity problems
-      if (coreAnalysis.keyProblems && Array.isArray(coreAnalysis.keyProblems)) {
-        coreAnalysis.keyProblems = coreAnalysis.keyProblems.filter(problem => problem.severity !== 'Normal');
+      if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
+        analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
-      
-      // Step 1B: Display analysis (non-critical, fallback on failure)
-      let displayAnalysis;
-      try {
-        const displayPrompt = await generateAnalysisDisplayPrompt(data, coreAnalysis, env);
-        const displayInputTokens = estimateTokenCount(displayPrompt);
-        cumulativeTokens.input += displayInputTokens;
-        
-        const displayResponse = await callAIModel(env, displayPrompt, 2000, 'step1b_analysis_display_regen', sessionId, data, null);
-        const displayOutputTokens = estimateTokenCount(displayResponse);
-        cumulativeTokens.output += displayOutputTokens;
-        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-        
-        displayAnalysis = parseAIResponse(displayResponse);
-        if (!displayAnalysis || displayAnalysis.error) {
-          console.warn('Display analysis regen failed, using fallback');
-          displayAnalysis = {};
-        }
-      } catch (displayError) {
-        console.warn('Display analysis regen failed, using fallback:', displayError.message);
-        displayAnalysis = {};
-      }
-      
-      // Merge core + display
-      analysis = mergeAnalysisResults(coreAnalysis, displayAnalysis);
     } else {
       // Reuse existing analysis
       analysis = existingPlan.analysis;
@@ -5180,7 +5146,7 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 }
 
 async function generatePlanMultiStep(env, data) {
-  console.log('Multi-step generation: Starting (4+ AI requests for precision, analysis split into core + display)');
+  console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
   // Generate a unique session ID for this plan generation
   const sessionId = generateUniqueId('session');
@@ -5194,82 +5160,48 @@ async function generatePlanMultiStep(env, data) {
   };
   
   try {
-    // Step 1A: Core Analysis — temperament, psycho-profile, metabolic corrections,
-    // final calories, macros, key problems, nutritional needs (1st AI request)
-    const corePrompt = await generateAnalysisCorePrompt(data, env);
-    const coreInputTokens = estimateTokenCount(corePrompt);
-    cumulativeTokens.input += coreInputTokens;
+    // Step 1: Analyze user profile (1st AI request)
+    // Focus: Deep health analysis, metabolic profile, correlations
+    const analysisPrompt = await generateAnalysisPrompt(data, env);
+    const analysisInputTokens = estimateTokenCount(analysisPrompt);
+    cumulativeTokens.input += analysisInputTokens;
     
-    let coreResponse, coreAnalysis;
+    let analysisResponse, analysis;
     
     try {
-      coreResponse = await callAIModel(env, corePrompt, 3000, 'step1a_analysis_core', sessionId, data, null);
-      const coreOutputTokens = estimateTokenCount(coreResponse);
-      cumulativeTokens.output += coreOutputTokens;
+      analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis', sessionId, data, null);
+      const analysisOutputTokens = estimateTokenCount(analysisResponse);
+      cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
-      console.log(`Step 1A (core) tokens: input=${coreInputTokens}, output=${coreOutputTokens}, cumulative=${cumulativeTokens.total}`);
+      console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
-      coreAnalysis = parseAIResponse(coreResponse);
+      analysis = parseAIResponse(analysisResponse);
       
-      if (!coreAnalysis || coreAnalysis.error) {
-        const errorMsg = coreAnalysis?.error || 'Невалиден формат на отговор';
-        console.error('Core analysis parsing failed:', errorMsg);
-        console.error('AI Response preview (first 1000 chars):', coreResponse?.substring(0, 1000));
-        throw new Error(`Основният анализ не можа да бъде създаден: ${errorMsg}`);
+      if (!analysis || analysis.error) {
+        const errorMsg = analysis.error || 'Невалиден формат на отговор';
+        console.error('Analysis parsing failed:', errorMsg);
+        console.error('AI Response preview (first 1000 chars):', analysisResponse?.substring(0, 1000));
+        throw new Error(`Анализът не можа да бъде създаден: ${errorMsg}`);
       }
       
-      // Filter out "Normal" severity problems
-      if (coreAnalysis.keyProblems && Array.isArray(coreAnalysis.keyProblems)) {
-        const originalCount = coreAnalysis.keyProblems.length;
-        coreAnalysis.keyProblems = coreAnalysis.keyProblems.filter(problem => 
+      // REQUIREMENT 2: Filter out "Normal" severity problems from analysis
+      if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
+        const originalCount = analysis.keyProblems.length;
+        analysis.keyProblems = analysis.keyProblems.filter(problem => 
           problem.severity !== 'Normal'
         );
-        const filteredCount = coreAnalysis.keyProblems.length;
+        const filteredCount = analysis.keyProblems.length;
         if (filteredCount < originalCount) {
-          console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from core analysis`);
+          console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
     } catch (error) {
-      console.error('Core analysis step failed:', error);
-      throw new Error(`Стъпка 1A (Основен анализ): ${error.message}`);
+      console.error('Analysis step failed:', error);
+      throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
     }
     
-    console.log('Multi-step generation: Core analysis complete (1A)');
-    
-    // Step 1B: Display Analysis — BMI, health factors, forecasts, health status (2nd AI request)
-    // Uses core analysis results as input, generates frontend display data
-    const displayPrompt = await generateAnalysisDisplayPrompt(data, coreAnalysis, env);
-    const displayInputTokens = estimateTokenCount(displayPrompt);
-    cumulativeTokens.input += displayInputTokens;
-    
-    let displayResponse, displayAnalysis;
-    
-    try {
-      displayResponse = await callAIModel(env, displayPrompt, 2000, 'step1b_analysis_display', sessionId, data, null);
-      const displayOutputTokens = estimateTokenCount(displayResponse);
-      cumulativeTokens.output += displayOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      
-      console.log(`Step 1B (display) tokens: input=${displayInputTokens}, output=${displayOutputTokens}, cumulative=${cumulativeTokens.total}`);
-      
-      displayAnalysis = parseAIResponse(displayResponse);
-      
-      if (!displayAnalysis || displayAnalysis.error) {
-        console.warn('Display analysis parsing failed, using fallback values:', displayAnalysis?.error);
-        displayAnalysis = buildFallbackDisplayAnalysis(data);
-      }
-    } catch (error) {
-      console.warn('Display analysis step failed, using fallback:', error.message);
-      displayAnalysis = buildFallbackDisplayAnalysis(data);
-    }
-    
-    console.log('Multi-step generation: Display analysis complete (1B)');
-    
-    // Merge core + display into unified analysis object (backward compatible)
-    const analysis = mergeAnalysisResults(coreAnalysis, displayAnalysis);
-    
-    console.log('Multi-step generation: Analysis merged (1/3)');
+    console.log('Multi-step generation: Analysis complete (1/3)');
     
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions
@@ -5452,127 +5384,233 @@ function replacePromptVariables(template, variables) {
  * Simplified - focuses on AI's strengths: correlations, psychology, individualization
  * Backend handles: BMR, TDEE, safety checks
  */
-/**
- * Helper: Build common template variables for analysis prompts (custom prompt mode).
- * Shared between generateAnalysisCorePrompt and generateAnalysisDisplayPrompt.
- */
-function buildAnalysisTemplateVars(data, activityData, bmr, tdee, deficitData, macros, waterMin, waterMax) {
-  const _combinedNotes = buildCombinedAdditionalNotes(data);
-  const additionalNotesSection = _combinedNotes
-    ? `═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══\n${_combinedNotes}\n═══════════════════════════════════════════════════════════════`
-    : '';
-  return {
-    userData: data,
-    backendCalculations: { activityScore: activityData, bmr, tdee, safeDeficit_reference: deficitData, baselineMacros: macros },
-    bmr, tdee,
-    activityScore: activityData,
-    safeDeficit: deficitData,
-    baselineMacros: macros,
-    combinedScore: activityData.combinedScore,
-    activityLevel: activityData.activityLevel,
-    waterMin, waterMax,
-    name: data.name, age: data.age, gender: data.gender,
-    weight: data.weight, height: data.height, goal: data.goal,
-    lossKg: data.lossKg || '',
-    sleepHours: data.sleepHours, sleepInterrupt: data.sleepInterrupt,
-    chronotype: data.chronotype,
-    sportActivity: data.sportActivity, dailyActivityLevel: data.dailyActivityLevel,
-    stressLevel: data.stressLevel,
-    waterIntake: data.waterIntake || 'неизвестен',
-    medicalConditions: JSON.stringify(data.medicalConditions || []),
-    medicalConditions_other: data.medicalConditions_other || '',
-    medicalConditions_allergy_details: data['medicalConditions_Алергии'] || '',
-    medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
-    medications: data.medications,
-    medicationsDetails: data.medicationsDetails || '',
-    medicationsText: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'Не приема',
-    eatingHabits: JSON.stringify(data.eatingHabits || []),
-    foodCravings: JSON.stringify(data.foodCravings || []),
-    foodCravings_other: data.foodCravings_other || '',
-    foodTriggers: JSON.stringify(data.foodTriggers || []),
-    foodTriggers_other: data.foodTriggers_other || '',
-    compensationMethods: JSON.stringify(data.compensationMethods || []),
-    compensationMethods_other: data.compensationMethods_other || '',
-    socialComparison: data.socialComparison || '',
-    dietHistory: data.dietHistory || '',
-    dietPreference_other: data.dietPreference_other || '',
-    goal_other: data.goal_other || '',
-    additionalNotes: _combinedNotes,
-    protocolSpecificAnswers: buildProtocolSpecificAnswersText(data),
-    additionalNotesSection,
-    TEMPERAMENT_CONFIDENCE_THRESHOLD,
-    HEALTH_STATUS_UNDERESTIMATE_PERCENT,
-    MIN_RECOMMENDED_CALORIES: data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE,
-    MIN_FAT_GRAMS: Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG),
-    FIBER_MIN_GRAMS, FIBER_MAX_GRAMS,
-    clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
-    clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
-  };
-}
-
-/**
- * Step 1A: Core Analysis — temperament, psycho-profile, metabolic corrections,
- * final calories, macros, metabolic reactivity, key problems, nutritional needs.
- * This is the computationally intensive part that downstream steps depend on.
- */
-async function generateAnalysisCorePrompt(data, env, errorPreventionComment = null) {
+async function generateAnalysisPrompt(data, env, errorPreventionComment = null) {
+  // Pre-calculate backend values for both custom and default prompts
   const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
   const tdee = calculateTDEE(bmr, activityData.combinedScore);
   const deficitData = calculateSafeDeficit(tdee, data.goal);
   const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
+  const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);
 
   // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_analysis_core_prompt');
+  const customPrompt = await getCustomPrompt(env, 'admin_analysis_prompt');
   
+  // If custom prompt exists, use it; otherwise use default
   if (customPrompt) {
-    const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
-    const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);
-    const vars = buildAnalysisTemplateVars(data, activityData, bmr, tdee, deficitData, macros, waterMin, waterMax);
-    let prompt = replacePromptVariables(customPrompt, vars);
+    const _combinedNotes = buildCombinedAdditionalNotes(data);
+    const additionalNotesSection = _combinedNotes
+      ? `═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══\n${_combinedNotes}\n═══════════════════════════════════════════════════════════════`
+      : '';
+    let prompt = replacePromptVariables(customPrompt, {
+      userData: data,
+      // Backend-computed values with clean keys
+      backendCalculations: { activityScore: activityData, bmr, tdee, safeDeficit_reference: deficitData, baselineMacros: macros },
+      bmr,
+      tdee,
+      activityScore: activityData,
+      safeDeficit: deficitData,
+      baselineMacros: macros,
+      combinedScore: activityData.combinedScore,
+      activityLevel: activityData.activityLevel,
+      waterMin,
+      waterMax,
+      // Individual client fields for instructions
+      name: data.name,
+      age: data.age,
+      gender: data.gender,
+      weight: data.weight,
+      height: data.height,
+      goal: data.goal,
+      lossKg: data.lossKg || '',
+      sleepHours: data.sleepHours,
+      sleepInterrupt: data.sleepInterrupt,
+      chronotype: data.chronotype,
+      sportActivity: data.sportActivity,
+      dailyActivityLevel: data.dailyActivityLevel,
+      stressLevel: data.stressLevel,
+      waterIntake: data.waterIntake || 'неизвестен',
+      medicalConditions: JSON.stringify(data.medicalConditions || []),
+      medicalConditions_other: data.medicalConditions_other || '',
+      medicalConditions_allergy_details: data['medicalConditions_Алергии'] || '',
+      medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
+      medications: data.medications,
+      medicationsDetails: data.medicationsDetails || '',
+      medicationsText: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'Не приема',
+      eatingHabits: JSON.stringify(data.eatingHabits || []),
+      foodCravings: JSON.stringify(data.foodCravings || []),
+      foodCravings_other: data.foodCravings_other || '',
+      foodTriggers: JSON.stringify(data.foodTriggers || []),
+      foodTriggers_other: data.foodTriggers_other || '',
+      compensationMethods: JSON.stringify(data.compensationMethods || []),
+      compensationMethods_other: data.compensationMethods_other || '',
+      socialComparison: data.socialComparison || '',
+      dietHistory: data.dietHistory || '',
+      dietPreference_other: data.dietPreference_other || '',
+      goal_other: data.goal_other || '',
+      additionalNotes: _combinedNotes,
+      protocolSpecificAnswers: buildProtocolSpecificAnswersText(data),
+      additionalNotesSection,
+      TEMPERAMENT_CONFIDENCE_THRESHOLD,
+      HEALTH_STATUS_UNDERESTIMATE_PERCENT,
+      MIN_RECOMMENDED_CALORIES: data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE,
+      MIN_FAT_GRAMS: Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG),
+      FIBER_MIN_GRAMS,
+      FIBER_MAX_GRAMS,
+      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
+      clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
+    });
     
+    // Inject error prevention comment if provided
     if (errorPreventionComment) {
       prompt = errorPreventionComment + '\n\n' + prompt;
     }
     
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
+    // This prevents AI from responding with natural language instead of structured JSON
     if (!hasJsonFormatInstructions(prompt)) {
-      prompt += ANALYSIS_CORE_JSON_SCHEMA(data);
+      prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+Структурата ТРЯБВА да включва:
+{
+  "bmi": число,
+  "bmiCategory": "текст",
+  "bmr": число,
+  "tdee": число,
+  "Final_Calories": число,
+  "macroRatios": {
+    "protein": число,
+    "carbs": число,
+    "fats": число,
+    "fiber": число
+  },
+  "macroGrams": {
+    "protein": число,
+    "carbs": число,
+    "fats": число
+  },
+  "activityLevel": "текст",
+  "physiologicalPhase": "текст",
+  "waterDeficit": {
+    "dailyNeed": "текст",
+    "currentIntake": "текст",
+    "deficit": "текст",
+    "impactOnLipolysis": "текст"
+  },
+  "negativeHealthFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
+  "hinderingFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
+  "cumulativeRiskScore": "текст",
+  "psychoProfile": {
+    "temperament": "текст",
+    "probability": число,
+    "reasoning": "текст"
+  },
+  "metabolicReactivity": {
+    "speed": "текст",
+    "adaptability": "текст"
+  },
+  "correctedMetabolism": {
+    "realBMR": число,
+    "realTDEE": число,
+    "clinicalAdjustmentPercent": число,
+    "metabolicAdjustmentPercent": число,
+    "goalAdjustmentPercent": число,
+    "correction": "текст",
+    "correctionPercent": "текст"
+  },
+  "metabolicProfile": "текст",
+  "healthRisks": ["текст"],
+  "nutritionalNeeds": ["текст"],
+  "psychologicalProfile": "текст",
+  "successChance": число,
+  "currentHealthStatus": {
+    "score": число,
+    "description": "текст",
+    "keyIssues": ["текст"]
+  },
+  "forecastPessimistic": {
+    "timeframe": "текст",
+    "weight": "текст",
+    "health": "текст",
+    "risks": ["текст", "текст", "текст", "текст", "текст"]
+  },
+  "forecastOptimistic": {
+    "timeframe": "текст",
+    "weight": "текст",
+    "health": "текст",
+    "improvements": ["текст", "текст", "текст", "текст", "текст"]
+  },
+  "keyProblems": [
+    {
+      "title": "текст",
+      "description": "текст",
+      "severity": "Borderline/Risky/Critical",
+      "severityValue": число,
+      "category": "текст",
+      "impact": "текст"
+    }
+  ]
+}
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
     }
     return prompt;
   }
   
+  // Build default prompt with optional error prevention comment
   let defaultPrompt = '';
+  
   if (errorPreventionComment) {
     defaultPrompt += errorPreventionComment + '\n\n';
   }
   
   defaultPrompt += `Ти си експертен клиничен диетолог, ендокринолог и психолог.
 
-ЗАДАЧА: Изчисли финалните калории, макроси и направи ключов здравен анализ за клиента.
+ТВОЯТА ЗАДАЧА: Направи структуриран анализ и изчисли финалните препоръчителни калории и макроси за клиента.
 
-⚠️ Базовите изчисления (bmr, tdee) са ВЕЧЕ ИЗЧИСЛЕНИ от бекенда. НЕ ги преизчислявай. Коригирай само чрез корекционни проценти.
+⚠️ ВАЖНО: Базовите изчисления (bmr, tdee) са ВЕЧЕ ИЗЧИСЛЕНИ от бекенда.
+НЕ ги преизчислявай по формула. Използвай ги като отправна точка и ги коригирай само чрез корекционни проценти.
 
 ═══ КЛИЕНТСКИ ДАННИ ═══
 ${JSON.stringify({
-  name: data.name, age: data.age, gender: data.gender,
-  height: data.height, weight: data.weight,
-  goal: data.goal, lossKg: data.lossKg,
-  sleepHours: data.sleepHours, sleepInterrupt: data.sleepInterrupt,
+  name: data.name,
+  age: data.age,
+  gender: data.gender,
+  height: data.height,
+  weight: data.weight,
+  goal: data.goal,
+  lossKg: data.lossKg,
+  sleepHours: data.sleepHours,
+  sleepInterrupt: data.sleepInterrupt,
   chronotype: data.chronotype,
-  sportActivity: data.sportActivity, dailyActivityLevel: data.dailyActivityLevel,
-  stressLevel: data.stressLevel, waterIntake: data.waterIntake,
-  drinksSweet: data.drinksSweet, drinksAlcohol: data.drinksAlcohol,
+  sportActivity: data.sportActivity,
+  dailyActivityLevel: data.dailyActivityLevel,
+  stressLevel: data.stressLevel,
+  waterIntake: data.waterIntake,
+  drinksSweet: data.drinksSweet,
+  drinksAlcohol: data.drinksAlcohol,
   overeatingFrequency: data.overeatingFrequency,
-  eatingHabits: data.eatingHabits, foodCravings: data.foodCravings,
-  foodTriggers: data.foodTriggers, compensationMethods: data.compensationMethods,
+  eatingHabits: data.eatingHabits,
+  foodCravings: data.foodCravings,
+  foodTriggers: data.foodTriggers,
+  compensationMethods: data.compensationMethods,
   socialComparison: data.socialComparison,
   medicalConditions: data.medicalConditions,
-  medications: data.medications, medicationsDetails: data.medicationsDetails,
-  weightChange: data.weightChange, weightChangeDetails: data.weightChangeDetails,
-  dietHistory: data.dietHistory, dietType: data.dietType, dietResult: data.dietResult,
+  medications: data.medications,
+  medicationsDetails: data.medicationsDetails,
+  weightChange: data.weightChange,
+  weightChangeDetails: data.weightChangeDetails,
+  dietHistory: data.dietHistory,
+  dietType: data.dietType,
+  dietResult: data.dietResult,
   dietPreference: data.dietPreference,
   dietPreference_other: data.dietPreference_other || undefined,
-  dietDislike: data.dietDislike, dietLove: data.dietLove,
+  dietDislike: data.dietDislike,
+  dietLove: data.dietLove,
   goal_other: data.goal_other || undefined,
   foodCravings_other: data.foodCravings_other || undefined,
   foodTriggers_other: data.foodTriggers_other || undefined,
@@ -5584,318 +5622,219 @@ ${JSON.stringify({
 }, null, 2)}
 
 ═══ БАЗОВИ ИЗЧИСЛЕНИЯ ОТ БЕКЕНДА (НЕ преизчислявай) ═══
-safeDeficit е справочна стойност — базата за ТВОИТЕ корекции е tdee.
-${JSON.stringify({ activityScore: activityData, bmr, tdee, safeDeficit_reference: deficitData, baselineMacros: macros }, null, 2)}
+Забележка: safeDeficit е само справочна стойност — базата за ТВОИТЕ корекции е tdee.
+${JSON.stringify({
+  activityScore: activityData,
+  bmr: bmr,
+  tdee: tdee,
+  safeDeficit_reference: deficitData,
+  baselineMacros: macros
+}, null, 2)}
 
-${(() => { const _n = buildCombinedAdditionalNotes(data); return _n ? `═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══\n${_n}\n═══════════════════════════════════════════════════════════════\n` : ''; })()}
+${(() => { const _n = buildCombinedAdditionalNotes(data); return _n ? `
+═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══
+${_n}
+═══════════════════════════════════════════════════════════════
+` : ''; })()}
 ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })()}
 
-═══ ЗАДАЧА — СТРУКТУРИРАН АНАЛИЗ ═══
+═══ ТВОЯТА ЗАДАЧА - СТРУКТУРИРАН АНАЛИЗ ═══
 
 СТЪПКА 1: ТЕМПЕРАМЕНТ
-Определи базирано на: age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity.
-- Само ако вероятността е >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%. Типове: Холерик, Сангвиник, Флегматик, Меланхолик
-→ psychoProfile.temperament, psychoProfile.probability
+Определи темперамента базирано на: age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity.
+- Попълни temperament само ако вероятността е >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%. Иначе остави празно.
+- Типове: Холерик, Сангвиник, Флегматик, Меланхолик
+→ Резултат: psychoProfile.temperament, psychoProfile.probability
 
 СТЪПКА 2: ПСИХОПРОФИЛ
-Базирай на темперамента + age, gender, goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
-→ psychologicalProfile (текстов анализ)
+Базирай анализа на темперамента (Стъпка 1) + : age, gender, goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
+→ Резултат: psychologicalProfile (детайлен текстов анализ)
 
-СТЪПКА 3: КОРЕКЦИИ НА TDEE
-3а. clinicalAdjustmentPercent (-15% до +5%): medicalConditions, medications
-3б. metabolicAdjustmentPercent (-10% до +5%): sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил, темперамент
-3в. goalAdjustmentPercent (-20% до +15%): goal, lossKg, bmi, dietHistory, психопрофил, метаболитна реактивност
-⚠️ Сумата ≥ -25%. Ако е под -25%, ограничи goalAdjustmentPercent.
-→ correctedMetabolism
+СТЪПКА 3: КОРЕКЦИИ НА БАЗОВИТЕ ИЗЧИСЛЕНИЯ
+Определи процентна корекция на TDEE за всяка категория:
+
+3а. clinicalAdjustmentPercent — клинична корекция
+  Базирай само на: medicalConditions, medications (additionalNotes само ако е пряко клинично/медицинско)
+  Пример: хипотиреоидизъм → -8%, диабет Тип 2 → -5%, без диагноза → 0
+  Диапазон: -15% до +5%
+
+3б. metabolicAdjustmentPercent — метаболитна корекция
+  Базирай на: sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил (Стъпка 2), темперамент (Стъпка 1), additionalNotes
+  Пример: хронически стрес + лош сън → -5%, оптимален сън + нисък стрес → +2
+  Диапазон: -10% до +5%
+
+3в. goalAdjustmentPercent — корекция спрямо цел
+  Вземи предвид: goal, lossKg, bmi (от анализа), dietHistory, психопрофил и метаболитна реактивност (Стъпки 1–2), additionalNotes
+  Използвай собствената си клинична преценка, за да определиш процента, аргументирано съобразен с желаната цел и реалния индивидуален потенциал на клиента.
+  Диапазон: -20% до +15%
+
+⚠️ ЗАДЪЛЖИТЕЛНО: Сумата от трите корекции НЕ трябва да надвишава -25% (безопасен максимален дефицит).
+Ако сборът е под -25%, ограничи goalAdjustmentPercent така, че total = клинично + метаболитно + цел ≥ -25%.
+
+→ Резултат: correctedMetabolism (с clinicalAdjustmentPercent, metabolicAdjustmentPercent, goalAdjustmentPercent)
 
 СТЪПКА 4: ФИНАЛНИ КАЛОРИИ
-Final_Calories = round(tdee × (1 + totalAdjustment / 100))
-⚠️ Минимум: ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal за ${data.gender}.
-correctedMetabolism.realBMR = bmr, realTDEE = Final_Calories
+totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent
+(ограничи на минимум -25%)
+Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
 
-СТЪПКА 5: ФИНАЛНИ МАКРОСИ
-Разпределение базирано на: goal, темперамент, психопрофил, хранителни навици, клинични данни.
-protein_g = round(Final_Calories × protein% / 100 / 4)
-fats_g = round(Final_Calories × fats% / 100 / 9)
-carbs_g = round(Final_Calories × carbs% / 100 / 4)
-Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ Final_Calories (≤15 kcal разлика)
-⚠️ fats_g ≥ ${Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG)}г. Фибри: ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г.
+⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal (безопасен минимум за ${data.gender}).
+Ако формулата даде по-малко, задай Final_Calories = ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal и посочи в correctedMetabolism.correction причината.
 
-СТЪПКА 6: РЕАКТИВНОСТ НА МЕТАБОЛИЗМА
-Спрямо: activityScore ${activityData.combinedScore}/10, dietHistory (${data.dietHistory}), chronotype (${data.chronotype}), stressLevel (${data.stressLevel})
-→ Бавен/Среден/Бърз, Адаптивност: Ниска/Средна/Висока
+correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
+correctedMetabolism.realTDEE = Final_Calories
+→ Резултат: Final_Calories, correctedMetabolism.realBMR, realTDEE, correctionPercent
 
-СТЪПКА 7: КЛЮЧОВИ ПРОБЛЕМИ (3-6)
-Само Borderline/Risky/Critical severity. КРИТИЧНО и ПЛАШЕЩО описание.
-Категории: Sleep/Nutrition/Hydration/Stress/Activity/Medical
+СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати, Фибри)
+Определи оптималното разпределение базирано на:
+- желана цел и желан резултат (goal, lossKg) — адаптирай разпределението съобразно индивидуалния профил и анализа от Стъпки 1–2
+- темперамент (Стъпка 1) и психопрофил (Стъпка 2)
+- хранителни навици: eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol
+- клинични данни: medicalConditions, medications
 
-СТЪПКА 8: ЗДРАВНИ РИСКОВЕ И ХРАНИТЕЛНИ НУЖДИ
-→ healthRisks (3 основни риска), nutritionalNeeds (3 основни нужди)
+Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на Final_Calories от Стъпка 4):
+  protein_g  = round(Final_Calories × protein% / 100 / 4)
+  fats_g     = round(Final_Calories × fats% / 100 / 9)
+  carbs_g    = round(Final_Calories × carbs% / 100 / 4)
 
-${ANALYSIS_CORE_JSON_SCHEMA(data)}
+Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ Final_Calories (разлика ≤ 15 kcal е ок)
+Ако не, коригирай carbs_g: carbs_g = round((Final_Calories - protein_g×4 - fats_g×9) / 4)
 
-Бъди КОНКРЕТЕН за ${data.name}. Обяснявай ЗАЩО с конкретни данни.`;
-  
-  return defaultPrompt;
-}
+⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ ${Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG)}г (${MIN_FAT_GRAMS_PER_KG}г/кг × ${data.weight}кг) за хормонална функция.
+Ако формулата дава по-малко, увеличи fats% и намали carbs%.
 
-/**
- * JSON schema constant for core analysis response format.
- */
-function ANALYSIS_CORE_JSON_SCHEMA(data) {
-  return `
+Фибри: ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г дневно (коригирай по пол, възраст, медицински условия).
+→ Резултат: macroRatios (%), macroGrams (g)
+
+СТЪПКА 6: ДАННИ ЗА СТРАНИЦАТА С АНАЛИЗ (за фронтенда — непроменени)
+
+А. BMI: Изчисли BMI = weight / (height/100)². Категория: Поднормено (<18.5), Нормално (18.5-25), Наднормено (25-30), Затлъстяване (>30)
+
+Б. ФИЗИОЛОГИЧНА ФАЗА: Млад възрастен (18-30), Зряла възраст (31-50), Средна възраст (51-65), Напреднала възраст (65+)
+
+В. ДНЕВЕН ВОДЕН ДЕФИЦИТ:
+   - Нужда: ${waterMin} до ${waterMax} литра дневно
+   - Текущ прием: ${data.waterIntake || 'неизвестен'}
+   - Изчисли дефицит и влияние върху липолизата
+
+Г. ОТРИЦАТЕЛНИ ЗДРАВОСЛОВНИ ФАКТОРИ (тежест 1-3):
+   - Медицински: ${JSON.stringify(data.medicalConditions || [])}
+   - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
+
+Д. ПРЕЧЕЩИ ФАКТОРИ ЗА ЦЕЛТА (тежест 1-3):
+   - Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч / прекъсвания: ${data.sleepInterrupt}
+   - Навици: ${JSON.stringify(data.eatingHabits || [])}, Тригери: ${JSON.stringify(data.foodTriggers || [])}
+
+Е. СУМАРЕН РИСК: Припокриващи се фактори от Г и Д → СУМИРАЙ тежестта
+
+Ж. РЕАКТИВНОСТ НА МЕТАБОЛИЗМА:
+   - Спрямо: activityScore ${activityData.combinedScore}/10, диетична история (${data.dietHistory}), хронотип (${data.chronotype}), стрес (${data.stressLevel})
+   - Определи: Бавен/Среден/Бърз, Адаптивност: Ниска/Средна/Висока
+
+З. КРИТИЧНИ ПРОБЛЕМИ (3-6): само Borderline/Risky/Critical severity, КРИТИЧНО и ПЛАШЕЩО описание
+
+И. ЗДРАВОСЛОВНО СЪСТОЯНИЕ: скала 0-100, ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}% за мотивация
+
+К. ПРОГНОЗА ПЕСИМИСТИЧНА (12 месеца): ако продължи по същия начин
+
+Л. ПРОГНОЗА ОПТИМИСТИЧНА (12 месеца): след подобряване на всички проблеми
+
 ═══ ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения.
 
 {
+  "bmi": число,
+  "bmiCategory": "текст категория",
   "bmr": число,
   "tdee": число,
   "Final_Calories": число,
-  "macroRatios": { "protein": число, "carbs": число, "fats": число, "fiber": число },
-  "macroGrams": { "protein": число, "carbs": число, "fats": число },
-  "psychoProfile": { "temperament": "текст", "probability": число, "reasoning": "текст" },
-  "psychologicalProfile": "детайлен текстов анализ",
-  "metabolicReactivity": { "speed": "Бавен/Среден/Бърз", "adaptability": "Ниска/Средна/Висока" },
-  "correctedMetabolism": {
-    "realBMR": число, "realTDEE": число,
-    "clinicalAdjustmentPercent": число, "metabolicAdjustmentPercent": число,
-    "goalAdjustmentPercent": число, "correction": "текст", "correctionPercent": "текст"
+  "macroRatios": {
+    "protein": число процент,
+    "carbs": число процент,
+    "fats": число процент,
+    "fiber": число грамове дневно
   },
+  "macroGrams": {
+    "protein": число грамове,
+    "carbs": число грамове,
+    "fats": число грамове
+  },
+  "activityLevel": "ниво 1-10 и описание",
+  "physiologicalPhase": "фаза според възраст и влияние",
+  "waterDeficit": {
+    "dailyNeed": "литри дневно",
+    "currentIntake": "текущ прием",
+    "deficit": "дефицит в литри",
+    "impactOnLipolysis": "влияние върху отслабването"
+  },
+  "negativeHealthFactors": [
+    {
+      "factor": "фактор",
+      "severity": число 1-3,
+      "description": "описание"
+    }
+  ],
+  "hinderingFactors": [
+    {
+      "factor": "фактор",
+      "severity": число 1-3,
+      "description": "описание"
+    }
+  ],
+  "cumulativeRiskScore": "сума на припокриващи се фактори",
+  "psychoProfile": {
+    "temperament": "тип (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност)",
+    "probability": число процент
+  },
+  "metabolicReactivity": {
+    "speed": "Бавен/Среден/Бърз",
+    "adaptability": "Ниска/Средна/Висока"
+  },
+  "correctedMetabolism": {
+    "realBMR": число,
+    "realTDEE": число,
+    "clinicalAdjustmentPercent": число,
+    "metabolicAdjustmentPercent": число,
+    "goalAdjustmentPercent": число,
+    "correction": "описание на корекцията",
+    "correctionPercent": "+/-X%"
+  },
+  "metabolicProfile": "анализ на метаболитния профил",
   "healthRisks": ["риск 1", "риск 2", "риск 3"],
   "nutritionalNeeds": ["нужда 1", "нужда 2", "нужда 3"],
+  "psychologicalProfile": "детайлен анализ на психологическия профил",
+  "successChance": число (-100 до 100),
+  "currentHealthStatus": {
+    "score": число 0-100 (ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}%),
+    "description": "текущо състояние",
+    "keyIssues": ["проблем 1", "проблем 2"]
+  },
+  "forecastPessimistic": {
+    "timeframe": "12 месеца",
+    "weight": "прогнозно тегло",
+    "health": "прогнозно здраве",
+    "risks": ["риск 1", "риск 2", "риск 3", "риск 4", "риск 5"]
+  },
+  "forecastOptimistic": {
+    "timeframe": "12 месеца",
+    "weight": "прогнозно тегло",
+    "health": "прогнозно здраве",
+    "improvements": ["подобрение 1", "подобрение 2", "подобрение 3", "подобрение 4", "подобрение 5"]
+  },
   "keyProblems": [
     {
-      "title": "заглавие", "description": "описание", "severity": "Borderline/Risky/Critical",
-      "severityValue": число, "category": "текст", "impact": "текст"
+      "title": "заглавие (кратко)",
+      "description": "КРИТИЧНО и ПЛАШЕЩО описание защо е проблем",
+      "severity": "Borderline/Risky/Critical",
+      "severityValue": число 0-100,
+      "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical",
+      "impact": "въздействие върху здравето и целта"
     }
   ]
 }
 
-ВАЖНО: Върни САМО JSON без други текст!`;
-}
-
-/**
- * Step 1B: Display Analysis — generates frontend display data (BMI, physiological phase,
- * water deficit, health factors, forecasts, health status) using core analysis results.
- * Separated from core to reduce Step 1A token load.
- */
-async function generateAnalysisDisplayPrompt(data, coreAnalysis, env) {
-  const activityData = calculateUnifiedActivityScore(data);
-  const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
-  const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);
-
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_analysis_display_prompt');
+Бъди КОНКРЕТЕН за ${data.name}. Обяснявай ЗАЩО и КАК с конкретни данни от профила.`;
   
-  if (customPrompt) {
-    const bmr = calculateBMR(data);
-    const tdee = calculateTDEE(bmr, activityData.combinedScore);
-    const deficitData = calculateSafeDeficit(tdee, data.goal);
-    const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
-    const vars = buildAnalysisTemplateVars(data, activityData, bmr, tdee, deficitData, macros, waterMin, waterMax);
-    // Add core analysis results as template variables
-    vars.coreAnalysis = coreAnalysis;
-    vars.coreAnalysisJSON = JSON.stringify(coreAnalysis);
-    vars.finalCalories = coreAnalysis.Final_Calories || coreAnalysis.correctedMetabolism?.realTDEE || '';
-    vars.temperament = coreAnalysis.psychoProfile?.temperament || '';
-    vars.temperamentProbability = coreAnalysis.psychoProfile?.probability || 0;
-    let prompt = replacePromptVariables(customPrompt, vars);
-    
-    if (!hasJsonFormatInstructions(prompt)) {
-      prompt += ANALYSIS_DISPLAY_JSON_SCHEMA(data);
-    }
-    return prompt;
-  }
-
-  // Compact core results for context
-  const coreCompact = {
-    Final_Calories: coreAnalysis.Final_Calories || null,
-    bmr: coreAnalysis.bmr || null,
-    tdee: coreAnalysis.tdee || null,
-    macroRatios: coreAnalysis.macroRatios || null,
-    macroGrams: coreAnalysis.macroGrams || null,
-    psychoProfile: coreAnalysis.psychoProfile || null,
-    metabolicReactivity: coreAnalysis.metabolicReactivity || null,
-    healthRisks: coreAnalysis.healthRisks || [],
-    keyProblems: (coreAnalysis.keyProblems || []).map(p => `${p.title} (${p.severity})`),
-    correctionPercent: coreAnalysis.correctedMetabolism?.correctionPercent || null
-  };
-
-  return `Ти си експертен клиничен диетолог. Генерирай данни за страницата с анализ на клиента.
-
-КЛИЕНТ: ${data.name}, ${data.age} год., ${data.gender}, ${data.height}см, ${data.weight}кг, Цел: ${data.goal}
-
-═══ РЕЗУЛТАТИ ОТ ОСНОВНИЯ АНАЛИЗ ═══
-${JSON.stringify(coreCompact, null, 2)}
-
-═══ КЛИЕНТСКИ ДАННИ (за контекст) ═══
-${JSON.stringify({
-  sleepHours: data.sleepHours, sleepInterrupt: data.sleepInterrupt,
-  stressLevel: data.stressLevel, waterIntake: data.waterIntake,
-  medicalConditions: data.medicalConditions,
-  medications: data.medications, medicationsDetails: data.medicationsDetails,
-  eatingHabits: data.eatingHabits, foodTriggers: data.foodTriggers,
-  sportActivity: data.sportActivity, dailyActivityLevel: data.dailyActivityLevel,
-  chronotype: data.chronotype
-}, null, 2)}
-
-═══ ЗАДАЧА ═══
-
-А. BMI: weight / (height/100)². Категория: Поднормено (<18.5), Нормално (18.5-25), Наднормено (25-30), Затлъстяване (>30)
-
-Б. ФИЗИОЛОГИЧНА ФАЗА: Млад възрастен (18-30), Зряла възраст (31-50), Средна възраст (51-65), Напреднала възраст (65+)
-
-В. ВОДЕН ДЕФИЦИТ: Нужда ${waterMin}-${waterMax} л/ден. Текущ прием: ${data.waterIntake || 'неизвестен'}. Изчисли дефицит и влияние върху липолизата.
-
-Г. ОТРИЦАТЕЛНИ ЗДРАВОСЛОВНИ ФАКТОРИ (тежест 1-3): ${JSON.stringify(data.medicalConditions || [])}, лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
-
-Д. ПРЕЧЕЩИ ФАКТОРИ ЗА ЦЕЛТА (тежест 1-3): Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч/${data.sleepInterrupt}
-
-Е. СУМАРЕН РИСК: Сумирай тежестта от Г и Д
-
-Ж. ЗДРАВОСЛОВНО СЪСТОЯНИЕ: скала 0-100, ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}% за мотивация
-
-З. ПРОГНОЗА ПЕСИМИСТИЧНА (12 месеца): ако продължи по същия начин
-
-И. ПРОГНОЗА ОПТИМИСТИЧНА (12 месеца): след подобряване
-
-К. ОБЩ МЕТАБОЛИТЕН ПРОФИЛ (текстово описание)
-
-Л. ШАНС ЗА УСПЕХ: число -100 до 100
-
-${ANALYSIS_DISPLAY_JSON_SCHEMA(data)}
-
-Бъди КОНКРЕТЕН за ${data.name}.`;
-}
-
-/**
- * JSON schema constant for display analysis response format.
- */
-function ANALYSIS_DISPLAY_JSON_SCHEMA(data) {
-  return `
-═══ ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения.
-
-{
-  "bmi": число,
-  "bmiCategory": "текст",
-  "activityLevel": "ниво и описание",
-  "physiologicalPhase": "фаза и влияние",
-  "waterDeficit": { "dailyNeed": "литри", "currentIntake": "текст", "deficit": "текст", "impactOnLipolysis": "текст" },
-  "negativeHealthFactors": [{ "factor": "текст", "severity": число, "description": "текст" }],
-  "hinderingFactors": [{ "factor": "текст", "severity": число, "description": "текст" }],
-  "cumulativeRiskScore": "текст",
-  "metabolicProfile": "текст",
-  "successChance": число,
-  "currentHealthStatus": { "score": число, "description": "текст", "keyIssues": ["текст"] },
-  "forecastPessimistic": { "timeframe": "12 месеца", "weight": "текст", "health": "текст", "risks": ["текст"] },
-  "forecastOptimistic": { "timeframe": "12 месеца", "weight": "текст", "health": "текст", "improvements": ["текст"] }
-}
-
-ВАЖНО: Върни САМО JSON без други текст!`;
-}
-
-/**
- * Legacy wrapper: Calls core + display prompts and merges results.
- * Used by regenerateFromStep and anywhere generateAnalysisPrompt was previously called.
- * When called directly (e.g., custom admin prompt mode), it falls back to the original
- * combined behavior via the admin_analysis_prompt KV key.
- */
-async function generateAnalysisPrompt(data, env, errorPreventionComment = null) {
-  // Check for legacy combined custom prompt first (backward compatibility)
-  const customPrompt = await getCustomPrompt(env, 'admin_analysis_prompt');
-  if (customPrompt) {
-    // Legacy mode: use the combined custom prompt as-is
-    const activityData = calculateUnifiedActivityScore(data);
-    const bmr = calculateBMR(data);
-    const tdee = calculateTDEE(bmr, activityData.combinedScore);
-    const deficitData = calculateSafeDeficit(tdee, data.goal);
-    const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
-    const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
-    const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);
-    const vars = buildAnalysisTemplateVars(data, activityData, bmr, tdee, deficitData, macros, waterMin, waterMax);
-    let prompt = replacePromptVariables(customPrompt, vars);
-    
-    if (errorPreventionComment) {
-      prompt = errorPreventionComment + '\n\n' + prompt;
-    }
-    
-    if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
-
-═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
-
-Структурата ТРЯБВА да включва:
-{
-  "bmi": число, "bmiCategory": "текст", "bmr": число, "tdee": число, "Final_Calories": число,
-  "macroRatios": { "protein": число, "carbs": число, "fats": число, "fiber": число },
-  "macroGrams": { "protein": число, "carbs": число, "fats": число },
-  "activityLevel": "текст", "physiologicalPhase": "текст",
-  "waterDeficit": { "dailyNeed": "текст", "currentIntake": "текст", "deficit": "текст", "impactOnLipolysis": "текст" },
-  "negativeHealthFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
-  "hinderingFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
-  "cumulativeRiskScore": "текст",
-  "psychoProfile": { "temperament": "текст", "probability": число, "reasoning": "текст" },
-  "metabolicReactivity": { "speed": "текст", "adaptability": "текст" },
-  "correctedMetabolism": { "realBMR": число, "realTDEE": число, "clinicalAdjustmentPercent": число, "metabolicAdjustmentPercent": число, "goalAdjustmentPercent": число, "correction": "текст", "correctionPercent": "текст" },
-  "metabolicProfile": "текст", "healthRisks": ["текст"], "nutritionalNeeds": ["текст"],
-  "psychologicalProfile": "текст", "successChance": число,
-  "currentHealthStatus": { "score": число, "description": "текст", "keyIssues": ["текст"] },
-  "forecastPessimistic": { "timeframe": "текст", "weight": "текст", "health": "текст", "risks": ["текст"] },
-  "forecastOptimistic": { "timeframe": "текст", "weight": "текст", "health": "текст", "improvements": ["текст"] },
-  "keyProblems": [{ "title": "текст", "description": "текст", "severity": "Borderline/Risky/Critical", "severityValue": число, "category": "текст", "impact": "текст" }]
-}
-
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-    }
-    return prompt;
-  }
-  
-  // No custom combined prompt — delegate to the core prompt (used in single-call regeneration fallback)
-  return generateAnalysisCorePrompt(data, env, errorPreventionComment);
-}
-
-/**
- * Merge core (Step 1A) and display (Step 1B) analysis results into a unified object.
- * Field ownership:
- *   Core (1A) — AUTHORITATIVE for: bmr, tdee, Final_Calories, macroRatios, macroGrams,
- *     psychoProfile, psychologicalProfile, correctedMetabolism, metabolicReactivity,
- *     keyProblems, healthRisks, nutritionalNeeds
- *   Display (1B) — AUTHORITATIVE for: bmi, bmiCategory, activityLevel, physiologicalPhase,
- *     waterDeficit, negativeHealthFactors, hinderingFactors, cumulativeRiskScore,
- *     metabolicProfile, successChance, currentHealthStatus, forecastPessimistic, forecastOptimistic
- * Core fields override display fields if both happen to contain the same key.
- */
-function mergeAnalysisResults(coreAnalysis, displayAnalysis) {
-  return {
-    ...displayAnalysis,  // display fields first
-    ...coreAnalysis       // core fields override
-  };
-}
-
-/**
- * Build fallback display analysis data when Step 1B fails.
- * Uses deterministic calculations so plan generation can continue.
- */
-function buildFallbackDisplayAnalysis(data) {
-  const bmiValue = calculateBMI(data);
-  const bmiCat = !bmiValue ? 'неизвестно' : bmiValue < 18.5 ? 'Поднормено' : bmiValue < 25 ? 'Нормално' : bmiValue < 30 ? 'Наднормено' : 'Затлъстяване';
-  return {
-    bmi: bmiValue ? Math.round(bmiValue * 10) / 10 : null,
-    bmiCategory: bmiCat,
-    activityLevel: 'не е определен',
-    physiologicalPhase: 'не е определена',
-    waterDeficit: { dailyNeed: 'не е изчислен', currentIntake: data.waterIntake || 'неизвестен', deficit: 'не е изчислен', impactOnLipolysis: 'не е определен' },
-    negativeHealthFactors: [],
-    hinderingFactors: [],
-    cumulativeRiskScore: '0',
-    metabolicProfile: 'не е определен',
-    successChance: 0,
-    currentHealthStatus: { score: 50, description: 'не е определено', keyIssues: [] },
-    forecastPessimistic: { timeframe: '12 месеца', weight: 'не е определено', health: 'не е определено', risks: [] },
-    forecastOptimistic: { timeframe: '12 месеца', weight: 'не е определено', health: 'не е определено', improvements: [] }
-  };
+  return defaultPrompt;
 }
 
 /**
