@@ -1836,7 +1836,7 @@
                 html += '<h4><span class="section-emoji">🛡️</span> ' + safetyTitle + '</h4>';
                 analysis.risks.forEach(function(risk) {
                     var riskLevel = (risk.level || 'low').toLowerCase();
-                    // For ages 7+, hide irrelevant none/low-level choking hazard entries
+                    // For ages 3+, hide irrelevant none/low-level choking hazard entries
                     var isOlderAge = isOlderAgeGroup(selectedAge);
                     var isChokingHazard = risk.category && risk.category.toLowerCase().includes('задав');
                     if (isOlderAge && isChokingHazard && (riskLevel === 'none' || riskLevel === 'low')) {
