@@ -6992,6 +6992,17 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
  */
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens) {
   return await retryWithBackoff(async () => {
+    const generationConfig = {
+      maxOutputTokens: maxTokens,
+      temperature: 0.3
+    };
+    // Gemini 2.5 Flash is a "thinking" model: thinking tokens are deducted from the
+    // maxOutputTokens budget, which can exhaust the token limit before any output is
+    // produced (finishReason: MAX_TOKENS). Disable thinking so the full budget is
+    // available for the actual response.
+    if (modelName && modelName.includes('gemini-2.5-flash')) {
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
     const requestBody = {
       contents: [{
         parts: [
@@ -6999,10 +7010,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
           { inlineData: { mimeType: mimeType, data: base64Image } }
         ]
       }],
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature: 0.3
-      }
+      generationConfig
     };
 
     const response = await fetch(
