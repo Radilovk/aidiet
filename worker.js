@@ -6629,6 +6629,13 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = nu
       // Check finish_reason for content filtering or other issues
       if (choice.finish_reason && choice.finish_reason !== 'stop') {
         const reason = choice.finish_reason;
+
+        if (reason === 'length' && choice.message && choice.message.content) {
+          // Token limit reached – return partial response so it is always captured in logs
+          console.warn(`[OpenAI] Token limit reached (finish_reason: length). Logging partial response.`);
+          return choice.message.content;
+        }
+
         let errorMessage = `OpenAI API завърши с причина: ${reason}`;
         
         if (reason === 'content_filter') {
@@ -6742,12 +6749,14 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
       // Check stop_reason for content filtering or other issues
       if (data.stop_reason && data.stop_reason !== 'end_turn') {
         const reason = data.stop_reason;
-        let errorMessage = `Claude API завърши с причина: ${reason}`;
-        
-        if (reason === 'max_tokens') {
-          errorMessage = 'Claude AI достигна лимита на дължина. Опитайте да опростите въпроса.';
+
+        if (reason === 'max_tokens' && data.content && data.content[0] && data.content[0].text) {
+          // Token limit reached – return partial response so it is always captured in logs
+          console.warn(`[Claude] Token limit reached (stop_reason: max_tokens). Logging partial response.`);
+          return data.content[0].text;
         }
-        
+
+        let errorMessage = `Claude API завърши с причина: ${reason}`;
         throw new Error(errorMessage);
       }
       
@@ -6804,6 +6813,13 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
         // Check if response was blocked or filtered
         if (candidate.finishReason && candidate.finishReason !== 'STOP') {
           const reason = candidate.finishReason;
+
+          if (reason === 'MAX_TOKENS' && candidate.content && candidate.content.parts && candidate.content.parts[0]) {
+            // Token limit reached – return partial response so it is always captured in logs
+            console.warn(`[Gemini] Token limit reached (finishReason: MAX_TOKENS). Logging partial response.`);
+            return candidate.content.parts[0].text;
+          }
+
           let errorMessage = `Gemini API отказ: ${reason}`;
           
           if (reason === 'SAFETY') {
