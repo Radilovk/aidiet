@@ -18,7 +18,7 @@
  * ARCHITECTURE - Plan Generation (Reorganized for efficiency):
  * Структура: 5 основни стъпки, стъпка 3 с 4 подстъпки = 8 заявки
  * 
- *   1A. Core Analysis Request (3k token limit)
+ *   1A. Core Analysis Request (4k token limit)
  *      - Input: Full user data (profile, habits, medical, preferences)
  *      - Output: Temperament, psycho-profile, metabolic corrections, final calories/macros,
  *               key problems, nutritional needs, health risks
@@ -4911,7 +4911,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const coreInputTokens = estimateTokenCount(corePrompt);
       cumulativeTokens.input += coreInputTokens;
       
-      const coreResponse = await callAIModel(env, corePrompt, 3000, 'step1a_analysis_core_regen', sessionId, data, null);
+      const coreResponse = await callAIModel(env, corePrompt, 4000, 'step1a_analysis_core_regen', sessionId, data, null);
       const coreOutputTokens = estimateTokenCount(coreResponse);
       cumulativeTokens.output += coreOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -5203,7 +5203,7 @@ async function generatePlanMultiStep(env, data) {
     let coreResponse, coreAnalysis;
     
     try {
-      coreResponse = await callAIModel(env, corePrompt, 3000, 'step1a_analysis_core', sessionId, data, null);
+      coreResponse = await callAIModel(env, corePrompt, 4000, 'step1a_analysis_core', sessionId, data, null);
       const coreOutputTokens = estimateTokenCount(coreResponse);
       cumulativeTokens.output += coreOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
