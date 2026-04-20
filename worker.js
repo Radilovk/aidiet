@@ -7274,113 +7274,23 @@ async function handleAnalyzeKidsFoodImage(request, env) {
 
     const ageLabel = ageGroup || '3-7';
 
-    // Brief age label for prompt context — the AI knows the dietary specifics for each age
     const ageContextMap = {
-      '0-1': 'бебе (0-1 години)',
-      '1-3': 'малко дете (1-3 години)',
-      '3-7': 'дете в предучилищна възраст (3-7 години)',
-      '7-12': 'дете в училищна възраст (7-12 години)',
-      '12-16': 'тийнейджър (12-16 години)',
-      '16-18': 'юноша (16-18 години)'
+      '0-1': 'бебе 0-1 г.',
+      '1-3': 'дете 1-3 г.',
+      '3-7': 'дете 3-7 г.',
+      '7-12': 'дете 7-12 г.',
+      '12-16': 'тийнейджър 12-16 г.',
+      '16-18': 'юноша 16-18 г.'
     };
-
     const ageContext = ageContextMap[ageLabel] || ageContextMap['3-7'];
 
-    // Choking risk criteria only for children up to 3 years
     const includeChokingRisk = (ageLabel === '0-1' || ageLabel === '1-3');
-
-    // Risk categories based on age
-    const riskCategories = includeChokingRisk
-      ? 'Задавяне, Алергени, Захар, Опасни добавки, Сол, Кофеин'
-      : 'Алергени, Захар, Опасни добавки, Сол, Кофеин, Преработка';
-
-    // Role context
     const isParent = userRole === 'parent';
-    const roleInstruction = isParent
-      ? 'Отговорът е насочен към РОДИТЕЛ — използвай професионален, информативен тон.'
-      : 'Отговорът е насочен към ДЕТЕ/ТИЙНЕЙДЖЪР — използвай достъпен, приятелски тон, подходящ за възрастта.';
 
-    // Absolute contraindications — items that MUST score 0 regardless of AI judgment
-    const absoluteContraindicationsMap = {
-      '0-1': 'кофеин, алкохол, енергийни напитки, мед, кафе, чай с кофеин, газирани напитки, сурово месо/риба, цели ядки',
-      '1-3': 'кофеин, алкохол, енергийни напитки, кафе, чай с кофеин, газирани напитки, цели ядки, сурово месо/риба',
-      '3-7': 'кофеин, алкохол, енергийни напитки, кафе, чай с кофеин',
-      '7-12': 'кофеин, алкохол, енергийни напитки, кафе',
-      '12-16': 'алкохол, енергийни напитки',
-      '16-18': 'алкохол, енергийни напитки'
-    };
-    const absoluteContraindications = absoluteContraindicationsMap[ageLabel] || absoluteContraindicationsMap['3-7'];
+    const analysisPrompt = `Педиатричен диетолог-нутриционист. Оцени храната/напитката от снимката за ${ageContext}.${includeChokingRisk ? ' Включи оценка на риска от задавяне.' : ''} Тон: ${isParent ? 'родителски' : 'детски'}.
 
-    const analysisPrompt = `Ти си водещ детски диетолог и педиатър-нутриционист. Анализирай храната/напитката от снимката и определи дали е БЕЗОПАСНА и ПОДХОДЯЩА за ${ageContext}.
-
-${roleInstruction}
-
-ЗАДАЧА: Приложи експертните си познания по детска диетология за тази възрастова група. Самостоятелно определи всички диетични специфики, рискове и ограничения, характерни за ${ageContext}. Оцени храната спрямо тях.
-${includeChokingRisk ? '\nОцени и риска от ЗАДАВЯНЕ (консистенция, размер, форма) — критично за тази възраст.' : ''}
-
-АБСОЛЮТНИ ПРОТИВОПОКАЗАНИЯ за ${ageContext} (safetyScore ЗАДЪЛЖИТЕЛНО = 0):
-${absoluteContraindications}
-Ако храната попада в тези категории, safetyScore ТРЯБВА да е 0, без изключения.
-
-СКАЛА ЗА ОЦЕНКА (safetyScore):
-0 = Абсолютно противопоказано — забранено за тази възраст (кафе, алкохол, енергийни напитки и др.)
-1 = Опасно — сериозни здравни рискове при консумация
-2 = Неподходящо — значителни рискове, не се препоръчва
-3 = Допустимо с внимание — има рискове, но може в малки количества рядко
-4 = Подходящо — минимални рискове
-5 = Отлично — здравословно и препоръчително за възрастта
-
-Върни САМО валиден JSON обект (без markdown, без \`\`\`):
-{
-  "foodName": "Име на храната/напитката на български",
-  "foodDescription": "Кратко описание какво виждаш на снимката",
-  "safetyScore": число_от_0_до_5,
-  "verdict": "Кратко обяснение на оценката — защо е или не е подходяща за дете на тази възраст (2-3 изречения)",
-  "risks": [
-    {
-      "category": "Име на риска (напр. ${riskCategories})",
-      "level": "high" или "medium" или "low" или "none",
-      "detail": "Конкретно обяснение на риска за деца"
-    }
-  ],
-  "dangerousSubstances": [
-    {
-      "name": "Име на веществото (E-номер ако е приложимо)",
-      "type": "preservative" или "colorant" или "flavor" или "sweetener" или "other",
-      "detail": "Защо е опасно за деца на тази възраст"
-    }
-  ],
-  "healthRisks": [
-    {
-      "disease": "Име на заболяването/състоянието (на български)",
-      "percentage": число_от_1_до_100,
-      "detail": "Кратко обяснение на връзката между храната и заболяването"
-    }
-  ],
-  "nutrition": {
-    "calories": число,
-    "protein": число_грамове,
-    "carbs": число_грамове,
-    "fats": число_грамове,
-    "sugar": число_грамове,
-    "fiber": число_грамове,
-    "sodium": число_милиграма,
-    "calcium": число_милиграма
-  },
-  "allergens": ["списък", "на", "потенциални", "алергени"],
-  "ageNote": "Специфична бележка за тази възрастова група",
-  "alternatives": ["По-здравословна алтернатива 1", "По-здравословна алтернатива 2"],
-  "confidence": "high" или "medium" или "low"
-}
-
-ВАЖНО:
-- Бъди СТРОГ при оценяването — здравето на децата е приоритет
-- При съмнение, дай по-ниска оценка (по-безопасно е)
-- Попълни "dangerousSubstances" с открити опасни добавки. Ако няма — празен масив []
-- Ако safetyScore < 3, попълни "healthRisks" с конкретни заболявания при честа консумация
-- Рисковете (risks) трябва да покриват основните категории: ${riskCategories}${includeChokingRisk ? '\n- ЗАДЪЛЖИТЕЛНО включи категория "Задавяне" в risks' : ''}
-- Всички числа да са числа (не текст)
-- Отговори САМО с JSON, без допълнителен текст`;
+Върни САМО JSON (без markdown):
+{"foodName":"","foodDescription":"","safetyScore":0-5,"verdict":"","risks":[{"category":"","level":"high|medium|low|none","detail":""}],"dangerousSubstances":[{"name":"","type":"preservative|colorant|flavor|sweetener|other","detail":""}],"healthRisks":[{"disease":"","percentage":0-100,"detail":""}],"nutrition":{"calories":0,"protein":0,"carbs":0,"fats":0,"sugar":0,"fiber":0,"sodium":0,"calcium":0},"allergens":[],"ageNote":"","alternatives":[],"confidence":"high|medium|low"}`;
 
     // Call AI with vision
     const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 3000);
