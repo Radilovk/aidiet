@@ -4950,7 +4950,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       }
       
       // Merge core + display
-      analysis = { ...displayAnalysis, ...coreAnalysis };
+      analysis = mergeAnalysisResults(coreAnalysis, displayAnalysis);
     } else {
       // Reuse existing analysis
       analysis = existingPlan.analysis;
@@ -5267,10 +5267,7 @@ async function generatePlanMultiStep(env, data) {
     console.log('Multi-step generation: Display analysis complete (1B)');
     
     // Merge core + display into unified analysis object (backward compatible)
-    const analysis = {
-      ...displayAnalysis,  // display fields first (bmi, forecasts, etc.)
-      ...coreAnalysis       // core fields override (Final_Calories, macros, psychoProfile, etc.)
-    };
+    const analysis = mergeAnalysisResults(coreAnalysis, displayAnalysis);
     
     console.log('Multi-step generation: Analysis merged (1/3)');
     
@@ -5712,16 +5709,16 @@ async function generateAnalysisDisplayPrompt(data, coreAnalysis, env) {
 
   // Compact core results for context
   const coreCompact = {
-    Final_Calories: coreAnalysis.Final_Calories,
-    bmr: coreAnalysis.bmr,
-    tdee: coreAnalysis.tdee,
-    macroRatios: coreAnalysis.macroRatios,
-    macroGrams: coreAnalysis.macroGrams,
-    psychoProfile: coreAnalysis.psychoProfile,
-    metabolicReactivity: coreAnalysis.metabolicReactivity,
-    healthRisks: coreAnalysis.healthRisks,
+    Final_Calories: coreAnalysis.Final_Calories || null,
+    bmr: coreAnalysis.bmr || null,
+    tdee: coreAnalysis.tdee || null,
+    macroRatios: coreAnalysis.macroRatios || null,
+    macroGrams: coreAnalysis.macroGrams || null,
+    psychoProfile: coreAnalysis.psychoProfile || null,
+    metabolicReactivity: coreAnalysis.metabolicReactivity || null,
+    healthRisks: coreAnalysis.healthRisks || [],
     keyProblems: (coreAnalysis.keyProblems || []).map(p => `${p.title} (${p.severity})`),
-    correctionPercent: coreAnalysis.correctedMetabolism?.correctionPercent
+    correctionPercent: coreAnalysis.correctedMetabolism?.correctionPercent || null
   };
 
   return `Ти си експертен клиничен диетолог. Генерирай данни за страницата с анализ на клиента.
@@ -5857,6 +5854,24 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   
   // No custom combined prompt — delegate to the core prompt (used in single-call regeneration fallback)
   return generateAnalysisCorePrompt(data, env, errorPreventionComment);
+}
+
+/**
+ * Merge core (Step 1A) and display (Step 1B) analysis results into a unified object.
+ * Field ownership:
+ *   Core (1A) — AUTHORITATIVE for: bmr, tdee, Final_Calories, macroRatios, macroGrams,
+ *     psychoProfile, psychologicalProfile, correctedMetabolism, metabolicReactivity,
+ *     keyProblems, healthRisks, nutritionalNeeds
+ *   Display (1B) — AUTHORITATIVE for: bmi, bmiCategory, activityLevel, physiologicalPhase,
+ *     waterDeficit, negativeHealthFactors, hinderingFactors, cumulativeRiskScore,
+ *     metabolicProfile, successChance, currentHealthStatus, forecastPessimistic, forecastOptimistic
+ * Core fields override display fields if both happen to contain the same key.
+ */
+function mergeAnalysisResults(coreAnalysis, displayAnalysis) {
+  return {
+    ...displayAnalysis,  // display fields first
+    ...coreAnalysis       // core fields override
+  };
 }
 
 /**
