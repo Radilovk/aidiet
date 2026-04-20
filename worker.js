@@ -7158,83 +7158,6 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
   }
 }
 
-/**
- * Server-side safety score enforcement for kids food analysis.
- * Catches cases where the AI gives an inappropriately high score for
- * items that are absolutely contraindicated for certain age groups
- * (e.g., coffee for a 3-year-old scoring 1 instead of 0).
- */
-function enforceKidsSafetyScore(analysis, ageLabel) {
-  if (!analysis || typeof analysis.safetyScore !== 'number') return analysis;
-
-  const foodName = (analysis.foodName || '').toLowerCase();
-  const foodDesc = (analysis.foodDescription || '').toLowerCase();
-  const combined = foodName + ' ' + foodDesc;
-
-  // Patterns for absolutely contraindicated items
-  // Note: \b doesn't work with Cyrillic, so we use (?:^|[\s,;.(]) and (?:$|[\s,;.)]) as word boundaries
-  const WB = '(?:^|[\\s,;.(])';
-  const WE = '(?:$|[\\s,;.)])';
-  const caffeinePatterns = new RegExp(`${WB}(кафе|кофе|coffee|еспресо|espresso|капучино|cappuccino|лате|latte|американо|americano|мока|mocha)${WE}`, 'i');
-  const energyDrinkPatterns = new RegExp(`${WB}(енергийн|energy.?drink|ред.?бул|red.?bull|монстър|monster)${WE}`, 'i');
-  const alcoholPatterns = new RegExp(`${WB}(алкохол|alcohol|бира|beer|вино|wine|водка|vodka|уиски|whisky|whiskey|ракия|коктейл|cocktail|ром|rum|джин|gin|текила|tequila|шампанско|champagne)${WE}`, 'i');
-  const teaCaffeinePatterns = new RegExp(`(зелен\\s*чай|черен\\s*чай|green.?tea|black.?tea|матча|matcha)`, 'i');
-
-  // Age-based enforcement rules — max allowed score for detected items
-  const ageNum = parseInt(ageLabel.split('-')[0], 10) || 0;
-
-  let maxAllowedScore = analysis.safetyScore;
-  let enforceReason = '';
-
-  // Alcohol: always 0 for all children
-  if (alcoholPatterns.test(combined)) {
-    maxAllowedScore = 0;
-    enforceReason = 'Алкохолът е абсолютно противопоказан за деца и юноши.';
-  }
-
-  // Energy drinks: always 0 for all children
-  if (energyDrinkPatterns.test(combined)) {
-    maxAllowedScore = 0;
-    enforceReason = 'Енергийните напитки са абсолютно противопоказани за деца.';
-  }
-
-  // Coffee/caffeine: 0 for ages 0-12, max 1 for 12-16, max 2 for 16-18
-  if (caffeinePatterns.test(combined)) {
-    if (ageNum < 12) {
-      maxAllowedScore = 0;
-      enforceReason = 'Кафето е абсолютно противопоказано за деца под 12 години.';
-    } else if (ageNum < 16) {
-      maxAllowedScore = Math.min(maxAllowedScore, 1);
-      enforceReason = 'Кафето е силно нежелателно за тийнейджъри 12-16 години.';
-    } else {
-      maxAllowedScore = Math.min(maxAllowedScore, 2);
-      enforceReason = 'Кафето трябва да е строго ограничено за юноши 16-18 години.';
-    }
-  }
-
-  // Caffeinated tea: 0 for ages 0-7, max 1 for 7-12
-  if (teaCaffeinePatterns.test(combined)) {
-    if (ageNum < 7) {
-      maxAllowedScore = 0;
-      enforceReason = 'Чай с кофеин е противопоказан за деца под 7 години.';
-    } else if (ageNum < 12) {
-      maxAllowedScore = Math.min(maxAllowedScore, 1);
-      enforceReason = 'Чай с кофеин е нежелателен за деца 7-12 години.';
-    }
-  }
-
-  // Apply enforcement if AI score was too high
-  if (analysis.safetyScore > maxAllowedScore) {
-    console.log(`Safety score enforced: AI gave ${analysis.safetyScore}, enforced to ${maxAllowedScore} for "${analysis.foodName}" (age ${ageLabel}). Reason: ${enforceReason}`);
-    analysis.safetyScore = maxAllowedScore;
-    // Update verdict to reflect the enforcement
-    if (enforceReason) {
-      analysis.verdict = enforceReason + ' ' + (analysis.verdict || '');
-    }
-  }
-
-  return analysis;
-}
 
 /**
  * Handle Kids Food Image Analysis
@@ -7320,10 +7243,6 @@ async function handleAnalyzeKidsFoodImage(request, env) {
         message: 'AI анализът е готов, но не успяхме да го структурираме.'
       });
     }
-
-    // Server-side safety score enforcement for absolutely contraindicated items
-    // Even if the AI gives a wrong score, we enforce hard rules based on detected food name
-    analysisResult = enforceKidsSafetyScore(analysisResult, ageLabel);
 
     return jsonResponse({
       success: true,
