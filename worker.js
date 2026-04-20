@@ -4014,7 +4014,7 @@ async function handleGetClientPlanStatus(request, env) {
 
 // Token limits optimized through prompt simplification (not artificial limits)
 const MEAL_PLAN_TOKEN_LIMIT = 8000; // Sufficient for detailed meal generation
-const SUMMARY_TOKEN_LIMIT = 2000; // Lightweight summary generation
+const SUMMARY_TOKEN_LIMIT = 4000; // Summary requires min 10 recommendations + 10 forbidden + 3 psychology tips + 3 supplements in Bulgarian — 2000 was too low
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -6865,14 +6865,25 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
         // Check if response was blocked or filtered
         if (candidate.finishReason && candidate.finishReason !== 'STOP') {
           const reason = candidate.finishReason;
-          let errorMessage = `Gemini API отказ: ${reason}`;
           
+          // MAX_TOKENS means output was truncated but content exists — return it with a warning
+          // so downstream fallbacks (e.g. summary step) can still attempt to use the partial response.
+          if (reason === 'MAX_TOKENS') {
+            const partialText = candidate.content?.parts?.[0]?.text;
+            if (partialText) {
+              console.warn(`Gemini MAX_TOKENS: output truncated at maxOutputTokens limit. Returning partial content (${partialText.length} chars).`);
+              return partialText;
+            }
+            // No content at all — fall through to throw
+          }
+          
+          let errorMessage = `Gemini API отказ: ${reason}`;
           if (reason === 'SAFETY') {
             errorMessage = 'Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитайте с различни данни или контактирайте поддръжката.';
           } else if (reason === 'RECITATION') {
             errorMessage = 'Gemini AI отказа да генерира отговор поради потенциално копиране на съдържание.';
           } else if (reason === 'MAX_TOKENS') {
-            errorMessage = 'Gemini AI достигна лимита на токени. Опитайте да опростите въпроса.';
+            errorMessage = 'Gemini AI достигна лимита на токени при генерирането. Моля, опитайте отново.';
           }
           
           throw new Error(errorMessage);
