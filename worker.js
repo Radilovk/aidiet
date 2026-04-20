@@ -1641,6 +1641,137 @@ function sanitizeJSON(jsonStr) {
 }
 
 /**
+ * Attempt to repair truncated JSON by closing unclosed braces, brackets, and strings.
+ * Used when the AI response was cut off at maxOutputTokens (finishReason=MAX_TOKENS).
+ * Returns repaired JSON string or null if repair is not feasible.
+ */
+function repairTruncatedJSON(text) {
+  // Find the start of JSON
+  const startIndex = text.indexOf('{');
+  if (startIndex === -1) return null;
+
+  let json = text.substring(startIndex);
+
+  // Track state to detect if we're inside a string
+  let inString = false;
+  let escapeNext = false;
+  const stack = []; // stack of '{' or '['
+
+  for (let i = 0; i < json.length; i++) {
+    const char = json[i];
+
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+
+    if (char === '\\' && inString) {
+      escapeNext = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (!inString) {
+      if (char === '{') stack.push('{');
+      else if (char === '[') stack.push('[');
+      else if (char === '}') {
+        if (stack.length > 0 && stack[stack.length - 1] === '{') stack.pop();
+      } else if (char === ']') {
+        if (stack.length > 0 && stack[stack.length - 1] === '[') stack.pop();
+      }
+    }
+  }
+
+  // If already balanced, no repair needed
+  if (stack.length === 0 && !inString) return null;
+
+  // Strategy: try closing at progressively earlier truncation points.
+  // First try closing right at the end, then back up to last comma.
+  function tryClose(s) {
+    // Close open string
+    let candidate = s;
+    // Re-check if we end inside a string
+    let isInStr = false;
+    let esc = false;
+    for (let i = 0; i < candidate.length; i++) {
+      const c = candidate[i];
+      if (esc) { esc = false; continue; }
+      if (c === '\\' && isInStr) { esc = true; continue; }
+      if (c === '"') isInStr = !isInStr;
+    }
+    if (isInStr) candidate += '"';
+
+    // Remove trailing incomplete fragments: commas, colons, dangling key names
+    candidate = candidate.replace(/,\s*$/, '');
+    candidate = candidate.replace(/,?\s*"[^"]*"\s*:\s*$/, '');
+    candidate = candidate.replace(/,?\s*"[^"]*"\s*$/, '');
+    candidate = candidate.replace(/:\s*$/, '');
+    candidate = candidate.replace(/,\s*$/, '');
+
+    // Re-count open braces/brackets
+    let stk = [];
+    let inS = false;
+    let escN = false;
+    for (let i = 0; i < candidate.length; i++) {
+      const c = candidate[i];
+      if (escN) { escN = false; continue; }
+      if (c === '\\' && inS) { escN = true; continue; }
+      if (c === '"') { inS = !inS; continue; }
+      if (!inS) {
+        if (c === '{') stk.push('{');
+        else if (c === '[') stk.push('[');
+        else if (c === '}') { if (stk.length > 0 && stk[stk.length - 1] === '{') stk.pop(); }
+        else if (c === ']') { if (stk.length > 0 && stk[stk.length - 1] === '[') stk.pop(); }
+      }
+    }
+
+    // Close remaining open structures
+    for (let i = stk.length - 1; i >= 0; i--) {
+      candidate += (stk[i] === '{') ? '}' : ']';
+    }
+
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Attempt 1: Close directly at the truncation point
+  let result = tryClose(json);
+  if (result) return result;
+
+  // Attempt 2+: Back up to previous commas that are OUTSIDE strings
+  // First, collect all comma positions that are outside string context
+  const outerCommas = [];
+  {
+    let _inStr = false;
+    let _esc = false;
+    for (let i = 0; i < json.length; i++) {
+      const c = json[i];
+      if (_esc) { _esc = false; continue; }
+      if (c === '\\' && _inStr) { _esc = true; continue; }
+      if (c === '"') { _inStr = !_inStr; continue; }
+      if (!_inStr && c === ',') outerCommas.push(i);
+    }
+  }
+
+  // Try from the last outer comma backwards (up to 8 attempts)
+  for (let attempt = outerCommas.length - 1; attempt >= 0 && attempt >= outerCommas.length - 8; attempt--) {
+    const trimmedAtComma = json.substring(0, outerCommas[attempt]);
+    result = tryClose(trimmedAtComma);
+    if (result) return result;
+  }
+
+  return null;
+}
+
+/**
  * Extract JSON object or array from response using balanced brace/bracket matching
  * This prevents greedy regex from capturing non-JSON text after the object/array
  */
@@ -1762,10 +1893,25 @@ function parseAIResponse(response) {
         
         console.error('Response excerpt (first 500 chars):', response.substring(0, 500));
         console.error('Response excerpt (last 500 chars):', response.substring(Math.max(0, response.length - 500)));
-        
-        // Return a user-friendly error without exposing the raw response
-        return { error: `All JSON parsing attempts failed: ${e.message}` };
       }
+    }
+    
+    // Step 4: Try to repair truncated JSON (e.g. from MAX_TOKENS truncation)
+    const repaired = repairTruncatedJSON(response);
+    if (repaired) {
+      try {
+        const cleaned = sanitizeJSON(repaired);
+        const parsed = JSON.parse(cleaned);
+        console.warn('Successfully parsed truncated JSON after repair (some data may be incomplete)');
+        return parsed;
+      } catch (e) {
+        console.error('Truncated JSON repair also failed:', e.message);
+      }
+    }
+    
+    // All parsing strategies exhausted
+    if (jsonMatch) {
+      return { error: `All JSON parsing attempts failed` };
     }
     
     // If no JSON found, return the response as-is wrapped in a structure
@@ -4902,7 +5048,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const analysisInputTokens = estimateTokenCount(analysisPrompt);
       cumulativeTokens.input += analysisInputTokens;
       
-      const analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis_regen', sessionId, data, null);
+      const analysisResponse = await callAIModel(env, analysisPrompt, 8000, 'step1_analysis_regen', sessionId, data, null);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -4932,7 +5078,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const strategyInputTokens = estimateTokenCount(strategyPrompt);
       cumulativeTokens.input += strategyInputTokens;
       
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
+      const strategyResponse = await callAIModel(env, strategyPrompt, 8000, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -5169,7 +5315,7 @@ async function generatePlanMultiStep(env, data) {
     let analysisResponse, analysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis', sessionId, data, null);
+      analysisResponse = await callAIModel(env, analysisPrompt, 8000, 'step1_analysis', sessionId, data, null);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -5212,7 +5358,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
+      strategyResponse = await callAIModel(env, strategyPrompt, 8000, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
