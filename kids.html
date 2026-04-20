@@ -14,7 +14,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/kids.html">
     <meta property="og:title" content="KidFood AI — Подходяща ли е тази храна за деца?">
-    <meta property="og:description" content="Снимай храната и разбери дали е безопасна и подходяща за твоето дете. AI анализ на хранителна стойност, алергени, добавки и рискове.">
+    <meta property="og:description" content="Снимай храната и разбери дали е безопасна и подходяща. AI анализ на хранителна стойност, алергени, добавки и рискове.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
 
@@ -1291,7 +1291,7 @@
         <!-- Hero -->
         <section class="kids-hero">
             <span class="kids-hero-emoji" aria-hidden="true">🍽️</span>
-            <h2>Подходяща ли е тази храна за детето?</h2>
+            <h2>Подходяща ли е тази храна за деца?</h2>
             <p>Снимай храната и нашият AI ще анализира дали е безопасна и здравословна за деца</p>
         </section>
 
@@ -2186,10 +2186,10 @@
             // 6. Healthier Alternatives
             if (analysis.alternatives && analysis.alternatives.length > 0) {
                 html += '<div class="result-section">';
-                var altTitle = isParent ? 'По-Здравословни Алтернативи'
+                var altTitle = isParent ? 'Здравословни Алтернативи'
                     : (!isOlderAgeGroup(selectedAge)) ? 'По-добри варианти'
                     : isSchoolAge(selectedAge) ? 'По-добри избори'
-                    : 'По-здравословни варианти';
+                    : 'Здравословни варианти';
                 html += '<h4><span class="section-emoji">💡</span> ' + altTitle + '</h4>';
                 html += '<ul class="alternatives-list">';
                 analysis.alternatives.forEach(function(alt) {
