@@ -889,6 +889,20 @@
                         Google примери: gemini-pro, gemini-2.0-flash-exp, gemini-1.5-pro
                     </small>
                 </div>
+                <!-- Thinking configuration (Gemini 2.5+ / Anthropic Claude 3.7+) -->
+                <div class="form-group" style="padding: 15px; background: var(--bg-color); border-radius: 10px; border: 1px solid #e0e0e0;">
+                    <label style="font-weight: 700; margin-bottom: 10px; display: block;"><i class="fas fa-brain"></i> Настройки за мислене (Thinking)</label>
+                    <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Приложимо за: Gemini 2.5 Flash/Pro, Claude 3.7 Sonnet+. По подразбиране мисленето е деактивирано за Gemini 2.5 Flash за предотвратяване на MAX_TOKENS грешки.</small>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="aiDisableThinking" style="width: auto; margin: 0;" onchange="toggleThinkingBudgetField('aiThinkingBudget', this.checked)">
+                        <label for="aiDisableThinking" style="font-weight: normal; margin: 0; cursor: pointer;">Деактивирай мисленето (thinkingBudget: 0)</label>
+                    </div>
+                    <div id="aiThinkingBudgetWrapper">
+                        <label for="aiThinkingBudget" style="font-weight: normal;">Лимит на токени за мислене:</label>
+                        <input type="number" id="aiThinkingBudget" min="0" max="32000" step="256" placeholder="напр. 1024 (оставете празно = по подразбиране)" style="margin-top: 5px;">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">0 = деактивирано, 1–32000 = брой токени за мислене, празно = поведение по подразбиране</small>
+                    </div>
+                </div>
                 <button class="btn" onclick="saveAIModel()">
                     <i class="fas fa-save"></i> Запази Модел
                 </button>
@@ -915,8 +929,60 @@
                         Оставете празно за модел по подразбиране: OpenAI → gpt-4o-mini, Google → gemini-2.0-flash, Anthropic → claude-3-5-sonnet-20241022
                     </small>
                 </div>
+                <!-- Thinking configuration for Vision -->
+                <div class="form-group" style="padding: 15px; background: var(--bg-color); border-radius: 10px; border: 1px solid #e0e0e0;">
+                    <label style="font-weight: 700; margin-bottom: 10px; display: block;"><i class="fas fa-brain"></i> Настройки за мислене (Vision)</label>
+                    <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Приложимо за моделите с vision, които поддържат мислене (Gemini 2.5+).</small>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="visionDisableThinking" style="width: auto; margin: 0;" onchange="toggleThinkingBudgetField('visionThinkingBudget', this.checked)">
+                        <label for="visionDisableThinking" style="font-weight: normal; margin: 0; cursor: pointer;">Деактивирай мисленето (thinkingBudget: 0)</label>
+                    </div>
+                    <div id="visionThinkingBudgetWrapper">
+                        <label for="visionThinkingBudget" style="font-weight: normal;">Лимит на токени за мислене:</label>
+                        <input type="number" id="visionThinkingBudget" min="0" max="32000" step="256" placeholder="напр. 1024 (оставете празно = по подразбиране)" style="margin-top: 5px;">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">0 = деактивирано, 1–32000 = брой токени за мислене, празно = поведение по подразбиране</small>
+                    </div>
+                </div>
                 <button class="btn" onclick="saveVisionModel()">
                     <i class="fas fa-save"></i> Запази Vision Модел
+                </button>
+            </div>
+
+            <!-- Per-step token limits -->
+            <div class="card">
+                <h2><i class="fas fa-sliders-h"></i> Лимити на токени по стъпки</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Задайте персонализирани лимити на токени за всяка стъпка от анализа. Оставете празно за да се използват стойностите по подразбиране.
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label for="tokenLimitStep1">Стъпка 1 – Анализ:</label>
+                        <input type="number" id="tokenLimitStep1" min="500" max="32000" step="500" placeholder="по подразбиране: 4000">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">По подразбиране: 4000</small>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label for="tokenLimitStep2">Стъпка 2 – Стратегия:</label>
+                        <input type="number" id="tokenLimitStep2" min="500" max="32000" step="500" placeholder="по подразбиране: 4000">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">По подразбиране: 4000</small>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label for="tokenLimitStep3">Стъпка 3 – Хранителен план:</label>
+                        <input type="number" id="tokenLimitStep3" min="500" max="32000" step="500" placeholder="по подразбиране: 8000">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">По подразбиране: 8000</small>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label for="tokenLimitStep4">Стъпка 4 – Обобщение:</label>
+                        <input type="number" id="tokenLimitStep4" min="500" max="32000" step="500" placeholder="по подразбиране: 2000">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">По подразбиране: 2000</small>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label for="tokenLimitChat">Чат асистент:</label>
+                        <input type="number" id="tokenLimitChat" min="500" max="32000" step="500" placeholder="по подразбиране: 2000">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">По подразбиране: 2000</small>
+                    </div>
+                </div>
+                <button class="btn" onclick="saveStepTokenLimits()" style="margin-top: 20px;">
+                    <i class="fas fa-save"></i> Запази Лимити
                 </button>
             </div>
 
@@ -1876,6 +1942,21 @@
                     <small style="color: var(--text-gray); display: block; margin-top: 5px;">
                         Оставете празно за модел по подразбиране: OpenAI → gpt-4o-mini, Google → gemini-2.0-flash, Anthropic → claude-sonnet-4-20250514
                     </small>
+                </div>
+
+                <!-- Thinking configuration for Protocol -->
+                <div class="form-group" style="padding: 15px; background: var(--bg-color); border-radius: 10px; border: 1px solid #e0e0e0;">
+                    <label style="font-weight: 700; margin-bottom: 10px; display: block;"><i class="fas fa-brain"></i> Настройки за мислене (Protocol AI)</label>
+                    <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Приложимо за Gemini 2.5+ и Claude 3.7+ при генериране на протоколи.</small>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="protocolDisableThinking" style="width: auto; margin: 0;" onchange="toggleThinkingBudgetField('protocolThinkingBudget', this.checked)">
+                        <label for="protocolDisableThinking" style="font-weight: normal; margin: 0; cursor: pointer;">Деактивирай мисленето (thinkingBudget: 0)</label>
+                    </div>
+                    <div id="protocolThinkingBudgetWrapper">
+                        <label for="protocolThinkingBudget" style="font-weight: normal;">Лимит на токени за мислене:</label>
+                        <input type="number" id="protocolThinkingBudget" min="0" max="32000" step="256" placeholder="напр. 1024 (оставете празно = по подразбиране)" style="margin-top: 5px;">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">0 = деактивирано, 1–32000 = брой токени за мислене, празно = поведение по подразбиране</small>
+                    </div>
                 </div>
 
                 <!-- Protocol API Key -->
@@ -3075,6 +3156,14 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 document.getElementById('visionAiModel').value = config.visionModelName || '';
                                 localStorage.setItem('visionAiModelName', config.visionModelName || '');
                             }
+                            // Load thinking budgets from server
+                            loadThinkingBudgetUI('ai', config.aiThinkingBudget || '');
+                            loadThinkingBudgetUI('vision', config.visionThinkingBudget || '');
+                            loadThinkingBudgetUI('protocol', config.protocolThinkingBudget || '');
+                            // Load step token limits from server
+                            if (config.stepTokenLimits) {
+                                loadStepTokenLimitsUI(config.stepTokenLimits);
+                            }
                             return; // Successfully loaded from server
                         }
                 } catch (serverError) {
@@ -3125,6 +3214,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const savedVisionModelName = localStorage.getItem('visionAiModelName') || '';
                 document.getElementById('visionAiModel').value = savedVisionModelName;
 
+                // Restore thinking budgets and step limits from localStorage
+                loadThinkingBudgetUI('ai', localStorage.getItem('aiThinkingBudget') || '');
+                loadThinkingBudgetUI('vision', localStorage.getItem('visionThinkingBudget') || '');
+                loadThinkingBudgetUI('protocol', localStorage.getItem('protocolThinkingBudget') || '');
+                const savedStepLimits = localStorage.getItem('adminStepTokenLimits');
+                if (savedStepLimits) { try { loadStepTokenLimitsUI(JSON.parse(savedStepLimits)); } catch(_) {} }
+
             } catch (error) {
                 console.error('Error loading settings:', error);
             }
@@ -3137,34 +3233,84 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             document.getElementById('totalPlans').textContent = '-';
         }
 
+        // Toggle thinking budget input field visibility when disable checkbox changes
+        function toggleThinkingBudgetField(budgetFieldId, isDisabled) {
+            const wrapper = document.getElementById(budgetFieldId + 'Wrapper');
+            const input = document.getElementById(budgetFieldId);
+            if (wrapper) wrapper.style.opacity = isDisabled ? '0.4' : '1';
+            if (input) input.disabled = isDisabled;
+        }
+
+        // Populate thinking budget UI from a raw KV string value ("", "0", "1024" …)
+        function loadThinkingBudgetUI(prefix, raw) {
+            // prefix: 'ai' | 'vision' | 'protocol'
+            const disableCheckbox = document.getElementById(prefix + 'DisableThinking');
+            const budgetInput     = document.getElementById(prefix + 'ThinkingBudget');
+            if (!disableCheckbox || !budgetInput) return;
+
+            if (raw === '0') {
+                disableCheckbox.checked = true;
+                budgetInput.value = '';
+                toggleThinkingBudgetField(prefix + 'ThinkingBudget', true);
+            } else if (raw !== '' && raw != null) {
+                disableCheckbox.checked = false;
+                budgetInput.value = raw;
+                toggleThinkingBudgetField(prefix + 'ThinkingBudget', false);
+            } else {
+                disableCheckbox.checked = false;
+                budgetInput.value = '';
+                toggleThinkingBudgetField(prefix + 'ThinkingBudget', false);
+            }
+        }
+
+        // Read thinking budget from UI; returns "" | "0" | "N"
+        function readThinkingBudgetUI(prefix) {
+            const disableCheckbox = document.getElementById(prefix + 'DisableThinking');
+            const budgetInput     = document.getElementById(prefix + 'ThinkingBudget');
+            if (disableCheckbox && disableCheckbox.checked) return '0';
+            if (budgetInput && budgetInput.value.trim() !== '') return budgetInput.value.trim();
+            return '';
+        }
+
+        // Populate step token limit inputs from a limits object
+        function loadStepTokenLimitsUI(limits) {
+            const map = { step1: 'tokenLimitStep1', step2: 'tokenLimitStep2', step3: 'tokenLimitStep3', step4: 'tokenLimitStep4', chat: 'tokenLimitChat' };
+            for (const [key, id] of Object.entries(map)) {
+                const el = document.getElementById(id);
+                if (el && limits[key]) el.value = limits[key];
+            }
+        }
+
         // Save AI Model
         async function saveAIModel() {
             const provider = document.getElementById('aiProvider').value;
             const modelName = document.getElementById('aiModelName').value.trim();
-            
+
             if (!modelName) {
-                showError('Моля, въведете име на модел!');
+                showError('Моля, въведете иМЕ на модел!');
                 return;
             }
-            
+
+            const thinkingBudget = readThinkingBudgetUI('ai');
             localStorage.setItem('adminAIProvider', provider);
             localStorage.setItem('adminAIModelName', modelName);
-            
+            localStorage.setItem('aiThinkingBudget', thinkingBudget);
+
             // Save to KV via worker API
             try {
                 const response = await fetch(WORKER_URL + '/api/admin/save-model', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, modelName })
+                    body: JSON.stringify({ provider, modelName, thinkingBudget: thinkingBudget !== '' ? thinkingBudget : null })
                 });
-                
+
                 if (!response.ok) {
                     throw new Error('Failed to save to server');
                 }
-                
+
                 // Invalidate config cache after successful save
                 invalidateConfigCache();
-                
+
                 showSuccess('AI модел запазен успешно!');
                 document.getElementById('currentModel').textContent = modelName.toUpperCase();
             } catch (error) {
@@ -3177,15 +3323,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         async function saveVisionModel() {
             const provider = document.getElementById('visionAiProvider').value;
             const modelName = document.getElementById('visionAiModel').value.trim();
+            const thinkingBudget = readThinkingBudgetUI('vision');
 
             localStorage.setItem('visionAiProvider', provider);
             localStorage.setItem('visionAiModelName', modelName);
+            localStorage.setItem('visionThinkingBudget', thinkingBudget);
 
             try {
                 const response = await fetch(WORKER_URL + '/api/admin/save-vision-config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, modelName })
+                    body: JSON.stringify({ provider, modelName, thinkingBudget: thinkingBudget !== '' ? thinkingBudget : null })
                 });
 
                 if (!response.ok) {
@@ -3200,6 +3348,33 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
+        // Save per-step token limits
+        async function saveStepTokenLimits() {
+            const limits = {};
+            const map = { step1: 'tokenLimitStep1', step2: 'tokenLimitStep2', step3: 'tokenLimitStep3', step4: 'tokenLimitStep4', chat: 'tokenLimitChat' };
+            for (const [key, id] of Object.entries(map)) {
+                const v = parseInt(document.getElementById(id).value, 10);
+                if (!isNaN(v) && v > 0) limits[key] = v;
+            }
+
+            localStorage.setItem('adminStepTokenLimits', JSON.stringify(limits));
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-step-token-limits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(limits)
+                });
+
+                if (!response.ok) throw new Error('Failed to save to server');
+
+                invalidateConfigCache();
+                showSuccess('Лимитите на токени по стъпки са запазени успешно!');
+            } catch (error) {
+                console.error('Error saving step token limits:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
 
         async function saveAIPrompt() {
             const prompt = document.getElementById('aiPrompt').value.trim();
@@ -6242,20 +6417,23 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
         // --- Protocol Settings Management ---
         async function saveProtocolSettings() {
+            const thinkingBudget = readThinkingBudgetUI('protocol');
             const config = {
                 provider: document.getElementById('protocolAiProvider').value,
                 modelName: document.getElementById('protocolAiModel').value.trim(),
                 apiKey: document.getElementById('protocolApiKey').value.trim(),
-                promptTemplate: document.getElementById('protocolPromptTemplate').value.trim()
+                promptTemplate: document.getElementById('protocolPromptTemplate').value.trim(),
+                thinkingBudget
             };
             localStorage.setItem('protocolConfig', JSON.stringify(config));
+            localStorage.setItem('protocolThinkingBudget', thinkingBudget);
 
-            // Save provider and model to KV backend for persistence across browsers
+            // Save provider, model and thinking budget to KV backend
             try {
                 const response = await fetch(WORKER_URL + '/api/admin/save-protocol-config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: config.provider, modelName: config.modelName })
+                    body: JSON.stringify({ provider: config.provider, modelName: config.modelName, thinkingBudget: thinkingBudget !== '' ? thinkingBudget : null })
                 });
                 if (!response.ok) {
                     throw new Error('Failed to save to server');
@@ -6274,6 +6452,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             document.getElementById('protocolAiModel').value = config.modelName || '';
             document.getElementById('protocolApiKey').value = config.apiKey || '';
             document.getElementById('protocolPromptTemplate').value = config.promptTemplate || '';
+            loadThinkingBudgetUI('protocol', config.thinkingBudget || localStorage.getItem('protocolThinkingBudget') || '');
             
             // Load protocol history
             loadProtocolHistory();
