@@ -1863,49 +1863,6 @@ function enforceWeekendFreeDay(strategy) {
 
 
 /**
- * Returns true if the error represents an API rate-limit (HTTP 429) response.
- * Used by callAIModel to trigger cross-provider fallback instead of retrying
- * the same provider (which won't help within a per-minute rate-limit window).
- */
-function isRateLimitError(err) {
-  if (!err) return false;
-  if (err.status === 429 || err.statusCode === 429) return true;
-  const msg = err.message || '';
-  return msg.includes('429') || /rate.?limit/i.test(msg) || /too many requests/i.test(msg);
-}
-
-/**
- * Attempts to call a fallback AI provider when the primary provider is rate-limited.
- * Tries providers in order, skipping the one that failed.
- * @param {string} failedProvider - The provider that was rate-limited ('openai'|'anthropic'|'google')
- * @param {Error} primaryErr - The original rate-limit error (re-thrown if no fallback available)
- * @param {Object} env - Environment variables
- * @param {string} prompt - The enforced prompt text
- * @param {number|null} maxTokens - Max tokens for the response
- * @param {boolean} jsonMode - Whether to enforce JSON output mode
- * @returns {Promise<string>} Response from the fallback provider
- */
-async function callFallbackProvider(failedProvider, primaryErr, env, prompt, maxTokens, jsonMode) {
-  const fallbackOrder = ['openai', 'anthropic', 'google'];
-  for (const provider of fallbackOrder) {
-    if (provider === failedProvider) continue;
-    if (provider === 'openai' && env.OPENAI_API_KEY) {
-      console.warn(`${failedProvider} rate limited (${primaryErr.message}). Falling back to OpenAI.`);
-      return await callOpenAI(env, prompt, undefined, maxTokens, jsonMode);
-    }
-    if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      console.warn(`${failedProvider} rate limited (${primaryErr.message}). Falling back to Anthropic.`);
-      return await callClaude(env, prompt, undefined, maxTokens, jsonMode);
-    }
-    if (provider === 'google' && env.GEMINI_API_KEY) {
-      console.warn(`${failedProvider} rate limited (${primaryErr.message}). Falling back to Gemini.`);
-      return await callGemini(env, prompt, undefined, maxTokens, jsonMode);
-    }
-  }
-  throw primaryErr; // No fallback available – re-throw original error
-}
-
-/**
  * Call AI model with load monitoring
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
@@ -1957,42 +1914,15 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       response = generateMockResponse(enforcedPrompt);
       success = true;
     } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
-      // Try preferred provider first; on rate-limit fall back to another provider
-      try {
-        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-        success = true;
-      } catch (primaryErr) {
-        if (isRateLimitError(primaryErr)) {
-          response = await callFallbackProvider('openai', primaryErr, env, enforcedPrompt, maxTokens, !skipJSONEnforcement);
-          success = true;
-        } else {
-          throw primaryErr;
-        }
-      }
+      // Try preferred provider first
+      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      success = true;
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      try {
-        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-        success = true;
-      } catch (primaryErr) {
-        if (isRateLimitError(primaryErr)) {
-          response = await callFallbackProvider('anthropic', primaryErr, env, enforcedPrompt, maxTokens, !skipJSONEnforcement);
-          success = true;
-        } else {
-          throw primaryErr;
-        }
-      }
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      try {
-        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
-        success = true;
-      } catch (primaryErr) {
-        if (isRateLimitError(primaryErr)) {
-          response = await callFallbackProvider('google', primaryErr, env, enforcedPrompt, maxTokens, !skipJSONEnforcement);
-          success = true;
-        } else {
-          throw primaryErr;
-        }
-      }
+      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      success = true;
     } else {
       // Fallback hierarchy if preferred not available
       if (env.OPENAI_API_KEY) {
@@ -6737,13 +6667,12 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
       lastError = error;
       
       // Check if error is retryable (transient network errors)
-      // NOTE: 429 (rate limit) is intentionally NOT retried here – quick retries don't help
-      // for per-minute rate limits. Cross-provider fallback is handled in callAIModel instead.
       const errorMessage = error.message || '';
       const isRetryable = 
         errorMessage.includes('502') ||  // Bad Gateway
         errorMessage.includes('503') ||  // Service Unavailable
         errorMessage.includes('504') ||  // Gateway Timeout
+        errorMessage.includes('429') ||  // Too Many Requests
         errorMessage.includes('ECONNRESET') ||
         errorMessage.includes('ETIMEDOUT') ||
         errorMessage.includes('network');
