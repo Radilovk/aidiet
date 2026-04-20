@@ -3448,9 +3448,10 @@ async function handleChat(request, env) {
     // Build chat prompt with context and mode
     const chatPrompt = await generateChatPrompt(env, message, effectiveUserData, effectiveUserPlan, chatHistory, chatMode);
     
-    // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
+    // Call AI model with admin-configured token limit for chat responses
     // Skip JSON enforcement for chat to get plain text conversational responses
-    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
+    const chatAdminConfig = await getAdminConfig(env);
+    const aiResponse = await callAIModel(env, chatPrompt, chatAdminConfig.tokenLimits.chat, 'chat_consultation', null, effectiveUserData, null, true);
     
     // Check if the response contains a plan regeneration instruction
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
@@ -4882,6 +4883,10 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
   const sessionId = generateUniqueId('regen');
   console.log(`Regeneration session ID: ${sessionId}`);
   
+  // Fetch admin-configured token limits (with defaults as fallback)
+  const adminConfig = await getAdminConfig(env);
+  const tokenLimits = adminConfig.tokenLimits;
+  
   // Create high-priority error prevention comment for the step
   const errorPreventionComment = generateErrorPreventionComment(stepErrors[earliestErrorStep], earliestErrorStep, correctionAttempt);
   
@@ -4902,7 +4907,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const analysisInputTokens = estimateTokenCount(analysisPrompt);
       cumulativeTokens.input += analysisInputTokens;
       
-      const analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis_regen', sessionId, data, null);
+      const analysisResponse = await callAIModel(env, analysisPrompt, tokenLimits.step1, 'step1_analysis_regen', sessionId, data, null);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -4932,7 +4937,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const strategyInputTokens = estimateTokenCount(strategyPrompt);
       cumulativeTokens.input += strategyInputTokens;
       
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
+      const strategyResponse = await callAIModel(env, strategyPrompt, tokenLimits.step2, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -4955,10 +4960,10 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       console.log(`Regenerating Step 3 (Meal Plan)${stepErrorComment ? ' with error prevention' : ''}`);
       
       if (ENABLE_PROGRESSIVE_GENERATION) {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId, tokenLimits);
       } else {
         const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env, stepErrorComment);
-        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId, data, buildCompactAnalysisForStep3(analysis));
+        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, tokenLimits.step3, 'step3_meal_plan_regen', sessionId, data, buildCompactAnalysisForStep3(analysis));
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -5017,7 +5022,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const summaryInputTokens = estimateTokenCount(summaryPromptWithErrors);
       cumulativeTokens.input += summaryInputTokens;
       
-      const summaryResponse = await callAIModel(env, summaryPromptWithErrors, SUMMARY_TOKEN_LIMIT, 'step4_summary_regen', sessionId, data, buildCompactAnalysisForStep4(analysis));
+      const summaryResponse = await callAIModel(env, summaryPromptWithErrors, tokenLimits.step4, 'step4_summary_regen', sessionId, data, buildCompactAnalysisForStep4(analysis));
       const summaryOutputTokens = estimateTokenCount(summaryResponse);
       cumulativeTokens.output += summaryOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -5152,6 +5157,10 @@ async function generatePlanMultiStep(env, data) {
   const sessionId = generateUniqueId('session');
   console.log(`Plan generation session ID: ${sessionId}`);
   
+  // Fetch admin-configured token limits (with defaults as fallback)
+  const adminConfig = await getAdminConfig(env);
+  const tokenLimits = adminConfig.tokenLimits;
+  
   // Token tracking for multi-step generation
   let cumulativeTokens = {
     input: 0,
@@ -5169,7 +5178,7 @@ async function generatePlanMultiStep(env, data) {
     let analysisResponse, analysis;
     
     try {
-      analysisResponse = await callAIModel(env, analysisPrompt, 4000, 'step1_analysis', sessionId, data, null);
+      analysisResponse = await callAIModel(env, analysisPrompt, tokenLimits.step1, 'step1_analysis', sessionId, data, null);
       const analysisOutputTokens = estimateTokenCount(analysisResponse);
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -5212,7 +5221,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
+      strategyResponse = await callAIModel(env, strategyPrompt, tokenLimits.step2, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -5242,7 +5251,7 @@ async function generatePlanMultiStep(env, data) {
     if (ENABLE_PROGRESSIVE_GENERATION) {
       console.log('Multi-step generation: Using progressive meal plan generation');
       try {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, null, sessionId);
+        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, null, sessionId, tokenLimits);
       } catch (error) {
         console.error('Progressive meal plan generation failed:', error);
         throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
@@ -5254,7 +5263,7 @@ async function generatePlanMultiStep(env, data) {
       let mealPlanResponse;
       
       try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId, data, buildCompactAnalysisForStep3(analysis));
+        mealPlanResponse = await callAIModel(env, mealPlanPrompt, tokenLimits.step3, 'step3_meal_plan_full', sessionId, data, buildCompactAnalysisForStep3(analysis));
         mealPlan = parseAIResponse(mealPlanResponse);
         
         if (!mealPlan || mealPlan.error) {
@@ -6237,11 +6246,14 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
  */
-async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null) {
+async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null, tokenLimits = null) {
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};
   const previousDays = []; // Track previous days for variety
+  
+  // Use provided token limits or fall back to admin config / hardcoded defaults
+  const effectiveTokenLimits = tokenLimits || (await getAdminConfig(env)).tokenLimits;
   
   // Cache dynamic food lists once (prevents 4 redundant calls per generation)
   const cachedFoodLists = await getDynamicFoodListsSections(env);
@@ -6298,7 +6310,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
       );
       
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
+      const chunkResponse = await callAIModel(env, chunkPrompt, effectiveTokenLimits.step3, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
       let chunkData = parseAIResponse(chunkResponse);
       
       if (!chunkData || chunkData.error) {
@@ -6339,7 +6351,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   // Generate summary, recommendations, etc. in final request
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
-    const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, buildCompactAnalysisForStep4(analysis));
+    const summaryResponse = await callAIModel(env, summaryPrompt, effectiveTokenLimits.step4, 'step4_summary', sessionId, data, buildCompactAnalysisForStep4(analysis));
     const summaryData = parseAIResponse(summaryResponse);
     
     if (!summaryData || summaryData.error) {
@@ -6409,6 +6421,16 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 /**
  * Get admin configuration with caching to reduce KV reads
  */
+// Default token limits per step (used when no KV override is set)
+const DEFAULT_TOKEN_LIMITS = {
+  step1: 4000,   // Analysis
+  step2: 4000,   // Strategy
+  step3: 8000,   // Meal plan chunks
+  step4: 2000,   // Summary
+  correction: 8000, // Correction/regeneration
+  chat: 2000     // Chat responses
+};
+
 async function getAdminConfig(env) {
   // Return cached config if still valid
   const now = Date.now();
@@ -6421,22 +6443,41 @@ async function getAdminConfig(env) {
     provider: 'openai',
     modelName: 'gpt-4o-mini',
     visionProvider: null,
-    visionModelName: null
+    visionModelName: null,
+    tokenLimits: { ...DEFAULT_TOKEN_LIMITS }
   };
 
   if (env.page_content) {
     // Use Promise.all to fetch all values in parallel
-    const [savedProvider, savedModelName, savedVisionProvider, savedVisionModelName] = await Promise.all([
+    const [
+      savedProvider, savedModelName, savedVisionProvider, savedVisionModelName,
+      tlStep1, tlStep2, tlStep3, tlStep4, tlCorrection, tlChat
+    ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
       env.page_content.get('admin_vision_provider'),
-      env.page_content.get('admin_vision_model_name')
+      env.page_content.get('admin_vision_model_name'),
+      env.page_content.get('admin_token_limit_step1'),
+      env.page_content.get('admin_token_limit_step2'),
+      env.page_content.get('admin_token_limit_step3'),
+      env.page_content.get('admin_token_limit_step4'),
+      env.page_content.get('admin_token_limit_correction'),
+      env.page_content.get('admin_token_limit_chat')
     ]);
 
     if (savedProvider) config.provider = savedProvider;
     if (savedModelName) config.modelName = savedModelName;
     if (savedVisionProvider) config.visionProvider = savedVisionProvider;
     if (savedVisionModelName) config.visionModelName = savedVisionModelName;
+
+    // Apply token limit overrides from KV (only use valid positive integers)
+    const parseLimit = (val, def) => { const n = parseInt(val); return Number.isFinite(n) && n > 0 ? n : def; };
+    config.tokenLimits.step1      = parseLimit(tlStep1,      DEFAULT_TOKEN_LIMITS.step1);
+    config.tokenLimits.step2      = parseLimit(tlStep2,      DEFAULT_TOKEN_LIMITS.step2);
+    config.tokenLimits.step3      = parseLimit(tlStep3,      DEFAULT_TOKEN_LIMITS.step3);
+    config.tokenLimits.step4      = parseLimit(tlStep4,      DEFAULT_TOKEN_LIMITS.step4);
+    config.tokenLimits.correction = parseLimit(tlCorrection, DEFAULT_TOKEN_LIMITS.correction);
+    config.tokenLimits.chat       = parseLimit(tlChat,       DEFAULT_TOKEN_LIMITS.chat);
   }
 
   // Update cache
@@ -7891,6 +7932,52 @@ async function handleSaveModel(request, env) {
 }
 
 /**
+ * Admin: Save per-step token limits to KV
+ */
+async function handleSaveTokenLimits(request, env) {
+  try {
+    const body = await request.json();
+    const { step1, step2, step3, step4, correction, chat } = body;
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const parseLimit = (val, def) => {
+      const n = parseInt(val);
+      return Number.isFinite(n) && n > 0 ? n : def;
+    };
+
+    const limits = {
+      step1:      parseLimit(step1,      DEFAULT_TOKEN_LIMITS.step1),
+      step2:      parseLimit(step2,      DEFAULT_TOKEN_LIMITS.step2),
+      step3:      parseLimit(step3,      DEFAULT_TOKEN_LIMITS.step3),
+      step4:      parseLimit(step4,      DEFAULT_TOKEN_LIMITS.step4),
+      correction: parseLimit(correction, DEFAULT_TOKEN_LIMITS.correction),
+      chat:       parseLimit(chat,       DEFAULT_TOKEN_LIMITS.chat)
+    };
+
+    await Promise.all([
+      env.page_content.put('admin_token_limit_step1',      String(limits.step1)),
+      env.page_content.put('admin_token_limit_step2',      String(limits.step2)),
+      env.page_content.put('admin_token_limit_step3',      String(limits.step3)),
+      env.page_content.put('admin_token_limit_step4',      String(limits.step4)),
+      env.page_content.put('admin_token_limit_correction', String(limits.correction)),
+      env.page_content.put('admin_token_limit_chat',       String(limits.chat))
+    ]);
+
+    // Invalidate admin config cache so next request reads fresh limits
+    adminConfigCache = null;
+    adminConfigCacheTime = 0;
+
+    return jsonResponse({ success: true, message: 'Token limits saved successfully', limits });
+  } catch (error) {
+    console.error('Error saving token limits:', error);
+    return jsonResponse({ error: 'Failed to save token limits: ' + error.message }, 500);
+  }
+}
+
+/**
  * Admin: Save chat mode configuration to KV
  */
 async function handleSaveChatModeConfig(request, env) {
@@ -8284,7 +8371,8 @@ async function handleGetConfig(request, env) {
       foodAnalysisPrompt,
       modificationModeEnabled,
       visionProvider,
-      visionModelName
+      visionModelName,
+      tlStep1, tlStep2, tlStep3, tlStep4, tlCorrection, tlChat
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -8303,10 +8391,17 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_food_analysis_prompt'),
       env.page_content.get('admin_chat_modification_mode_enabled'),
       env.page_content.get('admin_vision_provider'),
-      env.page_content.get('admin_vision_model_name')
+      env.page_content.get('admin_vision_model_name'),
+      env.page_content.get('admin_token_limit_step1'),
+      env.page_content.get('admin_token_limit_step2'),
+      env.page_content.get('admin_token_limit_step3'),
+      env.page_content.get('admin_token_limit_step4'),
+      env.page_content.get('admin_token_limit_correction'),
+      env.page_content.get('admin_token_limit_chat')
     ]);
     
     const parsedModificationModeEnabled = modificationModeEnabled === 'true';
+    const parseLimit = (val, def) => { const n = parseInt(val); return Number.isFinite(n) && n > 0 ? n : def; };
 
     return jsonResponse({ 
       success: true, 
@@ -8327,7 +8422,15 @@ async function handleGetConfig(request, env) {
       foodAnalysisPrompt,
       modificationModeEnabled: parsedModificationModeEnabled,
       visionProvider: visionProvider || null,
-      visionModelName: visionModelName || null
+      visionModelName: visionModelName || null,
+      tokenLimits: {
+        step1:      parseLimit(tlStep1,      DEFAULT_TOKEN_LIMITS.step1),
+        step2:      parseLimit(tlStep2,      DEFAULT_TOKEN_LIMITS.step2),
+        step3:      parseLimit(tlStep3,      DEFAULT_TOKEN_LIMITS.step3),
+        step4:      parseLimit(tlStep4,      DEFAULT_TOKEN_LIMITS.step4),
+        correction: parseLimit(tlCorrection, DEFAULT_TOKEN_LIMITS.correction),
+        chat:       parseLimit(tlChat,       DEFAULT_TOKEN_LIMITS.chat)
+      }
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -10722,6 +10825,8 @@ export default {
         return await handleGetDefaultPrompt(request, env);
       } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
         return await handleSaveModel(request, env);
+      } else if (url.pathname === '/api/admin/save-token-limits' && request.method === 'POST') {
+        return await handleSaveTokenLimits(request, env);
       } else if (url.pathname === '/api/admin/save-chat-mode-config' && request.method === 'POST') {
         return await handleSaveChatModeConfig(request, env);
       } else if (url.pathname === '/api/admin/chat-mode-config' && request.method === 'GET') {

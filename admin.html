@@ -894,6 +894,50 @@
                 </button>
             </div>
 
+            <!-- Token Limits Configuration -->
+            <div class="card">
+                <h2><i class="fas fa-sliders-h"></i> Лимити на Токени за Всяка Стъпка</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Задайте максималния брой токени (изходни) за всяка стъпка от генерирането на плана. Промените влизат в сила незабавно след запазване.
+                    <br><small>Текущи стойности по подразбиране: Стъпка 1: 4000 · Стъпка 2: 4000 · Стъпка 3: 8000 · Стъпка 4: 2000 · Корекция: 8000 · Чат: 2000</small>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label for="tokenLimitStep1">Стъпка 1 – Анализ (токени):</label>
+                        <input type="number" id="tokenLimitStep1" min="500" max="32000" step="500" value="4000">
+                        <small style="color: var(--text-gray);">Препоръчано: 4000</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="tokenLimitStep2">Стъпка 2 – Стратегия (токени):</label>
+                        <input type="number" id="tokenLimitStep2" min="500" max="32000" step="500" value="4000">
+                        <small style="color: var(--text-gray);">Препоръчано: 4000</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="tokenLimitStep3">Стъпка 3 – Хранителен план (токени):</label>
+                        <input type="number" id="tokenLimitStep3" min="500" max="32000" step="500" value="8000">
+                        <small style="color: var(--text-gray);">Препоръчано: 8000</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="tokenLimitStep4">Стъпка 4 – Резюме (токени):</label>
+                        <input type="number" id="tokenLimitStep4" min="500" max="32000" step="500" value="2000">
+                        <small style="color: var(--text-gray);">Препоръчано: 2000</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="tokenLimitCorrection">Корекция (токени):</label>
+                        <input type="number" id="tokenLimitCorrection" min="500" max="32000" step="500" value="8000">
+                        <small style="color: var(--text-gray);">Препоръчано: 8000</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="tokenLimitChat">Чат отговор (токени):</label>
+                        <input type="number" id="tokenLimitChat" min="500" max="32000" step="500" value="2000">
+                        <small style="color: var(--text-gray);">Препоръчано: 2000</small>
+                    </div>
+                </div>
+                <button class="btn" onclick="saveTokenLimits()">
+                    <i class="fas fa-save"></i> Запази Лимити
+                </button>
+            </div>
+
             <!-- Vision AI Model Selection -->
             <div class="card">
                 <h2><i class="fas fa-camera"></i> AI Модел за Анализ на Изображения</h2>
@@ -3075,6 +3119,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 document.getElementById('visionAiModel').value = config.visionModelName || '';
                                 localStorage.setItem('visionAiModelName', config.visionModelName || '');
                             }
+                            // Load token limits from server
+                            if (config.tokenLimits) {
+                                const tl = config.tokenLimits;
+                                document.getElementById('tokenLimitStep1').value = tl.step1 || 4000;
+                                document.getElementById('tokenLimitStep2').value = tl.step2 || 4000;
+                                document.getElementById('tokenLimitStep3').value = tl.step3 || 8000;
+                                document.getElementById('tokenLimitStep4').value = tl.step4 || 2000;
+                                document.getElementById('tokenLimitCorrection').value = tl.correction || 8000;
+                                document.getElementById('tokenLimitChat').value = tl.chat || 2000;
+                            }
                             return; // Successfully loaded from server
                         }
                 } catch (serverError) {
@@ -3172,6 +3226,42 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showError('Грешка при записване: ' + error.message);
             }
         }
+
+        // Save Token Limits
+        async function saveTokenLimits() {
+            const step1      = parseInt(document.getElementById('tokenLimitStep1').value);
+            const step2      = parseInt(document.getElementById('tokenLimitStep2').value);
+            const step3      = parseInt(document.getElementById('tokenLimitStep3').value);
+            const step4      = parseInt(document.getElementById('tokenLimitStep4').value);
+            const correction = parseInt(document.getElementById('tokenLimitCorrection').value);
+            const chat       = parseInt(document.getElementById('tokenLimitChat').value);
+
+            const limits = [step1, step2, step3, step4, correction, chat];
+            if (limits.some(v => !Number.isFinite(v) || v < 500)) {
+                showError('Всички лимити трябва да са числа ≥ 500!');
+                return;
+            }
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-token-limits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ step1, step2, step3, step4, correction, chat })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to save to server');
+                }
+
+                invalidateConfigCache();
+                showSuccess('Лимитите на токени са запазени успешно!');
+            } catch (error) {
+                console.error('Error saving token limits:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
 
         // Save Vision AI Model
         async function saveVisionModel() {
