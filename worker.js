@@ -6431,6 +6431,18 @@ const DEFAULT_TOKEN_LIMITS = {
   chat: 2000     // Chat responses
 };
 
+/**
+ * Parse a raw string/number value into a positive integer token limit.
+ * Returns `defaultValue` when `val` is absent, non-numeric, or ≤ 0.
+ * @param {*} val - Raw value from KV storage or request body
+ * @param {number} defaultValue - Fallback when val is invalid
+ * @returns {number}
+ */
+function parseTokenLimit(val, defaultValue) {
+  const n = parseInt(val);
+  return Number.isFinite(n) && n > 0 ? n : defaultValue;
+}
+
 async function getAdminConfig(env) {
   // Return cached config if still valid
   const now = Date.now();
@@ -6471,13 +6483,12 @@ async function getAdminConfig(env) {
     if (savedVisionModelName) config.visionModelName = savedVisionModelName;
 
     // Apply token limit overrides from KV (only use valid positive integers)
-    const parseLimit = (val, def) => { const n = parseInt(val); return Number.isFinite(n) && n > 0 ? n : def; };
-    config.tokenLimits.step1      = parseLimit(tlStep1,      DEFAULT_TOKEN_LIMITS.step1);
-    config.tokenLimits.step2      = parseLimit(tlStep2,      DEFAULT_TOKEN_LIMITS.step2);
-    config.tokenLimits.step3      = parseLimit(tlStep3,      DEFAULT_TOKEN_LIMITS.step3);
-    config.tokenLimits.step4      = parseLimit(tlStep4,      DEFAULT_TOKEN_LIMITS.step4);
-    config.tokenLimits.correction = parseLimit(tlCorrection, DEFAULT_TOKEN_LIMITS.correction);
-    config.tokenLimits.chat       = parseLimit(tlChat,       DEFAULT_TOKEN_LIMITS.chat);
+    config.tokenLimits.step1      = parseTokenLimit(tlStep1,      DEFAULT_TOKEN_LIMITS.step1);
+    config.tokenLimits.step2      = parseTokenLimit(tlStep2,      DEFAULT_TOKEN_LIMITS.step2);
+    config.tokenLimits.step3      = parseTokenLimit(tlStep3,      DEFAULT_TOKEN_LIMITS.step3);
+    config.tokenLimits.step4      = parseTokenLimit(tlStep4,      DEFAULT_TOKEN_LIMITS.step4);
+    config.tokenLimits.correction = parseTokenLimit(tlCorrection, DEFAULT_TOKEN_LIMITS.correction);
+    config.tokenLimits.chat       = parseTokenLimit(tlChat,       DEFAULT_TOKEN_LIMITS.chat);
   }
 
   // Update cache
@@ -7943,18 +7954,20 @@ async function handleSaveTokenLimits(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    const parseLimit = (val, def) => {
-      const n = parseInt(val);
-      return Number.isFinite(n) && n > 0 ? n : def;
+    // Enforce minimum value of 500 server-side to match the UI constraint
+    const MIN_TOKEN_LIMIT = 500;
+    const clampLimit = (val, def) => {
+      const n = parseTokenLimit(val, def);
+      return n < MIN_TOKEN_LIMIT ? def : n;
     };
 
     const limits = {
-      step1:      parseLimit(step1,      DEFAULT_TOKEN_LIMITS.step1),
-      step2:      parseLimit(step2,      DEFAULT_TOKEN_LIMITS.step2),
-      step3:      parseLimit(step3,      DEFAULT_TOKEN_LIMITS.step3),
-      step4:      parseLimit(step4,      DEFAULT_TOKEN_LIMITS.step4),
-      correction: parseLimit(correction, DEFAULT_TOKEN_LIMITS.correction),
-      chat:       parseLimit(chat,       DEFAULT_TOKEN_LIMITS.chat)
+      step1:      clampLimit(step1,      DEFAULT_TOKEN_LIMITS.step1),
+      step2:      clampLimit(step2,      DEFAULT_TOKEN_LIMITS.step2),
+      step3:      clampLimit(step3,      DEFAULT_TOKEN_LIMITS.step3),
+      step4:      clampLimit(step4,      DEFAULT_TOKEN_LIMITS.step4),
+      correction: clampLimit(correction, DEFAULT_TOKEN_LIMITS.correction),
+      chat:       clampLimit(chat,       DEFAULT_TOKEN_LIMITS.chat)
     };
 
     await Promise.all([
@@ -8401,7 +8414,6 @@ async function handleGetConfig(request, env) {
     ]);
     
     const parsedModificationModeEnabled = modificationModeEnabled === 'true';
-    const parseLimit = (val, def) => { const n = parseInt(val); return Number.isFinite(n) && n > 0 ? n : def; };
 
     return jsonResponse({ 
       success: true, 
@@ -8424,12 +8436,12 @@ async function handleGetConfig(request, env) {
       visionProvider: visionProvider || null,
       visionModelName: visionModelName || null,
       tokenLimits: {
-        step1:      parseLimit(tlStep1,      DEFAULT_TOKEN_LIMITS.step1),
-        step2:      parseLimit(tlStep2,      DEFAULT_TOKEN_LIMITS.step2),
-        step3:      parseLimit(tlStep3,      DEFAULT_TOKEN_LIMITS.step3),
-        step4:      parseLimit(tlStep4,      DEFAULT_TOKEN_LIMITS.step4),
-        correction: parseLimit(tlCorrection, DEFAULT_TOKEN_LIMITS.correction),
-        chat:       parseLimit(tlChat,       DEFAULT_TOKEN_LIMITS.chat)
+        step1:      parseTokenLimit(tlStep1,      DEFAULT_TOKEN_LIMITS.step1),
+        step2:      parseTokenLimit(tlStep2,      DEFAULT_TOKEN_LIMITS.step2),
+        step3:      parseTokenLimit(tlStep3,      DEFAULT_TOKEN_LIMITS.step3),
+        step4:      parseTokenLimit(tlStep4,      DEFAULT_TOKEN_LIMITS.step4),
+        correction: parseTokenLimit(tlCorrection, DEFAULT_TOKEN_LIMITS.correction),
+        chat:       parseTokenLimit(tlChat,       DEFAULT_TOKEN_LIMITS.chat)
       }
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
