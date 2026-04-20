@@ -888,6 +888,57 @@
             flex-shrink: 0;
         }
 
+        /* Health Risk items (for foods with score < 3) */
+        .health-risk-item {
+            padding: 10px 12px;
+            border-radius: var(--kid-radius-sm);
+            margin-bottom: 10px;
+            background: rgba(252, 92, 101, 0.05);
+            border: 1px solid rgba(252, 92, 101, 0.12);
+        }
+        .health-risk-item:last-child {
+            margin-bottom: 0;
+        }
+        [data-theme="dark"] .health-risk-item {
+            background: rgba(252, 92, 101, 0.08);
+            border-color: rgba(253, 122, 130, 0.15);
+        }
+        .health-risk-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .health-risk-disease {
+            font-weight: 600;
+            font-size: 0.86rem;
+            color: var(--kid-text);
+        }
+        .health-risk-pct {
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+        .health-risk-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        [data-theme="dark"] .health-risk-bar {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .health-risk-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+        .health-risk-item .risk-detail {
+            font-size: 0.78rem;
+            color: var(--kid-text-light);
+            line-height: 1.4;
+        }
+
         /* Error state */
         .error-card {
             background: var(--kid-card);
@@ -1801,6 +1852,50 @@
                     html += '<span class="risk-label">' + escapeHtml(risk.category || '') + '</span>';
                     html += '<span class="risk-detail">' + escapeHtml(risk.detail || '') + '</span>';
                     html += '</div></div>';
+                });
+                html += '</div>';
+            }
+
+            // 3b. Dangerous Substances (preservatives, colorants, flavors, artificial products)
+            if (analysis.dangerousSubstances && analysis.dangerousSubstances.length > 0) {
+                html += '<div class="result-section">';
+                html += '<h4><span class="section-emoji">☠️</span> ' +
+                    (isParent ? 'Опасни Вещества' : (selectedAge === '3-7' || selectedAge === '1-3' || selectedAge === '0-1' ? 'Лоши неща вътре! 🚫' : 'Опасни добавки')) + '</h4>';
+                analysis.dangerousSubstances.forEach(function(substance) {
+                    var subType = (substance.type || 'other').toLowerCase();
+                    var subEmoji = subType === 'preservative' ? '🧪' : subType === 'colorant' ? '🎨' : subType === 'flavor' ? '👅' : subType === 'sweetener' ? '🍭' : '⚗️';
+                    var subTypeLabel = subType === 'preservative' ? 'Консервант' : subType === 'colorant' ? 'Оцветител' : subType === 'flavor' ? 'Овкусител' : subType === 'sweetener' ? 'Подсладител' : 'Изкуствена добавка';
+                    html += '<div class="risk-item risk-high">';
+                    html += '<span class="risk-icon">' + subEmoji + '</span>';
+                    html += '<div class="risk-content">';
+                    html += '<span class="risk-label">' + escapeHtml(substance.name || '') + ' <span style="font-weight:400;font-size:0.78rem;color:var(--kid-text-muted);">(' + subTypeLabel + ')</span></span>';
+                    html += '<span class="risk-detail">' + escapeHtml(substance.detail || '') + '</span>';
+                    html += '</div></div>';
+                });
+                html += '</div>';
+            }
+
+            // 3c. Health Risks for low-scored foods (safetyScore < 3)
+            if (score < 3 && analysis.healthRisks && analysis.healthRisks.length > 0) {
+                html += '<div class="result-section">';
+                html += '<h4><span class="section-emoji">🏥</span> ' +
+                    (isParent ? 'Здравни Рискове при Честа Консумация' : (selectedAge === '3-7' || selectedAge === '1-3' || selectedAge === '0-1' ? 'Може да те разболее! 😷' : 'Здравни рискове')) + '</h4>';
+                if (isParent) {
+                    html += '<p style="font-size:0.8rem;color:var(--kid-text-muted);margin-bottom:10px;">При честа или продължителна консумация:</p>';
+                }
+                analysis.healthRisks.forEach(function(risk) {
+                    var pct = Math.round(risk.percentage || 0);
+                    var pctColor = pct >= 50 ? 'var(--kid-red)' : pct >= 25 ? 'var(--kid-orange)' : 'var(--kid-yellow)';
+                    html += '<div class="health-risk-item">';
+                    html += '<div class="health-risk-header">';
+                    html += '<span class="health-risk-disease">' + escapeHtml(risk.disease || '') + '</span>';
+                    html += '<span class="health-risk-pct" style="color:' + pctColor + ';">' + pct + '%</span>';
+                    html += '</div>';
+                    html += '<div class="health-risk-bar"><div class="health-risk-bar-fill" style="width:' + pct + '%;background:' + pctColor + ';"></div></div>';
+                    if (risk.detail) {
+                        html += '<span class="risk-detail">' + escapeHtml(risk.detail) + '</span>';
+                    }
+                    html += '</div>';
                 });
                 html += '</div>';
             }
