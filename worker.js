@@ -1898,6 +1898,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   // For Gemini: plan steps always disable thinking; other steps use admin config.
   const effectiveThinkingBudget = isPlanStep ? 0 : config.thinkingBudget;
 
+  // Sampling parameters from admin config (undefined = use each function's own default)
+  const { temperature: cfgTemp, topP: cfgTopP, topK: cfgTopK } = config;
+
   // Build request data object in memory (not written to cache here; combined with
   // the response in logAIResponse to reduce Cache API subrequests per call from 4 to 1).
   const requestData = {
@@ -1928,27 +1931,27 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       success = true;
     } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
       // Try preferred provider first
-      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
       success = true;
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget);
+      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK);
       success = true;
     } else {
       // Fallback hierarchy if preferred not available
       if (env.OPENAI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to OpenAI.');
-        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
         success = true;
       } else if (env.ANTHROPIC_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Anthropic.');
-        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement);
+        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Google Gemini.');
-        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget);
+        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK);
         success = true;
       } else {
         throw new Error('No AI provider configured. Please configure at least one provider.');
@@ -6450,7 +6453,11 @@ async function getAdminConfig(env) {
     // thinkingBudget: undefined = use hardcoded fallback, 0 = disable, N = limit
     thinkingBudget: undefined,
     visionThinkingBudget: undefined,
-    stepTokenLimits: {}
+    stepTokenLimits: {},
+    // Generation sampling parameters: undefined = use per-function defaults
+    temperature: undefined,
+    topP: undefined,
+    topK: undefined
   };
 
   if (env.page_content) {
@@ -6462,7 +6469,10 @@ async function getAdminConfig(env) {
       savedVisionModelName,
       savedThinkingBudget,
       savedVisionThinkingBudget,
-      savedStepTokenLimits
+      savedStepTokenLimits,
+      savedTemperature,
+      savedTopP,
+      savedTopK
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -6470,7 +6480,10 @@ async function getAdminConfig(env) {
       env.page_content.get('admin_vision_model_name'),
       env.page_content.get('admin_ai_thinking_budget'),
       env.page_content.get('admin_vision_thinking_budget'),
-      env.page_content.get('admin_step_token_limits')
+      env.page_content.get('admin_step_token_limits'),
+      env.page_content.get('admin_ai_temperature'),
+      env.page_content.get('admin_ai_top_p'),
+      env.page_content.get('admin_ai_top_k')
     ]);
 
     if (savedProvider) config.provider = savedProvider;
@@ -6481,6 +6494,18 @@ async function getAdminConfig(env) {
     config.visionThinkingBudget = parseThinkingBudget(savedVisionThinkingBudget);
     if (savedStepTokenLimits) {
       try { config.stepTokenLimits = JSON.parse(savedStepTokenLimits); } catch (_) {}
+    }
+    if (savedTemperature != null && savedTemperature !== '') {
+      const t = parseFloat(savedTemperature);
+      if (!isNaN(t)) config.temperature = t;
+    }
+    if (savedTopP != null && savedTopP !== '') {
+      const p = parseFloat(savedTopP);
+      if (!isNaN(p)) config.topP = p;
+    }
+    if (savedTopK != null && savedTopK !== '') {
+      const k = parseInt(savedTopK, 10);
+      if (!isNaN(k)) config.topK = k;
     }
   }
 
@@ -6640,14 +6665,19 @@ async function getChatPrompts(env) {
 /**
  * Call OpenAI API with automatic retry logic for transient errors
  */
-async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = null, jsonMode = false) {
+async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = null, jsonMode = false, temperature = undefined, topP = undefined) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
         model: modelName,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7
+        temperature: temperature !== undefined ? temperature : 0.7
       };
+      
+      // Apply top_p if specified
+      if (topP !== undefined) {
+        requestBody.top_p = topP;
+      }
       
       // Add max_tokens only if specified
       if (maxTokens) {
@@ -6768,7 +6798,7 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
 /**
  * Call Anthropic Claude API with automatic retry logic for transient errors
  */
-async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022', maxTokens = null, jsonMode = false) {
+async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022', maxTokens = null, jsonMode = false, temperature = undefined, topP = undefined, topK = undefined) {
   // Note: Claude's API does not expose a native JSON-mode parameter in this version.
   // JSON-only output is enforced via the text instruction added by enforceJSONOnlyPrompt.
   // The jsonMode parameter is accepted here for interface consistency with callOpenAI/callGemini.
@@ -6779,6 +6809,11 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: maxTokens || 8000
       };
+
+      // Apply sampling parameters if specified
+      if (temperature !== undefined) requestBody.temperature = temperature;
+      if (topP !== undefined) requestBody.top_p = topP;
+      if (topK !== undefined) requestBody.top_k = topK;
       
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -6830,7 +6865,7 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
-async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined) {
+async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
@@ -6842,6 +6877,10 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
       if (maxTokens) {
         generationConfig.maxOutputTokens = maxTokens;
       }
+      // Apply sampling parameters if specified
+      if (temperature !== undefined) generationConfig.temperature = temperature;
+      if (topP !== undefined) generationConfig.topP = topP;
+      if (topK !== undefined) generationConfig.topK = topK;
       // Thinking configuration for models that support it (e.g. Gemini 2.5 Flash/Pro).
       // thinkingBudget === undefined → use hardcoded default (disable for 2.5-flash to
       //   prevent spurious MAX_TOKENS errors from internal reasoning exhausting the budget).
@@ -7935,13 +7974,13 @@ async function handleGetDefaultPrompt(request, env) {
  */
 async function handleSaveModel(request, env) {
   try {
-    const { provider, modelName, thinkingBudget } = await request.json();
+    const { provider, modelName, thinkingBudget, temperature, topP, topK } = await request.json();
     
     if (!provider || !modelName) {
       return jsonResponse({ error: 'Missing provider or modelName' }, 400);
     }
 
-    if (!['openai', 'google', 'mock'].includes(provider)) {
+    if (!['openai', 'google', 'anthropic', 'mock'].includes(provider)) {
       return jsonResponse({ error: 'Invalid provider type' }, 400);
     }
 
@@ -7959,6 +7998,15 @@ async function handleSaveModel(request, env) {
     } else {
       puts.push(env.page_content.put('admin_ai_thinking_budget', ''));
     }
+    // temperature: null/undefined/'' → clear, number → store
+    puts.push(env.page_content.put('admin_ai_temperature',
+      (temperature !== undefined && temperature !== null && temperature !== '') ? String(temperature) : ''));
+    // topP: null/undefined/'' → clear, number → store
+    puts.push(env.page_content.put('admin_ai_top_p',
+      (topP !== undefined && topP !== null && topP !== '') ? String(topP) : ''));
+    // topK: null/undefined/'' → clear, number → store
+    puts.push(env.page_content.put('admin_ai_top_k',
+      (topK !== undefined && topK !== null && topK !== '') ? String(topK) : ''));
     await Promise.all(puts);
     
     // Invalidate cache so next request gets fresh config
@@ -8419,7 +8467,10 @@ async function handleGetConfig(request, env) {
       aiThinkingBudget,
       visionThinkingBudget,
       protocolThinkingBudget,
-      stepTokenLimits
+      stepTokenLimits,
+      aiTemperature,
+      aiTopP,
+      aiTopK
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -8442,7 +8493,10 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_ai_thinking_budget'),
       env.page_content.get('admin_vision_thinking_budget'),
       env.page_content.get('admin_protocol_thinking_budget'),
-      env.page_content.get('admin_step_token_limits')
+      env.page_content.get('admin_step_token_limits'),
+      env.page_content.get('admin_ai_temperature'),
+      env.page_content.get('admin_ai_top_p'),
+      env.page_content.get('admin_ai_top_k')
     ]);
     
     const parsedModificationModeEnabled = modificationModeEnabled === 'true';
@@ -8472,7 +8526,10 @@ async function handleGetConfig(request, env) {
       aiThinkingBudget: aiThinkingBudget || '',
       visionThinkingBudget: visionThinkingBudget || '',
       protocolThinkingBudget: protocolThinkingBudget || '',
-      stepTokenLimits: parsedStepTokenLimits
+      stepTokenLimits: parsedStepTokenLimits,
+      aiTemperature: aiTemperature || '',
+      aiTopP: aiTopP || '',
+      aiTopK: aiTopK || ''
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
