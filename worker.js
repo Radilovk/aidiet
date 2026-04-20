@@ -4013,6 +4013,8 @@ async function handleGetClientPlanStatus(request, env) {
  */
 
 // Token limits optimized through prompt simplification (not artificial limits)
+const ANALYSIS_CORE_TOKEN_LIMIT = 8000;  // Step 1A: psychologicalProfile + keyProblems + correctedMetabolism texts in Bulgarian can exceed 4000 tokens
+const STRATEGY_TOKEN_LIMIT = 8000;       // Step 2: strategy with food lists, psychological support, supplement recommendations in Bulgarian
 const MEAL_PLAN_TOKEN_LIMIT = 8000; // Sufficient for detailed meal generation
 const SUMMARY_TOKEN_LIMIT = 4000; // Summary requires min 10 recommendations + 10 forbidden + 3 psychology tips + 3 supplements in Bulgarian — 2000 was too low
 
@@ -4911,7 +4913,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const coreInputTokens = estimateTokenCount(corePrompt);
       cumulativeTokens.input += coreInputTokens;
       
-      const coreResponse = await callAIModel(env, corePrompt, 4000, 'step1a_analysis_core_regen', sessionId, data, null);
+      const coreResponse = await callAIModel(env, corePrompt, ANALYSIS_CORE_TOKEN_LIMIT, 'step1a_analysis_core_regen', sessionId, data, null);
       const coreOutputTokens = estimateTokenCount(coreResponse);
       cumulativeTokens.output += coreOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -4966,7 +4968,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       const strategyInputTokens = estimateTokenCount(strategyPrompt);
       cumulativeTokens.input += strategyInputTokens;
       
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
+      const strategyResponse = await callAIModel(env, strategyPrompt, STRATEGY_TOKEN_LIMIT, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -5203,7 +5205,7 @@ async function generatePlanMultiStep(env, data) {
     let coreResponse, coreAnalysis;
     
     try {
-      coreResponse = await callAIModel(env, corePrompt, 4000, 'step1a_analysis_core', sessionId, data, null);
+      coreResponse = await callAIModel(env, corePrompt, ANALYSIS_CORE_TOKEN_LIMIT, 'step1a_analysis_core', sessionId, data, null);
       const coreOutputTokens = estimateTokenCount(coreResponse);
       cumulativeTokens.output += coreOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -5280,7 +5282,7 @@ async function generatePlanMultiStep(env, data) {
     let strategyResponse, strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
+      strategyResponse = await callAIModel(env, strategyPrompt, STRATEGY_TOKEN_LIMIT, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
       const strategyOutputTokens = estimateTokenCount(strategyResponse);
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
@@ -6853,7 +6855,12 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
       );
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        let detail = '';
+        try {
+          const errBody = await response.json();
+          detail = errBody?.error?.message ? `: ${errBody.error.message}` : '';
+        } catch (parseError) { /* ignore parse errors */ }
+        throw new Error(`Gemini API error: ${response.status} ${response.statusText}${detail}`);
       }
 
       const data = await response.json();
@@ -6865,16 +6872,20 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
         // Check if response was blocked or filtered
         if (candidate.finishReason && candidate.finishReason !== 'STOP') {
           const reason = candidate.finishReason;
+          const partialText = candidate.content?.parts?.[0]?.text;
           
-          // MAX_TOKENS means output was truncated but content exists — return it with a warning
-          // so downstream fallbacks (e.g. summary step) can still attempt to use the partial response.
           if (reason === 'MAX_TOKENS') {
-            const partialText = candidate.content?.parts?.[0]?.text;
             if (partialText) {
-              console.warn(`Gemini MAX_TOKENS: output truncated at maxOutputTokens limit. Returning partial content (${partialText.length} chars).`);
+              // Output was truncated at the maxOutputTokens limit but content exists.
+              // Log a warning and return the partial text so the caller can decide how to handle it.
+              // NOTE: callers that expect JSON (e.g. parseAIResponse) will fail on truncated JSON —
+              // this is intentional: they will fall back to their error paths. The primary fix for
+              // MAX_TOKENS is to set a high enough token limit (ANALYSIS_CORE_TOKEN_LIMIT, etc.).
+              console.warn(`[Gemini] MAX_TOKENS: изходът е съкратен от maxOutputTokens. Връщам частично съдържание (${partialText.length} символа).`);
               return partialText;
             }
-            // No content at all — fall through to throw
+            // No content generated at all before hitting the limit.
+            throw new Error('Gemini AI достигна лимита на токени при генерирането. Моля, опитайте отново.');
           }
           
           let errorMessage = `Gemini API отказ: ${reason}`;
@@ -6882,8 +6893,6 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
             errorMessage = 'Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитайте с различни данни или контактирайте поддръжката.';
           } else if (reason === 'RECITATION') {
             errorMessage = 'Gemini AI отказа да генерира отговор поради потенциално копиране на съдържание.';
-          } else if (reason === 'MAX_TOKENS') {
-            errorMessage = 'Gemini AI достигна лимита на токени при генерирането. Моля, опитайте отново.';
           }
           
           throw new Error(errorMessage);
