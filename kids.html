@@ -1179,6 +1179,36 @@
         };
 
         // ═══════════════════════════════════════
+        // AGE HELPERS
+        // ═══════════════════════════════════════
+        // Returns gender-neutral subject string for an age group (used in verdict labels etc.)
+        function getAgeSubject(age) {
+            switch (age) {
+                case '0-1':   return 'за бебето';
+                case '1-3':   return 'за малчугана';
+                case '3-7':   return 'за детето';
+                case '7-12':  return 'за ученика';
+                case '12-16': return 'за тийнейджъра';
+                default:      return 'за младежа';
+            }
+        }
+
+        // Returns true when age group is 7 years or older
+        function isOlderAgeGroup(age) {
+            return age === '7-12' || age === '12-16' || age === '16-18';
+        }
+
+        // Returns true when age group is 7–12
+        function isSchoolAge(age) {
+            return age === '7-12';
+        }
+
+        // Returns true when age group is 12–16 or 16–18
+        function isTeenAge(age) {
+            return age === '12-16' || age === '16-18';
+        }
+
+        // ═══════════════════════════════════════
         // UI TEXT PROFILES
         // ═══════════════════════════════════════
         function getUIProfile() {
@@ -1387,11 +1417,20 @@
             // Header title
             var headerTitle = document.querySelector('.kids-header h1');
             if (headerTitle) {
-                if (!isParent && (selectedAge === '3-7' || selectedAge === '1-3' || selectedAge === '0-1')) {
-                    headerTitle.innerHTML = '<span class="header-emoji">🦸</span> KidFood AI';
+                var headerEmoji;
+                if (isParent) {
+                    if (selectedAge === '0-1' || selectedAge === '1-3') headerEmoji = '👶';
+                    else if (selectedAge === '3-7') headerEmoji = '🧒';
+                    else if (selectedAge === '7-12') headerEmoji = '📚';
+                    else if (selectedAge === '12-16') headerEmoji = '🏃';
+                    else headerEmoji = '🎓';
                 } else {
-                    headerTitle.innerHTML = '<span class="header-emoji">🧒</span> KidFood AI';
+                    if (selectedAge === '0-1' || selectedAge === '1-3' || selectedAge === '3-7') headerEmoji = '🦸';
+                    else if (selectedAge === '7-12') headerEmoji = '🕵️';
+                    else if (selectedAge === '12-16') headerEmoji = '💪';
+                    else headerEmoji = '🎯';
                 }
+                headerTitle.innerHTML = '<span class="header-emoji">' + headerEmoji + '</span> KidFood AI';
             }
 
             // Footer text adapted
@@ -1748,7 +1787,8 @@
 
             if (isParent) {
                 verdictEmoji = score >= 4 ? '✅' : score >= 2 ? '⚠️' : '🚫';
-                verdictLabel = score >= 4 ? 'Подходяща за деца' : score >= 2 ? 'С повишено внимание' : 'Неподходяща за деца';
+                var ageSubject = getAgeSubject(selectedAge);
+                verdictLabel = score >= 4 ? ('Подходяща ' + ageSubject) : score >= 2 ? 'С повишено внимание' : ('Неподходяща ' + ageSubject);
             } else {
                 // Child-friendly verdicts
                 if (selectedAge === '0-1' || selectedAge === '1-3' || selectedAge === '3-7') {
@@ -1789,10 +1829,19 @@
             // 3. Safety Risks
             if (analysis.risks && analysis.risks.length > 0) {
                 html += '<div class="result-section">';
-                html += '<h4><span class="section-emoji">🛡️</span> ' +
-                    (isParent ? 'Безопасност и Рискове' : (selectedAge === '3-7' || selectedAge === '1-3' || selectedAge === '0-1' ? 'Внимание!' : 'Рискове')) + '</h4>';
+                var safetyTitle = isParent ? 'Безопасност и Рискове'
+                    : (!isOlderAgeGroup(selectedAge)) ? 'Внимание!'
+                    : isSchoolAge(selectedAge) ? 'Рискове и Внимание'
+                    : 'Хранителни Рискове';
+                html += '<h4><span class="section-emoji">🛡️</span> ' + safetyTitle + '</h4>';
                 analysis.risks.forEach(function(risk) {
                     var riskLevel = (risk.level || 'low').toLowerCase();
+                    // For ages 7+, hide irrelevant none/low-level choking hazard entries
+                    var isOlderAge = isOlderAgeGroup(selectedAge);
+                    var isChokingHazard = risk.category && risk.category.toLowerCase().includes('задав');
+                    if (isOlderAge && isChokingHazard && (riskLevel === 'none' || riskLevel === 'low')) {
+                        return;
+                    }
                     var riskClass = 'risk-' + (riskLevel === 'high' ? 'high' : riskLevel === 'medium' ? 'medium' : riskLevel === 'none' ? 'none' : 'low');
                     var riskIcon = riskLevel === 'high' ? '🔴' : riskLevel === 'medium' ? '🟠' : riskLevel === 'none' ? '🟢' : '🟡';
                     html += '<div class="risk-item ' + riskClass + '">';
@@ -1809,8 +1858,11 @@
             if (analysis.nutrition) {
                 var n = analysis.nutrition;
                 html += '<div class="result-section">';
-                html += '<h4><span class="section-emoji">📊</span> ' +
-                    (isParent ? 'Хранителна Стойност' : 'Какво има вътре?') + '</h4>';
+                var nutritionTitle = isParent ? 'Хранителна Стойност'
+                    : (!isOlderAgeGroup(selectedAge)) ? 'Какво има вътре?'
+                    : isSchoolAge(selectedAge) ? 'Хранителни факти'
+                    : 'Хранителна стойност';
+                html += '<h4><span class="section-emoji">📊</span> ' + nutritionTitle + '</h4>';
                 html += '<div class="nutrition-grid">';
                 html += nutritionItem('🔥', Math.round(n.calories || 0), 'kcal', 'Калории');
                 html += nutritionItem('🥩', Math.round(n.protein || 0) + 'г', '', 'Протеин');
@@ -1835,7 +1887,14 @@
             if (analysis.ageNote) {
                 html += '<div class="result-section">';
                 html += '<div class="age-note">';
-                html += '<span class="age-note-emoji">👶</span>';
+                var ageNoteEmoji = selectedAge === '0-1' ? '👶'
+                    : selectedAge === '1-3' ? '🍼'
+                    : selectedAge === '3-7' ? '🧒'
+                    : selectedAge === '7-12' ? '📚'
+                    : selectedAge === '12-16' ? '💪'
+                    : selectedAge === '16-18' ? '🎓'
+                    : '💡';
+                html += '<span class="age-note-emoji">' + ageNoteEmoji + '</span>';
                 html += '<span>' + escapeHtml(analysis.ageNote) + '</span>';
                 html += '</div></div>';
             }
@@ -1843,8 +1902,11 @@
             // 6. Healthier Alternatives
             if (analysis.alternatives && analysis.alternatives.length > 0) {
                 html += '<div class="result-section">';
-                html += '<h4><span class="section-emoji">💡</span> ' +
-                    (isParent ? 'По-Здравословни Алтернативи' : 'По-добри варианти') + '</h4>';
+                var altTitle = isParent ? 'По-Здравословни Алтернативи'
+                    : (!isOlderAgeGroup(selectedAge)) ? 'По-добри варианти'
+                    : isSchoolAge(selectedAge) ? 'По-добри избори'
+                    : 'По-здравословни варианти';
+                html += '<h4><span class="section-emoji">💡</span> ' + altTitle + '</h4>';
                 html += '<ul class="alternatives-list">';
                 analysis.alternatives.forEach(function(alt) {
                     html += '<li><span class="alt-emoji">🥗</span> ' + escapeHtml(alt) + '</li>';
@@ -1855,8 +1917,11 @@
             // 7. Allergy Warnings
             if (analysis.allergens && analysis.allergens.length > 0) {
                 html += '<div class="result-section">';
-                html += '<h4><span class="section-emoji">⚠️</span> ' +
-                    (isParent ? 'Потенциални Алергени' : 'Внимание за алергии!') + '</h4>';
+                var allergenTitle = isParent ? 'Потенциални Алергени'
+                    : (!isOlderAgeGroup(selectedAge)) ? 'Внимание за алергии!'
+                    : isSchoolAge(selectedAge) ? 'Алергени — внимавай!'
+                    : 'Потенциални алергени';
+                html += '<h4><span class="section-emoji">⚠️</span> ' + allergenTitle + '</h4>';
                 analysis.allergens.forEach(function(allergen) {
                     html += '<div class="risk-item risk-medium">';
                     html += '<span class="risk-icon">⚠️</span>';
