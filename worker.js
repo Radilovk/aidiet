@@ -6835,6 +6835,13 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
       if (maxTokens) {
         generationConfig.maxOutputTokens = maxTokens;
       }
+      // Gemini 2.5 Flash is a "thinking" model: thinking tokens are deducted from the
+      // maxOutputTokens budget, so a 4000-token limit can be exhausted entirely by internal
+      // reasoning, leaving 0 tokens for the actual response (finishReason: MAX_TOKENS).
+      // Disabling thinking ensures the full token budget is available for output.
+      if (modelName.includes('gemini-2.5-flash')) {
+        generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      }
       // Enforce JSON-only output at the API level to prevent markdown-wrapped responses
       if (jsonMode) {
         generationConfig.responseMimeType = 'application/json';
