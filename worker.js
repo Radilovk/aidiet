@@ -6495,15 +6495,15 @@ async function getAdminConfig(env) {
     if (savedStepTokenLimits) {
       try { config.stepTokenLimits = JSON.parse(savedStepTokenLimits); } catch (_) {}
     }
-    if (savedTemperature !== null && savedTemperature !== '' && savedTemperature != null) {
+    if (savedTemperature != null && savedTemperature !== '') {
       const t = parseFloat(savedTemperature);
       if (!isNaN(t)) config.temperature = t;
     }
-    if (savedTopP !== null && savedTopP !== '' && savedTopP != null) {
+    if (savedTopP != null && savedTopP !== '') {
       const p = parseFloat(savedTopP);
       if (!isNaN(p)) config.topP = p;
     }
-    if (savedTopK !== null && savedTopK !== '' && savedTopK != null) {
+    if (savedTopK != null && savedTopK !== '') {
       const k = parseInt(savedTopK, 10);
       if (!isNaN(k)) config.topK = k;
     }
