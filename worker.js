@@ -7267,7 +7267,7 @@ async function handleAnalyzeKidsFoodImage(request, env) {
     // Role context
     const isParent = userRole === 'parent';
     const roleInstruction = isParent
-      ? 'Отговори е насочен към РОДИТЕЛ — използвай професионален, информативен тон с медицинска терминология.'
+      ? 'Отговорът е насочен към РОДИТЕЛ — използвай професионален, информативен тон с медицинска терминология.'
       : 'Отговорът е насочен към ДЕТЕ/ТИЙНЕЙДЖЪР — използвай достъпен, приятелски тон, подходящ за възрастта.';
 
     // Health risks instruction for low-scored foods
