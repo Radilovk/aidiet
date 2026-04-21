@@ -332,6 +332,20 @@
             font-weight: 700;
         }
 
+        /* Auto-advance accepted animation */
+        @keyframes optionAccepted {
+            0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(13,148,136,0.45); }
+            40%  { transform: scale(1.035); box-shadow: 0 0 0 8px rgba(13,148,136,0.15); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(13,148,136,0); }
+        }
+        .option-label.auto-accepted {
+            animation: optionAccepted 0.55s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+            border-color: var(--primary-red);
+            background-color: var(--soft-red);
+            color: var(--primary-red);
+            font-weight: 700;
+        }
+
         /* Textarea */
         textarea.modern-input {
             min-height: 120px;
@@ -2622,14 +2636,17 @@
 
         // --- LOGIC HANDLERS ---
 
+        // Timer ID for pending auto-advance (so it can be cancelled if needed)
+        let _autoAdvanceTimer = null;
+
         function handleSelection(e, qId, type, labelElem) {
             const val = e.target.value;
             const currentStep = currentQueue[currentIndex];
             
             if (type === 'radio') {
-                // Remove selected class from others
+                // Remove selected/auto-accepted class from all options
                 document.querySelectorAll(`input[name="${qId}"]`).forEach(inp => {
-                    inp.parentElement.classList.remove('selected');
+                    inp.parentElement.classList.remove('selected', 'auto-accepted');
                 });
                 labelElem.classList.add('selected');
                 saveAnswer(qId, val);
@@ -2642,6 +2659,19 @@
                     } else {
                         otherContainer.classList.remove('active');
                     }
+                }
+
+                // Auto-advance: only when this answer does NOT open a child question/text field
+                const opensChild = currentStep.children && currentStep.children[val] && currentStep.children[val].length > 0;
+                if (!opensChild) {
+                    // Cancel any pending auto-advance from a previous selection
+                    if (_autoAdvanceTimer) clearTimeout(_autoAdvanceTimer);
+                    // Play acceptance animation on selected label
+                    labelElem.classList.add('auto-accepted');
+                    _autoAdvanceTimer = setTimeout(() => {
+                        _autoAdvanceTimer = null;
+                        if (!nextBtn.disabled) nextStep();
+                    }, 600);
                 }
             } 
             else if (type === 'checkbox') {
@@ -2843,6 +2873,8 @@
         // --- NAVIGATION & BRANCHING ---
 
         function nextStep() {
+            // Cancel any pending auto-advance timer
+            if (_autoAdvanceTimer) { clearTimeout(_autoAdvanceTimer); _autoAdvanceTimer = null; }
             const currentQ = currentQueue[currentIndex];
             
             // DYNAMIC SUB-QUESTIONS: Inject sub-questions based on goal × condition after goal/lossKg
@@ -2926,6 +2958,8 @@
         }
 
         function prevStep() {
+            // Cancel any pending auto-advance timer
+            if (_autoAdvanceTimer) { clearTimeout(_autoAdvanceTimer); _autoAdvanceTimer = null; }
             if (currentIndex > 0) {
                 currentIndex--;
                 
