@@ -1548,6 +1548,46 @@
         .bottom-nav-item:hover:not(.active) {
             background: rgba(13, 148, 136, 0.05);
         }
+
+        /* --- PENDING PLAN NOTICE (questionnaire 2 flow) --- */
+        .pending-notice {
+            margin-bottom: 20px;
+        }
+        .pending-notice-inner {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            background: linear-gradient(135deg, #fef9c3, #fef3c7);
+            border: 1px solid #fcd34d;
+            border-radius: 16px;
+            padding: 18px 20px;
+        }
+        .pending-notice-inner i {
+            font-size: 24px;
+            color: #d97706;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .pending-notice-inner strong {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 4px;
+        }
+        .pending-notice-inner p {
+            font-size: 0.85rem;
+            color: #b45309;
+            line-height: 1.45;
+            margin: 0;
+        }
+        [data-theme="dark"] .pending-notice-inner {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(251, 191, 36, 0.06));
+            border-color: rgba(251, 191, 36, 0.25);
+        }
+        [data-theme="dark"] .pending-notice-inner strong { color: #fcd34d; }
+        [data-theme="dark"] .pending-notice-inner p { color: #fbbf24; }
+        [data-theme="dark"] .pending-notice-inner i { color: #fbbf24; }
     </style>
 </head>
 <body>
@@ -1683,9 +1723,9 @@
             </div>
         </div>
 
-        <div class="cta-section">
-            <h2>Готови ли сте за промяна?</h2>
-            <p>Създадохме персонализиран хранителен план, който ще ви помогне да преодолеете тези предизвикателства и да постигнете целите си.</p>
+        <div class="cta-section" id="ctaSection">
+            <h2 id="ctaTitle">Готови ли сте за промяна?</h2>
+            <p id="ctaSubtitle">Създадохме персонализиран хранителен план, който ще ви помогне да преодолеете тези предизвикателства и да постигнете целите си.</p>
             <button class="btn-primary" onclick="goToPlan()">
                 Виж Хранителния План
                 <i class="fas fa-arrow-right"></i>
@@ -2108,6 +2148,44 @@
             loadAnalysis();
             // Animate meters after a short delay
             setTimeout(animateMeters, 500);
+
+            // Hide bottom-nav and adapt CTA when coming from questionnaire 2
+            const planSource = localStorage.getItem('planSource');
+            if (planSource === 'questionnaire2') {
+                const nav = document.querySelector('.bottom-nav');
+                if (nav) nav.style.display = 'none';
+
+                // Reduce body padding-bottom since nav is hidden
+                document.body.style.paddingBottom = '32px';
+
+                // Update CTA heading and subtitle
+                const ctaTitle = document.getElementById('ctaTitle');
+                const ctaSubtitle = document.getElementById('ctaSubtitle');
+                if (ctaTitle) ctaTitle.textContent = 'Анализът ви е готов!';
+                if (ctaSubtitle) ctaSubtitle.textContent = 'Нашият специалист ще прегледа данните ви и ще изготви напълно персонализиран хранителен пакет.';
+
+                // Inject a pending-plan notice above the CTA
+                const ctaSection = document.getElementById('ctaSection');
+                if (ctaSection) {
+                    const notice = document.createElement('div');
+                    notice.className = 'pending-notice';
+                    notice.innerHTML = `
+                        <div class="pending-notice-inner">
+                            <i class="fas fa-hourglass-half"></i>
+                            <div>
+                                <strong>Планът ви предстои да бъде одобрен</strong>
+                                <p>Нашият специалист ще прегледа данните ви и ще активира плана. Ще получите известие по имейл.</p>
+                            </div>
+                        </div>`;
+                    ctaSection.insertBefore(notice, ctaSection.firstChild);
+
+                    // Change the CTA button to reflect pending state
+                    const btn = ctaSection.querySelector('.btn-primary');
+                    if (btn) {
+                        btn.innerHTML = '<i class="fas fa-hourglass-half"></i> Виж статуса на плана';
+                    }
+                }
+            }
         });
     </script>
     <!-- Bottom Navigation -->
