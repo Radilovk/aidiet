@@ -1733,14 +1733,14 @@
                 break-before: auto;
             }
 
-            #questionnaireQAContainer .page {
+            .qa-data-page {
                 page-break-before: auto;
                 break-before: auto;
                 padding-top: 14pt;
                 border-top: 1pt solid var(--slate-200);
             }
 
-            #questionnaireQAContainer .page:first-child {
+            .qa-data-page.first-qa-page {
                 page-break-before: always;
                 break-before: page;
                 border-top: none;
@@ -1990,10 +1990,6 @@
             </div>
         </div>
 
-        <!-- ===================== PAGES: QUESTIONNAIRE Q&A ===================== -->
-        <div id="questionnaireQAContainer">
-            <!-- Populated by JS: one or more .page elements with questionnaire Q&A -->
-        </div>
 
     </div><!-- /.book -->
 
@@ -2141,7 +2137,6 @@
                 renderSupplements(dietPlan);
                 renderHacks(dietPlan);
                 renderUserData(userData, qaData);
-                renderQuestionnaireQA(Object.assign({}, userData, qaData));
                 renderTOC();
 
             } catch (err) {
@@ -2676,16 +2671,13 @@
                     '<div class="data-value">' + esc(c.value) + '</div>' +
                     '</div>';
             }).join('');
-        }
 
-        // ===== QUESTIONNAIRE Q&A =====
-
-        function renderQuestionnaireQA(qaData) {
-            var container = document.getElementById('questionnaireQAContainer');
-
-            if (!qaData || Object.keys(qaData).length === 0) {
-                container.innerHTML = '';
-                return;
+            // Remove any previously inserted Q&A pages
+            var nextEl = page.nextElementSibling;
+            while (nextEl && nextEl.classList.contains('qa-data-page')) {
+                var toRemove = nextEl;
+                nextEl = nextEl.nextElementSibling;
+                toRemove.parentNode.removeChild(toRemove);
             }
 
             // Question mapping: id -> question text (matching questionnaire2.html)
@@ -2758,7 +2750,7 @@
             // Process ordered keys first
             orderedKeys.forEach(function(key) {
                 if (usedKeys[key] || skipKeys.indexOf(key) >= 0) return;
-                var val = qaData[key];
+                var val = data[key];
                 if (val === undefined || val === null || val === '') return;
                 if (typeof val === 'string' && val.trim() === '') return;
                 // Skip machine-readable protocol identifiers
@@ -2768,9 +2760,9 @@
             });
 
             // Then add any remaining keys (dynamic questions, condition-specific, etc.)
-            Object.keys(qaData).forEach(function(key) {
+            Object.keys(data).forEach(function(key) {
                 if (usedKeys[key] || skipKeys.indexOf(key) >= 0) return;
-                var val = qaData[key];
+                var val = data[key];
                 if (val === undefined || val === null || val === '') return;
                 if (typeof val === 'string' && val.trim() === '') return;
                 usedKeys[key] = true;
@@ -2778,8 +2770,6 @@
                 // Generate a readable label for dynamic question keys (dq_*)
                 var label = questionLabels[key] || key;
                 if (key.indexOf('dq_') === 0) {
-                    // These are dynamic questionnaire keys - use the key as-is
-                    // but try to make it more readable
                     label = key.replace(/^dq_/, '').replace(/_/g, ' ');
                     label = label.charAt(0).toUpperCase() + label.slice(1);
                 }
@@ -2787,72 +2777,68 @@
                 qaItems.push({ key: key, question: label, answer: val });
             });
 
-            if (qaItems.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
+            if (qaItems.length === 0) return;
 
             // Group items into pages (14 items per page to fit A4 nicely)
             var ITEMS_PER_PAGE = 14;
-            var pages = [];
+            var qaPages = [];
             for (var i = 0; i < qaItems.length; i += ITEMS_PER_PAGE) {
-                pages.push(qaItems.slice(i, i + ITEMS_PER_PAGE));
+                qaPages.push(qaItems.slice(i, i + ITEMS_PER_PAGE));
             }
 
-            var html = '';
-            pages.forEach(function(pageItems, pageIdx) {
-                html += '<div class="page">';
+            var qaHtml = '';
+            qaPages.forEach(function(pageItems, pageIdx) {
+                qaHtml += '<div class="page qa-data-page' + (pageIdx === 0 ? ' first-qa-page' : '') + '">';
 
-                // Header on first page only (or a continuation header on subsequent pages)
                 if (pageIdx === 0) {
-                    html += '<div class="section-header">';
-                    html += '<div class="section-icon green"><i class="fas fa-clipboard-list"></i></div>';
-                    html += '<div>';
-                    html += '<div class="section-title">Въпросник — Въпроси и Отговори</div>';
-                    html += '<div class="section-subtitle">Пълна информация от здравния въпросник на клиента</div>';
-                    html += '</div>';
-                    html += '</div>';
-                    html += '<div class="qa-section-intro"><p>По-долу са представени всички въпроси от здравния въпросник заедно с отговорите, предоставени от клиента.</p></div>';
+                    qaHtml += '<div class="section-header">';
+                    qaHtml += '<div class="section-icon green"><i class="fas fa-clipboard-list"></i></div>';
+                    qaHtml += '<div>';
+                    qaHtml += '<div class="section-title">Въпросник — Въпроси и Отговори</div>';
+                    qaHtml += '<div class="section-subtitle">Пълна информация от здравния въпросник на клиента</div>';
+                    qaHtml += '</div>';
+                    qaHtml += '</div>';
+                    qaHtml += '<div class="qa-section-intro"><p>По-долу са представени всички въпроси от здравния въпросник заедно с отговорите, предоставени от клиента.</p></div>';
                 } else {
-                    html += '<div class="section-header">';
-                    html += '<div class="section-icon green"><i class="fas fa-clipboard-list"></i></div>';
-                    html += '<div>';
-                    html += '<div class="section-title">Въпросник — Продължение</div>';
-                    html += '<div class="section-subtitle">Страница ' + (pageIdx + 1) + ' от ' + pages.length + '</div>';
-                    html += '</div>';
-                    html += '</div>';
+                    qaHtml += '<div class="section-header">';
+                    qaHtml += '<div class="section-icon green"><i class="fas fa-clipboard-list"></i></div>';
+                    qaHtml += '<div>';
+                    qaHtml += '<div class="section-title">Въпросник — Продължение</div>';
+                    qaHtml += '<div class="section-subtitle">Страница ' + (pageIdx + 1) + ' от ' + qaPages.length + '</div>';
+                    qaHtml += '</div>';
+                    qaHtml += '</div>';
                 }
 
                 pageItems.forEach(function(item) {
-                    html += '<div class="qa-item">';
-                    html += '<div class="qa-question"><i class="fas fa-chevron-right"></i> ' + esc(item.question) + '</div>';
+                    qaHtml += '<div class="qa-item">';
+                    qaHtml += '<div class="qa-question"><i class="fas fa-chevron-right"></i> ' + esc(item.question) + '</div>';
 
                     if (Array.isArray(item.answer)) {
                         var filtered = item.answer.filter(Boolean);
                         if (filtered.length > 0) {
-                            html += '<div class="qa-answer multi-answer">';
+                            qaHtml += '<div class="qa-answer multi-answer">';
                             filtered.forEach(function(a) {
-                                html += '<span class="qa-answer-tag">' + esc(a) + '</span>';
+                                qaHtml += '<span class="qa-answer-tag">' + esc(a) + '</span>';
                             });
-                            html += '</div>';
+                            qaHtml += '</div>';
                         } else {
-                            html += '<div class="qa-answer">—</div>';
+                            qaHtml += '<div class="qa-answer">—</div>';
                         }
                     } else {
-                        html += '<div class="qa-answer">' + escNl(String(item.answer)) + '</div>';
+                        qaHtml += '<div class="qa-answer">' + escNl(String(item.answer)) + '</div>';
                     }
 
-                    html += '</div>';
+                    qaHtml += '</div>';
                 });
 
-                html += '<div class="page-footer">';
-                html += '<div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>';
-                html += '<div>Въпросник — стр. ' + (pageIdx + 1) + ' / ' + pages.length + '</div>';
-                html += '</div>';
-                html += '</div>';
+                qaHtml += '<div class="page-footer">';
+                qaHtml += '<div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>';
+                qaHtml += '<div>Въпросник — стр. ' + (pageIdx + 1) + ' / ' + qaPages.length + '</div>';
+                qaHtml += '</div>';
+                qaHtml += '</div>';
             });
 
-            container.innerHTML = html;
+            page.insertAdjacentHTML('afterend', qaHtml);
         }
 
         // ===== TABLE OF CONTENTS =====
@@ -2907,8 +2893,8 @@
                 items.push({ title: 'Потребителски Данни', page: pageNum });
             }
 
-            // Count questionnaire Q&A pages
-            var qaPages = document.getElementById('questionnaireQAContainer').querySelectorAll('.page');
+            // Count questionnaire Q&A pages (inserted after userDataPage)
+            var qaPages = document.querySelectorAll('.qa-data-page');
             if (qaPages.length > 0) {
                 pageNum++;
                 items.push({ title: 'Въпросник — Въпроси и Отговори', page: pageNum });
