@@ -3251,9 +3251,19 @@ async function handleGeneratePlan(request, env) {
     // If a clinical protocol is selected, map its goal and ensure data.goal is set
     const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
     if (clinicalProtocol) {
+      // For postpartum_lactation, synthesize goal from postpartumGoal if available
+      if (data.clinicalProtocol === 'postpartum_lactation' && data.postpartumGoal) {
+        data.goal = Array.isArray(data.postpartumGoal)
+          ? data.postpartumGoal.join(' + ')
+          : data.postpartumGoal;
+      }
       // Use protocol's goalMapping as the goal if not explicitly set
       if (!data.goal) {
         data.goal = clinicalProtocol.goalMapping;
+      }
+      // Auto-populate medicalConditions from protocol name if the user skipped that question
+      if (!data.medicalConditions || data.medicalConditions.length === 0) {
+        data.medicalConditions = [clinicalProtocol.name];
       }
     }
     
@@ -5972,6 +5982,15 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       drinksSweet: data.drinksSweet || '',
       drinksAlcohol: data.drinksAlcohol || '',
       dietHistory: data.dietHistory || '',
+      dietHistoryType: data.dietType || '',
+      dietHistoryResult: data.dietResult || '',
+      medications: data.medications || 'Не',
+      medicationsDetails: data.medicationsDetails || '',
+      medicationsText: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'Не приема',
+      weightChange: data.weightChange || '',
+      weightChangeDetails: data.weightChangeDetails || '',
+      medicalConditionsText: (data.medicalConditions || []).join(', ') || 'Няма',
+      allGoals: Array.isArray(data.goal) ? data.goal.join(', ') : (data.goal || ''),
       stressLevel: data.stressLevel || '',
       sleepHours: data.sleepHours || '',
       TEMPERAMENT_CONFIDENCE_THRESHOLD,

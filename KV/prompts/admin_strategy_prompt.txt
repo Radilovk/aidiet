@@ -1,12 +1,14 @@
 Ти си експертен диетолог. Определи оптималната диетична стратегия за {name} на базата на завършения анализ.
 
-ПРОФИЛ: {name}, {age} год. | Цел: {goal} | BMI: {bmi} | Калории: {realTDEE} kcal/ден | Здраве: {medicalConditions}
+ПРОФИЛ: {name}, {age} год. | Цел: {goal} | BMI: {bmi} | Калории: {realTDEE} kcal/ден | Здраве: {medicalConditionsText}
 Отправна точка за макроси (Стъпка 1): Б≈{macroProteinG}г / В≈{macroCarbsG}г / М≈{macroFatsG}г ({macroProteinPct}%/{macroCarbsPct}%/{macroFatsPct}%) — може да бъдат коригирани спрямо избрания тип диета
 Темперамент: {temperament} ({temperamentProbability}% вероятност)
 Предпочитания: {dietPreference} | Нежелани: {dietDislike} | Любими: {dietLove}
 Хранителни навици: {eatingHabits} | Хронотип: {chronotype} | Стрес: {stressLevel} | Сън: {sleepHours}ч
 Хранително поведение: Преяждане — {overeatingFrequency} | Желания: {foodCravings} | Тригери: {foodTriggers} | Компенсация: {compensationMethods}
-Напитки: Сладко — {drinksSweet} | Алкохол — {drinksAlcohol} | История с диети: {dietHistory}
+Напитки: Сладко — {drinksSweet} | Алкохол — {drinksAlcohol} | История с диети: {dietHistory} | Тип диета: {dietHistoryType} | Резултат: {dietHistoryResult}
+Лекарства: {medicationsText}
+Промяна в тегло: {weightChange}{weightChangeDetails}
 
 {additionalNotesSection}
 {clinicalProtocolSection}
