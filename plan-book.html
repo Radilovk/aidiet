@@ -1733,19 +1733,6 @@
                 break-before: auto;
             }
 
-            .qa-data-page {
-                page-break-before: auto;
-                break-before: auto;
-                padding-top: 14pt;
-                border-top: 1pt solid var(--slate-200);
-            }
-
-            .qa-data-page.first-qa-page {
-                page-break-before: always;
-                break-before: page;
-                border-top: none;
-            }
-
             .qa-section-intro {
                 padding: 12pt 18pt;
                 margin-bottom: 14pt;
@@ -2672,173 +2659,6 @@
                     '</div>';
             }).join('');
 
-            // Remove any previously inserted Q&A pages
-            var nextEl = page.nextElementSibling;
-            while (nextEl && nextEl.classList.contains('qa-data-page')) {
-                var toRemove = nextEl;
-                nextEl = nextEl.nextElementSibling;
-                toRemove.parentNode.removeChild(toRemove);
-            }
-
-            // Question mapping: id -> question text (matching questionnaire2.html)
-            var questionLabels = {
-                'name': 'Въведете вашето име:',
-                'firstName': 'Въведете вашето име:',
-                'lastName': 'Фамилия:',
-                'gender': 'Моля, изберете вашия пол:',
-                'age': 'Въведете вашата възраст:',
-                'height': 'Въведете вашия ръст (в см):',
-                'weight': 'Въведете вашето тегло (в кг):',
-                'email': 'Въведете вашия имейл адрес:',
-                'healthConditions': 'Имате ли някое от следните здравословни състояния?',
-                'goal': 'Изберете основната си цел:',
-                'lossKg': 'Колко килограма бихте искали да свалите?',
-                'sleepHours': 'Колко часа сън имате средно на нощ?',
-                'sleepInterrupt': 'Имате ли прекъсвания на съня?',
-                'chronotype': 'Вашият хронотип:',
-                'dailyActivityLevel': 'Ниво на активност през деня:',
-                'stressLevel': 'Ниво на стрес:',
-                'sportActivity': 'Ниво на спортна активност:',
-                'waterIntake': 'Колко вода пиете дневно?',
-                'drinksSweet': 'Сокове, газирани напитки, фрешове:',
-                'drinksAlcohol': 'Напитки с алкохолно съдържание:',
-                'weightChange': 'Имали ли сте рязко покачване на теглото или отслабване в последната една година?',
-                'weightChangeDetails': 'Колко килограма, за колко време, и как се справихте с промяната?',
-                'dietHistory': 'Спазвали ли сте диета през последната година?',
-                'dietType': 'Какъв тип диета?',
-                'dietResult': 'Какъв беше резултатът?',
-                'overeatingFrequency': 'Колко често ядете повече от планираното количество?',
-                'foodCravings': 'Често изпитвате нужда от:',
-                'foodTriggers': 'Кои ситуации предизвикват желание за храна?',
-                'eatingHabits': 'Кои от следните хранителни навици присъстват при вас?',
-                'compensationMethods': 'Използвате ли методи за компенсация след прекомерно хранене?',
-                'socialComparison': 'Колко често се сравнявате с други хора (вкл. социални мрежи)?',
-                'dietPreference': 'Предпочитани храни и тип диета:',
-                'dietDislike': 'Не обичам, имам непоносимост или алергия към:',
-                'dietLove': 'Не мога без, обичам:',
-                'medications': 'Приемате ли лекарства или хранителни добавки?',
-                'medicationsDetails': 'Кои и в каква дозировка?',
-                'additionalNotes': 'Допълнителни бележки:',
-                'clinicalProtocol': 'Клиничен протокол:',
-                'medicalConditions': 'Медицински състояния:',
-                'sportDays': 'Спортни дни в седмицата:'
-            };
-
-            // Ordered keys for display
-            var orderedKeys = [
-                'name', 'firstName', 'lastName', 'gender', 'age', 'height', 'weight', 'email',
-                'goal', 'lossKg', 'healthConditions', 'medicalConditions', 'clinicalProtocol',
-                'sleepHours', 'sleepInterrupt', 'chronotype',
-                'dailyActivityLevel', 'stressLevel', 'sportActivity', 'sportDays',
-                'waterIntake', 'drinksSweet', 'drinksAlcohol',
-                'weightChange', 'weightChangeDetails',
-                'dietHistory', 'dietType', 'dietResult',
-                'overeatingFrequency', 'foodCravings', 'foodTriggers',
-                'eatingHabits', 'compensationMethods', 'socialComparison',
-                'dietPreference', 'dietDislike', 'dietLove',
-                'medications', 'medicationsDetails',
-                'additionalNotes'
-            ];
-
-            // Skip internal/technical fields
-            var skipKeys = ['medicalFiles', 'planSource', 'timestamp', 'version'];
-
-            // Build QA items
-            var qaItems = [];
-            var usedKeys = {};
-
-            // Process ordered keys first
-            orderedKeys.forEach(function(key) {
-                if (usedKeys[key] || skipKeys.indexOf(key) >= 0) return;
-                var val = data[key];
-                if (val === undefined || val === null || val === '') return;
-                if (typeof val === 'string' && val.trim() === '') return;
-                // Skip machine-readable protocol identifiers
-                if (key === 'clinicalProtocol' && /^[a-z_]+$/.test(val)) return;
-                usedKeys[key] = true;
-                qaItems.push({ key: key, question: questionLabels[key] || key, answer: val });
-            });
-
-            // Then add any remaining keys (dynamic questions, condition-specific, etc.)
-            Object.keys(data).forEach(function(key) {
-                if (usedKeys[key] || skipKeys.indexOf(key) >= 0) return;
-                var val = data[key];
-                if (val === undefined || val === null || val === '') return;
-                if (typeof val === 'string' && val.trim() === '') return;
-                usedKeys[key] = true;
-
-                // Generate a readable label for dynamic question keys (dq_*)
-                var label = questionLabels[key] || key;
-                if (key.indexOf('dq_') === 0) {
-                    label = key.replace(/^dq_/, '').replace(/_/g, ' ');
-                    label = label.charAt(0).toUpperCase() + label.slice(1);
-                }
-
-                qaItems.push({ key: key, question: label, answer: val });
-            });
-
-            if (qaItems.length === 0) return;
-
-            // Group items into pages (14 items per page to fit A4 nicely)
-            var ITEMS_PER_PAGE = 14;
-            var qaPages = [];
-            for (var i = 0; i < qaItems.length; i += ITEMS_PER_PAGE) {
-                qaPages.push(qaItems.slice(i, i + ITEMS_PER_PAGE));
-            }
-
-            var qaHtml = '';
-            qaPages.forEach(function(pageItems, pageIdx) {
-                qaHtml += '<div class="page qa-data-page' + (pageIdx === 0 ? ' first-qa-page' : '') + '">';
-
-                if (pageIdx === 0) {
-                    qaHtml += '<div class="section-header">';
-                    qaHtml += '<div class="section-icon green"><i class="fas fa-clipboard-list"></i></div>';
-                    qaHtml += '<div>';
-                    qaHtml += '<div class="section-title">Въпросник — Въпроси и Отговори</div>';
-                    qaHtml += '<div class="section-subtitle">Пълна информация от здравния въпросник на клиента</div>';
-                    qaHtml += '</div>';
-                    qaHtml += '</div>';
-                    qaHtml += '<div class="qa-section-intro"><p>По-долу са представени всички въпроси от здравния въпросник заедно с отговорите, предоставени от клиента.</p></div>';
-                } else {
-                    qaHtml += '<div class="section-header">';
-                    qaHtml += '<div class="section-icon green"><i class="fas fa-clipboard-list"></i></div>';
-                    qaHtml += '<div>';
-                    qaHtml += '<div class="section-title">Въпросник — Продължение</div>';
-                    qaHtml += '<div class="section-subtitle">Страница ' + (pageIdx + 1) + ' от ' + qaPages.length + '</div>';
-                    qaHtml += '</div>';
-                    qaHtml += '</div>';
-                }
-
-                pageItems.forEach(function(item) {
-                    qaHtml += '<div class="qa-item">';
-                    qaHtml += '<div class="qa-question"><i class="fas fa-chevron-right"></i> ' + esc(item.question) + '</div>';
-
-                    if (Array.isArray(item.answer)) {
-                        var filtered = item.answer.filter(Boolean);
-                        if (filtered.length > 0) {
-                            qaHtml += '<div class="qa-answer multi-answer">';
-                            filtered.forEach(function(a) {
-                                qaHtml += '<span class="qa-answer-tag">' + esc(a) + '</span>';
-                            });
-                            qaHtml += '</div>';
-                        } else {
-                            qaHtml += '<div class="qa-answer">—</div>';
-                        }
-                    } else {
-                        qaHtml += '<div class="qa-answer">' + escNl(String(item.answer)) + '</div>';
-                    }
-
-                    qaHtml += '</div>';
-                });
-
-                qaHtml += '<div class="page-footer">';
-                qaHtml += '<div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>';
-                qaHtml += '<div>Въпросник — стр. ' + (pageIdx + 1) + ' / ' + qaPages.length + '</div>';
-                qaHtml += '</div>';
-                qaHtml += '</div>';
-            });
-
-            page.insertAdjacentHTML('afterend', qaHtml);
         }
 
         // ===== TABLE OF CONTENTS =====
@@ -2891,14 +2711,6 @@
             if (document.getElementById('userDataPage').style.display !== 'none') {
                 pageNum++;
                 items.push({ title: 'Потребителски Данни', page: pageNum });
-            }
-
-            // Count questionnaire Q&A pages (inserted after userDataPage)
-            var qaPages = document.querySelectorAll('.qa-data-page');
-            if (qaPages.length > 0) {
-                pageNum++;
-                items.push({ title: 'Въпросник — Въпроси и Отговори', page: pageNum });
-                pageNum += qaPages.length - 1;
             }
 
             var tocList = document.getElementById('tocList');
