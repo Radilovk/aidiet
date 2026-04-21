@@ -1328,6 +1328,12 @@ async function handleValidateQuestionnaire(request, env) {
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
+
+    // Normalize goal: questionnaire2.html sends it as an array (e.g. ["Отслабване"]).
+    // All downstream code expects a string, so join the array elements here.
+    if (Array.isArray(data.goal)) {
+      data.goal = data.goal.join(', ');
+    }
     
     // Step 1: Run existing deterministic validations
     const dataValidation = validateDataAdequacy(data);

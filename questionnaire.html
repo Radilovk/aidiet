@@ -2256,13 +2256,19 @@
                 }, 360000);
 
                 console.log('Sending request to backend...');
+                // Normalize goal to string in case it was restored from localStorage as an array
+                // (e.g. answers previously saved by questionnaire2.html which uses checkbox for goal)
+                const planAnswers = Object.assign({}, answers);
+                if (Array.isArray(planAnswers.goal)) {
+                    planAnswers.goal = planAnswers.goal.join(', ');
+                }
                 // Submit data to backend
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(answers),
+                    body: JSON.stringify(planAnswers),
                     signal: controller.signal
                 });
 
