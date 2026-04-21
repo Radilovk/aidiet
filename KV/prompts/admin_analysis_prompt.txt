@@ -177,11 +177,11 @@ correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
   "keyProblems": [
     {
       "title": "заглавие (кратко)",
-      "description": "кратко обяснение защо е проблем",
+      "description": "(към клиента) кратко обяснение защо е проблем",
       "severity": "Borderline/Risky/Critical",
       "severityValue": число 0-100,
       "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical",
-      "impact": "въздействие върху здравето и целта"
+      "impact": "(към клиента) въздействие върху здравето и целта"
     }
   ]
 }
