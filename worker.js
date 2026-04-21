@@ -1882,8 +1882,6 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
   const config = await getAdminConfig(env);
-  const preferredProvider = config.provider;
-  const modelName = config.modelName;
 
   // Apply per-step token limit override if configured by admin
   const stepKey = getStepKey(stepName);
@@ -1891,15 +1889,31 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     maxTokens = config.stepTokenLimits[stepKey];
   }
 
+  // Chat steps use chat-specific model settings when configured; otherwise fall back to plan settings.
+  const isChatStep = stepKey === 'chat';
+  const preferredProvider = (isChatStep && config.chatProvider) ? config.chatProvider : config.provider;
+  const modelName = (isChatStep && config.chatModelName) ? config.chatModelName : config.modelName;
+
   // Plan generation steps (step1–4 and their fallbacks) must always run on the same
   // configured model without thinking to ensure consistency and prevent MAX_TOKENS
   // errors caused by internal reasoning consuming the token budget.
   const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4'].includes(stepKey);
-  // For Gemini: plan steps always disable thinking; other steps use admin config.
-  const effectiveThinkingBudget = isPlanStep ? 0 : config.thinkingBudget;
+  // For chat steps, use chat-specific thinking budget if set.
+  // For plan steps, always disable thinking. For other steps, use plan config.
+  const effectiveThinkingBudget = isPlanStep ? 0
+    : isChatStep ? (config.chatThinkingBudget !== undefined ? config.chatThinkingBudget : config.thinkingBudget)
+    : config.thinkingBudget;
 
-  // Sampling parameters from admin config (undefined = use each function's own default)
-  const { temperature: cfgTemp, topP: cfgTopP, topK: cfgTopK } = config;
+  // Sampling parameters: chat steps prefer chat-specific values, falling back to plan config
+  const cfgTemp = isChatStep
+    ? (config.chatTemperature !== undefined ? config.chatTemperature : config.temperature)
+    : config.temperature;
+  const cfgTopP = isChatStep
+    ? (config.chatTopP !== undefined ? config.chatTopP : config.topP)
+    : config.topP;
+  const cfgTopK = isChatStep
+    ? (config.chatTopK !== undefined ? config.chatTopK : config.topK)
+    : config.topK;
 
   // Build request data object in memory (not written to cache here; combined with
   // the response in logAIResponse to reduce Cache API subrequests per call from 4 to 1).
@@ -6457,7 +6471,14 @@ async function getAdminConfig(env) {
     // Generation sampling parameters: undefined = use per-function defaults
     temperature: undefined,
     topP: undefined,
-    topK: undefined
+    topK: undefined,
+    // Chat-specific model settings (fallback to plan settings when not set)
+    chatProvider: null,
+    chatModelName: null,
+    chatThinkingBudget: undefined,
+    chatTemperature: undefined,
+    chatTopP: undefined,
+    chatTopK: undefined
   };
 
   if (env.page_content) {
@@ -6472,7 +6493,13 @@ async function getAdminConfig(env) {
       savedStepTokenLimits,
       savedTemperature,
       savedTopP,
-      savedTopK
+      savedTopK,
+      savedChatProvider,
+      savedChatModelName,
+      savedChatThinkingBudget,
+      savedChatTemperature,
+      savedChatTopP,
+      savedChatTopK
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -6483,7 +6510,13 @@ async function getAdminConfig(env) {
       env.page_content.get('admin_step_token_limits'),
       env.page_content.get('admin_ai_temperature'),
       env.page_content.get('admin_ai_top_p'),
-      env.page_content.get('admin_ai_top_k')
+      env.page_content.get('admin_ai_top_k'),
+      env.page_content.get('admin_chat_ai_provider'),
+      env.page_content.get('admin_chat_ai_model_name'),
+      env.page_content.get('admin_chat_ai_thinking_budget'),
+      env.page_content.get('admin_chat_ai_temperature'),
+      env.page_content.get('admin_chat_ai_top_p'),
+      env.page_content.get('admin_chat_ai_top_k')
     ]);
 
     if (savedProvider) config.provider = savedProvider;
@@ -6506,6 +6539,22 @@ async function getAdminConfig(env) {
     if (savedTopK != null && savedTopK !== '') {
       const k = parseInt(savedTopK, 10);
       if (!isNaN(k)) config.topK = k;
+    }
+    // Chat-specific settings
+    if (savedChatProvider) config.chatProvider = savedChatProvider;
+    if (savedChatModelName) config.chatModelName = savedChatModelName;
+    config.chatThinkingBudget = parseThinkingBudget(savedChatThinkingBudget);
+    if (savedChatTemperature != null && savedChatTemperature !== '') {
+      const t = parseFloat(savedChatTemperature);
+      if (!isNaN(t)) config.chatTemperature = t;
+    }
+    if (savedChatTopP != null && savedChatTopP !== '') {
+      const p = parseFloat(savedChatTopP);
+      if (!isNaN(p)) config.chatTopP = p;
+    }
+    if (savedChatTopK != null && savedChatTopK !== '') {
+      const k = parseInt(savedChatTopK, 10);
+      if (!isNaN(k)) config.chatTopK = k;
     }
   }
 
@@ -8021,6 +8070,53 @@ async function handleSaveModel(request, env) {
 }
 
 /**
+ * Admin: Save chat AI model preference to KV (separate from plan generation model)
+ */
+async function handleSaveChatModel(request, env) {
+  try {
+    const { provider, modelName, thinkingBudget, temperature, topP, topK } = await request.json();
+
+    if (!provider) {
+      return jsonResponse({ error: 'Missing provider' }, 400);
+    }
+
+    if (!['openai', 'google', 'anthropic', 'mock'].includes(provider)) {
+      return jsonResponse({ error: 'Invalid provider type' }, 400);
+    }
+
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+
+    const puts = [
+      env.page_content.put('admin_chat_ai_provider', provider),
+      env.page_content.put('admin_chat_ai_model_name', modelName || '')
+    ];
+    if (thinkingBudget !== undefined && thinkingBudget !== null && thinkingBudget !== '') {
+      puts.push(env.page_content.put('admin_chat_ai_thinking_budget', String(thinkingBudget)));
+    } else {
+      puts.push(env.page_content.put('admin_chat_ai_thinking_budget', ''));
+    }
+    puts.push(env.page_content.put('admin_chat_ai_temperature',
+      (temperature !== undefined && temperature !== null && temperature !== '') ? String(temperature) : ''));
+    puts.push(env.page_content.put('admin_chat_ai_top_p',
+      (topP !== undefined && topP !== null && topP !== '') ? String(topP) : ''));
+    puts.push(env.page_content.put('admin_chat_ai_top_k',
+      (topK !== undefined && topK !== null && topK !== '') ? String(topK) : ''));
+    await Promise.all(puts);
+
+    // Invalidate cache so next request gets fresh config
+    adminConfigCache = null;
+    adminConfigCacheTime = 0;
+
+    return jsonResponse({ success: true, message: 'Chat model saved successfully' });
+  } catch (error) {
+    console.error('Error saving chat model:', error);
+    return jsonResponse({ error: 'Failed to save chat model: ' + error.message }, 500);
+  }
+}
+
+/**
  * Admin: Save chat mode configuration to KV
  */
 async function handleSaveChatModeConfig(request, env) {
@@ -8470,7 +8566,13 @@ async function handleGetConfig(request, env) {
       stepTokenLimits,
       aiTemperature,
       aiTopP,
-      aiTopK
+      aiTopK,
+      chatAiProvider,
+      chatAiModelName,
+      chatAiThinkingBudget,
+      chatAiTemperature,
+      chatAiTopP,
+      chatAiTopK
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -8496,7 +8598,13 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_step_token_limits'),
       env.page_content.get('admin_ai_temperature'),
       env.page_content.get('admin_ai_top_p'),
-      env.page_content.get('admin_ai_top_k')
+      env.page_content.get('admin_ai_top_k'),
+      env.page_content.get('admin_chat_ai_provider'),
+      env.page_content.get('admin_chat_ai_model_name'),
+      env.page_content.get('admin_chat_ai_thinking_budget'),
+      env.page_content.get('admin_chat_ai_temperature'),
+      env.page_content.get('admin_chat_ai_top_p'),
+      env.page_content.get('admin_chat_ai_top_k')
     ]);
     
     const parsedModificationModeEnabled = modificationModeEnabled === 'true';
@@ -8529,7 +8637,13 @@ async function handleGetConfig(request, env) {
       stepTokenLimits: parsedStepTokenLimits,
       aiTemperature: aiTemperature || '',
       aiTopP: aiTopP || '',
-      aiTopK: aiTopK || ''
+      aiTopK: aiTopK || '',
+      chatAiProvider: chatAiProvider || null,
+      chatAiModelName: chatAiModelName || null,
+      chatAiThinkingBudget: chatAiThinkingBudget || '',
+      chatAiTemperature: chatAiTemperature || '',
+      chatAiTopP: chatAiTopP || '',
+      chatAiTopK: chatAiTopK || ''
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -10924,6 +11038,8 @@ export default {
         return await handleGetDefaultPrompt(request, env);
       } else if (url.pathname === '/api/admin/save-model' && request.method === 'POST') {
         return await handleSaveModel(request, env);
+      } else if (url.pathname === '/api/admin/save-chat-model' && request.method === 'POST') {
+        return await handleSaveChatModel(request, env);
       } else if (url.pathname === '/api/admin/save-chat-mode-config' && request.method === 'POST') {
         return await handleSaveChatModeConfig(request, env);
       } else if (url.pathname === '/api/admin/chat-mode-config' && request.method === 'GET') {

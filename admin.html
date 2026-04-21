@@ -869,9 +869,9 @@
             <div id="tab-configuration" class="tab-content active">
             <!-- AI Model Selection -->
             <div class="card">
-                <h2><i class="fas fa-robot"></i> AI Модел</h2>
+                <h2><i class="fas fa-robot"></i> AI Модел за Генериране на Планове</h2>
                 <div class="info-box">
-                    <strong>Информация:</strong> Изберете AI провайдър и конкретен модел за генериране на планове и чат.
+                    <strong>Информация:</strong> Изберете AI провайдър и конкретен модел за генериране на хранителни планове (стъпки 1–4).
                 </div>
                 <div class="form-group">
                     <label for="aiProvider">Избери AI Провайдър:</label>
@@ -926,7 +926,72 @@
                     </div>
                 </div>
                 <button class="btn" onclick="saveAIModel()">
-                    <i class="fas fa-save"></i> Запази Модел
+                    <i class="fas fa-save"></i> Запази Модел за Планове
+                </button>
+            </div>
+
+            <!-- Chat AI Model Selection -->
+            <div class="card">
+                <h2><i class="fas fa-comments"></i> AI Модел за Чат Асистент</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Изберете AI провайдър и модел специално за чат асистента. Ако не е конфигурирано, се използва моделът за генериране на планове.
+                </div>
+                <div class="form-group">
+                    <label for="chatAiProvider">AI Провайдър за чат:</label>
+                    <select id="chatAiProvider">
+                        <option value="openai">OpenAI</option>
+                        <option value="google">Google Gemini</option>
+                        <option value="anthropic">Anthropic Claude</option>
+                        <option value="mock">Mock (За тестване без API)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="chatAiModelName">Име на модел за чат:</label>
+                    <input type="text" id="chatAiModelName" placeholder="напр. gpt-4o-mini, gemini-2.0-flash, claude-3-5-sonnet-20241022">
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        OpenAI примери: gpt-4o, gpt-4o-mini<br>
+                        Google примери: gemini-2.0-flash, gemini-1.5-pro<br>
+                        Оставете празно за да се използва моделът за генериране на планове.
+                    </small>
+                </div>
+                <!-- Thinking configuration for Chat -->
+                <div class="form-group" style="padding: 15px; background: var(--bg-color); border-radius: 10px; border: 1px solid #e0e0e0;">
+                    <label style="font-weight: 700; margin-bottom: 10px; display: block;"><i class="fas fa-brain"></i> Настройки за мислене (Чат)</label>
+                    <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Приложимо за: Gemini 2.5 Flash/Pro, Claude 3.7 Sonnet+.</small>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="chatAiDisableThinking" style="width: auto; margin: 0;" onchange="toggleThinkingBudgetField('chatAiThinkingBudget', this.checked)">
+                        <label for="chatAiDisableThinking" style="font-weight: normal; margin: 0; cursor: pointer;">Деактивирай мисленето (thinkingBudget: 0)</label>
+                    </div>
+                    <div id="chatAiThinkingBudgetWrapper">
+                        <label for="chatAiThinkingBudget" style="font-weight: normal;">Лимит на токени за мислене:</label>
+                        <input type="number" id="chatAiThinkingBudget" min="0" max="32000" step="256" placeholder="напр. 1024 (оставете празно = по подразбиране)" style="margin-top: 5px;">
+                        <small style="color: var(--text-gray); display: block; margin-top: 4px;">0 = деактивирано, 1–32000 = брой токени за мислене, празно = поведение по подразбиране</small>
+                    </div>
+                </div>
+                <!-- Sampling parameters for Chat -->
+                <div class="form-group" style="padding: 15px; background: var(--bg-color); border-radius: 10px; border: 1px solid #e0e0e0;">
+                    <label style="font-weight: 700; margin-bottom: 10px; display: block;"><i class="fas fa-thermometer-half"></i> Параметри за семплиране (Чат)</label>
+                    <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Управляват случайността на AI отговорите в чата. Оставете празно за стойностите по подразбиране.</small>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <label for="chatAiTemperature" style="font-weight: normal;">Температура (Temperature):</label>
+                            <input type="number" id="chatAiTemperature" min="0" max="2" step="0.05" placeholder="напр. 0.7 (по подразбиране)" style="margin-top: 5px;">
+                            <small style="color: var(--text-gray); display: block; margin-top: 4px;">0 = детерминистичен, 1–2 = по-творчески.</small>
+                        </div>
+                        <div>
+                            <label for="chatAiTopP" style="font-weight: normal;">Top P (Nucleus sampling):</label>
+                            <input type="number" id="chatAiTopP" min="0" max="1" step="0.05" placeholder="напр. 0.95 (оставете празно)" style="margin-top: 5px;">
+                            <small style="color: var(--text-gray); display: block; margin-top: 4px;">0–1. Алтернатива на температурата.</small>
+                        </div>
+                        <div>
+                            <label for="chatAiTopK" style="font-weight: normal;">Top K:</label>
+                            <input type="number" id="chatAiTopK" min="1" max="1000" step="1" placeholder="напр. 40 (оставете празно)" style="margin-top: 5px;">
+                            <small style="color: var(--text-gray); display: block; margin-top: 4px;">Поддържан от Claude и Gemini.</small>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" onclick="saveChatModel()">
+                    <i class="fas fa-save"></i> Запази Модел за Чат
                 </button>
             </div>
 
@@ -3178,10 +3243,20 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 document.getElementById('visionAiModel').value = config.visionModelName || '';
                                 localStorage.setItem('visionAiModelName', config.visionModelName || '');
                             }
+                            // Load chat AI config from server
+                            if (config.chatAiProvider) {
+                                document.getElementById('chatAiProvider').value = config.chatAiProvider;
+                                localStorage.setItem('chatAiProvider', config.chatAiProvider);
+                            }
+                            if (config.chatAiModelName !== null && config.chatAiModelName !== undefined) {
+                                document.getElementById('chatAiModelName').value = config.chatAiModelName || '';
+                                localStorage.setItem('chatAiModelName', config.chatAiModelName || '');
+                            }
                             // Load thinking budgets from server
                             loadThinkingBudgetUI('ai', config.aiThinkingBudget || '');
                             loadThinkingBudgetUI('vision', config.visionThinkingBudget || '');
                             loadThinkingBudgetUI('protocol', config.protocolThinkingBudget || '');
+                            loadThinkingBudgetUI('chatAi', config.chatAiThinkingBudget || '');
                             // Load sampling parameters from server
                             if (config.aiTemperature !== undefined) {
                                 document.getElementById('aiTemperature').value = config.aiTemperature || '';
@@ -3194,6 +3269,19 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             if (config.aiTopK !== undefined) {
                                 document.getElementById('aiTopK').value = config.aiTopK || '';
                                 localStorage.setItem('aiTopK', config.aiTopK || '');
+                            }
+                            // Load chat sampling parameters from server
+                            if (config.chatAiTemperature !== undefined) {
+                                document.getElementById('chatAiTemperature').value = config.chatAiTemperature || '';
+                                localStorage.setItem('chatAiTemperature', config.chatAiTemperature || '');
+                            }
+                            if (config.chatAiTopP !== undefined) {
+                                document.getElementById('chatAiTopP').value = config.chatAiTopP || '';
+                                localStorage.setItem('chatAiTopP', config.chatAiTopP || '');
+                            }
+                            if (config.chatAiTopK !== undefined) {
+                                document.getElementById('chatAiTopK').value = config.chatAiTopK || '';
+                                localStorage.setItem('chatAiTopK', config.chatAiTopK || '');
                             }
                             // Load step token limits from server
                             if (config.stepTokenLimits) {
@@ -3249,16 +3337,26 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const savedVisionModelName = localStorage.getItem('visionAiModelName') || '';
                 document.getElementById('visionAiModel').value = savedVisionModelName;
 
+                const savedChatAiProvider = localStorage.getItem('chatAiProvider') || 'openai';
+                document.getElementById('chatAiProvider').value = savedChatAiProvider;
+
+                const savedChatAiModelName = localStorage.getItem('chatAiModelName') || '';
+                document.getElementById('chatAiModelName').value = savedChatAiModelName;
+
                 // Restore thinking budgets and step limits from localStorage
                 loadThinkingBudgetUI('ai', localStorage.getItem('aiThinkingBudget') || '');
                 loadThinkingBudgetUI('vision', localStorage.getItem('visionThinkingBudget') || '');
                 loadThinkingBudgetUI('protocol', localStorage.getItem('protocolThinkingBudget') || '');
+                loadThinkingBudgetUI('chatAi', localStorage.getItem('chatAiThinkingBudget') || '');
                 const savedStepLimits = localStorage.getItem('adminStepTokenLimits');
                 if (savedStepLimits) { try { loadStepTokenLimitsUI(JSON.parse(savedStepLimits)); } catch(_) {} }
                 // Restore sampling parameters from localStorage
                 document.getElementById('aiTemperature').value = localStorage.getItem('aiTemperature') || '';
                 document.getElementById('aiTopP').value = localStorage.getItem('aiTopP') || '';
                 document.getElementById('aiTopK').value = localStorage.getItem('aiTopK') || '';
+                document.getElementById('chatAiTemperature').value = localStorage.getItem('chatAiTemperature') || '';
+                document.getElementById('chatAiTopP').value = localStorage.getItem('chatAiTopP') || '';
+                document.getElementById('chatAiTopK').value = localStorage.getItem('chatAiTopK') || '';
 
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -3394,6 +3492,45 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showSuccess('Vision AI модел запазен успешно!');
             } catch (error) {
                 console.error('Error saving vision model:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        // Save Chat AI Model
+        async function saveChatModel() {
+            const provider = document.getElementById('chatAiProvider').value;
+            const modelName = document.getElementById('chatAiModelName').value.trim();
+
+            const thinkingBudget = readThinkingBudgetUI('chatAi');
+            localStorage.setItem('chatAiProvider', provider);
+            localStorage.setItem('chatAiModelName', modelName);
+            localStorage.setItem('chatAiThinkingBudget', thinkingBudget);
+
+            const temperatureRaw = document.getElementById('chatAiTemperature').value.trim();
+            const topPRaw = document.getElementById('chatAiTopP').value.trim();
+            const topKRaw = document.getElementById('chatAiTopK').value.trim();
+            const temperature = temperatureRaw !== '' ? parseFloat(temperatureRaw) : null;
+            const topP = topPRaw !== '' ? parseFloat(topPRaw) : null;
+            const topK = topKRaw !== '' ? parseInt(topKRaw, 10) : null;
+            localStorage.setItem('chatAiTemperature', temperatureRaw);
+            localStorage.setItem('chatAiTopP', topPRaw);
+            localStorage.setItem('chatAiTopK', topKRaw);
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-chat-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, modelName, thinkingBudget: thinkingBudget !== '' ? thinkingBudget : null, temperature, topP, topK })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+
+                invalidateConfigCache();
+                showSuccess(modelName ? 'Чат AI модел запазен успешно!' : 'Настройките за чат AI са изчистени (ще се използва моделът за планове).');
+            } catch (error) {
+                console.error('Error saving chat model:', error);
                 showError('Грешка при записване: ' + error.message);
             }
         }
