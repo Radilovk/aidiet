@@ -1792,7 +1792,7 @@
             localStorage.setItem('questionnaireAnswers', JSON.stringify(existingAnswers));
             
             // Navigate to questionnaire with protocol
-            window.location.href = 'questionnaire2.html?protocol=' + encodeURIComponent(protocolId);
+            window.location.href = 'questionnaire.html?protocol=' + encodeURIComponent(protocolId);
         }
 
         // Select protocol and go to questionnaire (from modal)
@@ -1814,7 +1814,7 @@
             localStorage.setItem('questionnaireAnswers', JSON.stringify(existingAnswers));
             
             // Navigate to questionnaire
-            window.location.href = 'questionnaire2.html?protocol=' + encodeURIComponent(selectedProtocolId);
+            window.location.href = 'questionnaire.html?protocol=' + encodeURIComponent(selectedProtocolId);
         }
 
         // Go to standard questionnaire without protocol
@@ -1831,7 +1831,7 @@
             delete existingAnswers._protocolSelectedFromLanding;
             localStorage.setItem('questionnaireAnswers', JSON.stringify(existingAnswers));
             
-            window.location.href = 'questionnaire2.html';
+            window.location.href = 'questionnaire.html';
         }
 
         // Keyboard navigation

@@ -1235,10 +1235,6 @@ async function performAIValidation(env, data) {
     ? data.medicalConditions.join(', ') 
     : (data.medicalConditions || 'Няма посочени');
 
-  const dietHistorySection = data.dietHistory === 'Да' && (data.dietType || data.dietResult)
-    ? `- Минала диета: ${data.dietType || 'Не е посочен тип'} | Резултат: ${data.dietResult || 'Не е посочен'}`
-    : `- Минала диета: Не е спазвал/а диета`;
-
   const prompt = `Ти си медицински AI валидатор за хранително-диетично приложение. Анализирай следните данни от въпросник и провери за проблеми.
 
 ДАННИ НА ПОТРЕБИТЕЛЯ:
@@ -1254,12 +1250,11 @@ async function performAIValidation(env, data) {
 - Медикаменти: ${data.medicationsDetails || 'Няма'}
 - Спортна активност: ${data.sportActivity || 'Не е посочена'}
 - Часове сън: ${data.sleepHours || 'Не е посочено'}
-- Диетични предпочитания: ${Array.isArray(data.dietPreference) ? data.dietPreference.join(', ') : (data.dietPreference || 'Няма')}
+- Диетични предпочитания: ${data.dietPreference || 'Няма'}
 - Храни, които обича: ${data.dietLove || 'Не е посочено'}
 - Храни, които не харесва: ${data.dietDislike || 'Не е посочено'}
 - Допълнителни бележки: ${data.additionalNotes || 'Няма'}
 - История на тегло: ${data.weightChangeDetails || 'Не е посочена'}
-${dietHistorySection}
 
 ПРОВЕРИ ЗА СЛЕДНИТЕ КАТЕГОРИИ ПРОБЛЕМИ:
 
@@ -1268,20 +1263,18 @@ ${dietHistorySection}
 3. РИСКОВИ КОМБИНАЦИИ - напр. диабет + нисковъглехидратна диета без медицински надзор, бременност + агресивно отслабване, сърдечни заболявания + интензивна спортна програма
 4. НЕЛОГИЧНА ИНФОРМАЦИЯ - напр. тегло 200 кг при височина 190 см и цел за качване на тегло, възраст 10 години и професионален спорт, противоречия между посочените данни
 5. ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ - напр. посочва алергия към млечни продукти но любимата храна е сирене, веган диета но яде месо, казва "няма заболявания" но изброява медикаменти
-6. РАЗМИНАВАНЕ В ДИЕТИЧНА ИСТОРИЯ - ако потребителят е следвал конкретна диета с негативен резултат (напр. силно йо-йо ефект, влошаване на здравето, категорично неуспешна) И същевременно текущата цел или предпочитания предполагат повтаряне на същия неуспешен подход — посочи разминаването конкретно.
 
 ВАЖНО: 
 - Бъди строг само при РЕАЛНИ опасности за здравето. НЕ отхвърляй нормални цели за отслабване (1-2 кг на седмица е нормално).
 - Нормалните цели за отслабване, качване на тегло, поддържане или мускулна маса НЕ са проблем.
 - Леки несъответствия НЕ са проблем. Фокусирай се върху сериозни рискове.
-- За категория 6: Докладвай само при ясно повтарящ се неуспешен модел — не при неутрален или непосочен резултат.
 
 Отговори САМО в JSON формат:
 {
   "hasIssues": true/false,
   "issues": [
     {
-      "category": "НЕРЕАЛИСТИЧНА ЦЕЛ" | "ОПАСНА ЦЕЛ" | "РИСКОВА КОМБИНАЦИЯ" | "НЕЛОГИЧНА ИНФОРМАЦИЯ" | "ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ" | "РАЗМИНАВАНЕ В ДИЕТИЧНА ИСТОРИЯ",
+      "category": "НЕРЕАЛИСТИЧНА ЦЕЛ" | "ОПАСНА ЦЕЛ" | "РИСКОВА КОМБИНАЦИЯ" | "НЕЛОГИЧНА ИНФОРМАЦИЯ" | "ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ",
       "description": "Описание на проблема на български",
       "severity": "high" | "medium"
     }
@@ -3258,19 +3251,9 @@ async function handleGeneratePlan(request, env) {
     // If a clinical protocol is selected, map its goal and ensure data.goal is set
     const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
     if (clinicalProtocol) {
-      // For postpartum_lactation, synthesize goal from postpartumGoal if available
-      if (data.clinicalProtocol === 'postpartum_lactation' && data.postpartumGoal) {
-        data.goal = Array.isArray(data.postpartumGoal)
-          ? data.postpartumGoal.join(' + ')
-          : data.postpartumGoal;
-      }
       // Use protocol's goalMapping as the goal if not explicitly set
       if (!data.goal) {
         data.goal = clinicalProtocol.goalMapping;
-      }
-      // Auto-populate medicalConditions from protocol name if the user skipped that question
-      if (!data.medicalConditions || data.medicalConditions.length === 0) {
-        data.medicalConditions = [clinicalProtocol.name];
       }
     }
     
@@ -5989,15 +5972,6 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       drinksSweet: data.drinksSweet || '',
       drinksAlcohol: data.drinksAlcohol || '',
       dietHistory: data.dietHistory || '',
-      dietHistoryType: data.dietType || '',
-      dietHistoryResult: data.dietResult || '',
-      medications: data.medications || 'Не',
-      medicationsDetails: data.medicationsDetails || '',
-      medicationsText: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'Не приема',
-      weightChange: data.weightChange || '',
-      weightChangeDetails: data.weightChangeDetails || '',
-      medicalConditionsText: (data.medicalConditions || []).join(', ') || 'Няма',
-      allGoals: Array.isArray(data.goal) ? data.goal.join(', ') : (data.goal || ''),
       stressLevel: data.stressLevel || '',
       sleepHours: data.sleepHours || '',
       TEMPERAMENT_CONFIDENCE_THRESHOLD,
