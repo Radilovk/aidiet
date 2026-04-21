@@ -19,7 +19,7 @@
 
 СТЪПКА 2: ПСИХОПРОФИЛ
 Анализирай на база темперамент (Стъпка 1) + age, gender, goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
-→ psychologicalProfile (детайлен текстов анализ)
+→ psychologicalProfile (стегнат текстов анализ)
 
 СТЪПКА 3: КОРЕКЦИИ НА TDEE (само проценти — без калории)
 Определи процентна корекция за всяка категория:
@@ -152,10 +152,10 @@ correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
     "correction": "описание на корекцията",
     "correctionPercent": "+/-X%"
   },
-  "metabolicProfile": "анализ на метаболитния профил",
+  "metabolicProfile": "кратък анализ на метаболитния профил",
   "healthRisks": ["риск 1", "риск 2", "риск 3"],
   "nutritionalNeeds": ["нужда 1", "нужда 2", "нужда 3"],
-  "psychologicalProfile": "детайлен анализ на психологическия профил",
+  "psychologicalProfile": "стегнат анализ на психологическия профил",
   "successChance": число (-100 до 100),
   "currentHealthStatus": {
     "score": число 0-100,
