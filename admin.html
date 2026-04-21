@@ -930,6 +930,34 @@
                 </button>
             </div>
 
+            <!-- Gemini API Key -->
+            <div class="card">
+                <h2><i class="fab fa-google"></i> Gemini API Ключ</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Въведете API ключ за Google Gemini, за да се използва при генериране на планове и чат. Ключът се съхранява сигурно в сървърното KV хранилище. Ако е зададен, той има приоритет пред конфигурирания env секрет.
+                </div>
+                <div class="form-group">
+                    <label for="geminiApiKey">Gemini API Ключ:</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="password" id="geminiApiKey" placeholder="AIza..." style="flex: 1;">
+                        <button class="btn" onclick="toggleGeminiKeyVisibility()" style="background: var(--accent-blue); white-space: nowrap; padding: 10px 14px;">
+                            <i class="fas fa-eye" id="geminiApiKeyIcon"></i>
+                        </button>
+                    </div>
+                    <small style="color: var(--text-gray); display: block; margin-top: 5px;">
+                        Статус: <span id="geminiApiKeyStatus" style="font-weight: 600;">Зареждане...</span>
+                    </small>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn" onclick="saveGeminiApiKey()">
+                        <i class="fas fa-save"></i> Запази API Ключ
+                    </button>
+                    <button class="btn" onclick="clearGeminiApiKey()" style="background: var(--accent-light-red);">
+                        <i class="fas fa-trash"></i> Изчисти Ключ
+                    </button>
+                </div>
+            </div>
+
             <!-- Chat AI Model Selection -->
             <div class="card">
                 <h2><i class="fas fa-comments"></i> AI Модел за Чат Асистент</h2>
@@ -3286,6 +3314,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             // Load step token limits from server
                             if (config.stepTokenLimits) {
                                 loadStepTokenLimitsUI(config.stepTokenLimits);
+                            }
+                            // Update Gemini API key status indicator
+                            const geminiStatusEl = document.getElementById('geminiApiKeyStatus');
+                            if (geminiStatusEl) {
+                                if (config.geminiApiKeySet) {
+                                    geminiStatusEl.textContent = '✅ Зададен';
+                                    geminiStatusEl.style.color = 'var(--primary-red)';
+                                } else {
+                                    geminiStatusEl.textContent = '❌ Не е зададен';
+                                    geminiStatusEl.style.color = 'var(--text-gray)';
+                                }
                             }
                             return; // Successfully loaded from server
                         }
@@ -6691,6 +6730,69 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             } else {
                 input.type = 'password';
                 icon.className = 'fas fa-eye';
+            }
+        }
+
+        // --- Gemini API Key Management ---
+        function toggleGeminiKeyVisibility() {
+            const input = document.getElementById('geminiApiKey');
+            const icon = document.getElementById('geminiApiKeyIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        async function saveGeminiApiKey() {
+            const apiKey = document.getElementById('geminiApiKey').value.trim();
+            if (!apiKey) {
+                showError('Моля, въведете API ключ или използвайте бутона "Изчисти".');
+                return;
+            }
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-gemini-api-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey })
+                });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to save');
+                }
+                invalidateConfigCache();
+                document.getElementById('geminiApiKey').value = '';
+                document.getElementById('geminiApiKeyStatus').textContent = '✅ Зададен (KV)';
+                document.getElementById('geminiApiKeyStatus').style.color = 'var(--primary-red)';
+                showSuccess('Gemini API ключ запазен успешно!');
+            } catch (error) {
+                console.error('Error saving Gemini API key:', error);
+                showError('Грешка при записване: ' + error.message);
+            }
+        }
+
+        async function clearGeminiApiKey() {
+            if (!confirm('Сигурни ли сте, че искате да изчистите Gemini API ключа от KV хранилището?')) return;
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/save-gemini-api-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey: '' })
+                });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to clear');
+                }
+                invalidateConfigCache();
+                document.getElementById('geminiApiKey').value = '';
+                document.getElementById('geminiApiKeyStatus').textContent = '❌ Не е зададен в KV';
+                document.getElementById('geminiApiKeyStatus').style.color = 'var(--text-gray)';
+                showSuccess('Gemini API ключ изчистен от KV хранилището.');
+            } catch (error) {
+                console.error('Error clearing Gemini API key:', error);
+                showError('Грешка при изчистване: ' + error.message);
             }
         }
     </script>

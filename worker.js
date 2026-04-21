@@ -1452,6 +1452,34 @@ let adminConfigCache = null;
 let adminConfigCacheTime = 0;
 const ADMIN_CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
+// Cache for KV-stored Gemini API key (overrides env secret when set)
+let _cachedGeminiKey = undefined; // undefined = not loaded yet
+let _cachedGeminiKeyTime = 0;
+const GEMINI_KEY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Returns the effective Gemini API key.
+ * KV-stored key (admin_gemini_api_key) takes priority over the env secret (GEMINI_API_KEY).
+ * Result is cached for GEMINI_KEY_CACHE_TTL to minimise KV reads.
+ */
+async function getEffectiveGeminiKey(env) {
+  const now = Date.now();
+  if (_cachedGeminiKey !== undefined && (now - _cachedGeminiKeyTime) < GEMINI_KEY_CACHE_TTL) {
+    return _cachedGeminiKey;
+  }
+  if (env.page_content) {
+    const kvKey = await env.page_content.get('admin_gemini_api_key');
+    if (kvKey) {
+      _cachedGeminiKey = kvKey;
+      _cachedGeminiKeyTime = now;
+      return kvKey;
+    }
+  }
+  _cachedGeminiKey = env.GEMINI_API_KEY || null;
+  _cachedGeminiKeyTime = now;
+  return _cachedGeminiKey;
+}
+
 // Cache for chat prompts to reduce KV reads
 let chatPromptsCache = null;
 let chatPromptsCacheTime = 0;
@@ -1889,6 +1917,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
   const config = await getAdminConfig(env);
+  const effectiveGeminiKey = await getEffectiveGeminiKey(env);
 
   // Apply per-step token limit override if configured by admin
   const stepKey = getStepKey(stepName);
@@ -1957,7 +1986,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
       success = true;
-    } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
+    } else if (preferredProvider === 'google' && effectiveGeminiKey) {
       response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK);
       success = true;
     } else {
@@ -1970,7 +1999,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
         console.warn('Preferred provider not available. Falling back to Anthropic.');
         response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
         success = true;
-      } else if (env.GEMINI_API_KEY) {
+      } else if (effectiveGeminiKey) {
         console.warn('Preferred provider not available. Falling back to Google Gemini.');
         response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK);
         success = true;
@@ -6942,6 +6971,7 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
  */
 async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined) {
   try {
+    const geminiApiKey = await getEffectiveGeminiKey(env);
     return await retryWithBackoff(async () => {
       const requestBody = {
         contents: [{ parts: [{ text: prompt }] }]
@@ -6975,7 +7005,7 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
       }
       
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -7061,19 +7091,20 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
 
   const startTime = Date.now();
   let response;
+  const effectiveGeminiKey = await getEffectiveGeminiKey(env);
 
   try {
     if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
       response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
-    } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
+    } else if (preferredProvider === 'google' && effectiveGeminiKey) {
       response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens, config.visionThinkingBudget);
     } else if (env.OPENAI_API_KEY) {
       response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.openai, maxTokens);
     } else if (env.ANTHROPIC_API_KEY) {
       response = await callClaudeVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.anthropic, maxTokens);
-    } else if (env.GEMINI_API_KEY) {
+    } else if (effectiveGeminiKey) {
       response = await callGeminiVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.google, maxTokens, config.visionThinkingBudget);
     } else {
       throw new Error('No AI provider configured for vision analysis.');
@@ -7167,6 +7198,7 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
  * Gemini Vision API call (gemini-2.0-flash with inlineData)
  */
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens, thinkingBudget = undefined) {
+  const geminiApiKey = await getEffectiveGeminiKey(env);
   return await retryWithBackoff(async () => {
     const generationConfig = {
       maxOutputTokens: maxTokens,
@@ -7189,7 +7221,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
     };
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -8143,10 +8175,35 @@ async function handleSaveChatModel(request, env) {
 }
 
 /**
+ * Admin: Save the Gemini API key to KV storage.
+ * The KV-stored key takes priority over the env secret (GEMINI_API_KEY).
+ * Pass an empty apiKey to clear the stored key (env secret will be used instead).
+ */
+async function handleSaveGeminiApiKey(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+    const { apiKey } = await request.json();
+    if (apiKey && apiKey.trim()) {
+      await env.page_content.put('admin_gemini_api_key', apiKey.trim());
+    } else {
+      await env.page_content.delete('admin_gemini_api_key');
+    }
+    // Invalidate the cached key so the next request picks up the new value
+    _cachedGeminiKey = undefined;
+    _cachedGeminiKeyTime = 0;
+    return jsonResponse({ success: true, message: 'Gemini API key saved successfully' });
+  } catch (error) {
+    console.error('Error saving Gemini API key:', error);
+    return jsonResponse({ error: 'Failed to save Gemini API key: ' + error.message }, 500);
+  }
+}
+
+/**
  * Admin: Save chat mode configuration to KV
  */
-async function handleSaveChatModeConfig(request, env) {
-  try {
+async function handleSaveChatModeConfig(request, env) {  try {
     const { modificationModeEnabled } = await request.json();
 
     if (typeof modificationModeEnabled !== 'boolean') {
@@ -8335,11 +8392,12 @@ async function handleGenerateProtocol(request, env) {
     const provider = savedProvider || 'openai';
     const modelName = savedModelName || '';
     const protocolThinkingBudget = parseThinkingBudget(savedProtocolThinkingBudget);
+    const effectiveGeminiKey = await getEffectiveGeminiKey(env);
 
     let response;
     if (provider === 'openai' && env.OPENAI_API_KEY) {
       response = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', 4000, false);
-    } else if (provider === 'google' && env.GEMINI_API_KEY) {
+    } else if (provider === 'google' && effectiveGeminiKey) {
       response = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', 4000, false, protocolThinkingBudget);
     } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       response = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', 4000, false);
@@ -8525,11 +8583,12 @@ async function handleGenerateLongevityProtocol(request, env) {
     const provider = savedProvider || 'openai';
     const modelName = savedModelName || '';
     const protocolThinkingBudget = parseThinkingBudget(savedProtocolThinkingBudget);
+    const effectiveGeminiKey = await getEffectiveGeminiKey(env);
 
     let aiResponse;
     if (provider === 'openai' && env.OPENAI_API_KEY) {
       aiResponse = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', LONGEVITY_TOKEN_LIMIT, true);
-    } else if (provider === 'google' && env.GEMINI_API_KEY) {
+    } else if (provider === 'google' && effectiveGeminiKey) {
       aiResponse = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', LONGEVITY_TOKEN_LIMIT, true, protocolThinkingBudget);
     } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       aiResponse = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', LONGEVITY_TOKEN_LIMIT, true);
@@ -8598,7 +8657,8 @@ async function handleGetConfig(request, env) {
       chatAiThinkingBudget,
       chatAiTemperature,
       chatAiTopP,
-      chatAiTopK
+      chatAiTopK,
+      storedGeminiApiKey
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -8630,7 +8690,8 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_chat_ai_thinking_budget'),
       env.page_content.get('admin_chat_ai_temperature'),
       env.page_content.get('admin_chat_ai_top_p'),
-      env.page_content.get('admin_chat_ai_top_k')
+      env.page_content.get('admin_chat_ai_top_k'),
+      env.page_content.get('admin_gemini_api_key')
     ]);
     
     const parsedModificationModeEnabled = modificationModeEnabled === 'true';
@@ -8669,7 +8730,8 @@ async function handleGetConfig(request, env) {
       chatAiThinkingBudget: chatAiThinkingBudget || '',
       chatAiTemperature: chatAiTemperature || '',
       chatAiTopP: chatAiTopP || '',
-      chatAiTopK: chatAiTopK || ''
+      chatAiTopK: chatAiTopK || '',
+      geminiApiKeySet: !!(storedGeminiApiKey || env.GEMINI_API_KEY)
     }, 200, {
       cacheControl: 'public, max-age=300' // Cache for 5 minutes - config changes infrequently
     });
@@ -11068,6 +11130,8 @@ export default {
         return await handleSaveChatModel(request, env);
       } else if (url.pathname === '/api/admin/save-chat-mode-config' && request.method === 'POST') {
         return await handleSaveChatModeConfig(request, env);
+      } else if (url.pathname === '/api/admin/save-gemini-api-key' && request.method === 'POST') {
+        return await handleSaveGeminiApiKey(request, env);
       } else if (url.pathname === '/api/admin/chat-mode-config' && request.method === 'GET') {
         return await handleGetChatModeConfig(request, env);
       } else if (url.pathname === '/api/admin/save-protocol-config' && request.method === 'POST') {
