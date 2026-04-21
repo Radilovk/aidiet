@@ -3254,6 +3254,12 @@ async function handleGeneratePlan(request, env) {
       console.error('handleGeneratePlan: Missing required fields');
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
+
+    // Normalize goal: questionnaire2.html sends it as an array (e.g. ["Отслабване"]).
+    // All downstream code expects a string, so join the array elements here.
+    if (Array.isArray(data.goal)) {
+      data.goal = data.goal.join(', ');
+    }
     
     // If a clinical protocol is selected, map its goal and ensure data.goal is set
     const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
