@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Интерактивна платформа за дълголетие и анти-ейджинг - научно-базирани протоколи за забавяне на стареенето и оптимизиране на здравето.">
-    <meta name="theme-color" content="#00c4c8">
+    <meta name="theme-color" content="#0D9488">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -26,15 +26,18 @@
     <title>Дълголетие и Анти-Ейджинг</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
-            /* Cyan-Gold theme for longevity/science content */
-            --primary: #00c4c8;
-            --primary-hover: #00a8ab;
-            --primary-light: #e0f7fa;
-            --primary-dark: #008b8f;
+            /* Teal theme — unified with main project design system */
+            --primary: #0D9488;
+            --primary-hover: #0F766E;
+            --primary-light: #CCFBF1;
+            --primary-dark: #115E59;
             --accent-gold: #d4a843;
             --accent-gold-light: #fef3c7;
             --accent-purple: #8b5cf6;
@@ -48,14 +51,14 @@
             --text-dark: #1F2937;
             --text-gray: #6B7280;
             --text-light: #9CA3AF;
-            --bg-color: #f0fdfc;
+            --bg-color: #F0FDFA;
             --card-bg: rgba(255, 255, 255, 0.72);
             --input-bg: #F9FAFB;
-            --shadow: 0 10px 40px rgba(0, 196, 200, 0.15);
+            --shadow: 0 10px 40px rgba(13, 148, 136, 0.15);
             --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.05);
             --radius: 24px;
             --glass-blur: 20px;
-            --glass-border: rgba(0, 196, 200, 0.1);
+            --glass-border: rgba(13, 148, 136, 0.1);
             --radius-sm: 12px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
@@ -66,10 +69,10 @@
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary: #06d6da;
-            --primary-hover: #00c4c8;
-            --primary-light: #0a2e2f;
-            --primary-dark: #7ddcde;
+            --primary: #2DD4BF;
+            --primary-hover: #14B8A6;
+            --primary-light: #134E4A;
+            --primary-dark: #5EEAD4;
             --accent-gold: #eab654;
             --accent-gold-light: #3d2f1a;
             --accent-purple: #a78bfa;
@@ -102,22 +105,16 @@
             padding-bottom: var(--safe-area-inset-bottom);
         }
 
-        /* Background mesh animation */
+        /* Background mesh — static, no CPU-heavy animation */
         .bg-mesh {
             position: fixed;
             inset: 0;
             z-index: 0;
             pointer-events: none;
             background:
-                radial-gradient(ellipse at 20% 20%, rgba(0,196,200,0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(212,168,67,0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(0,100,150,0.04) 0%, transparent 60%);
-            animation: bgShift 25s ease-in-out infinite alternate;
-        }
-
-        @keyframes bgShift {
-            0% { transform: scale(1) translate(0, 0); }
-            100% { transform: scale(1.05) translate(2%, 2%); }
+                radial-gradient(ellipse at 20% 20%, rgba(13,148,136,0.07) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(212,168,67,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(13,100,120,0.03) 0%, transparent 60%);
         }
 
         /* Header */
@@ -130,7 +127,7 @@
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0, 196, 200, 0.2);
+            border-bottom: 1px solid rgba(13, 148, 136, 0.15);
             padding: 12px 20px;
             display: flex;
             justify-content: space-between;
@@ -167,10 +164,7 @@
         .header-title {
             font-size: 1.1rem;
             font-weight: 700;
-            background: linear-gradient(90deg, var(--primary), var(--accent-gold));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--primary);
         }
 
         .theme-toggle {
@@ -178,7 +172,7 @@
             border: none;
             width: 42px;
             height: 42px;
-            border-radius: 12px;
+            border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -210,19 +204,13 @@
         .hero-icon {
             width: 100px;
             height: 100px;
-            background: linear-gradient(135deg, var(--primary), var(--accent-gold));
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
             border-radius: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 24px;
-            box-shadow: 0 15px 40px rgba(0, 196, 200, 0.3);
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            box-shadow: 0 15px 40px rgba(13, 148, 136, 0.3);
         }
 
         .hero-icon i {
@@ -234,10 +222,7 @@
             font-size: clamp(1.8rem, 5vw, 2.4rem);
             font-weight: 800;
             margin-bottom: 16px;
-            background: linear-gradient(90deg, var(--primary), var(--accent-gold));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--text-dark);
             line-height: 1.2;
         }
 
@@ -281,9 +266,9 @@
         }
 
         .tab-btn.active {
-            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            background: var(--primary);
             color: white;
-            box-shadow: 0 4px 15px rgba(0, 196, 200, 0.3);
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
         }
 
         .tab-btn:not(.active):hover {
@@ -325,7 +310,7 @@
 
         .edu-card:hover {
             box-shadow: var(--shadow);
-            border-color: rgba(0, 196, 200, 0.2);
+            border-color: rgba(13, 148, 136, 0.2);
         }
 
         .edu-card-header {
@@ -435,7 +420,7 @@
 
         .molecule-tag {
             padding: 6px 12px;
-            background: linear-gradient(135deg, var(--primary), var(--accent-gold));
+            background: var(--primary);
             color: white;
             border-radius: 20px;
             font-size: 0.8rem;
@@ -575,7 +560,7 @@
 
         .wizard-step.active .wizard-step-num,
         .wizard-step.completed .wizard-step-num {
-            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            background: var(--primary);
             color: white;
         }
 
@@ -723,9 +708,9 @@
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            background: var(--primary);
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 196, 200, 0.4);
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.4);
         }
 
         /* Wizard Navigation */
@@ -762,14 +747,14 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            background: var(--primary);
             color: white;
-            box-shadow: 0 4px 15px rgba(0, 196, 200, 0.3);
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 196, 200, 0.4);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
         }
 
         .btn-primary:disabled {
@@ -822,7 +807,7 @@
             color: white;
         }
 
-        .result-icon.protocol { background: linear-gradient(135deg, var(--primary), var(--accent-gold)); }
+        .result-icon.protocol { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); }
         .result-icon.lifestyle { background: linear-gradient(135deg, #0D9488, #0F766E); }
         .result-icon.supplements { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
         .result-icon.markers { background: linear-gradient(135deg, #3b82f6, #2563eb); }
@@ -947,7 +932,7 @@
 
         .effectiveness-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--accent-gold));
+            background: var(--primary);
             border-radius: 4px;
             transition: width 0.5s ease;
         }
