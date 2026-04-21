@@ -25,11 +25,11 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
         :root {
-            --primary: #0F766E;
-            --primary-hover: #047857;
+            --primary: #0D9488;
+            --primary-hover: #0F766E;
             --primary-light: #CCFBF1;
-            --primary-lighter: #ecfdf5;
-            --primary-50: #f0fdf4;
+            --primary-lighter: #F0FDFA;
+            --primary-50: #F0FDFA;
             --text-dark: #111827;
             --text-body: #374151;
             --text-muted: #6b7280;
@@ -142,7 +142,7 @@
         .theme-toggle {
             width: 42px;
             height: 42px;
-            border-radius: 10px;
+            border-radius: 50%;
             background: var(--bg-surface);
             border: 1px solid var(--border-light);
             color: var(--text-body);
@@ -513,7 +513,7 @@
         .btn-primary:hover {
             background: var(--primary-hover);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
         }
 
         .btn-primary:active {
@@ -591,7 +591,7 @@
         .modal-hero {
             position: relative;
             height: 100px;
-            background: var(--modal-gradient, linear-gradient(135deg, var(--primary) 0%, #047857 100%));
+            background: var(--modal-gradient, linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1727,7 +1727,7 @@
             // Set modal hero gradient
             const modalHero = document.getElementById('modalHero');
             if (modalHero) {
-                modalHero.style.background = MODAL_GRADIENTS[protocolId] || 'linear-gradient(135deg, #0F766E 0%, #047857 100%)';
+                modalHero.style.background = MODAL_GRADIENTS[protocolId] || 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)';
             }
             
             // Set modal icon (Font Awesome) — inherits white from CSS
