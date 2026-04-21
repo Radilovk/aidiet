@@ -2731,8 +2731,7 @@
 
         // --- TEST MODE: AUTO-FILL WITH "kakadu" ---
         function activateTestMode() {
-            // Sample test data for base questionnaire fields only
-            // (AI interview questions are dynamic and don't need test data)
+            // Sample test data for all questionnaire2 fields
             const testData = {
                 name: "kakadu",  // Using Latin for consistency with trigger
                 gender: "Жена",
@@ -2740,8 +2739,31 @@
                 height: "165",
                 weight: "70",
                 email: "test@example.com",
-                goal: "Отслабване",
-                lossKg: "5"
+                healthConditions: ["Нямам"],
+                goal: ["Отслабване"],
+                lossKg: "5",
+                sleepHours: "7–8",
+                sleepInterrupt: "Не",
+                chronotype: "Сутрешен",
+                dailyActivityLevel: "Средно",
+                stressLevel: "Средно",
+                sportActivity: "Средна (2–4 дни седмично)",
+                waterIntake: "1.5–2 л",
+                drinksSweet: "Рядко",
+                drinksAlcohol: "Рядко",
+                weightChange: "Не",
+                dietHistory: "Не",
+                overeatingFrequency: "Понякога",
+                foodCravings: ["Сладко"],
+                foodTriggers: ["Напрежение"],
+                eatingHabits: ["Не закусвам"],
+                compensationMethods: ["Не"],
+                socialComparison: "Рядко",
+                dietPreference: ["Средиземноморска"],
+                dietDislike: "Няма",
+                dietLove: "Плодове и зеленчуци",
+                medications: "Не",
+                additionalNotes: "Тестов режим активиран"
             };
 
             // Fill all answers
