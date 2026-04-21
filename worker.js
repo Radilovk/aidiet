@@ -1101,8 +1101,8 @@ function detectGoalContradiction(data) {
   let hasContradiction = false;
   let warningData = {};
   
-  // Normalize goal for comparison (case-insensitive, trimmed)
-  const normalizedGoal = (data.goal || '').toLowerCase().trim();
+  // Normalize goal for comparison (case-insensitive, trimmed; handle array from questionnaire2.html)
+  const normalizedGoal = (Array.isArray(data.goal) ? data.goal.join(', ') : (data.goal || '')).toLowerCase().trim();
   
   // Check for severe underweight with weight loss goal
   // Use includes() for more flexible matching
@@ -2066,10 +2066,11 @@ async function generateSimplifiedFallbackPlan(env, data) {
   const tdee = calculateTDEE(bmr, fallbackActivityData.combinedScore);
   let recommendedCalories = tdee;
   
-  // Adjust for goal
-  if (data.goal && data.goal.toLowerCase().includes('отслабване')) {
+  // Adjust for goal (normalize to string defensively in case goal arrives as array)
+  const goalStr = Array.isArray(data.goal) ? data.goal.join(', ') : (data.goal || '');
+  if (goalStr.toLowerCase().includes('отслабване')) {
     recommendedCalories = Math.round(tdee * 0.85);
-  } else if (data.goal && data.goal.toLowerCase().includes('мускулна маса')) {
+  } else if (goalStr.toLowerCase().includes('мускулна маса')) {
     recommendedCalories = Math.round(tdee * 1.1);
   }
   
@@ -3253,6 +3254,12 @@ async function handleGeneratePlan(request, env) {
     if (!data.name || !data.age || !data.weight || !data.height) {
       console.error('handleGeneratePlan: Missing required fields');
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+
+    // Normalize goal: questionnaire2.html sends it as an array (e.g. ["Отслабване"]).
+    // All downstream code expects a string, so join the array elements here.
+    if (Array.isArray(data.goal)) {
+      data.goal = data.goal.join(', ');
     }
     
     // If a clinical protocol is selected, map its goal and ensure data.goal is set
