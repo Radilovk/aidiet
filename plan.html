@@ -6730,6 +6730,45 @@
             }
         }
     });
+
+    // ── UI Zone Images ────────────────────────────────────────────────────────
+    (function applyUIImages() {
+        const WORKER = 'https://aidiet.radilov-k.workers.dev';
+        fetch(WORKER + '/api/ui-images')
+            .then(r => r.json())
+            .then(data => {
+                const img = (data.images || {})['plan_greeting'];
+                if (!img) return;
+                const banner = document.getElementById('greetingBanner');
+                if (!banner) return;
+                banner.style.backgroundImage = `url(${img})`;
+                banner.style.backgroundSize = 'cover';
+                banner.style.backgroundPosition = 'center';
+                banner.style.backgroundRepeat = 'no-repeat';
+                banner.style.minHeight = '100px';
+                banner.style.position = 'relative';
+                banner.style.display = 'flex';
+                banner.style.alignItems = 'center';
+                banner.style.justifyContent = 'center';
+                if (!banner.querySelector('.ui-img-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'ui-img-overlay';
+                    overlay.setAttribute('aria-hidden', 'true');
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    overlay.style.cssText = 'position:absolute;inset:0;z-index:0;pointer-events:none;background:' + (isDark ? 'rgba(10,26,26,0.60)' : 'rgba(240,253,250,0.60)') + ';';
+                    banner.insertBefore(overlay, banner.firstChild);
+                    new MutationObserver(() => {
+                        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        overlay.style.background = dark ? 'rgba(10,26,26,0.60)' : 'rgba(240,253,250,0.60)';
+                    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+                }
+                Array.from(banner.children).forEach(ch => {
+                    if (!ch.classList.contains('ui-img-overlay')) ch.style.position = 'relative';
+                });
+            })
+            .catch(() => {});
+    })();
+    // ── End UI Zone Images ─────────────────────────────────────────────────────
     </script>
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">

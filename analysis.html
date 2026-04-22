@@ -2187,6 +2187,52 @@
                 }
             }
         });
+
+        // ── UI Zone Images ────────────────────────────────────────────────────────
+        (function applyUIImages() {
+            const WORKER = 'https://aidiet.radilov-k.workers.dev';
+            fetch(WORKER + '/api/ui-images')
+                .then(r => r.json())
+                .then(data => {
+                    const img = (data.images || {})['analysis_header'];
+                    if (!img) return;
+                    // Apply once the main content is visible
+                    function apply() {
+                        const header = document.querySelector('#mainContent .header');
+                        if (!header) return;
+                        header.style.backgroundImage = `url(${img})`;
+                        header.style.backgroundSize = 'cover';
+                        header.style.backgroundPosition = 'center';
+                        header.style.backgroundRepeat = 'no-repeat';
+                        header.style.position = 'relative';
+                        header.style.overflow = 'hidden';
+                        if (!header.querySelector('.ui-img-overlay')) {
+                            const overlay = document.createElement('div');
+                            overlay.className = 'ui-img-overlay';
+                            overlay.style.cssText = 'position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;';
+                            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                            overlay.style.background = isDark ? 'rgba(10,26,26,0.70)' : 'rgba(240,253,250,0.70)';
+                            overlay.setAttribute('aria-hidden', 'true');
+                            header.insertBefore(overlay, header.firstChild);
+                            new MutationObserver(() => {
+                                const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                                overlay.style.background = dark ? 'rgba(10,26,26,0.70)' : 'rgba(240,253,250,0.70)';
+                            }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+                        }
+                        // Ensure child elements are above overlay
+                        Array.from(header.children).forEach(ch => {
+                            if (!ch.classList.contains('ui-img-overlay')) ch.style.position = 'relative';
+                        });
+                    }
+                    // Try immediately, then observe DOM for when mainContent becomes visible
+                    apply();
+                    const observer = new MutationObserver(() => { apply(); });
+                    const mc = document.getElementById('mainContent');
+                    if (mc) observer.observe(mc, { attributes: true, attributeFilter: ['style'] });
+                })
+                .catch(() => {});
+        })();
+        // ── End UI Zone Images ─────────────────────────────────────────────────────
     </script>
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">

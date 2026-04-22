@@ -9750,6 +9750,125 @@ async function handleDeleteProtocolImage(request, env) {
   }
 }
 
+// === UI Images Handlers ===
+
+const UI_IMAGES_KEY = 'ui_images';
+
+// Zone definitions — used for validation
+const UI_IMAGE_ZONES = [
+  'index_hero',
+  'analysis_header',
+  'profile_cover',
+  'guidelines_banner',
+  'plan_pending_bg',
+  'plan_greeting',
+  'questionnaire2_bg',
+];
+
+/**
+ * Public: get all UI zone images (no auth required)
+ */
+async function handleGetAllUIImages(request, env) {
+  try {
+    if (!env || !env.page_content) {
+      return jsonResponse({ success: true, images: {}, storageUnavailable: true });
+    }
+    const raw = await env.page_content.get(UI_IMAGES_KEY);
+    let images = {};
+    if (raw) {
+      try { images = JSON.parse(raw); } catch (parseError) { console.error('Error parsing UI images JSON:', parseError); }
+    }
+    return jsonResponse({ success: true, images });
+  } catch (error) {
+    console.error('Error getting UI images:', error);
+    return jsonResponse({ error: `Failed to get UI images: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Admin: upload (or replace) a UI zone image
+ */
+async function handleUploadUIImage(request, env) {
+  try {
+    const body = await request.json();
+    const { zoneId, imageData, mimeType } = body;
+
+    if (!zoneId || !imageData) {
+      return jsonResponse({ error: 'zoneId and imageData are required' }, 400);
+    }
+    if (!UI_IMAGE_ZONES.includes(zoneId)) {
+      return jsonResponse({ error: 'Invalid zoneId' }, 400);
+    }
+
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!mimeType || !allowedMimeTypes.includes(mimeType)) {
+      return jsonResponse({ error: 'Invalid or missing image type. Allowed: PNG, JPG, WebP' }, 400);
+    }
+    if (!imageData.startsWith('data:image/')) {
+      return jsonResponse({ error: 'Invalid image data format' }, 400);
+    }
+
+    const base64Data = imageData.split(',')[1] || '';
+    const approximateSize = (base64Data.length * 3) / 4;
+    const maxSizeBytes = 1024 * 1024; // 1 MB
+    if (approximateSize > maxSizeBytes) {
+      return jsonResponse({ error: `Image too large. Maximum size: 1MB (received ~${Math.round(approximateSize / 1024)}KB)` }, 400);
+    }
+
+    if (!env || !env.page_content) {
+      return jsonResponse({ error: 'Storage not available' }, 500);
+    }
+
+    const raw = await env.page_content.get(UI_IMAGES_KEY);
+    let images = {};
+    if (raw) {
+      try { images = JSON.parse(raw); } catch (parseError) { console.error('Error parsing UI images JSON:', parseError); }
+    }
+
+    images[zoneId] = imageData;
+    await env.page_content.put(UI_IMAGES_KEY, JSON.stringify(images));
+
+    return jsonResponse({ success: true, message: 'UI image uploaded successfully' });
+  } catch (error) {
+    console.error('Error uploading UI image:', error);
+    return jsonResponse({ error: `Failed to upload UI image: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Admin: delete a UI zone image
+ */
+async function handleDeleteUIImage(request, env) {
+  try {
+    const body = await request.json();
+    const { zoneId } = body;
+
+    if (!zoneId) {
+      return jsonResponse({ error: 'zoneId is required' }, 400);
+    }
+
+    if (!env || !env.page_content) {
+      return jsonResponse({ error: 'Storage not available' }, 500);
+    }
+
+    const raw = await env.page_content.get(UI_IMAGES_KEY);
+    let images = {};
+    if (raw) {
+      try { images = JSON.parse(raw); } catch (parseError) { console.error('Error parsing UI images JSON:', parseError); }
+    }
+
+    if (images[zoneId]) {
+      delete images[zoneId];
+      await env.page_content.put(UI_IMAGES_KEY, JSON.stringify(images));
+    }
+
+    return jsonResponse({ success: true, message: 'UI image deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting UI image:', error);
+    return jsonResponse({ error: `Failed to delete UI image: ${error.message}` }, 500);
+  }
+}
+
 /**
  * Convert base64url string to Uint8Array
  */
@@ -11141,6 +11260,13 @@ export default {
         return await handleUploadProtocolImage(request, env);
       } else if (url.pathname === '/api/admin/delete-protocol-image' && request.method === 'POST') {
         return await handleDeleteProtocolImage(request, env);
+      // UI Images API (public GET + admin write)
+      } else if (url.pathname === '/api/ui-images' && request.method === 'GET') {
+        return await handleGetAllUIImages(request, env);
+      } else if (url.pathname === '/api/admin/upload-ui-image' && request.method === 'POST') {
+        return await handleUploadUIImage(request, env);
+      } else if (url.pathname === '/api/admin/delete-ui-image' && request.method === 'POST') {
+        return await handleDeleteUIImage(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
