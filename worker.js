@@ -3677,6 +3677,19 @@ async function handleChat(request, env) {
 }
 
 /**
+ * Fire-and-forget notification to Make webhook → Telegram bot.
+ * @param {string} name    - Displayed as user ID in Telegram
+ * @param {string} subject - Displayed as message subject in Telegram
+ */
+function notifyMake(name, subject) {
+  fetch('https://hook.eu2.make.com/lexmz9kes4d3epra9btsqeqwdla06iqq', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, subject })
+  }).catch(e => console.warn('Make webhook notification failed:', e));
+}
+
+/**
  * Handle problem report submission
  */
 async function handleReportProblem(request, env) {
@@ -3722,7 +3735,8 @@ async function handleReportProblem(request, env) {
     await env.page_content.put('problem_reports_list', JSON.stringify(reportsList));
     
     console.log('Problem report saved:', reportId);
-    
+    notifyMake(report.userName, 'Доклад за проблем');
+
     return jsonResponse({ 
       success: true, 
       reportId: reportId,
@@ -3835,7 +3849,8 @@ async function handleSaveClientData(request, env) {
     await env.page_content.put('clients_list', JSON.stringify(clientsList));
     
     console.log('Client data saved:', clientId);
-    
+    notifyMake(clientData.answers?.name || clientId, 'Ново запитване');
+
     return jsonResponse({ 
       success: true, 
       clientId: clientId,
@@ -3972,6 +3987,8 @@ async function handleUpdateClientPlan(request, env) {
       icon: '/icon-192x192.png',
       notificationType: 'admin_plan_pending'
     }, env).catch(e => console.warn('Admin push notification failed:', e));
+
+    notifyMake(clientData.answers?.name || clientId, 'План чака преглед');
 
     return jsonResponse({ success: true, message: 'Plan updated' });
   } catch (error) {
