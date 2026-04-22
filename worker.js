@@ -3677,20 +3677,31 @@ async function handleChat(request, env) {
 }
 
 /**
- * Fire-and-forget notification to Make webhook → Telegram bot.
- * @param {string} name    - Displayed as user name in Telegram
- * @param {string} subject - Displayed as message subject in Telegram
- * @param {object} ctx     - Cloudflare execution context
- * @param {object} details - Additional notification-specific fields included in the webhook payload
- *
- * Payload fields sent: { name, userId (= name by default), subject, ...details }
- * `details` may override `userId` (e.g. when a separate userId is already known).
+ * Format an ISO timestamp into a human-readable Bulgarian date/time string.
+ * Example: "2026-04-22T22:54:13.133Z" → "22.04.2026 в 22:54"
+ * @param {string} isoString
+ * @returns {string}
  */
-function notifyMake(name, subject, ctx, details = {}) {
+function formatDateBG(isoString) {
+  try {
+    const d = new Date(isoString);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)}.${d.getUTCFullYear()} в ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  } catch {
+    return isoString;
+  }
+}
+
+/**
+ * Fire-and-forget notification to Make webhook → Telegram bot.
+ * @param {object} ctx     - Cloudflare execution context
+ * @param {string} telegramMessage - Pre-formatted text to send via Telegram
+ */
+function notifyMake(ctx, telegramMessage) {
   const p = fetch('https://hook.eu2.make.com/lexmz9kes4d3epra9btsqeqwdla06iqq', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, userId: name, subject, ...details })
+    body: JSON.stringify({ telegramMessage })
   }).catch(e => console.warn('Make webhook notification failed:', e));
   if (ctx?.waitUntil) ctx.waitUntil(p);
 }
@@ -3741,11 +3752,13 @@ async function handleReportProblem(request, env, ctx) {
     await env.page_content.put('problem_reports_list', JSON.stringify(reportsList));
     
     console.log('Problem report saved:', reportId);
-    notifyMake(report.userName, 'Доклад за проблем', ctx, {
-      userId: report.userId,
-      reportMessage: report.message,
-      timestamp: report.timestamp
-    });
+    notifyMake(ctx,
+      `🐛 Доклад за проблем\n\n` +
+      `👤 Потребител: ${report.userName}\n` +
+      `🆔 ID: ${report.userId}\n` +
+      `💬 Съобщение: ${report.message}\n` +
+      `📅 Дата: ${formatDateBG(report.timestamp)}`
+    );
 
     return jsonResponse({ 
       success: true, 
@@ -3859,12 +3872,14 @@ async function handleSaveClientData(request, env, ctx) {
     await env.page_content.put('clients_list', JSON.stringify(clientsList));
     
     console.log('Client data saved:', clientId);
-    notifyMake(clientData.answers?.name || clientId, 'Ново запитване', ctx, {
-      clientId,
-      email: clientData.answers?.email || '',
-      goal: clientData.answers?.goal || '',
-      timestamp: clientData.submittedAt
-    });
+    notifyMake(ctx,
+      `📩 Ново запитване\n\n` +
+      `👤 Клиент: ${clientData.answers?.name || clientId}\n` +
+      `🆔 ID: ${clientId}\n` +
+      `📧 Имейл: ${clientData.answers?.email || '—'}\n` +
+      `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
+      `📅 Дата: ${formatDateBG(clientData.submittedAt)}`
+    );
 
     return jsonResponse({ 
       success: true, 
@@ -4003,10 +4018,14 @@ async function handleUpdateClientPlan(request, env, ctx) {
       notificationType: 'admin_plan_pending'
     }, env).catch(e => console.warn('Admin push notification failed:', e));
 
-    notifyMake(clientData.answers?.name || clientId, 'План чака преглед', ctx, {
-      clientId,
-      timestamp: clientData.planUpdatedAt
-    });
+    notifyMake(ctx,
+      `📋 Нов план чака преглед\n\n` +
+      `👤 Клиент: ${clientData.answers?.name || clientId}\n` +
+      `🆔 ID: ${clientId}\n` +
+      `📧 Имейл: ${clientData.answers?.email || '—'}\n` +
+      `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
+      `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
+    );
 
     return jsonResponse({ success: true, message: 'Plan updated' });
   } catch (error) {
