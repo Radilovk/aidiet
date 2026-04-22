@@ -3809,6 +3809,92 @@ async function handleGetReports(request, env) {
 }
 
 /**
+ * Handle contact form submission from index.html / profile.html
+ */
+async function handleContactMessage(request, env, ctx) {
+  try {
+    const { name, email, subject, message, userId, timestamp, userAgent } = await request.json();
+
+    if (!message || !name) {
+      return jsonResponse({ error: 'Name and message are required' }, 400);
+    }
+
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const msgId = `contact_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+    const contactMsg = {
+      id: msgId,
+      name: name,
+      email: email || '',
+      subject: subject || '',
+      message: message,
+      userId: userId || 'anonymous',
+      timestamp: timestamp || new Date().toISOString(),
+      userAgent: userAgent || 'unknown',
+      status: 'unread'
+    };
+
+    await env.page_content.put(`contact_message:${msgId}`, JSON.stringify(contactMsg));
+
+    let msgList = await env.page_content.get('contact_messages_list');
+    msgList = msgList ? JSON.parse(msgList) : [];
+    msgList.unshift(msgId);
+    if (msgList.length > 200) msgList = msgList.slice(0, 200);
+    await env.page_content.put('contact_messages_list', JSON.stringify(msgList));
+
+    console.log('Contact message saved:', msgId);
+    notifyMake(ctx,
+      `📩 Ново Контакт Съобщение\n\n` +
+      `👤 Име: ${contactMsg.name}\n` +
+      `📧 Имейл: ${contactMsg.email || '—'}\n` +
+      `📋 Тема: ${contactMsg.subject || '—'}\n` +
+      `💬 Съобщение: ${contactMsg.message}\n` +
+      `📅 Дата: ${formatDateBG(contactMsg.timestamp)}`
+    );
+
+    return jsonResponse({ success: true, messageId: msgId, message: 'Message sent successfully' });
+  } catch (error) {
+    console.error('Error saving contact message:', error);
+    return jsonResponse({ error: `Failed to save contact message: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Get all contact messages for admin panel
+ */
+async function handleGetContactMessages(request, env) {
+  try {
+    if (!env.page_content) {
+      console.error('KV namespace not configured');
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const msgList = await env.page_content.get('contact_messages_list');
+    if (!msgList) {
+      return jsonResponse({ success: true, messages: [] });
+    }
+
+    const msgIds = JSON.parse(msgList);
+    const fetchPromises = msgIds.map(id => env.page_content.get(`contact_message:${id}`));
+    const dataList = await Promise.all(fetchPromises);
+    const messages = dataList
+      .filter(data => data !== null)
+      .map(data => JSON.parse(data));
+
+    return jsonResponse({ success: true, messages }, 200, {
+      cacheControl: 'public, max-age=60'
+    });
+  } catch (error) {
+    console.error('Error getting contact messages:', error);
+    return jsonResponse({ error: `Failed to get contact messages: ${error.message}` }, 500);
+  }
+}
+
+/**
  * Handle client data submission from questionnaire 2
  * Saves client data to KV storage for team processing
  * 
@@ -11237,10 +11323,14 @@ export default {
         return await handleAnalyzeKidsFoodImage(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
         return await handleReportProblem(request, env, ctx);
+      } else if (url.pathname === '/api/contact' && request.method === 'POST') {
+        return await handleContactMessage(request, env, ctx);
       } else if (url.pathname === '/api/save-client-data' && request.method === 'POST') {
         return await handleSaveClientData(request, env, ctx);
       } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
         return await handleGetReports(request, env);
+      } else if (url.pathname === '/api/admin/get-contact-messages' && request.method === 'GET') {
+        return await handleGetContactMessages(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
         return await handleSavePrompt(request, env);
       } else if (url.pathname === '/api/admin/get-default-prompt' && request.method === 'GET') {
