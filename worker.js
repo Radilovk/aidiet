@@ -3681,18 +3681,19 @@ async function handleChat(request, env) {
  * @param {string} name    - Displayed as user ID in Telegram
  * @param {string} subject - Displayed as message subject in Telegram
  */
-function notifyMake(name, subject) {
-  fetch('https://hook.eu2.make.com/lexmz9kes4d3epra9btsqeqwdla06iqq', {
+function notifyMake(name, subject, ctx) {
+  const p = fetch('https://hook.eu2.make.com/lexmz9kes4d3epra9btsqeqwdla06iqq', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, subject })
   }).catch(e => console.warn('Make webhook notification failed:', e));
+  if (ctx?.waitUntil) ctx.waitUntil(p);
 }
 
 /**
  * Handle problem report submission
  */
-async function handleReportProblem(request, env) {
+async function handleReportProblem(request, env, ctx) {
   try {
     const { userId, userName, message, timestamp, userAgent } = await request.json();
     
@@ -3735,7 +3736,7 @@ async function handleReportProblem(request, env) {
     await env.page_content.put('problem_reports_list', JSON.stringify(reportsList));
     
     console.log('Problem report saved:', reportId);
-    notifyMake(report.userName, 'Доклад за проблем');
+    notifyMake(report.userName, 'Доклад за проблем', ctx);
 
     return jsonResponse({ 
       success: true, 
@@ -3806,7 +3807,7 @@ async function handleGetReports(request, env) {
  *   "message": "Client data saved successfully"
  * }
  */
-async function handleSaveClientData(request, env) {
+async function handleSaveClientData(request, env, ctx) {
   try {
     const data = await request.json();
     
@@ -3849,7 +3850,7 @@ async function handleSaveClientData(request, env) {
     await env.page_content.put('clients_list', JSON.stringify(clientsList));
     
     console.log('Client data saved:', clientId);
-    notifyMake(clientData.answers?.name || clientId, 'Ново запитване');
+    notifyMake(clientData.answers?.name || clientId, 'Ново запитване', ctx);
 
     return jsonResponse({ 
       success: true, 
@@ -3957,7 +3958,7 @@ async function handleGetClientData(request, env) {
 }
 
 // ─── Admin: Update client plan ───
-async function handleUpdateClientPlan(request, env) {
+async function handleUpdateClientPlan(request, env, ctx) {
   try {
     const { clientId, plan } = await request.json();
     if (!clientId || !plan) {
@@ -3988,7 +3989,7 @@ async function handleUpdateClientPlan(request, env) {
       notificationType: 'admin_plan_pending'
     }, env).catch(e => console.warn('Admin push notification failed:', e));
 
-    notifyMake(clientData.answers?.name || clientId, 'План чака преглед');
+    notifyMake(clientData.answers?.name || clientId, 'План чака преглед', ctx);
 
     return jsonResponse({ success: true, message: 'Plan updated' });
   } catch (error) {
@@ -11199,9 +11200,9 @@ export default {
         if (rlErr) return rlErr;
         return await handleAnalyzeKidsFoodImage(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
-        return await handleReportProblem(request, env);
+        return await handleReportProblem(request, env, ctx);
       } else if (url.pathname === '/api/save-client-data' && request.method === 'POST') {
-        return await handleSaveClientData(request, env);
+        return await handleSaveClientData(request, env, ctx);
       } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
         return await handleGetReports(request, env);
       } else if (url.pathname === '/api/admin/save-prompt' && request.method === 'POST') {
@@ -11325,7 +11326,7 @@ export default {
       } else if (url.pathname === '/api/admin/get-client-data' && request.method === 'GET') {
         return await handleGetClientData(request, env);
       } else if (url.pathname === '/api/admin/update-client-plan' && request.method === 'POST') {
-        return await handleUpdateClientPlan(request, env);
+        return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
         return await handleActivateClientPlan(request, env);
       } else if (url.pathname === '/api/client-plan-status' && request.method === 'GET') {
