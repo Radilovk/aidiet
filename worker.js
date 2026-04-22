@@ -3678,16 +3678,19 @@ async function handleChat(request, env) {
 
 /**
  * Fire-and-forget notification to Make webhook → Telegram bot.
- * @param {string} name    - Displayed as user ID in Telegram
+ * @param {string} name    - Displayed as user name in Telegram
  * @param {string} subject - Displayed as message subject in Telegram
  * @param {object} ctx     - Cloudflare execution context
  * @param {object} details - Additional notification-specific fields included in the webhook payload
+ *
+ * Payload fields sent: { name, userId (= name by default), subject, ...details }
+ * `details` may override `userId` (e.g. when a separate userId is already known).
  */
 function notifyMake(name, subject, ctx, details = {}) {
   const p = fetch('https://hook.eu2.make.com/lexmz9kes4d3epra9btsqeqwdla06iqq', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, subject, ...details })
+    body: JSON.stringify({ name, userId: name, subject, ...details })
   }).catch(e => console.warn('Make webhook notification failed:', e));
   if (ctx?.waitUntil) ctx.waitUntil(p);
 }
