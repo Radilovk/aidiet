@@ -1660,6 +1660,48 @@
     </section>
     </main>
 
+    <!-- Contact Section -->
+    <section class="steps reveal" id="contact" style="background: var(--soft-red);">
+        <div class="section-title">
+            <h2>Свържи се с нас</h2>
+            <p>Имаш въпрос или предложение? Ще се радваме да чуем от теб.</p>
+        </div>
+        <div style="max-width: 600px; margin: 0 auto;">
+            <form id="contactForm" onsubmit="submitContactForm(event)" novalidate>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); font-size: 0.9rem;">Вашето Ime *</label>
+                        <input type="text" id="contactName" required placeholder="Иван Иванов"
+                            style="width: 100%; padding: 12px 16px; border: 2px solid var(--glass-border); border-radius: 12px; background: var(--white); color: var(--text-dark); font-size: 1rem; outline: none; transition: border-color 0.2s;"
+                            onfocus="this.style.borderColor='var(--primary-red)'" onblur="this.style.borderColor='var(--glass-border)'">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); font-size: 0.9rem;">Имейл</label>
+                        <input type="email" id="contactEmail" placeholder="email@example.com"
+                            style="width: 100%; padding: 12px 16px; border: 2px solid var(--glass-border); border-radius: 12px; background: var(--white); color: var(--text-dark); font-size: 1rem; outline: none; transition: border-color 0.2s;"
+                            onfocus="this.style.borderColor='var(--primary-red)'" onblur="this.style.borderColor='var(--glass-border)'">
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); font-size: 0.9rem;">Тема</label>
+                    <input type="text" id="contactSubject" placeholder="За какво се отнася съобщението?"
+                        style="width: 100%; padding: 12px 16px; border: 2px solid var(--glass-border); border-radius: 12px; background: var(--white); color: var(--text-dark); font-size: 1rem; outline: none; transition: border-color 0.2s;"
+                        onfocus="this.style.borderColor='var(--primary-red)'" onblur="this.style.borderColor='var(--glass-border)'">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); font-size: 0.9rem;">Съобщение *</label>
+                    <textarea id="contactMessage" required rows="5" placeholder="Напишете вашето съобщение тук..."
+                        style="width: 100%; padding: 12px 16px; border: 2px solid var(--glass-border); border-radius: 12px; background: var(--white); color: var(--text-dark); font-size: 1rem; outline: none; resize: vertical; transition: border-color 0.2s;"
+                        onfocus="this.style.borderColor='var(--primary-red)'" onblur="this.style.borderColor='var(--glass-border)'"></textarea>
+                </div>
+                <div id="contactFormStatus" style="margin-bottom: 16px; display: none; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
+                <button type="submit" id="contactSubmitBtn" class="nav-btn" style="width: 100%; padding: 14px; font-size: 1rem;">
+                    <i class="fas fa-paper-plane"></i> Изпрати Съобщение
+                </button>
+            </form>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer role="contentinfo">
         <div class="footer-logo"><i class="fas fa-apple-alt"></i> NutriPlan</div>
@@ -1714,6 +1756,64 @@
     <script>
         // Worker URL configuration
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+
+        // --- Contact Form ---
+        async function submitContactForm(event) {
+            event.preventDefault();
+            const name = document.getElementById('contactName').value.trim();
+            const email = document.getElementById('contactEmail').value.trim();
+            const subject = document.getElementById('contactSubject').value.trim();
+            const message = document.getElementById('contactMessage').value.trim();
+            const status = document.getElementById('contactFormStatus');
+            const btn = document.getElementById('contactSubmitBtn');
+
+            if (!name || !message) {
+                status.style.display = 'block';
+                status.style.background = '#fee2e2';
+                status.style.color = '#dc2626';
+                status.textContent = 'Моля, попълнете Ime и Съобщение.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Изпращане...';
+            status.style.display = 'none';
+
+            try {
+                const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+                const response = await fetch(`${WORKER_URL}/api/contact`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        subject,
+                        message,
+                        userId: userData.userId || 'anonymous',
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    status.style.display = 'block';
+                    status.style.background = '#d1fae5';
+                    status.style.color = '#065f46';
+                    status.textContent = '✅ Съобщението е изпратено успешно! Ще се свържем с вас скоро.';
+                    document.getElementById('contactForm').reset();
+                } else {
+                    throw new Error(result.error || 'Грешка при изпращане');
+                }
+            } catch (error) {
+                status.style.display = 'block';
+                status.style.background = '#fee2e2';
+                status.style.color = '#dc2626';
+                status.textContent = '❌ Грешка: ' + error.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати Съобщение';
+            }
+        }
 
         // --- Theme Management ---
         function initializeTheme() {

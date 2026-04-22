@@ -1414,6 +1414,23 @@
 
             <!-- Monitoring Tab -->
             <div id="tab-monitoring" class="tab-content">
+
+            <!-- Contact Messages Section -->
+            <div class="card">
+                <h2><i class="fas fa-envelope-open-text"></i> Контакт Съобщения</h2>
+                <div class="info-box">
+                    <strong>Информация:</strong> Тук можете да видите всички съобщения, изпратени чрез формата за контакт от index.html и profile.html.
+                </div>
+                <button class="btn" onclick="loadContactMessages()" style="margin-bottom: 20px;">
+                    <i class="fas fa-sync"></i> Обнови Съобщения
+                </button>
+                <div id="contactMessagesContainer" style="max-height: 500px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-gray); padding: 20px;">
+                        Натиснете "Обнови Съобщения" за да заредите контакт съобщенията.
+                    </p>
+                </div>
+            </div>
+
             <!-- Problem Reports Section -->
             <div class="card">
                 <h2><i class="fas fa-exclamation-triangle"></i> Доклади за Проблеми</h2>
@@ -5573,6 +5590,66 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 console.error('Error loading reports:', error);
                 container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на доклади</p>';
                 showError('Грешка при зареждане на доклади: ' + error.message);
+            }
+        }
+
+        // Load Contact Messages
+        async function loadContactMessages() {
+            const container = document.getElementById('contactMessagesContainer');
+            container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+
+            try {
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-contact-messages',
+                    'admin:contact-messages',
+                    CACHE_CONFIG.reports
+                );
+
+                if (result.success && result.messages) {
+                    if (result.messages.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма контакт съобщения за показване.</p>';
+                        return;
+                    }
+
+                    let html = '';
+                    result.messages.forEach(msg => {
+                        const date = new Date(msg.timestamp);
+                        const dateStr = date.toLocaleString('bg-BG');
+
+                        html += `
+                            <div class="report-item">
+                                <div class="report-header">
+                                    <div class="report-user">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span>${escapeHtml(msg.name)}</span>
+                                        ${msg.email ? `<span style="color: var(--accent-blue); font-size: 0.85rem;"><i class="fas fa-envelope"></i> ${escapeHtml(msg.email)}</span>` : ''}
+                                        <span class="report-badge badge-${msg.status || 'unread'}">${msg.status === 'read' ? 'Прочетено' : 'Непрочетено'}</span>
+                                    </div>
+                                    <div class="report-time">
+                                        <i class="fas fa-clock"></i> ${dateStr}
+                                    </div>
+                                </div>
+                                ${msg.subject ? `<div style="font-weight: 600; color: var(--primary-red); margin-bottom: 6px; font-size: 0.9rem;"><i class="fas fa-tag"></i> ${escapeHtml(msg.subject)}</div>` : ''}
+                                <div class="report-message">
+                                    ${escapeHtml(msg.message)}
+                                </div>
+                                <div class="report-meta">
+                                    <span><i class="fas fa-hashtag"></i> ID: ${msg.id}</span>
+                                    <span><i class="fas fa-id-badge"></i> User ID: ${escapeHtml(msg.userId)}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                    showSuccess(`Заредени ${result.messages.length} контакт съобщения`);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Error loading contact messages:', error);
+                container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на съобщения</p>';
+                showError('Грешка при зареждане на контакт съобщения: ' + error.message);
             }
         }
 

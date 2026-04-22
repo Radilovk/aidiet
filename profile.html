@@ -1635,6 +1635,43 @@
         </div>
     </div>
 
+    <!-- Contact Form Section -->
+    <div style="max-width: 720px; margin: 24px auto; padding: 0 16px;">
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-envelope"></i>
+                Свържи се с нас
+            </div>
+            <p style="color: var(--text-light); margin-bottom: 20px; font-size: 0.95rem;">
+                Имаш въпрос, предложение или нужда от помощ? Изпрати ни съобщение и ще се свържем с теб.
+            </p>
+            <form id="profileContactForm" onsubmit="submitProfileContactForm(event)" novalidate>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Ime *</label>
+                        <input type="text" id="profileContactName" class="form-input" required placeholder="Иван Иванов">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Имейл</label>
+                        <input type="email" id="profileContactEmail" class="form-input" placeholder="email@example.com">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тема</label>
+                    <input type="text" id="profileContactSubject" class="form-input" placeholder="За какво се отнася съобщението?">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Съобщение *</label>
+                    <textarea id="profileContactMessage" class="form-textarea" required rows="5" placeholder="Напишете вашето съобщение тук..."></textarea>
+                </div>
+                <div id="profileContactStatus" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
+                <button type="submit" id="profileContactBtn" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-paper-plane"></i> Изпрати Съобщение
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script>
         let userData = {};
         let originalData = {};
@@ -1657,6 +1694,73 @@
                 }
             });
             return updatedData;
+        }
+
+        // --- Contact Form ---
+        const WORKER_PROFILE = 'https://aidiet.radilov-k.workers.dev';
+
+        async function submitProfileContactForm(event) {
+            event.preventDefault();
+            const name = document.getElementById('profileContactName').value.trim();
+            const email = document.getElementById('profileContactEmail').value.trim();
+            const subject = document.getElementById('profileContactSubject').value.trim();
+            const message = document.getElementById('profileContactMessage').value.trim();
+            const status = document.getElementById('profileContactStatus');
+            const btn = document.getElementById('profileContactBtn');
+
+            if (!name || !message) {
+                status.style.display = 'block';
+                status.style.background = '#fee2e2';
+                status.style.color = '#dc2626';
+                status.textContent = 'Моля, попълнете Ime и Съобщение.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Изпращане...';
+            status.style.display = 'none';
+
+            try {
+                const response = await fetch(`${WORKER_PROFILE}/api/contact`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        subject,
+                        message,
+                        userId: userData.userId || 'anonymous',
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    status.style.display = 'block';
+                    status.style.background = '#d1fae5';
+                    status.style.color = '#065f46';
+                    status.textContent = '✅ Съобщението е изпратено успешно! Ще се свържем с вас скоро.';
+                    document.getElementById('profileContactForm').reset();
+                } else {
+                    throw new Error(result.error || 'Грешка при изпращане');
+                }
+            } catch (error) {
+                status.style.display = 'block';
+                status.style.background = '#fee2e2';
+                status.style.color = '#dc2626';
+                status.textContent = '❌ Грешка: ' + error.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати Съобщение';
+            }
+        }
+
+        // Pre-fill contact name/email from user data
+        function prefillContactForm() {
+            const nameField = document.getElementById('profileContactName');
+            const emailField = document.getElementById('profileContactEmail');
+            if (nameField && userData.name) nameField.value = userData.name;
+            if (emailField && userData.email) emailField.value = userData.email;
         }
 
         // --- Theme Management ---
@@ -1737,6 +1841,9 @@
 
                 // Populate all form fields
                 populateFormFields();
+
+                // Pre-fill contact form with user data
+                prefillContactForm();
 
             } catch (error) {
                 console.error('Error loading user data:', error);
