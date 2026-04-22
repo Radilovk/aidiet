@@ -3963,6 +3963,16 @@ async function handleUpdateClientPlan(request, env) {
       clientData.planStatus = 'pending';
     }
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+
+    // Notify admin that a new plan is pending review (fire-and-forget)
+    sendPushNotificationToUser('admin', {
+      title: 'Нов план чака преглед',
+      body: `Клиент ${clientId} попълни въпросник 2 — планът очаква активиране.`,
+      url: '/admin.html',
+      icon: '/icon-192x192.png',
+      notificationType: 'admin_plan_pending'
+    }, env).catch(e => console.warn('Admin push notification failed:', e));
+
     return jsonResponse({ success: true, message: 'Plan updated' });
   } catch (error) {
     console.error('Error updating client plan:', error);
