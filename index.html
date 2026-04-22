@@ -2780,6 +2780,41 @@
 
         // Check notification permission on load
         window.addEventListener('DOMContentLoaded', checkNotificationPermission);
+
+        // ── UI Zone Images ────────────────────────────────────────────────────────
+        (function applyUIImages() {
+            const WORKER = 'https://aidiet.radilov-k.workers.dev';
+            fetch(WORKER + '/api/ui-images')
+                .then(r => r.json())
+                .then(data => {
+                    const img = (data.images || {})['index_hero'];
+                    if (!img) return;
+                    const hero = document.querySelector('.hero');
+                    if (!hero) return;
+                    hero.style.backgroundImage = `url(${img})`;
+                    hero.style.backgroundSize = 'cover';
+                    hero.style.backgroundPosition = 'center';
+                    hero.style.backgroundRepeat = 'no-repeat';
+                    // Add a subtle overlay so text stays readable
+                    hero.style.position = 'relative';
+                    const overlay = document.createElement('div');
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    overlay.style.cssText = 'position:absolute;inset:0;background:' + (isDark ? 'rgba(10,26,26,0.72)' : 'rgba(240,253,250,0.72)') + ';z-index:0;pointer-events:none;transition:background 0.3s;';
+                    overlay.setAttribute('aria-hidden', 'true');
+                    overlay.id = 'heroImageOverlay';
+                    if (!document.getElementById('heroImageOverlay')) {
+                        hero.insertBefore(overlay, hero.firstChild);
+                    }
+                    // Update overlay on theme change
+                    const observer = new MutationObserver(() => {
+                        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        overlay.style.background = dark ? 'rgba(10,26,26,0.72)' : 'rgba(240,253,250,0.72)';
+                    });
+                    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+                })
+                .catch(() => {/* no-op: fall back to default design */});
+        })();
+        // ── End UI Zone Images ─────────────────────────────────────────────────────
     </script>
 </body>
 </html>

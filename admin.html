@@ -863,6 +863,9 @@
                 <button class="tab-btn" onclick="switchTab('protocols', event)">
                     <i class="fas fa-flask"></i> Протоколи
                 </button>
+                <button class="tab-btn" onclick="switchTab('ui-images', event)">
+                    <i class="fas fa-images"></i> UI Изображения
+                </button>
             </div>
 
             <!-- Configuration Tab -->
@@ -2165,6 +2168,24 @@
             </div>
             <!-- End Protocols Tab -->
 
+            <!-- UI Images Tab -->
+            <div id="tab-ui-images" class="tab-content">
+                <div class="card">
+                    <h2><i class="fas fa-images"></i> UI Изображения за Страниците</h2>
+                    <div class="info-box" style="background: #e0f7fa; border-left: 4px solid #00bcd4;">
+                        <strong>Информация:</strong> Качете фонови изображения за ключови зони в приложението. Когато е качено изображение, то се показва като фон на съответната зона. Ако няма изображение, зоната изглежда така, както е в момента. Формати: PNG, JPG, WebP. Максимален размер: 1MB.
+                    </div>
+
+                    <div id="uiImagesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; margin-top: 20px;">
+                        <!-- Zone cards inserted by JS -->
+                        <p style="text-align: center; color: var(--text-gray); grid-column: 1/-1; padding: 20px;">
+                            <i class="fas fa-spinner fa-spin"></i> Зареждане на изображенията...
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <!-- End UI Images Tab -->
+
         </div>
     </div>
 
@@ -2197,7 +2218,7 @@
         // --- Tab Management ---
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols'];
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols', 'ui-images'];
             if (!validTabs.includes(tabName)) {
                 console.error('Invalid tab name:', tabName);
                 return;
@@ -2242,13 +2263,17 @@
             if (tabName === 'protocols' && typeof loadProtocolSettings === 'function') {
                 loadProtocolSettings();
             }
+            // Auto-load UI images when ui-images tab is opened
+            if (tabName === 'ui-images') {
+                loadAllUIImages();
+            }
         }
 
         // Initialize tab on page load
         function initializeTab() {
             const savedTab = localStorage.getItem('selectedTab') || 'configuration';
             // Validate saved tab to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols'];
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols', 'ui-images'];
             const tabToLoad = validTabs.includes(savedTab) ? savedTab : 'configuration';
             
             const tabContents = document.querySelectorAll('.tab-content');
@@ -2270,6 +2295,10 @@
             // Load protocol settings if protocols tab is active on page load
             if (tabToLoad === 'protocols' && typeof loadProtocolSettings === 'function') {
                 loadProtocolSettings();
+            }
+            // Load UI images if ui-images tab is active on page load
+            if (tabToLoad === 'ui-images') {
+                loadAllUIImages();
             }
         }
 
@@ -5231,12 +5260,215 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
+}
+
         // Helper function to escape HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // ─── UI Images Management ───────────────────────────────────────────────
+
+        const UI_IMAGE_ZONE_DEFS = [
+            {
+                id: 'index_hero',
+                label: '🏠 Начална страница – Hero секция',
+                description: 'Фонова снимка зад главния банер на началната страница. Препоръчително: красива снимка с храна или здравословен начин на живот.',
+                recommendedSize: '1920 × 1080 px (landscape)',
+                page: 'index.html'
+            },
+            {
+                id: 'analysis_header',
+                label: '📊 Здравен Анализ – Хедър карта',
+                description: 'Фонова снимка зад заглавната карта "Вашият Здравен Анализ" (с иконата на сърдечен ритъм).',
+                recommendedSize: '800 × 300 px (landscape)',
+                page: 'analysis.html'
+            },
+            {
+                id: 'profile_cover',
+                label: '👤 Профил – Корица',
+                description: 'Корица / cover image зад аватара и името в страницата на профила.',
+                recommendedSize: '800 × 300 px (landscape)',
+                page: 'profile.html'
+            },
+            {
+                id: 'guidelines_banner',
+                label: '📋 Насоки – Горен банер',
+                description: 'Декоративен банер в горната част на страницата с насоки, над акордеона с препоръчителни и забранени храни.',
+                recommendedSize: '1200 × 320 px (landscape)',
+                page: 'guidelines.html'
+            },
+            {
+                id: 'plan_pending_bg',
+                label: '⏳ Изчакване на план – Фон',
+                description: 'Фонова снимка на цялата страница "Информацията ви е получена" (план в изчакване).',
+                recommendedSize: '1920 × 1080 px (landscape)',
+                page: 'plan-pending.html'
+            },
+            {
+                id: 'plan_greeting',
+                label: '🥗 Диетичен план – Банер под заглавието',
+                description: 'Фонова снимка на банера с поздрав под заглавния хедър на страницата с хранителния план.',
+                recommendedSize: '1200 × 200 px (panoramic)',
+                page: 'plan.html'
+            },
+            {
+                id: 'questionnaire2_bg',
+                label: '📝 Въпросник – Фон на страницата',
+                description: 'Фонова снимка на цялата страница с въпросника (HealthScore / NutriPlan въпросник).',
+                recommendedSize: '1920 × 1080 px (landscape)',
+                page: 'questionnaire2.html'
+            },
+        ];
+
+        let uiImagesCache = {};
+
+        async function loadAllUIImages() {
+            const grid = document.getElementById('uiImagesGrid');
+            if (!grid) return;
+            grid.innerHTML = '<p style="text-align:center;color:var(--text-gray);grid-column:1/-1;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/ui-images', {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                uiImagesCache = result.images || {};
+                renderUIImageGrid();
+            } catch (error) {
+                console.error('Error loading UI images:', error);
+                grid.innerHTML = '<p style="text-align:center;color:var(--accent-light-red);grid-column:1/-1;padding:20px;">Грешка при зареждане. Опитайте отново.</p>';
+            }
+        }
+
+        function renderUIImageGrid() {
+            const grid = document.getElementById('uiImagesGrid');
+            if (!grid) return;
+            let html = '';
+
+            UI_IMAGE_ZONE_DEFS.forEach(zone => {
+                const imageData = uiImagesCache[zone.id];
+                const hasImage = !!imageData;
+                const safeId = escapeHtml(zone.id);
+                const safeLabel = escapeHtml(zone.label);
+                const safeDesc = escapeHtml(zone.description);
+                const safeSize = escapeHtml(zone.recommendedSize);
+                const safePage = escapeHtml(zone.page);
+
+                html += `
+                <div class="card" style="margin:0; border: 2px solid ${hasImage ? 'var(--primary-red)' : 'transparent'}; transition: border-color 0.3s;">
+                    <h3 style="font-size:1rem; margin-bottom:8px;">${safeLabel}</h3>
+                    <p style="font-size:0.82rem; color:var(--text-gray); margin-bottom:6px;">${safeDesc}</p>
+                    <p style="font-size:0.75rem; color:var(--text-gray); margin-bottom:6px;">
+                        <i class="fas fa-expand-arrows-alt"></i> Размер: <strong>${safeSize}</strong>
+                    </p>
+                    <p style="font-size:0.75rem; color:var(--text-gray); margin-bottom:14px;">
+                        <i class="fas fa-file-code"></i> Страница: <code>${safePage}</code>
+                    </p>
+
+                    <div style="background:var(--soft-red); border-radius:12px; min-height:140px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; overflow:hidden; position:relative;">
+                        ${hasImage
+                            ? `<img src="${imageData}" alt="${safeLabel}" style="width:100%; height:140px; object-fit:cover; border-radius:12px;">`
+                            : `<div style="text-align:center; color:var(--text-gray); padding:20px;">
+                                <i class="fas fa-image" style="font-size:2.5rem; opacity:0.3; display:block; margin-bottom:8px;"></i>
+                                <span style="font-size:0.8rem;">Няма качено изображение</span>
+                               </div>`
+                        }
+                    </div>
+
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Качи ново изображение:</label>
+                        <input type="file" id="uiImageFile_${safeId}" accept="image/png,image/jpeg,image/webp"
+                               style="padding:10px; border:2px dashed var(--primary-red); border-radius:10px; width:100%; cursor:pointer; font-size:0.82rem;">
+                        <small style="color:var(--text-gray); display:block; margin-top:4px;">Макс. 1MB · PNG / JPG / WebP</small>
+                    </div>
+
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn" onclick="uploadUIImage('${safeId}')" style="background:var(--primary-red); font-size:0.85rem; padding:10px 16px;">
+                            <i class="fas fa-upload"></i> Качи
+                        </button>
+                        ${hasImage ? `
+                        <button class="btn" onclick="deleteUIImage('${safeId}')" style="background:var(--accent-light-red); font-size:0.85rem; padding:10px 16px;">
+                            <i class="fas fa-trash"></i> Изтрий
+                        </button>` : ''}
+                    </div>
+
+                    ${hasImage ? `<p style="margin-top:8px; font-size:0.75rem; color:var(--primary-red);"><i class="fas fa-check-circle"></i> Изображението е активно</p>` : ''}
+                </div>`;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        async function uploadUIImage(zoneId) {
+            const fileInput = document.getElementById('uiImageFile_' + zoneId);
+            if (!fileInput || !fileInput.files[0]) {
+                showError('Моля, изберете файл за качване.');
+                return;
+            }
+            const file = fileInput.files[0];
+            if (file.size > 1024 * 1024) {
+                showError('Файлът е твърде голям. Максимален размер: 1MB.');
+                return;
+            }
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showError('Невалиден формат. Позволени: PNG, JPG, WebP.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                try {
+                    showSuccess('Качване на изображението...', 5000);
+                    const response = await fetch(WORKER_URL + '/api/admin/upload-ui-image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ zoneId, imageData: base64Data, mimeType: file.type })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showSuccess('Изображението е качено успешно!');
+                        uiImagesCache[zoneId] = base64Data;
+                        fileInput.value = '';
+                        renderUIImageGrid();
+                    } else {
+                        showError(result.error || 'Грешка при качване.');
+                    }
+                } catch (err) {
+                    console.error('Error uploading UI image:', err);
+                    showError('Неуспешно качване. Опитайте отново.');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function deleteUIImage(zoneId) {
+            if (!confirm('Сигурни ли сте, че искате да изтриете изображението?')) return;
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/delete-ui-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ zoneId })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showSuccess('Изображението е изтрито успешно!');
+                    delete uiImagesCache[zoneId];
+                    renderUIImageGrid();
+                } else {
+                    showError(result.error || 'Грешка при изтриване.');
+                }
+            } catch (err) {
+                console.error('Error deleting UI image:', err);
+                showError('Неуспешно изтриване. Опитайте отново.');
+            }
+        }
+
+        // ─── End UI Images Management ────────────────────────────────────────────
 
         // Load Problem Reports
         async function loadReports() {

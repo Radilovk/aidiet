@@ -1078,6 +1078,9 @@
     </header>
 
     <div class="container">
+        <!-- UI Banner Zone (shown only when image is configured in admin) -->
+        <div id="guidelinesBanner" style="display:none; position:relative; overflow:hidden; border-radius:20px; margin-bottom:20px; min-height:180px; background:transparent;"></div>
+
         <!-- GUIDELINES ACCORDION (moved from plan tab) -->
         <div class="accordion">
             <div class="acc-item">
@@ -1649,6 +1652,40 @@
                 }
             }
         });
+
+        // ── UI Zone Images ────────────────────────────────────────────────────────
+        (function applyUIImages() {
+            const WORKER = 'https://aidiet.radilov-k.workers.dev';
+            fetch(WORKER + '/api/ui-images')
+                .then(r => r.json())
+                .then(data => {
+                    const img = (data.images || {})['guidelines_banner'];
+                    if (!img) return;
+                    const banner = document.getElementById('guidelinesBanner');
+                    if (!banner) return;
+                    banner.style.display = 'block';
+                    banner.style.backgroundImage = `url(${img})`;
+                    banner.style.backgroundSize = 'cover';
+                    banner.style.backgroundPosition = 'center';
+                    banner.style.backgroundRepeat = 'no-repeat';
+                    // Content overlay with title
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    banner.innerHTML = `
+                        <div style="position:absolute;inset:0;background:${isDark ? 'rgba(10,26,26,0.55)' : 'rgba(240,253,250,0.55)'};border-radius:inherit;" aria-hidden="true" id="guidelinesBannerOverlay"></div>
+                        <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:180px;text-align:center;padding:20px;">
+                            <i class="fas fa-compass" style="font-size:2.5rem;color:var(--primary-red);margin-bottom:12px;"></i>
+                            <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-dark);margin:0;">Вашите Хранителни Насоки</h2>
+                            <p style="color:var(--text-gray);margin-top:6px;font-size:0.9rem;">Препоръчителни и забранени храни, психология и съвети</p>
+                        </div>`;
+                    new MutationObserver(() => {
+                        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        const overlay = document.getElementById('guidelinesBannerOverlay');
+                        if (overlay) overlay.style.background = dark ? 'rgba(10,26,26,0.55)' : 'rgba(240,253,250,0.55)';
+                    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+                })
+                .catch(() => {});
+        })();
+        // ── End UI Zone Images ─────────────────────────────────────────────────────
     </script>
 
     <!-- Chat Assistant Button -->

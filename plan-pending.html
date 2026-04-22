@@ -654,6 +654,24 @@
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i> Провери статус на плана';
             }
         }
+
+        // ── UI Zone Images ────────────────────────────────────────────────────────
+        (function applyUIImages() {
+            const WORKER = 'https://aidiet.radilov-k.workers.dev';
+            fetch(WORKER + '/api/ui-images')
+                .then(r => r.json())
+                .then(data => {
+                    const img = (data.images || {})['plan_pending_bg'];
+                    if (!img) return;
+                    document.body.style.backgroundImage = `url(${img})`;
+                    document.body.style.backgroundSize = 'cover';
+                    document.body.style.backgroundPosition = 'center';
+                    document.body.style.backgroundRepeat = 'no-repeat';
+                    document.body.style.backgroundAttachment = 'fixed';
+                })
+                .catch(() => {});
+        })();
+        // ── End UI Zone Images ─────────────────────────────────────────────────────
     </script>
 </body>
 </html>
