@@ -5865,26 +5865,14 @@
         let foodAnalysisInProgress = false;
         let foodAnalysisMode = 'food';     // 'food' | 'menu'
 
-        function switchFoodMode(mode) {
-            foodAnalysisMode = mode;
-            const tabFood = document.getElementById('modeTabFood');
-            const tabMenu = document.getElementById('modeTabMenu');
-            const title = document.getElementById('foodAnalysisTitle');
-            if (tabFood) tabFood.classList.toggle('active', mode === 'food');
-            if (tabMenu) tabMenu.classList.toggle('active', mode === 'menu');
-            if (title) {
-                title.innerHTML = mode === 'menu'
-                    ? '<i class="fas fa-book-open"></i> Меню от ресторант'
-                    : '<i class="fas fa-utensils"></i> Анализ на Храна';
-            }
-            // Reset results and image when switching mode
+        function resetFoodCaptureUI(mode) {
+            const hint = mode === 'menu'
+                ? 'Натиснете за да снимате менюто<br>или изберете от галерията'
+                : 'Натиснете за да направите снимка<br>или изберете от галерията';
             const captureArea = document.getElementById('foodCaptureArea');
             if (captureArea) captureArea.classList.remove('has-image');
             const captureContent = document.getElementById('foodCaptureContent');
             if (captureContent) {
-                const hint = mode === 'menu'
-                    ? 'Натиснете за да снимате менюто<br>или изберете от галерията'
-                    : 'Натиснете за да направите снимка<br>или изберете от галерията';
                 captureContent.innerHTML = `
                     <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
                     <div class="food-capture-text">${hint}</div>
@@ -5902,6 +5890,21 @@
                 results.classList.remove('visible');
                 results.innerHTML = '';
             }
+        }
+
+        function switchFoodMode(mode) {
+            foodAnalysisMode = mode;
+            const tabFood = document.getElementById('modeTabFood');
+            const tabMenu = document.getElementById('modeTabMenu');
+            const title = document.getElementById('foodAnalysisTitle');
+            if (tabFood) tabFood.classList.toggle('active', mode === 'food');
+            if (tabMenu) tabMenu.classList.toggle('active', mode === 'menu');
+            if (title) {
+                title.innerHTML = mode === 'menu'
+                    ? '<i class="fas fa-book-open"></i> Меню от ресторант'
+                    : '<i class="fas fa-utensils"></i> Анализ на Храна';
+            }
+            resetFoodCaptureUI(mode);
         }
 
         function handleFoodAnalyzeClick() {
@@ -5929,8 +5932,6 @@
         }
 
         function resetFoodAnalysis() {
-            foodAnalysisImageData = null;
-            foodAnalysisImageMime = null;
             foodAnalysisInProgress = false;
             foodAnalysisMode = 'food';
 
@@ -5941,29 +5942,7 @@
             const title = document.getElementById('foodAnalysisTitle');
             if (title) title.innerHTML = '<i class="fas fa-utensils"></i> Анализ на Храна';
 
-            const captureArea = document.getElementById('foodCaptureArea');
-            if (captureArea) {
-                captureArea.classList.remove('has-image');
-            }
-            const captureContent = document.getElementById('foodCaptureContent');
-            if (captureContent) {
-                captureContent.innerHTML = `
-                    <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
-                    <div class="food-capture-text">
-                        Натиснете за да направите снимка<br>или изберете от галерията
-                    </div>
-                `;
-            }
-            const analyzeBtn = document.getElementById('foodAnalyzeBtn');
-            if (analyzeBtn) {
-                analyzeBtn.disabled = true;
-                analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за анализ';
-            }
-            const results = document.getElementById('foodResults');
-            if (results) {
-                results.classList.remove('visible');
-                results.innerHTML = '';
-            }
+            resetFoodCaptureUI('food');
         }
 
         function triggerFoodCapture() {

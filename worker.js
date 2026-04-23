@@ -7567,7 +7567,7 @@ async function handleAnalyzeMenuImage(request, env) {
 
     const mealTime = mealContext || 'неуточнено';
 
-    const menuPrompt = `Ти си експерт диетолог. На снимката има меню от ресторант. Прочети всички ястия и препоръчай НАЙ-ПОДХОДЯЩОТО за клиента. Върни САМО валиден JSON (без markdown, без \`\`\`).
+    const menuPrompt = `Ти си експерт диетолог. На снимката има меню от ресторант. Прочети всички ястия и препоръчай НАЙ-ПОДХОДЯЩОТО за клиента. Върни САМО валиден JSON (без markdown, без backtick блокове).
 
 ${dietContext ? `ПРОФИЛ НА КЛИЕНТА: ${dietContext}` : ''}
 ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
