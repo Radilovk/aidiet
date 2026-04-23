@@ -687,28 +687,6 @@
             box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
         }
 
-        .btn-primary::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 60%;
-            height: 100%;
-            background: linear-gradient(
-                120deg,
-                transparent 0%,
-                rgba(255, 255, 255, 0.28) 50%,
-                transparent 100%
-            );
-            animation: btn-shimmer 2.4s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes btn-shimmer {
-            0% { left: -100%; }
-            60%, 100% { left: 150%; }
-        }
-
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
@@ -716,6 +694,33 @@
 
         .btn-primary:active {
             transform: translateY(0);
+        }
+
+        /* --- CONTACT TOGGLE --- */
+        .profile-contact-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+        .profile-contact-header .section-title {
+            margin-bottom: 0;
+        }
+        .profile-contact-chevron {
+            color: var(--primary-red);
+            font-size: 1rem;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .profile-contact-wrapper {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+        }
+        .profile-contact-wrapper.open {
+            max-height: 900px;
+            opacity: 1;
         }
 
         .btn-secondary {
@@ -1198,6 +1203,7 @@
                 box-shadow: 
                     0 8px 28px rgba(13, 148, 136, 0.45),
                     0 4px 12px rgba(13, 148, 136, 0.25),
+                    0 0 0 0 rgba(13, 148, 136, 0.35),
                     inset 0 1px 0 rgba(255, 255, 255, 0.2);
                 transform: scale(1);
             }
@@ -1205,8 +1211,9 @@
                 box-shadow: 
                     0 12px 36px rgba(13, 148, 136, 0.55),
                     0 6px 16px rgba(13, 148, 136, 0.35),
+                    0 0 0 14px rgba(13, 148, 136, 0),
                     inset 0 1px 0 rgba(255, 255, 255, 0.25);
-                transform: scale(1.02);
+                transform: scale(1.05);
             }
         }
         .fab-chat:hover {
@@ -1638,11 +1645,15 @@
     <!-- Contact Form Section -->
     <div style="max-width: 720px; margin: 24px auto; padding: 0 16px;">
         <div class="form-section">
-            <div class="section-title">
-                <i class="fas fa-envelope"></i>
-                Свържи се с нас
+            <div class="profile-contact-header" onclick="toggleProfileContact()" role="button" tabindex="0" aria-expanded="false" aria-controls="profileContactWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleProfileContact()">
+                <div class="section-title">
+                    <i class="fas fa-envelope"></i>
+                    Свържи се с нас
+                </div>
+                <i class="fas fa-chevron-down profile-contact-chevron" id="profileContactChevron"></i>
             </div>
-            <p style="color: var(--text-light); margin-bottom: 20px; font-size: 0.95rem;">
+            <div class="profile-contact-wrapper" id="profileContactWrapper">
+            <p style="color: var(--text-light); margin: 16px 0 20px; font-size: 0.95rem;">
                 Имаш въпрос, предложение или нужда от помощ? Изпрати ни съобщение и ще се свържем с теб.
             </p>
             <form id="profileContactForm" onsubmit="submitProfileContactForm(event)" novalidate>
@@ -1669,6 +1680,7 @@
                     <i class="fas fa-paper-plane"></i> Изпрати Съобщение
                 </button>
             </form>
+            </div><!-- /.profile-contact-wrapper -->
         </div>
     </div>
 
@@ -1698,6 +1710,18 @@
 
         // --- Contact Form ---
         const WORKER_PROFILE = 'https://aidiet.radilov-k.workers.dev';
+
+        function toggleProfileContact() {
+            const wrapper = document.getElementById('profileContactWrapper');
+            const chevron = document.getElementById('profileContactChevron');
+            const header = wrapper.previousElementSibling;
+            const isOpen = wrapper.classList.toggle('open');
+            chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (header) header.setAttribute('aria-expanded', String(isOpen));
+            if (isOpen) {
+                setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }
+        }
 
         async function submitProfileContactForm(event) {
             event.preventDefault();
