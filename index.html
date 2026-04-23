@@ -154,7 +154,9 @@
             overflow: hidden;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
+            text-align: center;
         }
         .nav-btn::after {
             content: '';
@@ -537,6 +539,10 @@
             font-weight: 600;
             transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
             backdrop-filter: blur(8px);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
         .btn-outline:hover {
             background: linear-gradient(135deg, #06D6C8 0%, #0D9488 100%);
@@ -1664,7 +1670,7 @@
     <nav role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="questionnaire2.html" class="nav-btn" id="startNowBtn" style="display: none;"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Изготви План</a>
+            <a href="questionnaire2.html" class="nav-btn" id="startNowBtn" style="display: none;"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Започни промяната</a>
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
                 <span class="bar"></span>
                 <span class="bar"></span>
@@ -1700,7 +1706,7 @@
             <h1>Твоят път към <br> по-здравословно <span>тяло</span>.</h1>
             <p>Комплексна здравна платформа, която обединява персонализирано хранене, психологична подкрепа, добавки, активности, клинични протоколи и научно-базирана програма за дълголетие — всичко с помощта на 7-степенен AI анализ и 30+ индивидуални критерия.</p>
             <div class="cta-group">
-                <a href="questionnaire2.html" class="nav-btn">Изготви План</a>
+                <a href="questionnaire2.html" class="nav-btn" id="heroCTABtn">Започни промяната</a>
                 <a href="#how-it-works" class="btn-outline">Научи повече</a>
             </div>
         </div>
@@ -2130,6 +2136,7 @@
             const dietPlan = localStorage.getItem('dietPlan');
             const userId = localStorage.getItem('userId');
             const startNowBtn = document.getElementById('startNowBtn');
+            const heroCTABtn = document.getElementById('heroCTABtn');
             const navMyPlanLink = document.getElementById('navMyPlanLink');
 
             if (dietPlan) {
@@ -2139,15 +2146,23 @@
                     window.location.replace('plan.html');
                     return;
                 }
-                // User has a plan but chose to stay on index - show "My Plan" inside hamburger and bottom nav
-                if (startNowBtn) startNowBtn.style.display = 'none';
+                // User has a plan but chose to stay on index - show "Моят план" button
+                if (startNowBtn) {
+                    startNowBtn.href = 'plan.html';
+                    startNowBtn.innerHTML = '<i class="fas fa-user-check" aria-hidden="true"></i> Моят план';
+                    startNowBtn.style.display = 'inline-flex';
+                }
+                if (heroCTABtn) {
+                    heroCTABtn.href = 'plan.html';
+                    heroCTABtn.innerHTML = '<i class="fas fa-user-check" aria-hidden="true"></i> Моят план';
+                }
                 if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
                 const indexBottomNav = document.getElementById('indexBottomNav');
                 if (indexBottomNav) indexBottomNav.style.display = 'flex';
                 return;
             }
 
-            // User doesn't have a plan - show "Изготви План" button in header
+            // User doesn't have a plan - show "Започни промяната" button in header
             if (startNowBtn) {
                 startNowBtn.style.display = 'inline-flex';
             }
