@@ -1605,8 +1605,7 @@
     <nav role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="plan.html" class="nav-btn nav-btn--success" id="myPlanBtn" style="display: none;"><i class="fas fa-user-check" aria-hidden="true"></i> Моят План</a>
-            <a href="questionnaire2.html" class="nav-btn" id="startNowBtn" style="display: none;">Започни Сега</a>
+            <a href="questionnaire2.html" class="nav-btn" id="startNowBtn" style="display: none;"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Изготви План</a>
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
                 <span class="bar"></span>
                 <span class="bar"></span>
@@ -1630,12 +1629,9 @@
 
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Модули</div>
-        <a href="questionnaire2.html" onclick="closeNavMenu()"><i class="fas fa-clipboard-list"></i> Въпросник</a>
         <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално Хранене</a>
         <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Дълголетие</a>
         <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
-        <a href="health.html" onclick="closeNavMenu()"><i class="fas fa-heart"></i> Здраве</a>
-        <a href="kids.html" onclick="closeNavMenu()"><i class="fas fa-child"></i> Деца</a>
     </nav>
 
     <!-- Hero Section -->
@@ -2074,7 +2070,6 @@
 
             const dietPlan = localStorage.getItem('dietPlan');
             const userId = localStorage.getItem('userId');
-            const myPlanBtn = document.getElementById('myPlanBtn');
             const startNowBtn = document.getElementById('startNowBtn');
             const navMyPlanLink = document.getElementById('navMyPlanLink');
 
@@ -2085,18 +2080,15 @@
                     window.location.replace('plan.html');
                     return;
                 }
-                // User has a plan but chose to stay on index - show "My Plan" button
-                if (myPlanBtn) myPlanBtn.style.display = 'inline-block';
+                // User has a plan but chose to stay on index - show "My Plan" inside hamburger
+                if (startNowBtn) startNowBtn.style.display = 'none';
                 if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
                 return;
             }
 
-            // User doesn't have a plan - show "Започни Сега" button
-            if (myPlanBtn) {
-                myPlanBtn.style.display = 'none';
-            }
+            // User doesn't have a plan - show "Изготви План" button in header
             if (startNowBtn) {
-                startNowBtn.style.display = 'inline-block';
+                startNowBtn.style.display = 'inline-flex';
             }
             if (navMyPlanLink) navMyPlanLink.style.display = 'none';
 
