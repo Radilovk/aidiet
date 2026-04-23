@@ -602,7 +602,66 @@
 
         /* Protocol Selection Banner */
         .protocol-banner {
-            display: none !important;
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            right: 10px;
+            max-width: calc(100% - 20px);
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-hover));
+            color: white;
+            padding: 12px 18px;
+            border-radius: 50px;
+            box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 998;
+            animation: slideDownBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .protocol-banner.show {
+            display: flex;
+        }
+
+        .protocol-banner-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .protocol-banner-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .protocol-banner-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+
+        .protocol-banner-subtitle {
+            font-size: 0.78rem;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+
+        .protocol-banner-change {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .protocol-banner-change:hover {
+            opacity: 0.7;
         }
 
         /* PWA Install Banner */
@@ -1270,7 +1329,7 @@
 
         // --- GENDER-BASED FILTERING ---
         // Conditions and goals that should only appear for specific genders
-        const FEMALE_ONLY_CONDITIONS = ["Менопауза", "След бременност", "Ендокринни заболявания"];
+        const FEMALE_ONLY_CONDITIONS = ["Менопауза", "След бременност"];
         const FEMALE_ONLY_GOALS = ["Антицелулитна програма", "Възстановяване на тялото след бременност"];
         // No male-only conditions or goals currently exist
 
@@ -1342,10 +1401,10 @@
                     { id: "dq_slim_depr_4", text: "Имате ли склонност към компулсивно нощно хранене, за да намалите нивата на тревожност?", type: "radio", options: ["Да", "Не"], optional: true }
                 ],
                 "Тревожност": [
-                    { id: "dq_slim_anx_1", text: "Забелязвате ли, че качвате тегло предимно в коремната област в периоди на повишено психическо напрежение (кортизолово коремче)?", type: "radio", options: ["Да", "Не"], optional: true },
-                    { id: "dq_slim_anx_2", text: "Използвате ли храната като механизъм за справяне със стреса — за успокояване или като удоволствие?", type: "radio", options: ["Да", "Не"], optional: true },
-                    { id: "dq_slim_anx_3", text: "Изпитвате ли внезапен гняв или срив в настроението, когато сте гладни, който се коригира веднага след прием на захар?", type: "radio", options: ["Да", "Не"], optional: true },
-                    { id: "dq_slim_anx_4", text: "Имате ли склонност към компулсивно нощно хранене, за да намалите нивата на тревожност?", type: "radio", options: ["Да", "Не"], optional: true }
+                    { id: "dq_slim_anx_1", text: "Изпитвате ли безпричинна тревожност или вътрешно напрежение, придружени с желание за нещо за хапване, въпреки че нямате физически глад?", type: "radio", options: ["Да", "Не"], optional: true },
+                    { id: "dq_slim_anx_2", text: "Трудно ли спазвате хранителен режим в ситуации на социален натиск, дори когато сте мотивирани?", type: "radio", options: ["Да", "Не"], optional: true },
+                    { id: "dq_slim_anx_3", text: "Склонни ли сте да пропускате хранения поради тревожност или натоварен ден, а после да компенсирате с по-голямо количество храна?", type: "radio", options: ["Да", "Не"], optional: true },
+                    { id: "dq_slim_anx_4", text: "Усещате ли ускорен пулс, потене или мускулно напрежение в ситуации, свързани с храненето (напр. в ресторант, на гости)?", type: "radio", options: ["Да", "Не"], optional: true }
                 ],
                 "Алергии и хранителна непоносимост": [
                     { id: "dq_slim_allergy_1", text: "Забелязвате ли мигновено подуване на корема веднага след прием на специфична храна?", type: "radio", options: ["Да", "Не"], optional: true },
@@ -2017,8 +2076,8 @@
             menopause_sarcopenia: {
                 addAfter: 'gender',
                 questions: [
-                    { "id": "menopauseStatus", "text": "В коя фаза сте?", "type": "radio", "options": ["Перименопауза (нередовен цикъл)", "Менопауза (без цикъл над 12 месеца)", "Постменопауза (над 5 години без цикъл)", "Не съм сигурна"] },
-                    { "id": "menopauseSymptoms", "text": "Кои симптоми ви притесняват най-много?", "type": "checkbox", "options": ["Горещи вълни", "Нощно изпотяване", "Проблеми със съня", "Настроение/раздразнителност", "Загуба на мускулна маса", "Увеличено тегло", "Сухота на кожата", "Нито едно"], "negativeOption": "Нито едно" },
+                    { "id": "menopauseStatus", "text": "В коя фаза сте?", "type": "radio", "options": ["Перименопауза (нередовен цикъл)", "Менопауза (без цикъл над 12 месеца)", "Постменопауза (над 5 години без цикъл)", "Не съм сигурна"], "showWhen": { "gender": "Жена" } },
+                    { "id": "menopauseSymptoms", "text": "Кои симптоми ви притесняват най-много?", "type": "checkbox", "options": ["Горещи вълни", "Нощно изпотяване", "Проблеми със съня", "Настроение/раздразнителност", "Загуба на мускулна маса", "Увеличено тегло", "Сухота на кожата", "Нито едно"], "negativeOption": "Нито едно", "showWhen": { "gender": "Жена" } },
                     { "id": "strengthTraining", "text": "Правите ли силови тренировки?", "type": "radio", "options": ["Да, редовно (2+ пъти седмично)", "Да, понякога", "Не, но бих искала да започна", "Не"] }
                 ],
                 removeQuestions: []
@@ -2053,7 +2112,7 @@
             visceral_fat: {
                 addAfter: 'weight',
                 questions: [
-                    { "id": "waistCircumference", "text": "Каква е обиколката на талията ви (в см)?", "type": "number", "options": [] },
+                    { "id": "waistCircumference", "text": "Каква е обиколката на талията ви (в см)?", "type": "number", "options": [], "optional": true },
                     { "id": "fatDistribution", "text": "Къде се натрупва мазнината при вас?", "type": "radio", "options": ["Предимно в корема", "Равномерно по цялото тяло", "Бедра и задни части", "Не съм сигурен/а"] },
                     { "id": "metabolicSyndrome", "text": "Имате ли някои от следните?", "type": "checkbox", "options": ["Повишено кръвно налягане", "Повишени триглицериди", "Нисък HDL холестерол", "Повишена кръвна захар", "Нищо от изброените", "Не знам"], "negativeOption": "Нищо от изброените" }
                 ],
@@ -2073,7 +2132,7 @@
                 addAfter: 'email',
                 questions: [
                     { "id": "fastingExperience", "text": "Имате ли опит с периодично гладуване?", "type": "radio", "options": ["Да, практикувам редовно", "Опитвал/а съм", "Не, но искам да опитам", "Не ме интересува"] },
-                    { "id": "longevityGoals", "text": "Кои аспекти на дълголетието са най-важни за вас?", "type": "checkbox", "options": ["Когнитивно здраве", "Физическа сила и мобилност", "Енергия и виталност", "Външен вид и кожа", "Превенция на болести", "Всички"], "negativeOption": "" },
+                    { "id": "longevityGoals", "text": "Кои аспекти на дълголетието са най-важни за вас?", "type": "checkbox", "options": ["Когнитивно здраве", "Физическа сила и мобилност", "Енергия и виталност", "Външен вид и кожа", "Превенция на болести", "Всички"] },
                     { "id": "currentSupplements", "text": "Приемате ли добавки за дълголетие (напр. NMN, ресвератрол)?", "type": "radio", "options": ["Да", "Не, но бих искал/а", "Не"], "children": { "Да": [{ "id": "longevitySupplDetails", "text": "Кои добавки приемате?", "type": "textarea", "options": [] }] } }
                 ],
                 removeQuestions: []
@@ -2123,6 +2182,32 @@
             
             // Accept any valid protocol ID, not just those with specific questions
             if (protocolId && VALID_PROTOCOL_IDS.includes(protocolId)) {
+                // Clear questions that are skipped for protocol users so stale answers
+                // from a previous session don't contaminate the new submission.
+                // (skipProtocolRelatedQuestions removes them from the queue, but they
+                //  would still be in `answers` and sent to the backend unless cleared here.)
+                delete answers.goal;
+                delete answers.lossKg;
+                delete answers.healthConditions;
+                Object.keys(answers).forEach(k => {
+                    if (k.startsWith('healthConditions_')) delete answers[k];
+                });
+
+                // If the user switched protocols (e.g. insulin_resistance → autoimmune_aip),
+                // clear protocol-specific field answers from the OLD protocol so they are not
+                // submitted together with answers from the newly selected protocol.
+                const prevProtocol = answers.clinicalProtocol;
+                if (prevProtocol && prevProtocol !== protocolId && PROTOCOL_SPECIFIC_QUESTIONS[prevProtocol]) {
+                    for (const q of PROTOCOL_SPECIFIC_QUESTIONS[prevProtocol].questions) {
+                        delete answers[q.id];
+                        if (q.children) {
+                            for (const childList of Object.values(q.children)) {
+                                for (const child of childList) delete answers[child.id];
+                            }
+                        }
+                    }
+                }
+
                 answers.clinicalProtocol = protocolId;
                 answers._protocolSelectedFromLanding = true;
                 localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
@@ -2179,8 +2264,18 @@
             }
             
             const lossKgIndex = currentQueue.findIndex(q => q.id === 'lossKg');
-            if (lossKgIndex !== -1 && answers.clinicalProtocol) {
+            // Keep lossKg for fat-reduction protocols (they need a target weight).
+            // IMPORTANT: lossKg has showWhen: { goal: "Отслабване" }, so answers.goal must be
+            // pre-populated to ["Отслабване"] (matching the protocol's goalMapping) so the
+            // showWhen check in nextStep allows the question to render.
+            const keepLossKgProtocols = ['visceral_fat', 'cellulite_reduction'];
+            if (lossKgIndex !== -1 && answers.clinicalProtocol && !keepLossKgProtocols.includes(answers.clinicalProtocol)) {
                 currentQueue.splice(lossKgIndex, 1);
+            } else if (lossKgIndex !== -1 && keepLossKgProtocols.includes(answers.clinicalProtocol)) {
+                // Synthesize goal so lossKg's showWhen condition passes
+                if (!answers.goal) {
+                    answers.goal = ['Отслабване'];
+                }
             }
         }
         
@@ -2246,6 +2341,23 @@
                         // Check if there are meaningful answers (more than just a couple fields)
                         const answerCount = Object.keys(parsedAnswers).length;
                         if (answerCount > 3) {
+                            // For protocol users: don't show the banner if the user hasn't
+                            // answered their protocol-specific questions yet (they may have
+                            // leftover non-protocol answers from a previous session, but
+                            // jumping to the last step would skip mandatory protocol questions).
+                            // We check _protocolSelectedFromLanding (not just clinicalProtocol)
+                            // because a stale clinicalProtocol in localStorage without the
+                            // landing flag means the user is no longer in the protocol flow.
+                            if (parsedAnswers.clinicalProtocol && parsedAnswers._protocolSelectedFromLanding) {
+                                const protocolConfig = PROTOCOL_SPECIFIC_QUESTIONS[parsedAnswers.clinicalProtocol];
+                                if (protocolConfig && protocolConfig.questions.length > 0) {
+                                    const firstProtocolQ = protocolConfig.questions[0];
+                                    if (!parsedAnswers[firstProtocolQ.id]) {
+                                        // Protocol-specific questions not yet started — don't show banner
+                                        return;
+                                    }
+                                }
+                            }
                             const banner = document.getElementById('quickCompleteBanner');
                             if (banner) {
                                 banner.classList.add('show');
@@ -2271,12 +2383,12 @@
         function jumpToLastStep() {
             hideQuickCompleteBanner();
             
-            let lastQuestionIndex = currentQueue.length - 1;
-            
-            if (lastQuestionIndex >= 0) {
+            if (currentQueue.length > 0) {
                 // Process all branching logic to build the full queue
-                // by simulating going through each question
-                for (let i = 0; i < lastQuestionIndex; i++) {
+                // by simulating going through each question.
+                // NOTE: use currentQueue.length - 1 dynamically (not a fixed snapshot) so that
+                // questions injected as children (e.g. medicationsDetails) are also processed.
+                for (let i = 0; i < currentQueue.length - 1; i++) {
                     const q = currentQueue[i];
                     if (q.children && answers[q.id]) {
                         const answerVal = answers[q.id];
@@ -2296,8 +2408,34 @@
                     injectDynamicSubQuestions();
                 }
                 
-                // Jump to the last question
+                // Jump to the last question, skipping any that shouldn't be shown
+                // based on showWhen/skipWhen (mirrors the logic in nextStep)
                 currentIndex = currentQueue.length - 1;
+                while (currentIndex > 0) {
+                    const q = currentQueue[currentIndex];
+                    let visible = true;
+                    if (q.showWhen) {
+                        let shouldShow = false;
+                        for (const [field, requiredValue] of Object.entries(q.showWhen)) {
+                            const ans = answers[field];
+                            if (Array.isArray(ans) ? ans.includes(requiredValue) : ans === requiredValue) {
+                                shouldShow = true;
+                                break;
+                            }
+                        }
+                        if (!shouldShow) visible = false;
+                    }
+                    if (visible && q.skipWhen) {
+                        for (const [field, skipValues] of Object.entries(q.skipWhen)) {
+                            if (answers[field] && skipValues.includes(answers[field])) {
+                                visible = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (visible) break;
+                    currentIndex--;
+                }
                 
                 renderStep();
             }
@@ -2317,9 +2455,13 @@
             }
             
             // Update Progress
-            const percent = ((currentIndex + 1) / currentQueue.length) * 100;
+            // Use a stable "base" count (questions without injected sub-questions) to avoid
+            // the counter jumping from e.g. "5 от 28" to "6 от 35" when sub-questions are added.
+            const baseCount = currentQueue.filter(q => !q._isDynamicSubQuestion).length;
+            const displayTotal = Math.max(baseCount, currentIndex + 1);
+            const percent = ((currentIndex + 1) / displayTotal) * 100;
             progressBar.style.width = `${percent}%`;
-            stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${currentQueue.length}`;
+            stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${displayTotal}`;
             
             // Clear content and reset scroll position to top
             container.scrollTop = 0;
@@ -2342,7 +2484,7 @@
             prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
             
             if(currentIndex === currentQueue.length - 1) {
-                nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
+                nextBtn.innerHTML = 'Завърши <i class="fas fa-check"></i>';
             }
         }
         
@@ -2441,7 +2583,7 @@
                 fileLabel.innerHTML = `
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
                         <i class="fas fa-cloud-upload-alt" style="font-size: 2.5rem; color: var(--primary-red);"></i>
-                        <div style="color: var(--text-dark); font-weight: 500;">Изберете файлове</div>
+                        <div id="fileUploadText_${step.id}" style="color: var(--text-dark); font-weight: 500;">Изберете файлове</div>
                         <div style="color: var(--text-gray); font-size: 0.85rem;">Снимки, PDF, Word документи</div>
                     </div>
                 `;
@@ -2467,7 +2609,7 @@
                             `;
                             fileList.appendChild(fileItem);
                         });
-                        fileLabel.querySelector('div > div').textContent = `${files.length} файл(а) избрани`;
+                        fileLabel.querySelector(`#fileUploadText_${step.id}`).textContent = `${files.length} файл(а) избрани`;
                     }
                 };
                 
@@ -2490,7 +2632,7 @@
                         fileList.appendChild(fileItem);
                     });
                     if (files.length > 0) {
-                        fileLabel.querySelector('div > div').textContent = `${files.length} файл(а) избрани`;
+                        fileLabel.querySelector(`#fileUploadText_${step.id}`).textContent = `${files.length} файл(а) избрани`;
                     }
                 }
             }
@@ -2758,6 +2900,8 @@
             answers[key] = value;
             // Persist to localStorage
             localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            // Re-validate so the Next button enables when the "Other" text field has content
+            validateInput();
         }
 
         // --- TEST MODE: AUTO-FILL WITH "kakadu" ---
@@ -2978,6 +3122,11 @@
 
                 // Clear the answer for the question we're returning to so it appears fresh
                 delete answers[targetQ.id];
+
+                // Persist the deletions above (children + this question's answer) to
+                // localStorage so that a page refresh or the "quick complete" banner
+                // don't restore stale answers for the question the user navigated back to.
+                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
                 
                 // SHOW WHEN LOGIC (reverse): Skip questions whose showWhen condition is not met
                 const prevQ = currentQueue[currentIndex];

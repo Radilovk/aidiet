@@ -1147,8 +1147,13 @@ function detectGoalContradiction(data) {
   // Check for dangerous combinations with medical conditions
   if (!hasContradiction && data.medicalConditions && Array.isArray(data.medicalConditions)) {
     // Check for thyroid conditions + aggressive caloric deficit
-    if (data.medicalConditions.some(c => c.includes('Щитовидна жлеза') || c.includes('Хипотиреоидизъм')) && 
-        normalizedGoal.includes('отслабване')) {
+    // Also check the autoimmune detail field — a user who selected "Автоимунни заболявания"
+    // and picked "Хашимото (тиреоидит)" from the dropdown has medicalConditions = ['Автоимунно']
+    // (no 'Хашимото' in the array itself), so we must inspect the detail field too.
+    const hasThyroidCondition = data.medicalConditions.some(c =>
+        c.includes('Щитовидна жлеза') || c.includes('Хипотиреоидизъм') || c.includes('Хашимото')
+      ) || (data['medicalConditions_Автоимунно'] && data['medicalConditions_Автоимунно'].toLowerCase().includes('хашимото'));
+    if (hasThyroidCondition && normalizedGoal.includes('отслабване')) {
       const tdee = calculateTDEE(calculateBMR(data), data.sportActivity);
       const targetCalories = Math.round(tdee * 0.85); // 15% deficit
       const maxSafeDeficit = tdee * 0.75; // 25% is max safe deficit
@@ -1171,7 +1176,9 @@ function detectGoalContradiction(data) {
     }
     
     // Check for PCOS + high carb approach - validation handled in analysis
-    if (data.medicalConditions.includes('PCOS') || data.medicalConditions.includes('СПКЯ')) {
+    if (data.medicalConditions.includes('PCOS') || data.medicalConditions.includes('СПКЯ') ||
+        data.medicalConditions.includes('Ендокринни') ||
+        (data.medicalConditions_Ендокринни_детайл && data.medicalConditions_Ендокринни_детайл.includes('поликистозни'))) {
       // PCOS patients typically need lower carb approach - this will be flagged in analysis
       // No contradiction here, but AI should be aware via analysis prompt
     }
@@ -3090,8 +3097,11 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   // Extract additional user data for enhanced personalization
   const genderDisplay = data.gender === 'male' ? 'Мъж' : (data.gender === 'female' ? 'Жена' : 'неизвестен');
   const stressLevel = data.stressLevel || 'средно';
-  const sleepQuality = data.sleepQuality || 'добро';
-  const sleepDuration = data.sleepDuration || '7-8';
+  // sleepQuality / sleepDuration come from questionnaire1; questionnaire2 uses sleepHours /
+  // sleepInterrupt instead — fall back to those so protocol users get accurate sleep context.
+  const sleepQuality = data.sleepQuality ||
+    (data.sleepInterrupt === 'Да' ? 'с прекъсвания' : 'добро');
+  const sleepDuration = data.sleepDuration || data.sleepHours || '7-8';
   const sportActivity = data.sportActivity || 'няма';
   const dailyActivity = data.dailyActivity || 'средна';
   
@@ -3204,8 +3214,10 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
       supplementRecommendations: JSON.stringify((strategy.supplementRecommendations || []).slice(0, 5)),
       // New variables for enhanced psychology and supplements
       stressLevel: data.stressLevel || 'средно',
-      sleepQuality: data.sleepQuality || 'добро',
-      sleepDuration: data.sleepDuration || '7-8',
+      // sleepQuality / sleepDuration come from questionnaire1; use questionnaire2 fields as fallback
+      sleepQuality: data.sleepQuality ||
+        (data.sleepInterrupt === 'Да' ? 'с прекъсвания' : 'добро'),
+      sleepDuration: data.sleepDuration || data.sleepHours || '7-8',
       sportActivity: data.sportActivity || 'няма',
       dailyActivity: data.dailyActivity || 'средна',
       clinicalProtocolSection: _proto ? buildClinicalProtocolPromptSection(_proto) : '',
@@ -4700,8 +4712,13 @@ function validatePlan(plan, userData, substitutions = []) {
   
   // 8. Check for medical conditions alignment (Step 2 - Strategy issue)
   if (userData.medicalConditions && Array.isArray(userData.medicalConditions)) {
-    // Check for diabetes + high carb plan
-    if (userData.medicalConditions.includes('Диабет')) {
+    // Check for diabetes / insulin resistance + high carb plan.
+    // Covers: questionnaire2 user who picked "Диабет / Инсулинова резистентност" (→ 'Диабет' and
+    // 'Инсулинова резистентност' in the array) AND protocol users whose medicalConditions was
+    // auto-populated to the clinicalProtocol.name string e.g. 'Инсулинова резистентност и Метаболитен синдром'.
+    if (userData.medicalConditions.some(c =>
+        c.includes('Диабет') || c.includes('Инсулинова резистентност')
+      )) {
       const modifier = plan.strategy?.dietaryModifier || '';
       if (modifier.toLowerCase().includes('високовъглехидратно')) {
         const error = 'Планът съдържа високовъглехидратна диета, неподходяща при диабет';
@@ -4710,8 +4727,12 @@ function validatePlan(plan, userData, substitutions = []) {
       }
     }
     
-    // Check for IBS/IBD + raw fiber heavy plan
-    if (userData.medicalConditions.includes('IBS') || userData.medicalConditions.includes('IBD')) {
+    // Check for IBS/IBD + raw fiber heavy plan.
+    // Covers: questionnaire2 user (→ 'IBS', 'IBD', 'Рефлукс') AND gi_issues protocol users
+    // whose medicalConditions is auto-populated to 'Стомашно-чревни проблеми (...)'.
+    if (userData.medicalConditions.some(c =>
+        c.includes('IBS') || c.includes('IBD') || c.includes('Стомашно-чревни')
+      )) {
       const modifier = plan.strategy?.dietaryModifier || '';
       if (!modifier.toLowerCase().includes('щадящ')) {
         // Warning, but not fatal error
@@ -4720,7 +4741,9 @@ function validatePlan(plan, userData, substitutions = []) {
     }
     
     // Check for PCOS + high carb plan
-    if (userData.medicalConditions.includes('PCOS') || userData.medicalConditions.includes('СПКЯ')) {
+    if (userData.medicalConditions.includes('PCOS') || userData.medicalConditions.includes('СПКЯ') ||
+        userData.medicalConditions.includes('Ендокринни') ||
+        (userData.medicalConditions_Ендокринни_детайл && userData.medicalConditions_Ендокринни_детайл.includes('поликистозни'))) {
       const modifier = plan.strategy?.dietaryModifier || '';
       if (modifier.toLowerCase().includes('високовъглехидратно') || modifier.toLowerCase().includes('балансирано')) {
         console.log('Warning: PCOS detected - should prefer lower carb approach');
