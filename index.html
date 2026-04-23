@@ -352,6 +352,14 @@
             padding-bottom: calc(68px + var(--safe-area-inset-bottom));
         }
 
+        /* Applied immediately by the early head script — no DOMContentLoaded delay */
+        html.show-bottom-nav .bottom-nav {
+            display: flex;
+        }
+        html.show-bottom-nav body {
+            padding-bottom: calc(68px + var(--safe-area-inset-bottom));
+        }
+
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -1658,6 +1666,8 @@
             });
         })();
     </script>
+    <!-- Early plan check: redirect or show bottom-nav before first paint -->
+    <script>(function(){var dp=localStorage.getItem('dietPlan'),uid=localStorage.getItem('userId'),stay=new URLSearchParams(location.search).has('stay');if(dp&&uid){if(!stay){location.replace('plan.html');}else{document.documentElement.classList.add('show-bottom-nav');}}})();</script>
 </head>
 <body>
     <!-- Skip Navigation Link (Accessibility) -->
