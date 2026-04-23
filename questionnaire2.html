@@ -2181,6 +2181,32 @@
             
             // Accept any valid protocol ID, not just those with specific questions
             if (protocolId && VALID_PROTOCOL_IDS.includes(protocolId)) {
+                // Clear questions that are skipped for protocol users so stale answers
+                // from a previous session don't contaminate the new submission.
+                // (skipProtocolRelatedQuestions removes them from the queue, but they
+                //  would still be in `answers` and sent to the backend unless cleared here.)
+                delete answers.goal;
+                delete answers.lossKg;
+                delete answers.healthConditions;
+                Object.keys(answers).forEach(k => {
+                    if (k.startsWith('healthConditions_')) delete answers[k];
+                });
+
+                // If the user switched protocols (e.g. insulin_resistance → autoimmune_aip),
+                // clear protocol-specific field answers from the OLD protocol so they are not
+                // submitted together with answers from the newly selected protocol.
+                const prevProtocol = answers.clinicalProtocol;
+                if (prevProtocol && prevProtocol !== protocolId && PROTOCOL_SPECIFIC_QUESTIONS[prevProtocol]) {
+                    for (const q of PROTOCOL_SPECIFIC_QUESTIONS[prevProtocol].questions) {
+                        delete answers[q.id];
+                        if (q.children) {
+                            for (const childList of Object.values(q.children)) {
+                                for (const child of childList) delete answers[child.id];
+                            }
+                        }
+                    }
+                }
+
                 answers.clinicalProtocol = protocolId;
                 answers._protocolSelectedFromLanding = true;
                 localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
@@ -3036,6 +3062,11 @@
 
                 // Clear the answer for the question we're returning to so it appears fresh
                 delete answers[targetQ.id];
+
+                // Persist the deletions above (children + this question's answer) to
+                // localStorage so that a page refresh or the "quick complete" banner
+                // don't restore stale answers for the question the user navigated back to.
+                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
                 
                 // SHOW WHEN LOGIC (reverse): Skip questions whose showWhen condition is not met
                 const prevQ = currentQueue[currentIndex];
