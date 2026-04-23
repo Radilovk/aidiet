@@ -1,0 +1,62 @@
+КРИТИЧНИ ГРЕШКИ (6)
+БАГ 1: splice(-1, 1) изтрива последния въпрос при ненамерен индекс
+Файл: questionnaire2.html — функции skipProtocolRelatedQuestions() и injectProtocolQuestions()
+Проблем: JavaScript splice(-1, 1) изтрива последния елемент при findIndex = -1. Протоколи autoimmune_aip и postpartum_lactation двукратно опитват да премахнат goal (веднъж в removeQuestions, веднъж в skipProtocolRelatedQuestions). При втория опит findIndex връща -1 → изтрива последния въпрос medicalFiles. Потребителите не виждат полето за качване на медицински файлове.
+Поправка: if (idx !== -1) currentQueue.splice(idx, 1);
+БАГ 2: Динамичните подвъпроси НИКОГА не се инжектират за протоколни потребители
+Файл: questionnaire2.html
+Проблем: skipProtocolRelatedQuestions() премахва и goal, и healthConditions за ВСИЧКИ протоколни потребители. При injectDynamicSubQuestions() проверката if (!selectedConditions.length || !selectedGoals.length) return спира изпълнението. Цялата DYNAMIC_SUB_QUESTIONS система е мъртва за протоколни потребители.
+БАГ 3: Протоколният банер е постоянно скрит — CSS !important конфликт
+Файл: questionnaire2.html ред ~603–605
+Проблем: .protocol-banner { display: none !important; } — функцията showProtocolBannerIfNeeded() добавя клас show, но !important не може да бъде надвишен. Банерът е невидим при всякакви обстоятелства.
+БАГ 4: prevStep() изтрива отговора на предишния въпрос (грешен)
+Файл: questionnaire2.html — функция prevStep()
+Проблем: Последователността е: currentIndex-- → targetQ = currentQueue[currentIndex] → delete answers[targetQ.id]. Изтрива отговора на въпроса към КОЙТО отиваш, не от КОЙТО излизаш. При следващо "Напред" детските въпроси се инжектират дублирано.
+БАГ 5: initTheme() в protocol-landing.html слага темата на document.body вместо document.documentElement
+Файл: protocol-landing.html
+Проблем: CSS селекторите [data-theme="dark"] са насочени към html/:root. initTheme() пише document.body.setAttribute('data-theme', 'dark') → тъмната тема не работи след DOMContentLoaded.
+Поправка: Смени с document.documentElement.setAttribute(...)
+БАГ 6 + 7: Хашимото и СПКЯ проверките в worker.js никога не активират
+Файли: questionnaire2.html + worker.js
+Проблем:
+HEALTH_CONDITIONS_MAP превежда 'Щитовидна жлеза (Хашимото и др.)' → ['Хашимото'], но worker.js проверява c.includes('Щитовидна жлеза') → не съвпада
+'Ендокринни заболявания' → ['Ендокринни'], но worker.js проверява includes('PCOS') или includes('СПКЯ') → не съвпада
+→ Хранителните протоколи за щитовидна жлеза и СПКЯ НИКОГА не се прилагат
+🟠 СЕРИОЗНИ ГРЕШКИ (7)
+БАГ 8: Остарял clinicalProtocol в localStorage корумпира нови сесии
+Ако потребителят е избрал протокол преди, а после влиза директно в questionnaire2.html без URL параметър — стария протокол от localStorage се прилага погрешно.
+
+БАГ 9: healthConditions детски въпроси не се почистват при обратна навигация
+При чекбокс с specialDetailOptions, при Назад → промяна → Напред, стари детски въпроси остават в опашката наред с новите.
+
+БАГ 10: saveOther() не извиква validateInput() — "Друго" поле не активира бутон "Напред"
+Когато потребителят пише в полето "Друго" без да е избрал чекбокс опция, бутонът "Напред" остава деактивиран.
+
+БАГ 11: File обекти се сериализират като {} в localStorage
+File обектите не се сериализират правилно в JSON. При back-навигация до файловия въпрос се показват счупени елементи.
+
+БАГ 12: "Депресия" и "Тревожност" подвъпроси са 100% идентичен текст (copy-paste грешка)
+За ВСЯКА цел, тези 2 групи имат различни ID-та (dq_slim_depr_* vs dq_slim_anx_*) но буквално еднакви въпроси. Потребители с и двете условия отговарят на едни и същи 4 въпроса два пъти.
+
+БАГ 13: lossKg се премахва за ВСИЧКИ протоколи, включително свързани с отслабване
+Протоколи visceral_fat и cellulite_reduction са за намаляване на мазнини, но не изпращат желаното тегло към AI.
+
+БАГ 14: nextStep() детско разклоняване не работи при чекбокс въпроси
+currentQ.children[answers[id]] — при масив от отговори JS прави .toString() и съвпадението е случайно.
+
+🟡 СРЕДНИ ГРЕШКИ (8)
+#	Описание
+15	FEMALE_ONLY_CONDITIONS включва "Ендокринни заболявания" — мъже не могат да отчетат ендокринни проблеми
+16	4 цели от dynaquest.txt нямат имплементирани подвъпроси (Антиейджинг, Детокс, Стягане, Подобряване)
+17	jumpToLastStep() игнорира showWhen/skipWhen логиката
+18	Броячът на прогрес-бара скача след инжектиране на подвъпроси (напр. "5 от 28" → "6 от 35")
+19	menopause_sarcopenia протокол показва менопаузни въпроси и на мъже при директен URL
+20	longevityGoals има negativeOption: "" — логиката за изключване на "Нито едно" никога не активира
+21	postpartum_lactation също двукратно изтрива goal → splice(-1,1) → загубен последен въпрос
+22	waistCircumference в visceral_fat протокол не е маркиран като optional — блокира потребители
+🟢 МАЛКИ/КОЗМЕТИЧНИ ГРЕШКИ (4)
+#	Описание
+23	Излишни записи в localStorage в protocol-landing.html допринасят за БАГ 8
+24	Последната стъпка показва "Напред" вместо "Завърши"
+25	Идентичен текст на подвъпроси за различни цели с различни ID-та заобикаля дедупликацията
+26	fileLabel.querySelector('div > div') е крехък селектор 
