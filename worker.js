@@ -10260,6 +10260,7 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
   const sharedSecret = await crypto.subtle.deriveBits(
     /** @type {any} */({
       name: 'ECDH',
+      // @ts-ignore - Cloudflare Workers type definitions incorrectly name this as '$public', but the Web Crypto API standard requires 'public'
       public: importedUserPublicKey
     }),
     localKeyPair.privateKey,
