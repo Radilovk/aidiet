@@ -2330,6 +2330,23 @@
                         // Check if there are meaningful answers (more than just a couple fields)
                         const answerCount = Object.keys(parsedAnswers).length;
                         if (answerCount > 3) {
+                            // For protocol users: don't show the banner if the user hasn't
+                            // answered their protocol-specific questions yet (they may have
+                            // leftover non-protocol answers from a previous session, but
+                            // jumping to the last step would skip mandatory protocol questions).
+                            // We check _protocolSelectedFromLanding (not just clinicalProtocol)
+                            // because a stale clinicalProtocol in localStorage without the
+                            // landing flag means the user is no longer in the protocol flow.
+                            if (parsedAnswers.clinicalProtocol && parsedAnswers._protocolSelectedFromLanding) {
+                                const protocolConfig = PROTOCOL_SPECIFIC_QUESTIONS[parsedAnswers.clinicalProtocol];
+                                if (protocolConfig && protocolConfig.questions.length > 0) {
+                                    const firstProtocolQ = protocolConfig.questions[0];
+                                    if (!parsedAnswers[firstProtocolQ.id]) {
+                                        // Protocol-specific questions not yet started — don't show banner
+                                        return;
+                                    }
+                                }
+                            }
                             const banner = document.getElementById('quickCompleteBanner');
                             if (banner) {
                                 banner.classList.add('show');
@@ -2355,12 +2372,12 @@
         function jumpToLastStep() {
             hideQuickCompleteBanner();
             
-            let lastQuestionIndex = currentQueue.length - 1;
-            
-            if (lastQuestionIndex >= 0) {
+            if (currentQueue.length > 0) {
                 // Process all branching logic to build the full queue
-                // by simulating going through each question
-                for (let i = 0; i < lastQuestionIndex; i++) {
+                // by simulating going through each question.
+                // NOTE: use currentQueue.length - 1 dynamically (not a fixed snapshot) so that
+                // questions injected as children (e.g. medicationsDetails) are also processed.
+                for (let i = 0; i < currentQueue.length - 1; i++) {
                     const q = currentQueue[i];
                     if (q.children && answers[q.id]) {
                         const answerVal = answers[q.id];
