@@ -994,6 +994,33 @@
             color: #7ddcde;
         }
 
+        /* Protocol Landing Feature Card Styles */
+        .feature-card.protocol-landing-card {
+            background: linear-gradient(135deg, #e8f5e9, #e3f2fd);
+            border: 2px solid #2e7d32;
+        }
+        .feature-card.protocol-landing-card a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .feature-card.protocol-landing-card .icon-box {
+            background: linear-gradient(135deg, #2e7d32, #1565c0);
+        }
+        .feature-card.protocol-landing-card .icon-box i {
+            color: white;
+        }
+        .feature-card.protocol-landing-card h3 {
+            color: #1b5e20;
+        }
+        [data-theme="dark"] .feature-card.protocol-landing-card {
+            background: linear-gradient(135deg, #0a2e0c, #0a1929);
+            border-color: #4caf50;
+        }
+        [data-theme="dark"] .feature-card.protocol-landing-card h3 {
+            color: #81c784;
+        }
+
         /* --- STEPS SECTION --- */
         .steps {
             padding: 80px 5%;
@@ -1846,6 +1873,13 @@
                     <div class="icon-box"><i class="fas fa-dna"></i></div>
                     <h3>Дълголетие</h3>
                     <p>Научно-базирани протоколи за забавяне на стареенето, активиране на автофагия и максимизиране на жизнеността с години напред.</p>
+                </a>
+            </div>
+            <div class="feature-card protocol-landing-card">
+                <a href="protocol-landing.html">
+                    <div class="icon-box"><i class="fas fa-stethoscope"></i></div>
+                    <h3>Клинични Протоколи</h3>
+                    <p>Специализирани протоколи за диабет, хипертония, ендометриоза, PCOS и още 10+ специфични здравни състояния — персонализирани за теб.</p>
                 </a>
             </div>
         </div>
