@@ -2142,9 +2142,6 @@
                 // User has a plan but chose to stay on index - show "My Plan" inside hamburger
                 if (startNowBtn) startNowBtn.style.display = 'none';
                 if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
-                // Show the bottom navigation bar
-                const indexBottomNav = document.getElementById('indexBottomNav');
-                if (indexBottomNav) indexBottomNav.style.display = 'flex';
                 return;
             }
 
@@ -3212,7 +3209,7 @@
     </script>
 
     <!-- Bottom Navigation (shown only when user has an approved plan) -->
-    <nav class="bottom-nav" id="indexBottomNav" aria-label="Основна навигация" style="display: none;">
+    <nav class="bottom-nav" id="indexBottomNav" aria-label="Основна навигация">
         <a href="index.html?stay=1" class="bottom-nav-item active">
             <i class="fas fa-home"></i>
             <span>Начало</span>
