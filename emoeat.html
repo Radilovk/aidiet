@@ -92,8 +92,62 @@
             display: flex;
             flex-direction: column;
             transition: background-color 0.3s ease, color 0.3s ease;
-            padding-top: calc(64px + var(--safe-area-inset-top));
+            padding-top: calc(75px + var(--safe-area-inset-top));
             padding-bottom: calc(80px + var(--safe-area-inset-bottom));
+        }
+
+        /* Header */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            padding: calc(15px + var(--safe-area-inset-top)) 20px 15px;
+            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid var(--glass-border);
+            transition: all 0.35s ease;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--primary);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .header-text h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .header-text p {
+            font-size: 0.75rem;
+            color: var(--text-gray);
         }
 
         .theme-toggle {
@@ -109,7 +163,11 @@
             align-items: center;
             justify-content: center;
         }
-        .theme-toggle:hover { background: var(--primary-light); color: var(--primary); }
+
+        .theme-toggle:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
 
         /* Progress */
         .progress-section {
@@ -1428,38 +1486,23 @@
     <!-- Skip Navigation Link (Accessibility) -->
     <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
     
-    <!-- Hamburger Navigation -->
-    <nav class="main-nav" role="navigation" aria-label="Главна навигация">
-        <a href="index.html" class="nav-logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
-        <div class="nav-right">
+    <!-- Header -->
+    <header class="app-header" role="banner">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-heart-pulse" aria-hidden="true"></i>
+                </div>
+                <div class="header-text">
+                    <h1>Емоционално Хранене</h1>
+                    <p>Психологическа самооценка</p>
+                </div>
+            </div>
             <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Смени темата" aria-label="Смени темата">
                 <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
-            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </button>
         </div>
-    </nav>
-
-    <!-- Navigation overlay -->
-    <div class="nav-menu-overlay" id="navMenuOverlay" onclick="closeNavMenu()"></div>
-
-    <!-- Slide-in navigation menu -->
-    <nav class="slide-nav-menu" id="navMenu" role="dialog" aria-modal="true" aria-label="Навигационно меню">
-        <a href="plan.html" class="snm-top-link" id="navMyPlanLink" style="display:none;"><i class="fas fa-user-check"></i> Моят План</a>
-        <div class="snm-section-label">Начална страница</div>
-        <a href="index.html?stay=1"><i class="fas fa-home"></i> Начало</a>
-        <a href="index.html?stay=1#features"><i class="fas fa-star"></i> Функции</a>
-        <a href="index.html?stay=1#how-it-works"><i class="fas fa-info-circle"></i> Как работи</a>
-        <a href="index.html?stay=1#contact"><i class="fas fa-envelope"></i> Контакти</a>
-        <div class="snm-divider"></div>
-        <div class="snm-section-label">Модули</div>
-        <a href="emoeat.html"><i class="fas fa-heart-pulse"></i> Емоционално Хранене</a>
-        <a href="longevity.html"><i class="fas fa-dna"></i> Дълголетие</a>
-        <a href="protocol-landing.html"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
-    </nav>
+    </header>
 
     <!-- Progress -->
     <main id="main-content" role="main">
@@ -2424,7 +2467,6 @@
         // Initialize on load
         init();
     </script>
-    <script src="./nav.js"></script>
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" role="navigation" aria-label="Главно меню">
         <a href="./index.html" class="nav-item" aria-label="Начало">
