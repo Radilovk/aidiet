@@ -2263,10 +2263,18 @@
             }
             
             const lossKgIndex = currentQueue.findIndex(q => q.id === 'lossKg');
-            // Keep lossKg for fat-reduction protocols (they need a target weight)
+            // Keep lossKg for fat-reduction protocols (they need a target weight).
+            // IMPORTANT: lossKg has showWhen: { goal: "Отслабване" }, so answers.goal must be
+            // pre-populated to ["Отслабване"] (matching the protocol's goalMapping) so the
+            // showWhen check in nextStep allows the question to render.
             const keepLossKgProtocols = ['visceral_fat', 'cellulite_reduction'];
             if (lossKgIndex !== -1 && answers.clinicalProtocol && !keepLossKgProtocols.includes(answers.clinicalProtocol)) {
                 currentQueue.splice(lossKgIndex, 1);
+            } else if (lossKgIndex !== -1 && keepLossKgProtocols.includes(answers.clinicalProtocol)) {
+                // Synthesize goal so lossKg's showWhen condition passes
+                if (!answers.goal) {
+                    answers.goal = ['Отслабване'];
+                }
             }
         }
         
