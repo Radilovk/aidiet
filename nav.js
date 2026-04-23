@@ -24,6 +24,16 @@ function closeNavMenu() {
 
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeNavMenu(); });
 
+// Close menu when any link inside the nav is clicked
+document.addEventListener('click', function(e) {
+    const navMenu = document.getElementById('navMenu');
+    if (navMenu && navMenu.classList.contains('open')) {
+        if (e.target.closest('#navMenu a')) {
+            closeNavMenu();
+        }
+    }
+});
+
 (function() {
     const link = document.getElementById('navMyPlanLink');
     if (link && localStorage.getItem('dietPlan') && localStorage.getItem('userId')) {
