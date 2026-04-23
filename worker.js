@@ -3100,7 +3100,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   // sleepQuality / sleepDuration come from questionnaire1; questionnaire2 uses sleepHours /
   // sleepInterrupt instead — fall back to those so protocol users get accurate sleep context.
   const sleepQuality = data.sleepQuality ||
-    (data.sleepInterrupt === 'Да' ? 'с прекъсвания' : (data.sleepInterrupt === 'Не' ? 'добро' : 'добро'));
+    (data.sleepInterrupt === 'Да' ? 'с прекъсвания' : 'добро');
   const sleepDuration = data.sleepDuration || data.sleepHours || '7-8';
   const sportActivity = data.sportActivity || 'няма';
   const dailyActivity = data.dailyActivity || 'средна';
@@ -3216,7 +3216,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
       stressLevel: data.stressLevel || 'средно',
       // sleepQuality / sleepDuration come from questionnaire1; use questionnaire2 fields as fallback
       sleepQuality: data.sleepQuality ||
-        (data.sleepInterrupt === 'Да' ? 'с прекъсвания' : (data.sleepInterrupt === 'Не' ? 'добро' : 'добро')),
+        (data.sleepInterrupt === 'Да' ? 'с прекъсвания' : 'добро'),
       sleepDuration: data.sleepDuration || data.sleepHours || '7-8',
       sportActivity: data.sportActivity || 'няма',
       dailyActivity: data.dailyActivity || 'средна',
