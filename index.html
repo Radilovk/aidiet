@@ -319,6 +319,69 @@
             color: rgba(255,255,255,0.9) !important;
         }
 
+        /* --- BOTTOM NAVIGATION (shown only when user has an approved plan) --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            height: calc(68px + var(--safe-area-inset-bottom));
+            padding: 4px 8px var(--safe-area-inset-bottom);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-top: 1px solid rgba(13, 148, 136, 0.1);
+            box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(13, 148, 136, 0.06);
+            transform: translateZ(0);
+        }
+        [data-theme="dark"] .bottom-nav {
+            background: rgba(8, 22, 22, 0.96);
+            border-top: none;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(45, 212, 191, 0.08);
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 7px 18px;
+            min-width: 64px;
+            border-radius: 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-gray);
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+        }
+        .bottom-nav-item i {
+            font-size: 20px;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .bottom-nav-item.active {
+            color: var(--primary-red);
+            background: rgba(13, 148, 136, 0.1);
+        }
+        [data-theme="dark"] .bottom-nav-item.active {
+            background: rgba(45, 212, 191, 0.15);
+            color: var(--primary-red);
+        }
+        .bottom-nav-item.active i { transform: scale(1.1); }
+        .bottom-nav-item:active { transform: scale(0.92); }
+        .bottom-nav-item:hover:not(.active) {
+            background: rgba(13, 148, 136, 0.05);
+        }
+
         /* --- CONTACT TOGGLE --- */
         .contact-toggle-btn {
             display: block;
@@ -2079,6 +2142,9 @@
                 // User has a plan but chose to stay on index - show "My Plan" inside hamburger
                 if (startNowBtn) startNowBtn.style.display = 'none';
                 if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
+                // Show the bottom navigation bar
+                const indexBottomNav = document.getElementById('indexBottomNav');
+                if (indexBottomNav) indexBottomNav.style.display = 'flex';
                 return;
             }
 
@@ -3144,5 +3210,25 @@
         })();
         // ── End UI Zone Images ─────────────────────────────────────────────────────
     </script>
+
+    <!-- Bottom Navigation (shown only when user has an approved plan) -->
+    <nav class="bottom-nav" id="indexBottomNav" aria-label="Основна навигация" style="display: none;">
+        <a href="index.html?stay=1" class="bottom-nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Начало</span>
+        </a>
+        <a href="plan.html" class="bottom-nav-item">
+            <i class="fas fa-utensils"></i>
+            <span>Моят План</span>
+        </a>
+        <a href="guidelines.html" class="bottom-nav-item">
+            <i class="fas fa-compass"></i>
+            <span>Насоки</span>
+        </a>
+        <a href="profile.html" class="bottom-nav-item">
+            <i class="fas fa-user"></i>
+            <span>Профил</span>
+        </a>
+    </nav>
 </body>
 </html>
