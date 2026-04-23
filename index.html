@@ -2132,17 +2132,16 @@
             const startNowBtn = document.getElementById('startNowBtn');
             const navMyPlanLink = document.getElementById('navMyPlanLink');
 
-            if (dietPlan && userId) {
+            if (dietPlan) {
                 // User has a plan - redirect directly to plan.html (replace so back-button skips this page)
                 // Skip redirect when the user intentionally navigated here (e.g. via the home button)
                 if (!new URLSearchParams(window.location.search).has('stay')) {
                     window.location.replace('plan.html');
                     return;
                 }
-                // User has a plan but chose to stay on index - show "My Plan" inside hamburger
+                // User has a plan but chose to stay on index - show "My Plan" inside hamburger and bottom nav
                 if (startNowBtn) startNowBtn.style.display = 'none';
                 if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
-                // Show the bottom navigation bar
                 const indexBottomNav = document.getElementById('indexBottomNav');
                 if (indexBottomNav) indexBottomNav.style.display = 'flex';
                 return;
