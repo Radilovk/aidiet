@@ -1696,14 +1696,11 @@
     <!-- Navigation -->
     <nav role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="questionnaire2.html" class="nav-btn" id="startNowBtn" style="display: none;"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Започни промяната</a>
-            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </button>
-        </div>
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
     </nav>
 
     <!-- Navigation overlay -->
@@ -1712,6 +1709,7 @@
     <!-- Slide-in navigation menu -->
     <nav class="nav-menu" id="navMenu" role="dialog" aria-modal="true" aria-label="Навигационно меню">
         <a href="plan.html" class="nav-menu-top-link" id="navMyPlanLink" style="display:none;"><i class="fas fa-user-check"></i> Моят План</a>
+        <a href="questionnaire2.html" class="nav-menu-top-link" id="startNowBtn" style="display:none;"><i class="fas fa-clipboard-list"></i> Започни промяната</a>
 
         <div class="nav-menu-section-label">Начална страница</div>
         <a href="index.html?stay=1" onclick="closeNavMenu()"><i class="fas fa-home"></i> Начало</a>
@@ -2196,9 +2194,9 @@
                 return;
             }
 
-            // User doesn't have a plan - show "Започни промяната" button in header
+            // User doesn't have a plan - show "Започни промяната" button in dropdown menu
             if (startNowBtn) {
-                startNowBtn.style.display = 'inline-flex';
+                startNowBtn.style.display = 'flex';
             }
             if (navMyPlanLink) navMyPlanLink.style.display = 'none';
 
