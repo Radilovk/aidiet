@@ -2132,26 +2132,30 @@
             const startNowBtn = document.getElementById('startNowBtn');
             const navMyPlanLink = document.getElementById('navMyPlanLink');
 
-            if (dietPlan) {
-                // User has a plan - redirect directly to plan.html (replace so back-button skips this page)
-                // Skip redirect when the user intentionally navigated here (e.g. via the home tab in bottom-nav)
-                if (!new URLSearchParams(window.location.search).has('stay')) {
-                    window.location.replace('plan.html');
-                    return;
-                }
-                // User arrived via ?stay=1 (home tab) - show "My Plan" inside hamburger and bottom nav
-                if (startNowBtn) startNowBtn.style.display = 'none';
-                if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
-                const indexBottomNav = document.getElementById('indexBottomNav');
-                if (indexBottomNav) indexBottomNav.style.display = 'flex';
+            const hasStay = new URLSearchParams(window.location.search).has('stay');
+
+            // Redirect users with a plan away from the landing page, unless they
+            // deliberately navigated here via the bottom-nav home button (?stay).
+            if (dietPlan && !hasStay) {
+                window.location.replace('plan.html');
                 return;
             }
 
-            // User doesn't have a plan - show "Изготви План" button in header
-            if (startNowBtn) {
-                startNowBtn.style.display = 'inline-flex';
+            // Show bottom-nav whenever the user arrives via the home button (?stay),
+            // regardless of whether they have a plan yet.
+            if (hasStay) {
+                const indexBottomNav = document.getElementById('indexBottomNav');
+                if (indexBottomNav) indexBottomNav.style.display = 'flex';
             }
-            if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+
+            // Toggle header CTA based on plan availability
+            if (dietPlan) {
+                if (startNowBtn) startNowBtn.style.display = 'none';
+                if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
+            } else {
+                if (startNowBtn) startNowBtn.style.display = 'inline-flex';
+                if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+            }
 
             // Auto-open contact form if navigated via #contact hash
             // Delay matches page load and scroll animation timing
