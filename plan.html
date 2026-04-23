@@ -2302,6 +2302,128 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Mode toggle tabs (Храна / Меню) */
+        .food-mode-toggle {
+            display: flex;
+            background: var(--bg-color);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 16px;
+            gap: 4px;
+        }
+        .food-mode-tab {
+            flex: 1;
+            padding: 9px 12px;
+            border: none;
+            border-radius: 9px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            color: var(--text-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .food-mode-tab.active {
+            background: var(--card-bg);
+            color: var(--primary-red);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Menu result card */
+        .menu-result-card {
+            background: var(--bg-color);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .menu-result-header {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
+            padding: 16px;
+            color: white;
+        }
+        .menu-result-dish {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+        .menu-score-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .menu-stars {
+            display: flex;
+            gap: 3px;
+        }
+        .menu-star {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.3);
+        }
+        .menu-star.filled {
+            color: #fbbf24;
+        }
+        .menu-score-label {
+            font-size: 0.8rem;
+            opacity: 0.85;
+        }
+        .menu-result-body {
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .menu-info-block {
+            font-size: 0.86rem;
+            line-height: 1.55;
+            color: var(--text-dark);
+        }
+        .menu-info-block-label {
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-gray);
+            margin-bottom: 4px;
+        }
+        .menu-adaptation-block {
+            background: rgba(6, 182, 212, 0.08);
+            border-left: 3px solid #06B6D4;
+            border-radius: 0 10px 10px 0;
+            padding: 10px 14px;
+            font-size: 0.86rem;
+            line-height: 1.55;
+            color: var(--text-dark);
+        }
+        .menu-adaptation-block .menu-info-block-label {
+            color: #0891B2;
+        }
+        .menu-alternatives {
+            border-top: 1px solid rgba(0,0,0,0.06);
+            padding-top: 10px;
+        }
+        .menu-alt-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            font-size: 0.84rem;
+        }
+        .menu-alt-item:last-child { border-bottom: none; }
+        .menu-alt-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .menu-alt-reason {
+            color: var(--text-gray);
+            font-size: 0.8rem;
+        }
+
         /* Confidence badge */
         .food-confidence {
             display: inline-flex;
@@ -2697,10 +2819,20 @@
     <div class="food-analysis-overlay" id="foodAnalysisOverlay">
         <div class="food-analysis-modal">
             <div class="food-analysis-header">
-                <h3><i class="fas fa-utensils"></i> Анализ на Храна</h3>
+                <h3 id="foodAnalysisTitle"><i class="fas fa-utensils"></i> Анализ на Храна</h3>
                 <button class="food-analysis-close" onclick="closeFoodAnalysis()"><i class="fas fa-times"></i></button>
             </div>
             <div class="food-analysis-body">
+                <!-- Mode toggle: Food / Menu -->
+                <div class="food-mode-toggle">
+                    <button class="food-mode-tab active" id="modeTabFood" onclick="switchFoodMode('food')">
+                        <i class="fas fa-drumstick-bite"></i> Храна
+                    </button>
+                    <button class="food-mode-tab" id="modeTabMenu" onclick="switchFoodMode('menu')">
+                        <i class="fas fa-book-open"></i> Меню от ресторант
+                    </button>
+                </div>
+
                 <!-- Capture Area -->
                 <div class="food-capture-area" id="foodCaptureArea" onclick="triggerFoodCapture()">
                     <div id="foodCaptureContent">
@@ -2721,7 +2853,7 @@
                 </select>
 
                 <!-- Analyze Button -->
-                <button class="food-analyze-btn" id="foodAnalyzeBtn" onclick="analyzeFoodImage()" disabled>
+                <button class="food-analyze-btn" id="foodAnalyzeBtn" onclick="handleFoodAnalyzeClick()" disabled>
                     <i class="fas fa-paper-plane"></i> Изпрати за анализ
                 </button>
 
@@ -5731,6 +5863,57 @@
         let foodAnalysisImageData = null;  // Base64 image data
         let foodAnalysisImageMime = null;  // MIME type
         let foodAnalysisInProgress = false;
+        let foodAnalysisMode = 'food';     // 'food' | 'menu'
+
+        function resetFoodCaptureUI(mode) {
+            const hint = mode === 'menu'
+                ? 'Натиснете за да снимате менюто<br>или изберете от галерията'
+                : 'Натиснете за да направите снимка<br>или изберете от галерията';
+            const captureArea = document.getElementById('foodCaptureArea');
+            if (captureArea) captureArea.classList.remove('has-image');
+            const captureContent = document.getElementById('foodCaptureContent');
+            if (captureContent) {
+                captureContent.innerHTML = `
+                    <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
+                    <div class="food-capture-text">${hint}</div>
+                `;
+            }
+            foodAnalysisImageData = null;
+            foodAnalysisImageMime = null;
+            const analyzeBtn = document.getElementById('foodAnalyzeBtn');
+            if (analyzeBtn) {
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за анализ';
+            }
+            const results = document.getElementById('foodResults');
+            if (results) {
+                results.classList.remove('visible');
+                results.innerHTML = '';
+            }
+        }
+
+        function switchFoodMode(mode) {
+            foodAnalysisMode = mode;
+            const tabFood = document.getElementById('modeTabFood');
+            const tabMenu = document.getElementById('modeTabMenu');
+            const title = document.getElementById('foodAnalysisTitle');
+            if (tabFood) tabFood.classList.toggle('active', mode === 'food');
+            if (tabMenu) tabMenu.classList.toggle('active', mode === 'menu');
+            if (title) {
+                title.innerHTML = mode === 'menu'
+                    ? '<i class="fas fa-book-open"></i> Меню от ресторант'
+                    : '<i class="fas fa-utensils"></i> Анализ на Храна';
+            }
+            resetFoodCaptureUI(mode);
+        }
+
+        function handleFoodAnalyzeClick() {
+            if (foodAnalysisMode === 'menu') {
+                analyzeMenuImage();
+            } else {
+                analyzeFoodImage();
+            }
+        }
 
         function openFoodAnalysis() {
             const overlay = document.getElementById('foodAnalysisOverlay');
@@ -5749,33 +5932,17 @@
         }
 
         function resetFoodAnalysis() {
-            foodAnalysisImageData = null;
-            foodAnalysisImageMime = null;
             foodAnalysisInProgress = false;
+            foodAnalysisMode = 'food';
 
-            const captureArea = document.getElementById('foodCaptureArea');
-            if (captureArea) {
-                captureArea.classList.remove('has-image');
-            }
-            const captureContent = document.getElementById('foodCaptureContent');
-            if (captureContent) {
-                captureContent.innerHTML = `
-                    <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
-                    <div class="food-capture-text">
-                        Натиснете за да направите снимка<br>или изберете от галерията
-                    </div>
-                `;
-            }
-            const analyzeBtn = document.getElementById('foodAnalyzeBtn');
-            if (analyzeBtn) {
-                analyzeBtn.disabled = true;
-                analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за анализ';
-            }
-            const results = document.getElementById('foodResults');
-            if (results) {
-                results.classList.remove('visible');
-                results.innerHTML = '';
-            }
+            const tabFood = document.getElementById('modeTabFood');
+            const tabMenu = document.getElementById('modeTabMenu');
+            if (tabFood) tabFood.classList.add('active');
+            if (tabMenu) tabMenu.classList.remove('active');
+            const title = document.getElementById('foodAnalysisTitle');
+            if (title) title.innerHTML = '<i class="fas fa-utensils"></i> Анализ на Храна';
+
+            resetFoodCaptureUI('food');
         }
 
         function triggerFoodCapture() {
@@ -5860,7 +6027,7 @@
                 if (captureArea && captureContent) {
                     captureArea.classList.add('has-image');
                     captureContent.innerHTML = `
-                        <img src="${compressedBase64}" class="food-preview-img" alt="Снимка на храна">
+                        <img src="${compressedBase64}" class="food-preview-img" alt="${foodAnalysisMode === 'menu' ? 'Снимка на меню' : 'Снимка на храна'}">
                         <div style="margin-top:8px;font-size:0.8rem;color:var(--text-light);">
                             <i class="fas fa-redo"></i> Натиснете за нова снимка
                         </div>
@@ -6111,6 +6278,166 @@
 
         // ═══════════════════════════════════════════════════════════
         // END FOOD IMAGE ANALYSIS FEATURE
+        // ═══════════════════════════════════════════════════════════
+
+        async function analyzeMenuImage() {
+            if (!foodAnalysisImageData || foodAnalysisInProgress) return;
+
+            foodAnalysisInProgress = true;
+            const analyzeBtn = document.getElementById('foodAnalyzeBtn');
+            const resultsDiv = document.getElementById('foodResults');
+
+            if (analyzeBtn) {
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<div class="food-spinner"></div> Анализиране на менюто...';
+            }
+            if (resultsDiv) {
+                resultsDiv.classList.remove('visible');
+                resultsDiv.innerHTML = '';
+            }
+
+            try {
+                const mealContext = document.getElementById('foodMealContext')?.value || 'Обяд';
+
+                const compactUserData = userData ? {
+                    name: userData.name,
+                    goal: userData.goal,
+                    weight: userData.weight,
+                    height: userData.height,
+                    gender: userData.gender,
+                    dietPreference: userData.dietPreference,
+                    medicalConditions: userData.medicalConditions,
+                    dietDislike: userData.dietDislike
+                } : null;
+
+                const compactPlan = dietPlan ? { summary: dietPlan.summary } : null;
+
+                const response = await fetch(WORKER_URL + '/api/analyze-menu-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageData: foodAnalysisImageData,
+                        mimeType: foodAnalysisImageMime,
+                        userData: compactUserData,
+                        dietPlan: compactPlan,
+                        mealContext: mealContext
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success && result.analysis) {
+                    renderMenuAnalysisResults(result.analysis);
+                } else if (result.parseError && result.rawResponse) {
+                    if (resultsDiv) {
+                        resultsDiv.innerHTML = `
+                            <div class="food-result-section">
+                                <h4><i class="fas fa-robot"></i> AI Анализ на менюто</h4>
+                                <p style="font-size:0.88rem;line-height:1.6;white-space:pre-line;">${escapeHtmlWithBreaks(result.rawResponse)}</p>
+                            </div>
+                        `;
+                        resultsDiv.classList.add('visible');
+                    }
+                } else {
+                    throw new Error(result.error || 'Неуспешен анализ');
+                }
+            } catch (error) {
+                console.error('Menu analysis error:', error);
+                if (resultsDiv) {
+                    resultsDiv.innerHTML = `
+                        <div class="food-result-section" style="border-left:3px solid #ef4444;">
+                            <h4 style="color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Грешка</h4>
+                            <p style="font-size:0.88rem;color:var(--text-light);">${escapeHtmlWithBreaks(error.message)}</p>
+                        </div>
+                    `;
+                    resultsDiv.classList.add('visible');
+                }
+            } finally {
+                foodAnalysisInProgress = false;
+                if (analyzeBtn) {
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Анализирай отново';
+                }
+            }
+        }
+
+        function renderMenuAnalysisResults(analysis) {
+            const resultsDiv = document.getElementById('foodResults');
+            if (!resultsDiv) return;
+
+            const score = Math.min(5, Math.max(1, Math.round(analysis.suitabilityScore || 3)));
+            const scoreColors = ['', '#ef4444', '#f97316', '#fbbf24', '#84cc16', '#0D9488'];
+            const scoreColor = scoreColors[score] || '#0D9488';
+
+            // Build stars HTML
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                starsHtml += `<span class="menu-star${i <= score ? ' filled' : ''}">★</span>`;
+            }
+
+            const scoreLabels = ['', 'Неподходящо', 'Слабо подходящо', 'Частично подходящо', 'Добро избор', 'Отлично избор'];
+            const scoreLabel = scoreLabels[score] || '';
+
+            let html = `<div class="menu-result-card">
+                <div class="menu-result-header" style="background: linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}cc 100%);">
+                    <div class="menu-result-dish">${escapeHtmlWithBreaks(analysis.recommendedDish || 'Препоръчано ястие')}</div>
+                    <div class="menu-score-row">
+                        <div class="menu-stars">${starsHtml}</div>
+                        <span class="menu-score-label">${score}/5 — ${scoreLabel}</span>
+                    </div>
+                </div>
+                <div class="menu-result-body">`;
+
+            if (analysis.description) {
+                html += `<div class="menu-info-block">
+                    <div class="menu-info-block-label"><i class="fas fa-info-circle"></i> Описание</div>
+                    ${escapeHtmlWithBreaks(analysis.description)}
+                </div>`;
+            }
+
+            if (analysis.reasoning) {
+                html += `<div class="menu-info-block">
+                    <div class="menu-info-block-label"><i class="fas fa-balance-scale"></i> Аргументация</div>
+                    ${escapeHtmlWithBreaks(analysis.reasoning)}
+                </div>`;
+            }
+
+            if (analysis.adaptationTip) {
+                html += `<div class="menu-adaptation-block">
+                    <div class="menu-info-block-label"><i class="fas fa-lightbulb"></i> Препоръка за адаптация</div>
+                    ${escapeHtmlWithBreaks(analysis.adaptationTip)}
+                </div>`;
+            }
+
+            if (analysis.alternatives && analysis.alternatives.length > 0) {
+                html += `<div class="menu-alternatives">
+                    <div class="menu-info-block-label" style="margin-bottom:6px;"><i class="fas fa-list-ul"></i> Алтернативи</div>`;
+                analysis.alternatives.forEach(function(alt) {
+                    html += `<div class="menu-alt-item">
+                        <span class="menu-alt-name">${escapeHtmlWithBreaks(alt.name || '')}</span>
+                        <span class="menu-alt-reason">${escapeHtmlWithBreaks(alt.reason || '')}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+
+            html += '</div></div>';
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('visible');
+
+            setTimeout(function() {
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // END MENU ANALYSIS FEATURE
         // ═══════════════════════════════════════════════════════════
 
 

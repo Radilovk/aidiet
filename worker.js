@@ -7515,6 +7515,130 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
 }
 
 /**
+ * Handle Restaurant Menu Image Analysis
+ * Analyzes a photo of a restaurant menu and recommends the most suitable dish
+ * for the client's current diet plan and meal context.
+ * Returns a 1-5 suitability score, description, argumentation, and adaptation tip.
+ */
+async function handleAnalyzeMenuImage(request, env) {
+  try {
+    const body = await request.json();
+    const { imageData, mimeType, userData, dietPlan, mealContext } = body;
+
+    if (!imageData) {
+      return jsonResponse({ error: 'Липсва изображение. Моля, направете снимка на менюто.' }, 400);
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const effectiveMimeType = allowedTypes.includes(mimeType) ? mimeType : 'image/jpeg';
+
+    let base64Data = imageData;
+    if (imageData.startsWith('data:')) {
+      const commaIndex = imageData.indexOf(',');
+      if (commaIndex !== -1) {
+        base64Data = imageData.substring(commaIndex + 1);
+      }
+    }
+
+    const MAX_IMAGE_SIZE_BYTES = 20971520; // 20MB
+    const estimatedSizeBytes = (base64Data.length * 3) / 4;
+    if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
+      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение.' }, 400);
+    }
+
+    // Build diet context for the prompt
+    let dietContext = '';
+    if (userData) {
+      const parts = [];
+      if (userData.goal) parts.push(`Цел: ${userData.goal}`);
+      if (userData.weight) parts.push(`Тегло: ${userData.weight} кг`);
+      if (userData.height) parts.push(`Ръст: ${userData.height} см`);
+      if (userData.gender) parts.push(`Пол: ${userData.gender}`);
+      if (userData.dietPreference) parts.push(`Диетичен режим: ${userData.dietPreference}`);
+      if (userData.medicalConditions) parts.push(`Здравословни проблеми: ${userData.medicalConditions}`);
+      if (userData.dietDislike) parts.push(`Нежелани храни: ${userData.dietDislike}`);
+      dietContext = parts.join('. ');
+    }
+
+    let planContext = '';
+    if (dietPlan && dietPlan.summary) {
+      planContext = typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary);
+    }
+
+    const mealTime = mealContext || 'неуточнено';
+
+    const menuPrompt = `Ти си експерт диетолог. На снимката има меню от ресторант. Прочети всички ястия и препоръчай НАЙ-ПОДХОДЯЩОТО за клиента. Върни САМО валиден JSON (без markdown, без backtick блокове).
+
+${dietContext ? `ПРОФИЛ НА КЛИЕНТА: ${dietContext}` : ''}
+${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
+МОМЕНТ НА ХРАНЕНЕ: ${mealTime}
+
+ИНСТРУКЦИИ:
+- Прочети внимателно менюто
+- Избери НАЙ-ПОДХОДЯЩОТО ястие спрямо профила и целта на клиента
+- Дай оценка за подходящост от 1 до 5 (5 = отлично, 1 = неподходящо)
+- Посочи и до 2 алтернативи ако има
+- Дай конкретна адаптация за поръчката (напр. "Поискайте без сос", "Добавете само лимон")
+
+Върни ТОЧНО този JSON:
+{
+  "recommendedDish": "Пълно название на препоръчаното ястие точно от менюто",
+  "suitabilityScore": число от 1 до 5,
+  "description": "Кратко описание на ястието (1-2 изречения)",
+  "reasoning": "Защо е подходящо за целта и профила на клиента (2-3 изречения)",
+  "adaptationTip": "Конкретна препоръка за адаптация при поръчката (напр. 'Поръчайте салатата без дресинг, добавете само лимон и зехтин')",
+  "alternatives": [
+    {
+      "name": "Алтернативно ястие 1",
+      "reason": "Защо е добра алтернатива"
+    }
+  ],
+  "dishesRead": число_разчетени_ястия
+}
+
+ВАЖНО: Ако менюто не се чете ясно, постави suitabilityScore: 1 и обясни в reasoning. Отговори САМО с JSON.`;
+
+    const aiResponse = await callAIModelWithVision(env, menuPrompt, base64Data, effectiveMimeType, 1200);
+
+    let menuResult;
+    try {
+      let cleanResponse = aiResponse.trim();
+      if (cleanResponse.startsWith('```json')) {
+        cleanResponse = cleanResponse.slice(7);
+      } else if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.slice(3);
+      }
+      if (cleanResponse.endsWith('```')) {
+        cleanResponse = cleanResponse.slice(0, -3);
+      }
+      cleanResponse = cleanResponse.trim();
+      menuResult = JSON.parse(cleanResponse);
+    } catch (parseError) {
+      console.error('Failed to parse menu analysis response:', parseError, 'Raw:', aiResponse.substring(0, 200));
+      return jsonResponse({
+        success: true,
+        analysis: null,
+        rawResponse: aiResponse,
+        parseError: true,
+        message: 'AI анализът е готов, но не успяхме да го структурираме. Вижте суровия отговор.'
+      });
+    }
+
+    return jsonResponse({
+      success: true,
+      analysis: menuResult
+    });
+
+  } catch (error) {
+    console.error('Menu image analysis error:', error);
+    return jsonResponse({
+      error: `Грешка при анализ на менюто: ${error.message}`,
+      success: false
+    }, 500);
+  }
+}
+
+/**
  * Handle Kids Food Image Analysis
  * Analyzes food images specifically for child safety and suitability.
  * Considers allergens, choking hazards, additives, sugar content,
@@ -11317,6 +11441,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
         return await handleAnalyzeFoodImage(request, env);
+      } else if (url.pathname === '/api/analyze-menu-image' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
+        if (rlErr) return rlErr;
+        return await handleAnalyzeMenuImage(request, env);
       } else if (url.pathname === '/api/analyze-kids-food' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
