@@ -347,17 +347,16 @@
         }
 
         /* --- BOTTOM NAVIGATION (shown on index only when user has an approved plan) --- */
-        /* Add bottom padding when the tab bar is visible */
-        body.has-bottom-nav {
+        /* body.has-bottom-nav: added by DOMContentLoaded handler (fallback)             */
+        /* html.show-bottom-nav: added by early head script for instant display          */
+        body.has-bottom-nav,
+        html.show-bottom-nav body {
             padding-bottom: calc(68px + var(--safe-area-inset-bottom));
         }
 
         /* Applied immediately by the early head script — no DOMContentLoaded delay */
         html.show-bottom-nav .bottom-nav {
             display: flex;
-        }
-        html.show-bottom-nav body {
-            padding-bottom: calc(68px + var(--safe-area-inset-bottom));
         }
 
         .bottom-nav {
@@ -1667,7 +1666,22 @@
         })();
     </script>
     <!-- Early plan check: redirect or show bottom-nav before first paint -->
-    <script>(function(){var dp=localStorage.getItem('dietPlan'),uid=localStorage.getItem('userId'),stay=new URLSearchParams(location.search).has('stay');if(dp&&uid){if(!stay){location.replace('plan.html');}else{document.documentElement.classList.add('show-bottom-nav');}}})();</script>
+    <script>
+        (function () {
+            var dp   = localStorage.getItem('dietPlan');
+            var uid  = localStorage.getItem('userId');
+            var stay = new URLSearchParams(location.search).has('stay');
+            if (dp && uid) {
+                if (!stay) {
+                    // No ?stay=1 — take user straight to their plan page
+                    location.replace('plan.html');
+                } else {
+                    // ?stay=1 is present — reveal the bottom tab bar immediately
+                    document.documentElement.classList.add('show-bottom-nav');
+                }
+            }
+        }());
+    </script>
 </head>
 <body>
     <!-- Skip Navigation Link (Accessibility) -->
