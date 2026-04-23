@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пациентска брошура: Ретатрутид (Retatrutide)</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #ecf0f1;
+            --text: #333333;
+            --required: #27ae60;
+            --critical: #c0392b;
+            --rules: #2980b9;
+            --summary: #f39c12;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background-color: var(--secondary);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .mechanism {
+            background-color: #e8eaed;
+            padding: 15px 20px;
+            font-weight: 500;
+            border-bottom: 2px solid #bdc3c7;
+        }
+
+        section {
+            padding: 20px;
+            margin: 15px;
+            border-radius: 6px;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+        }
+
+        ul {
+            list-style-type: none;
+        }
+
+        li {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            font-size: 1.2rem;
+        }
+
+        strong {
+            color: #000;
+        }
+
+        .section-required {
+            background-color: rgba(39, 174, 96, 0.1);
+            border-left: 5px solid var(--required);
+        }
+        .section-required h2 { color: var(--required); }
+
+        .section-critical {
+            background-color: rgba(192, 57, 43, 0.1);
+            border-left: 5px solid var(--critical);
+        }
+        .section-critical h2 { color: var(--critical); }
+
+        .section-rules {
+            background-color: rgba(41, 128, 185, 0.1);
+            border-left: 5px solid var(--rules);
+        }
+        .section-rules h2 { color: var(--rules); }
+
+        .section-summary {
+            background-color: rgba(243, 156, 18, 0.15);
+            border: 2px dashed var(--summary);
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .section-summary p {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .section-summary ul {
+            text-align: left;
+            display: inline-block;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            header h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.2rem; }
+            section { margin: 10px 0; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Протокол за отслабване : Retatrutide</h1>
+        </header>
+
+        <div class="mechanism">
+            При използване на Retatrutide, тялото работи на „високи обороти“ (заради глюкагона) и със „забавен стомах“ (заради GLP-1). Ето конкретните правила:
+        </div>
+
+        <section class="section-required">
+            <h2>1. Какво да приемате (Задължително)</h2>
+            <ul>
+                <li><strong>Протеин (Месо, риба, яйца, изолат):</strong> Най-важният елемент. Трябва да е в основата на всяко хранене, за да не губите мускули вместо мазнини.</li>
+                <li><strong>Вода и Електролити:</strong> Пийте много вода и добавяйте малко повече сол в храната (или пийте електролити). Препаратът изхвърля натрия, което води до замаяност и умора.</li>
+                <li><strong>Фибри:</strong> Малки количества овесени ядки или псилиум, за да се избегне запек.</li>
+            </ul>
+        </section>
+
+        <section class="section-critical">
+            <h2>2. Какво да избягвате (Критично)</h2>
+            <ul>
+                <li><strong>Мазни и пържени храни:</strong> Стомахът ги преработва твърде бавно. Ако прекалите, ще получите тежко гадене, киселини и диария.</li>
+                <li><strong>Захар и сладки изделия:</strong> Предизвикват резки пикове и спадове, които обезсмислят действието на пептида.</li>
+                <li><strong>Алкохол:</strong> Силно непрепоръчително. Риск от рязко падане на кръвната захар и натоварване на панкреаса.</li>
+                <li><strong>Газирани напитки:</strong> Предизвикват подуване и болки, тъй като газовете остават блокирани в забавения стомах.</li>
+            </ul>
+        </section>
+
+        <section class="section-rules">
+            <h2>3. Правила на хранене</h2>
+            <ul>
+                <li><strong>Малки порции:</strong> Яжте по малко, но често (5-6 пъти). Стомахът ви няма капацитет за обемни хранения.</li>
+                <li><strong>Дъвчене:</strong> Всяка хапка трябва да е смляна в устата, за да улесните храносмилането.</li>
+                <li><strong>Стоп преди сън:</strong> Последното хранене трябва да е поне 4 часа преди лягане. В противен случай храната ще „стои“ в стомаха ви цяла нощ, което води до рефлукс.</li>
+            </ul>
+        </section>
+
+        <section class="section-summary">
+            <h2>Накратко:</h2>
+            <p><strong>Много протеин, много вода със сол, минимум мазнини и малки порции.</strong></p>
+            <ul>
+                <li>Ако усетите гадене – намалете мазнините още повече.</li>
+                <li>Ако усетите слабост – пийте електролити.</li>
+            </ul>
+        </section>
+    </div>
+
+</body>
+</html>
