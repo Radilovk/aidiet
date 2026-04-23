@@ -347,11 +347,6 @@
         }
 
         /* --- BOTTOM NAVIGATION (shown on index only when user has an approved plan) --- */
-        /* Add bottom padding when the tab bar is visible */
-        body.has-bottom-nav {
-            padding-bottom: calc(68px + var(--safe-area-inset-bottom));
-        }
-
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -2158,7 +2153,6 @@
                 if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
                 const bottomNav = document.getElementById('bottomNav');
                 if (bottomNav) bottomNav.style.display = 'flex';
-                document.body.classList.add('has-bottom-nav');
                 return;
             }
 
