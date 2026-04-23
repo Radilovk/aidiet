@@ -1732,11 +1732,11 @@ a.ds-btn:active:not(:disabled) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: calc(20px + var(--safe-area-inset-top, 0px)) calc(5% + var(--safe-area-inset-right, 0px)) 20px calc(5% + var(--safe-area-inset-left, 0px));
-    min-height: calc(60px + var(--safe-area-inset-top, 0px));
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(var(--glass-blur, 20px)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--glass-blur, 20px)) saturate(180%);
+    padding: calc(12px + var(--safe-area-inset-top)) 5% 12px;
+    min-height: calc(56px + var(--safe-area-inset-top));
+    background: var(--card-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
     position: fixed;
     width: 100%;
     top: 0;
@@ -1753,7 +1753,7 @@ a.ds-btn:active:not(:disabled) {
     border-bottom-color: rgba(45, 212, 191, 0.12);
 }
 .main-nav .nav-logo {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 800;
     color: var(--text-dark);
     display: flex;
