@@ -1328,7 +1328,7 @@
 
         // --- GENDER-BASED FILTERING ---
         // Conditions and goals that should only appear for specific genders
-        const FEMALE_ONLY_CONDITIONS = ["Менопауза", "След бременност", "Ендокринни заболявания"];
+        const FEMALE_ONLY_CONDITIONS = ["Менопауза", "След бременност"];
         const FEMALE_ONLY_GOALS = ["Антицелулитна програма", "Възстановяване на тялото след бременност"];
         // No male-only conditions or goals currently exist
 
@@ -1400,10 +1400,10 @@
                     { id: "dq_slim_depr_4", text: "Имате ли склонност към компулсивно нощно хранене, за да намалите нивата на тревожност?", type: "radio", options: ["Да", "Не"], optional: true }
                 ],
                 "Тревожност": [
-                    { id: "dq_slim_anx_1", text: "Забелязвате ли, че качвате тегло предимно в коремната област в периоди на повишено психическо напрежение (кортизолово коремче)?", type: "radio", options: ["Да", "Не"], optional: true },
-                    { id: "dq_slim_anx_2", text: "Използвате ли храната като механизъм за справяне със стреса — за успокояване или като удоволствие?", type: "radio", options: ["Да", "Не"], optional: true },
-                    { id: "dq_slim_anx_3", text: "Изпитвате ли внезапен гняв или срив в настроението, когато сте гладни, който се коригира веднага след прием на захар?", type: "radio", options: ["Да", "Не"], optional: true },
-                    { id: "dq_slim_anx_4", text: "Имате ли склонност към компулсивно нощно хранене, за да намалите нивата на тревожност?", type: "radio", options: ["Да", "Не"], optional: true }
+                    { id: "dq_slim_anx_1", text: "Изпитвате ли безпричинна тревожност или вътрешно напрежение, придружени с желание за нещо за хапване, въпреки че нямате физически глад?", type: "radio", options: ["Да", "Не"], optional: true },
+                    { id: "dq_slim_anx_2", text: "Трудно ли спазвате хранителен режим в ситуации на социален натиск, дори когато сте мотивирани?", type: "radio", options: ["Да", "Не"], optional: true },
+                    { id: "dq_slim_anx_3", text: "Склонни ли сте да пропускате хранения поради тревожност или натоварен ден, а после да компенсирате с по-голямо количество храна?", type: "radio", options: ["Да", "Не"], optional: true },
+                    { id: "dq_slim_anx_4", text: "Усещате ли ускорен пулс, потене или мускулно напрежение в ситуации, свързани с храненето (напр. в ресторант, на гости)?", type: "radio", options: ["Да", "Не"], optional: true }
                 ],
                 "Алергии и хранителна непоносимост": [
                     { id: "dq_slim_allergy_1", text: "Забелязвате ли мигновено подуване на корема веднага след прием на специфична храна?", type: "radio", options: ["Да", "Не"], optional: true },
@@ -2075,8 +2075,8 @@
             menopause_sarcopenia: {
                 addAfter: 'gender',
                 questions: [
-                    { "id": "menopauseStatus", "text": "В коя фаза сте?", "type": "radio", "options": ["Перименопауза (нередовен цикъл)", "Менопауза (без цикъл над 12 месеца)", "Постменопауза (над 5 години без цикъл)", "Не съм сигурна"] },
-                    { "id": "menopauseSymptoms", "text": "Кои симптоми ви притесняват най-много?", "type": "checkbox", "options": ["Горещи вълни", "Нощно изпотяване", "Проблеми със съня", "Настроение/раздразнителност", "Загуба на мускулна маса", "Увеличено тегло", "Сухота на кожата", "Нито едно"], "negativeOption": "Нито едно" },
+                    { "id": "menopauseStatus", "text": "В коя фаза сте?", "type": "radio", "options": ["Перименопауза (нередовен цикъл)", "Менопауза (без цикъл над 12 месеца)", "Постменопауза (над 5 години без цикъл)", "Не съм сигурна"], "showWhen": { "gender": "Жена" } },
+                    { "id": "menopauseSymptoms", "text": "Кои симптоми ви притесняват най-много?", "type": "checkbox", "options": ["Горещи вълни", "Нощно изпотяване", "Проблеми със съня", "Настроение/раздразнителност", "Загуба на мускулна маса", "Увеличено тегло", "Сухота на кожата", "Нито едно"], "negativeOption": "Нито едно", "showWhen": { "gender": "Жена" } },
                     { "id": "strengthTraining", "text": "Правите ли силови тренировки?", "type": "radio", "options": ["Да, редовно (2+ пъти седмично)", "Да, понякога", "Не, но бих искала да започна", "Не"] }
                 ],
                 removeQuestions: []
@@ -2111,7 +2111,7 @@
             visceral_fat: {
                 addAfter: 'weight',
                 questions: [
-                    { "id": "waistCircumference", "text": "Каква е обиколката на талията ви (в см)?", "type": "number", "options": [] },
+                    { "id": "waistCircumference", "text": "Каква е обиколката на талията ви (в см)?", "type": "number", "options": [], "optional": true },
                     { "id": "fatDistribution", "text": "Къде се натрупва мазнината при вас?", "type": "radio", "options": ["Предимно в корема", "Равномерно по цялото тяло", "Бедра и задни части", "Не съм сигурен/а"] },
                     { "id": "metabolicSyndrome", "text": "Имате ли някои от следните?", "type": "checkbox", "options": ["Повишено кръвно налягане", "Повишени триглицериди", "Нисък HDL холестерол", "Повишена кръвна захар", "Нищо от изброените", "Не знам"], "negativeOption": "Нищо от изброените" }
                 ],
@@ -2131,7 +2131,7 @@
                 addAfter: 'email',
                 questions: [
                     { "id": "fastingExperience", "text": "Имате ли опит с периодично гладуване?", "type": "radio", "options": ["Да, практикувам редовно", "Опитвал/а съм", "Не, но искам да опитам", "Не ме интересува"] },
-                    { "id": "longevityGoals", "text": "Кои аспекти на дълголетието са най-важни за вас?", "type": "checkbox", "options": ["Когнитивно здраве", "Физическа сила и мобилност", "Енергия и виталност", "Външен вид и кожа", "Превенция на болести", "Всички"], "negativeOption": "" },
+                    { "id": "longevityGoals", "text": "Кои аспекти на дълголетието са най-важни за вас?", "type": "checkbox", "options": ["Когнитивно здраве", "Физическа сила и мобилност", "Енергия и виталност", "Външен вид и кожа", "Превенция на болести", "Всички"] },
                     { "id": "currentSupplements", "text": "Приемате ли добавки за дълголетие (напр. NMN, ресвератрол)?", "type": "radio", "options": ["Да", "Не, но бих искал/а", "Не"], "children": { "Да": [{ "id": "longevitySupplDetails", "text": "Кои добавки приемате?", "type": "textarea", "options": [] }] } }
                 ],
                 removeQuestions: []
@@ -2263,7 +2263,9 @@
             }
             
             const lossKgIndex = currentQueue.findIndex(q => q.id === 'lossKg');
-            if (lossKgIndex !== -1 && answers.clinicalProtocol) {
+            // Keep lossKg for fat-reduction protocols (they need a target weight)
+            const keepLossKgProtocols = ['visceral_fat', 'cellulite_reduction'];
+            if (lossKgIndex !== -1 && answers.clinicalProtocol && !keepLossKgProtocols.includes(answers.clinicalProtocol)) {
                 currentQueue.splice(lossKgIndex, 1);
             }
         }
@@ -2397,8 +2399,34 @@
                     injectDynamicSubQuestions();
                 }
                 
-                // Jump to the last question
+                // Jump to the last question, skipping any that shouldn't be shown
+                // based on showWhen/skipWhen (mirrors the logic in nextStep)
                 currentIndex = currentQueue.length - 1;
+                while (currentIndex > 0) {
+                    const q = currentQueue[currentIndex];
+                    let visible = true;
+                    if (q.showWhen) {
+                        let shouldShow = false;
+                        for (const [field, requiredValue] of Object.entries(q.showWhen)) {
+                            const ans = answers[field];
+                            if (Array.isArray(ans) ? ans.includes(requiredValue) : ans === requiredValue) {
+                                shouldShow = true;
+                                break;
+                            }
+                        }
+                        if (!shouldShow) visible = false;
+                    }
+                    if (visible && q.skipWhen) {
+                        for (const [field, skipValues] of Object.entries(q.skipWhen)) {
+                            if (answers[field] && skipValues.includes(answers[field])) {
+                                visible = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (visible) break;
+                    currentIndex--;
+                }
                 
                 renderStep();
             }
@@ -2418,9 +2446,13 @@
             }
             
             // Update Progress
-            const percent = ((currentIndex + 1) / currentQueue.length) * 100;
+            // Use a stable "base" count (questions without injected sub-questions) to avoid
+            // the counter jumping from e.g. "5 от 28" to "6 от 35" when sub-questions are added.
+            const baseCount = currentQueue.filter(q => !q._isDynamicSubQuestion).length;
+            const displayTotal = Math.max(baseCount, currentIndex + 1);
+            const percent = ((currentIndex + 1) / displayTotal) * 100;
             progressBar.style.width = `${percent}%`;
-            stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${currentQueue.length}`;
+            stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${displayTotal}`;
             
             // Clear content and reset scroll position to top
             container.scrollTop = 0;
@@ -2443,7 +2475,7 @@
             prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
             
             if(currentIndex === currentQueue.length - 1) {
-                nextBtn.innerHTML = 'Напред <i class="fas fa-arrow-right"></i>';
+                nextBtn.innerHTML = 'Завърши <i class="fas fa-check"></i>';
             }
         }
         
@@ -2542,7 +2574,7 @@
                 fileLabel.innerHTML = `
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
                         <i class="fas fa-cloud-upload-alt" style="font-size: 2.5rem; color: var(--primary-red);"></i>
-                        <div style="color: var(--text-dark); font-weight: 500;">Изберете файлове</div>
+                        <div id="fileUploadText_${step.id}" style="color: var(--text-dark); font-weight: 500;">Изберете файлове</div>
                         <div style="color: var(--text-gray); font-size: 0.85rem;">Снимки, PDF, Word документи</div>
                     </div>
                 `;
@@ -2568,7 +2600,7 @@
                             `;
                             fileList.appendChild(fileItem);
                         });
-                        fileLabel.querySelector('div > div').textContent = `${files.length} файл(а) избрани`;
+                        fileLabel.querySelector(`#fileUploadText_${step.id}`).textContent = `${files.length} файл(а) избрани`;
                     }
                 };
                 
@@ -2591,7 +2623,7 @@
                         fileList.appendChild(fileItem);
                     });
                     if (files.length > 0) {
-                        fileLabel.querySelector('div > div').textContent = `${files.length} файл(а) избрани`;
+                        fileLabel.querySelector(`#fileUploadText_${step.id}`).textContent = `${files.length} файл(а) избрани`;
                     }
                 }
             }
@@ -2859,6 +2891,8 @@
             answers[key] = value;
             // Persist to localStorage
             localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            // Re-validate so the Next button enables when the "Other" text field has content
+            validateInput();
         }
 
         // --- TEST MODE: AUTO-FILL WITH "kakadu" ---
