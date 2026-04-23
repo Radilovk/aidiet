@@ -1645,7 +1645,7 @@
     <!-- Contact Form Section -->
     <div style="max-width: 720px; margin: 24px auto; padding: 0 16px;">
         <div class="form-section">
-            <div class="profile-contact-header" onclick="toggleProfileContact()" role="button" tabindex="0" aria-expanded="false" aria-controls="profileContactWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleProfileContact()">
+            <div class="profile-contact-header" onclick="toggleProfileContact()" role="button" tabindex="0" aria-expanded="false" aria-controls="profileContactWrapper" onkeydown="handleProfileContactKeydown(event)">
                 <div class="section-title">
                     <i class="fas fa-envelope"></i>
                     Свържи се с нас
@@ -1719,7 +1719,15 @@
             chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
             if (header) header.setAttribute('aria-expanded', String(isOpen));
             if (isOpen) {
+                // Small delay to let the CSS max-height transition begin before scrolling
                 setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }
+        }
+
+        function handleProfileContactKeydown(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleProfileContact();
             }
         }
 
