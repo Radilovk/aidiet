@@ -1899,7 +1899,7 @@
         </div>
         <div style="max-width: 600px; margin: 0 auto; text-align: center;">
             <button class="nav-btn contact-toggle-btn" id="contactToggleBtn" onclick="toggleContactForm()">
-                <i class="fas fa-envelope"></i> Напиши ни
+                <i class="fas fa-envelope"></i> Пиши ни
             </button>
             <div class="contact-form-wrapper" id="contactFormWrapper">
                 <form id="contactForm" onsubmit="submitContactForm(event)" novalidate style="text-align: left;">
@@ -2000,7 +2000,7 @@
             const isOpen = wrapper.classList.toggle('open');
             btn.innerHTML = isOpen
                 ? '<i class="fas fa-times"></i> Затвори'
-                : '<i class="fas fa-envelope"></i> Напиши ни';
+                : '<i class="fas fa-envelope"></i> Пиши ни';
             if (isOpen) {
                 // Small delay to let the CSS max-height transition begin before scrolling
                 setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
