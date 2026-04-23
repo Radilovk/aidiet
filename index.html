@@ -1626,7 +1626,7 @@
         <a href="index.html?stay=1" onclick="closeNavMenu()"><i class="fas fa-home"></i> Начало</a>
         <a href="index.html?stay=1#features" onclick="closeNavMenu()"><i class="fas fa-star"></i> Функции</a>
         <a href="index.html?stay=1#how-it-works" onclick="closeNavMenu()"><i class="fas fa-info-circle"></i> Как работи</a>
-        <a href="index.html?stay=1#contact" onclick="closeNavMenu(); setTimeout(function(){ var w=document.getElementById('contactFormWrapper'); if(w && !w.classList.contains('open')) toggleContactForm(); }, 400);"><i class="fas fa-envelope"></i> Контакти</a>
+        <a href="index.html?stay=1#contact" onclick="closeNavMenu(); handleContactNavigation();"><i class="fas fa-envelope"></i> Контакти</a>
 
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Модули</div>
@@ -1947,8 +1947,17 @@
                 ? '<i class="fas fa-times"></i> Затвори'
                 : '<i class="fas fa-envelope"></i> Напиши ни';
             if (isOpen) {
+                // Small delay to let the CSS max-height transition begin before scrolling
                 setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
             }
+        }
+
+        function handleContactNavigation() {
+            // Delay matches the CSS slide-in transition so the form opens after navigation settles
+            setTimeout(function() {
+                var w = document.getElementById('contactFormWrapper');
+                if (w && !w.classList.contains('open')) toggleContactForm();
+            }, 400);
         }
 
         // --- Hamburger Navigation Menu ---
@@ -2092,6 +2101,7 @@
             if (navMyPlanLink) navMyPlanLink.style.display = 'none';
 
             // Auto-open contact form if navigated via #contact hash
+            // Delay matches page load and scroll animation timing
             if (window.location.hash === '#contact') {
                 setTimeout(toggleContactForm, 400);
             }
