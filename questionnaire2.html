@@ -601,7 +601,66 @@
 
         /* Protocol Selection Banner */
         .protocol-banner {
-            display: none !important;
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            right: 10px;
+            max-width: calc(100% - 20px);
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-hover));
+            color: white;
+            padding: 12px 18px;
+            border-radius: 50px;
+            box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 998;
+            animation: slideDownBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .protocol-banner.show {
+            display: flex;
+        }
+
+        .protocol-banner-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .protocol-banner-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .protocol-banner-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+
+        .protocol-banner-subtitle {
+            font-size: 0.78rem;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+
+        .protocol-banner-change {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .protocol-banner-change:hover {
+            opacity: 0.7;
         }
 
         /* PWA Install Banner */

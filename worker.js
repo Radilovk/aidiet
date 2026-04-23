@@ -1147,7 +1147,7 @@ function detectGoalContradiction(data) {
   // Check for dangerous combinations with medical conditions
   if (!hasContradiction && data.medicalConditions && Array.isArray(data.medicalConditions)) {
     // Check for thyroid conditions + aggressive caloric deficit
-    if (data.medicalConditions.some(c => c.includes('Щитовидна жлеза') || c.includes('Хипотиреоидизъм')) && 
+    if (data.medicalConditions.some(c => c.includes('Щитовидна жлеза') || c.includes('Хипотиреоидизъм') || c.includes('Хашимото')) && 
         normalizedGoal.includes('отслабване')) {
       const tdee = calculateTDEE(calculateBMR(data), data.sportActivity);
       const targetCalories = Math.round(tdee * 0.85); // 15% deficit
@@ -1171,7 +1171,9 @@ function detectGoalContradiction(data) {
     }
     
     // Check for PCOS + high carb approach - validation handled in analysis
-    if (data.medicalConditions.includes('PCOS') || data.medicalConditions.includes('СПКЯ')) {
+    if (data.medicalConditions.includes('PCOS') || data.medicalConditions.includes('СПКЯ') ||
+        data.medicalConditions.includes('Ендокринни') ||
+        (data.medicalConditions_Ендокринни_детайл && data.medicalConditions_Ендокринни_детайл.includes('поликистозни'))) {
       // PCOS patients typically need lower carb approach - this will be flagged in analysis
       // No contradiction here, but AI should be aware via analysis prompt
     }
@@ -4720,7 +4722,9 @@ function validatePlan(plan, userData, substitutions = []) {
     }
     
     // Check for PCOS + high carb plan
-    if (userData.medicalConditions.includes('PCOS') || userData.medicalConditions.includes('СПКЯ')) {
+    if (userData.medicalConditions.includes('PCOS') || userData.medicalConditions.includes('СПКЯ') ||
+        userData.medicalConditions.includes('Ендокринни') ||
+        (userData.medicalConditions_Ендокринни_детайл && userData.medicalConditions_Ендокринни_детайл.includes('поликистозни'))) {
       const modifier = plan.strategy?.dietaryModifier || '';
       if (modifier.toLowerCase().includes('високовъглехидратно') || modifier.toLowerCase().includes('балансирано')) {
         console.log('Warning: PCOS detected - should prefer lower carb approach');
