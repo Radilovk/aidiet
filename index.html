@@ -2180,11 +2180,9 @@
                     window.location.replace('plan.html');
                     return;
                 }
-                // User has a plan but chose to stay on index - show "Моят план" button
+                // User has a plan but chose to stay on index - hide the header CTA button
                 if (startNowBtn) {
-                    startNowBtn.href = 'plan.html';
-                    startNowBtn.innerHTML = '<i class="fas fa-user-check" aria-hidden="true"></i> Моят план';
-                    startNowBtn.style.display = 'inline-flex';
+                    startNowBtn.style.display = 'none';
                 }
                 if (heroCTABtn) {
                     heroCTABtn.href = 'plan.html';
