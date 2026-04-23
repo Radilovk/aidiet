@@ -96,7 +96,172 @@
             padding-bottom: calc(80px + var(--safe-area-inset-bottom));
         }
 
-        /* Header */
+        /* ─── Site Navigation Header ─── */
+        .site-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: calc(16px + var(--safe-area-inset-top)) 20px 16px;
+            min-height: calc(60px + var(--safe-area-inset-top));
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid var(--glass-border);
+            transition: all 0.35s ease;
+        }
+        .site-nav-logo {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .site-nav-logo i { color: var(--primary); }
+        .site-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--input-bg);
+            color: var(--text-gray);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-toggle:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .site-hamburger-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            transition: background 0.2s;
+            z-index: 1100;
+        }
+        .site-hamburger-btn:hover { background: var(--primary-light); }
+        .site-hamburger-btn .bar {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: var(--text-dark);
+            border-radius: 2px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .site-hamburger-btn.open .bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .site-hamburger-btn.open .bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+        .site-hamburger-btn.open .bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+        .site-nav-menu {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: min(320px, 90vw);
+            height: 100vh;
+            background: var(--card-bg);
+            backdrop-filter: blur(24px) saturate(200%);
+            -webkit-backdrop-filter: blur(24px) saturate(200%);
+            box-shadow: -4px 0 32px rgba(13,148,136,0.18);
+            z-index: 1050;
+            display: flex;
+            flex-direction: column;
+            padding: calc(80px + var(--safe-area-inset-top)) 0 40px 0;
+            transform: translateX(110%);
+            transition: transform 0.38s cubic-bezier(0.34, 1.2, 0.64, 1);
+            border-left: 1px solid var(--glass-border);
+            overflow-y: auto;
+        }
+        [data-theme="dark"] .site-nav-menu {
+            background: #0A1A1A;
+            box-shadow: -4px 0 32px rgba(0,0,0,0.5);
+        }
+        .site-nav-menu.open { transform: translateX(0); }
+        .site-nav-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 1049;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .site-nav-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .site-nav-section-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--primary);
+            padding: 18px 28px 8px;
+        }
+        .site-nav-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 28px;
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .site-nav-menu a:hover {
+            background: var(--primary-light);
+            color: var(--primary-hover);
+        }
+        .site-nav-menu a i {
+            width: 20px;
+            text-align: center;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+        .site-nav-menu-divider {
+            height: 1px;
+            background: var(--glass-border);
+            margin: 10px 28px;
+        }
+        .site-nav-top-link {
+            background: linear-gradient(135deg, #06D6C8 0%, #0D9488 60%, #0F766E 100%) !important;
+            color: #fff !important;
+            border-radius: 14px;
+            margin: 0 20px 8px;
+            padding: 14px 20px !important;
+            font-size: 1.05rem;
+            box-shadow: 0 4px 16px rgba(13,148,136,0.28);
+        }
+        .site-nav-top-link:hover {
+            background: linear-gradient(135deg, #05C0B3 0%, #0B8478 60%, #0D6560 100%) !important;
+            color: #fff !important;
+        }
+        .site-nav-top-link i { color: rgba(255,255,255,0.9) !important; }
+
+        /* Header (legacy — kept for progress-section styling) */
         .app-header {
             position: fixed;
             top: 0;
@@ -150,24 +315,6 @@
             color: var(--text-gray);
         }
 
-        .theme-toggle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: none;
-            background: var(--input-bg);
-            color: var(--text-gray);
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .theme-toggle:hover {
-            background: var(--primary-light);
-            color: var(--primary);
-        }
 
         /* Progress */
         .progress-section {
@@ -1486,23 +1633,42 @@
     <!-- Skip Navigation Link (Accessibility) -->
     <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
     
-    <!-- Header -->
-    <header class="app-header" role="banner">
-        <div class="header-content">
-            <div class="header-title">
-                <div class="header-icon">
-                    <i class="fas fa-heart-pulse" aria-hidden="true"></i>
-                </div>
-                <div class="header-text">
-                    <h1>Емоционално Хранене</h1>
-                    <p>Психологическа самооценка</p>
-                </div>
-            </div>
+    <!-- Site Navigation -->
+    <nav class="site-nav" role="navigation" aria-label="Главна навигация">
+        <a href="index.html" class="site-nav-logo" aria-label="NutriPlan начална страница">
+            <i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan
+        </a>
+        <div class="site-nav-actions">
             <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Смени темата" aria-label="Смени темата">
                 <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
+            <button class="site-hamburger-btn" id="siteHamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="siteNavMenu" onclick="toggleSiteNav()">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
         </div>
-    </header>
+    </nav>
+
+    <!-- Navigation overlay -->
+    <div class="site-nav-overlay" id="siteNavOverlay" onclick="closeSiteNav()"></div>
+
+    <!-- Slide-in navigation menu -->
+    <nav class="site-nav-menu" id="siteNavMenu" role="dialog" aria-modal="true" aria-label="Навигационно меню">
+        <a href="plan.html" class="site-nav-top-link" id="siteNavMyPlanLink" style="display:none;"><i class="fas fa-user-check"></i> Моят План</a>
+
+        <div class="site-nav-section-label">Начална страница</div>
+        <a href="index.html?stay=1"><i class="fas fa-home"></i> Начало</a>
+        <a href="index.html?stay=1#features"><i class="fas fa-star"></i> Функции</a>
+        <a href="index.html?stay=1#how-it-works"><i class="fas fa-info-circle"></i> Как работи</a>
+        <a href="index.html?stay=1#contact"><i class="fas fa-envelope"></i> Контакти</a>
+
+        <div class="site-nav-menu-divider"></div>
+        <div class="site-nav-section-label">Модули</div>
+        <a href="emoeat.html"><i class="fas fa-heart-pulse"></i> Емоционално Хранене</a>
+        <a href="longevity.html"><i class="fas fa-dna"></i> Дълголетие</a>
+        <a href="protocol-landing.html"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
+    </nav>
 
     <!-- Progress -->
     <main id="main-content" role="main">
@@ -1791,6 +1957,43 @@
             const icon = document.querySelector('.theme-toggle i');
             if (icon) {
                 icon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        })();
+
+        // ─── Site Navigation Menu ───
+        function toggleSiteNav() {
+            const btn = document.getElementById('siteHamburgerBtn');
+            const menu = document.getElementById('siteNavMenu');
+            const overlay = document.getElementById('siteNavOverlay');
+            const isOpen = menu.classList.toggle('open');
+            btn.classList.toggle('open', isOpen);
+            overlay.classList.toggle('open', isOpen);
+            btn.setAttribute('aria-expanded', String(isOpen));
+            document.body.style.overflow = isOpen ? 'hidden' : '';
+        }
+
+        function closeSiteNav() {
+            const btn = document.getElementById('siteHamburgerBtn');
+            const menu = document.getElementById('siteNavMenu');
+            const overlay = document.getElementById('siteNavOverlay');
+            menu.classList.remove('open');
+            btn.classList.remove('open');
+            overlay.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeSiteNav();
+        });
+
+        // Show "My Plan" link if user has a plan
+        (function() {
+            const dietPlan = localStorage.getItem('dietPlan');
+            const userId = localStorage.getItem('userId');
+            if (dietPlan && userId) {
+                const link = document.getElementById('siteNavMyPlanLink');
+                if (link) link.style.display = 'flex';
             }
         })();
 
