@@ -3637,6 +3637,7 @@
             const btn = document.getElementById('hamburgerBtn');
             const menu = document.getElementById('navMenu');
             const overlay = document.getElementById('navMenuOverlay');
+            if (!btn || !menu || !overlay) return;
             menu.classList.remove('open');
             btn.classList.remove('open');
             overlay.classList.remove('open');
