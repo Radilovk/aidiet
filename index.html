@@ -169,11 +169,7 @@
                 rgba(255, 255, 255, 0.28) 50%,
                 transparent 100%
             );
-            animation: nav-btn-shimmer 2.4s ease-in-out infinite;
-        }
-        @keyframes nav-btn-shimmer {
-            0% { left: -100%; }
-            60%, 100% { left: 150%; }
+            pointer-events: none;
         }
         .nav-btn:hover {
             background: linear-gradient(135deg, #05C0B3 0%, #0B8478 60%, #0D6560 100%);
