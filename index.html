@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="NutriPlan — Твоята персонална здравна платформа за 2026 г. AI анализ с 30+ критерия, 7-дневен план за хранене, психология, добавки и активности. Клинични протоколи, програма за дълголетие, анализ на емоционалното хранене. 24/7 AI консултант. Свали като приложение — безплатно.">
     <meta name="theme-color" content="#0D9488">
     <meta name="mobile-web-app-capable" content="yes">
@@ -234,6 +234,7 @@
             right: 0;
             width: min(320px, 90vw);
             height: 100vh;
+            height: 100dvh;
             background: var(--white-solid);
             backdrop-filter: blur(24px) saturate(200%);
             -webkit-backdrop-filter: blur(24px) saturate(200%);
@@ -1696,14 +1697,11 @@
     <!-- Navigation -->
     <nav role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="questionnaire2.html" class="nav-btn" id="startNowBtn" style="display: none;"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Започни промяната</a>
-            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </button>
-        </div>
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
     </nav>
 
     <!-- Navigation overlay -->
@@ -1712,6 +1710,7 @@
     <!-- Slide-in navigation menu -->
     <nav class="nav-menu" id="navMenu" role="dialog" aria-modal="true" aria-label="Навигационно меню">
         <a href="plan.html" class="nav-menu-top-link" id="navMyPlanLink" style="display:none;"><i class="fas fa-user-check"></i> Моят План</a>
+        <a href="questionnaire2.html" class="nav-menu-top-link" id="startNowBtn" style="display:none;"><i class="fas fa-clipboard-list"></i> Започни промяната</a>
 
         <div class="nav-menu-section-label">Начална страница</div>
         <a href="index.html?stay=1" onclick="closeNavMenu()"><i class="fas fa-home"></i> Начало</a>
@@ -2196,9 +2195,9 @@
                 return;
             }
 
-            // User doesn't have a plan - show "Започни промяната" button in header
+            // User doesn't have a plan - show "Започни промяната" button in dropdown menu
             if (startNowBtn) {
-                startNowBtn.style.display = 'inline-flex';
+                startNowBtn.style.display = 'flex';
             }
             if (navMyPlanLink) navMyPlanLink.style.display = 'none';
 
