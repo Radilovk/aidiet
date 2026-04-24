@@ -298,8 +298,8 @@
             opacity: 0.9;
         }
 
-        /* User Navigation in Admin Panel */
-        .admin-user-nav {
+        /* Settings Search */
+        .settings-search-wrap {
             background: var(--white);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
@@ -307,63 +307,39 @@
             margin-bottom: 24px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
+            gap: 10px;
             transition: background-color 0.3s ease;
         }
-        .admin-user-nav a {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 9px 18px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.93rem;
+        .settings-search-wrap i {
+            color: var(--text-gray);
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .settings-search-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 0.95rem;
             color: var(--text-dark);
-            border: 2px solid var(--glass-border, rgba(13,148,136,0.15));
-            transition: all 0.2s ease;
+            outline: none;
         }
-        .admin-user-nav a:hover {
-            background: var(--soft-red);
-            color: var(--primary-dark);
-            border-color: var(--primary-red);
+        .settings-search-input::placeholder {
+            color: var(--text-gray);
         }
-        .admin-user-nav a i {
+        .settings-search-clear {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-gray);
+            font-size: 0.85rem;
+            padding: 0 4px;
+            display: none;
+        }
+        .settings-search-clear:hover {
             color: var(--primary-red);
-            font-size: 0.9rem;
         }
-        .admin-user-nav .admin-nav-plan-btn {
-            background: linear-gradient(135deg, #06D6C8 0%, #0D9488 60%, #0F766E 100%);
-            color: #fff;
-            border-color: transparent;
-            box-shadow: 0 4px 14px rgba(13,148,136,0.3);
-        }
-        .admin-user-nav .admin-nav-plan-btn:hover {
-            background: linear-gradient(135deg, #05C0B3 0%, #0B8478 60%, #0D6560 100%);
-            color: #fff;
-            border-color: transparent;
-        }
-        .admin-user-nav .admin-nav-plan-btn i {
-            color: rgba(255,255,255,0.9);
-        }
-        .admin-user-nav-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-gray);
-            margin-right: 4px;
-        }
-        .admin-nav-no-plan {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            width: 100%;
-        }
-        .admin-nav-no-plan span {
-            font-size: 0.9rem;
-            color: var(--text-gray);
+        .card.settings-hidden {
+            display: none !important;
         }
 
         @media (max-width: 768px) {
@@ -895,22 +871,6 @@
                 </div>
             </header>
 
-            <!-- User Main Navigation -->
-            <div class="admin-user-nav" id="adminUserNav" style="display:none;">
-                <span class="admin-user-nav-label"><i class="fas fa-compass"></i> Навигация</span>
-                <a href="index.html?stay=1"><i class="fas fa-home"></i> Начало</a>
-                <a href="plan.html" class="admin-nav-plan-btn"><i class="fas fa-user-check"></i> Моят План</a>
-                <a href="emoeat.html"><i class="fas fa-heart-pulse"></i> Емоц. Хранене</a>
-                <a href="longevity.html"><i class="fas fa-dna"></i> Дълголетие</a>
-                <a href="protocol-landing.html"><i class="fas fa-stethoscope"></i> Протоколи</a>
-            </div>
-            <div class="admin-user-nav" id="adminNoPlanNav" style="display:none;">
-                <div class="admin-nav-no-plan">
-                    <span><i class="fas fa-info-circle" style="color:var(--primary-red);"></i> Нямате генериран персонален план.</span>
-                    <a href="questionnaire2.html" class="admin-nav-plan-btn"><i class="fas fa-clipboard-list"></i> Създай Персонален План</a>
-                </div>
-            </div>
-
             <!-- Stats Section -->
             <div class="stats-grid">
                 <div class="stat-card">
@@ -929,6 +889,13 @@
 
             <div id="successMessage" class="success-message"></div>
             <div id="errorMessage" class="error-message"></div>
+
+            <!-- Settings Search -->
+            <div class="settings-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" class="settings-search-input" id="settingsSearchInput" placeholder="Търси настройки..." oninput="filterSettings(this.value)">
+                <button class="settings-search-clear" id="settingsSearchClear" onclick="clearSettingsSearch()" title="Изчисти търсенето"><i class="fas fa-times"></i></button>
+            </div>
 
             <!-- Tab Navigation -->
             <div class="tab-navigation">
@@ -2319,6 +2286,29 @@
         // Initialize theme on load
         initializeTheme();
 
+        // --- Settings Search ---
+        function filterSettings(query) {
+            const clearBtn = document.getElementById('settingsSearchClear');
+            clearBtn.style.display = query ? 'inline' : 'none';
+            const term = query.trim().toLowerCase();
+            const allCards = document.querySelectorAll('.tab-content .card');
+            if (!term) {
+                allCards.forEach(card => card.classList.remove('settings-hidden'));
+                return;
+            }
+            allCards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.classList.toggle('settings-hidden', !text.includes(term));
+            });
+        }
+
+        function clearSettingsSearch() {
+            const input = document.getElementById('settingsSearchInput');
+            input.value = '';
+            filterSettings('');
+            input.focus();
+        }
+
         // --- Tab Management ---
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
@@ -3280,24 +3270,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         // Show Dashboard
-        function updateAdminUserNav() {
-            const dietPlan = localStorage.getItem('dietPlan');
-            const userId = localStorage.getItem('userId');
-            const navWithPlan = document.getElementById('adminUserNav');
-            const navNoPlan = document.getElementById('adminNoPlanNav');
-            if (dietPlan && userId) {
-                if (navWithPlan) navWithPlan.style.display = 'flex';
-                if (navNoPlan) navNoPlan.style.display = 'none';
-            } else {
-                if (navWithPlan) navWithPlan.style.display = 'none';
-                if (navNoPlan) navNoPlan.style.display = 'flex';
-            }
-        }
-
         function showDashboard() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('adminDashboard').style.display = 'block';
-            updateAdminUserNav();
             loadSettings();
             loadStats();
             // Load mainlist status and presets on dashboard open
