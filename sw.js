@@ -4,7 +4,7 @@ const BASE_PATH = '';
 
 // GLOBAL NOTIFICATION KILL SWITCH - set to true to disable ALL notifications
 const NOTIFICATIONS_DISABLED = true;
-const CACHE_NAME = 'nutriplan-v4';
+const CACHE_NAME = 'nutriplan-v5';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
