@@ -2236,6 +2236,71 @@
             }
         }
 
+        /**
+         * Sync localStorage profile data to cookies — runs in Safari browser (non-standalone).
+         *
+         * iOS Safari and the installed PWA share cookies (same origin) but have isolated
+         * localStorage.  Writing the plan to cookies here ensures that when the user
+         * installs the PWA, restoreProfileFromCookies() can recover the data without
+         * requiring the user to re-submit the questionnaire.
+         */
+        async function syncProfileToCookies() {
+            // Only sync when running in a normal browser tab, not the installed PWA
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                                 window.navigator.standalone === true;
+            if (isStandalone) return;
+            if (typeof CompressionStream === 'undefined') return;
+
+            const userId = localStorage.getItem('userId');
+            const planStr = localStorage.getItem('dietPlan');
+            if (!userId || !planStr) return;
+
+            try {
+                const OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
+                const CHUNK = 3800;
+
+                async function compress(str) {
+                    const bytes = new TextEncoder().encode(str);
+                    const cs = new CompressionStream('deflate-raw');
+                    const w = cs.writable.getWriter();
+                    w.write(bytes); w.close();
+                    const parts = [];
+                    const r = cs.readable.getReader();
+                    for (;;) {
+                        const { done, value } = await r.read();
+                        if (done) break;
+                        if (value) parts.push(value);
+                    }
+                    const out = new Uint8Array(parts.reduce((s, c) => s + c.length, 0));
+                    let off = 0;
+                    for (const p of parts) { out.set(p, off); off += p.length; }
+                    let b = '';
+                    for (let i = 0; i < out.length; i += 8192) {
+                        b += String.fromCharCode(...out.subarray(i, i + 8192));
+                    }
+                    return btoa(b);
+                }
+
+                function setChunks(prefix, b64) {
+                    const n = Math.ceil(b64.length / CHUNK);
+                    for (let i = 0; i < n; i++) {
+                        document.cookie = `${prefix}${i}=${b64.slice(i * CHUNK, (i + 1) * CHUNK)}${OPTS}`;
+                    }
+                    document.cookie = `${prefix}n=${n}${OPTS}`;
+                }
+
+                document.cookie = `np_uid=${encodeURIComponent(userId)};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
+                setChunks('np_p', await compress(planStr));
+                const userDataStr = localStorage.getItem('userData');
+                if (userDataStr) {
+                    setChunks('np_u', await compress(userDataStr));
+                }
+                console.log('[PWA] Profile synced to cookies for Safari PWA handoff');
+            } catch (e) {
+                console.warn('[PWA] Cookie profile sync failed:', e);
+            }
+        }
+
         // --- Check for existing plan and show appropriate button ---
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
@@ -2244,6 +2309,11 @@
             // This handles the iOS PWA isolated-storage scenario entirely
             // client-side — no backend request is ever made.
             await restoreProfileFromCookies();
+
+            // Keep cookies fresh so that an existing Safari session is handed off
+            // seamlessly when the user installs the PWA later.
+            // Fire-and-forget: does not block page rendering.
+            syncProfileToCookies();
 
             let dietPlan = localStorage.getItem('dietPlan');
             const userId = localStorage.getItem('userId');
