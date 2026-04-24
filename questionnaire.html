@@ -2341,6 +2341,8 @@
                     localStorage.setItem('dietPlan', JSON.stringify(result.plan));
                     localStorage.setItem('userId', result.userId);
                     localStorage.setItem('userData', JSON.stringify(answers));
+                    // Reset sync flag so ensureProfileCookies() re-saves the new plan
+                    localStorage.removeItem('np_profile_synced');
 
                     // Set a cross-context cookie so the PWA can identify the user after
                     // installation on iOS (Safari and the installed PWA share cookies but
@@ -2883,7 +2885,8 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, plan, userData })
-            }).catch(e => console.warn('[PWA] Backend profile save failed:', e));
+            }).then(r => { if (r && r.ok) localStorage.setItem('np_profile_synced', '1'); })
+              .catch(e => console.warn('[PWA] Backend profile save failed:', e));
 
             if (typeof CompressionStream === 'undefined') return;
             try {
