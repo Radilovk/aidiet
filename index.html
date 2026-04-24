@@ -2162,11 +2162,56 @@
             }
         }
 
+        /**
+         * Read a cookie value by name.
+         */
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+            return match ? decodeURIComponent(match[1]) : null;
+        }
+
+        /**
+         * Restore plan + userData from the server using the np_uid cookie.
+         *
+         * On iOS, Safari and the installed PWA share cookies but have isolated
+         * localStorage.  After the user installs the PWA, localStorage is empty;
+         * this function re-populates it from the server-side copy that was saved
+         * when the plan was originally generated.
+         *
+         * Returns true if data was successfully restored.
+         */
+        async function restoreProfileFromServer() {
+            const cookieUserId = getCookie('np_uid');
+            if (!cookieUserId) return false;
+            // Already have local data – nothing to restore
+            if (localStorage.getItem('dietPlan')) return false;
+            try {
+                const resp = await fetch(`${WORKER_URL}/api/user/profile?userId=${encodeURIComponent(cookieUserId)}`);
+                if (!resp.ok) return false;
+                const data = await resp.json();
+                if (!data.found || !data.plan) return false;
+                localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                localStorage.setItem('userId', cookieUserId);
+                if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
+                console.log('[PWA] Profile restored from server for userId:', cookieUserId);
+                return true;
+            } catch (e) {
+                console.warn('[PWA] Could not restore profile from server:', e);
+                return false;
+            }
+        }
+
         // --- Check for existing plan and show appropriate button ---
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
 
-            const dietPlan = localStorage.getItem('dietPlan');
+            // Attempt server-side restore before checking localStorage.
+            // This handles the case where the user had a plan in the browser
+            // but localStorage is empty because the PWA runs in an isolated
+            // context (most notably iOS Safari).
+            await restoreProfileFromServer();
+
+            let dietPlan = localStorage.getItem('dietPlan');
             const userId = localStorage.getItem('userId');
             const startNowBtn = document.getElementById('startNowBtn');
             const heroCTABtn = document.getElementById('heroCTABtn');

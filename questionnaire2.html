@@ -3720,6 +3720,18 @@
                     localStorage.setItem('userId', result.userId);
                     localStorage.setItem('userData', JSON.stringify(planPayload));
                     localStorage.setItem('planSource', 'questionnaire2');
+
+                    // Set a cross-context cookie so the PWA can identify the user after
+                    // installation on iOS (Safari and the installed PWA share cookies but
+                    // have isolated localStorage).
+                    document.cookie = `np_uid=${encodeURIComponent(result.userId)};path=/;max-age=${365*24*60*60};SameSite=Lax;Secure`;
+
+                    // Save profile to server so it can be restored in the PWA context
+                    fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: result.userId, plan: result.plan, userData: planPayload })
+                    }).catch(e => console.warn('[PWA] Could not save profile to server:', e));
                     
                     // Save clientId so plan-pending can check status
                     if (savedClientId) {
