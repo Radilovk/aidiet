@@ -2933,6 +2933,7 @@
         </div>
     </div>
 
+    <script src="./pwa-utils.js"></script>
     <script>
         // Worker URL configuration
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
@@ -4008,9 +4009,13 @@
         }
 
         // --- Initialization ---
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
-            loadDietData();
+            // Restore from cookies when localStorage is empty (PWA isolated-storage scenario)
+            await pwaRestoreProfile();
+            // Keep cookies fresh for future PWA installs (Safari browser scenario).
+            // Fire-and-forget: does not block page rendering.
+            pwaSyncProfile();
             loadChatModeConfig();
             // Enhancement #8: Load offline queue
             loadOfflineQueue();
