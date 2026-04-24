@@ -10,7 +10,6 @@ const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
 const DEFAULT_BODY = 'Ново напомняне от NutriPlan';
 const STATIC_CACHE = [
-  `${BASE_PATH}/pwa-utils.js`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire.html`,
   `${BASE_PATH}/questionnaire2.html`,

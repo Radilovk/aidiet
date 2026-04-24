@@ -1312,7 +1312,6 @@
             });
         })();
     </script>
-    <script src="./pwa-utils.js"></script>
 </head>
 <body>
     <!-- PWA Install Banner -->
@@ -2420,13 +2419,8 @@
         }
 
         // --- Initialization ---
-        window.addEventListener('DOMContentLoaded', async function() {
+        window.addEventListener('DOMContentLoaded', function() {
             initializeTheme();
-            // Restore from cookies when localStorage is empty (PWA isolated-storage scenario)
-            await pwaRestoreProfile();
-            // Keep cookies fresh for future PWA installs (Safari browser scenario).
-            // Fire-and-forget: does not block page rendering.
-            pwaSyncProfile();
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
             // Macros and strategy panels moved to guidelines.html
