@@ -60,18 +60,19 @@
 ### Налични променливи по стъпки
 
 #### Стъпка 1 – `admin_analysis_prompt.txt`
-`{userData}`, `{backendCalculations}`, `{bmr}`, `{tdee}`, `{name}`, `{age}`, `{gender}`, `{weight}`, `{height}`, `{goal}`, `{sleepHours}`, `{sleepInterrupt}`, `{chronotype}`, `{sportActivity}`, `{dailyActivityLevel}`, `{stressLevel}`, `{waterIntake}`, `{waterMin}`, `{waterMax}`, `{medicalConditions}`, `{medications}`, `{medicationsText}`, `{eatingHabits}`, `{foodCravings}`, `{foodTriggers}`, `{compensationMethods}`, `{socialComparison}`, `{dietHistory}`, `{additionalNotes}`, `{additionalNotesSection}`, `{clinicalProtocolSection}`, `{clinicalProtocolName}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`, `{HEALTH_STATUS_UNDERESTIMATE_PERCENT}`, `{MIN_RECOMMENDED_CALORIES}`, `{MIN_FAT_GRAMS}`, `{FIBER_MIN_GRAMS}`, `{FIBER_MAX_GRAMS}`
+`{userData}`, `{backendCalculations}`, `{bmr}`, `{tdee}`, `{name}`, `{age}`, `{gender}`, `{weight}`, `{height}`, `{goal}`, `{sleepHours}`, `{sleepInterrupt}`, `{chronotype}`, `{sportActivity}`, `{dailyActivityLevel}`, `{stressLevel}`, `{waterIntake}`, `{waterMin}`, `{waterMax}`, `{medicalConditions}`, `{medicalConditions_other}`, `{medicalConditions_allergy_details}`, `{medicalConditions_autoimmune_details}`, `{medicalConditions_cardiovascular_details}`, `{medicalConditions_endocrine_details}`, `{medicalConditions_digestive_details}`, `{medicalConditions_metabolic_details}`, `{medicalConditions_musculoskeletal_details}`, `{medications}`, `{medicationsText}`, `{eatingHabits}`, `{foodCravings}`, `{foodTriggers}`, `{compensationMethods}`, `{socialComparison}`, `{dietHistory}`, `{additionalNotes}`, `{additionalNotesSection}`, `{clinicalProtocolSection}`, `{clinicalProtocolName}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`, `{HEALTH_STATUS_UNDERESTIMATE_PERCENT}`, `{MIN_RECOMMENDED_CALORIES}`, `{MIN_FAT_GRAMS}`, `{FIBER_MIN_GRAMS}`, `{FIBER_MAX_GRAMS}`
+> **Забележка:** `{additionalNotesSection}` автоматично включва детайлите на здравословните състояния (`medicalConditions_*_details`) като секция `[Детайли за здравословни състояния]`, ако са попълнени.
 
 #### Стъпка 2 – `admin_strategy_prompt.txt`
 Данни от стъпка 1 (само компактни полета): `{bmi}`, `{realBMR}`, `{realTDEE}`, `{temperament}`, `{temperamentProbability}`, `{add1}`
-Потребителски данни: `{name}`, `{age}`, `{goal}`, `{dietPreference}`, `{dietDislike}`, `{dietLove}`, `{eatingHabits}`, `{chronotype}`, `{additionalNotes}`, `{additionalNotesSection}`, `{clinicalProtocolSection}`, `{clinicalProtocolName}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`
+Потребителски данни: `{name}`, `{age}`, `{goal}`, `{dietPreference}`, `{dietDislike}`, `{dietLove}`, `{eatingHabits}`, `{chronotype}`, `{medicalConditions}`, `{medicalConditions_other}`, `{medicalConditions_allergy_details}`, `{medicalConditions_autoimmune_details}`, `{medicalConditions_cardiovascular_details}`, `{medicalConditions_endocrine_details}`, `{medicalConditions_digestive_details}`, `{medicalConditions_metabolic_details}`, `{medicalConditions_musculoskeletal_details}`, `{additionalNotes}`, `{additionalNotesSection}`, `{clinicalProtocolSection}`, `{clinicalProtocolName}`, `{TEMPERAMENT_CONFIDENCE_THRESHOLD}`
 ⚠️ **Не са налични**: `{recommendedCalories}`, `{macroRatios}`, `{macroGrams}`, `{psychologicalProfile}`, `{successChance}`, `{keyProblems}` — използвай `{realTDEE}` вместо `{recommendedCalories}`
 
 #### Стъпка 3 – `admin_meal_plan_prompt.txt`
 Данни от стъпка 1 (компактни): `{analysisCompact.macroRatios}`, `{analysisCompact.macroGrams}`, `{analysisCompact.fiber}`
 Данни от стъпка 2 (пълна стратегия): `{strategyData.*}`, `{strategyCompact.*}`, `{dietaryModifier}`
 Изчислени: `{bmr}`, `{recommendedCalories}`, `{startDay}`, `{endDay}`, `{modificationsSection}`, `{previousDaysContext}`, `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
-Потребителски: `{userData.*}`, `{dietLove}`, `{dietDislike}`, `{additionalNotes}` ← комбинирано (additionalNotes + протокол-специфични отговори)
+Потребителски: `{userData.*}`, `{dietLove}`, `{dietDislike}`, `{additionalNotes}` ← комбинирано (additionalNotes + детайли здравосл. нарушения + протокол-специфични отговори + dq_ отговори), `{medicalConditions_cardiovascular_details}`, `{medicalConditions_endocrine_details}`, `{medicalConditions_digestive_details}`, `{medicalConditions_metabolic_details}`, `{medicalConditions_musculoskeletal_details}`
 Клиничен протокол: `{clinicalProtocolSection}` ← пълен контекст: насоки, акцент, ограничения, суплементи (празно ако няма протокол)
 Константи: `{DAILY_CALORIE_TOLERANCE}`, `{MAX_LATE_SNACK_CALORIES}`, `{MEAL_NAME_FORMAT_INSTRUCTIONS}`
 
@@ -82,7 +83,7 @@
 Данни от стъпка 1 (компактни): `{temperament}`, `{temperamentProbability}`, `{psychologicalProfile}`, `{keyProblems}`
 Данни от стъпка 2: `{dietType}`, `{psychologicalSupport}`, `{hydrationStrategy}`, `{supplementRecommendations}`
 Изчислени: `{bmr}`, `{recommendedCalories}`, `{avgCalories}`, `{avgProtein}`, `{avgCarbs}`, `{avgFats}`
-Потребителски: `{name}`, `{goal}`, `{medications}`, `{allergies}`
+Потребителски: `{name}`, `{goal}`, `{medications}`, `{allergies}`, `{stressLevel}`, `{sleepQuality}`, `{sleepDuration}`, `{sportActivity}`, `{dailyActivity}`, `{dailyActivityLevel}`
 Клиничен протокол: `{clinicalProtocolSection}`, `{clinicalProtocolSupplementSection}`, `{clinicalProtocolName}`
 Динамични списъци: `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
 
@@ -120,7 +121,7 @@ cd /path/to/aidiet
 **ВАЖНО**: 
 - При редактиране на default промптове в worker.js, ЗАДЪЛЖИТЕЛНО актуализирайте съответния файл тук!
 - При редактиране на файловете тук, те стават активни САМО след качване в KV storage
-- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-04-08)
+- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-04-24)
 - **KV/prompts/ файловете са ЕДИНСТВЕНИЯ правилен начин за редактиране на промптовете!** Worker.js default-ите са само fallback — активните промпти са тези в KV storage.
 
 ## Бележки
