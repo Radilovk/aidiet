@@ -11224,6 +11224,84 @@ async function handleSaveUserNotificationPreferences(request, env) {
 }
 
 /**
+ * User: Save user profile (plan + userData) for cross-context restoration
+ *
+ * Stores the generated diet plan and user data in KV so that it can be
+ * retrieved when the PWA is opened after installation (iOS Safari isolates
+ * localStorage from the browser context, but cookies are shared).
+ *
+ * POST /api/user/save-profile
+ * Body: { userId, plan, userData }
+ */
+async function handleSaveUserProfile(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const { userId, plan, userData } = await request.json();
+
+    if (!userId || !plan) {
+      return jsonResponse({ error: 'Missing userId or plan' }, 400);
+    }
+
+    const profileData = {
+      userId,
+      plan,
+      userData: userData || {},
+      savedAt: new Date().toISOString()
+    };
+
+    // Store with 90-day TTL so the profile is available long after installation
+    await env.page_content.put(
+      `user_profile:${userId}`,
+      JSON.stringify(profileData),
+      { expirationTtl: 90 * 24 * 60 * 60 }
+    );
+
+    console.log(`User profile saved for restore: ${userId}`);
+    return jsonResponse({ success: true });
+  } catch (error) {
+    console.error('Error saving user profile:', error);
+    return jsonResponse({ error: 'Failed to save user profile: ' + error.message }, 500);
+  }
+}
+
+/**
+ * User: Get user profile (plan + userData) for cross-context restoration
+ *
+ * Called by the PWA on first launch when localStorage is empty but the
+ * np_uid cookie (set by the browser before installation) is present.
+ *
+ * GET /api/user/profile?userId=XXX
+ */
+async function handleGetUserProfile(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+
+    if (!userId) {
+      return jsonResponse({ error: 'Missing userId' }, 400);
+    }
+
+    const raw = await env.page_content.get(`user_profile:${userId}`);
+    if (!raw) {
+      return jsonResponse({ found: false }, 404);
+    }
+
+    const profile = JSON.parse(raw);
+    return jsonResponse({ found: true, plan: profile.plan, userData: profile.userData });
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    return jsonResponse({ error: 'Failed to get user profile: ' + error.message }, 500);
+  }
+}
+
+/**
  * Admin: Send AI assistant message to user
  * 
  * Sends a notification to a user as if it came from the AI assistant
@@ -11803,6 +11881,10 @@ export default {
         return await handleGetUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/user/notification-preferences' && request.method === 'POST') {
         return await handleSaveUserNotificationPreferences(request, env);
+      } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
+        return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === '/api/user/profile' && request.method === 'GET') {
+        return await handleGetUserProfile(request, env);
       } else if (url.pathname === '/api/admin/subscriptions' && request.method === 'GET') {
         return await handleGetSubscriptions(request, env);
       } else if (url.pathname === '/api/admin/get-logging-status' && request.method === 'GET') {
