@@ -6,9 +6,10 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0D9488",
   "theme_color": "#0D9488",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
   "prefer_related_applications": false,
   "icons": [
     {
@@ -38,6 +39,5 @@
   ],
   "categories": ["health", "lifestyle", "food"],
   "lang": "bg-BG",
-  "dir": "ltr",
-  "screenshots": []
+  "dir": "ltr"
 }
