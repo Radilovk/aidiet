@@ -3708,6 +3708,7 @@
                         localStorage.setItem('userId', result.userId);
                         localStorage.setItem('userData', JSON.stringify(planPayload));
                         localStorage.setItem('canProceedWithWarning', 'false');
+                        localStorage.setItem('validationSource', 'questionnaire2');
                         localStorage.removeItem('questionnaireAnswers');
                         window.location.href = 'warning.html';
                         return;
