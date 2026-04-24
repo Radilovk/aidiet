@@ -3850,8 +3850,34 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function buildPlanReadyEmailHtml(clientName) {
+/**
+ * Default email template fields for the "plan ready" notification.
+ * All fields can be overridden via admin panel (stored in KV under 'email_template_plan_ready').
+ */
+const DEFAULT_EMAIL_TEMPLATE = {
+  subject: 'Вашият персонален хранителен план е готов! 🥗',
+  headerTitle: '🍽️ AiDiet',
+  headerSubtitle: 'Персонален хранителен план',
+  greeting: 'Здравейте, {name}! 👋',
+  paragraph1: 'Радваме се да ви съобщим, че вашият <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
+  paragraph2: 'Нашият специалист внимателно е разгледал вашите данни и е изготвил индивидуален план, съобразен с вашите цели и нужди.',
+  buttonText: 'Виж моя план →',
+  contactEmail: 'info@biocode.online'
+};
+
+/**
+ * Build the HTML body for the "plan ready" email notification.
+ * Uses template fields (merged from KV or defaults).
+ */
+function buildPlanReadyEmailHtml(clientName, tpl) {
+  const t = Object.assign({}, DEFAULT_EMAIL_TEMPLATE, tpl || {});
   const safeName = escapeHtml(clientName);
+  const safeGreeting = escapeHtml(t.greeting).replace('{name}', safeName);
+  const safeHeaderTitle = escapeHtml(t.headerTitle);
+  const safeHeaderSubtitle = escapeHtml(t.headerSubtitle);
+  const safeButtonText = escapeHtml(t.buttonText);
+  const safeContactEmail = escapeHtml(t.contactEmail);
+  // paragraph1 and paragraph2 may contain intentional HTML (<strong> etc.), so used as-is
   const year = new Date().getFullYear();
   return `<!DOCTYPE html>
 <html lang="bg">
@@ -3867,23 +3893,23 @@ function buildPlanReadyEmailHtml(clientName) {
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
           <tr>
             <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">&#x1F957; AiDiet</h1>
-              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">Персонален хранителен план</p>
+              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">${safeHeaderTitle}</h1>
+              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">${safeHeaderSubtitle}</p>
             </td>
           </tr>
           <tr>
             <td style="padding:40px;">
-              <h2 style="color:#333333;margin:0 0 20px;font-size:22px;">Здравейте, ${safeName}! &#x1F44B;</h2>
+              <h2 style="color:#333333;margin:0 0 20px;font-size:22px;">${safeGreeting}</h2>
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 20px;">
-                Радваме се да ви съобщим, че вашият <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!
+                ${t.paragraph1}
               </p>
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">
-                Нашият специалист внимателно е разгледал вашите данни и е изготвил индивидуален план, съобразен с вашите цели и нужди.
+                ${t.paragraph2}
               </p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
                   <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
-                    <a href="https://aidiet.radilov-k.workers.dev/plan.html" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Виж моя план &#x2192;</a>
+                    <a href="https://aidiet.radilov-k.workers.dev/plan.html" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
                   </td>
                 </tr>
               </table>
@@ -3901,7 +3927,7 @@ function buildPlanReadyEmailHtml(clientName) {
                 </tr>
               </table>
               <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
-                Ако имате въпроси, пишете ни на <a href="mailto:info@biocode.online" style="color:#4CAF50;text-decoration:none;">info@biocode.online</a>
+                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
               </p>
             </td>
           </tr>
@@ -4477,12 +4503,11 @@ async function handleActivateClientPlan(request, env, ctx) {
     const clientEmail = clientData.answers?.email;
     const clientName = clientData.answers?.name || 'Клиент';
     if (clientEmail) {
-      const emailPromise = sendEmailViaSMTP(
-        env,
-        clientEmail,
-        'Вашият персонален хранителен план е готов! 🥗',
-        buildPlanReadyEmailHtml(clientName)
-      ).catch(e => console.warn('[Email] Plan activation email failed:', e));
+      const emailPromise = (async () => {
+        const tpl = await getEmailTemplate(env);
+        const subject = tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject;
+        await sendEmailViaSMTP(env, clientEmail, subject, buildPlanReadyEmailHtml(clientName, tpl));
+      })().catch(e => console.warn('[Email] Plan activation email failed:', e));
       if (ctx?.waitUntil) ctx.waitUntil(emailPromise);
     }
 
@@ -11696,6 +11721,79 @@ async function handleSaveNotificationTemplates(request, env) {
  * @param {Object} options - Optional settings { cacheControl: string }
  */
 
+// ─── Email Template (plan ready) ───
+
+/**
+ * Read the plan-ready email template from KV.
+ * Falls back to DEFAULT_EMAIL_TEMPLATE if not found.
+ */
+async function getEmailTemplate(env) {
+  if (!env.page_content) return DEFAULT_EMAIL_TEMPLATE;
+  try {
+    const raw = await env.page_content.get('email_template_plan_ready');
+    if (raw) return Object.assign({}, DEFAULT_EMAIL_TEMPLATE, JSON.parse(raw));
+  } catch (e) {
+    console.warn('[EmailTemplate] Failed to read KV template:', e);
+  }
+  return DEFAULT_EMAIL_TEMPLATE;
+}
+
+/**
+ * Admin: Get the editable email template.
+ */
+async function handleGetEmailTemplate(request, env) {
+  try {
+    const tpl = await getEmailTemplate(env);
+    return jsonResponse({ success: true, template: tpl, defaults: DEFAULT_EMAIL_TEMPLATE });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to get email template: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Save the editable email template to KV.
+ */
+async function handleSaveEmailTemplate(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+    const { template } = await request.json();
+    if (!template || typeof template !== 'object') {
+      return jsonResponse({ error: 'Missing template object' }, 400);
+    }
+    // Only persist known fields; strip unknown keys
+    const allowed = Object.keys(DEFAULT_EMAIL_TEMPLATE);
+    const safe = {};
+    for (const k of allowed) {
+      if (template[k] !== undefined) safe[k] = String(template[k]);
+    }
+    await env.page_content.put('email_template_plan_ready', JSON.stringify(safe));
+    console.log('[EmailTemplate] Template saved by admin');
+    return jsonResponse({ success: true, message: 'Шаблонът за имейл е запазен', template: safe });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to save email template: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Send a test plan-ready email using the current template.
+ * Body: { to: "email@example.com", clientName: "Test Name" }
+ */
+async function handleTestSendEmail(request, env) {
+  try {
+    const { to, clientName } = await request.json();
+    if (!to) return jsonResponse({ error: 'Missing recipient email (to)' }, 400);
+    const tpl = await getEmailTemplate(env);
+    const subject = (tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject) + ' [ТЕСТ]';
+    const name = clientName || 'Тестов Клиент';
+    await sendEmailViaSMTP(env, to, subject, buildPlanReadyEmailHtml(name, tpl));
+    return jsonResponse({ success: true, message: `Тестовият имейл е изпратен до ${to}` });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to send test email: ' + error.message }, 500);
+  }
+}
+
 /**
  * Scheduled event handler for cron-triggered push notifications
  * Runs every hour to check and send scheduled notifications
@@ -12123,6 +12221,12 @@ export default {
         return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
         return await handleActivateClientPlan(request, env, ctx);
+      } else if (url.pathname === '/api/admin/email-template' && request.method === 'GET') {
+        return await handleGetEmailTemplate(request, env);
+      } else if (url.pathname === '/api/admin/email-template' && request.method === 'POST') {
+        return await handleSaveEmailTemplate(request, env);
+      } else if (url.pathname === '/api/admin/test-send-email' && request.method === 'POST') {
+        return await handleTestSendEmail(request, env);
       } else if (url.pathname === '/api/client-plan-status' && request.method === 'GET') {
         return await handleGetClientPlanStatus(request, env);
       } else {
