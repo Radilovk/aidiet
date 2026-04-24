@@ -3872,7 +3872,7 @@ const DEFAULT_EMAIL_TEMPLATE = {
 function buildPlanReadyEmailHtml(clientName, tpl) {
   const t = Object.assign({}, DEFAULT_EMAIL_TEMPLATE, tpl || {});
   const safeName = escapeHtml(clientName);
-  const safeGreeting = escapeHtml(t.greeting).replace('{name}', safeName);
+  const safeGreeting = escapeHtml(t.greeting.replace('{name}', clientName));
   const safeHeaderTitle = escapeHtml(t.headerTitle);
   const safeHeaderSubtitle = escapeHtml(t.headerSubtitle);
   const safeButtonText = escapeHtml(t.buttonText);
