@@ -81,7 +81,7 @@
 
 // No default values - all calculations must be individualized based on user data
 
-// Data Validation Configuration
+// Data Validation Configuration (hardcoded fallback defaults — overridable via admin panel KV)
 const MIN_AGE = 10; // Minimum age for diet planning (minors require guardian consent)
 const MAX_AGE = 100;
 const MIN_WEIGHT_KG = 20;
@@ -92,6 +92,45 @@ const MIN_BMI = 10; // Medically possible minimum
 const MAX_BMI = 80; // Medically possible maximum
 const MAX_WEIGHT_LOSS_KG = 50; // Maximum weight loss per plan
 const MAX_WEIGHT_LOSS_PERCENT = 0.5; // Maximum 50% of body weight
+
+/**
+ * Default validation configuration.
+ * All values match the hardcoded constants above and can be overridden via admin panel.
+ * Stored in KV under 'admin_validation_config' as a JSON string.
+ */
+const DEFAULT_VALIDATION_CONFIG = {
+  dataValidation: {
+    minAge: MIN_AGE,
+    maxAge: MAX_AGE,
+    minWeightKg: MIN_WEIGHT_KG,
+    maxWeightKg: MAX_WEIGHT_KG,
+    minHeightCm: MIN_HEIGHT_CM,
+    maxHeightCm: MAX_HEIGHT_CM,
+    minBmi: MIN_BMI,
+    maxBmi: MAX_BMI,
+    maxWeightLossKg: MAX_WEIGHT_LOSS_KG,
+    maxWeightLossPercent: MAX_WEIGHT_LOSS_PERCENT
+  },
+  contradictionRules: {
+    // Underweight person wanting to lose weight
+    underweightLoss: {
+      enabled: true,
+      bmiThreshold: 18.5,   // BMI below this triggers the rule
+      canProceed: true        // true = advisory warning; false = hard block
+    },
+    // Thyroid condition + user-requested calories below safe floor
+    thyroidAggressiveDeficit: {
+      enabled: true,
+      tdeeFloor: 0.75,        // minimum safe ratio of TDEE (1.0 = 100% TDEE)
+      canProceed: true
+    },
+    // Anemia + vegetarian/vegan diet
+    anemiaPlanBased: {
+      enabled: true,
+      canProceed: true
+    }
+  }
+};
 const MIN_RECOMMENDED_CALORIES_FEMALE = 1200; // Hard floor - minimum safe calories for women
 const MIN_RECOMMENDED_CALORIES_MALE = 1500;   // Hard floor - minimum safe calories for men
 const MIN_FAT_GRAMS_PER_KG = 0.7; // Minimum dietary fat for hormonal function (g/kg body weight)
@@ -1020,39 +1059,51 @@ function calculateSafeDeficit(tdee, goal) {
  * Validate data adequacy - check for unrealistic, inappropriate, or invalid data
  * Returns an object with { isValid: boolean, errorMessage: string }
  */
-function validateDataAdequacy(data) {
+function validateDataAdequacy(data, config) {
   const errors = [];
-  
+  // Use admin-configurable thresholds, fall back to hardcoded defaults
+  const dv = (config && config.dataValidation) ? config.dataValidation : DEFAULT_VALIDATION_CONFIG.dataValidation;
+  const minAge = dv.minAge ?? MIN_AGE;
+  const maxAge = dv.maxAge ?? MAX_AGE;
+  const minWeightKg = dv.minWeightKg ?? MIN_WEIGHT_KG;
+  const maxWeightKg = dv.maxWeightKg ?? MAX_WEIGHT_KG;
+  const minHeightCm = dv.minHeightCm ?? MIN_HEIGHT_CM;
+  const maxHeightCm = dv.maxHeightCm ?? MAX_HEIGHT_CM;
+  const minBmi = dv.minBmi ?? MIN_BMI;
+  const maxBmi = dv.maxBmi ?? MAX_BMI;
+  const maxWeightLossKg = dv.maxWeightLossKg ?? MAX_WEIGHT_LOSS_KG;
+  const maxWeightLossPercent = dv.maxWeightLossPercent ?? MAX_WEIGHT_LOSS_PERCENT;
+
   // Check weight (realistic range)
   const weight = parseFloat(data.weight);
-  if (isNaN(weight) || weight < MIN_WEIGHT_KG || weight > MAX_WEIGHT_KG) {
-    errors.push(`Теглото трябва да бъде между ${MIN_WEIGHT_KG} и ${MAX_WEIGHT_KG} кг. Моля, въведете реалистична стойност.`);
+  if (isNaN(weight) || weight < minWeightKg || weight > maxWeightKg) {
+    errors.push(`Теглото трябва да бъде между ${minWeightKg} и ${maxWeightKg} кг. Моля, въведете реалистична стойност.`);
   }
   
   // Check height (realistic range)
   const height = parseFloat(data.height);
-  if (isNaN(height) || height < MIN_HEIGHT_CM || height > MAX_HEIGHT_CM) {
-    errors.push(`Височината трябва да бъде между ${MIN_HEIGHT_CM} и ${MAX_HEIGHT_CM} см. Моля, въведете реалистична стойност.`);
+  if (isNaN(height) || height < minHeightCm || height > maxHeightCm) {
+    errors.push(`Височината трябва да бъде между ${minHeightCm} и ${maxHeightCm} см. Моля, въведете реалистична стойност.`);
   }
   
   // Check age (realistic range - minors require special considerations)
   const age = parseInt(data.age);
-  if (isNaN(age) || age < MIN_AGE || age > MAX_AGE) {
-    errors.push(`Възрастта трябва да бъде между ${MIN_AGE} и ${MAX_AGE} години. Моля, въведете реалистична стойност.`);
+  if (isNaN(age) || age < minAge || age > maxAge) {
+    errors.push(`Възрастта трябва да бъде между ${minAge} и ${maxAge} години. Моля, въведете реалистична стойност.`);
   }
   
   // Note for minors - TODO: Implement guardian consent verification in production
-  if (age >= MIN_AGE && age < 18) {
+  if (age >= minAge && age < 18) {
     console.warn(`Minor user (age ${age}) - TODO: guardian consent verification required in production`);
   }
   
   // Check BMI extremes (medically unrealistic BMI values)
-  if (!isNaN(weight) && !isNaN(height) && weight >= MIN_WEIGHT_KG && weight <= MAX_WEIGHT_KG && height >= MIN_HEIGHT_CM && height <= MAX_HEIGHT_CM) {
+  if (!isNaN(weight) && !isNaN(height) && weight >= minWeightKg && weight <= maxWeightKg && height >= minHeightCm && height <= maxHeightCm) {
     const heightM = height / 100;
     const bmi = weight / (heightM * heightM);
-    if (bmi < MIN_BMI) {
+    if (bmi < minBmi) {
       errors.push('Въведените данни водят до медицински невъзможно ниско BMI. Моля, проверете теглото и височината.');
-    } else if (bmi > MAX_BMI) {
+    } else if (bmi > maxBmi) {
       errors.push('Въведените данни водят до медицински невъзможно високо BMI. Моля, проверете теглото и височината.');
     }
   }
@@ -1061,11 +1112,11 @@ function validateDataAdequacy(data) {
   if (data.goal && data.goal.includes('Отслабване') && data.lossKg) {
     const lossKg = parseFloat(data.lossKg);
     if (!isNaN(lossKg) && !isNaN(weight)) {
-      if (lossKg > weight * MAX_WEIGHT_LOSS_PERCENT) {
-        errors.push(`Целевото отслабване е твърде голямо (повече от ${MAX_WEIGHT_LOSS_PERCENT * 100}% от телесното тегло). Моля, задайте по-реалистична цел.`);
+      if (lossKg > weight * maxWeightLossPercent) {
+        errors.push(`Целевото отслабване е твърде голямо (повече от ${maxWeightLossPercent * 100}% от телесното тегло). Моля, задайте по-реалистична цел.`);
       }
-      if (lossKg > MAX_WEIGHT_LOSS_KG) {
-        errors.push(`Целевото отслабване не може да надвишава ${MAX_WEIGHT_LOSS_KG} кг в рамките на един план. Моля, задайте по-умерена начална цел.`);
+      if (lossKg > maxWeightLossKg) {
+        errors.push(`Целевото отслабване не може да надвишава ${maxWeightLossKg} кг в рамките на един план. Моля, задайте по-умерена начална цел.`);
       }
     }
   }
@@ -1110,13 +1161,14 @@ function validateDataAdequacy(data) {
 
 /**
  * Detect goal contradictions (e.g., underweight person wanting to lose weight)
- * Returns an object with { hasContradiction: boolean, warningData: object }
+ * Returns an object with { hasContradiction: boolean, canProceed: boolean, warningData: object }
+ * canProceed reflects admin-configured severity: true = advisory warning, false = hard block
  */
-function detectGoalContradiction(data) {
+function detectGoalContradiction(data, config) {
   const bmi = calculateBMI(data);
   
   if (!bmi || !data.goal) {
-    return { hasContradiction: false };
+    return { hasContradiction: false, canProceed: true };
   }
   
   // BMI categories:
@@ -1129,15 +1181,23 @@ function detectGoalContradiction(data) {
   let hasContradiction = false;
   let warningData = {};
   
+  // Use admin-configurable rules, fall back to defaults
+  const rules = (config && config.contradictionRules) ? config.contradictionRules : DEFAULT_VALIDATION_CONFIG.contradictionRules;
+  const uwRule = rules.underweightLoss ?? DEFAULT_VALIDATION_CONFIG.contradictionRules.underweightLoss;
+  const thyRule = rules.thyroidAggressiveDeficit ?? DEFAULT_VALIDATION_CONFIG.contradictionRules.thyroidAggressiveDeficit;
+  const anemiaRule = rules.anemiaPlanBased ?? DEFAULT_VALIDATION_CONFIG.contradictionRules.anemiaPlanBased;
+
   // Normalize goal for comparison (case-insensitive, trimmed)
   const normalizedGoal = (data.goal || '').toLowerCase().trim();
   
   // Check for severe underweight with weight loss goal
   // Use includes() for more flexible matching
-  if (bmi < 18.5 && normalizedGoal.includes('отслабване')) {
+  const bmiThreshold = uwRule.bmiThreshold ?? 18.5;
+  if (uwRule.enabled !== false && bmi < bmiThreshold && normalizedGoal.includes('отслабване')) {
     hasContradiction = true;
     warningData = {
       type: 'underweight_loss',
+      canProceed: uwRule.canProceed !== false,
       bmi: bmi.toFixed(1),
       currentCategory: bmi < 16 ? 'Значително поднормено тегло' : 'Поднормено тегло',
       goalCategory: data.goal, // Use original goal text from user
@@ -1166,18 +1226,20 @@ function detectGoalContradiction(data) {
         c.includes('Щитовидна жлеза') || c.includes('Хипотиреоидизъм') || c.includes('Хашимото')
       ) || (data['medicalConditions_Автоимунно'] && data['medicalConditions_Автоимунно'].toLowerCase().includes('хашимото'));
     // Weight loss with thyroid conditions: only flag if user requests an extreme deficit
-    // (more than 25% below TDEE, i.e. calorie intake below 75% of TDEE).
+    // (more than the configured floor below TDEE).
     // A standard 15% deficit is safe and should NOT be blocked.
-    if (hasThyroidCondition && normalizedGoal.includes('отслабване')) {
+    if (thyRule.enabled !== false && hasThyroidCondition && normalizedGoal.includes('отслабване')) {
       const tdee = calculateTDEE(calculateBMR(data), data.sportActivity);
       const requestedCalories = data.targetCalories ? parseFloat(data.targetCalories) : null;
-      const minimumSafeCalories = tdee * 0.75; // floor at 75% of TDEE (25% deficit maximum)
+      const tdeeFloor = thyRule.tdeeFloor ?? 0.75;
+      const minimumSafeCalories = tdee * tdeeFloor;
       
       // Only block if the user has explicitly requested a caloric intake below the safe floor
       if (requestedCalories !== null && !isNaN(requestedCalories) && requestedCalories < minimumSafeCalories) {
         hasContradiction = true;
         warningData = {
           type: 'thyroid_aggressive_deficit',
+          canProceed: thyRule.canProceed !== false,
           bmi: bmi.toFixed(1),
           currentCategory: 'Щитовидна дисфункция',
           goalCategory: data.goal,
@@ -1200,12 +1262,14 @@ function detectGoalContradiction(data) {
     }
     
     // Check for anemia + vegetarian/vegan diet without iron awareness
-    if (data.medicalConditions.includes('Анемия') && 
+    if (anemiaRule.enabled !== false &&
+        data.medicalConditions.includes('Анемия') && 
         data.dietPreference && 
         (data.dietPreference.includes('Вегетарианска') || data.dietPreference.includes('Веган'))) {
       hasContradiction = true;
       warningData = {
         type: 'anemia_plant_based',
+        canProceed: anemiaRule.canProceed !== false,
         bmi: bmi.toFixed(1),
         currentCategory: 'Анемия',
         goalCategory: data.goal,
@@ -1223,7 +1287,7 @@ function detectGoalContradiction(data) {
   // Poor sleep does hinder muscle growth, but blocking plan generation is too restrictive.
   // The AI plan will include sleep-improvement recommendations as part of the advice.
   
-  return { hasContradiction, warningData };
+  return { hasContradiction, canProceed: warningData.canProceed ?? true, warningData };
 }
 
 /**
@@ -1355,9 +1419,12 @@ async function handleValidateQuestionnaire(request, env) {
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
+
+    // Load admin-configurable validation thresholds/rules
+    const valConfig = await getValidationConfig(env);
     
     // Step 1: Run existing deterministic validations
-    const dataValidation = validateDataAdequacy(data);
+    const dataValidation = validateDataAdequacy(data, valConfig);
     if (!dataValidation.isValid) {
       return jsonResponse({
         valid: false,
@@ -1372,12 +1439,12 @@ async function handleValidateQuestionnaire(request, env) {
     }
     
     // Step 2: Run existing goal contradiction detection
-    const { hasContradiction, warningData } = detectGoalContradiction(data);
+    const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
     if (hasContradiction) {
       const issues = [{
         category: 'РИСКОВА КОМБИНАЦИЯ',
         description: warningData.recommendation,
-        severity: 'high'
+        severity: contradictionCanProceed ? 'medium' : 'high'
       }];
       if (warningData.risks) {
         warningData.risks.forEach(risk => {
@@ -1391,7 +1458,7 @@ async function handleValidateQuestionnaire(request, env) {
       return jsonResponse({
         valid: false,
         hasIssues: true,
-        canProceed: true,
+        canProceed: contradictionCanProceed,
         issues: issues
       });
     }
@@ -1480,6 +1547,11 @@ const CORS_HEADERS = {
 let adminConfigCache = null;
 let adminConfigCacheTime = 0;
 const ADMIN_CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
+// Cache for validation config (thresholds + contradiction rules)
+let validationConfigCache = null;
+let validationConfigCacheTime = 0;
+const VALIDATION_CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
 // Cache for chat prompts to reduce KV reads
 let chatPromptsCache = null;
@@ -3315,7 +3387,8 @@ async function handleGeneratePlan(request, env) {
     }
     
     // Step 0: Validate data adequacy (unrealistic, offensive, inappropriate data)
-    const dataValidation = validateDataAdequacy(data);
+    const valConfig = await getValidationConfig(env);
+    const dataValidation = validateDataAdequacy(data, valConfig);
     if (!dataValidation.isValid) {
       console.error('handleGeneratePlan: Data adequacy validation failed:', dataValidation.errorMessage);
       return jsonResponse({ 
@@ -3328,9 +3401,12 @@ async function handleGeneratePlan(request, env) {
     const userId = data.email || generateUserId(data);
     
     // Check for goal contradictions before generating plan
-    const { hasContradiction, warningData } = detectGoalContradiction(data);
+    const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
     
-    if (hasContradiction) {
+    // Only block plan generation for hard-blocking contradictions (canProceed: false).
+    // Advisory contradictions (canProceed: true) proceed to plan generation so the
+    // user who clicked "Continue despite warning" actually gets their plan.
+    if (hasContradiction && !contradictionCanProceed) {
       return jsonResponse({ 
         success: true,
         hasContradiction: true,
@@ -6808,6 +6884,47 @@ async function getAdminConfig(env) {
 }
 
 /**
+ * Get admin-configurable validation config from KV.
+ * Falls back to DEFAULT_VALIDATION_CONFIG when not set.
+ */
+async function getValidationConfig(env) {
+  const now = Date.now();
+  if (validationConfigCache && (now - validationConfigCacheTime) < VALIDATION_CONFIG_CACHE_TTL) {
+    return validationConfigCache;
+  }
+
+  let config = JSON.parse(JSON.stringify(DEFAULT_VALIDATION_CONFIG)); // deep clone
+
+  if (env.page_content) {
+    try {
+      const raw = await env.page_content.get('admin_validation_config');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        // Deep-merge saved values over defaults so missing keys fall back gracefully
+        if (saved.dataValidation) {
+          config.dataValidation = Object.assign({}, config.dataValidation, saved.dataValidation);
+        }
+        if (saved.contradictionRules) {
+          for (const key of Object.keys(saved.contradictionRules)) {
+            config.contradictionRules[key] = Object.assign(
+              {},
+              config.contradictionRules[key] || {},
+              saved.contradictionRules[key]
+            );
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('getValidationConfig: could not parse KV value, using defaults:', e.message);
+    }
+  }
+
+  validationConfigCache = config;
+  validationConfigCacheTime = now;
+  return config;
+}
+
+/**
  * Map a callAIModel stepName to a step key used in stepTokenLimits.
  * Returns null when no per-step override should apply.
  */
@@ -9025,9 +9142,56 @@ async function handleGetConfig(request, env) {
 }
 
 /**
- * Get AI communication logs
- * Returns logged AI requests and responses for monitoring and debugging
+ * Admin: Get validation config (thresholds + contradiction rules)
  */
+async function handleGetValidationConfig(request, env) {
+  try {
+    const config = await getValidationConfig(env);
+    return jsonResponse({ success: true, config });
+  } catch (error) {
+    console.error('Error getting validation config:', error);
+    return jsonResponse({ error: 'Failed to get validation config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Admin: Save validation config (thresholds + contradiction rules) to KV
+ */
+async function handleSaveValidationConfig(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const { config } = await request.json();
+    if (!config || typeof config !== 'object') {
+      return jsonResponse({ error: 'Missing or invalid config object' }, 400);
+    }
+
+    // Basic sanity checks on numeric threshold fields
+    const dv = config.dataValidation;
+    if (dv) {
+      const numFields = ['minAge','maxAge','minWeightKg','maxWeightKg','minHeightCm','maxHeightCm','minBmi','maxBmi','maxWeightLossKg','maxWeightLossPercent'];
+      for (const f of numFields) {
+        if (dv[f] !== undefined && (typeof dv[f] !== 'number' || isNaN(dv[f]))) {
+          return jsonResponse({ error: `Invalid value for dataValidation.${f}` }, 400);
+        }
+      }
+    }
+
+    await env.page_content.put('admin_validation_config', JSON.stringify(config));
+
+    // Invalidate cache
+    validationConfigCache = null;
+    validationConfigCacheTime = 0;
+
+    return jsonResponse({ success: true, message: 'Validation config saved successfully' });
+  } catch (error) {
+    console.error('Error saving validation config:', error);
+    return jsonResponse({ error: 'Failed to save validation config: ' + error.message }, 500);
+  }
+}
+
+
 /**
  * Get AI communication logs
  * Retrieves AI logs from Cache API (free, no KV quota impact)
@@ -11556,6 +11720,10 @@ export default {
         return await handleGenerateLongevityProtocol(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
         return await handleGetConfig(request, env);
+      } else if (url.pathname === '/api/admin/get-validation-config' && request.method === 'GET') {
+        return await handleGetValidationConfig(request, env);
+      } else if (url.pathname === '/api/admin/save-validation-config' && request.method === 'POST') {
+        return await handleSaveValidationConfig(request, env);
       } else if (url.pathname === '/api/admin/get-ai-logs' && request.method === 'GET') {
         return await handleGetAILogs(request, env);
       } else if (url.pathname === '/api/admin/cleanup-ai-logs' && request.method === 'POST') {
