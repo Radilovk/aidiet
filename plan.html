@@ -4200,16 +4200,19 @@
                 // Initialize client-side notification scheduler
                 scheduleNotifications();
 
-                // One-time migration: ensure np_uid cookie + backend profile exist so the
-                // iOS PWA can restore data via restoreProfileFromCookies() in index.html.
-                // Runs only when the cookie is absent (users who pre-date this feature).
+                // Ensure np_uid cookie + backend profile exist so the iOS PWA can restore
+                // data via restoreProfileFromCookies() in index.html.
+                // np_uid is always refreshed; backend save is retried until np_profile_synced
+                // is confirmed (guards against silent fetch failures on first run).
                 (function ensureProfileCookies() {
                     const uid = localStorage.getItem('userId');
                     const planStr = localStorage.getItem('dietPlan');
                     if (!uid || !planStr) return;
-                    if (document.cookie.match(/(?:^|;\s*)np_uid=/)) return;
+                    // Always refresh the cookie so it doesn't expire
                     const OPTS = `;path=/;max-age=${365*24*60*60};SameSite=Lax;Secure`;
                     document.cookie = `np_uid=${encodeURIComponent(uid)}${OPTS}`;
+                    // Skip backend save only when a previous attempt confirmed success
+                    if (localStorage.getItem('np_profile_synced') === '1') return;
                     const udStr = localStorage.getItem('userData');
                     fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                         method: 'POST',
@@ -4219,7 +4222,8 @@
                             plan: JSON.parse(planStr),
                             userData: udStr ? JSON.parse(udStr) : {}
                         })
-                    }).catch(() => {});
+                    }).then(r => { if (r && r.ok) localStorage.setItem('np_profile_synced', '1'); })
+                      .catch(() => {});
                 })();
 
             } catch (error) {
