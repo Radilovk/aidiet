@@ -1166,14 +1166,15 @@ function detectGoalContradiction(data) {
         c.includes('Щитовидна жлеза') || c.includes('Хипотиреоидизъм') || c.includes('Хашимото')
       ) || (data['medicalConditions_Автоимунно'] && data['medicalConditions_Автоимунно'].toLowerCase().includes('хашимото'));
     // Weight loss with thyroid conditions: only flag if user requests an extreme deficit
-    // (more than 25% below TDEE). A standard 15% deficit is safe and should NOT be blocked.
+    // (more than 25% below TDEE, i.e. calorie intake below 75% of TDEE).
+    // A standard 15% deficit is safe and should NOT be blocked.
     if (hasThyroidCondition && normalizedGoal.includes('отслабване')) {
       const tdee = calculateTDEE(calculateBMR(data), data.sportActivity);
       const requestedCalories = data.targetCalories ? parseFloat(data.targetCalories) : null;
-      const extremeDeficitThreshold = tdee * 0.75; // 25% deficit ceiling
+      const minimumSafeCalories = tdee * 0.75; // floor at 75% of TDEE (25% deficit maximum)
       
-      // Only block if the user has explicitly requested a caloric intake below the safe threshold
-      if (requestedCalories !== null && !isNaN(requestedCalories) && requestedCalories < extremeDeficitThreshold) {
+      // Only block if the user has explicitly requested a caloric intake below the safe floor
+      if (requestedCalories !== null && !isNaN(requestedCalories) && requestedCalories < minimumSafeCalories) {
         hasContradiction = true;
         warningData = {
           type: 'thyroid_aggressive_deficit',
@@ -1396,7 +1397,7 @@ async function handleValidateQuestionnaire(request, env) {
     const aiValidation = await performAIValidation(env, data);
     
     if (aiValidation.hasIssues) {
-      const canProceed = aiValidation.issues.every(i => i.severity !== 'high');
+      const canProceed = aiValidation.issues.length > 0 && aiValidation.issues.every(i => i.severity !== 'high');
       return jsonResponse({
         valid: false,
         hasIssues: true,

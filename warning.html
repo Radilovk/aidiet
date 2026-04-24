@@ -528,14 +528,16 @@
                     'Препоръчваме да ги вземете предвид и при нужда да консултирате лекар. ' +
                     'Можете да продължите с генерирането на план, като AI ще вземе предвид вашата специфична ситуация.';
 
-                // Add "Continue anyway" button
+                // Add "Continue anyway" button (guarded against duplicates)
                 const actionButtons = document.querySelector('.action-buttons');
-                const continueBtn = document.createElement('button');
-                continueBtn.className = 'btn btn-primary';
-                continueBtn.style.cssText = 'background: var(--severity-medium); border-color: var(--severity-medium); margin-top: 8px;';
-                continueBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Продължи въпреки предупреждението';
-                continueBtn.onclick = proceedDespiteWarnings;
-                actionButtons.prepend(continueBtn);
+                if (!actionButtons.querySelector('.btn-continue-anyway')) {
+                    const continueBtn = document.createElement('button');
+                    continueBtn.className = 'btn btn-primary btn-continue-anyway';
+                    continueBtn.style.cssText = 'background: var(--severity-medium); border-color: var(--severity-medium); margin-top: 8px;';
+                    continueBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Продължи въпреки предупреждението';
+                    continueBtn.onclick = proceedDespiteWarnings;
+                    actionButtons.prepend(continueBtn);
+                }
             } else {
                 document.getElementById('recommendationText').textContent =
                     'Моля, върнете се към въпросника и прегледайте внимателно въведената информация. ' +

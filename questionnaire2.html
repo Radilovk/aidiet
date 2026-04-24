@@ -2299,7 +2299,7 @@
             if (localStorage.getItem('bypassValidation') === 'true') {
                 localStorage.removeItem('bypassValidation');
                 skipNextValidation = true;
-                setTimeout(() => finishQuiz(), 0);
+                finishQuiz();
                 return;
             }
             // Show protocol banner if protocol was selected from landing page
