@@ -1849,6 +1849,33 @@
             try {
                 const userDataStr = localStorage.getItem('userData');
                 if (!userDataStr) {
+                    // Before redirecting, attempt backend restore using np_uid cookie.
+                    // This handles the iOS PWA isolated-storage scenario.
+                    const cookieMatch = document.cookie.match(/(?:^|;\s*)np_uid=([^;]*)/);
+                    const cookieUserId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+                    if (cookieUserId) {
+                        fetch(`https://aidiet.radilov-k.workers.dev/api/user/profile?userId=${encodeURIComponent(cookieUserId)}`)
+                            .then(r => r.ok ? r.json() : null)
+                            .then(data => {
+                                if (data && data.found && data.userData) {
+                                    localStorage.setItem('userData', JSON.stringify(data.userData));
+                                    localStorage.setItem('userId', cookieUserId);
+                                    if (data.plan) {
+                                        localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                                    }
+                                    console.log('[PWA] Profile restored from backend in profile.html');
+                                    loadUserData();
+                                } else {
+                                    showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
+                                    setTimeout(() => { window.location.href = 'questionnaire.html'; }, 2000);
+                                }
+                            })
+                            .catch(() => {
+                                showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
+                                setTimeout(() => { window.location.href = 'questionnaire.html'; }, 2000);
+                            });
+                        return;
+                    }
                     showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
                     setTimeout(() => {
                         window.location.href = 'questionnaire.html';

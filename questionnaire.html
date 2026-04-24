@@ -2872,9 +2872,21 @@
          * Falls back silently on older browsers.
          */
         async function saveProfileToCookies(userId, plan, userData) {
+            const COOKIE_OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
+            // Always persist the userId cookie so the PWA can look the user up
+            // in the backend even when cookie chunks or CompressionStream are unavailable.
+            document.cookie = `np_uid=${encodeURIComponent(userId)}${COOKIE_OPTS}`;
+
+            // Persist full plan to the backend so the PWA can always restore data
+            // regardless of iOS version or cookie isolation behaviour.
+            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, plan, userData })
+            }).catch(e => console.warn('[PWA] Backend profile save failed:', e));
+
             if (typeof CompressionStream === 'undefined') return;
             try {
-                const OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
                 const CHUNK = 3800;
 
                 async function compress(str) {
@@ -2902,12 +2914,11 @@
                 function setChunks(prefix, b64) {
                     const n = Math.ceil(b64.length / CHUNK);
                     for (let i = 0; i < n; i++) {
-                        document.cookie = `${prefix}${i}=${b64.slice(i * CHUNK, (i + 1) * CHUNK)}${OPTS}`;
+                        document.cookie = `${prefix}${i}=${b64.slice(i * CHUNK, (i + 1) * CHUNK)}${COOKIE_OPTS}`;
                     }
-                    document.cookie = `${prefix}n=${n}${OPTS}`;
+                    document.cookie = `${prefix}n=${n}${COOKIE_OPTS}`;
                 }
 
-                document.cookie = `np_uid=${encodeURIComponent(userId)};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
                 setChunks('np_p', await compress(JSON.stringify(plan)));
                 setChunks('np_u', await compress(JSON.stringify(userData)));
             } catch (e) {
