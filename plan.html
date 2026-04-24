@@ -4199,7 +4199,29 @@
                 
                 // Initialize client-side notification scheduler
                 scheduleNotifications();
-                
+
+                // One-time migration: ensure np_uid cookie + backend profile exist so the
+                // iOS PWA can restore data via restoreProfileFromCookies() in index.html.
+                // Runs only when the cookie is absent (users who pre-date this feature).
+                (function ensureProfileCookies() {
+                    const uid = localStorage.getItem('userId');
+                    const planStr = localStorage.getItem('dietPlan');
+                    if (!uid || !planStr) return;
+                    if (document.cookie.match(/(?:^|;\s*)np_uid=/)) return;
+                    const OPTS = `;path=/;max-age=${365*24*60*60};SameSite=Lax;Secure`;
+                    document.cookie = `np_uid=${encodeURIComponent(uid)}${OPTS}`;
+                    const udStr = localStorage.getItem('userData');
+                    fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: uid,
+                            plan: JSON.parse(planStr),
+                            userData: udStr ? JSON.parse(udStr) : {}
+                        })
+                    }).catch(() => {});
+                })();
+
             } catch (error) {
                 console.error('Error loading diet data:', error);
                 showError('Грешка при зареждане на данните. Моля, генерирайте нов план.', true);
