@@ -1391,9 +1391,10 @@ async function handleValidateQuestionnaire(request, env) {
       return jsonResponse({
         valid: false,
         hasIssues: true,
-        canProceed: false,
+        canProceed: true,
         issues: issues
       });
+    }
     const aiValidation = await performAIValidation(env, data);
     
     if (aiValidation.hasIssues) {
