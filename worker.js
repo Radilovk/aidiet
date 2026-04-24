@@ -1361,6 +1361,7 @@ async function handleValidateQuestionnaire(request, env) {
       return jsonResponse({
         valid: false,
         hasIssues: true,
+        canProceed: false,
         issues: [{
           category: 'НЕВАЛИДНИ ДАННИ',
           description: dataValidation.errorMessage,
@@ -1389,17 +1390,17 @@ async function handleValidateQuestionnaire(request, env) {
       return jsonResponse({
         valid: false,
         hasIssues: true,
+        canProceed: false,
         issues: issues
       });
-    }
-    
-    // Step 3: Run AI-powered validation
     const aiValidation = await performAIValidation(env, data);
     
     if (aiValidation.hasIssues) {
+      const canProceed = aiValidation.issues.every(i => i.severity !== 'high');
       return jsonResponse({
         valid: false,
         hasIssues: true,
+        canProceed,
         issues: aiValidation.issues
       });
     }

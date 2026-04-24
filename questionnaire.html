@@ -1251,8 +1251,20 @@
         const progressBar = document.getElementById('progressBar');
         const stepIndicator = document.getElementById('stepIndicator');
 
+        // Flag set when user confirms a warning and chooses to proceed despite advisory issues.
+        // When true, the validation step in finishQuiz is skipped once.
+        let skipNextValidation = false;
+
         // --- INITIALIZATION ---
         function init() {
+            // If the user already saw the warning page and clicked "Continue anyway",
+            // jump directly to plan generation without re-running validation.
+            if (localStorage.getItem('bypassValidation') === 'true') {
+                localStorage.removeItem('bypassValidation');
+                skipNextValidation = true;
+                setTimeout(() => finishQuiz(), 0);
+                return;
+            }
             // Show protocol banner if protocol was selected from landing page
             showProtocolBannerIfNeeded();
             // Show quick complete banner if user has saved answers and is on first question
@@ -2212,6 +2224,10 @@
             try {
                 // Step 0: AI Validation - check for unrealistic/dangerous/contradictory data
                 console.log('Running AI validation...');
+                if (skipNextValidation) {
+                    skipNextValidation = false;
+                    console.log('AI validation bypassed by user confirmation');
+                } else {
                 try {
                     const valController = new AbortController();
                     const valTimeoutId = setTimeout(() => valController.abort(), 20000); // 20s timeout for validation
@@ -2232,6 +2248,7 @@
                             localStorage.setItem('validationIssues', JSON.stringify(valResult.issues));
                             localStorage.setItem('validationSource', 'questionnaire');
                             localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                            localStorage.setItem('canProceedWithWarning', valResult.canProceed ? 'true' : 'false');
                             
                             // Clear intervals
                             if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
@@ -2246,6 +2263,7 @@
                     // If validation fails (timeout, network error), proceed with plan generation
                     console.warn('AI validation skipped due to error:', valError.message);
                 }
+                } // end of validation block
 
                 // Increase HTTP request timeout to 360 seconds (6 minutes) to allow for AI model processing time
                 // This provides a buffer beyond the user's expectation (2-5 minutes) for complex plans
@@ -2308,6 +2326,7 @@
                         localStorage.setItem('warningData', JSON.stringify(result.warningData));
                         localStorage.setItem('userId', result.userId);
                         localStorage.setItem('userData', JSON.stringify(answers));
+                        localStorage.setItem('canProceedWithWarning', 'false');
                         
                         // Clear the saved questionnaire answers
                         localStorage.removeItem('questionnaireAnswers');

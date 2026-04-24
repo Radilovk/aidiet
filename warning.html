@@ -417,15 +417,17 @@
             try {
                 const validationIssuesStr = localStorage.getItem('validationIssues');
                 const warningDataStr = localStorage.getItem('warningData');
+                const canProceed = localStorage.getItem('canProceedWithWarning') === 'true';
+                localStorage.removeItem('canProceedWithWarning');
                 
                 if (validationIssuesStr) {
                     // AI Validation mode
                     const issues = JSON.parse(validationIssuesStr);
-                    displayValidationIssues(issues);
+                    displayValidationIssues(issues, canProceed);
                     // Clear after reading
                     localStorage.removeItem('validationIssues');
                 } else if (warningDataStr) {
-                    // Legacy goal contradiction mode
+                    // Legacy goal contradiction mode — always a hard block (canProceed=false)
                     const warningData = JSON.parse(warningDataStr);
                     displayWarningData(warningData);
                     // Clear after reading
@@ -442,11 +444,21 @@
         }
 
         // Display AI validation issues
-        function displayValidationIssues(issues) {
-            // Update title and subtitle for validation mode
-            document.querySelector('.warning-title').textContent = 'Установени Проблеми';
-            document.querySelector('.warning-subtitle').textContent = 
-                'Нашият AI анализ установи потенциални проблеми с въведената информация. Моля, прегледайте ги и коригирайте данните си.';
+        function displayValidationIssues(issues, canProceed) {
+            // Tone depends on whether the user can proceed or not
+            if (canProceed) {
+                // Advisory tone — only medium-severity issues, user can continue
+                document.querySelector('.warning-title').textContent = 'Предупреждения за вашия план';
+                document.querySelector('.warning-subtitle').textContent =
+                    'Нашият AI анализ установи потенциални забележки. Можете да продължите, но препоръчваме да вземете предвид информацията по-долу.';
+                document.querySelector('.warning-icon i').className = 'fas fa-info-circle';
+                document.querySelector('.warning-icon').style.setProperty('--icon-color', 'var(--severity-medium)');
+            } else {
+                // Error tone — at least one high-severity issue, must go back
+                document.querySelector('.warning-title').textContent = 'Установени Проблеми';
+                document.querySelector('.warning-subtitle').textContent =
+                    'Нашият AI анализ установи потенциални проблеми с въведената информация. Моля, прегледайте ги и коригирайте данните си.';
+            }
 
             // Category icons mapping
             const categoryIcons = {
@@ -509,10 +521,27 @@
                 <i class="fas fa-lightbulb"></i>
                 Какво да Направите
             `;
-            document.getElementById('recommendationText').textContent = 
-                'Моля, върнете се към въпросника и прегледайте внимателно въведената информация. ' +
-                'Уверете се, че целите ви са реалистични и безопасни, и че данните не си противоречат. ' +
-                'Ако имате здравословни проблеми, препоръчваме консултация с лекар преди да започнете хранителен режим.';
+
+            if (canProceed) {
+                document.getElementById('recommendationText').textContent =
+                    'Описаните по-долу забележки са с умерена важност. ' +
+                    'Препоръчваме да ги вземете предвид и при нужда да консултирате лекар. ' +
+                    'Можете да продължите с генерирането на план, като AI ще вземе предвид вашата специфична ситуация.';
+
+                // Add "Continue anyway" button
+                const actionButtons = document.querySelector('.action-buttons');
+                const continueBtn = document.createElement('button');
+                continueBtn.className = 'btn btn-primary';
+                continueBtn.style.cssText = 'background: var(--severity-medium); border-color: var(--severity-medium); margin-top: 8px;';
+                continueBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Продължи въпреки предупреждението';
+                continueBtn.onclick = proceedDespiteWarnings;
+                actionButtons.prepend(continueBtn);
+            } else {
+                document.getElementById('recommendationText').textContent =
+                    'Моля, върнете се към въпросника и прегледайте внимателно въведената информация. ' +
+                    'Уверете се, че целите ви са реалистични и безопасни, и че данните не си противоречат. ' +
+                    'Ако имате здравословни проблеми, препоръчваме консултация с лекар преди да започнете хранителен режим.';
+            }
         }
 
         // Display legacy warning data (goal contradictions)
@@ -549,6 +578,19 @@
 
         function goBackToQuestionnaire() {
             // Determine which questionnaire to return to
+            const source = localStorage.getItem('validationSource');
+            localStorage.removeItem('validationSource');
+            if (source === 'questionnaire2') {
+                window.location.href = 'questionnaire2.html';
+            } else {
+                window.location.href = 'questionnaire.html';
+            }
+        }
+
+        function proceedDespiteWarnings() {
+            // Set bypass flag so the questionnaire skips validation on next submission
+            localStorage.setItem('bypassValidation', 'true');
+            // Return to the correct questionnaire (answers are already saved in localStorage)
             const source = localStorage.getItem('validationSource');
             localStorage.removeItem('validationSource');
             if (source === 'questionnaire2') {
