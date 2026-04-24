@@ -1173,7 +1173,7 @@ function detectGoalContradiction(data) {
       const extremeDeficitThreshold = tdee * 0.75; // 25% deficit ceiling
       
       // Only block if the user has explicitly requested a caloric intake below the safe threshold
-      if (requestedCalories && requestedCalories < extremeDeficitThreshold) {
+      if (requestedCalories !== null && !isNaN(requestedCalories) && requestedCalories < extremeDeficitThreshold) {
         hasContradiction = true;
         warningData = {
           type: 'thyroid_aggressive_deficit',
@@ -1294,7 +1294,7 @@ ${userData}
 ВАЖНО:
 - Бъди ЛИБЕРАЛЕН. Флагвай само ОЧЕВИДНИ и СЕРИОЗНИ опасности за здравето.
 - Нормалните цели (отслабване, качване на тегло, поддържане, мускулна маса, тонизиране) НЕ са проблем.
-- Цел за качване на мускулна маса при наднормено тегло НЕ е проблем — реkomпозицията е валидна цел.
+- Цел за качване на мускулна маса при наднормено тегло НЕ е проблем — рекомпозицията е валидна цел.
 - Недостатъчен сън НЕ е причина за блокиране — планът ще включва препоръки за сън.
 - Щитовидни заболявания + отслабване НЕ е автоматичен проблем — само при изрично поискан екстремен дефицит.
 - 1–2 кг отслабване на седмица е нормално и НЕ е нереалистично.
