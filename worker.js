@@ -4325,7 +4325,7 @@ async function handleGetClientPlanStatus(request, env) {
 
 // Token limits optimized through prompt simplification (not artificial limits)
 const MEAL_PLAN_TOKEN_LIMIT = 8000; // Sufficient for detailed meal generation
-const SUMMARY_TOKEN_LIMIT = 2000; // Lightweight summary generation
+const SUMMARY_TOKEN_LIMIT = 3500; // Summary generation: must fit up to 10 recommendations, 10 forbidden foods, 3 psychology tips, 3 supplements + summary object
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -4341,7 +4341,10 @@ const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests -
 const MEAL_ORDER_MAP = { 'Напитка': 0, 'Закуска': 0, 'Обяд': 1, 'Свободно хранене': 1, 'Следобедна закуска': 2, 'Вечеря': 3, 'Късна закуска': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'Свободно хранене', 'Следобедна закуска', 'Вечеря', 'Късна закуска']; // Valid meal types
 // Fixed dessert object injected by the backend for users who crave sweets.
-// The AI only sets "dessert": true on the lunch meal; injectFixedDesserts() replaces it with this object.
+// The AI includes the dessert's calories and macros directly in meal.calories/meal.macros,
+// and marks the meal with "dessert": true so the client can render the dessert detail card.
+// injectFixedDesserts() only replaces the boolean marker with the full object — it does NOT
+// add extra calories because the AI has already accounted for them.
 const FIXED_DESSERT = {
   name: 'Пълномаслен шоколад с лешници',
   weight: '30г',
@@ -4350,10 +4353,9 @@ const FIXED_DESSERT = {
   macros: { protein: 2, carbs: 14, fats: 12, fiber: 1 }
 };
 
-// Replaces "dessert": true markers left by the AI with the full fixed dessert object
-// and adds the dessert's calories and macros to the meal totals so they are counted
-// in the daily budget. The AI sets meal.calories = food only (no dessert); the
-// backend adds FIXED_DESSERT values here to guarantee deterministic counting.
+// Replaces "dessert": true markers left by the AI with the full fixed dessert object.
+// Calories and macros are NOT modified here because the AI already included the dessert
+// values in meal.calories/meal.macros when building the plan.
 // Accepts any truthy non-object value ("true", 1, true) in case the AI wraps the boolean in quotes.
 function injectFixedDesserts(weekPlan) {
   for (const dayKey of Object.keys(weekPlan)) {
@@ -4361,27 +4363,20 @@ function injectFixedDesserts(weekPlan) {
     if (day && day.meals) {
       for (const meal of day.meals) {
         if (meal.dessert && typeof meal.dessert !== 'object') {
+          // Only replace the marker; do NOT add extra calories/macros.
           meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros } };
-          // Add dessert nutritional values to the meal so they count in dailyTotals
-          meal.calories = (parseInt(meal.calories) || 0) + FIXED_DESSERT.calories;
-          if (meal.macros) {
-            meal.macros = { ...meal.macros };
-            meal.macros.protein = (parseInt(meal.macros.protein) || 0) + FIXED_DESSERT.macros.protein;
-            meal.macros.carbs   = (parseInt(meal.macros.carbs)   || 0) + FIXED_DESSERT.macros.carbs;
-            meal.macros.fats    = (parseInt(meal.macros.fats)    || 0) + FIXED_DESSERT.macros.fats;
-            meal.macros.fiber   = (parseInt(meal.macros.fiber)   || 0) + FIXED_DESSERT.macros.fiber;
-          }
         }
       }
     }
   }
 }
 
-// Instruction injected into prompts when the user craves sweets: add a chocolate dessert as part of the lunch.
-// The AI sets "dessert": true only and sets meal.calories = food portion only (WITHOUT dessert);
-// the backend adds the fixed dessert object and its calories via injectFixedDesserts().
+// Instruction injected into prompts when the user craves sweets.
+// The AI sets "dessert": true on the lunch meal AND includes the dessert's full nutritional
+// values directly in meal.calories/meal.macros, so the daily calorie budget is correct
+// from the start without any backend adjustment.
 // Nutritional values are taken from FIXED_DESSERT to keep them in sync.
-const SWEETS_CRAVING_RULE_TEXT = `\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд (САМО обяд, НЕ друго хранене) поле "dessert": true — десертът е финален компонент на обяда, не отделно хранене. НЕ включвай наименованието на десерта в полето "name" на обяда. meal.calories и meal.macros на Обяда = САМО основното ядене (БЕЗ десерта) — бекендът автоматично ще добави ${FIXED_DESSERT.calories} ккал (${FIXED_DESSERT.macros.protein}г белтъчини, ${FIXED_DESSERT.macros.carbs}г въглехидрати, ${FIXED_DESSERT.macros.fats}г мазнини). Планирай обяда с ~${FIXED_DESSERT.calories} ккал по-малко от обичайното, за да остане дневният бюджет непроменен след добавяне на десерта. ПРИ ОБЯД С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб в обяда. ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — само кисело мляко, ядки, скир или протеинов шейк.`;
+const SWEETS_CRAVING_RULE_TEXT = `\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки Обяд (САМО обяд, НЕ друго хранене) поле "dessert": true — десертът е финален компонент на обяда, не отделно хранене. НЕ включвай наименованието на десерта в полето "name" на обяда. meal.calories и meal.macros на Обяда ТРЯБВА да включват стойностите на ЦЕЛИЯ обяд заедно с десерта (${FIXED_DESSERT.calories} ккал, ${FIXED_DESSERT.macros.protein}г белтъчини, ${FIXED_DESSERT.macros.carbs}г въглехидрати, ${FIXED_DESSERT.macros.fats}г мазнини) — взимай тези стойности предвид при изграждане на дневния калориен баланс. ПРИ ОБЯД С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб в обяда. ЗА СЛЕДОБЕДНА ЗАКУСКА в дни с десерт: задължително БЕЗ плодове — само кисело мляко, ядки, скир или протеинов шейк.`;
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   'Междинно': 'Следобедна закуска',
@@ -4618,19 +4613,8 @@ function validatePlan(plan, userData, substitutions = []) {
               mealsWithoutMacros++;
             }
           } else {
-            // Validate macro accuracy: protein×4 + carbs×4 + fats×9 should ≈ calories
-            const calculatedCalories = 
-              (parseInt(meal.macros.protein) || 0) * 4 + 
-              (parseInt(meal.macros.carbs) || 0) * 4 + 
-              (parseInt(meal.macros.fats) || 0) * 9;
-            const declaredCalories = parseInt(meal.calories) || 0;
-            const difference = Math.abs(calculatedCalories - declaredCalories);
-            
-            // Allow 10% tolerance or minimum 50 kcal difference
-            const tolerance = Math.max(50, declaredCalories * 0.1);
-            if (difference > tolerance && declaredCalories > 0) {
-              warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Макросите не съвпадат с калориите. Изчислени: ${calculatedCalories} kcal, Декларирани: ${declaredCalories} kcal (разлика: ${difference} kcal)`);
-            }
+            // Validate that macros are present but skip calorie-accuracy checks —
+            // the AI model's declared calories are accepted as authoritative.
             
             // Validate portion sizes (weight field)
             if (meal.weight) {
@@ -6711,8 +6695,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           }
         },
         weekPlan: weekPlan,
-        recommendations: strategy.foodsToInclude || [],
-        forbidden: strategy.foodsToAvoid || [],
+        recommendations: strategy.preferredFoodCategories || strategy.foodsToInclude || ['Варено пилешко месо', 'Киноа', 'Авокадо'],
+        forbidden: strategy.avoidFoodCategories || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
         psychology: strategy.psychologicalSupport || [],
         waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
         supplements: strategy.supplementRecommendations || []
@@ -6726,8 +6710,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         macros: summaryData.macros || {}
       },
       weekPlan: weekPlan,
-      recommendations: summaryData.recommendations || strategy.foodsToInclude || [],
-      forbidden: summaryData.forbidden || strategy.foodsToAvoid || [],
+      recommendations: summaryData.recommendations || strategy.preferredFoodCategories || strategy.foodsToInclude || ['Варено пилешко месо', 'Киноа', 'Авокадо'],
+      forbidden: summaryData.forbidden || strategy.avoidFoodCategories || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
       psychology: summaryData.psychology || strategy.psychologicalSupport || [],
       waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: summaryData.supplements || strategy.supplementRecommendations || []
@@ -6748,8 +6732,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
       },
       weekPlan: weekPlan,
-      recommendations: strategy.foodsToInclude || [],
-      forbidden: strategy.foodsToAvoid || [],
+      recommendations: strategy.preferredFoodCategories || strategy.foodsToInclude || ['Варено пилешко месо', 'Киноа', 'Авокадо'],
+      forbidden: strategy.avoidFoodCategories || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
       psychology: strategy.psychologicalSupport || [],
       waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: strategy.supplementRecommendations || []

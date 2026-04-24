@@ -4768,23 +4768,22 @@
             
             const effectiveMacros = macros;
 
-            if (effectiveMacros && (effectiveMacros.protein || effectiveMacros.carbs || effectiveMacros.fats || effectiveMacros.fiber)) {
+            if (effectiveMacros && (effectiveMacros.protein || effectiveMacros.carbs || effectiveMacros.fats)) {
                 // Parse numeric values using helper function
-                const { protein, carbs, fats, fiber } = parseMacronutrients(effectiveMacros);
+                const { protein, carbs, fats } = parseMacronutrients(effectiveMacros);
                 
-                // Calculate calorie contribution from each macro (protein×4, carbs×4, fats×9, fiber×2)
+                // Calculate calorie contribution from each macro (protein×4, carbs×4, fats×9)
+                // Fiber is intentionally excluded – it is indigestible and contributes no usable calories.
                 const proteinCalories = protein * 4;
                 const carbsCalories = carbs * 4;
                 const fatsCalories = fats * 9;
-                const fiberCalories = fiber * 2;
-                const totalCalories = proteinCalories + carbsCalories + fatsCalories + fiberCalories;
+                const totalCalories = proteinCalories + carbsCalories + fatsCalories;
                 
                 if (totalCalories > 0) {
                     // Calculate percentages based on calorie contribution
                     const proteinPercent = (proteinCalories / totalCalories) * 100;
                     const carbsPercent = (carbsCalories / totalCalories) * 100;
                     const fatsPercent = (fatsCalories / totalCalories) * 100;
-                    const fiberPercent = (fiberCalories / totalCalories) * 100;
                     
                     // Build stacked bar using helper function
                     macroBar.innerHTML = '';
@@ -4798,9 +4797,6 @@
                     if (carbsCalories > 0) {
                         macroBar.appendChild(createMacroSegment('carbs', 'Въглехидрати', carbs, carbsPercent, carbsCalories));
                     }
-                    if (fiberCalories > 0) {
-                        macroBar.appendChild(createMacroSegment('fiber', 'Фибри', fiber, fiberPercent, fiberCalories));
-                    }
                     
                     // Build legend using helper function
                     macroLegend.innerHTML = '';
@@ -4813,9 +4809,6 @@
                     }
                     if (carbsCalories > 0) {
                         macroLegend.appendChild(createLegendItem('carbs', 'Въглехидрати', carbs, carbsCalories));
-                    }
-                    if (fiberCalories > 0) {
-                        macroLegend.appendChild(createLegendItem('fiber', 'Фибри', fiber, fiberCalories));
                     }
                     
                     macroBreakdown.style.display = 'block';
@@ -6215,14 +6208,13 @@
             const totalP = analysis.totalProtein || 0;
             const totalC = analysis.totalCarbs || 0;
             const totalF = analysis.totalFats || 0;
-            const totalFi = analysis.totalFiber || 0;
-            const totalCals = (totalP * 4) + (totalC * 4) + (totalF * 9) + (totalFi * 2);
+            // Fiber excluded from calorie total – indigestible, contributes no usable calories.
+            const totalCals = (totalP * 4) + (totalC * 4) + (totalF * 9);
 
             if (totalCals > 0) {
                 const pPct = Math.round((totalP * 4 / totalCals) * 100);
                 const cPct = Math.round((totalC * 4 / totalCals) * 100);
-                const fPct = Math.round((totalF * 9 / totalCals) * 100);
-                const fiPct = Math.max(0, 100 - pPct - cPct - fPct);
+                const fPct = Math.max(0, 100 - pPct - cPct);
 
                 html += `<div class="food-result-section">
                     <h4><i class="fas fa-chart-pie"></i> Макронутриенти</h4>
@@ -6230,13 +6222,11 @@
                         <div class="food-macro-segment protein" style="width:${pPct}%"></div>
                         <div class="food-macro-segment fats" style="width:${fPct}%"></div>
                         <div class="food-macro-segment carbs" style="width:${cPct}%"></div>
-                        <div class="food-macro-segment fiber" style="width:${fiPct}%"></div>
                     </div>
                     <div class="food-macros-legend">
                         <span class="food-macro-label"><span class="food-macro-dot protein"></span> Протеин: ${Math.round(totalP)}г (${pPct}%)</span>
                         <span class="food-macro-label"><span class="food-macro-dot fats"></span> Мазнини: ${Math.round(totalF)}г (${fPct}%)</span>
                         <span class="food-macro-label"><span class="food-macro-dot carbs"></span> Въглех.: ${Math.round(totalC)}г (${cPct}%)</span>
-                        <span class="food-macro-label"><span class="food-macro-dot fiber"></span> Фибри: ${Math.round(totalFi)}г</span>
                     </div>
                 </div>`;
             }
