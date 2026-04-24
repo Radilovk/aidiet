@@ -4067,6 +4067,8 @@
         }
 
         // --- Load Diet Data ---
+        // Guard flag to prevent re-entry after backend restore
+        let _loadDietDataCalled = false;
         function loadDietData() {
             try {
                 // Load from localStorage
@@ -4079,9 +4081,11 @@
                     // the np_uid cookie.  This handles the iOS PWA isolated-storage
                     // scenario where index.html was bypassed (e.g. user bookmarked
                     // plan.html directly) or cookies were not yet restored.
+                    // The _loadDietDataCalled guard prevents infinite recursion.
                     const cookieMatch = document.cookie.match(/(?:^|;\s*)np_uid=([^;]*)/);
                     const cookieUserId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
-                    if (cookieUserId) {
+                    if (cookieUserId && !_loadDietDataCalled) {
+                        _loadDietDataCalled = true;
                         fetch(`https://aidiet.radilov-k.workers.dev/api/user/profile?userId=${encodeURIComponent(cookieUserId)}`)
                             .then(r => r.ok ? r.json() : null)
                             .then(data => {
