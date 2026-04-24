@@ -1152,25 +1152,9 @@ function detectGoalContradiction(data) {
     };
   }
   
-  // Check for obesity with muscle gain goal
-  // Use includes() for more flexible matching
-  if (bmi >= 30 && normalizedGoal.includes('мускулна маса')) {
-    hasContradiction = true;
-    warningData = {
-      type: 'overweight_gain',
-      bmi: bmi.toFixed(1),
-      currentCategory: bmi >= 35 ? 'Значително наднормено тегло (клас II затлъстяване)' : 'Наднормено тегло (затлъстяване)',
-      goalCategory: data.goal, // Use original goal text from user
-      risks: [
-        'Повишен риск от сърдечносъдови заболявания',
-        'Диабет тип 2',
-        'Хипертония и метаболитни нарушения',
-        'Ставни проблеми и намалена подвижност',
-        'Повишен риск от множество здравословни усложнения'
-      ],
-      recommendation: 'При вашето текущо тегло целта за покачване на тегло е медицински неподходяща. Ако искате да увеличите мускулна маса, трябва първо да постигнете здравословно тегло чрез контролирано отслабване под медицински надзор.'
-    };
-  }
+  // Note: Overweight + muscle gain goal is NOT blocked.
+  // Body recomposition (gaining muscle while losing fat) is a valid and common fitness goal
+  // regardless of current BMI. The AI plan will naturally guide the user appropriately.
   
   // Check for dangerous combinations with medical conditions
   if (!hasContradiction && data.medicalConditions && Array.isArray(data.medicalConditions)) {
@@ -1181,12 +1165,16 @@ function detectGoalContradiction(data) {
     const hasThyroidCondition = data.medicalConditions.some(c =>
         c.includes('Щитовидна жлеза') || c.includes('Хипотиреоидизъм') || c.includes('Хашимото')
       ) || (data['medicalConditions_Автоимунно'] && data['medicalConditions_Автоимунно'].toLowerCase().includes('хашимото'));
+    // Weight loss with thyroid conditions: only flag if user requests an extreme deficit
+    // (more than 25% below TDEE, i.e. calorie intake below 75% of TDEE).
+    // A standard 15% deficit is safe and should NOT be blocked.
     if (hasThyroidCondition && normalizedGoal.includes('отслабване')) {
       const tdee = calculateTDEE(calculateBMR(data), data.sportActivity);
-      const targetCalories = Math.round(tdee * 0.85); // 15% deficit
-      const maxSafeDeficit = tdee * 0.75; // 25% is max safe deficit
+      const requestedCalories = data.targetCalories ? parseFloat(data.targetCalories) : null;
+      const minimumSafeCalories = tdee * 0.75; // floor at 75% of TDEE (25% deficit maximum)
       
-      if (targetCalories < maxSafeDeficit) { // If deficit is more than 25%
+      // Only block if the user has explicitly requested a caloric intake below the safe floor
+      if (requestedCalories !== null && !isNaN(requestedCalories) && requestedCalories < minimumSafeCalories) {
         hasContradiction = true;
         warningData = {
           type: 'thyroid_aggressive_deficit',
@@ -1231,24 +1219,9 @@ function detectGoalContradiction(data) {
     }
   }
   
-  // Check for sleep deprivation + muscle gain goal (dangerous combination)
-  if (!hasContradiction && data.sleepHours && parseFloat(data.sleepHours) < 6 && 
-      normalizedGoal.includes('мускулна маса')) {
-    hasContradiction = true;
-    warningData = {
-      type: 'sleep_deficit_muscle_gain',
-      bmi: bmi.toFixed(1),
-      currentCategory: `Недостатъчен сън (${data.sleepHours}ч)`,
-      goalCategory: data.goal,
-      risks: [
-        'Невъзможност за мускулно възстановяване и растеж',
-        'Повишен кортизол води до разграждане на мускулна тъкан',
-        'Намален тестостерон и растежен хормон',
-        'Риск от претренираност и травми'
-      ],
-      recommendation: `При ${data.sleepHours} часа сън на нощ мускулният растеж е силно затруднен. Първо трябва да оптимизирате съня (минимум 7-8 часа), след това да започнете програма за мускулна маса. Недостатъчният сън е критичен фактор за провал.`
-    };
-  }
+  // Note: Sleep deprivation + muscle gain is NOT blocked.
+  // Poor sleep does hinder muscle growth, but blocking plan generation is too restrictive.
+  // The AI plan will include sleep-improvement recommendations as part of the advice.
   
   return { hasContradiction, warningData };
 }
@@ -1274,9 +1247,7 @@ async function performAIValidation(env, data) {
     ? `- Минала диета: ${data.dietType || 'Не е посочен тип'} | Резултат: ${data.dietResult || 'Не е посочен'}`
     : `- Минала диета: Не е спазвал/а диета`;
 
-  const prompt = `Ти си медицински AI валидатор за хранително-диетично приложение. Анализирай следните данни от въпросник и провери за проблеми.
-
-ДАННИ НА ПОТРЕБИТЕЛЯ:
+  const userData = `ДАННИ НА ПОТРЕБИТЕЛЯ:
 - Име: ${data.name || 'Не е посочено'}
 - Възраст: ${age} години
 - Пол: ${data.gender || 'Не е посочен'}
@@ -1294,22 +1265,42 @@ async function performAIValidation(env, data) {
 - Храни, които не харесва: ${data.dietDislike || 'Не е посочено'}
 - Допълнителни бележки: ${data.additionalNotes || 'Няма'}
 - История на тегло: ${data.weightChangeDetails || 'Не е посочена'}
-${dietHistorySection}
+${dietHistorySection}`;
+
+  // Load custom prompt from KV (admin-configurable), fall back to built-in default
+  const customPromptTemplate = await getCustomPrompt(env, 'admin_validation_prompt');
+
+  let prompt;
+  if (customPromptTemplate && customPromptTemplate.trim()) {
+    // Replace {userData} placeholder if present; otherwise append user data after the template
+    if (customPromptTemplate.includes('{userData}')) {
+      prompt = customPromptTemplate.replace('{userData}', userData);
+    } else {
+      prompt = customPromptTemplate + '\n\n' + userData;
+    }
+  } else {
+    prompt = `Ти си медицински AI валидатор за хранително-диетично приложение. Анализирай следните данни от въпросник и провери за проблеми.
+
+${userData}
 
 ПРОВЕРИ ЗА СЛЕДНИТЕ КАТЕГОРИИ ПРОБЛЕМИ:
 
 1. НЕРЕАЛИСТИЧНИ ЦЕЛИ - напр. желание за загуба на 20+ кг за седмица, достигане на опасно ниско тегло, цел за BMI под 16
-2. ОПАСНИ/НЕЗДРАВОСЛОВНИ ЦЕЛИ - напр. екстремен калориен дефицит при медицински състояния, отслабване при поднормено тегло, комбинация от медикаменти и екстремни диети
-3. РИСКОВИ КОМБИНАЦИИ - напр. диабет + нисковъглехидратна диета без медицински надзор, бременност + агресивно отслабване, сърдечни заболявания + интензивна спортна програма
-4. НЕЛОГИЧНА ИНФОРМАЦИЯ - напр. тегло 200 кг при височина 190 см и цел за качване на тегло, възраст 10 години и професионален спорт, противоречия между посочените данни
-5. ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ - напр. посочва алергия към млечни продукти но любимата храна е сирене, веган диета но яде месо, казва "няма заболявания" но изброява медикаменти
-6. РАЗМИНАВАНЕ В ДИЕТИЧНА ИСТОРИЯ - ако потребителят е следвал конкретна диета с негативен резултат (напр. силно йо-йо ефект, влошаване на здравето, категорично неуспешна) И същевременно текущата цел или предпочитания предполагат повтаряне на същия неуспешен подход — посочи разминаването конкретно.
+2. ОПАСНИ/НЕЗДРАВОСЛОВНИ ЦЕЛИ - напр. екстремен калориен дефицит при медицински състояния, отслабване при вече поднормено тегло (BMI < 18.5), комбинация от медикаменти и екстремни диети
+3. РИСКОВИ КОМБИНАЦИИ - напр. некомпенсиран диабет + кетогенна диета, бременност + агресивно отслабване, тежко сърдечносъдово заболяване + интензивна спортна програма
+4. НЕЛОГИЧНА ИНФОРМАЦИЯ - напр. физически невъзможни комбинации от тегло/ръст, очевидно невалидни данни
+5. ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ - напр. алергия към млечни продукти, но любимата храна е сирене; веган диета, но яде месо
+6. РАЗМИНАВАНЕ В ДИЕТИЧНА ИСТОРИЯ - само ако потребителят е следвал конкретна диета с ясно негативен резултат И текущата цел предполага точно същия неуспешен подход
 
-ВАЖНО: 
-- Бъди строг само при РЕАЛНИ опасности за здравето. НЕ отхвърляй нормални цели за отслабване (1-2 кг на седмица е нормално).
-- Нормалните цели за отслабване, качване на тегло, поддържане или мускулна маса НЕ са проблем.
-- Леки несъответствия НЕ са проблем. Фокусирай се върху сериозни рискове.
-- За категория 6: Докладвай само при ясно повтарящ се неуспешен модел — не при неутрален или непосочен резултат.
+ВАЖНО:
+- Бъди ЛИБЕРАЛЕН. Флагвай само ОЧЕВИДНИ и СЕРИОЗНИ опасности за здравето.
+- Нормалните цели (отслабване, качване на тегло, поддържане, мускулна маса, тонизиране) НЕ са проблем.
+- Цел за качване на мускулна маса при наднормено тегло НЕ е проблем — рекомпозицията е валидна цел.
+- Недостатъчен сън НЕ е причина за блокиране — планът ще включва препоръки за сън.
+- Щитовидни заболявания + отслабване НЕ е автоматичен проблем — само при изрично поискан екстремен дефицит.
+- 1–2 кг отслабване на седмица е нормално и НЕ е нереалистично.
+- Леки несъответствия и минорни противоречия НЕ са проблем.
+- Докладвай само категории 1–6 при ЯСНИ и НЕДВУСМИСЛЕНИ рискове.
 
 Отговори САМО в JSON формат:
 {
@@ -1324,6 +1315,7 @@ ${dietHistorySection}
 }
 
 Ако НЯМА проблеми, отговори: {"hasIssues": false, "issues": []}`;
+  }
 
   try {
     const aiResponse = await callAIModel(env, prompt, 2000, 'ai_validation', null, null, null, false);
@@ -1370,6 +1362,7 @@ async function handleValidateQuestionnaire(request, env) {
       return jsonResponse({
         valid: false,
         hasIssues: true,
+        canProceed: false,
         issues: [{
           category: 'НЕВАЛИДНИ ДАННИ',
           description: dataValidation.errorMessage,
@@ -1398,17 +1391,17 @@ async function handleValidateQuestionnaire(request, env) {
       return jsonResponse({
         valid: false,
         hasIssues: true,
+        canProceed: false,
         issues: issues
       });
-    }
-    
-    // Step 3: Run AI-powered validation
     const aiValidation = await performAIValidation(env, data);
     
     if (aiValidation.hasIssues) {
+      const canProceed = aiValidation.issues.length > 0 && aiValidation.issues.every(i => i.severity !== 'high');
       return jsonResponse({
         valid: false,
         hasIssues: true,
+        canProceed,
         issues: aiValidation.issues
       });
     }
@@ -8285,7 +8278,8 @@ function getPromptKVKey(type) {
     'summary': 'admin_summary_prompt',
     'plan': 'admin_plan_prompt',
     'emoeat': 'admin_emoeat_prompt',
-    'food_analysis': 'admin_food_analysis_prompt'
+    'food_analysis': 'admin_food_analysis_prompt',
+    'validation': 'admin_validation_prompt'
   };
   
   return keyMap[type] || 'admin_plan_prompt';
@@ -8354,7 +8348,8 @@ async function handleGetDefaultPrompt(request, env) {
       'modification': 'admin_modification_prompt',
       'correction': 'admin_correction_prompt',
       'emoeat': 'admin_emoeat_prompt',
-      'food_analysis': 'admin_food_analysis_prompt'
+      'food_analysis': 'admin_food_analysis_prompt',
+      'validation': 'admin_validation_prompt'
     };
     
     const kvKey = promptKeyMap[type];
@@ -8944,7 +8939,8 @@ async function handleGetConfig(request, env) {
       chatAiThinkingBudget,
       chatAiTemperature,
       chatAiTopP,
-      chatAiTopK
+      chatAiTopK,
+      validationPrompt
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -8976,7 +8972,8 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_chat_ai_thinking_budget'),
       env.page_content.get('admin_chat_ai_temperature'),
       env.page_content.get('admin_chat_ai_top_p'),
-      env.page_content.get('admin_chat_ai_top_k')
+      env.page_content.get('admin_chat_ai_top_k'),
+      env.page_content.get('admin_validation_prompt')
     ]);
     
     const parsedModificationModeEnabled = modificationModeEnabled === 'true';
@@ -9000,6 +8997,7 @@ async function handleGetConfig(request, env) {
       protocolModelName: protocolModelName || null,
       emoeatPrompt,
       foodAnalysisPrompt,
+      validationPrompt,
       modificationModeEnabled: parsedModificationModeEnabled,
       visionProvider: visionProvider || null,
       visionModelName: visionModelName || null,
