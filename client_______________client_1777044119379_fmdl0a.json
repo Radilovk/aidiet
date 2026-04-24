@@ -1,0 +1,58 @@
+{
+  "id": "client_1777044119379_fmdl0a",
+  "timestamp": "2026-04-24T15:21:59.379Z",
+  "answers": {
+    "name": "Снежа Иванова",
+    "gender": "Жена",
+    "age": "51",
+    "height": "150",
+    "weight": "80",
+    "email": "Snejaivanova@gmail.com",
+    "sleepHours": "7–8",
+    "sleepInterrupt": "Да",
+    "chronotype": "Сутрешен",
+    "dailyActivityLevel": "Средно",
+    "stressLevel": "Ниско",
+    "sportActivity": "Ниска (1–2 дни седмично)",
+    "waterIntake": "над 2 л",
+    "drinksSweet": "Рядко",
+    "drinksAlcohol": "Често",
+    "weightChange": "Да",
+    "weightChangeDetails": "5кг за 12 месеца",
+    "dietHistory": "Не",
+    "dietType": "Разделно хранене",
+    "dietResult": "Обратен",
+    "overeatingFrequency": "Понякога",
+    "foodCravings": [
+      "Тестени храни"
+    ],
+    "foodTriggers": [
+      "Скука"
+    ],
+    "eatingHabits": [
+      "Не закусвам"
+    ],
+    "compensationMethods": [
+      "Не"
+    ],
+    "socialComparison": "Никога",
+    "dietPreference": [
+      "Нямам предпочитания"
+    ],
+    "dietDislike": "Сирене ",
+    "dietLove": "Хляб",
+    "medicalConditions": [
+      "Нямам"
+    ],
+    "medicalConditions_other": "Щштовидна жлеза, извън ритъм сърце",
+    "medications": "Да",
+    "medicationsDetails": "Елеквис 5мг\nКонкор 5мг\nТрифас 5мг\nЕутирокс 25мг\nЛанитоп 0.1 мг\nЕспиро 25мг",
+    "goal": "Отслабване",
+    "lossKg": "10",
+    "additionalNotes": "Не"
+  },
+  "files": [],
+  "plan": null,
+  "planStatus": "none",
+  "submittedAt": "2026-04-24T15:21:59.282Z"
+}
