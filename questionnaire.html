@@ -897,6 +897,7 @@
             });
         })();
     </script>
+    <script src="./pwa-utils.js"></script>
 </head>
 <body>
 
@@ -2346,7 +2347,7 @@
                     // installation on iOS (Safari and the installed PWA share cookies but
                     // have isolated localStorage).
                     // Save profile to cookies so the PWA can restore it without backend requests
-                    saveProfileToCookies(result.userId, result.plan, answers);
+                    pwaSaveProfile(result.userId, result.plan, answers);
                     
                     // Reset justification flag so modal shows on first load of new plan
                     localStorage.removeItem('hasSeenPlanJustification');
@@ -2863,57 +2864,6 @@
             return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M18 16v2H6v-2H4v4h16v-4zM12 4l-5 5h3v6h4v-6h3z'/%3E%3C/svg%3E";
         }
 
-        /**
-         * Save plan + userData to cookies so the PWA can restore the profile
-         * without any backend request (cookies are shared between iOS Safari
-         * and the installed PWA, unlike localStorage).
-         *
-         * Uses the CompressionStream API (iOS 16.4+) to keep cookie count low.
-         * Falls back silently on older browsers.
-         */
-        async function saveProfileToCookies(userId, plan, userData) {
-            if (typeof CompressionStream === 'undefined') return;
-            try {
-                const OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
-                const CHUNK = 3800;
-
-                async function compress(str) {
-                    const bytes = new TextEncoder().encode(str);
-                    const cs = new CompressionStream('deflate-raw');
-                    const w = cs.writable.getWriter();
-                    w.write(bytes); w.close();
-                    const parts = [];
-                    const r = cs.readable.getReader();
-                    for (;;) {
-                        const { done, value } = await r.read();
-                        if (done) break;
-                        if (value) parts.push(value);
-                    }
-                    const out = new Uint8Array(parts.reduce((s, c) => s + c.length, 0));
-                    let off = 0;
-                    for (const p of parts) { out.set(p, off); off += p.length; }
-                    let b = '';
-                    for (let i = 0; i < out.length; i += 8192) {
-                        b += String.fromCharCode(...out.subarray(i, i + 8192));
-                    }
-                    return btoa(b);
-                }
-
-                function setChunks(prefix, b64) {
-                    const n = Math.ceil(b64.length / CHUNK);
-                    for (let i = 0; i < n; i++) {
-                        document.cookie = `${prefix}${i}=${b64.slice(i * CHUNK, (i + 1) * CHUNK)}${OPTS}`;
-                    }
-                    document.cookie = `${prefix}n=${n}${OPTS}`;
-                }
-
-                document.cookie = `np_uid=${encodeURIComponent(userId)};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
-                setChunks('np_p', await compress(JSON.stringify(plan)));
-                setChunks('np_u', await compress(JSON.stringify(userData)));
-            } catch (e) {
-                console.warn('[PWA] Cookie profile save failed:', e);
-            }
-        }
     </script>
 </body>
 </html>

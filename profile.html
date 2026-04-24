@@ -1312,6 +1312,7 @@
             });
         })();
     </script>
+    <script src="./pwa-utils.js"></script>
 </head>
 <body>
     <!-- PWA Install Banner -->
@@ -2418,135 +2419,14 @@
             window.location.href = 'analysis.html';
         }
 
-        // --- PWA Cookie Helpers ---
-
-        /**
-         * Read a cookie value by name.
-         */
-        function _getCookie(name) {
-            const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
-            return match ? decodeURIComponent(match[1]) : null;
-        }
-
-        /**
-         * Restore userData + dietPlan from cookies when localStorage is empty.
-         * iOS Safari and the installed PWA share cookies but have isolated localStorage.
-         */
-        async function restoreProfileFromCookies() {
-            if (localStorage.getItem('dietPlan')) return false;
-            const uid = _getCookie('np_uid');
-            if (!uid) return false;
-            if (typeof DecompressionStream === 'undefined') return false;
-            try {
-                function getChunks(prefix) {
-                    const n = parseInt(_getCookie(`${prefix}n`) || '0');
-                    if (!n) return null;
-                    let b64 = '';
-                    for (let i = 0; i < n; i++) {
-                        const c = _getCookie(`${prefix}${i}`);
-                        if (c === null) return null;
-                        b64 += c;
-                    }
-                    return b64;
-                }
-                async function decompress(b64) {
-                    const bin = atob(b64);
-                    const bytes = Uint8Array.from({ length: bin.length }, (_, i) => bin.charCodeAt(i));
-                    const ds = new DecompressionStream('deflate-raw');
-                    const w = ds.writable.getWriter();
-                    w.write(bytes); w.close();
-                    const parts = [];
-                    const r = ds.readable.getReader();
-                    for (;;) {
-                        const { done, value } = await r.read();
-                        if (done) break;
-                        if (value) parts.push(value);
-                    }
-                    const out = new Uint8Array(parts.reduce((s, c) => s + c.length, 0));
-                    let off = 0;
-                    for (const p of parts) { out.set(p, off); off += p.length; }
-                    return new TextDecoder().decode(out);
-                }
-                const planB64 = getChunks('np_p');
-                if (!planB64) return false;
-                localStorage.setItem('dietPlan', await decompress(planB64));
-                localStorage.setItem('userId', uid);
-                const userB64 = getChunks('np_u');
-                if (userB64) {
-                    localStorage.setItem('userData', await decompress(userB64));
-                }
-                console.log('[PWA] Profile restored from cookies');
-                return true;
-            } catch (e) {
-                console.warn('[PWA] Cookie restore failed:', e);
-                return false;
-            }
-        }
-
-        /**
-         * Sync localStorage profile data to cookies when running in Safari browser
-         * (non-standalone).  Keeps cookies fresh so the user can install the PWA and
-         * continue with the same profile seamlessly.
-         */
-        async function syncProfileToCookies() {
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                                 window.navigator.standalone === true;
-            if (isStandalone) return;
-            if (typeof CompressionStream === 'undefined') return;
-            const uid = localStorage.getItem('userId');
-            const planStr = localStorage.getItem('dietPlan');
-            if (!uid || !planStr) return;
-            try {
-                const OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
-                const CHUNK = 3800;
-                async function compress(str) {
-                    const bytes = new TextEncoder().encode(str);
-                    const cs = new CompressionStream('deflate-raw');
-                    const w = cs.writable.getWriter();
-                    w.write(bytes); w.close();
-                    const parts = [];
-                    const r = cs.readable.getReader();
-                    for (;;) {
-                        const { done, value } = await r.read();
-                        if (done) break;
-                        if (value) parts.push(value);
-                    }
-                    const out = new Uint8Array(parts.reduce((s, c) => s + c.length, 0));
-                    let off = 0;
-                    for (const p of parts) { out.set(p, off); off += p.length; }
-                    let b = '';
-                    for (let i = 0; i < out.length; i += 8192) {
-                        b += String.fromCharCode(...out.subarray(i, i + 8192));
-                    }
-                    return btoa(b);
-                }
-                function setChunks(prefix, b64) {
-                    const n = Math.ceil(b64.length / CHUNK);
-                    for (let i = 0; i < n; i++) {
-                        document.cookie = `${prefix}${i}=${b64.slice(i * CHUNK, (i + 1) * CHUNK)}${OPTS}`;
-                    }
-                    document.cookie = `${prefix}n=${n}${OPTS}`;
-                }
-                document.cookie = `np_uid=${encodeURIComponent(uid)};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
-                setChunks('np_p', await compress(planStr));
-                const userDataStr = localStorage.getItem('userData');
-                if (userDataStr) {
-                    setChunks('np_u', await compress(userDataStr));
-                }
-                console.log('[PWA] Profile synced to cookies for Safari PWA handoff');
-            } catch (e) {
-                console.warn('[PWA] Cookie profile sync failed:', e);
-            }
-        }
-
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
             // Restore from cookies when localStorage is empty (PWA isolated-storage scenario)
-            await restoreProfileFromCookies();
+            await pwaRestoreProfile();
             // Keep cookies fresh for future PWA installs (Safari browser scenario).
             // Fire-and-forget: does not block page rendering.
-            syncProfileToCookies();
+            pwaSyncProfile();
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
             // Macros and strategy panels moved to guidelines.html
