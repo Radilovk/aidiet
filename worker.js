@@ -8473,7 +8473,7 @@ async function handleGetDefaultPrompt(request, env) {
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, food_analysis` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, food_analysis, validation` 
       }, 400);
     }
     
@@ -8488,10 +8488,51 @@ async function handleGetDefaultPrompt(request, env) {
     }
     
     if (!prompt) {
-      return jsonResponse({ 
-        error: `Prompt not found in KV storage. Please upload prompts using ./KV/upload-kv-keys.sh`,
-        hint: `Missing key: ${kvKey}`
-      }, 404);
+      // For the validation prompt, fall back to the built-in default so the
+      // "Виж Текущ Промпт" button always shows something useful.
+      if (type === 'validation') {
+        prompt = `Ти си медицински AI валидатор за хранително-диетично приложение. Анализирай следните данни от въпросник и провери за проблеми.
+
+{userData}
+
+ПРОВЕРИ ЗА СЛЕДНИТЕ КАТЕГОРИИ ПРОБЛЕМИ:
+
+1. НЕРЕАЛИСТИЧНИ ЦЕЛИ - напр. желание за загуба на 20+ кг за седмица, достигане на опасно ниско тегло, цел за BMI под 16
+2. ОПАСНИ/НЕЗДРАВОСЛОВНИ ЦЕЛИ - напр. екстремен калориен дефицит при медицински състояния, отслабване при вече поднормено тегло (BMI < 18.5), комбинация от медикаменти и екстремни диети
+3. РИСКОВИ КОМБИНАЦИИ - напр. некомпенсиран диабет + кетогенна диета, бременност + агресивно отслабване, тежко сърдечносъдово заболяване + интензивна спортна програма
+4. НЕЛОГИЧНА ИНФОРМАЦИЯ - напр. физически невъзможни комбинации от тегло/ръст, очевидно невалидни данни
+5. ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ - напр. алергия към млечни продукти, но любимата храна е сирене; веган диета, но яде месо
+6. РАЗМИНАВАНЕ В ДИЕТИЧНА ИСТОРИЯ - само ако потребителят е следвал конкретна диета с ясно негативен резултат И текущата цел предполага точно същия неуспешен подход
+
+ВАЖНО:
+- Бъди ЛИБЕРАЛЕН. Флагвай само ОЧЕВИДНИ и СЕРИОЗНИ опасности за здравето.
+- Нормалните цели (отслабване, качване на тегло, поддържане, мускулна маса, тонизиране) НЕ са проблем.
+- Цел за качване на мускулна маса при наднормено тегло НЕ е проблем — рекомпозицията е валидна цел.
+- Недостатъчен сън НЕ е причина за блокиране — планът ще включва препоръки за сън.
+- Щитовидни заболявания + отслабване НЕ е автоматичен проблем — само при изрично поискан екстремен дефицит.
+- 1–2 кг отслабване на седмица е нормално и НЕ е нереалистично.
+- Леки несъответствия и минорни противоречия НЕ са проблем.
+- Докладвай само категории 1–6 при ЯСНИ и НЕДВУСМИСЛЕНИ рискове.
+
+Отговори САМО в JSON формат:
+{
+  "hasIssues": true/false,
+  "issues": [
+    {
+      "category": "НЕРЕАЛИСТИЧНА ЦЕЛ" | "ОПАСНА ЦЕЛ" | "РИСКОВА КОМБИНАЦИЯ" | "НЕЛОГИЧНА ИНФОРМАЦИЯ" | "ПРОТИВОРЕЧИВА ИНФОРМАЦИЯ" | "РАЗМИНАВАНЕ В ДИЕТИЧНА ИСТОРИЯ",
+      "description": "Описание на проблема на български",
+      "severity": "high" | "medium"
+    }
+  ]
+}
+
+Ако НЯМА проблеми, отговори: {"hasIssues": false, "issues": []}`;
+      } else {
+        return jsonResponse({ 
+          error: `Prompt not found in KV storage. Please upload prompts using ./KV/upload-kv-keys.sh`,
+          hint: `Missing key: ${kvKey}`
+        }, 404);
+      }
     }
     
     return jsonResponse({ success: true, prompt: prompt }, 200, {
