@@ -3827,6 +3827,216 @@ function notifyMake(ctx, telegramMessage) {
   if (ctx?.waitUntil) ctx.waitUntil(p);
 }
 
+// ─── Email notification via SMTP (SMTPS port 465) ───
+
+/**
+ * Encode a UTF-8 string as base64, safe for non-ASCII characters.
+ */
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  const chars = [];
+  bytes.forEach(b => chars.push(String.fromCharCode(b)));
+  return btoa(chars.join(''));
+}
+
+/**
+ * Build the HTML body for the "plan ready" email notification.
+ */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildPlanReadyEmailHtml(clientName) {
+  const safeName = escapeHtml(clientName);
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Вашият план е готов</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">&#x1F957; AiDiet</h1>
+              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">Персонален хранителен план</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <h2 style="color:#333333;margin:0 0 20px;font-size:22px;">Здравейте, ${safeName}! &#x1F44B;</h2>
+              <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 20px;">
+                Радваме се да ви съобщим, че вашият <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!
+              </p>
+              <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">
+                Нашият специалист внимателно е разгледал вашите данни и е изготвил индивидуален план, съобразен с вашите цели и нужди.
+              </p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                    <a href="https://aidiet.radilov-k.workers.dev/plan.html" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Виж моя план &#x2192;</a>
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fffe;border:1px solid #e0f2e9;border-radius:8px;margin-bottom:30px;">
+                <tr>
+                  <td style="padding:20px;">
+                    <p style="color:#333;font-size:15px;margin:0 0 10px;font-weight:600;">Какво включва вашият план:</p>
+                    <ul style="color:#555;font-size:15px;line-height:1.8;margin:0;padding-left:20px;">
+                      <li>7-дневна програма с подробни рецепти</li>
+                      <li>Изчислени калории и макронутриенти</li>
+                      <li>Персонализирани препоръки и добавки</li>
+                      <li>Чат консултация с AI диетолог</li>
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+              <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
+                Ако имате въпроси, пишете ни на <a href="mailto:info@biocode.online" style="color:#4CAF50;text-decoration:none;">info@biocode.online</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} AiDiet &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:12px;margin:5px 0 0;">biocode.online</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+/**
+ * Send an email via SMTPS (port 465) using cloudflare:sockets.
+ * Credentials are read from Worker secrets: MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS.
+ */
+async function sendEmailViaSMTP(env, to, subject, htmlBody) {
+  const host = env.MAIL_HOST;
+  const port = parseInt(env.MAIL_PORT || '465', 10);
+  const user = env.MAIL_USER;
+  const pass = env.MAIL_PASS;
+
+  if (!host || !user || !pass) {
+    console.warn('[Email] Skipped: MAIL_HOST, MAIL_USER or MAIL_PASS not configured');
+    return;
+  }
+  if (!to) {
+    console.warn('[Email] Skipped: recipient address is empty');
+    return;
+  }
+
+  const { connect } = await import('cloudflare:sockets');
+  const socket = connect({ hostname: host, port }, { secureTransport: 'on' });
+  const reader = socket.readable.getReader();
+  const writer = socket.writable.getWriter();
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  let buf = '';
+
+  const readResponse = async () => {
+    while (true) {
+      let pos = 0;
+      while (pos < buf.length) {
+        const crlf = buf.indexOf('\r\n', pos);
+        if (crlf === -1) break;
+        const line = buf.substring(pos, crlf);
+        pos = crlf + 2;
+        // Final (or only) line of a response: "NNN <text>"
+        if (/^\d{3} /.test(line)) {
+          buf = buf.substring(pos);
+          return parseInt(line.substring(0, 3), 10);
+        }
+        // Continuation line "NNN-<text>": keep reading
+      }
+      const { value, done } = await reader.read();
+      if (done) throw new Error('[Email] SMTP connection closed unexpectedly');
+      buf += decoder.decode(value);
+    }
+  };
+
+  const cmd = async (line) => {
+    await writer.write(encoder.encode(line + '\r\n'));
+  };
+
+  try {
+    // Greeting
+    const greet = await readResponse();
+    if (greet !== 220) throw new Error(`[Email] Unexpected greeting: ${greet}`);
+
+    // EHLO
+    await cmd(`EHLO ${host}`);
+    const ehlo = await readResponse();
+    if (ehlo !== 250) throw new Error(`[Email] EHLO failed: ${ehlo}`);
+
+    // AUTH LOGIN
+    await cmd('AUTH LOGIN');
+    const authChallenge = await readResponse();
+    if (authChallenge !== 334) throw new Error(`[Email] AUTH LOGIN failed: ${authChallenge}`);
+
+    await cmd(btoa(user));
+    const passChallenge = await readResponse();
+    if (passChallenge !== 334) throw new Error(`[Email] Username rejected: ${passChallenge}`);
+
+    await cmd(btoa(pass));
+    const authResult = await readResponse();
+    if (authResult !== 235) throw new Error(`[Email] Authentication failed: ${authResult}`);
+
+    // Envelope
+    await cmd(`MAIL FROM:<${user}>`);
+    const mailFrom = await readResponse();
+    if (mailFrom !== 250) throw new Error(`[Email] MAIL FROM rejected: ${mailFrom}`);
+
+    await cmd(`RCPT TO:<${to}>`);
+    const rcptTo = await readResponse();
+    if (rcptTo !== 250) throw new Error(`[Email] RCPT TO rejected: ${rcptTo}`);
+
+    // Data
+    await cmd('DATA');
+    const dataStart = await readResponse();
+    if (dataStart !== 354) throw new Error(`[Email] DATA rejected: ${dataStart}`);
+
+    const date = new Date().toUTCString();
+    const msgId = `<${Date.now()}.aidiet@biocode.online>`;
+    const encodedSubject = `=?UTF-8?B?${utf8ToBase64(subject)}?=`;
+    const message = [
+      `From: AiDiet <${user}>`,
+      `To: ${to}`,
+      `Subject: ${encodedSubject}`,
+      `Date: ${date}`,
+      `Message-ID: ${msgId}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: text/html; charset=UTF-8`,
+      `Content-Transfer-Encoding: 8bit`,
+      ``,
+      htmlBody,
+      `.`
+    ].join('\r\n');
+
+    await writer.write(encoder.encode(message + '\r\n'));
+    const sent = await readResponse();
+    if (sent !== 250) throw new Error(`[Email] Message not accepted: ${sent}`);
+
+    await cmd('QUIT');
+    console.log(`[Email] Sent successfully to ${to}`);
+  } finally {
+    try { await writer.close(); } catch (_) {}
+    try { socket.close(); } catch (_) {}
+  }
+}
+
 /**
  * Handle problem report submission
  */
@@ -4242,7 +4452,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
 }
 
 // ─── Admin: Activate client plan ───
-async function handleActivateClientPlan(request, env) {
+async function handleActivateClientPlan(request, env, ctx) {
   try {
     const { clientId } = await request.json();
     if (!clientId) {
@@ -4262,6 +4472,20 @@ async function handleActivateClientPlan(request, env) {
     clientData.planStatus = 'activated';
     clientData.planActivatedAt = new Date().toISOString();
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+
+    // Send email notification to client (fire-and-forget)
+    const clientEmail = clientData.answers?.email;
+    const clientName = clientData.answers?.name || 'Клиент';
+    if (clientEmail) {
+      const emailPromise = sendEmailViaSMTP(
+        env,
+        clientEmail,
+        'Вашият персонален хранителен план е готов! 🥗',
+        buildPlanReadyEmailHtml(clientName)
+      ).catch(e => console.warn('[Email] Plan activation email failed:', e));
+      if (ctx?.waitUntil) ctx.waitUntil(emailPromise);
+    }
+
     return jsonResponse({ success: true, message: 'Plan activated', activatedAt: clientData.planActivatedAt });
   } catch (error) {
     console.error('Error activating client plan:', error);
@@ -11898,7 +12122,7 @@ export default {
       } else if (url.pathname === '/api/admin/update-client-plan' && request.method === 'POST') {
         return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
-        return await handleActivateClientPlan(request, env);
+        return await handleActivateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/client-plan-status' && request.method === 'GET') {
         return await handleGetClientPlanStatus(request, env);
       } else {
