@@ -2303,6 +2303,23 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Demo mode notice (chat + image analysis) */
+        .demo-mode-notice {
+            margin-bottom: 14px;
+            padding: 10px 14px;
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            color: #7a5c00;
+            text-align: center;
+        }
+        .demo-mode-notice.demo-limit-reached {
+            background: #fff3cd;
+            border-color: #ff9800;
+            color: #7a3b00;
+        }
+
         /* Mode toggle tabs (Храна / Меню) */
         .food-mode-toggle {
             display: flex;
@@ -2980,10 +2997,39 @@
         let recentMessageCache = new Map(); // Map<messageText, timestamp>
         const MESSAGE_DEDUP_WINDOW = 3000; // 3 seconds - if same message sent within this window, it's ignored
         
-        // Demo version: Total message limit
-        let totalMessagesSent = 0;
-        const MAX_TOTAL_MESSAGES = 10; // Demo version limit
+        // Demo version: Daily limits
+        const MAX_DAILY_CHAT_MESSAGES = 5;    // Demo: 5 chat requests per day
+        const MAX_DAILY_IMAGE_ANALYSES = 5;   // Demo: 5 image analyses per day
         let isDemoLimitUnlocked = false;
+
+        function getTodayKey() {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        function getDailyChatCount() {
+            const key = 'demoChatCount_' + getTodayKey();
+            return parseInt(localStorage.getItem(key) || '0', 10);
+        }
+
+        function incrementDailyChatCount() {
+            const key = 'demoChatCount_' + getTodayKey();
+            const newVal = getDailyChatCount() + 1;
+            localStorage.setItem(key, String(newVal));
+            return newVal;
+        }
+
+        function getDailyImageCount() {
+            const key = 'demoImageCount_' + getTodayKey();
+            return parseInt(localStorage.getItem(key) || '0', 10);
+        }
+
+        function incrementDailyImageCount() {
+            const key = 'demoImageCount_' + getTodayKey();
+            const newVal = getDailyImageCount() + 1;
+            localStorage.setItem(key, String(newVal));
+            return newVal;
+        }
         
         /**
          * Check if a message is a duplicate of a recent message
@@ -4968,6 +5014,21 @@
                 addMessageToChat(`Здравейте, ${userData.name || 'приятелю'}! 👋\n\nАз съм вашият AI диетолог асистент. Как мога да ви помогна днес?`, 'assistant', false);
             }
 
+            // Show Demo mode warning
+            if (!isDemoLimitUnlocked) {
+                const chatMessages = document.getElementById('chatMessages');
+                if (chatMessages) {
+                    const usedToday = getDailyChatCount();
+                    const remaining = Math.max(0, MAX_DAILY_CHAT_MESSAGES - usedToday);
+                    const demoNotice = document.createElement('div');
+                    demoNotice.style.cssText = '';
+                    demoNotice.className = 'demo-mode-notice';
+                    demoNotice.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Демо режим:</strong> Системата е в демо режим и позволява до ${MAX_DAILY_CHAT_MESSAGES} чат заявки на ден. Оставащи днес: <strong>${remaining}</strong>.`;
+                    chatMessages.appendChild(demoNotice);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+
             // Focus input only on desktop (prevent keyboard popup on mobile)
             setTimeout(() => {
                 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -5119,17 +5180,15 @@
             // Secret unlock command for demo limit
             if (message.toLowerCase() === 'unlockme') {
                 isDemoLimitUnlocked = true;
-                totalMessagesSent = 0;
                 localStorage.setItem('chatDemoLimitUnlocked', 'true');
-                localStorage.setItem('totalMessagesSent', '0');
                 addMessageToChat('✅ Чат лимитът за демо режима е премахнат за този профил.', 'assistant');
                 input.value = '';
                 return;
             }
             
-            // Check demo version limit
-            if (!isDemoLimitUnlocked && totalMessagesSent >= MAX_TOTAL_MESSAGES) {
-                addMessageToChat(`⚠️ Демо версията на приложението позволява до ${MAX_TOTAL_MESSAGES} чат съобщения. За неограничен достъп до чата, моля свържете се с нас.`, 'assistant');
+            // Check demo version daily limit
+            if (!isDemoLimitUnlocked && getDailyChatCount() >= MAX_DAILY_CHAT_MESSAGES) {
+                addMessageToChat(`⚠️ Демо версията позволява до ${MAX_DAILY_CHAT_MESSAGES} чат заявки на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.`, 'assistant');
                 input.value = '';
                 return;
             }
@@ -5672,10 +5731,9 @@
                 chatHistory.push({ text: message, role: role, timestamp: Date.now() });
                 saveChatHistory();
                 
-                // Increment total messages counter for user messages
+                // Increment daily chat messages counter for user messages
                 if (role === 'user') {
-                    totalMessagesSent++;
-                    localStorage.setItem('totalMessagesSent', totalMessagesSent.toString());
+                    incrementDailyChatCount();
                 }
             }
         }
@@ -5833,11 +5891,7 @@
                     conversationId = savedConversationId;
                 }
                 
-                // Load total messages sent counter
-                const savedCount = localStorage.getItem('totalMessagesSent');
-                if (savedCount) {
-                    totalMessagesSent = parseInt(savedCount, 10) || 0;
-                }
+                // Load demo limit unlock flag
                 isDemoLimitUnlocked = localStorage.getItem('chatDemoLimitUnlocked') === 'true';
             } catch (e) {
                 console.error('Failed to load chat history:', e);
@@ -5955,6 +6009,23 @@
                 overlay.classList.add('active');
                 // Reset state
                 resetFoodAnalysis();
+
+                // Show demo mode notice inside the modal
+                if (!isDemoLimitUnlocked) {
+                    const usedToday = getDailyImageCount();
+                    const remaining = Math.max(0, MAX_DAILY_IMAGE_ANALYSES - usedToday);
+                    const body = overlay.querySelector('.food-analysis-body');
+                    if (body) {
+                        const existingNotice = body.querySelector('.demo-notice');
+                        if (!existingNotice) {
+                            const notice = document.createElement('div');
+                            notice.className = 'demo-notice demo-mode-notice';
+                            notice.style.cssText = '';
+                            notice.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Демо режим:</strong> Системата е в демо режим и позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Оставащи днес: <strong>${remaining}</strong>.`;
+                            body.insertBefore(notice, body.firstChild);
+                        }
+                    }
+                }
             }
         }
 
@@ -6124,6 +6195,21 @@
         async function analyzeFoodImage() {
             if (!foodAnalysisImageData || foodAnalysisInProgress) return;
 
+            // Check daily image analysis limit
+            if (!isDemoLimitUnlocked && getDailyImageCount() >= MAX_DAILY_IMAGE_ANALYSES) {
+                const resultsDiv = document.getElementById('foodResults');
+                if (resultsDiv) {
+                    resultsDiv.innerHTML = `
+                        <div class="food-result-section demo-mode-notice demo-limit-reached" style="border-left:3px solid #ffc107;">
+                            <h4 style="color:#7a3b00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
+                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.</p>
+                        </div>
+                    `;
+                    resultsDiv.classList.add('visible');
+                }
+                return;
+            }
+
             foodAnalysisInProgress = true;
             const analyzeBtn = document.getElementById('foodAnalyzeBtn');
             const resultsDiv = document.getElementById('foodResults');
@@ -6177,6 +6263,7 @@
                 const result = await response.json();
 
                 if (result.success && result.analysis) {
+                    incrementDailyImageCount();
                     renderFoodAnalysisResults(result.analysis);
                 } else if (result.parseError && result.rawResponse) {
                     // Fallback: show raw AI response
@@ -6314,6 +6401,21 @@
         async function analyzeMenuImage() {
             if (!foodAnalysisImageData || foodAnalysisInProgress) return;
 
+            // Check daily image analysis limit
+            if (!isDemoLimitUnlocked && getDailyImageCount() >= MAX_DAILY_IMAGE_ANALYSES) {
+                const resultsDiv = document.getElementById('foodResults');
+                if (resultsDiv) {
+                    resultsDiv.innerHTML = `
+                        <div class="food-result-section demo-mode-notice demo-limit-reached" style="border-left:3px solid #ffc107;">
+                            <h4 style="color:#7a3b00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
+                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.</p>
+                        </div>
+                    `;
+                    resultsDiv.classList.add('visible');
+                }
+                return;
+            }
+
             foodAnalysisInProgress = true;
             const analyzeBtn = document.getElementById('foodAnalyzeBtn');
             const resultsDiv = document.getElementById('foodResults');
@@ -6363,6 +6465,7 @@
                 const result = await response.json();
 
                 if (result.success && result.analysis) {
+                    incrementDailyImageCount();
                     renderMenuAnalysisResults(result.analysis);
                 } else if (result.parseError && result.rawResponse) {
                     if (resultsDiv) {
