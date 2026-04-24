@@ -4067,6 +4067,8 @@
         }
 
         // --- Load Diet Data ---
+        // Guard flag to prevent re-entry after backend restore
+        let _loadDietDataCalled = false;
         function loadDietData() {
             try {
                 // Load from localStorage
@@ -4075,6 +4077,34 @@
                 const userDataStr = localStorage.getItem('userData');
                 
                 if (!planData || !userId) {
+                    // Before showing an error, try to restore from the backend using
+                    // the np_uid cookie.  This handles the iOS PWA isolated-storage
+                    // scenario where index.html was bypassed (e.g. user bookmarked
+                    // plan.html directly) or cookies were not yet restored.
+                    // The _loadDietDataCalled guard prevents infinite recursion.
+                    const cookieMatch = document.cookie.match(/(?:^|;\s*)np_uid=([^;]*)/);
+                    const cookieUserId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+                    if (cookieUserId && !_loadDietDataCalled) {
+                        _loadDietDataCalled = true;
+                        fetch(`https://aidiet.radilov-k.workers.dev/api/user/profile?userId=${encodeURIComponent(cookieUserId)}`)
+                            .then(r => r.ok ? r.json() : null)
+                            .then(data => {
+                                if (data && data.found && data.plan) {
+                                    localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                                    localStorage.setItem('userId', cookieUserId);
+                                    if (data.userData) {
+                                        localStorage.setItem('userData', JSON.stringify(data.userData));
+                                    }
+                                    console.log('[PWA] Plan restored from backend in plan.html');
+                                    // Re-run loadDietData now that localStorage is populated
+                                    loadDietData();
+                                } else {
+                                    showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                                }
+                            })
+                            .catch(() => showError('Няма намерен план. Моля, попълнете въпросника.', true));
+                        return;
+                    }
                     // Redirect to questionnaire if no data
                     showError('Няма намерен план. Моля, попълнете въпросника.', true);
                     return;
@@ -5359,6 +5389,16 @@
                             localStorage.setItem('userData', JSON.stringify(userData));
                         }
                         localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
+
+                        // Keep the backend profile in sync so the updated plan is
+                        // available after reinstalling or on other devices/contexts.
+                        if (userId) {
+                            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId, plan: dietPlan, userData })
+                            }).catch(e => console.warn('[PWA] Backend plan update save failed:', e));
+                        }
                         
                         // IMPORTANT: Cache invalidated on server, need to re-cache on next message
                         chatContextCached = false;
