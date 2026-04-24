@@ -641,14 +641,42 @@ function buildProtocolSpecificAnswersText(data) {
 function buildCombinedAdditionalNotes(data) {
   const specificAnswers = buildProtocolSpecificAnswersText(data);
   const dynamicSubAnswers = buildDynamicSubQuestionsText(data);
+  const conditionDetails = buildConditionDetailsText(data);
   const baseNotes = data.additionalNotes || '';
   
   const sections = [];
   if (baseNotes) sections.push(baseNotes);
+  if (conditionDetails) sections.push(`[Детайли за здравословни състояния]\n${conditionDetails}`);
   if (specificAnswers) sections.push(`[Специфични данни за клиничен протокол]\n${specificAnswers}`);
   if (dynamicSubAnswers) sections.push(`[Допълнителни клинични отговори]\n${dynamicSubAnswers}`);
   
   return sections.join('\n\n');
+}
+
+/**
+ * Build formatted text from condition group detail fields (from questionnaire2 CONDITION_GROUPS dropdowns).
+ * These are the specific sub-condition selections for cardiovascular, endocrine, digestive,
+ * metabolic, and musculoskeletal groups — collected by questionnaire2 but not included in the
+ * main medicalConditions array, so they need to be surfaced separately to the AI.
+ * @param {object} data - User data
+ * @returns {string} Formatted text or empty string
+ */
+function buildConditionDetailsText(data) {
+  const CONDITION_DETAIL_LABELS = {
+    'medicalConditions_Сърдечно-съдови_детайл': 'Сърдечно-съдово заболяване',
+    'medicalConditions_Ендокринни_детайл': 'Ендокринно заболяване',
+    'medicalConditions_Храносмилателни_детайл': 'Храносмилателен проблем',
+    'medicalConditions_Метаболитни_детайл': 'Метаболитно нарушение',
+    'medicalConditions_Мускулно-скелетни_детайл': 'Мускулно-скелетно заболяване',
+  };
+  const lines = [];
+  for (const [key, label] of Object.entries(CONDITION_DETAIL_LABELS)) {
+    const val = data[key];
+    if (val && String(val).trim()) {
+      lines.push(`${label}: ${String(val).trim()}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -2739,6 +2767,11 @@ ${jsonExample.join(',\n')}
       medicalConditions_other: data.medicalConditions_other || '',
       medicalConditions_allergy_details: data['medicalConditions_Алергии'] || '',
       medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
+      medicalConditions_cardiovascular_details: data['medicalConditions_Сърдечно-съдови_детайл'] || '',
+      medicalConditions_endocrine_details: data['medicalConditions_Ендокринни_детайл'] || '',
+      medicalConditions_digestive_details: data['medicalConditions_Храносмилателни_детайл'] || '',
+      medicalConditions_metabolic_details: data['medicalConditions_Метаболитни_детайл'] || '',
+      medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
       MEAL_NAME_FORMAT_INSTRUCTIONS,
@@ -3103,7 +3136,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
     (data.sleepInterrupt === 'Да' ? 'с прекъсвания' : 'добро');
   const sleepDuration = data.sleepDuration || data.sleepHours || '7-8';
   const sportActivity = data.sportActivity || 'няма';
-  const dailyActivity = data.dailyActivity || 'средна';
+  const dailyActivity = data.dailyActivity || data.dailyActivityLevel || 'средна';
   
   const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план на ${data.name}.
 
@@ -3219,7 +3252,8 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
         (data.sleepInterrupt === 'Да' ? 'с прекъсвания' : 'добро'),
       sleepDuration: data.sleepDuration || data.sleepHours || '7-8',
       sportActivity: data.sportActivity || 'няма',
-      dailyActivity: data.dailyActivity || 'средна',
+      dailyActivity: data.dailyActivity || data.dailyActivityLevel || 'средна',
+      dailyActivityLevel: data.dailyActivityLevel || data.dailyActivity || 'средна',
       clinicalProtocolSection: _proto ? buildClinicalProtocolPromptSection(_proto) : '',
       clinicalProtocolSupplementSection: _proto ? buildClinicalProtocolSupplementSection(_proto) : '',
       clinicalProtocolName: _proto ? _proto.name : ''
@@ -5655,6 +5689,11 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
       medicalConditions_other: data.medicalConditions_other || '',
       medicalConditions_allergy_details: data['medicalConditions_Алергии'] || '',
       medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
+      medicalConditions_cardiovascular_details: data['medicalConditions_Сърдечно-съдови_детайл'] || '',
+      medicalConditions_endocrine_details: data['medicalConditions_Ендокринни_детайл'] || '',
+      medicalConditions_digestive_details: data['medicalConditions_Храносмилателни_детайл'] || '',
+      medicalConditions_metabolic_details: data['medicalConditions_Метаболитни_детайл'] || '',
+      medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       medications: data.medications,
       medicationsDetails: data.medicationsDetails || '',
       medicationsText: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'Не приема',
@@ -5838,6 +5877,11 @@ ${JSON.stringify({
   medicalConditions_other: data.medicalConditions_other || undefined,
   medicalConditions_allergy_details: data['medicalConditions_Алергии'] || undefined,
   medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || undefined,
+  medicalConditions_cardiovascular_details: data['medicalConditions_Сърдечно-съдови_детайл'] || undefined,
+  medicalConditions_endocrine_details: data['medicalConditions_Ендокринни_детайл'] || undefined,
+  medicalConditions_digestive_details: data['medicalConditions_Храносмилателни_детайл'] || undefined,
+  medicalConditions_metabolic_details: data['medicalConditions_Метаболитни_детайл'] || undefined,
+  medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || undefined,
   additionalNotes: buildCombinedAdditionalNotes(data)
 }, null, 2)}
 
@@ -6147,6 +6191,11 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       medicalConditions_other: data.medicalConditions_other || '',
       medicalConditions_allergy_details: data['medicalConditions_Алергии'] || '',
       medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || '',
+      medicalConditions_cardiovascular_details: data['medicalConditions_Сърдечно-съдови_детайл'] || '',
+      medicalConditions_endocrine_details: data['medicalConditions_Ендокринни_детайл'] || '',
+      medicalConditions_digestive_details: data['medicalConditions_Храносмилателни_детайл'] || '',
+      medicalConditions_metabolic_details: data['medicalConditions_Метаболитни_детайл'] || '',
+      medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       additionalNotes: _combinedNotes,
       protocolSpecificAnswers: buildProtocolSpecificAnswersText(data),
       additionalNotesSection,
