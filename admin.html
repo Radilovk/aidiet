@@ -1557,6 +1557,146 @@
                 </button>
             </div>
 
+            <!-- Validation Rules Config Editor -->
+            <div class="card">
+                <h2><i class="fas fa-ruler-combined"></i> Правила за Предупреждения и Критични Грешки</h2>
+                <div class="info-box" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                    <strong>⚠️ Как работи:</strong> Системата разграничава два типа проблеми:<br>
+                    <strong>Критична грешка</strong> — блокира изцяло генерирането на план (потребителят вижда грешката без бутон „Продължи").<br>
+                    <strong>Предупреждение</strong> — показва страницата с предупреждение, но позволява на потребителя да продължи.
+                </div>
+                <div class="info-box" style="background: #d1f2eb; border-left: 4px solid #1abc9c;">
+                    <strong>🔄 Синхронизация:</strong> Промените се запазват веднага в бекенда и влизат в сила при следващата валидация.
+                </div>
+
+                <!-- Data Validation Thresholds -->
+                <h3 style="font-size: 1.05rem; margin: 20px 0 12px; color: var(--text-dark);">
+                    <i class="fas fa-sliders-h"></i> Прагове за Невалидни Данни (винаги критична грешка)
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Минимална възраст (год.)</label>
+                        <input type="number" id="vc_minAge" min="0" max="30" step="1">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Максимална възраст (год.)</label>
+                        <input type="number" id="vc_maxAge" min="50" max="150" step="1">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Мин. тегло (кг)</label>
+                        <input type="number" id="vc_minWeightKg" min="1" max="100" step="1">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Макс. тегло (кг)</label>
+                        <input type="number" id="vc_maxWeightKg" min="100" max="600" step="1">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Мин. ръст (см)</label>
+                        <input type="number" id="vc_minHeightCm" min="50" max="150" step="1">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Макс. ръст (см)</label>
+                        <input type="number" id="vc_maxHeightCm" min="150" max="300" step="1">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Мин. BMI</label>
+                        <input type="number" id="vc_minBmi" min="5" max="15" step="0.5">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Макс. BMI</label>
+                        <input type="number" id="vc_maxBmi" min="40" max="120" step="0.5">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Макс. отслабване (кг)</label>
+                        <input type="number" id="vc_maxWeightLossKg" min="5" max="200" step="1">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Макс. отслабване (% от тег.)</label>
+                        <input type="number" id="vc_maxWeightLossPercent" min="0.1" max="1" step="0.05">
+                    </div>
+                </div>
+
+                <!-- Contradiction Rules -->
+                <h3 style="font-size: 1.05rem; margin: 20px 0 12px; color: var(--text-dark);">
+                    <i class="fas fa-exclamation-triangle"></i> Правила за Разпознати Противоречия
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+
+                    <!-- Rule: underweightLoss -->
+                    <div style="background: var(--bg-color); border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <input type="checkbox" id="vc_uwEnabled" style="width:16px;height:16px;">
+                            <strong>Поднормено тегло + цел за отслабване</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-left: 26px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>BMI праг (под → предупреждение)</label>
+                                <input type="number" id="vc_uwBmiThreshold" min="14" max="25" step="0.1">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Тип на реакцията</label>
+                                <select id="vc_uwCanProceed">
+                                    <option value="true">⚠️ Предупреждение (потребителят може да продължи)</option>
+                                    <option value="false">🚫 Критична грешка (блокира генерирането)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rule: thyroidAggressiveDeficit -->
+                    <div style="background: var(--bg-color); border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <input type="checkbox" id="vc_thyEnabled" style="width:16px;height:16px;">
+                            <strong>Щитовидна дисфункция + агресивен калориен дефицит</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-left: 26px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>Мин. % от TDEE (под → предупреждение)</label>
+                                <input type="number" id="vc_thyTdeeFloor" min="0.5" max="1" step="0.05">
+                                <small style="color:var(--text-gray);">напр. 0.75 = под 75% от TDEE</small>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Тип на реакцията</label>
+                                <select id="vc_thyCanProceed">
+                                    <option value="true">⚠️ Предупреждение (потребителят може да продължи)</option>
+                                    <option value="false">🚫 Критична грешка (блокира генерирането)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rule: anemiaPlanBased -->
+                    <div style="background: var(--bg-color); border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <input type="checkbox" id="vc_anemiaEnabled" style="width:16px;height:16px;">
+                            <strong>Анемия + вегетарианска/веган диета</strong>
+                        </div>
+                        <div style="padding-left: 26px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>Тип на реакцията</label>
+                                <select id="vc_anemiaCanProceed">
+                                    <option value="true">⚠️ Предупреждение (потребителят може да продължи)</option>
+                                    <option value="false">🚫 Критична грешка (блокира генерирането)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                    <button class="btn" onclick="saveValidationConfig()">
+                        <i class="fas fa-save"></i> Запази Правилата
+                    </button>
+                    <button class="btn" onclick="loadValidationConfig()" style="background: #3498db;">
+                        <i class="fas fa-sync"></i> Презареди
+                    </button>
+                    <button class="btn" onclick="resetValidationConfig()" style="background: #7f8c8d;">
+                        <i class="fas fa-undo"></i> Върни по подразбиране
+                    </button>
+                </div>
+            </div>
+
             </div>
             <!-- End AI Prompts Tab -->
 
@@ -3716,6 +3856,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             document.getElementById('adminDashboard').style.display = 'block';
             loadSettings();
             loadStats();
+            loadValidationConfig();
             // Load mainlist status and presets on dashboard open
             loadMainlistStatus();
             loadMainlistPresets();
@@ -4345,6 +4486,122 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         async function resetValidationPrompt() {
             await resetPromptGeneric('validation', 'validationPrompt', 'adminValidationPrompt', 
                 'Промпт за валидация изтрит. Ще се използва вграденият по-либерален промпт по подразбиране.');
+        }
+
+        // ── Validation Config (thresholds + contradiction rules) ──────────────────
+        const DEFAULT_VAL_CONFIG = {
+            dataValidation: { minAge:10, maxAge:100, minWeightKg:20, maxWeightKg:300, minHeightCm:100, maxHeightCm:250, minBmi:10, maxBmi:80, maxWeightLossKg:50, maxWeightLossPercent:0.5 },
+            contradictionRules: {
+                underweightLoss:          { enabled:true, bmiThreshold:18.5, canProceed:true },
+                thyroidAggressiveDeficit: { enabled:true, tdeeFloor:0.75,    canProceed:true },
+                anemiaPlanBased:          { enabled:true,                    canProceed:true }
+            }
+        };
+
+        function applyValidationConfigToUI(cfg) {
+            const dv = cfg.dataValidation || {};
+            const cr = cfg.contradictionRules || {};
+            const d  = DEFAULT_VAL_CONFIG;
+            // thresholds
+            document.getElementById('vc_minAge').value            = dv.minAge            ?? d.dataValidation.minAge;
+            document.getElementById('vc_maxAge').value            = dv.maxAge            ?? d.dataValidation.maxAge;
+            document.getElementById('vc_minWeightKg').value       = dv.minWeightKg       ?? d.dataValidation.minWeightKg;
+            document.getElementById('vc_maxWeightKg').value       = dv.maxWeightKg       ?? d.dataValidation.maxWeightKg;
+            document.getElementById('vc_minHeightCm').value       = dv.minHeightCm       ?? d.dataValidation.minHeightCm;
+            document.getElementById('vc_maxHeightCm').value       = dv.maxHeightCm       ?? d.dataValidation.maxHeightCm;
+            document.getElementById('vc_minBmi').value            = dv.minBmi            ?? d.dataValidation.minBmi;
+            document.getElementById('vc_maxBmi').value            = dv.maxBmi            ?? d.dataValidation.maxBmi;
+            document.getElementById('vc_maxWeightLossKg').value   = dv.maxWeightLossKg   ?? d.dataValidation.maxWeightLossKg;
+            document.getElementById('vc_maxWeightLossPercent').value = dv.maxWeightLossPercent ?? d.dataValidation.maxWeightLossPercent;
+            // underweightLoss
+            const uw = cr.underweightLoss || {};
+            document.getElementById('vc_uwEnabled').checked        = uw.enabled !== false;
+            document.getElementById('vc_uwBmiThreshold').value     = uw.bmiThreshold ?? d.contradictionRules.underweightLoss.bmiThreshold;
+            document.getElementById('vc_uwCanProceed').value       = String(uw.canProceed !== false);
+            // thyroidAggressiveDeficit
+            const thy = cr.thyroidAggressiveDeficit || {};
+            document.getElementById('vc_thyEnabled').checked       = thy.enabled !== false;
+            document.getElementById('vc_thyTdeeFloor').value       = thy.tdeeFloor ?? d.contradictionRules.thyroidAggressiveDeficit.tdeeFloor;
+            document.getElementById('vc_thyCanProceed').value      = String(thy.canProceed !== false);
+            // anemiaPlanBased
+            const an = cr.anemiaPlanBased || {};
+            document.getElementById('vc_anemiaEnabled').checked    = an.enabled !== false;
+            document.getElementById('vc_anemiaCanProceed').value   = String(an.canProceed !== false);
+        }
+
+        function collectValidationConfigFromUI() {
+            return {
+                dataValidation: {
+                    minAge:               parseFloat(document.getElementById('vc_minAge').value),
+                    maxAge:               parseFloat(document.getElementById('vc_maxAge').value),
+                    minWeightKg:          parseFloat(document.getElementById('vc_minWeightKg').value),
+                    maxWeightKg:          parseFloat(document.getElementById('vc_maxWeightKg').value),
+                    minHeightCm:          parseFloat(document.getElementById('vc_minHeightCm').value),
+                    maxHeightCm:          parseFloat(document.getElementById('vc_maxHeightCm').value),
+                    minBmi:               parseFloat(document.getElementById('vc_minBmi').value),
+                    maxBmi:               parseFloat(document.getElementById('vc_maxBmi').value),
+                    maxWeightLossKg:      parseFloat(document.getElementById('vc_maxWeightLossKg').value),
+                    maxWeightLossPercent: parseFloat(document.getElementById('vc_maxWeightLossPercent').value)
+                },
+                contradictionRules: {
+                    underweightLoss: {
+                        enabled:       document.getElementById('vc_uwEnabled').checked,
+                        bmiThreshold:  parseFloat(document.getElementById('vc_uwBmiThreshold').value),
+                        canProceed:    document.getElementById('vc_uwCanProceed').value === 'true'
+                    },
+                    thyroidAggressiveDeficit: {
+                        enabled:       document.getElementById('vc_thyEnabled').checked,
+                        tdeeFloor:     parseFloat(document.getElementById('vc_thyTdeeFloor').value),
+                        canProceed:    document.getElementById('vc_thyCanProceed').value === 'true'
+                    },
+                    anemiaPlanBased: {
+                        enabled:       document.getElementById('vc_anemiaEnabled').checked,
+                        canProceed:    document.getElementById('vc_anemiaCanProceed').value === 'true'
+                    }
+                }
+            };
+        }
+
+        async function loadValidationConfig() {
+            try {
+                const res = await fetch(WORKER_URL + '/api/admin/get-validation-config', {
+                    headers: { 'X-Admin-Password': ADMIN_PASSWORD }
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (data.success && data.config) {
+                    applyValidationConfigToUI(data.config);
+                }
+            } catch (err) {
+                console.warn('Could not load validation config from server, using defaults:', err.message);
+                applyValidationConfigToUI(DEFAULT_VAL_CONFIG);
+            }
+        }
+
+        async function saveValidationConfig() {
+            try {
+                const config = collectValidationConfigFromUI();
+                const res = await fetch(WORKER_URL + '/api/admin/save-validation-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': ADMIN_PASSWORD },
+                    body: JSON.stringify({ config })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showSuccess('Правилата за валидация са запазени успешно!');
+                } else {
+                    showError('Грешка при запазване: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                showError('Грешка при запазване: ' + err.message);
+            }
+        }
+
+        function resetValidationConfig() {
+            if (confirm('Сигурни ли сте, че искате да върнете всички правила към стойностите по подразбиране?')) {
+                applyValidationConfigToUI(DEFAULT_VAL_CONFIG);
+                showSuccess('Правилата са върнати към стойностите по подразбиране. Натиснете "Запази", за да ги запишете.');
+            }
         }
 
         // Reset Prompt
