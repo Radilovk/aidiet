@@ -299,12 +299,15 @@
         }
 
         /* Settings Search */
+        .settings-search-outer {
+            position: relative;
+            margin-bottom: 24px;
+        }
         .settings-search-wrap {
             background: var(--white);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
             padding: 14px 24px;
-            margin-bottom: 24px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -340,6 +343,64 @@
         }
         .card.settings-hidden {
             display: none !important;
+        }
+        /* Suggestions dropdown */
+        .search-suggestions {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.13);
+            z-index: 9999;
+            overflow: hidden;
+            max-height: 340px;
+            overflow-y: auto;
+        }
+        .search-suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 20px;
+            cursor: pointer;
+            font-size: 0.92rem;
+            color: var(--text-dark);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            transition: background 0.15s;
+        }
+        .search-suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .search-suggestion-item:hover,
+        .search-suggestion-item.active {
+            background: var(--primary-light, #f0fdfa);
+        }
+        .search-suggestion-item i {
+            color: var(--primary-red);
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .search-suggestion-item .sug-title {
+            flex: 1;
+        }
+        .search-suggestion-item .sug-title mark {
+            background: rgba(13, 148, 136, 0.18);
+            color: inherit;
+            padding: 0 1px;
+            border-radius: 2px;
+        }
+        .search-suggestion-item .sug-tab {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            white-space: nowrap;
+            margin-left: 6px;
+        }
+        .card.settings-highlight {
+            outline: 2px solid var(--primary-red);
+            outline-offset: 3px;
+            transition: outline 0.3s;
         }
 
         @media (max-width: 768px) {
@@ -891,10 +952,13 @@
             <div id="errorMessage" class="error-message"></div>
 
             <!-- Settings Search -->
-            <div class="settings-search-wrap">
-                <i class="fas fa-search"></i>
-                <input type="text" class="settings-search-input" id="settingsSearchInput" placeholder="Търси настройки..." oninput="filterSettings(this.value)">
-                <button class="settings-search-clear" id="settingsSearchClear" onclick="clearSettingsSearch()" title="Изчисти търсенето"><i class="fas fa-times"></i></button>
+            <div class="settings-search-outer">
+                <div class="settings-search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="settings-search-input" id="settingsSearchInput" placeholder="Търси настройки..." oninput="onSettingsSearchInput(this.value)" autocomplete="off">
+                    <button class="settings-search-clear" id="settingsSearchClear" onclick="clearSettingsSearch()" title="Изчисти търсенето"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="search-suggestions" id="searchSuggestions"></div>
             </div>
 
             <!-- Tab Navigation -->
@@ -2286,7 +2350,286 @@
         // Initialize theme on load
         initializeTheme();
 
-        // --- Settings Search ---
+        // --- Settings Search with Suggestions ---
+        const SETTINGS_INDEX = [
+            {
+                title: 'AI Модел за Генериране на Планове',
+                tab: 'configuration',
+                icon: 'fa-robot',
+                keywords: ['ai', 'модел', 'план', 'генериране', 'провайдър', 'anthropic', 'openai', 'claude', 'gpt', 'thinking', 'мислене', 'температура', 'temperature', 'top p', 'top k', 'параметри', 'семплиране', 'изкуствен интелект', 'нейронна мрежа', 'token', 'токен', 'бюджет']
+            },
+            {
+                title: 'AI Модел за Чат Асистент',
+                tab: 'configuration',
+                icon: 'fa-comments',
+                keywords: ['чат', 'асистент', 'разговор', 'chat', 'ai', 'модел', 'провайдър', 'anthropic', 'openai', 'claude', 'gpt', 'мислене', 'thinking', 'температура', 'top p', 'top k']
+            },
+            {
+                title: 'AI Модел за Анализ на Изображения',
+                tab: 'configuration',
+                icon: 'fa-camera',
+                keywords: ['изображение', 'снимка', 'снимки', 'vision', 'камера', 'анализ', 'визия', 'photo', 'image', 'ai', 'модел', 'провайдър', 'claude', 'gpt']
+            },
+            {
+                title: 'Лимити на токени по стъпки',
+                tab: 'configuration',
+                icon: 'fa-sliders-h',
+                keywords: ['лимит', 'токен', 'token', 'стъпки', 'ограничение', 'max tokens', 'output', 'context', 'чат', 'анализ', 'стратегия', 'обобщение', 'хранителен план']
+            },
+            {
+                title: 'Цветова Схема',
+                tab: 'configuration',
+                icon: 'fa-palette',
+                keywords: ['цвят', 'цветова', 'схема', 'палитра', 'тема', 'тъмна', 'светла', 'dark', 'light', 'mode', 'primary', 'secondary', 'accent', 'дизайн', 'визуализация', 'ui', 'интерфейс', 'стил', 'боя']
+            },
+            {
+                title: 'AI Промпт за Генериране на План',
+                tab: 'ai-prompts',
+                icon: 'fa-pen-fancy',
+                keywords: ['промпт', 'prompt', 'план', 'генериране', 'шаблон', 'инструкция', 'системен', 'system prompt', 'текст', 'хранене', 'диета']
+            },
+            {
+                title: 'AI Промпт за Анализ (Стъпка 1)',
+                tab: 'ai-prompts',
+                icon: 'fa-brain',
+                keywords: ['промпт', 'анализ', 'стъпка 1', 'prompt', 'шаблон', 'инструкция', 'системен']
+            },
+            {
+                title: 'AI Промпт за Стратегия (Стъпка 2)',
+                tab: 'ai-prompts',
+                icon: 'fa-chess',
+                keywords: ['промпт', 'стратегия', 'стъпка 2', 'prompt', 'шаблон', 'инструкция']
+            },
+            {
+                title: 'AI Промпт за Генериране на Хранителен План (Стъпка 3)',
+                tab: 'ai-prompts',
+                icon: 'fa-utensils',
+                keywords: ['промпт', 'хранителен план', 'стъпка 3', 'храна', 'ядене', 'меню', 'prompt', 'шаблон']
+            },
+            {
+                title: 'AI Промпт за Обобщение (Стъпка 4)',
+                tab: 'ai-prompts',
+                icon: 'fa-clipboard-check',
+                keywords: ['промпт', 'обобщение', 'стъпка 4', 'summary', 'prompt', 'шаблон', 'резюме']
+            },
+            {
+                title: 'AI Промпт за Чат Асистент - Режим Консултация',
+                tab: 'ai-prompts',
+                icon: 'fa-comments',
+                keywords: ['промпт', 'чат', 'консултация', 'асистент', 'разговор', 'prompt', 'шаблон', 'съвет', 'режим']
+            },
+            {
+                title: 'Настройка на Чат Режимите',
+                tab: 'ai-prompts',
+                icon: 'fa-toggle-on',
+                keywords: ['чат', 'режим', 'консултация', 'промяна', 'включи', 'изключи', 'toggle', 'настройка']
+            },
+            {
+                title: 'AI Промпт за Чат Асистент - Режим Промяна на План',
+                tab: 'ai-prompts',
+                icon: 'fa-edit',
+                keywords: ['промпт', 'чат', 'промяна', 'модификация', 'редактиране', 'план', 'prompt', 'шаблон']
+            },
+            {
+                title: 'AI Промпт за Корекция на План (Автоматична)',
+                tab: 'ai-prompts',
+                icon: 'fa-tools',
+                keywords: ['промпт', 'корекция', 'автоматична', 'поправка', 'fix', 'repair', 'prompt', 'шаблон']
+            },
+            {
+                title: 'AI Промпт за Анализ на Храна от Снимка',
+                tab: 'ai-prompts',
+                icon: 'fa-camera',
+                keywords: ['промпт', 'снимка', 'храна', 'анализ', 'изображение', 'vision', 'photo', 'калории', 'prompt', 'шаблон']
+            },
+            {
+                title: 'Контакт Съобщения',
+                tab: 'monitoring',
+                icon: 'fa-envelope-open-text',
+                keywords: ['контакт', 'съобщения', 'писма', 'обратна връзка', 'feedback', 'email', 'потребители', 'мониторинг']
+            },
+            {
+                title: 'Доклади за Проблеми',
+                tab: 'monitoring',
+                icon: 'fa-exclamation-triangle',
+                keywords: ['доклад', 'проблем', 'грешка', 'бъг', 'bug', 'report', 'error', 'мониторинг']
+            },
+            {
+                title: 'Клиентски Въпросници',
+                tab: 'monitoring',
+                icon: 'fa-users',
+                keywords: ['въпросник', 'клиент', 'потребител', 'анкета', 'попълнен', 'данни', 'мониторинг']
+            },
+            {
+                title: 'AI Комуникационни Логове',
+                tab: 'monitoring',
+                icon: 'fa-network-wired',
+                keywords: ['лог', 'log', 'журнал', 'комуникация', 'api', 'заявка', 'отговор', 'история', 'ai', 'мониторинг', 'статистика']
+            },
+            {
+                title: 'Управление на Push Известия',
+                tab: 'features',
+                icon: 'fa-bell',
+                keywords: ['push', 'известия', 'нотификации', 'notification', 'bell', 'изпращане', 'закуска', 'обяд', 'вечеря', 'напомняне', 'разписание', 'график']
+            },
+            {
+                title: 'Изпращане на AI Асистент Съобщения',
+                tab: 'features',
+                icon: 'fa-comment-dots',
+                keywords: ['изпращане', 'съобщение', 'асистент', 'чат', 'user id', 'потребител', 'съобщения']
+            },
+            {
+                title: 'Редактиране на Шаблони за Известия',
+                tab: 'features',
+                icon: 'fa-edit',
+                keywords: ['шаблон', 'известие', 'нотификация', 'текст', 'съобщение', 'редактиране', 'закуска', 'обяд', 'вечеря', 'закуска шаблон']
+            },
+            {
+                title: 'Основен Списък с Храни (Mainlist)',
+                tab: 'features',
+                icon: 'fa-list-ul',
+                keywords: ['mainlist', 'основен списък', 'храни', 'позволени', 'включени', 'ядене', 'продукти', 'preset', 'шаблон']
+            },
+            {
+                title: 'Управление на Черен Списък с Храни',
+                tab: 'features',
+                icon: 'fa-ban',
+                keywords: ['черен списък', 'blacklist', 'забранени', 'забрана', 'храни', 'алергия', 'непоносимост', 'изключени']
+            },
+            {
+                title: 'Управление на Бял Списък с Храни',
+                tab: 'features',
+                icon: 'fa-check-circle',
+                keywords: ['бял списък', 'whitelist', 'позволени', 'одобрени', 'храни', 'включени', 'предпочитани']
+            },
+            {
+                title: 'Практически Хакове по Цел',
+                tab: 'features',
+                icon: 'fa-bolt',
+                keywords: ['хакове', 'цел', 'отслабване', 'качване', 'мускули', 'здраве', 'съвети', 'tricks', 'tips', 'практически']
+            },
+            {
+                title: 'Настройки на Протоколи',
+                tab: 'protocols',
+                icon: 'fa-flask',
+                keywords: ['протокол', 'protocol', 'клиничен', 'clinical', 'настройки', 'медицински', 'план', 'лечение']
+            },
+            {
+                title: 'История на генерираните протоколи',
+                tab: 'protocols',
+                icon: 'fa-history',
+                keywords: ['история', 'протокол', 'генерирани', 'архив', 'предишни', 'лог']
+            },
+            {
+                title: 'Изображения за Клинични Протоколи',
+                tab: 'protocols',
+                icon: 'fa-images',
+                keywords: ['изображения', 'снимки', 'протокол', 'клиничен', 'pictures', 'images', 'визуализация']
+            },
+            {
+                title: 'UI Изображения за Страниците',
+                tab: 'ui-images',
+                icon: 'fa-images',
+                keywords: ['изображение', 'снимки', 'картинки', 'ui', 'страница', 'банер', 'фон', 'header', 'background', 'визуализация', 'интерфейс']
+            }
+        ];
+
+        const TAB_NAMES = {
+            'configuration': 'Конфигурация',
+            'ai-prompts': 'AI Промпти',
+            'monitoring': 'Мониторинг',
+            'features': 'Функции',
+            'protocols': 'Протоколи',
+            'ui-images': 'UI Изображения'
+        };
+
+        let suggestionsActiveIndex = -1;
+
+        function onSettingsSearchInput(value) {
+            filterSettings(value);
+            const term = value.trim().toLowerCase();
+            if (!term) {
+                hideSuggestions();
+                return;
+            }
+            const results = buildSuggestions(term);
+            renderSuggestions(results, value.trim());
+        }
+
+        function buildSuggestions(term) {
+            const results = [];
+            for (const item of SETTINGS_INDEX) {
+                const titleLower = item.title.toLowerCase();
+                const titleMatch = titleLower.includes(term);
+                const keywordMatch = item.keywords.some(k => k.toLowerCase().includes(term));
+                if (titleMatch || keywordMatch) {
+                    results.push({ ...item, score: titleMatch ? 2 : 1 });
+                }
+            }
+            return results.sort((a, b) => b.score - a.score).slice(0, 8);
+        }
+
+        function highlightTerm(text, term) {
+            // Escape HTML entities in title before injecting to prevent XSS
+            const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            if (!term) return safe;
+            const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return safe.replace(new RegExp(`(${escapedTerm})`, 'gi'), '<mark>$1</mark>');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function renderSuggestions(results, rawTerm) {
+            const dropdown = document.getElementById('searchSuggestions');
+            suggestionsActiveIndex = -1;
+            if (!results.length) {
+                hideSuggestions();
+                return;
+            }
+            dropdown.innerHTML = results.map((s, i) =>
+                `<div class="search-suggestion-item" data-index="${i}" data-tab="${escapeHtml(s.tab)}" data-title="${escapeHtml(s.title)}">
+                    <i class="fas ${s.icon}"></i>
+                    <span class="sug-title">${highlightTerm(s.title, rawTerm)}</span>
+                    <span class="sug-tab">${TAB_NAMES[s.tab] || s.tab}</span>
+                </div>`
+            ).join('');
+            dropdown.style.display = 'block';
+        }
+
+        function hideSuggestions() {
+            const dropdown = document.getElementById('searchSuggestions');
+            dropdown.style.display = 'none';
+            suggestionsActiveIndex = -1;
+        }
+
+        const HIGHLIGHT_DURATION = 2000; // ms to keep the card outline highlight visible
+        const TAB_SWITCH_DELAY = 120; // ms to allow tab CSS display change before scrolling
+
+        function goToSetting(tabName, cardTitle) {
+            hideSuggestions();
+            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols', 'ui-images'];
+            if (!validTabs.includes(tabName)) return;
+            switchTab(tabName, null);
+            const input = document.getElementById('settingsSearchInput');
+            input.value = cardTitle;
+            document.getElementById('settingsSearchClear').style.display = 'inline';
+            filterSettings(cardTitle);
+            setTimeout(() => {
+                const cards = document.querySelectorAll(`#tab-${tabName} .card`);
+                for (const card of cards) {
+                    const h2 = card.querySelector('h2');
+                    if (h2 && h2.textContent.trim() === cardTitle) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        card.classList.add('settings-highlight');
+                        setTimeout(() => card.classList.remove('settings-highlight'), HIGHLIGHT_DURATION);
+                        break;
+                    }
+                }
+            }, TAB_SWITCH_DELAY);
+        }
+
         function filterSettings(query) {
             const clearBtn = document.getElementById('settingsSearchClear');
             clearBtn.style.display = query ? 'inline' : 'none';
@@ -2306,7 +2649,66 @@
             const input = document.getElementById('settingsSearchInput');
             input.value = '';
             filterSettings('');
+            hideSuggestions();
             input.focus();
+        }
+
+        // Keyboard navigation for suggestions
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('settingsSearchInput');
+            const dropdown = document.getElementById('searchSuggestions');
+
+            // Click/tap on suggestions via event delegation
+            dropdown.addEventListener('mousedown', function(e) {
+                const item = e.target.closest('.search-suggestion-item');
+                if (item) {
+                    e.preventDefault(); // prevent input blur before action
+                    goToSetting(item.dataset.tab, item.dataset.title);
+                }
+            });
+
+            input.addEventListener('keydown', function(e) {
+                const items = dropdown.querySelectorAll('.search-suggestion-item');
+                if (!items.length || dropdown.style.display === 'none') {
+                    if (e.key === 'Escape') clearSettingsSearch();
+                    return;
+                }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    suggestionsActiveIndex = Math.min(suggestionsActiveIndex + 1, items.length - 1);
+                    updateActiveSuggestion(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    suggestionsActiveIndex = Math.max(suggestionsActiveIndex - 1, -1);
+                    updateActiveSuggestion(items);
+                } else if (e.key === 'Enter') {
+                    if (suggestionsActiveIndex >= 0 && items[suggestionsActiveIndex]) {
+                        e.preventDefault();
+                        const item = items[suggestionsActiveIndex];
+                        goToSetting(item.dataset.tab, item.dataset.title);
+                    } else {
+                        hideSuggestions();
+                    }
+                } else if (e.key === 'Escape') {
+                    hideSuggestions();
+                    input.blur();
+                }
+            });
+            // Close on outside click
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.settings-search-outer')) {
+                    hideSuggestions();
+                }
+            });
+        });
+
+        function updateActiveSuggestion(items) {
+            items.forEach((item, i) => {
+                item.classList.toggle('active', i === suggestionsActiveIndex);
+            });
+            if (suggestionsActiveIndex >= 0 && items[suggestionsActiveIndex]) {
+                items[suggestionsActiveIndex].scrollIntoView({ block: 'nearest' });
+            }
         }
 
         // --- Tab Management ---
