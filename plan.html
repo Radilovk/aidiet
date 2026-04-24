@@ -2303,6 +2303,23 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Demo mode notice (chat + image analysis) */
+        .demo-mode-notice {
+            margin-bottom: 14px;
+            padding: 10px 14px;
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            color: #7a5c00;
+            text-align: center;
+        }
+        .demo-mode-notice.demo-limit-reached {
+            background: #fff3cd;
+            border-color: #ff9800;
+            color: #7a3b00;
+        }
+
         /* Mode toggle tabs (Храна / Меню) */
         .food-mode-toggle {
             display: flex;
@@ -5004,7 +5021,8 @@
                     const usedToday = getDailyChatCount();
                     const remaining = Math.max(0, MAX_DAILY_CHAT_MESSAGES - usedToday);
                     const demoNotice = document.createElement('div');
-                    demoNotice.style.cssText = 'margin: 8px 0; padding: 10px 14px; background: #fff8e1; border: 1px solid #ffc107; border-radius: 12px; font-size: 0.82rem; color: #7a5c00; text-align: center;';
+                    demoNotice.style.cssText = '';
+                    demoNotice.className = 'demo-mode-notice';
                     demoNotice.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Демо режим:</strong> Системата е в демо режим и позволява до ${MAX_DAILY_CHAT_MESSAGES} чат заявки на ден. Оставащи днес: <strong>${remaining}</strong>.`;
                     chatMessages.appendChild(demoNotice);
                     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -6001,8 +6019,8 @@
                         const existingNotice = body.querySelector('.demo-notice');
                         if (!existingNotice) {
                             const notice = document.createElement('div');
-                            notice.className = 'demo-notice';
-                            notice.style.cssText = 'margin-bottom: 14px; padding: 10px 14px; background: #fff8e1; border: 1px solid #ffc107; border-radius: 12px; font-size: 0.82rem; color: #7a5c00; text-align: center;';
+                            notice.className = 'demo-notice demo-mode-notice';
+                            notice.style.cssText = '';
                             notice.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Демо режим:</strong> Системата е в демо режим и позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Оставащи днес: <strong>${remaining}</strong>.`;
                             body.insertBefore(notice, body.firstChild);
                         }
@@ -6182,9 +6200,9 @@
                 const resultsDiv = document.getElementById('foodResults');
                 if (resultsDiv) {
                     resultsDiv.innerHTML = `
-                        <div class="food-result-section" style="border-left:3px solid #ffc107; background:#fff8e1;">
-                            <h4 style="color:#7a5c00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
-                            <p style="font-size:0.88rem;color:#7a5c00;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.</p>
+                        <div class="food-result-section demo-mode-notice demo-limit-reached" style="border-left:3px solid #ffc107;">
+                            <h4 style="color:#7a3b00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
+                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.</p>
                         </div>
                     `;
                     resultsDiv.classList.add('visible');
@@ -6388,9 +6406,9 @@
                 const resultsDiv = document.getElementById('foodResults');
                 if (resultsDiv) {
                     resultsDiv.innerHTML = `
-                        <div class="food-result-section" style="border-left:3px solid #ffc107; background:#fff8e1;">
-                            <h4 style="color:#7a5c00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
-                            <p style="font-size:0.88rem;color:#7a5c00;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.</p>
+                        <div class="food-result-section demo-mode-notice demo-limit-reached" style="border-left:3px solid #ffc107;">
+                            <h4 style="color:#7a3b00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
+                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.</p>
                         </div>
                     `;
                     resultsDiv.classList.add('visible');
