@@ -3950,10 +3950,37 @@ function buildPlanReadyEmailHtml(clientName, tpl) {
  * Credentials are read from Worker secrets: MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS.
  */
 async function sendEmailViaSMTP(env, to, subject, htmlBody) {
-  const host = env.MAIL_HOST;
-  const port = parseInt(env.MAIL_PORT || '465', 10);
-  const user = env.MAIL_USER;
-  const pass = env.MAIL_PASS;
+  // Trim all credentials to avoid issues with accidental whitespace
+  const rawHost = (env.MAIL_HOST || '').trim();
+  const user = (env.MAIL_USER || '').trim();
+  const pass = (env.MAIL_PASS || '').trim();
+
+  // Support MAIL_HOST being specified as "hostname:port" – split it out.
+  // IPv6 addresses are enclosed in brackets: [::1]:465 or [::1]
+  let host = rawHost;
+  let envPort = env.MAIL_PORT ? parseInt(env.MAIL_PORT, 10) : NaN;
+  if (rawHost.startsWith('[')) {
+    // IPv6: find closing bracket
+    const bracketEnd = rawHost.indexOf(']');
+    if (bracketEnd !== -1) {
+      host = rawHost.substring(0, bracketEnd + 1); // keep brackets for connect()
+      const afterBracket = rawHost.substring(bracketEnd + 1);
+      if (afterBracket.startsWith(':')) {
+        const maybePort = parseInt(afterBracket.substring(1), 10);
+        if (!isNaN(maybePort) && isNaN(envPort)) envPort = maybePort;
+      }
+    }
+  } else {
+    const colonIdx = rawHost.lastIndexOf(':');
+    if (colonIdx !== -1) {
+      const maybePort = parseInt(rawHost.substring(colonIdx + 1), 10);
+      if (!isNaN(maybePort)) {
+        host = rawHost.substring(0, colonIdx).trim();
+        if (isNaN(envPort)) envPort = maybePort;
+      }
+    }
+  }
+  const port = isNaN(envPort) ? 465 : envPort;
 
   if (!host || !user || !pass) {
     console.warn('[Email] Skipped: MAIL_HOST, MAIL_USER or MAIL_PASS not configured');
@@ -3980,6 +4007,7 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
   const decoder = new TextDecoder();
   let buf = '';
 
+  // Returns { code, text } for the final line of an SMTP response.
   const makeReadResponse = (reader) => async () => {
     while (true) {
       let pos = 0;
@@ -3991,7 +4019,7 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
         // Final (or only) line of a response: "NNN <text>"
         if (/^\d{3} /.test(line)) {
           buf = buf.substring(pos);
-          return parseInt(line.substring(0, 3), 10);
+          return { code: parseInt(line.substring(0, 3), 10), text: line.substring(4).trim() };
         }
         // Continuation line "NNN-<text>": keep reading
       }
@@ -4011,19 +4039,19 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
 
   try {
     // Greeting
-    const greet = await readResponse();
-    if (greet !== 220) throw new Error(`[Email] Unexpected greeting: ${greet}`);
+    const { code: greet, text: greetText } = await readResponse();
+    if (greet !== 220) throw new Error(`[Email] Unexpected greeting: ${greet} ${greetText}`);
 
     // EHLO
     await cmd(`EHLO ${host}`);
-    const ehlo = await readResponse();
-    if (ehlo !== 250) throw new Error(`[Email] EHLO failed: ${ehlo}`);
+    const { code: ehlo, text: ehloText } = await readResponse();
+    if (ehlo !== 250) throw new Error(`[Email] EHLO failed: ${ehlo} ${ehloText}`);
 
     // For STARTTLS (port 587), upgrade the plain connection to TLS now
     if (useStartTls) {
       await cmd('STARTTLS');
-      const startTlsCode = await readResponse();
-      if (startTlsCode !== 220) throw new Error(`[Email] STARTTLS rejected: ${startTlsCode}`);
+      const { code: startTlsCode, text: startTlsText } = await readResponse();
+      if (startTlsCode !== 220) throw new Error(`[Email] STARTTLS rejected: ${startTlsCode} ${startTlsText}`);
 
       // Upgrade socket to TLS
       const tlsSocket = socket.startTls();
@@ -4035,36 +4063,36 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
 
       // Re-issue EHLO over TLS
       await cmd(`EHLO ${host}`);
-      const ehlo2 = await readResponse();
-      if (ehlo2 !== 250) throw new Error(`[Email] EHLO (post-TLS) failed: ${ehlo2}`);
+      const { code: ehlo2, text: ehlo2Text } = await readResponse();
+      if (ehlo2 !== 250) throw new Error(`[Email] EHLO (post-TLS) failed: ${ehlo2} ${ehlo2Text}`);
     }
 
     // AUTH LOGIN
     await cmd('AUTH LOGIN');
-    const authChallenge = await readResponse();
-    if (authChallenge !== 334) throw new Error(`[Email] AUTH LOGIN failed: ${authChallenge}`);
+    const { code: authChallenge, text: authChallengeText } = await readResponse();
+    if (authChallenge !== 334) throw new Error(`[Email] AUTH LOGIN failed: ${authChallenge} ${authChallengeText}`);
 
     await cmd(btoa(user));
-    const passChallenge = await readResponse();
-    if (passChallenge !== 334) throw new Error(`[Email] Username rejected: ${passChallenge}`);
+    const { code: passChallenge, text: passChallengeText } = await readResponse();
+    if (passChallenge !== 334) throw new Error(`[Email] Username rejected: ${passChallenge} ${passChallengeText}`);
 
     await cmd(btoa(pass));
-    const authResult = await readResponse();
-    if (authResult !== 235) throw new Error(`[Email] Authentication failed: ${authResult}`);
+    const { code: authResult, text: authResultText } = await readResponse();
+    if (authResult !== 235) throw new Error(`[Email] Authentication failed: ${authResult} ${authResultText}`);
 
     // Envelope
     await cmd(`MAIL FROM:<${user}>`);
-    const mailFrom = await readResponse();
-    if (mailFrom !== 250) throw new Error(`[Email] MAIL FROM rejected: ${mailFrom}`);
+    const { code: mailFrom, text: mailFromText } = await readResponse();
+    if (mailFrom !== 250) throw new Error(`[Email] MAIL FROM rejected: ${mailFrom} ${mailFromText}`);
 
     await cmd(`RCPT TO:<${to}>`);
-    const rcptTo = await readResponse();
-    if (rcptTo !== 250) throw new Error(`[Email] RCPT TO rejected: ${rcptTo}`);
+    const { code: rcptTo, text: rcptToText } = await readResponse();
+    if (rcptTo !== 250) throw new Error(`[Email] RCPT TO rejected: ${rcptTo} ${rcptToText}`);
 
     // Data
     await cmd('DATA');
-    const dataStart = await readResponse();
-    if (dataStart !== 354) throw new Error(`[Email] DATA rejected: ${dataStart}`);
+    const { code: dataStart, text: dataStartText } = await readResponse();
+    if (dataStart !== 354) throw new Error(`[Email] DATA rejected: ${dataStart} ${dataStartText}`);
 
     const date = new Date().toUTCString();
     const msgId = `<${Date.now()}.aidiet@biocode.online>`;
@@ -4084,8 +4112,8 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
     ].join('\r\n');
 
     await writer.write(encoder.encode(message + '\r\n'));
-    const sent = await readResponse();
-    if (sent !== 250) throw new Error(`[Email] Message not accepted: ${sent}`);
+    const { code: sent, text: sentText } = await readResponse();
+    if (sent !== 250) throw new Error(`[Email] Message not accepted: ${sent} ${sentText}`);
 
     await cmd('QUIT');
     console.log(`[Email] Sent successfully to ${to}`);
@@ -11816,11 +11844,18 @@ async function handleTestSendEmail(request, env) {
   try {
     const { to, clientName } = await request.json();
     if (!to) return jsonResponse({ error: 'Missing recipient email (to)' }, 400);
+    const trimmedTo = String(to).trim();
+    const atIdx = trimmedTo.indexOf('@');
+    const isValidEmail = atIdx > 0 && atIdx === trimmedTo.lastIndexOf('@') &&
+      trimmedTo.indexOf('.', atIdx + 2) > atIdx + 1 && !/\s/.test(trimmedTo);
+    if (!trimmedTo || !isValidEmail) {
+      return jsonResponse({ error: `Invalid recipient email address: ${trimmedTo}` }, 400);
+    }
     const tpl = await getEmailTemplate(env);
     const subject = (tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject) + ' [ТЕСТ]';
     const name = clientName || 'Тестов Клиент';
-    await sendEmailViaSMTP(env, to, subject, buildPlanReadyEmailHtml(name, tpl));
-    return jsonResponse({ success: true, message: `Тестовият имейл е изпратен до ${to}` });
+    await sendEmailViaSMTP(env, trimmedTo, subject, buildPlanReadyEmailHtml(name, tpl));
+    return jsonResponse({ success: true, message: `Тестовият имейл е изпратен до ${trimmedTo}` });
   } catch (error) {
     console.error('[TestEmail] Error sending test email:', error.message);
     return jsonResponse({ error: 'Failed to send test email: ' + error.message }, 500);
