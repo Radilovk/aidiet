@@ -3829,6 +3829,7 @@ function notifyMake(ctx, telegramMessage) {
 
 // ─── Email notification via MailChannels (HTTP API) ───
 
+const DEFAULT_MAIL_FROM = 'info@biocode.online';
 
 /**
  * Build the HTML body for the "plan ready" email notification.
@@ -3947,7 +3948,7 @@ async function sendEmailViaMailChannels(env, to, subject, htmlBody) {
     return;
   }
 
-  const fromEmail = (env.MAIL_FROM || 'info@biocode.online').trim();
+  const fromEmail = (env.MAIL_FROM || DEFAULT_MAIL_FROM).trim();
 
   const payload = {
     personalizations: [{ to: [{ email: to }] }],
@@ -3963,7 +3964,7 @@ async function sendEmailViaMailChannels(env, to, subject, htmlBody) {
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
+    const text = await response.text().catch(() => '(unable to read response)');
     throw new Error(`[Email] MailChannels error ${response.status}: ${text}`);
   }
 
