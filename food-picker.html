@@ -368,7 +368,7 @@
 <div class="fp-loading" id="fpLoading">
     <div class="fp-loading-spinner"></div>
     <div class="fp-loading-text" id="fpLoadingText">Запазване на продуктите…</div>
-    <div class="fp-loading-sub">Моля, изчакай</div>
+    <div class="fp-loading-sub" id="fpLoadingSub">Моля, изчакай</div>
 </div>
 
 <div class="fp-header">
@@ -621,14 +621,46 @@ async function handleSubmit() {
     }
 
     hideError();
-    setLoading(true, 'Запазване на продуктите…');
+    setLoading(true, 'Проверка на продуктите…');
 
     try {
-        // 1. Set the food mainlist in KV
+        // 0. Fetch admin blacklist and filter out forbidden/not-recommended foods
+        let blacklistNames = [];
+        try {
+            const blRes = await fetch(`${WORKER_URL}/api/admin/get-blacklist`);
+            if (blRes.ok) {
+                const blData = await blRes.json();
+                if (blData.blacklist && Array.isArray(blData.blacklist)) {
+                    blacklistNames = blData.blacklist.map(e =>
+                        (typeof e === 'string' ? e : (e.item || '')).toLowerCase()
+                    );
+                }
+            }
+        } catch (blErr) {
+            console.warn('Could not fetch blacklist, proceeding without filter:', blErr);
+        }
+
+        // Keep only foods that are not on the blacklist
+        const filteredList = list.filter(item => !blacklistNames.includes(item.toLowerCase()));
+
+        if (filteredList.length === 0) {
+            setLoading(false);
+            showError('Всички избрани продукти са в забранения списък. Моля, избери различни продукти.');
+            return;
+        }
+
+        const removedCount = list.length - filteredList.length;
+        if (removedCount > 0) {
+            showToast(`${removedCount} забранен${removedCount === 1 ? '' : 'и'} продукт${removedCount === 1 ? '' : 'а'} е изключен от плана.`);
+        }
+
+        setLoading(true, 'Запазване на продуктите…');
+
+        // 1. Set the food mainlist in KV (only non-blacklisted items)
         const setRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: list })
+            body: JSON.stringify({ items: filteredList })
         });
         if (!setRes.ok) {
             const errData = await setRes.json().catch(() => ({}));
@@ -649,28 +681,65 @@ async function handleSubmit() {
         }
 
         // 3. Persist selection locally (for UI restore and debug)
-        localStorage.setItem('userFoodList', JSON.stringify(list));
+        localStorage.setItem('userFoodList', JSON.stringify(filteredList));
 
         if (DEBUG_MODE) {
             const debugWrap = document.getElementById('fpDebugWrap');
             const debugBox = document.getElementById('debugBox');
             debugBox.textContent = JSON.stringify({
-                userFoodList: list,
-                count: list.length,
-                savedAt: new Date().toISOString(),
-                apiCalls: [
-                    `POST ${WORKER_URL}/api/admin/set-mainlist → OK`,
-                    `POST ${WORKER_URL}/api/admin/set-mainlist-enabled → OK`
-                ]
+                userFoodList: filteredList,
+                removedBlacklisted: list.filter(i => blacklistNames.includes(i.toLowerCase())),
+                count: filteredList.length,
+                savedAt: new Date().toISOString()
             }, null, 2);
             debugWrap.style.display = 'block';
         }
 
-        setLoading(true, 'Пренасочване към въпросника…');
+        // 4. Check for existing user profile from questionnaire2
+        const existingUserDataStr = localStorage.getItem('userData');
+        if (existingUserDataStr) {
+            // Re-generate plan using the existing profile and the new food selection
+            const userData = JSON.parse(existingUserDataStr);
+            setLoading(true, 'Генериране на план с избраните продукти…', 'Това може да отнеме до няколко минути');
 
-        // 4. Short delay so user sees the message, then redirect
-        await new Promise(r => setTimeout(r, 700));
-        window.location.href = 'questionnaire.html';
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 360000);
+
+            const planRes = await fetch(`${WORKER_URL}/api/generate-plan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (!planRes.ok) {
+                const errData = await planRes.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${planRes.status}`);
+            }
+
+            const result = await planRes.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Грешка при генериране на плана');
+            }
+
+            // Save the new plan
+            localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+            if (result.userId) {
+                localStorage.setItem('userId', result.userId);
+            }
+            localStorage.removeItem('hasSeenPlanJustification');
+
+            setLoading(true, 'Пренасочване към плана…');
+            await new Promise(r => setTimeout(r, 700));
+            window.location.href = 'plan.html';
+
+        } else {
+            // No existing profile — redirect to questionnaire so the user can fill it in
+            setLoading(true, 'Пренасочване към въпросника…');
+            await new Promise(r => setTimeout(r, 700));
+            window.location.href = 'questionnaire.html';
+        }
 
     } catch (err) {
         setLoading(false);
@@ -680,11 +749,13 @@ async function handleSubmit() {
 }
 
 // ── Loading state ──────────────────────────────────────────────────────────
-function setLoading(active, text) {
+function setLoading(active, text, sub) {
     const overlay = document.getElementById('fpLoading');
     const btn = document.getElementById('btnSubmit');
     if (active) {
         document.getElementById('fpLoadingText').textContent = text || 'Зареждане…';
+        const subEl = document.getElementById('fpLoadingSub');
+        if (subEl) subEl.textContent = sub !== undefined ? sub : 'Моля, изчакай';
         overlay.classList.add('active');
         btn.disabled = true;
     } else {

@@ -5203,6 +5203,14 @@
             
             if (!message) return;
 
+            // Food picker command
+            if (message.toLowerCase() === '*selectfoods') {
+                addMessageToChat('🥗 Отваряне на избора на продукти…', 'assistant');
+                input.value = '';
+                setTimeout(() => { window.location.href = 'food-picker.html'; }, 700);
+                return;
+            }
+
             // Secret unlock command for demo limit
             if (message.toLowerCase() === 'unlockme') {
                 isDemoLimitUnlocked = true;
