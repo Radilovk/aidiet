@@ -309,7 +309,7 @@
 
 <!-- Sticky count bar -->
 <div class="fp-bar">
-    <div class="fp-bar-count">Избрани: <span id="totalCount">0</span> продукта</div>
+    <div class="fp-bar-count">Избрани: <span id="totalCount">0</span> <span id="totalWord">продукта</span></div>
     <button class="btn-clear-all" onclick="clearAll()"><i class="fas fa-xmark" style="margin-right:4px;"></i>Изчисти всички</button>
 </div>
 
@@ -406,7 +406,7 @@ const CATALOG = [
         icon: '🫙',
         label: 'Подправки и добавки',
         items: [
-            'Зехтин (зa готвене)', 'Соев сос', 'Хумус', 'Горчица',
+            'Зехтин (за готвене)', 'Соев сос', 'Хумус', 'Горчица',
             'Лимонов сок', 'Оцет (ябълков)', 'Доматено пюре',
             'Кокосово мляко', 'Мед', 'Стевия', 'Канела',
             'Куркума', 'Джинджифил', 'Чили', 'Черен пипер'
@@ -493,9 +493,14 @@ function updateBadge(catId) {
     badge.dataset.count = count;
 }
 
+function productWord(n) {
+    return n === 1 ? 'продукт' : 'продукта';
+}
+
 function updateTotal() {
     const count = Object.keys(selected).length;
     document.getElementById('totalCount').textContent = count;
+    document.getElementById('totalWord').textContent = productWord(count);
     document.getElementById('btnSubmit').disabled = count === 0;
 }
 
@@ -567,12 +572,13 @@ function restoreFromStorage() {
     try {
         const saved = JSON.parse(localStorage.getItem('userFoodList') || '[]');
         if (!Array.isArray(saved) || saved.length === 0) return;
-        saved.forEach(name => {
-            const checkbox = document.querySelector(`.fp-item input[value="${CSS.escape(name)}"]`);
-            if (checkbox) {
-                checkbox.checked = true;
-                selected[name] = true;
-                checkbox.closest('.fp-item').classList.add('checked');
+        const allCheckboxes = document.querySelectorAll('.fp-item input[type="checkbox"]');
+        const savedSet = new Set(saved);
+        allCheckboxes.forEach(cb => {
+            if (savedSet.has(cb.value)) {
+                cb.checked = true;
+                selected[cb.value] = true;
+                cb.closest('.fp-item').classList.add('checked');
             }
         });
         CATALOG.forEach(cat => updateBadge(cat.id));
