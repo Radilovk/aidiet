@@ -3965,7 +3965,7 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
   }
 
   const { connect } = await import('cloudflare:sockets');
-  const socket = connect({ hostname: host, port }, { secureTransport: 'on' });
+  const socket = connect({ hostname: host, port }, { secureTransport: 'on', allowHalfOpen: false });
   const reader = socket.readable.getReader();
   const writer = socket.writable.getWriter();
   const encoder = new TextEncoder();
