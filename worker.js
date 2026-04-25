@@ -3943,12 +3943,7 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
   const apiKey = env.RESEND_API_KEY;
 
   if (!apiKey) {
-    console.warn('[Email] Skipped: RESEND_API_KEY not configured');
-    return;
-  }
-  if (!to) {
-    console.warn('[Email] Skipped: recipient address is empty');
-    return;
+    throw new Error('RESEND_API_KEY не е конфигуриран. Добавете го като Worker secret.');
   }
 
   const response = await fetch('https://api.resend.com/emails', {
@@ -11700,7 +11695,8 @@ async function handleTestSendEmail(request, env) {
     await sendEmailViaSMTP(env, to, subject, buildPlanReadyEmailHtml(name, tpl));
     return jsonResponse({ success: true, message: `Тестовият имейл е изпратен до ${to}` });
   } catch (error) {
-    return jsonResponse({ error: 'Failed to send test email: ' + error.message }, 500);
+    console.error('[TestEmail] Error:', error.message);
+    return jsonResponse({ error: error.message }, 500);
   }
 }
 
