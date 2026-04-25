@@ -933,7 +933,7 @@
             background: none;
             border: none;
             color: var(--text-gray);
-            font-size: 0.6rem;
+            font-size: 0.75rem;
             font-weight: 600;
             cursor: pointer;
             padding: 6px 2px;
@@ -2692,28 +2692,28 @@
 
         <!-- Mobile Bottom Navigation -->
         <nav class="mobile-bottom-nav" id="mobileBottomNav">
-            <button class="mobile-nav-btn active" id="mbn-configuration" onclick="switchTab('configuration', event)">
-                <i class="fas fa-cog"></i>
+            <button class="mobile-nav-btn active" id="mbn-configuration" onclick="switchTab('configuration', event)" aria-label="Конфигурация">
+                <i class="fas fa-cog" aria-hidden="true"></i>
                 <span>Конфиг.</span>
             </button>
-            <button class="mobile-nav-btn" id="mbn-ai-prompts" onclick="switchTab('ai-prompts', event)">
-                <i class="fas fa-robot"></i>
+            <button class="mobile-nav-btn" id="mbn-ai-prompts" onclick="switchTab('ai-prompts', event)" aria-label="AI Промпти">
+                <i class="fas fa-robot" aria-hidden="true"></i>
                 <span>Промпти</span>
             </button>
-            <button class="mobile-nav-btn" id="mbn-monitoring" onclick="switchTab('monitoring', event)">
-                <i class="fas fa-chart-line"></i>
+            <button class="mobile-nav-btn" id="mbn-monitoring" onclick="switchTab('monitoring', event)" aria-label="Мониторинг">
+                <i class="fas fa-chart-line" aria-hidden="true"></i>
                 <span>Монит.</span>
             </button>
-            <button class="mobile-nav-btn" id="mbn-features" onclick="switchTab('features', event)">
-                <i class="fas fa-sliders-h"></i>
+            <button class="mobile-nav-btn" id="mbn-features" onclick="switchTab('features', event)" aria-label="Функции">
+                <i class="fas fa-sliders-h" aria-hidden="true"></i>
                 <span>Функции</span>
             </button>
-            <button class="mobile-nav-btn" id="mbn-protocols" onclick="switchTab('protocols', event)">
-                <i class="fas fa-flask"></i>
+            <button class="mobile-nav-btn" id="mbn-protocols" onclick="switchTab('protocols', event)" aria-label="Протоколи">
+                <i class="fas fa-flask" aria-hidden="true"></i>
                 <span>Протоколи</span>
             </button>
-            <button class="mobile-nav-btn" id="mbn-ui-images" onclick="switchTab('ui-images', event)">
-                <i class="fas fa-images"></i>
+            <button class="mobile-nav-btn" id="mbn-ui-images" onclick="switchTab('ui-images', event)" aria-label="UI Изображения">
+                <i class="fas fa-images" aria-hidden="true"></i>
                 <span>Образи</span>
             </button>
         </nav>
