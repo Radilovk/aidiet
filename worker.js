@@ -3827,17 +3827,7 @@ function notifyMake(ctx, telegramMessage) {
   if (ctx?.waitUntil) ctx.waitUntil(p);
 }
 
-// ─── Email notification via SMTP (SMTPS port 465) ───
-
-/**
- * Encode a UTF-8 string as base64, safe for non-ASCII characters.
- */
-function utf8ToBase64(str) {
-  const bytes = new TextEncoder().encode(str);
-  const chars = [];
-  bytes.forEach(b => chars.push(String.fromCharCode(b)));
-  return btoa(chars.join(''));
-}
+// ─── Email notification via Resend API ───
 
 /**
  * Build the HTML body for the "plan ready" email notification.
@@ -3946,17 +3936,14 @@ function buildPlanReadyEmailHtml(clientName, tpl) {
 }
 
 /**
- * Send an email via SMTPS (port 465) using cloudflare:sockets.
- * Credentials are read from Worker secrets: MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS.
+ * Send an email via the Resend API (https://resend.com).
+ * Requires the Worker secret RESEND_API_KEY.
  */
 async function sendEmailViaSMTP(env, to, subject, htmlBody) {
-  const host = env.MAIL_HOST;
-  const port = parseInt(env.MAIL_PORT || '465', 10);
-  const user = env.MAIL_USER;
-  const pass = env.MAIL_PASS;
+  const apiKey = env.RESEND_API_KEY;
 
-  if (!host || !user || !pass) {
-    console.warn('[Email] Skipped: MAIL_HOST, MAIL_USER or MAIL_PASS not configured');
+  if (!apiKey) {
+    console.warn('[Email] Skipped: RESEND_API_KEY not configured');
     return;
   }
   if (!to) {
@@ -3964,103 +3951,26 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
     return;
   }
 
-  const { connect } = await import('cloudflare:sockets');
-  const socket = connect({ hostname: host, port }, { secureTransport: 'on', allowHalfOpen: false });
-  const reader = socket.readable.getReader();
-  const writer = socket.writable.getWriter();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  let buf = '';
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'AiDiet <info@biocode.online>',
+      to: [to],
+      subject,
+      html: htmlBody,
+    }),
+  });
 
-  const readResponse = async () => {
-    while (true) {
-      let pos = 0;
-      while (pos < buf.length) {
-        const crlf = buf.indexOf('\r\n', pos);
-        if (crlf === -1) break;
-        const line = buf.substring(pos, crlf);
-        pos = crlf + 2;
-        // Final (or only) line of a response: "NNN <text>"
-        if (/^\d{3} /.test(line)) {
-          buf = buf.substring(pos);
-          return parseInt(line.substring(0, 3), 10);
-        }
-        // Continuation line "NNN-<text>": keep reading
-      }
-      const { value, done } = await reader.read();
-      if (done) throw new Error('[Email] SMTP connection closed unexpectedly');
-      buf += decoder.decode(value);
-    }
-  };
-
-  const cmd = async (line) => {
-    await writer.write(encoder.encode(line + '\r\n'));
-  };
-
-  try {
-    // Greeting
-    const greet = await readResponse();
-    if (greet !== 220) throw new Error(`[Email] Unexpected greeting: ${greet}`);
-
-    // EHLO
-    await cmd(`EHLO ${host}`);
-    const ehlo = await readResponse();
-    if (ehlo !== 250) throw new Error(`[Email] EHLO failed: ${ehlo}`);
-
-    // AUTH LOGIN
-    await cmd('AUTH LOGIN');
-    const authChallenge = await readResponse();
-    if (authChallenge !== 334) throw new Error(`[Email] AUTH LOGIN failed: ${authChallenge}`);
-
-    await cmd(btoa(user));
-    const passChallenge = await readResponse();
-    if (passChallenge !== 334) throw new Error(`[Email] Username rejected: ${passChallenge}`);
-
-    await cmd(btoa(pass));
-    const authResult = await readResponse();
-    if (authResult !== 235) throw new Error(`[Email] Authentication failed: ${authResult}`);
-
-    // Envelope
-    await cmd(`MAIL FROM:<${user}>`);
-    const mailFrom = await readResponse();
-    if (mailFrom !== 250) throw new Error(`[Email] MAIL FROM rejected: ${mailFrom}`);
-
-    await cmd(`RCPT TO:<${to}>`);
-    const rcptTo = await readResponse();
-    if (rcptTo !== 250) throw new Error(`[Email] RCPT TO rejected: ${rcptTo}`);
-
-    // Data
-    await cmd('DATA');
-    const dataStart = await readResponse();
-    if (dataStart !== 354) throw new Error(`[Email] DATA rejected: ${dataStart}`);
-
-    const date = new Date().toUTCString();
-    const msgId = `<${Date.now()}.aidiet@biocode.online>`;
-    const encodedSubject = `=?UTF-8?B?${utf8ToBase64(subject)}?=`;
-    const message = [
-      `From: AiDiet <${user}>`,
-      `To: ${to}`,
-      `Subject: ${encodedSubject}`,
-      `Date: ${date}`,
-      `Message-ID: ${msgId}`,
-      `MIME-Version: 1.0`,
-      `Content-Type: text/html; charset=UTF-8`,
-      `Content-Transfer-Encoding: 8bit`,
-      ``,
-      htmlBody,
-      `.`
-    ].join('\r\n');
-
-    await writer.write(encoder.encode(message + '\r\n'));
-    const sent = await readResponse();
-    if (sent !== 250) throw new Error(`[Email] Message not accepted: ${sent}`);
-
-    await cmd('QUIT');
-    console.log(`[Email] Sent successfully to ${to}`);
-  } finally {
-    try { await writer.close(); } catch (_) {}
-    try { socket.close(); } catch (_) {}
+  if (!response.ok) {
+    const err = await response.text().catch(() => '');
+    throw new Error(`[Email] Resend API error ${response.status}: ${err}`);
   }
+
+  console.log(`[Email] Sent successfully to ${to}`);
 }
 
 /**
