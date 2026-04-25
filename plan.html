@@ -4459,7 +4459,12 @@
                 const savedMeals = getSavedMealOverrides();
                 const overrideKey = `${currentDay}_${meal.type}`;
                 const override = savedMeals[overrideKey];
-                const displayMeal = override ? { ...meal, name: override.name, description: override.desc || meal.description || '', calories: override.kcal || meal.calories } : meal;
+                const displayMeal = override ? {
+                    ...meal,
+                    name: override.name || meal.name,
+                    description: override.description || override.desc || meal.description || '',
+                    calories: override.calories || override.kcal || meal.calories
+                } : meal;
                 const isOverridden = !!override;
 
                 const mealCard = document.createElement('div');
@@ -4503,7 +4508,7 @@
                     changeBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
                     changeBtn.onclick = function(e) {
                         e.stopPropagation();
-                        const params = new URLSearchParams({ mealType: meal.type, day: currentDay });
+                        const params = new URLSearchParams({ mealType: meal.type, day: currentDay, returnTo: 'plan' });
                         window.location.href = `meal-picker.html?${params.toString()}`;
                     };
                     btnsWrap.appendChild(changeBtn);

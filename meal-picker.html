@@ -984,9 +984,25 @@
     let swapDay = null;         // e.g. "1"
     let detailMeal = null;      // currently shown in detail sheet
     let userData = null;
-    const MAX_SELECTIONS = 7;   // upper limit for progress bar
+    const MAX_SELECTIONS = 7;       // progress bar upper limit (7 = all meal types in a full day)
+    const LONG_PRESS_DURATION = 500; // ms before long-press triggers detail sheet
+    const SWIPE_THRESHOLD_PX = 60;  // minimum swipe distance to trigger add/skip action
 
-    // ── Init ──────────────────────────────────────────────────────────────────
+    // ── localStorage helpers ──────────────────────────────────────────────────
+    function loadSavedMeals() {
+        try {
+            const raw = localStorage.getItem('selectedMeals');
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return (parsed && typeof parsed === 'object') ? parsed : {};
+        } catch(e) { return {}; }
+    }
+
+    function saveSelectedMeals(mealsObj) {
+        try {
+            localStorage.setItem('selectedMeals', JSON.stringify(mealsObj));
+        } catch(e) {}
+    }
     (function init() {
         // Parse query params
         const params = new URLSearchParams(location.search);
@@ -998,10 +1014,7 @@
         try { userData = JSON.parse(localStorage.getItem('userData') || 'null'); } catch(e) {}
 
         // Load previously selected meals
-        try {
-            const saved = JSON.parse(localStorage.getItem('selectedMeals') || '{}');
-            selected = (saved && typeof saved === 'object') ? saved : {};
-        } catch(e) { selected = {}; }
+        selected = loadSavedMeals();
 
         // Update theme icon
         updateThemeIcon();
@@ -1202,7 +1215,7 @@
         // Long-press / double-tap → open detail
         let pressTimer;
         card.addEventListener('pointerdown', () => {
-            pressTimer = setTimeout(() => openDetail(meal, cat), 500);
+            pressTimer = setTimeout(() => openDetail(meal, cat), LONG_PRESS_DURATION);
         });
         card.addEventListener('pointerup', () => clearTimeout(pressTimer));
         card.addEventListener('pointercancel', () => clearTimeout(pressTimer));
@@ -1222,7 +1235,6 @@
     // ── Swipe gesture ─────────────────────────────────────────────────────────
     function setupSwipeGesture(card, meal, cat, mealKey) {
         let startX = 0, startY = 0, isSwiping = false;
-        const THRESHOLD = 60;
 
         card.addEventListener('touchstart', (e) => {
             startX = e.touches[0].clientX;
@@ -1235,7 +1247,7 @@
             const dy = Math.abs(e.touches[0].clientY - startY);
             if (Math.abs(dx) > 15 && dy < 40) {
                 isSwiping = true;
-                const ratio = Math.min(Math.abs(dx) / THRESHOLD, 1);
+                const ratio = Math.min(Math.abs(dx) / SWIPE_THRESHOLD_PX, 1);
                 card.style.transform = `translateX(${dx * 0.4}px) rotate(${dx * 0.04}deg)`;
                 const accept = card.querySelector('.swipe-accept');
                 const reject = card.querySelector('.swipe-reject');
@@ -1257,7 +1269,7 @@
             accept.style.opacity = 0;
             reject.style.opacity = 0;
 
-            if (isSwiping && Math.abs(dx) > THRESHOLD) {
+            if (isSwiping && Math.abs(dx) > SWIPE_THRESHOLD_PX) {
                 if (dx > 0) {
                     // Swipe right = add
                     if (!selected[mealKey]) toggleMeal(card, meal, cat, mealKey);
@@ -1296,13 +1308,10 @@
         if (swapMode) {
             const key = `${swapDay}_${swapMealType}`;
             if (selected[mealKey]) {
-                const saveable = {};
-                saveable[key] = selected[mealKey];
                 // Merge with existing saved meals
-                let allSaved = {};
-                try { allSaved = JSON.parse(localStorage.getItem('selectedMeals') || '{}'); } catch(e) {}
+                const allSaved = loadSavedMeals();
                 allSaved[key] = selected[mealKey];
-                localStorage.setItem('selectedMeals', JSON.stringify(allSaved));
+                saveSelectedMeals(allSaved);
                 showToast(`✅ ${meal.emoji} ${meal.name} — заменено!`, 'success');
                 setTimeout(() => goBack(), 800);
             }
@@ -1433,20 +1442,12 @@
         if (Object.keys(selected).length === 0) return;
 
         // Merge with any existing saved meals (from previous sessions)
-        let allSaved = {};
-        try { allSaved = JSON.parse(localStorage.getItem('selectedMeals') || '{}'); } catch(e) {}
+        const allSaved = loadSavedMeals();
         Object.assign(allSaved, selected);
-        localStorage.setItem('selectedMeals', JSON.stringify(allSaved));
+        saveSelectedMeals(allSaved);
 
         showToast('✅ Ястията са запазени!', 'success');
-        setTimeout(() => {
-            // Go back or to plan
-            if (document.referrer && document.referrer.includes('plan.html')) {
-                history.back();
-            } else {
-                window.location.href = 'plan.html';
-            }
-        }, 700);
+        setTimeout(() => goBack(), 700);
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────────
@@ -1464,7 +1465,16 @@
 
     // ── Navigation ────────────────────────────────────────────────────────────
     function goBack() {
-        if (history.length > 1) {
+        // Use the returnTo query param if provided; otherwise fall back to history or plan.html
+        const returnTo = new URLSearchParams(location.search).get('returnTo');
+        if (returnTo === 'plan' || swapMode) {
+            // Came from plan.html – use history.back() if possible, else navigate directly
+            if (history.length > 1) {
+                history.back();
+            } else {
+                window.location.href = 'plan.html';
+            }
+        } else if (history.length > 1) {
             history.back();
         } else {
             window.location.href = 'plan.html';
