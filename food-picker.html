@@ -411,6 +411,7 @@
 // ── Config ─────────────────────────────────────────────────────────────────
 const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
+const PLAN_GENERATION_TIMEOUT_MS = 360000; // 6 minutes
 
 
 const CATALOG = [
@@ -703,7 +704,7 @@ async function handleSubmit() {
             setLoading(true, 'Генериране на план с избраните продукти…', 'Това може да отнеме до няколко минути');
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 360000);
+            const timeoutId = setTimeout(() => controller.abort(), PLAN_GENERATION_TIMEOUT_MS);
 
             const planRes = await fetch(`${WORKER_URL}/api/generate-plan`, {
                 method: 'POST',
