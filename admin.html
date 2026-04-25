@@ -406,17 +406,14 @@
 
         @media (max-width: 768px) {
             body {
-                padding: 10px;
+                padding: 10px 10px calc(76px + var(--safe-area-inset-bottom)) 10px;
             }
 
             header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-
-            .card {
-                padding: 20px;
+                flex-direction: row;
+                justify-content: space-between;
+                gap: 10px;
+                text-align: left;
             }
         }
 
@@ -848,17 +845,117 @@
             }
         }
 
-        /* Responsive tabs for mobile */
+        /* ===== MOBILE BOTTOM NAV ===== */
         @media (max-width: 768px) {
+            /* Hide the inline tab navigation on mobile — replaced by fixed bottom bar */
             .tab-navigation {
-                flex-direction: column;
-                gap: 8px;
+                display: none;
             }
 
-            .tab-btn {
-                min-width: 100%;
-                padding: 12px 15px;
+            /* Fixed bottom navigation bar */
+            .mobile-bottom-nav {
+                display: flex !important;
             }
+
+            /* Compact header */
+            header {
+                padding: 12px 16px;
+                margin-bottom: 16px;
+                border-radius: 16px;
+            }
+
+            header h1 {
+                font-size: 1.1rem;
+            }
+
+            /* Compact stats */
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin-bottom: 16px;
+            }
+
+            .stats-grid .stat-card:last-child {
+                grid-column: 1 / -1;
+            }
+
+            .stat-card {
+                padding: 14px 10px;
+                border-radius: 16px;
+            }
+
+            .stat-card h3 {
+                font-size: 1.5rem;
+            }
+
+            /* Compact cards */
+            .card {
+                padding: 16px;
+                border-radius: 16px;
+                margin-bottom: 14px;
+            }
+
+            .card h2 {
+                font-size: 1rem;
+                margin-bottom: 14px;
+            }
+        }
+
+        /* Mobile bottom navigation — hidden on desktop */
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(60px + var(--safe-area-inset-bottom));
+            padding-bottom: var(--safe-area-inset-bottom);
+            background: var(--white);
+            box-shadow: 0 -2px 16px rgba(0,0,0,0.10);
+            z-index: 1000;
+            align-items: stretch;
+            border-top: 1px solid rgba(0,0,0,0.06);
+            transition: background-color 0.3s ease;
+        }
+
+        [data-theme="dark"] .mobile-bottom-nav {
+            box-shadow: 0 -2px 16px rgba(0,0,0,0.35);
+            border-top-color: rgba(255,255,255,0.07);
+        }
+
+        .mobile-nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 0.6rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 2px;
+            transition: color 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .mobile-nav-btn i {
+            font-size: 1.3rem;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .mobile-nav-btn.active {
+            color: var(--primary-red);
+        }
+
+        .mobile-nav-btn.active i {
+            transform: translateY(-2px);
+        }
+
+        .mobile-nav-btn:active i {
+            transform: scale(0.9);
         }
 
     </style>
@@ -2592,6 +2689,34 @@
             <!-- End UI Images Tab -->
 
         </div>
+
+        <!-- Mobile Bottom Navigation -->
+        <nav class="mobile-bottom-nav" id="mobileBottomNav">
+            <button class="mobile-nav-btn active" id="mbn-configuration" onclick="switchTab('configuration', event)">
+                <i class="fas fa-cog"></i>
+                <span>Конфиг.</span>
+            </button>
+            <button class="mobile-nav-btn" id="mbn-ai-prompts" onclick="switchTab('ai-prompts', event)">
+                <i class="fas fa-robot"></i>
+                <span>Промпти</span>
+            </button>
+            <button class="mobile-nav-btn" id="mbn-monitoring" onclick="switchTab('monitoring', event)">
+                <i class="fas fa-chart-line"></i>
+                <span>Монит.</span>
+            </button>
+            <button class="mobile-nav-btn" id="mbn-features" onclick="switchTab('features', event)">
+                <i class="fas fa-sliders-h"></i>
+                <span>Функции</span>
+            </button>
+            <button class="mobile-nav-btn" id="mbn-protocols" onclick="switchTab('protocols', event)">
+                <i class="fas fa-flask"></i>
+                <span>Протоколи</span>
+            </button>
+            <button class="mobile-nav-btn" id="mbn-ui-images" onclick="switchTab('ui-images', event)">
+                <i class="fas fa-images"></i>
+                <span>Образи</span>
+            </button>
+        </nav>
     </div>
 
     <script>
@@ -3008,11 +3133,14 @@
                 content.classList.remove('active');
             });
 
-            // Remove active class from all tab buttons
+            // Remove active class from all tab buttons (desktop)
             const tabButtons = document.querySelectorAll('.tab-btn');
             tabButtons.forEach(button => {
                 button.classList.remove('active');
             });
+
+            // Remove active class from all mobile nav buttons
+            document.querySelectorAll('.mobile-nav-btn').forEach(btn => btn.classList.remove('active'));
 
             // Show selected tab content
             const selectedTab = document.getElementById(`tab-${tabName}`);
@@ -3022,7 +3150,8 @@
 
             // Add active class to clicked button (using evt if passed, otherwise find by data attribute)
             if (evt && evt.target) {
-                evt.target.closest('.tab-btn').classList.add('active');
+                const clicked = evt.target.closest('.tab-btn') || evt.target.closest('.mobile-nav-btn');
+                if (clicked) clicked.classList.add('active');
             } else {
                 // Find button by matching tab name in a safe way
                 const buttons = document.querySelectorAll('.tab-btn');
@@ -3034,6 +3163,10 @@
                 });
             }
 
+            // Sync mobile bottom nav active state
+            const mbn = document.getElementById(`mbn-${tabName}`);
+            if (mbn) mbn.classList.add('active');
+
             // Save selected tab to localStorage
             localStorage.setItem('selectedTab', tabName);
 
@@ -3044,6 +3177,11 @@
             // Auto-load UI images when ui-images tab is opened
             if (tabName === 'ui-images') {
                 loadAllUIImages();
+            }
+
+            // Scroll to top of content on mobile
+            if (window.innerWidth <= 768) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
@@ -3058,8 +3196,11 @@
             tabContents.forEach(content => content.classList.remove('active'));
             const tabButtons = document.querySelectorAll('.tab-btn');
             tabButtons.forEach(button => button.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-btn').forEach(btn => btn.classList.remove('active'));
             
             document.getElementById(`tab-${tabToLoad}`)?.classList.add('active');
+            const mbn = document.getElementById(`mbn-${tabToLoad}`);
+            if (mbn) mbn.classList.add('active');
             
             // Find and activate the matching button
             const buttons = document.querySelectorAll('.tab-btn');
