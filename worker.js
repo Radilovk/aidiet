@@ -3872,11 +3872,11 @@ const DEFAULT_EMAIL_TEMPLATE = {
 function buildPlanReadyEmailHtml(clientName, tpl) {
   const t = Object.assign({}, DEFAULT_EMAIL_TEMPLATE, tpl || {});
   const safeName = escapeHtml(clientName);
-  const safeGreeting = escapeHtml(t.greeting.replace('{name}', clientName));
-  const safeHeaderTitle = escapeHtml(t.headerTitle);
-  const safeHeaderSubtitle = escapeHtml(t.headerSubtitle);
-  const safeButtonText = escapeHtml(t.buttonText);
-  const safeContactEmail = escapeHtml(t.contactEmail);
+  const safeGreeting = escapeHtml((t.greeting || DEFAULT_EMAIL_TEMPLATE.greeting).replace('{name}', clientName));
+  const safeHeaderTitle = escapeHtml(t.headerTitle || DEFAULT_EMAIL_TEMPLATE.headerTitle);
+  const safeHeaderSubtitle = escapeHtml(t.headerSubtitle || DEFAULT_EMAIL_TEMPLATE.headerSubtitle);
+  const safeButtonText = escapeHtml(t.buttonText || DEFAULT_EMAIL_TEMPLATE.buttonText);
+  const safeContactEmail = escapeHtml(t.contactEmail || DEFAULT_EMAIL_TEMPLATE.contactEmail);
   // paragraph1 and paragraph2 may contain intentional HTML (<strong> etc.), so used as-is
   const year = new Date().getFullYear();
   return `<!DOCTYPE html>
@@ -3964,15 +3964,23 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
     return;
   }
 
+  // Port 465 = implicit TLS (SMTPS); port 587 = STARTTLS (plain first, then upgrade)
+  const useStartTls = port === 587;
+  console.log(`[Email] Connecting to ${host}:${port} (${useStartTls ? 'STARTTLS' : 'implicit TLS'})`);
+
   const { connect } = await import('cloudflare:sockets');
-  const socket = connect({ hostname: host, port }, { secureTransport: 'on', allowHalfOpen: false });
-  const reader = socket.readable.getReader();
-  const writer = socket.writable.getWriter();
+  const socket = connect(
+    { hostname: host, port },
+    { secureTransport: useStartTls ? 'starttls' : 'on', allowHalfOpen: false }
+  );
+
+  let reader = socket.readable.getReader();
+  let writer = socket.writable.getWriter();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
   let buf = '';
 
-  const readResponse = async () => {
+  const makeReadResponse = (reader) => async () => {
     while (true) {
       let pos = 0;
       while (pos < buf.length) {
@@ -3993,9 +4001,13 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
     }
   };
 
-  const cmd = async (line) => {
+  let readResponse = makeReadResponse(reader);
+
+  const makeCmd = (writer) => async (line) => {
     await writer.write(encoder.encode(line + '\r\n'));
   };
+
+  let cmd = makeCmd(writer);
 
   try {
     // Greeting
@@ -4006,6 +4018,26 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
     await cmd(`EHLO ${host}`);
     const ehlo = await readResponse();
     if (ehlo !== 250) throw new Error(`[Email] EHLO failed: ${ehlo}`);
+
+    // For STARTTLS (port 587), upgrade the plain connection to TLS now
+    if (useStartTls) {
+      await cmd('STARTTLS');
+      const startTlsCode = await readResponse();
+      if (startTlsCode !== 220) throw new Error(`[Email] STARTTLS rejected: ${startTlsCode}`);
+
+      // Upgrade socket to TLS
+      const tlsSocket = socket.startTls();
+      buf = '';
+      reader = tlsSocket.readable.getReader();
+      writer = tlsSocket.writable.getWriter();
+      readResponse = makeReadResponse(reader);
+      cmd = makeCmd(writer);
+
+      // Re-issue EHLO over TLS
+      await cmd(`EHLO ${host}`);
+      const ehlo2 = await readResponse();
+      if (ehlo2 !== 250) throw new Error(`[Email] EHLO (post-TLS) failed: ${ehlo2}`);
+    }
 
     // AUTH LOGIN
     await cmd('AUTH LOGIN');
@@ -11790,6 +11822,7 @@ async function handleTestSendEmail(request, env) {
     await sendEmailViaSMTP(env, to, subject, buildPlanReadyEmailHtml(name, tpl));
     return jsonResponse({ success: true, message: `Тестовият имейл е изпратен до ${to}` });
   } catch (error) {
+    console.error('[TestEmail] Error sending test email:', error.message);
     return jsonResponse({ error: 'Failed to send test email: ' + error.message }, 500);
   }
 }
