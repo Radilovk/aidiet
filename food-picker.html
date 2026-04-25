@@ -294,6 +294,68 @@
             transform: translateX(-50%) translateY(0);
         }
         .fp-toast.error { background: #ef4444; }
+        .fp-toast.success { background: #16a34a; }
+
+        /* ── Loading overlay ── */
+        .fp-loading {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,47,46,0.65);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .fp-loading.active { display: flex; }
+        .fp-loading-spinner {
+            width: 52px;
+            height: 52px;
+            border: 5px solid rgba(255,255,255,0.25);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: fp-spin 0.8s linear infinite;
+        }
+        @keyframes fp-spin { to { transform: rotate(360deg); } }
+        .fp-loading-text {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 0 20px;
+        }
+        .fp-loading-sub {
+            color: rgba(255,255,255,0.75);
+            font-size: 0.82rem;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        /* ── Error banner ── */
+        .fp-error-banner {
+            display: none;
+            max-width: 680px;
+            margin: 0 auto 0;
+            padding: 0 16px;
+        }
+        .fp-error-banner.visible { display: block; }
+        .fp-error-box {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+        [data-theme="dark"] .fp-error-box {
+            background: rgba(239,68,68,0.15);
+            border-color: rgba(239,68,68,0.35);
+            color: #fca5a5;
+        }
 
         @media (max-width: 440px) {
             .fp-foods { grid-template-columns: repeat(2, 1fr); }
@@ -301,6 +363,13 @@
     </style>
 </head>
 <body>
+
+<!-- Loading overlay -->
+<div class="fp-loading" id="fpLoading">
+    <div class="fp-loading-spinner"></div>
+    <div class="fp-loading-text" id="fpLoadingText">Запазване на продуктите…</div>
+    <div class="fp-loading-sub">Моля, изчакай</div>
+</div>
 
 <div class="fp-header">
     <h1><i class="fas fa-basket-shopping" style="margin-right:8px;"></i>Какво има в хладилника ти?</h1>
@@ -313,13 +382,18 @@
     <button class="btn-clear-all" onclick="clearAll()"><i class="fas fa-xmark" style="margin-right:4px;"></i>Изчисти всички</button>
 </div>
 
+<!-- Error banner -->
+<div class="fp-error-banner" id="fpErrorBanner">
+    <div class="fp-error-box" id="fpErrorBox"></div>
+</div>
+
 <!-- Category accordions -->
 <div class="fp-content" id="fpContent"></div>
 
-<!-- Debug JSON output -->
-<div class="fp-debug">
-    <div class="fp-debug-label" id="debugLabel" style="display:none;"><i class="fas fa-code" style="margin-right:4px;"></i>Debug — записано в localStorage:</div>
-    <pre class="fp-debug-box" id="debugBox"></pre>
+<!-- Debug JSON output (shown only with ?debug=1) -->
+<div class="fp-debug" id="fpDebugWrap" style="display:none;">
+    <div class="fp-debug-label"><i class="fas fa-code" style="margin-right:4px;"></i>Debug:</div>
+    <pre class="fp-debug-box visible" id="debugBox"></pre>
 </div>
 
 <!-- Fixed submit bar -->
@@ -334,7 +408,11 @@
 <div class="fp-toast" id="fpToast"></div>
 
 <script>
-// ── Food catalog (hardcoded for prototype) ─────────────────────────────────
+// ── Config ─────────────────────────────────────────────────────────────────
+const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
+
+
 const CATALOG = [
     {
         id: 'protein',
@@ -535,27 +613,96 @@ function clearAll() {
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────────
-function handleSubmit() {
+async function handleSubmit() {
     const list = Object.keys(selected);
     if (list.length === 0) {
         showToast('Избери поне един продукт!', true);
         return;
     }
 
-    // Save to localStorage
-    localStorage.setItem('userFoodList', JSON.stringify(list));
+    hideError();
+    setLoading(true, 'Запазване на продуктите…');
 
-    // Show debug output
-    const debugBox = document.getElementById('debugBox');
-    const debugLabel = document.getElementById('debugLabel');
-    debugBox.textContent = JSON.stringify({ userFoodList: list, count: list.length, savedAt: new Date().toISOString() }, null, 2);
-    debugBox.classList.add('visible');
-    debugLabel.style.display = 'block';
+    try {
+        // 1. Set the food mainlist in KV
+        const setRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: list })
+        });
+        if (!setRes.ok) {
+            const errData = await setRes.json().catch(() => ({}));
+            throw new Error(errData.error || `HTTP ${setRes.status}`);
+        }
 
-    // Scroll to debug
-    debugBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        setLoading(true, 'Активиране на списъка…');
 
-    showToast(`✅ ${list.length} продукта запазени в localStorage`);
+        // 2. Enable the mainlist
+        const enableRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist-enabled`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: true })
+        });
+        if (!enableRes.ok) {
+            const errData = await enableRes.json().catch(() => ({}));
+            throw new Error(errData.error || `HTTP ${enableRes.status}`);
+        }
+
+        // 3. Persist selection locally (for UI restore and debug)
+        localStorage.setItem('userFoodList', JSON.stringify(list));
+
+        if (DEBUG_MODE) {
+            const debugWrap = document.getElementById('fpDebugWrap');
+            const debugBox = document.getElementById('debugBox');
+            debugBox.textContent = JSON.stringify({
+                userFoodList: list,
+                count: list.length,
+                savedAt: new Date().toISOString(),
+                apiCalls: [
+                    `POST ${WORKER_URL}/api/admin/set-mainlist → OK`,
+                    `POST ${WORKER_URL}/api/admin/set-mainlist-enabled → OK`
+                ]
+            }, null, 2);
+            debugWrap.style.display = 'block';
+        }
+
+        setLoading(true, 'Пренасочване към въпросника…');
+
+        // 4. Short delay so user sees the message, then redirect
+        await new Promise(r => setTimeout(r, 700));
+        window.location.href = 'questionnaire.html';
+
+    } catch (err) {
+        setLoading(false);
+        showError(`Грешка при изпращане: ${err.message}. Провери връзката и опитай пак.`);
+        showToast('Грешка — провери съобщението по-горе', true);
+    }
+}
+
+// ── Loading state ──────────────────────────────────────────────────────────
+function setLoading(active, text) {
+    const overlay = document.getElementById('fpLoading');
+    const btn = document.getElementById('btnSubmit');
+    if (active) {
+        document.getElementById('fpLoadingText').textContent = text || 'Зареждане…';
+        overlay.classList.add('active');
+        btn.disabled = true;
+    } else {
+        overlay.classList.remove('active');
+        btn.disabled = Object.keys(selected).length === 0;
+    }
+}
+
+// ── Error banner ───────────────────────────────────────────────────────────
+function showError(msg) {
+    const banner = document.getElementById('fpErrorBanner');
+    const box = document.getElementById('fpErrorBox');
+    box.textContent = msg;
+    banner.classList.add('visible');
+    banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideError() {
+    document.getElementById('fpErrorBanner').classList.remove('visible');
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
@@ -591,6 +738,10 @@ function restoreFromStorage() {
 // ── Init ───────────────────────────────────────────────────────────────────
 buildUI();
 restoreFromStorage();
+if (DEBUG_MODE) {
+    document.getElementById('fpDebugWrap').style.display = 'block';
+    document.getElementById('debugBox').textContent = 'Debug режим активен. Резултатът ще се покаже след изпращане.';
+}
 </script>
 </body>
 </html>
