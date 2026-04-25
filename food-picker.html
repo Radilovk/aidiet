@@ -496,10 +496,73 @@ const CATALOG = [
 // ── State ──────────────────────────────────────────────────────────────────
 const selected = {}; // { itemName: true }
 
+// ── Blocked foods helpers ───────────────────────────────────────────────────
+/**
+ * Returns true if a catalog item name should be hidden because it matches a
+ * forbidden/blacklisted term.  Uses bidirectional substring matching so that
+ * "Бял ориз" blocks "Ориз (бял)" and vice-versa.
+ */
+function isBlocked(itemName, blockedTerms) {
+    const itemLower = itemName.toLowerCase();
+    return blockedTerms.some(term => {
+        const termLower = term.toLowerCase();
+        return itemLower.includes(termLower) || termLower.includes(itemLower);
+    });
+}
+
+/**
+ * Collect blocked food names from:
+ *   1. dietPlan.forbidden  – AI-generated forbidden list for this user's plan
+ *   2. Admin blacklist fetched from the worker
+ * Returns a flat string[] of all blocked terms (may contain duplicates; that's fine).
+ */
+async function loadBlockedFoods() {
+    const blocked = [];
+
+    // 1. Plan-level forbidden (synchronous – already in localStorage)
+    try {
+        const planStr = localStorage.getItem('dietPlan');
+        if (planStr) {
+            const plan = JSON.parse(planStr);
+            if (Array.isArray(plan.forbidden)) {
+                blocked.push(...plan.forbidden.map(f => String(f).trim()).filter(Boolean));
+            }
+        }
+    } catch (e) {
+        // ignore corrupt data
+    }
+
+    // 2. Admin blacklist (async)
+    try {
+        const blRes = await fetch(`${WORKER_URL}/api/admin/get-blacklist`);
+        if (blRes.ok) {
+            const blData = await blRes.json();
+            if (Array.isArray(blData.blacklist)) {
+                blData.blacklist.forEach(e => {
+                    const name = typeof e === 'string' ? e : (e.item || '');
+                    if (name) blocked.push(name.trim());
+                });
+            }
+        }
+    } catch (e) {
+        // proceed without admin blacklist
+    }
+
+    return blocked;
+}
+
 // ── Build UI ───────────────────────────────────────────────────────────────
-function buildUI() {
+function buildUI(blockedTerms = []) {
     const container = document.getElementById('fpContent');
     CATALOG.forEach(cat => {
+        // Filter out blocked items before rendering
+        const visibleItems = blockedTerms.length
+            ? cat.items.filter(name => !isBlocked(name, blockedTerms))
+            : cat.items;
+
+        // Skip the whole category if every item is blocked
+        if (visibleItems.length === 0) return;
+
         const details = document.createElement('details');
         details.className = 'fp-category';
         details.dataset.catId = cat.id;
@@ -531,7 +594,7 @@ function buildUI() {
         grid.className = 'fp-foods';
         grid.id = `grid-${cat.id}`;
 
-        cat.items.forEach(itemName => {
+        visibleItems.forEach(itemName => {
             const label = document.createElement('label');
             label.className = 'fp-item';
             label.dataset.cat = cat.id;
@@ -625,24 +688,11 @@ async function handleSubmit() {
     setLoading(true, 'Проверка на продуктите…');
 
     try {
-        // 0. Fetch admin blacklist and filter out forbidden/not-recommended foods
-        let blacklistNames = [];
-        try {
-            const blRes = await fetch(`${WORKER_URL}/api/admin/get-blacklist`);
-            if (blRes.ok) {
-                const blData = await blRes.json();
-                if (blData.blacklist && Array.isArray(blData.blacklist)) {
-                    blacklistNames = blData.blacklist.map(e =>
-                        (typeof e === 'string' ? e : (e.item || '')).toLowerCase()
-                    );
-                }
-            }
-        } catch (blErr) {
-            console.warn('Could not fetch blacklist, proceeding without filter:', blErr);
-        }
-
-        // Keep only foods that are not on the blacklist
-        const filteredList = list.filter(item => !blacklistNames.includes(item.toLowerCase()));
+        // 0. Load all blocked terms (plan forbidden + admin blacklist) and filter
+        const blockedTerms = await loadBlockedFoods();
+        const filteredList = blockedTerms.length
+            ? list.filter(item => !isBlocked(item, blockedTerms))
+            : list;
 
         if (filteredList.length === 0) {
             setLoading(false);
@@ -689,7 +739,7 @@ async function handleSubmit() {
             const debugBox = document.getElementById('debugBox');
             debugBox.textContent = JSON.stringify({
                 userFoodList: filteredList,
-                removedBlacklisted: list.filter(i => blacklistNames.includes(i.toLowerCase())),
+                removedBlocked: list.filter(i => isBlocked(i, blockedTerms)),
                 count: filteredList.length,
                 savedAt: new Date().toISOString()
             }, null, 2);
@@ -808,12 +858,17 @@ function restoreFromStorage() {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
-buildUI();
-restoreFromStorage();
-if (DEBUG_MODE) {
-    document.getElementById('fpDebugWrap').style.display = 'block';
-    document.getElementById('debugBox').textContent = 'Debug режим активен. Резултатът ще се покаже след изпращане.';
-}
+(async function init() {
+    const blockedTerms = await loadBlockedFoods();
+    buildUI(blockedTerms);
+    restoreFromStorage();
+    if (DEBUG_MODE) {
+        document.getElementById('fpDebugWrap').style.display = 'block';
+        document.getElementById('debugBox').textContent = blockedTerms.length
+            ? `Debug режим активен.\nБлокирани продукти (${blockedTerms.length}): ${blockedTerms.join(', ')}\n\nРезултатът ще се покаже след изпращане.`
+            : 'Debug режим активен. Резултатът ще се покаже след изпращане.';
+    }
+})();
 </script>
 </body>
 </html>
