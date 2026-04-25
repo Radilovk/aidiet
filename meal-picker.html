@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0D9488">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Избор на Ястие — NutriPlan</title>
+    <link rel="stylesheet" href="./design-system.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+    <style>
+        :root {
+            --primary-red: #0D9488;
+            --primary-accent: #0F766E;
+            --secondary-accent: #06B6D4;
+            --soft-red: #F0FDFA;
+            --text-dark: #0F2F2E;
+            --text-light: #6b7280;
+            --card-bg: rgba(255,255,255,0.82);
+            --bg-color: #F0FDFA;
+            --radius: 20px;
+            --shadow: 0 8px 24px rgba(13,148,136,0.13);
+            --glass-border: rgba(13,148,136,0.14);
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+        }
+        [data-theme="dark"] {
+            --soft-red: #134E4A;
+            --text-dark: #E2F8F5;
+            --text-light: #94a3b8;
+            --card-bg: rgba(15,47,46,0.85);
+            --bg-color: #0A1A1A;
+            --glass-border: rgba(45,212,191,0.15);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: calc(120px + var(--safe-area-inset-bottom));
+            -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* ── Header ─────────────────────────────────────── */
+        .mp-header {
+            background: var(--card-bg);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            padding: calc(16px + var(--safe-area-inset-top)) calc(16px + var(--safe-area-inset-right)) 16px calc(16px + var(--safe-area-inset-left));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 4px 20px rgba(13,148,136,0.07), 0 1px 3px rgba(0,0,0,0.04);
+        }
+        [data-theme="dark"] .mp-header {
+            background: rgba(10,27,27,0.92);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+        }
+        .mp-back-btn {
+            background: none;
+            border: none;
+            width: 42px; height: 42px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-dark);
+            font-size: 1.15rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+        .mp-back-btn:hover { background: rgba(13,148,136,0.08); transform: translateX(-3px); }
+        .mp-back-btn:active { transform: scale(0.92); }
+        .mp-header-title {
+            flex: 1;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .mp-theme-btn {
+            background: linear-gradient(135deg, var(--secondary-accent) 0%, #2563eb 100%);
+            border: none;
+            width: 42px; height: 42px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .mp-theme-btn:hover { transform: scale(1.1) rotate(-8deg); box-shadow: 0 8px 20px rgba(6,182,212,0.5); }
+        .mp-theme-btn:active { transform: scale(0.95); }
+
+        /* ── Swap mode badge ──────────────────────────────── */
+        .mp-swap-badge {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, rgba(13,148,136,0.1) 0%, rgba(6,182,212,0.07) 100%);
+            border-bottom: 1px solid var(--glass-border);
+            font-size: 0.88rem;
+            color: var(--primary-red);
+            font-weight: 600;
+        }
+        .mp-swap-badge.visible { display: flex; }
+        .mp-swap-badge i { font-size: 0.9rem; }
+        [data-theme="dark"] .mp-swap-badge { background: rgba(45,212,191,0.07); }
+
+        /* ── Search ──────────────────────────────────────── */
+        .mp-search-wrap {
+            padding: 14px 16px 10px;
+            background: var(--bg-color);
+            position: sticky;
+            top: calc(74px + var(--safe-area-inset-top));
+            z-index: 150;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        [data-theme="dark"] .mp-search-wrap { background: var(--bg-color); }
+        .mp-search-inner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--card-bg);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 10px 14px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .mp-search-inner:focus-within {
+            border-color: var(--primary-red);
+            box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+        }
+        .mp-search-inner i { color: var(--primary-red); font-size: 0.95rem; flex-shrink: 0; }
+        .mp-search-input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: var(--text-dark);
+            min-width: 0;
+        }
+        .mp-search-input::placeholder { color: var(--text-light); }
+        .mp-search-clear {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            padding: 2px;
+            font-size: 0.9rem;
+            display: none;
+            flex-shrink: 0;
+        }
+        .mp-search-clear.visible { display: block; }
+
+        /* ── Quick suggestions ───────────────────────────── */
+        .mp-suggestions {
+            padding: 14px 16px 4px;
+            display: none;
+        }
+        .mp-suggestions.visible { display: block; }
+        .mp-suggestions-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--primary-red);
+            margin-bottom: 10px;
+        }
+        .mp-suggestions-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+        }
+        .mp-suggestions-row::-webkit-scrollbar { display: none; }
+        .mp-suggestion-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1.5px solid var(--glass-border);
+            background: var(--card-bg);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .mp-suggestion-chip:hover { background: rgba(13,148,136,0.08); border-color: var(--primary-red); color: var(--primary-red); }
+        .mp-suggestion-chip .chip-tag {
+            font-size: 0.68rem;
+            background: rgba(13,148,136,0.12);
+            color: var(--primary-red);
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        /* ── Category tabs ───────────────────────────────── */
+        .mp-tabs {
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            gap: 6px;
+            padding: 12px 16px 0;
+            background: var(--bg-color);
+            position: sticky;
+            top: calc(130px + var(--safe-area-inset-top));
+            z-index: 140;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .mp-tabs.search-open { top: calc(130px + var(--safe-area-inset-top)); }
+        .mp-tabs::-webkit-scrollbar { display: none; }
+        .mp-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            padding: 8px 14px 10px;
+            border: none;
+            background: none;
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mp-tab .tab-count {
+            background: rgba(13,148,136,0.12);
+            color: var(--primary-red);
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 10px;
+            display: none;
+        }
+        .mp-tab .tab-count.has-count { display: inline-block; }
+        .mp-tab.active {
+            color: var(--primary-red);
+            border-bottom-color: var(--primary-red);
+        }
+        [data-theme="dark"] .mp-tab.active { border-bottom-color: var(--primary-red); }
+        .mp-tab:hover:not(.active) { color: var(--text-dark); }
+
+        /* ── Meals grid ──────────────────────────────────── */
+        .mp-content {
+            padding: 16px 12px;
+        }
+        .mp-cat-section { display: none; }
+        .mp-cat-section.active { display: block; }
+
+        .mp-meals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        /* ── Meal card ───────────────────────────────────── */
+        .mp-meal-card {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.97) 100%);
+            border-radius: 20px;
+            padding: 16px 14px 14px;
+            border: 2px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+            -webkit-tap-highlight-color: transparent;
+            /* Swipe states */
+            touch-action: manipulation;
+            user-select: none;
+        }
+        [data-theme="dark"] .mp-meal-card {
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(20,50,50,0.95) 100%);
+            box-shadow: 0 3px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+        .mp-meal-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--cat-color, #0D9488) 0%, rgba(0,0,0,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .mp-meal-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            border-color: rgba(13,148,136,0.25);
+            box-shadow: 0 10px 28px rgba(13,148,136,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+        .mp-meal-card:active { transform: scale(0.97); }
+
+        /* Selected state */
+        .mp-meal-card.selected {
+            border-color: var(--cat-color, var(--primary-red));
+            box-shadow: 0 0 0 3px rgba(13,148,136,0.18), 0 8px 24px rgba(13,148,136,0.2);
+        }
+        .mp-meal-card.selected::before { opacity: 0.05; }
+
+        /* Swipe feedback overlays */
+        .mp-meal-card .swipe-accept {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.8));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+            border-radius: 18px;
+            z-index: 10;
+        }
+        .mp-meal-card .swipe-reject {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(107,114,128,0.85), rgba(75,85,99,0.8));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+            border-radius: 18px;
+            z-index: 10;
+        }
+
+        /* Check icon badge */
+        .mp-check-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, #10B981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            box-shadow: 0 3px 10px rgba(16,185,129,0.5);
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            z-index: 5;
+        }
+        .mp-meal-card.selected .mp-check-badge {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .mp-meal-emoji {
+            font-size: 2.2rem;
+            line-height: 1;
+            text-align: center;
+        }
+        .mp-meal-name {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.3;
+            text-align: center;
+        }
+        .mp-meal-desc {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        /* Macro badges row */
+        .mp-macros {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        .mp-macro-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+        .mp-macro-badge.kcal { background: rgba(251,191,36,0.15); color: #b45309; }
+        .mp-macro-badge.protein { background: rgba(99,102,241,0.12); color: #4338ca; }
+        .mp-macro-badge.carbs { background: rgba(248,113,113,0.12); color: #dc2626; }
+        .mp-macro-badge.fats { background: rgba(251,191,36,0.12); color: #d97706; }
+        [data-theme="dark"] .mp-macro-badge.kcal { color: #fcd34d; }
+        [data-theme="dark"] .mp-macro-badge.protein { color: #a5b4fc; }
+        [data-theme="dark"] .mp-macro-badge.carbs { color: #fca5a5; }
+        [data-theme="dark"] .mp-macro-badge.fats { color: #fde68a; }
+
+        /* Tags row */
+        .mp-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            margin-top: 2px;
+        }
+        .mp-tag {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 8px;
+            background: rgba(13,148,136,0.1);
+            color: var(--primary-red);
+        }
+
+        /* Time badge */
+        .mp-time-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: rgba(13,148,136,0.1);
+            color: var(--primary-red);
+            padding: 2px 7px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        [data-theme="dark"] .mp-time-badge { background: rgba(45,212,191,0.12); }
+
+        /* Empty state */
+        .mp-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+        .mp-empty i { font-size: 2.5rem; margin-bottom: 12px; display: block; opacity: 0.5; }
+        .mp-empty p { font-size: 0.9rem; }
+
+        /* ── Detail sheet ─────────────────────────────────── */
+        .mp-detail-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 500;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .mp-detail-overlay.active { opacity: 1; visibility: visible; }
+        .mp-detail-sheet {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 480px;
+            border-radius: 28px 28px 0 0;
+            padding: 0 0 calc(28px + var(--safe-area-inset-bottom));
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: 0 -20px 60px rgba(0,0,0,0.25);
+        }
+        [data-theme="dark"] .mp-detail-sheet {
+            background: #0f2f2e;
+            box-shadow: 0 -20px 60px rgba(0,0,0,0.5);
+        }
+        .mp-detail-overlay.active .mp-detail-sheet { transform: translateY(0); }
+        .mp-detail-handle {
+            width: 40px; height: 4px;
+            background: rgba(0,0,0,0.15);
+            border-radius: 2px;
+            margin: 12px auto 0;
+        }
+        [data-theme="dark"] .mp-detail-handle { background: rgba(255,255,255,0.2); }
+        .mp-detail-header {
+            padding: 20px 20px 10px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .mp-detail-emoji { font-size: 3rem; flex-shrink: 0; }
+        .mp-detail-info { flex: 1; }
+        .mp-detail-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1.3;
+        }
+        .mp-detail-catbadge {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 10px;
+            color: white;
+        }
+        .mp-detail-body { padding: 0 20px 20px; }
+        .mp-detail-desc {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        .mp-detail-macros {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .mp-detail-macro {
+            background: var(--bg-color);
+            border-radius: 12px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        .mp-detail-macro-val {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .mp-detail-macro-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .mp-detail-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+        .mp-detail-tag {
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 10px;
+            background: rgba(13,148,136,0.1);
+            color: var(--primary-red);
+        }
+        .mp-detail-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .mp-detail-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 16px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .mp-detail-btn.primary {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(13,148,136,0.35);
+        }
+        .mp-detail-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(13,148,136,0.5); }
+        .mp-detail-btn.primary:active { transform: scale(0.97); }
+        .mp-detail-btn.secondary {
+            background: var(--soft-red);
+            color: var(--primary-red);
+            border: 1.5px solid var(--glass-border);
+        }
+        .mp-detail-btn.secondary:hover { background: rgba(13,148,136,0.08); }
+
+        /* ── Bottom status bar ───────────────────────────── */
+        .mp-status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 300;
+            background: var(--card-bg);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-top: 1px solid var(--glass-border);
+            padding: 14px 16px calc(14px + var(--safe-area-inset-bottom));
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08), 0 -1px 0 var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        [data-theme="dark"] .mp-status-bar {
+            background: rgba(8,22,22,0.96);
+            box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+        }
+        .mp-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .mp-status-text {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .mp-status-count {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--primary-red);
+        }
+        .mp-status-reset {
+            background: none;
+            border: none;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .mp-status-reset:hover { background: rgba(239,68,68,0.08); color: #ef4444; }
+        .mp-progress-bar {
+            height: 6px;
+            background: rgba(13,148,136,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .mp-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-red) 0%, var(--secondary-accent) 100%);
+            border-radius: 3px;
+            transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+            width: 0%;
+        }
+        .mp-done-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 6px 20px rgba(13,148,136,0.35);
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            position: relative;
+            overflow: hidden;
+        }
+        .mp-done-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+        }
+        .mp-done-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none;
+        }
+        .mp-done-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(13,148,136,0.5); }
+        .mp-done-btn:not(:disabled):active { transform: scale(0.98); }
+
+        /* ── Toast ───────────────────────────────────────── */
+        .mp-toast {
+            position: fixed;
+            bottom: calc(130px + var(--safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(15,47,46,0.95);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            white-space: nowrap;
+            z-index: 400;
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            max-width: calc(100vw - 40px);
+            text-align: center;
+        }
+        .mp-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .mp-toast.success { background: rgba(16,185,129,0.95); }
+        [data-theme="dark"] .mp-toast { background: rgba(45,212,191,0.95); color: #042F2E; }
+
+        /* ── Scroll to top indicator ─────────────────────── */
+        @media (min-width: 600px) {
+            .mp-meals-grid {
+                grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            }
+        }
+
+        /* ── Animations ──────────────────────────────────── */
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .mp-meal-card {
+            animation: cardIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .mp-meal-card:nth-child(1) { animation-delay: 0ms; }
+        .mp-meal-card:nth-child(2) { animation-delay: 40ms; }
+        .mp-meal-card:nth-child(3) { animation-delay: 80ms; }
+        .mp-meal-card:nth-child(4) { animation-delay: 120ms; }
+        .mp-meal-card:nth-child(5) { animation-delay: 160ms; }
+        .mp-meal-card:nth-child(6) { animation-delay: 200ms; }
+        .mp-meal-card:nth-child(7) { animation-delay: 240ms; }
+        .mp-meal-card:nth-child(8) { animation-delay: 280ms; }
+
+        @keyframes bounceSelect {
+            0%   { transform: scale(1); }
+            40%  { transform: scale(1.05); }
+            70%  { transform: scale(0.97); }
+            100% { transform: scale(1); }
+        }
+        .mp-meal-card.bounce { animation: bounceSelect 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="mp-header">
+        <button class="mp-back-btn" id="backBtn" aria-label="Назад" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="mp-header-title" id="pageTitle">Избери Ястие</h1>
+        <button class="mp-theme-btn" id="themeBtn" aria-label="Смени тема" onclick="toggleTheme()">
+            <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+    </header>
+
+    <!-- Swap mode badge -->
+    <div class="mp-swap-badge" id="swapBadge">
+        <i class="fas fa-exchange-alt"></i>
+        <span id="swapBadgeText">Сменяш хранене</span>
+    </div>
+
+    <!-- Search -->
+    <div class="mp-search-wrap">
+        <div class="mp-search-inner">
+            <i class="fas fa-search"></i>
+            <input class="mp-search-input" id="searchInput" type="search" placeholder="Търси ястие…" autocomplete="off" aria-label="Търси ястие" oninput="onSearch(this.value)">
+            <button class="mp-search-clear" id="searchClear" aria-label="Изчисти търсенето" onclick="clearSearch()">
+                <i class="fas fa-times-circle"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick suggestions -->
+    <div class="mp-suggestions" id="suggestionsSection">
+        <div class="mp-suggestions-label"><i class="fas fa-bolt"></i> Препоръчано за теб</div>
+        <div class="mp-suggestions-row" id="suggestionsRow">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- Category tabs -->
+    <nav class="mp-tabs" id="tabsNav" role="tablist" aria-label="Категории ястия">
+        <!-- Populated by JS -->
+    </nav>
+
+    <!-- Meals content -->
+    <main class="mp-content" id="mainContent">
+        <!-- Populated by JS -->
+    </main>
+
+    <!-- Detail sheet -->
+    <div class="mp-detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-label="Детайли за ястие" onclick="closeDetailIfBg(event)">
+        <div class="mp-detail-sheet" id="detailSheet">
+            <div class="mp-detail-handle"></div>
+            <div class="mp-detail-header">
+                <div class="mp-detail-emoji" id="detailEmoji">🍽️</div>
+                <div class="mp-detail-info">
+                    <div class="mp-detail-title" id="detailTitle">Ястие</div>
+                    <div class="mp-detail-catbadge" id="detailCatBadge">Категория</div>
+                </div>
+            </div>
+            <div class="mp-detail-body">
+                <div class="mp-detail-desc" id="detailDesc"></div>
+                <div class="mp-detail-macros" id="detailMacros"></div>
+                <div class="mp-detail-tags" id="detailTags"></div>
+                <div class="mp-detail-actions">
+                    <button class="mp-detail-btn secondary" onclick="closeDetail()">
+                        <i class="fas fa-times"></i> Затвори
+                    </button>
+                    <button class="mp-detail-btn primary" id="detailSelectBtn" onclick="selectFromDetail()">
+                        <i class="fas fa-check"></i> Избери
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom status bar -->
+    <div class="mp-status-bar" id="statusBar">
+        <div class="mp-status-row">
+            <span class="mp-status-text">Избрани: <span class="mp-status-count" id="selCount">0</span></span>
+            <button class="mp-status-reset" onclick="resetAll()" id="resetBtn" aria-label="Нулиране">
+                <i class="fas fa-undo"></i> Нулиране
+            </button>
+        </div>
+        <div class="mp-progress-bar"><div class="mp-progress-fill" id="progressFill"></div></div>
+        <button class="mp-done-btn" id="doneBtn" onclick="handleDone()" disabled>
+            <i class="fas fa-check-circle"></i> Готово
+        </button>
+    </div>
+
+    <!-- Toast -->
+    <div class="mp-toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+    // ── Meal catalog ──────────────────────────────────────────────────────────
+    const CATALOG = [
+        {
+            id: 'breakfast',
+            label: 'Закуска',
+            emoji: '🌅',
+            color: '#f59e0b',
+            meals: [
+                { id: 'b1', name: 'Овесена каша с горски плодове', emoji: '🥣', desc: 'Топла овесена каша с малини, боровинки и банан. Богата на фибри и бавни въглехидрати.', kcal: 320, protein: 12, carbs: 55, fats: 7, time: 10, tags: ['бързо', 'фибри'] },
+                { id: 'b2', name: 'Омлет с зеленчуци', emoji: '🍳', desc: 'Яйца, спанак, домати и чушки. Висок протеин, нискокалоричен.', kcal: 280, protein: 20, carbs: 8, fats: 18, time: 15, tags: ['протеин', 'кето'] },
+                { id: 'b3', name: 'Гръцко кисело мляко с мед', emoji: '🍯', desc: 'Гръцко кисело мляко, мед, орехи и канела. Пробиотик и калций.', kcal: 250, protein: 18, carbs: 28, fats: 8, time: 3, tags: ['бързо', 'пробиотик'] },
+                { id: 'b4', name: 'Тост с авокадо и яйце пошe', emoji: '🥑', desc: '2 филии пълнозърнест тост с авокадо и яйце пошe. Здравей мазнини.', kcal: 380, protein: 16, carbs: 35, fats: 22, time: 12, tags: ['здравей мазнини'] },
+                { id: 'b5', name: 'Смути купа', emoji: '🫐', desc: 'Банан, спанак, бадемово мляко, семена чиа. Антиоксиданти и омега-3.', kcal: 290, protein: 8, carbs: 52, fats: 7, time: 5, tags: ['бързо', 'антиоксиданти'] },
+                { id: 'b6', name: 'Палачинки от елда', emoji: '🥞', desc: 'Безглутенови палачинки с кленов сироп и пресни плодове.', kcal: 340, protein: 10, carbs: 60, fats: 9, time: 20, tags: ['безглутен'] },
+                { id: 'b7', name: 'Протеинова купа с ориз', emoji: '🍚', desc: 'Ориз, яйца, авокадо и соев сос. Идеално за спортуващи.', kcal: 420, protein: 25, carbs: 48, fats: 15, time: 15, tags: ['протеин', 'спорт'] },
+                { id: 'b8', name: 'Мюсли с ядки и плодове', emoji: '🌾', desc: 'Домашно мюсли, сурови ядки, сезонни плодове. Бърза и лесна.', kcal: 310, protein: 9, carbs: 50, fats: 11, time: 3, tags: ['бързо', 'фибри'] },
+            ]
+        },
+        {
+            id: 'lunch',
+            label: 'Обяд',
+            emoji: '☀️',
+            color: '#0D9488',
+            meals: [
+                { id: 'l1', name: 'Пилешко с киноа', emoji: '🍗', desc: 'Печено пилешко филе, киноа, броколи и морков. Балансирано и засищащо.', kcal: 480, protein: 42, carbs: 40, fats: 12, time: 30, tags: ['протеин', 'балансирано'] },
+                { id: 'l2', name: 'Сьомга на пара', emoji: '🐟', desc: 'Сьомга, спаначена салата, лимон и зехтин. Омега-3 и протеин.', kcal: 420, protein: 38, carbs: 12, fats: 24, time: 20, tags: ['омега-3', 'кето'] },
+                { id: 'l3', name: 'Леща супа с кориандър', emoji: '🍲', desc: 'Червена леща, домати, лук, подправки. Веган и богата на фибри.', kcal: 350, protein: 18, carbs: 52, fats: 6, time: 25, tags: ['веган', 'фибри'] },
+                { id: 'l4', name: 'Телешка кайма с ориз', emoji: '🥩', desc: 'Постна телешка кайма, кафяв ориз, домат. Класика за обяд.', kcal: 520, protein: 36, carbs: 45, fats: 18, time: 25, tags: ['протеин'] },
+                { id: 'l5', name: 'Салата Цезар с пуешко', emoji: '🥗', desc: 'Пуешко, ромейн маруля, пармезан, крутони. Лека и протеинова.', kcal: 380, protein: 35, carbs: 22, fats: 16, time: 15, tags: ['лека', 'протеин'] },
+                { id: 'l6', name: 'Паста с пилешко и песто', emoji: '🍝', desc: 'Паста от твърда пшеница, пилешко, зелено песто. Енергизиращ обяд.', kcal: 550, protein: 38, carbs: 60, fats: 16, time: 20, tags: ['въглехидрати'] },
+                { id: 'l7', name: 'Пълнени чушки с ориз', emoji: '🫑', desc: 'Чушки, ориз, кайма, домателен сос. Традиционна рецепта.', kcal: 460, protein: 28, carbs: 52, fats: 14, time: 45, tags: ['традиционно'] },
+                { id: 'l8', name: 'Нахут с тиква и кокос', emoji: '🥘', desc: 'Нахут, тиква, кокосово мляко, куркума. Веган и противовъзпалително.', kcal: 390, protein: 14, carbs: 58, fats: 13, time: 30, tags: ['веган', 'куркума'] },
+            ]
+        },
+        {
+            id: 'dinner',
+            label: 'Вечеря',
+            emoji: '🌙',
+            color: '#8B5CF6',
+            meals: [
+                { id: 'd1', name: 'Риба на скара с аспержи', emoji: '🐠', desc: 'Бяла риба, аспержи, лимон, зехтин. Лека и кето-приятна.', kcal: 320, protein: 34, carbs: 8, fats: 16, time: 20, tags: ['кето', 'лека'] },
+                { id: 'd2', name: 'Пилешка супа с юфка', emoji: '🍜', desc: 'Домашна пилешка супа, зеленчуци, юфка. Топла и комфортна.', kcal: 280, protein: 22, carbs: 30, fats: 8, time: 35, tags: ['традиционно', 'лека'] },
+                { id: 'd3', name: 'Тофу със задушени зеленчуци', emoji: '🥦', desc: 'Тофу, броколи, морков, соев сос. Веган и нискокалорично.', kcal: 240, protein: 18, carbs: 22, fats: 10, time: 20, tags: ['веган', 'лека'] },
+                { id: 'd4', name: 'Омлет с гъби и сирене', emoji: '🍄', desc: 'Яйца, гъби, бяло сирене, копър. Бързо и кето.', kcal: 300, protein: 22, carbs: 6, fats: 20, time: 15, tags: ['кето', 'бързо'] },
+                { id: 'd5', name: 'Пуешко с батати', emoji: '🍠', desc: 'Пуешко филе, печен батат, розмарин. Балансирано вечерно хранене.', kcal: 380, protein: 36, carbs: 32, fats: 10, time: 30, tags: ['балансирано'] },
+                { id: 'd6', name: 'Гръцка салата с фета', emoji: '🧀', desc: 'Домати, краставица, маслини, сирене фета. Свежа и лека.', kcal: 220, protein: 10, carbs: 14, fats: 16, time: 10, tags: ['лека', 'бързо'] },
+                { id: 'd7', name: 'Скариди с чесново масло', emoji: '🦐', desc: 'Скариди, чесново масло, лимон, магданоз. Бързо и вкусно.', kcal: 290, protein: 30, carbs: 4, fats: 16, time: 15, tags: ['кето', 'морски'] },
+                { id: 'd8', name: 'Боб чорба', emoji: '🫘', desc: 'Бял боб, морков, лук, подправки. Традиционна и засищаща.', kcal: 350, protein: 16, carbs: 48, fats: 10, time: 50, tags: ['традиционно', 'фибри'] },
+            ]
+        },
+        {
+            id: 'snack',
+            label: 'Снакс',
+            emoji: '🍎',
+            color: '#f97316',
+            meals: [
+                { id: 's1', name: 'Ябълка с бадемово масло', emoji: '🍎', desc: '1 ябълка с 2 с.л. бадемово масло. Само 3 съставки.', kcal: 190, protein: 5, carbs: 28, fats: 10, time: 1, tags: ['бързо', '3 съставки'] },
+                { id: 's2', name: 'Протеинов шейк', emoji: '🥛', desc: 'Суроватъчен протеин, банан, бадемово мляко. За спортуващи.', kcal: 220, protein: 25, carbs: 22, fats: 4, time: 3, tags: ['спорт', 'бързо'] },
+                { id: 's3', name: 'Извара с ядки', emoji: '🥜', desc: 'Извара, смес от ядки, канела. Бавен протеин.', kcal: 180, protein: 16, carbs: 10, fats: 9, time: 2, tags: ['протеин', 'бързо'] },
+                { id: 's4', name: 'Хумус с зеленчуци', emoji: '🥕', desc: 'Хумус, моркови, краставица, целина. Веган снакс.', kcal: 160, protein: 7, carbs: 22, fats: 7, time: 5, tags: ['веган', 'фибри'] },
+                { id: 's5', name: 'Тъмен шоколад с орехи', emoji: '🍫', desc: '2 кубчета тъмен шоколад (85%), шепа орехи. Антиоксиданти.', kcal: 210, protein: 5, carbs: 14, fats: 16, time: 1, tags: ['антиоксиданти', 'бързо'] },
+                { id: 's6', name: 'Варени яйца с авокадо', emoji: '🥚', desc: '2 яйца, 1/2 авокадо, морска сол. Кето-приятно.', kcal: 240, protein: 14, carbs: 4, fats: 18, time: 10, tags: ['кето', '3 съставки'] },
+                { id: 's7', name: 'Горски плодове с йогурт', emoji: '🫐', desc: 'Микс горски плодове, гръцко кисело мляко. Пробиотик.', kcal: 150, protein: 10, carbs: 20, fats: 3, time: 2, tags: ['антиоксиданти', 'бързо'] },
+                { id: 's8', name: 'Ориз с риба тон', emoji: '🐟', desc: 'Ориз, рибна консерва, лимон. Бърз и протеинов.', kcal: 200, protein: 18, carbs: 24, fats: 4, time: 5, tags: ['протеин', 'бързо'] },
+            ]
+        },
+        {
+            id: 'sport',
+            label: 'Спорт',
+            emoji: '🏋️',
+            color: '#6366f1',
+            meals: [
+                { id: 'sp1', name: 'Предтренировъчна каша', emoji: '⚡', desc: 'Овесена каша, банан, мед. Зареди с енергия преди тренировка.', kcal: 350, protein: 12, carbs: 65, fats: 7, time: 10, tags: ['предтренировка', 'въглехидрати'] },
+                { id: 'sp2', name: 'Следтренировъчно пиле с ориз', emoji: '💪', desc: 'Пиле, ориз, броколи. Идеалният recovery meal.', kcal: 450, protein: 45, carbs: 42, fats: 8, time: 25, tags: ['следтренировка', 'протеин'] },
+                { id: 'sp3', name: 'Протеинов шейк с плодове', emoji: '🥤', desc: 'Суроватъчен протеин, банан, ягоди. Бърз и ефективен.', kcal: 280, protein: 30, carbs: 28, fats: 4, time: 3, tags: ['бързо', 'протеин'] },
+                { id: 'sp4', name: 'Яйца и сладки картофи', emoji: '🍠', desc: '4 яйца, 1 батат. Хормонален и анаболен избор.', kcal: 480, protein: 32, carbs: 45, fats: 18, time: 20, tags: ['протеин', 'въглехидрати'] },
+                { id: 'sp5', name: 'BCAA + банан', emoji: '🌿', desc: 'BCAA напитка с банан по време на тренировка. Минимум калории.', kcal: 120, protein: 6, carbs: 22, fats: 0, time: 1, tags: ['по-време', 'бързо'] },
+                { id: 'sp6', name: 'Елда с риба тон и авокадо', emoji: '🫕', desc: 'Елда, риба тон, авокадо. Пълноценен meal prep.', kcal: 500, protein: 38, carbs: 50, fats: 17, time: 20, tags: ['meal prep', 'балансирано'] },
+            ]
+        },
+        {
+            id: 'detox',
+            label: 'Детокс',
+            emoji: '🌿',
+            color: '#10b981',
+            meals: [
+                { id: 'dt1', name: 'Детокс смути', emoji: '🥬', desc: 'Спанак, краставица, джинджифил, лимон. Алкализиращо.', kcal: 80, protein: 3, carbs: 14, fats: 1, time: 5, tags: ['зелено', 'детокс'] },
+                { id: 'dt2', name: 'Бульон от кости', emoji: '🍵', desc: 'Телешки кости, зеленчуци, ябълков оцет. Чревна бариера.', kcal: 60, protein: 8, carbs: 4, fats: 2, time: 240, tags: ['чревна бариера', 'детокс'] },
+                { id: 'dt3', name: 'Тиквена крем супа', emoji: '🎃', desc: 'Тиква, кокосово мляко, куркума, джинджифил. Противовъзпалително.', kcal: 160, protein: 3, carbs: 28, fats: 7, time: 30, tags: ['противовъзпалително'] },
+                { id: 'dt4', name: 'Суров зеленчуков сок', emoji: '🥤', desc: 'Моркови, ябълка, целина, джинджифил. Ензими и витамини.', kcal: 90, protein: 2, carbs: 20, fats: 0, time: 5, tags: ['суров', 'детокс'] },
+                { id: 'dt5', name: 'Зелена салата с кинза', emoji: '🥗', desc: 'Рукола, кинза, краставица, авокадо, лимон. Хелиране.', kcal: 180, protein: 4, carbs: 12, fats: 14, time: 10, tags: ['антиоксиданти', 'лека'] },
+                { id: 'dt6', name: 'Куркума чай с мед', emoji: '☕', desc: 'Куркума, пипер, мед, кокосово мляко. Тоник за черния дроб.', kcal: 70, protein: 1, carbs: 12, fats: 3, time: 3, tags: ['противовъзпалително', 'бързо'] },
+            ]
+        },
+    ];
+
+    // Goal → suggested meal IDs mapping
+    const GOAL_SUGGESTIONS = {
+        'Отслабване':                   ['d1', 's4', 'l5', 'dt1'],
+        'Покачване на мускулна маса':   ['sp2', 'sp4', 'l1', 'b7'],
+        'Подобряване на здравето':      ['dt3', 'l3', 'b5', 'd5'],
+        'Антиейджинг':                  ['dt5', 'l8', 'b5', 's7'],
+        'Друго':                        ['b1', 'l1', 'd5', 's3'],
+    };
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    let selected = {};          // { mealKey: mealObject }
+    let activeTab = CATALOG[0].id;
+    let searchQuery = '';
+    let swapMode = false;       // true when ?mealType=X&day=Y
+    let swapMealType = null;    // e.g. "Закуска"
+    let swapDay = null;         // e.g. "1"
+    let detailMeal = null;      // currently shown in detail sheet
+    let userData = null;
+    const MAX_SELECTIONS = 7;   // upper limit for progress bar
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    (function init() {
+        // Parse query params
+        const params = new URLSearchParams(location.search);
+        swapMealType = params.get('mealType');
+        swapDay      = params.get('day');
+        swapMode     = !!(swapMealType && swapDay);
+
+        // Load userData for suggestions
+        try { userData = JSON.parse(localStorage.getItem('userData') || 'null'); } catch(e) {}
+
+        // Load previously selected meals
+        try {
+            const saved = JSON.parse(localStorage.getItem('selectedMeals') || '{}');
+            selected = (saved && typeof saved === 'object') ? saved : {};
+        } catch(e) { selected = {}; }
+
+        // Update theme icon
+        updateThemeIcon();
+
+        if (swapMode) {
+            document.getElementById('pageTitle').textContent = `Смени — ${swapMealType}`;
+            const swapBadge = document.getElementById('swapBadge');
+            swapBadge.classList.add('visible');
+            document.getElementById('swapBadgeText').textContent =
+                `Сменяш хранене ${swapMealType ? '"' + swapMealType + '"' : ''} за Ден ${swapDay || ''}`;
+            // Open the matching category
+            const match = CATALOG.find(c => catMatchesMealType(c.id, swapMealType));
+            if (match) activeTab = match.id;
+        }
+
+        buildSuggestions();
+        buildTabs();
+        buildAllSections();
+        updateStatus();
+        updateTabCounts();
+    })();
+
+    // ── Map meal type label → catalog id ─────────────────────────────────────
+    function catMatchesMealType(catId, mealType) {
+        if (!mealType) return false;
+        const m = mealType.toLowerCase();
+        if (catId === 'breakfast' && (m.includes('закуск') || m.includes('breakfast'))) return true;
+        if (catId === 'lunch'     && (m.includes('обяд')  || m.includes('lunch'))) return true;
+        if (catId === 'dinner'    && (m.includes('вечер') || m.includes('dinner'))) return true;
+        if (catId === 'snack'     && (m.includes('снакс') || m.includes('снак') || m.includes('snack') || m.includes('междин'))) return true;
+        if (catId === 'sport'     && (m.includes('спорт') || m.includes('sport'))) return true;
+        if (catId === 'detox'     && (m.includes('детокс') || m.includes('detox'))) return true;
+        return false;
+    }
+
+    // ── Theme toggle ──────────────────────────────────────────────────────────
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        updateThemeIcon();
+    }
+    function updateThemeIcon() {
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        document.getElementById('themeIcon').className = dark ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    // ── Build quick suggestions ───────────────────────────────────────────────
+    function buildSuggestions() {
+        if (swapMode) return; // hide suggestions in swap mode
+        const goal = userData && userData.mainGoal;
+        const sugIds = GOAL_SUGGESTIONS[goal] || GOAL_SUGGESTIONS['Друго'];
+
+        // Flatten catalog to id→meal map
+        const allMeals = {};
+        CATALOG.forEach(cat => cat.meals.forEach(m => { allMeals[m.id] = { ...m, catId: cat.id, catLabel: cat.label, catColor: cat.color }; }));
+
+        const chips = sugIds.map(id => allMeals[id]).filter(Boolean);
+        if (!chips.length) return;
+
+        const section = document.getElementById('suggestionsSection');
+        section.classList.add('visible');
+        const row = document.getElementById('suggestionsRow');
+        row.innerHTML = '';
+
+        chips.forEach(meal => {
+            const chip = document.createElement('button');
+            chip.className = 'mp-suggestion-chip';
+            chip.setAttribute('aria-label', `Избери ${meal.name}`);
+            chip.innerHTML = `${meal.emoji} ${meal.name} <span class="chip-tag">${meal.catLabel}</span>`;
+            chip.onclick = () => {
+                // Navigate to that tab and scroll to the card
+                switchTab(meal.catId);
+                setTimeout(() => {
+                    const card = document.querySelector(`[data-meal-id="${meal.id}"]`);
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 80);
+            };
+            row.appendChild(chip);
+        });
+    }
+
+    // ── Build tabs ────────────────────────────────────────────────────────────
+    function buildTabs() {
+        const nav = document.getElementById('tabsNav');
+        nav.innerHTML = '';
+        CATALOG.forEach(cat => {
+            // In swap mode, only show the matching tab (or all if no match)
+            if (swapMode) {
+                const match = CATALOG.find(c => catMatchesMealType(c.id, swapMealType));
+                if (match && cat.id !== match.id) return;
+            }
+            const btn = document.createElement('button');
+            btn.className = 'mp-tab' + (cat.id === activeTab ? ' active' : '');
+            btn.role = 'tab';
+            btn.setAttribute('aria-selected', cat.id === activeTab ? 'true' : 'false');
+            btn.setAttribute('aria-controls', `section-${cat.id}`);
+            btn.id = `tab-${cat.id}`;
+            btn.innerHTML = `${cat.emoji} ${cat.label} <span class="tab-count" id="tabcount-${cat.id}">0</span>`;
+            btn.onclick = () => switchTab(cat.id);
+            nav.appendChild(btn);
+        });
+    }
+
+    function switchTab(catId) {
+        activeTab = catId;
+        document.querySelectorAll('.mp-tab').forEach(btn => {
+            const active = btn.id === `tab-${catId}`;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        document.querySelectorAll('.mp-cat-section').forEach(sec => {
+            sec.classList.toggle('active', sec.id === `section-${catId}`);
+        });
+        // Scroll tab into view
+        const tab = document.getElementById(`tab-${catId}`);
+        if (tab) tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    // ── Build meal sections ───────────────────────────────────────────────────
+    function buildAllSections() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = '';
+        CATALOG.forEach(cat => {
+            const sec = document.createElement('div');
+            sec.className = 'mp-cat-section' + (cat.id === activeTab ? ' active' : '');
+            sec.id = `section-${cat.id}`;
+            sec.setAttribute('role', 'tabpanel');
+            sec.setAttribute('aria-labelledby', `tab-${cat.id}`);
+            main.appendChild(sec);
+            renderCatSection(cat, sec);
+        });
+    }
+
+    function renderCatSection(cat, sec) {
+        const q = searchQuery.toLowerCase().trim();
+        const meals = q
+            ? cat.meals.filter(m =>
+                m.name.toLowerCase().includes(q) ||
+                m.desc.toLowerCase().includes(q) ||
+                m.tags.some(t => t.toLowerCase().includes(q))
+              )
+            : cat.meals;
+
+        sec.innerHTML = '';
+
+        if (!meals.length) {
+            sec.innerHTML = `<div class="mp-empty"><i class="fas fa-search"></i><p>Няма намерени ястия</p></div>`;
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'mp-meals-grid';
+        meals.forEach(meal => {
+            const mealKey = getMealKey(cat.id, meal.id);
+            const isSelected = !!selected[mealKey];
+            const card = createMealCard(meal, cat, mealKey, isSelected);
+            grid.appendChild(card);
+        });
+        sec.appendChild(grid);
+    }
+
+    function createMealCard(meal, cat, mealKey, isSelected) {
+        const card = document.createElement('div');
+        card.className = 'mp-meal-card' + (isSelected ? ' selected' : '');
+        card.setAttribute('data-meal-id', meal.id);
+        card.setAttribute('data-meal-key', mealKey);
+        card.setAttribute('role', 'checkbox');
+        card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        card.setAttribute('aria-label', meal.name);
+        card.setAttribute('tabindex', '0');
+        card.style.setProperty('--cat-color', cat.color);
+
+        card.innerHTML = `
+            <div class="mp-check-badge"><i class="fas fa-check"></i></div>
+            <div class="swipe-accept">✓</div>
+            <div class="swipe-reject">✕</div>
+            <div class="mp-time-badge"><i class="fas fa-clock"></i>${meal.time} мин</div>
+            <div class="mp-meal-emoji">${meal.emoji}</div>
+            <div class="mp-meal-name">${escH(meal.name)}</div>
+            <div class="mp-meal-desc">${escH(meal.desc)}</div>
+            <div class="mp-macros">
+                <span class="mp-macro-badge kcal">🔥 ${meal.kcal}</span>
+                <span class="mp-macro-badge protein">🥩 ${meal.protein}г</span>
+            </div>
+            <div class="mp-tags">
+                ${meal.tags.map(t => `<span class="mp-tag">${escH(t)}</span>`).join('')}
+            </div>
+        `;
+
+        // Tap to toggle
+        card.onclick = (e) => {
+            if (e.target.closest('.swipe-accept') || e.target.closest('.swipe-reject')) return;
+            toggleMeal(card, meal, cat, mealKey);
+        };
+
+        // Long-press / double-tap → open detail
+        let pressTimer;
+        card.addEventListener('pointerdown', () => {
+            pressTimer = setTimeout(() => openDetail(meal, cat), 500);
+        });
+        card.addEventListener('pointerup', () => clearTimeout(pressTimer));
+        card.addEventListener('pointercancel', () => clearTimeout(pressTimer));
+
+        // Keyboard
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMeal(card, meal, cat, mealKey); }
+            if (e.key === 'i' || e.key === 'I') { openDetail(meal, cat); }
+        });
+
+        // Swipe gestures
+        setupSwipeGesture(card, meal, cat, mealKey);
+
+        return card;
+    }
+
+    // ── Swipe gesture ─────────────────────────────────────────────────────────
+    function setupSwipeGesture(card, meal, cat, mealKey) {
+        let startX = 0, startY = 0, isSwiping = false;
+        const THRESHOLD = 60;
+
+        card.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            isSwiping = false;
+        }, { passive: true });
+
+        card.addEventListener('touchmove', (e) => {
+            const dx = e.touches[0].clientX - startX;
+            const dy = Math.abs(e.touches[0].clientY - startY);
+            if (Math.abs(dx) > 15 && dy < 40) {
+                isSwiping = true;
+                const ratio = Math.min(Math.abs(dx) / THRESHOLD, 1);
+                card.style.transform = `translateX(${dx * 0.4}px) rotate(${dx * 0.04}deg)`;
+                const accept = card.querySelector('.swipe-accept');
+                const reject = card.querySelector('.swipe-reject');
+                if (dx > 0) {
+                    accept.style.opacity = ratio;
+                    reject.style.opacity = 0;
+                } else {
+                    reject.style.opacity = ratio;
+                    accept.style.opacity = 0;
+                }
+            }
+        }, { passive: true });
+
+        card.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - startX;
+            card.style.transform = '';
+            const accept = card.querySelector('.swipe-accept');
+            const reject = card.querySelector('.swipe-reject');
+            accept.style.opacity = 0;
+            reject.style.opacity = 0;
+
+            if (isSwiping && Math.abs(dx) > THRESHOLD) {
+                if (dx > 0) {
+                    // Swipe right = add
+                    if (!selected[mealKey]) toggleMeal(card, meal, cat, mealKey);
+                    else showToast(`${meal.emoji} Вече е избрано!`);
+                } else {
+                    // Swipe left = remove
+                    if (selected[mealKey]) toggleMeal(card, meal, cat, mealKey);
+                    else showToast(`${meal.emoji} Пропуснато`);
+                }
+                isSwiping = false;
+            }
+        });
+    }
+
+    // ── Toggle meal selection ─────────────────────────────────────────────────
+    function toggleMeal(card, meal, cat, mealKey) {
+        if (selected[mealKey]) {
+            // Deselect
+            delete selected[mealKey];
+            card.classList.remove('selected');
+            card.setAttribute('aria-checked', 'false');
+        } else {
+            // Select
+            selected[mealKey] = { ...meal, catId: cat.id, catLabel: cat.label, catColor: cat.color };
+            card.classList.add('selected');
+            card.setAttribute('aria-checked', 'true');
+            // Bounce animation
+            card.classList.remove('bounce');
+            void card.offsetWidth; // reflow
+            card.classList.add('bounce');
+        }
+        updateStatus();
+        updateTabCounts();
+
+        // In swap mode: immediately confirm and go back
+        if (swapMode) {
+            const key = `${swapDay}_${swapMealType}`;
+            if (selected[mealKey]) {
+                const saveable = {};
+                saveable[key] = selected[mealKey];
+                // Merge with existing saved meals
+                let allSaved = {};
+                try { allSaved = JSON.parse(localStorage.getItem('selectedMeals') || '{}'); } catch(e) {}
+                allSaved[key] = selected[mealKey];
+                localStorage.setItem('selectedMeals', JSON.stringify(allSaved));
+                showToast(`✅ ${meal.emoji} ${meal.name} — заменено!`, 'success');
+                setTimeout(() => goBack(), 800);
+            }
+        }
+    }
+
+    // ── Status bar update ─────────────────────────────────────────────────────
+    function updateStatus() {
+        const count = Object.keys(selected).length;
+        document.getElementById('selCount').textContent = count;
+        const pct = Math.min((count / MAX_SELECTIONS) * 100, 100);
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('doneBtn').disabled = count === 0;
+    }
+
+    function updateTabCounts() {
+        CATALOG.forEach(cat => {
+            const el = document.getElementById(`tabcount-${cat.id}`);
+            if (!el) return;
+            const count = Object.keys(selected).filter(k => k.startsWith(cat.id + '_')).length;
+            el.textContent = count;
+            el.classList.toggle('has-count', count > 0);
+        });
+    }
+
+    function getMealKey(catId, mealId) {
+        return `${catId}_${mealId}`;
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    function onSearch(val) {
+        searchQuery = val;
+        document.getElementById('searchClear').classList.toggle('visible', val.length > 0);
+        // Re-render all sections
+        CATALOG.forEach(cat => {
+            const sec = document.getElementById(`section-${cat.id}`);
+            if (sec) renderCatSection(cat, sec);
+        });
+        // If searching, show all tabs matching results
+        if (val.trim()) {
+            // Find first cat with results
+            const firstWithResults = CATALOG.find(cat =>
+                cat.meals.some(m =>
+                    m.name.toLowerCase().includes(val.toLowerCase()) ||
+                    m.tags.some(t => t.toLowerCase().includes(val.toLowerCase()))
+                )
+            );
+            if (firstWithResults) switchTab(firstWithResults.id);
+        }
+    }
+
+    function clearSearch() {
+        const input = document.getElementById('searchInput');
+        input.value = '';
+        onSearch('');
+        input.focus();
+    }
+
+    // ── Detail sheet ──────────────────────────────────────────────────────────
+    function openDetail(meal, cat) {
+        detailMeal = { meal, cat };
+        document.getElementById('detailEmoji').textContent = meal.emoji;
+        document.getElementById('detailTitle').textContent = meal.name;
+
+        const badge = document.getElementById('detailCatBadge');
+        badge.textContent = cat.label;
+        badge.style.background = cat.color;
+
+        document.getElementById('detailDesc').textContent = meal.desc;
+
+        document.getElementById('detailMacros').innerHTML = `
+            <div class="mp-detail-macro"><div class="mp-detail-macro-val" style="color:#b45309">${meal.kcal}</div><div class="mp-detail-macro-label">kcal</div></div>
+            <div class="mp-detail-macro"><div class="mp-detail-macro-val" style="color:#4338ca">${meal.protein}г</div><div class="mp-detail-macro-label">протеин</div></div>
+            <div class="mp-detail-macro"><div class="mp-detail-macro-val" style="color:#dc2626">${meal.carbs}г</div><div class="mp-detail-macro-label">въглехидрати</div></div>
+            <div class="mp-detail-macro"><div class="mp-detail-macro-val" style="color:#d97706">${meal.fats}г</div><div class="mp-detail-macro-label">мазнини</div></div>
+        `;
+
+        document.getElementById('detailTags').innerHTML =
+            meal.tags.map(t => `<span class="mp-detail-tag">${escH(t)}</span>`).join('') +
+            `<span class="mp-detail-tag"><i class="fas fa-clock"></i> ${meal.time} мин</span>`;
+
+        const mealKey = getMealKey(cat.id, meal.id);
+        const isSelected = !!selected[mealKey];
+        const btn = document.getElementById('detailSelectBtn');
+        btn.innerHTML = isSelected
+            ? '<i class="fas fa-times"></i> Премахни'
+            : '<i class="fas fa-check"></i> Избери';
+        btn.style.background = isSelected
+            ? 'linear-gradient(135deg,#ef4444,#dc2626)'
+            : '';
+
+        document.getElementById('detailOverlay').classList.add('active');
+    }
+
+    function closeDetail() {
+        document.getElementById('detailOverlay').classList.remove('active');
+        detailMeal = null;
+    }
+
+    function closeDetailIfBg(e) {
+        if (e.target === document.getElementById('detailOverlay')) closeDetail();
+    }
+
+    function selectFromDetail() {
+        if (!detailMeal) return;
+        const { meal, cat } = detailMeal;
+        const mealKey = getMealKey(cat.id, meal.id);
+        const card = document.querySelector(`[data-meal-key="${mealKey}"]`);
+        closeDetail();
+        if (card) toggleMeal(card, meal, cat, mealKey);
+        else {
+            // Card might not be in current view — toggle directly
+            if (selected[mealKey]) {
+                delete selected[mealKey];
+            } else {
+                selected[mealKey] = { ...meal, catId: cat.id, catLabel: cat.label, catColor: cat.color };
+            }
+            updateStatus();
+            updateTabCounts();
+            // Re-render section so card reflects state
+            const sec = document.getElementById(`section-${cat.id}`);
+            if (sec) renderCatSection(cat, sec);
+        }
+    }
+
+    // ── Done ──────────────────────────────────────────────────────────────────
+    function handleDone() {
+        if (Object.keys(selected).length === 0) return;
+
+        // Merge with any existing saved meals (from previous sessions)
+        let allSaved = {};
+        try { allSaved = JSON.parse(localStorage.getItem('selectedMeals') || '{}'); } catch(e) {}
+        Object.assign(allSaved, selected);
+        localStorage.setItem('selectedMeals', JSON.stringify(allSaved));
+
+        showToast('✅ Ястията са запазени!', 'success');
+        setTimeout(() => {
+            // Go back or to plan
+            if (document.referrer && document.referrer.includes('plan.html')) {
+                history.back();
+            } else {
+                window.location.href = 'plan.html';
+            }
+        }, 700);
+    }
+
+    // ── Reset ─────────────────────────────────────────────────────────────────
+    function resetAll() {
+        selected = {};
+        // Re-render all sections to deselect
+        CATALOG.forEach(cat => {
+            const sec = document.getElementById(`section-${cat.id}`);
+            if (sec) renderCatSection(cat, sec);
+        });
+        updateStatus();
+        updateTabCounts();
+        showToast('🔄 Изборът е нулиран');
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+    function goBack() {
+        if (history.length > 1) {
+            history.back();
+        } else {
+            window.location.href = 'plan.html';
+        }
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg, type) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = 'mp-toast show' + (type ? ' ' + type : '');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2500);
+    }
+
+    // ── Utility ───────────────────────────────────────────────────────────────
+    function escH(str) {
+        return String(str)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+    </script>
+</body>
+</html>
