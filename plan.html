@@ -4120,6 +4120,8 @@
             loadChatHistory();
             // Check for notification updates from backend (only call if admin changed)
             checkNotificationUpdates();
+            // Apply Meal Picker feature flag on load
+            applyMealPickerFeatureFlag(isMealPickerEnabled());
             // Auto-open chat if navigated with ?chat=1
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('chat') === '1') {
@@ -4497,10 +4499,10 @@
                     }
                 };
 
-                // Change-meal button (not shown for free meals)
+                // Change-meal button (not shown for free meals; only when Meal Picker feature is enabled)
                 const btnsWrap = document.createElement('div');
                 btnsWrap.className = 'meal-btns';
-                if (!isFreeMeal) {
+                if (!isFreeMeal && isMealPickerEnabled()) {
                     const changeBtn = document.createElement('button');
                     changeBtn.className = 'change-meal-btn' + (isOverridden ? ' changed' : '');
                     changeBtn.setAttribute('aria-label', `Смени ${meal.type}`);
@@ -4546,6 +4548,16 @@
                 const parsed = JSON.parse(raw);
                 return (parsed && typeof parsed === 'object') ? parsed : {};
             } catch(e) { return {}; }
+        }
+
+        // --- Meal Picker feature flag helpers ---
+        function isMealPickerEnabled() {
+            return localStorage.getItem('mealPickerEnabled') === 'true';
+        }
+
+        function applyMealPickerFeatureFlag(enabled) {
+            const navItem = document.getElementById('mealPickerNavItem');
+            if (navItem) navItem.style.display = enabled ? '' : 'none';
         }
 
         // --- Helper function to format text with bullet points ---
@@ -5303,11 +5315,15 @@
             
             if (!message) return;
 
-            // Food picker command
+            // Meal Picker feature toggle command
             if (message.toLowerCase() === '*selectfoods') {
-                addMessageToChat('🥗 Отваряне на избора на продукти…', 'assistant');
                 input.value = '';
-                setTimeout(() => { window.location.href = 'food-picker.html'; }, 700);
+                const currentlyEnabled = localStorage.getItem('mealPickerEnabled') === 'true';
+                const newState = !currentlyEnabled;
+                localStorage.setItem('mealPickerEnabled', newState ? 'true' : 'false');
+                applyMealPickerFeatureFlag(newState);
+                const stateLabel = newState ? '✅ активиран' : '🔒 деактивиран';
+                addMessageToChat(`🥗 Meal Picker е ${stateLabel} за твоя профил. ${newState ? 'Ще видиш бутон 🔄 до всяко хранене.' : 'Бутоните за смяна на ястие са скрити.'}`, 'assistant');
                 return;
             }
 
@@ -7372,7 +7388,7 @@
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="meal-picker.html" class="bottom-nav-item">
+        <a href="meal-picker.html" class="bottom-nav-item" id="mealPickerNavItem">
             <i class="fas fa-th-list"></i>
             <span>Ястия</span>
         </a>
