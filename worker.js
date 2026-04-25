@@ -3846,7 +3846,7 @@ function escapeHtml(str) {
  */
 const DEFAULT_EMAIL_TEMPLATE = {
   subject: 'Вашият персонален хранителен план е готов! 🥗',
-  headerTitle: '🍽️ AiDiet',
+  headerTitle: '🍽️ Nutri Plan',
   headerSubtitle: 'Персонален хранителен план',
   greeting: 'Здравейте, {name}! 👋',
   paragraph1: 'Радваме се да ви съобщим, че вашият <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
@@ -3899,7 +3899,7 @@ function buildPlanReadyEmailHtml(clientName, tpl) {
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
                   <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
-                    <a href="https://aidiet.radilov-k.workers.dev/plan.html" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
+                    <a href="https://biocode.website/plan.html" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
                   </td>
                 </tr>
               </table>
@@ -3923,7 +3923,7 @@ function buildPlanReadyEmailHtml(clientName, tpl) {
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} AiDiet &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; Персонален хранителен план</p>
               <p style="color:#999999;font-size:12px;margin:5px 0 0;">biocode.online</p>
             </td>
           </tr>
@@ -3953,7 +3953,7 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'AiDiet <info@biocode.online>',
+      from: 'Nutri Plan <info@biocode.online>',
       to: [to],
       subject,
       html: htmlBody,
