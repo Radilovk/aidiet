@@ -501,10 +501,14 @@ const selected = {}; // { itemName: true }
  * Returns true if a catalog item name should be hidden because it matches a
  * forbidden/blacklisted term.  Uses bidirectional substring matching so that
  * "Бял ориз" blocks "Ориз (бял)" and vice-versa.
+ * Terms shorter than 3 characters are ignored to prevent false positives.
+ *
+ * Admin blacklist API response: { blacklist: Array<string | {item: string, mode: string}> }
  */
 function isBlocked(itemName, blockedTerms) {
     const itemLower = itemName.toLowerCase();
     return blockedTerms.some(term => {
+        if (term.length < 3) return false; // skip very short terms to avoid false positives
         const termLower = term.toLowerCase();
         return itemLower.includes(termLower) || termLower.includes(itemLower);
     });
@@ -702,7 +706,10 @@ async function handleSubmit() {
 
         const removedCount = list.length - filteredList.length;
         if (removedCount > 0) {
-            showToast(`${removedCount} забранен${removedCount === 1 ? '' : 'и'} продукт${removedCount === 1 ? '' : 'а'} е изключен от плана.`);
+            showToast(removedCount === 1
+                ? '1 забранен продукт е изключен от плана.'
+                : `${removedCount} забранени продукта са изключени от плана.`
+            );
         }
 
         setLoading(true, 'Запазване на продуктите…');
