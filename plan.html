@@ -246,92 +246,98 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.25);
         }
 
-        /* --- DAY NAVIGATION (Infinite Horizontal Scroll) --- */
-        .days-nav {
+        /* --- DAY BANNER (replaces days-nav + greeting banner) --- */
+        .day-banner {
             display: flex;
-            overflow-x: auto;
-            justify-content: flex-start;
-            padding: 10px 5px;
-            background: var(--bg-color);
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; /* Hide scrollbar Firefox */
-            gap: 10px;
-            scroll-snap-type: x mandatory;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: pan-y;
         }
-        .days-nav::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome */
 
-        .day-chip {
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.9) 100%);
-            border: 1px solid rgba(13, 148, 136, 0.1);
-            padding: 8px 14px;
-            border-radius: 16px;
-            margin: 0;
-            white-space: nowrap;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            cursor: pointer;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            min-width: fit-content;
-            text-align: center;
+        .day-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(255,255,255,0.10) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .day-banner-arrow {
+            flex-shrink: 0;
+            width: 52px;
+            height: 52px;
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+            margin: 10px 14px;
+            z-index: 1;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: 
-                0 3px 10px rgba(0, 0, 0, 0.06),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            position: relative;
-            overflow: hidden;
-            flex-shrink: 0;
-            scroll-snap-align: center;
-        }
-        
-        [data-theme="dark"] .day-chip {
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.9) 100%);
-            border: 1px solid rgba(45, 212, 191, 0.12);
-            box-shadow: 
-                0 3px 10px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
-        .day-chip::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
-            opacity: 0;
-            transition: opacity 0.35s ease;
-            z-index: -1;
+        .day-banner-arrow:hover {
+            background: rgba(255,255,255,0.28);
+            transform: scale(1.08);
         }
 
-        .day-chip:hover {
-            transform: translateY(-3px);
-            box-shadow: 
-                0 8px 20px rgba(13, 148, 136, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            border-color: rgba(13, 148, 136, 0.2);
+        .day-banner-arrow:active {
+            transform: scale(0.92);
         }
 
-        .day-chip.active {
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
+        .day-banner-center {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            z-index: 1;
+        }
+
+        .day-banner-label {
+            font-size: 1.25rem;
+            font-weight: 800;
             color: white;
-            border-color: transparent;
-            box-shadow: 
-                0 8px 24px rgba(13, 148, 136, 0.45),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15);
-            transform: translateY(-3px) scale(1.03);
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.18);
+            transition: opacity 0.25s ease;
         }
 
-        .day-chip.active::before {
-            opacity: 1;
+        .day-banner-sub {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.82);
+            margin-top: 2px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
         }
 
-        .day-chip:active {
-            transform: scale(0.96);
+        /* Slide animation for day change */
+        .day-banner-label.slide-left  { animation: bannerSlideLeft  0.28s cubic-bezier(0.4,0,0.2,1) both; }
+        .day-banner-label.slide-right { animation: bannerSlideRight 0.28s cubic-bezier(0.4,0,0.2,1) both; }
+
+        @keyframes bannerSlideLeft {
+            from { opacity:0; transform: translateX(28px); }
+            to   { opacity:1; transform: translateX(0); }
+        }
+        @keyframes bannerSlideRight {
+            from { opacity:0; transform: translateX(-28px); }
+            to   { opacity:1; transform: translateX(0); }
+        }
+
+        [data-theme="dark"] .day-banner {
+            background: linear-gradient(135deg, #0f766e 0%, #2DD4BF 100%);
         }
 
         /* --- MAIN CONTAINER --- */
@@ -1184,6 +1190,32 @@
             line-height: 1.85;
             margin-top: 16px;
         }
+
+        /* Weight / calorie badge displayed in modal below title */
+        .modal-weight-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--soft-red) 0%, rgba(45,212,191,0.12) 100%);
+            color: var(--primary-red);
+            font-size: 0.88rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(13,148,136,0.12);
+            border: 1px solid rgba(13,148,136,0.12);
+        }
+
+        .modal-weight-badge .modal-weight-icon {
+            font-size: 0.9rem;
+            opacity: 0.85;
+        }
+
+        [data-theme="dark"] .modal-weight-badge {
+            background: linear-gradient(135deg, rgba(13,148,136,0.18) 0%, rgba(45,212,191,0.1) 100%);
+            border-color: rgba(45,212,191,0.2);
+        }
         
         .modal-body p {
             margin-bottom: 12px;
@@ -1557,12 +1589,14 @@
 
         /* Desktop enhancements for plan */
         @media (min-width: 601px) {
-            .days-nav {
-                padding: 12px 8px;
+            .day-banner-label {
+                font-size: 1.45rem;
             }
-            .day-chip {
-                padding: 10px 18px;
-                font-size: 0.9rem;
+            .day-banner-arrow {
+                width: 58px;
+                height: 58px;
+                font-size: 1.1rem;
+                margin: 12px 20px;
             }
             .meal-card {
                 padding: 18px;
@@ -1573,32 +1607,7 @@
             }
         }
 
-        /* Greeting Banner */
-        .greeting-banner {
-            padding: 14px 16px;
-            margin: 0;
-            background: linear-gradient(135deg, rgba(13,148,136,0.08) 0%, rgba(15,118,110,0.05) 100%);
-            border-bottom: 1px solid rgba(13,148,136,0.12);
-            text-align: center;
-        }
-
-        .greeting-banner p {
-            margin: 0;
-            font-size: 0.92rem;
-            font-weight: 600;
-            color: var(--primary-red);
-            line-height: 1.45;
-        }
-
-        .greeting-banner .greeting-name {
-            color: var(--text-dark);
-            font-weight: 700;
-        }
-
-        [data-theme="dark"] .greeting-banner {
-            background: linear-gradient(135deg, rgba(13,148,136,0.1) 0%, rgba(15,118,110,0.06) 100%);
-            border-bottom-color: rgba(13,148,136,0.15);
-        }
+        /* Greeting Banner — removed; replaced by .day-banner */
 
         /* PWA Install Banner */
         .install-banner {
@@ -1931,7 +1940,7 @@
         /* ---- Print / Save as PDF ---- */
         @media print {
             /* Hide UI chrome */
-            header, .days-nav, .greeting-banner,
+            header, .day-banner,
             .install-banner, #ios-banner, #printBtn,
             .back-btn, .theme-toggle-btn, .user-avatar,
             button:not(.info-btn), nav { display: none !important; }
@@ -2765,13 +2774,18 @@
         <h1>Моят Хранителен План</h1>
         <button class="header-food-btn" onclick="openFoodAnalysis()" aria-label="Анализ на храна чрез снимка"><i class="fas fa-camera"></i></button>
     </header>
-    <nav class="days-nav" id="daysContainer" role="tablist" aria-label="Избор на ден">
-        <!-- Populated dynamically by renderDayChips() -->
-    </nav>
-
-    <!-- Greeting Banner -->
-    <div class="greeting-banner" id="greetingBanner" role="status" aria-live="polite">
-        <p>Здравей, <span class="greeting-name" id="greetingName"></span>! 🌿 Днес ще направим още една важна крачка към постигането на твоята цел!</p>
+    <!-- Day Banner (replaces days-nav + greeting-banner) -->
+    <div class="day-banner" id="dayBannerContainer" role="navigation" aria-label="Избор на ден" tabindex="0">
+        <button class="day-banner-arrow day-banner-prev" id="dayBannerPrev" aria-label="Предишен ден">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="day-banner-center" id="dayBannerCenter">
+            <div class="day-banner-label" id="dayBannerLabel">Понеделник</div>
+            <div class="day-banner-sub" id="dayBannerSub">Ден 1 от 7</div>
+        </div>
+        <button class="day-banner-arrow day-banner-next" id="dayBannerNext" aria-label="Следващ ден">
+            <i class="fas fa-chevron-right"></i>
+        </button>
     </div>
 
 
@@ -2787,7 +2801,6 @@
                 <div class="meal-info">
                     <div class="meal-type">Закуска (08:00)</div>
                     <div class="meal-name">Овесена каша с горски плодове</div>
-                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> 250 гр.</div>
                 </div>
                 <button class="info-btn" onclick="openModal('Овесена каша', 'Богата на фибри. Бавните въглехидрати осигуряват енергия за целия ден.', 'Подобрява храносмилането и контролира кръвната захар.')">
                     <i class="fas fa-info"></i>
@@ -2799,7 +2812,6 @@
                 <div class="meal-info">
                     <div class="meal-type">Обяд (13:00)</div>
                     <div class="meal-name">Пилешка пържола на скара със салата</div>
-                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> 350 гр.</div>
                 </div>
                 <button class="info-btn" onclick="openModal('Пилешко със салата', 'Високо съдържание на протеин с минимални мазнини.', 'Подпомага мускулното възстановяване.')">
                     <i class="fas fa-info"></i>
@@ -2811,7 +2823,6 @@
                 <div class="meal-info">
                     <div class="meal-type">Вечеря (19:30)</div>
                     <div class="meal-name">Бяла риба със задушени зеленчуци</div>
-                    <div class="meal-weight"><i class="fas fa-weight-hanging"></i> 300 гр.</div>
                 </div>
                 <button class="info-btn" onclick="openModal('Риба със зеленчуци', 'Лека вечеря, богата на Омега-3 мастни киселини.', 'Лесна за усвояване преди сън.')">
                     <i class="fas fa-info"></i>
@@ -2889,6 +2900,10 @@
                 <div class="modal-drag-handle"></div>
             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
             <h3 class="modal-title" id="mTitle">Заглавие</h3>
+            <div class="modal-weight-badge" id="mWeightBadge" style="display:none;">
+                <span class="modal-weight-icon"><i class="fas fa-weight-hanging"></i></span>
+                <span id="mWeightText"></span>
+            </div>
             <div class="modal-body">
                 <p id="mDesc">Описание...</p>
                 <div class="modal-benefit">
@@ -4178,15 +4193,8 @@
                     avatar.textContent = userData.name.charAt(0).toUpperCase();
                 }
 
-                // Update greeting banner name
-                const greetingNameEl = document.getElementById('greetingName');
-                if (greetingNameEl) {
-                    if (userData.name) {
-                        greetingNameEl.textContent = userData.name;
-                    } else {
-                        greetingNameEl.textContent = userData.gender === 'Жена' ? 'приятелко' : 'приятелю';
-                    }
-                }
+                // Update greeting — no longer a banner; kept for future use only
+                // (greetingName element removed from DOM)
 
                 // Render initial data – auto-select today's day (Mon=1 … Sun=7)
                 const todayPlanDay = getTodayPlanDay();
@@ -4413,7 +4421,7 @@
                             'Свободно хранене',
                             'Можеш свободно да консумираш любимата си храна.\n\nВажно: Любимата храна може да бъде консумирана след прием на зеленолистна салата, поръсена със семена или смлени ядки, поправена със зехтин и лимонов сок.',
                             'Насладете се на любимата си храна — заслужихте го! 🏆',
-                            null
+                            null, null, null, null
                         );
                     } else {
                         openModal(
@@ -4421,23 +4429,19 @@
                             meal.description || '', 
                             meal.benefits || '',
                             meal.macros || null,
-                            meal.dessert || null
+                            meal.dessert || null,
+                            meal.weight || null,
+                            meal.calories || null
                         );
                     }
                 };
                 
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
-                // For free eating meals: omit calories and macros display
-                // meal.calories already includes the dessert contribution (dessert is part of the meal)
-                const totalMealCalories = meal.calories || 0;
-                const weightLine = isFreeMeal
-                    ? `<div class="meal-weight"><i class="fas fa-utensils"></i> Любима храна по избор</div>`
-                    : `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${totalMealCalories ? ` • ${Math.round(totalMealCalories)} kcal` : ''}</div>`;
                 mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
                     <div class="meal-name">${isFreeMeal ? 'Свободно хранене' : escapeHtmlWithBreaks(meal.name)}</div>
-                    ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}${weightLine}
+                    ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}
                 `;
                 
                 mealCard.appendChild(mealInfo);
@@ -4683,43 +4687,65 @@
             window.location.href = 'profile.html';
         }
 
-        function renderDayChips(activeDayNum) {
-            const fullDayNames  = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
-            const shortDayNames = ['Пон.', 'Вт.', 'Ср.', 'Чет.', 'Пет.', 'Съб.', 'Нед.'];
-            const container     = document.getElementById('daysContainer');
-            container.innerHTML = '';
+        function renderDayBanner(activeDayNum, direction) {
+            const fullDayNames = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
+            const label = document.getElementById('dayBannerLabel');
+            const sub   = document.getElementById('dayBannerSub');
 
-            let activeChip = null;
-            for (let offset = -3; offset <= 3; offset++) {
-                const dayNum   = ((activeDayNum - 1 + offset + 7) % 7) + 1;
-                const isActive = offset === 0;
-                const btn = document.createElement('button');
-                btn.className = 'day-chip' + (isActive ? ' active' : '');
-                btn.dataset.day = String(dayNum);
-                btn.setAttribute('role', 'tab');
-                btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-                btn.setAttribute('tabindex', isActive ? '0' : '-1');
-                btn.setAttribute('aria-label', fullDayNames[dayNum - 1]);
-                btn.textContent = isActive ? fullDayNames[dayNum - 1] : shortDayNames[dayNum - 1];
-                btn.addEventListener('click', () => selectDay(dayNum));
-                container.appendChild(btn);
-                if (isActive) activeChip = btn;
+            // Animate label
+            if (direction) {
+                label.classList.remove('slide-left', 'slide-right');
+                // Force reflow to restart CSS animation from the beginning
+                void label.offsetWidth;
+                label.classList.add(direction === 'next' ? 'slide-left' : 'slide-right');
             }
 
-            if (activeChip) {
-                requestAnimationFrame(() => {
-                    container.scrollLeft = activeChip.offsetLeft - (container.clientWidth - activeChip.offsetWidth) / 2;
-                });
-            }
-
-            // Scroll listener only for visual/accessibility — does NOT auto-select a day.
-            // Day selection only happens on explicit click.
+            label.textContent = fullDayNames[activeDayNum - 1];
+            sub.textContent   = `Ден ${activeDayNum} от 7`;
         }
 
-        function selectDay(dayNum) {
-            renderDayChips(dayNum);
+        function selectDay(dayNum, direction) {
+            renderDayBanner(dayNum, direction);
             renderDay(dayNum);
         }
+
+        // --- Day Banner Arrow & Swipe Navigation ---
+        (function initDayBannerNav() {
+            const prevBtn = document.getElementById('dayBannerPrev');
+            const nextBtn = document.getElementById('dayBannerNext');
+            const banner  = document.getElementById('dayBannerContainer');
+
+            function navigate(dir) {
+                const day = (currentDay - 1 + (dir === 'next' ? 1 : -1) + 7) % 7 + 1;
+                selectDay(day, dir);
+            }
+
+            if (prevBtn) prevBtn.addEventListener('click', () => navigate('prev'));
+            if (nextBtn) nextBtn.addEventListener('click', () => navigate('next'));
+
+            // Keyboard support on the banner itself
+            if (banner) {
+                banner.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight') navigate('next');
+                    else if (e.key === 'ArrowLeft') navigate('prev');
+                });
+
+                // Touch / swipe support
+                let touchStartX = 0;
+                let touchStartY = 0;
+                banner.addEventListener('touchstart', (e) => {
+                    touchStartX = e.changedTouches[0].clientX;
+                    touchStartY = e.changedTouches[0].clientY;
+                }, { passive: true });
+                banner.addEventListener('touchend', (e) => {
+                    const dx = e.changedTouches[0].clientX - touchStartX;
+                    const dy = e.changedTouches[0].clientY - touchStartY;
+                    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                        navigate(dx < 0 ? 'next' : 'prev');
+                    }
+                }, { passive: true });
+            }
+        })();
 
         // --- Auto-select today's plan day (no backend required) ---
         // Monday = day 1, Tuesday = day 2, …, Sunday = day 7.
@@ -4821,7 +4847,7 @@
             return item;
         }
 
-        function openModal(title, description, benefit, macros, dessert) {
+        function openModal(title, description, benefit, macros, dessert, weight, calories) {
             // Strip dessert name from title to avoid duplication with the mDessert section below
             let displayTitle = title;
             if (dessert && dessert.name) {
@@ -4833,6 +4859,19 @@
                 if (!displayTitle) displayTitle = title;
             }
             mTitle.textContent = displayTitle;
+            
+            // Show weight / calorie badge below title
+            const mWeightBadge = document.getElementById('mWeightBadge');
+            const mWeightText  = document.getElementById('mWeightText');
+            if (mWeightBadge && mWeightText) {
+                if (weight) {
+                    const calText = calories ? ` • ${Math.round(calories)} kcal` : '';
+                    mWeightText.textContent = `${weight}${calText}`;
+                    mWeightBadge.style.display = 'inline-flex';
+                } else {
+                    mWeightBadge.style.display = 'none';
+                }
+            }
             
             // Display description as-is (contains ingredient weights from AI)
             mDesc.innerHTML = escapeHtmlWithBreaks(description);
@@ -7231,30 +7270,25 @@
             .then(data => {
                 const img = (data.images || {})['plan_greeting'];
                 if (!img) return;
-                const banner = document.getElementById('greetingBanner');
-                if (!banner) return;
-                banner.style.backgroundImage = `url(${img})`;
-                banner.style.backgroundSize = 'cover';
-                banner.style.backgroundPosition = 'center';
-                banner.style.backgroundRepeat = 'no-repeat';
-                banner.style.minHeight = '100px';
-                banner.style.position = 'relative';
-                banner.style.display = 'flex';
-                banner.style.alignItems = 'center';
-                banner.style.justifyContent = 'center';
-                if (!banner.querySelector('.ui-img-overlay')) {
+                const dayBanner = document.getElementById('dayBannerContainer');
+                if (!dayBanner) return;
+                dayBanner.style.backgroundImage = `url(${img})`;
+                dayBanner.style.backgroundSize = 'cover';
+                dayBanner.style.backgroundPosition = 'center';
+                dayBanner.style.backgroundRepeat = 'no-repeat';
+                if (!dayBanner.querySelector('.ui-img-overlay')) {
                     const overlay = document.createElement('div');
                     overlay.className = 'ui-img-overlay';
                     overlay.setAttribute('aria-hidden', 'true');
                     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
                     overlay.style.cssText = 'position:absolute;inset:0;z-index:0;pointer-events:none;background:' + (isDark ? 'rgba(10,26,26,0.60)' : 'rgba(240,253,250,0.60)') + ';';
-                    banner.insertBefore(overlay, banner.firstChild);
+                    dayBanner.insertBefore(overlay, dayBanner.firstChild);
                     new MutationObserver(() => {
                         const dark = document.documentElement.getAttribute('data-theme') === 'dark';
                         overlay.style.background = dark ? 'rgba(10,26,26,0.60)' : 'rgba(240,253,250,0.60)';
                     }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
                 }
-                Array.from(banner.children).forEach(ch => {
+                Array.from(dayBanner.children).forEach(ch => {
                     if (!ch.classList.contains('ui-img-overlay')) ch.style.position = 'relative';
                 });
             })
