@@ -1586,6 +1586,12 @@ let chatContextCacheTime = {};
 const CHAT_CONTEXT_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache (session-based)
 const CHAT_CONTEXT_MAX_SIZE = 1000; // Maximum number of cached contexts (prevent memory bloat)
 
+// Cache for AI logging enabled/disabled status
+// Default is true (logging enabled). Admin can toggle via /api/admin/set-logging-status.
+let loggingStatusCache = null; // null = not yet loaded from KV
+let loggingStatusCacheTime = 0;
+const LOGGING_STATUS_CACHE_TTL = 60 * 1000; // 1 minute cache
+
 // Track logIds per session for deferred combined-index updates.
 // logAIRequest() appends each new logId here; finalizeAISessionLogs() reads
 // the list once and writes the combined index with a single cacheGet + cacheSet,
@@ -1976,6 +1982,36 @@ function enforceWeekendFreeDay(strategy) {
 
 
 /**
+ * Check whether AI logging is currently enabled.
+ * Reads the 'ai_logging_enabled' KV key (default: true when not set).
+ * Result is cached in module scope for LOGGING_STATUS_CACHE_TTL ms to avoid
+ * a KV read on every single AI call.
+ */
+async function isAILoggingEnabled(env) {
+  const now = Date.now();
+  if (loggingStatusCache !== null && (now - loggingStatusCacheTime) < LOGGING_STATUS_CACHE_TTL) {
+    return loggingStatusCache;
+  }
+
+  let enabled = true; // default: logging is enabled
+  if (env && env.page_content) {
+    try {
+      const val = await env.page_content.get('ai_logging_enabled');
+      if (val !== null) {
+        enabled = val !== 'false' && val !== '0';
+      }
+    } catch (e) {
+      // Fail open: if KV read fails, keep logging enabled; log warning for troubleshooting
+      console.warn('[isAILoggingEnabled] KV read failed, defaulting to enabled:', e && e.message);
+    }
+  }
+
+  loggingStatusCache = enabled;
+  loggingStatusCacheTime = now;
+  return enabled;
+}
+
+/**
  * Call AI model with load monitoring
  * Goal: Monitor request sizes to ensure no single request is overloaded
  * Architecture: System already uses multi-step approach (Analysis → Strategy → Meal Plan Chunks)
@@ -2042,8 +2078,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     timestamp: new Date().toISOString()
   };
 
-  // Log AI request (no cache operation – just generates logId and tracks it in the session)
-  const logId = await logAIRequest(env, stepName, requestData);
+  // Log AI request only when logging is enabled (saves Cache API subrequests when disabled)
+  const loggingEnabled = await isAILoggingEnabled(env);
+  const logId = loggingEnabled ? await logAIRequest(env, stepName, requestData) : null;
 
   const startTime = Date.now();
   let response;
@@ -2089,20 +2126,22 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     error = err.message || 'Unknown error';
     throw err;
   } finally {
-    // Log AI response combined with request data (single cache.put instead of two)
-    await logAIResponse(env, logId, stepName, {
-      response: response,
-      success: success,
-      error: error,
-      duration: Date.now() - startTime
-    }, requestData);
-    
-    // For auto-sessions (no explicit sessionId provided), finalize the combined
-    // index immediately after this single call. Named sessions (plan generation)
-    // are finalized in bulk by generatePlanMultiStep / regenerateFromStep to
-    // keep Cache API subrequests to 2 per session rather than 2 per call.
-    if (!sessionId && requestData._effectiveSessionId) {
-      await finalizeAISessionLogs(env, requestData._effectiveSessionId);
+    if (loggingEnabled) {
+      // Log AI response combined with request data (single cache.put instead of two)
+      await logAIResponse(env, logId, stepName, {
+        response: response,
+        success: success,
+        error: error,
+        duration: Date.now() - startTime
+      }, requestData);
+
+      // For auto-sessions (no explicit sessionId provided), finalize the combined
+      // index immediately after this single call. Named sessions (plan generation)
+      // are finalized in bulk by generatePlanMultiStep / regenerateFromStep to
+      // keep Cache API subrequests to 2 per session rather than 2 per call.
+      if (!sessionId && requestData._effectiveSessionId) {
+        await finalizeAISessionLogs(env, requestData._effectiveSessionId);
+      }
     }
   }
 
@@ -10946,13 +10985,13 @@ async function handleGetLoggingStatus(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    // AI logging is always enabled (required for debugging and monitoring)
-    // The system automatically keeps the last 10 sessions (MAX_LOG_ENTRIES = 10)
-    // Bulgarian: "AI логването е винаги включено за поддържане на последната пълна комуникация"
-    return jsonResponse({ 
-      success: true, 
-      enabled: true, // Always enabled
-      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация' // AI logging is always enabled to maintain last complete communication
+    const enabled = await isAILoggingEnabled(env);
+    return jsonResponse({
+      success: true,
+      enabled: enabled,
+      message: enabled
+        ? 'AI логването е включено'
+        : 'AI логването е изключено'
     }, 200, {
       cacheControl: 'no-cache'
     });
@@ -10964,8 +11003,7 @@ async function handleGetLoggingStatus(request, env) {
 
 /**
  * Admin: Set AI logging status
- * Note: AI logging is always enabled and cannot be disabled
- * This endpoint is kept for backward compatibility but will not change the status
+ * Saves the enabled/disabled state to KV so it persists across worker invocations.
  */
 async function handleSetLoggingStatus(request, env) {
   try {
@@ -10974,17 +11012,22 @@ async function handleSetLoggingStatus(request, env) {
     }
 
     const data = await request.json();
-    const requestedState = data.enabled === true || data.enabled === 'true';
+    const enabled = data.enabled === true || data.enabled === 'true';
 
-    // AI logging is always enabled to maintain last complete communication
-    // We don't actually change the state, but acknowledge the request
-    console.log(`AI logging toggle requested: ${requestedState ? 'enable' : 'disable'}, but logging is always enabled`);
-    
-    // Bulgarian: "AI логването е винаги включено за поддържане на последната пълна комуникация. Системата автоматично пази само последната сесия."
-    return jsonResponse({ 
+    await env.page_content.put('ai_logging_enabled', enabled ? 'true' : 'false');
+
+    // Update module-scope cache immediately so subsequent calls in this invocation
+    // reflect the new state without waiting for the TTL to expire.
+    loggingStatusCache = enabled;
+    loggingStatusCacheTime = Date.now();
+
+    console.log(`AI logging ${enabled ? 'enabled' : 'disabled'}`);
+    return jsonResponse({
       success: true,
-      enabled: true, // Always enabled
-      message: 'AI логването е винаги включено за поддържане на последната пълна комуникация. Системата автоматично пази само последната сесия.' // AI logging is always enabled to maintain last complete communication. System automatically keeps only the last session.
+      enabled: enabled,
+      message: enabled
+        ? 'AI логването е включено'
+        : 'AI логването е изключено'
     });
   } catch (error) {
     console.error('Error setting logging status:', error);
