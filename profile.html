@@ -2081,6 +2081,14 @@
                 showAlert(`⚠️ Моля, попълнете правилно полето: ${validationResult.fieldLabel}`, 'warning');
                 return;
             }
+
+            // Demo mode check: limit plan regeneration to once
+            const isDemoUnlocked = localStorage.getItem('chatDemoLimitUnlocked') === 'true';
+            const demoRegenCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
+            if (!isDemoUnlocked && demoRegenCount >= 1) {
+                showAlert('⚠️ Демо режим — лимит достигнат: В демо версията се позволява само едно регенериране на план след редакция на профила.', 'warning');
+                return;
+            }
             
             // Confirm before regenerating (important action)
             if (!confirm('Регенерирането на плана ще отнеме време. Сигурни ли сте, че искате да продължите?')) {
@@ -2147,6 +2155,10 @@
 
                     // Reset justification flag so modal shows on first load of regenerated plan
                     localStorage.removeItem('hasSeenPlanJustification');
+
+                    // Demo: increment regeneration counter
+                    const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
+                    localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
 
                     showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
                     
