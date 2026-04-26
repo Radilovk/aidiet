@@ -3366,6 +3366,32 @@
         // ── End UI Zone Images ─────────────────────────────────────────────────────
     </script>
 
+    <!-- Swipe navigation between tabs -->
+    <script>
+    (function() {
+        var tabs = ['index.html?stay=1', 'plan.html', 'guidelines.html', 'profile.html'];
+        var currentIndex = 0;
+        var touchStartX = 0, touchStartY = 0;
+        var THRESHOLD = 60;
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].clientX;
+            touchStartY = e.changedTouches[0].clientY;
+        }, { passive: true });
+        document.addEventListener('touchend', function(e) {
+            var nav = document.getElementById('indexBottomNav');
+            if (!nav || nav.style.display === 'none') return;
+            var dx = e.changedTouches[0].clientX - touchStartX;
+            var dy = e.changedTouches[0].clientY - touchStartY;
+            if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+            if (dx < 0 && currentIndex < tabs.length - 1) {
+                window.location.href = tabs[currentIndex + 1];
+            } else if (dx > 0 && currentIndex > 0) {
+                window.location.href = tabs[currentIndex - 1];
+            }
+        }, { passive: true });
+    })();
+    </script>
+
     <!-- Bottom Navigation (shown only when user has an approved plan) -->
     <nav class="bottom-nav" id="indexBottomNav" aria-label="Основна навигация" style="display: none;">
         <a href="index.html?stay=1" class="bottom-nav-item active">
