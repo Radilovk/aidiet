@@ -2825,7 +2825,7 @@
 
     <!-- Greeting Banner -->
     <div class="greeting-banner" id="greetingBanner" role="status" aria-live="polite">
-        <p>Здравей, <span class="greeting-name" id="greetingName"></span>! 🌿 Днес ще направим още една важна крачка към постигането на твоята цел!</p>
+        <p>Здравей, <span class="greeting-name" id="greetingName"></span>! <span id="greetingEmoji">🌿</span> Днес ще направим още една важна крачка към постигането на твоята цел!</p>
     </div>
 
 
@@ -2918,7 +2918,7 @@
                 <!-- Meal Context Selector -->
                 <select id="foodMealContext" style="width:100%;padding:10px 14px;border:1px solid var(--text-light);border-radius:12px;font-size:0.9rem;background:var(--card-bg);color:var(--text-dark);margin-bottom:12px;outline:none;">
                     <option value="Закуска">🌅 Закуска</option>
-                    <option value="Обяд" selected>🍽️ Обяд</option>
+                    <option value="Обяд" selected>☀️ Обяд</option>
                     <option value="Вечеря">🌙 Вечеря</option>
                     <option value="Междинно хранене">🥤 Междинно хранене</option>
                     <option value="Десерт">🍰 Десерт</option>
@@ -3442,7 +3442,7 @@
                     meals: {
                         breakfast: { title: 'Време за закуска', body: 'Започнете деня си със здравословна закуска 🍳' },
                         lunch: { title: 'Време за обяд', body: 'Време е за вашия здравословен обяд 🥗' },
-                        dinner: { title: 'Време за вечеря', body: 'Не забравяйте вечерята си 🍽️' },
+                        dinner: { title: 'Време за вечеря', body: 'Не забравяйте вечерята си 🌙' },
                         snack: { title: 'Време за междинна закуска', body: 'Време е за здравословна междинна закуска 🍎' }
                     },
                     water: { title: 'Време за вода', body: 'Не забравяйте да пиете вода! 💧' },
@@ -4242,6 +4242,12 @@
                     } else {
                         greetingNameEl.textContent = userData.gender === 'Жена' ? 'приятелко' : 'приятелю';
                     }
+                }
+                // Update greeting emoji based on time of day
+                const greetingEmojiEl = document.getElementById('greetingEmoji');
+                if (greetingEmojiEl) {
+                    const hour = new Date().getHours();
+                    greetingEmojiEl.textContent = hour < 12 ? '🌅' : hour < 18 ? '☀️' : '🌙';
                 }
 
                 // Render initial data – auto-select today's day (Mon=1 … Sun=7)
