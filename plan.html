@@ -2476,6 +2476,101 @@
         .food-confidence.medium { background: rgba(245,158,11,0.15); color: #d97706; }
         .food-confidence.low { background: rgba(239,68,68,0.15); color: #dc2626; }
 
+        /* --- МОИТЕ ХРАНИ И ПРОДУКТИ BANNER --- */
+        .my-foods-banner {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 60%, var(--secondary-accent) 100%);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            margin: 24px 0 8px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #fff;
+            box-shadow:
+                0 8px 28px rgba(13,148,136,0.35),
+                0 2px 8px rgba(13,148,136,0.2);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
+            animation: myFoodsPulse 3.2s ease-in-out infinite;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .my-foods-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 15% 50%, rgba(255,255,255,0.22) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 50%, rgba(255,255,255,0.10) 0%, transparent 55%);
+            pointer-events: none;
+        }
+        .my-foods-banner::after {
+            content: '';
+            position: absolute;
+            top: -40%;
+            left: -10%;
+            width: 55%;
+            height: 200%;
+            background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
+            animation: myFoodsShimmer 3.2s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes myFoodsShimmer {
+            0%   { transform: translateX(-120%); }
+            50%  { transform: translateX(250%); }
+            100% { transform: translateX(250%); }
+        }
+        @keyframes myFoodsPulse {
+            0%, 100% {
+                box-shadow: 0 8px 28px rgba(13,148,136,0.35), 0 2px 8px rgba(13,148,136,0.2), 0 0 0 0 rgba(13,148,136,0.28);
+            }
+            45% {
+                box-shadow: 0 12px 36px rgba(13,148,136,0.45), 0 4px 12px rgba(13,148,136,0.3), 0 0 0 10px rgba(13,148,136,0);
+            }
+        }
+        .my-foods-banner:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 14px 40px rgba(13,148,136,0.5), 0 4px 14px rgba(13,148,136,0.3);
+            animation: none;
+        }
+        .my-foods-banner:active { transform: scale(0.97); }
+        .my-foods-icon {
+            font-size: 2.4rem;
+            flex-shrink: 0;
+            position: relative;
+            animation: myFoodsWiggle 3.2s ease-in-out infinite;
+        }
+        @keyframes myFoodsWiggle {
+            0%, 80%, 100% { transform: rotate(0deg) scale(1); }
+            88%  { transform: rotate(-12deg) scale(1.12); }
+            94%  { transform: rotate(10deg) scale(1.08); }
+        }
+        .my-foods-text { flex: 1; position: relative; }
+        .my-foods-title {
+            font-size: 1.08rem;
+            font-weight: 800;
+            letter-spacing: -0.2px;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.18);
+        }
+        .my-foods-sub {
+            font-size: 0.82rem;
+            opacity: 0.88;
+            margin-top: 3px;
+            line-height: 1.4;
+        }
+        .my-foods-arrow {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            opacity: 0.9;
+            transition: transform 0.3s ease;
+        }
+        .my-foods-banner:hover .my-foods-arrow { transform: translateX(4px); }
+        [data-theme="dark"] .my-foods-banner {
+            background: linear-gradient(135deg, #0f766e 0%, #2DD4BF 60%, #22D3EE 100%);
+        }
+
         /* --- SCROLL TO TOP BUTTON --- */
         .scroll-top-btn {
             position: fixed;
@@ -2839,6 +2934,16 @@
                 </button>
             </div>
         </div>
+
+        <!-- Моите храни и продукти banner -->
+        <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти">
+            <span class="my-foods-icon">🛒</span>
+            <div class="my-foods-text">
+                <div class="my-foods-title">Моите храни и продукти</div>
+                <div class="my-foods-sub">Персонализирай списъка с продукти за хранителния си план</div>
+            </div>
+            <i class="fas fa-chevron-right my-foods-arrow"></i>
+        </a>
 
     </main>
 
