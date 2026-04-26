@@ -2775,7 +2775,7 @@
         <button class="header-food-btn" onclick="openFoodAnalysis()" aria-label="Анализ на храна чрез снимка"><i class="fas fa-camera"></i></button>
     </header>
     <!-- Day Banner (replaces days-nav + greeting-banner) -->
-    <div class="day-banner" id="dayBannerContainer" role="navigation" aria-label="Избор на ден">
+    <div class="day-banner" id="dayBannerContainer" role="navigation" aria-label="Избор на ден" tabindex="0">
         <button class="day-banner-arrow day-banner-prev" id="dayBannerPrev" aria-label="Предишен ден">
             <i class="fas fa-chevron-left"></i>
         </button>
@@ -4421,10 +4421,7 @@
                             'Свободно хранене',
                             'Можеш свободно да консумираш любимата си храна.\n\nВажно: Любимата храна може да бъде консумирана след прием на зеленолистна салата, поръсена със семена или смлени ядки, поправена със зехтин и лимонов сок.',
                             'Насладете се на любимата си храна — заслужихте го! 🏆',
-                            null,
-                            null,
-                            null,
-                            null
+                            null, null, null, null
                         );
                     } else {
                         openModal(
@@ -4698,17 +4695,13 @@
             // Animate label
             if (direction) {
                 label.classList.remove('slide-left', 'slide-right');
-                // force reflow
+                // Force reflow to restart CSS animation from the beginning
                 void label.offsetWidth;
                 label.classList.add(direction === 'next' ? 'slide-left' : 'slide-right');
             }
 
             label.textContent = fullDayNames[activeDayNum - 1];
             sub.textContent   = `Ден ${activeDayNum} от 7`;
-
-            // Update arrow disabled state (all 7 days navigable; wrap around)
-            document.getElementById('dayBannerPrev').disabled = false;
-            document.getElementById('dayBannerNext').disabled = false;
         }
 
         function selectDay(dayNum, direction) {
@@ -7277,25 +7270,25 @@
             .then(data => {
                 const img = (data.images || {})['plan_greeting'];
                 if (!img) return;
-                const banner = document.getElementById('dayBannerContainer');
-                if (!banner) return;
-                banner.style.backgroundImage = `url(${img})`;
-                banner.style.backgroundSize = 'cover';
-                banner.style.backgroundPosition = 'center';
-                banner.style.backgroundRepeat = 'no-repeat';
-                if (!banner.querySelector('.ui-img-overlay')) {
+                const dayBanner = document.getElementById('dayBannerContainer');
+                if (!dayBanner) return;
+                dayBanner.style.backgroundImage = `url(${img})`;
+                dayBanner.style.backgroundSize = 'cover';
+                dayBanner.style.backgroundPosition = 'center';
+                dayBanner.style.backgroundRepeat = 'no-repeat';
+                if (!dayBanner.querySelector('.ui-img-overlay')) {
                     const overlay = document.createElement('div');
                     overlay.className = 'ui-img-overlay';
                     overlay.setAttribute('aria-hidden', 'true');
                     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
                     overlay.style.cssText = 'position:absolute;inset:0;z-index:0;pointer-events:none;background:' + (isDark ? 'rgba(10,26,26,0.60)' : 'rgba(240,253,250,0.60)') + ';';
-                    banner.insertBefore(overlay, banner.firstChild);
+                    dayBanner.insertBefore(overlay, dayBanner.firstChild);
                     new MutationObserver(() => {
                         const dark = document.documentElement.getAttribute('data-theme') === 'dark';
                         overlay.style.background = dark ? 'rgba(10,26,26,0.60)' : 'rgba(240,253,250,0.60)';
                     }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
                 }
-                Array.from(banner.children).forEach(ch => {
+                Array.from(dayBanner.children).forEach(ch => {
                     if (!ch.classList.contains('ui-img-overlay')) ch.style.position = 'relative';
                 });
             })
