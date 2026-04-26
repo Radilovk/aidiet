@@ -1105,15 +1105,13 @@ async function handleSubmit() {
         if (DEBUG_MODE) {
             const debugWrap = document.getElementById('fpDebugWrap');
             const debugBox = document.getElementById('debugBox');
-            const totalVisible2 = countVisibleCatalogItems(blockedTerms);
-            const mode = filteredList.length >= EXCLUSION_THRESHOLD * totalVisible2 ? 'exclusion' : 'inclusion';
             debugBox.textContent = JSON.stringify({
-                mode,
+                mode: useExclusionMode ? 'exclusion' : 'inclusion',
                 userFoodList: filteredList,
                 removedBlocked: list.filter(i => isBlocked(i, blockedTerms)),
                 count: filteredList.length,
-                totalVisible: totalVisible2,
-                threshold: Math.round(EXCLUSION_THRESHOLD * totalVisible2),
+                totalVisible,
+                threshold: Math.round(EXCLUSION_THRESHOLD * totalVisible),
                 savedAt: new Date().toISOString()
             }, null, 2);
             debugWrap.style.display = 'block';
