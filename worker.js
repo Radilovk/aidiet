@@ -9787,6 +9787,30 @@ async function handleRemoveFromBlacklist(request, env) {
 }
 
 /**
+ * Blacklist Management: Bulk-replace the entire blacklist in one call.
+ * Accepts { items: string[] } — all items are stored with mode='ban'.
+ * Passing an empty array clears the blacklist completely.
+ */
+async function handleSetBlacklist(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    const data = await request.json();
+    const items = (data.items || [])
+      .map(i => (typeof i === 'string' ? i.trim().toLowerCase() : ''))
+      .filter(Boolean);
+    const blacklist = items.map(item => ({ item, mode: 'ban' }));
+    await env.page_content.put('food_blacklist', JSON.stringify(blacklist));
+    invalidateFoodListsCache();
+    return jsonResponse({ success: true, blacklist });
+  } catch (error) {
+    console.error('Error setting blacklist:', error);
+    return jsonResponse({ error: `Failed to set blacklist: ${error.message}` }, 500);
+  }
+}
+
+/**
  * Whitelist Management: Get whitelist from KV storage
  */
 async function handleGetWhitelist(request, env) {
@@ -12037,6 +12061,8 @@ export default {
         return await handleAddToBlacklist(request, env);
       } else if (url.pathname === '/api/admin/remove-from-blacklist' && request.method === 'POST') {
         return await handleRemoveFromBlacklist(request, env);
+      } else if (url.pathname === '/api/admin/set-blacklist' && request.method === 'POST') {
+        return await handleSetBlacklist(request, env);
       } else if (url.pathname === '/api/admin/get-whitelist' && request.method === 'GET') {
         return await handleGetWhitelist(request, env);
       } else if (url.pathname === '/api/admin/add-to-whitelist' && request.method === 'POST') {
