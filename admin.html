@@ -3810,13 +3810,18 @@
         // Cache Configuration
         const CACHE_CONFIG = {
             // Cache TTL (Time To Live) in milliseconds
-            config: 5 * 60 * 1000,        // 5 minutes for config data
-            blacklist: 5 * 60 * 1000,     // 5 minutes for blacklist
-            whitelist: 5 * 60 * 1000,     // 5 minutes for whitelist
-            mainlist: 5 * 60 * 1000,      // 5 minutes for mainlist
-            reports: 2 * 60 * 1000,       // 2 minutes for reports (more dynamic)
-            defaultPrompts: 30 * 60 * 1000, // 30 minutes for default prompts (rarely change)
-            aiLogs: 1 * 60 * 1000         // 1 minute for AI logs (frequently updated)
+            config: 5 * 60 * 1000,              // 5 minutes for config data
+            blacklist: 5 * 60 * 1000,           // 5 minutes for blacklist
+            whitelist: 5 * 60 * 1000,           // 5 minutes for whitelist
+            mainlist: 5 * 60 * 1000,            // 5 minutes for mainlist
+            mainlistStatus: 2 * 60 * 1000,      // 2 minutes for mainlist status
+            mainlistPresets: 5 * 60 * 1000,     // 5 minutes for mainlist presets
+            validationConfig: 5 * 60 * 1000,    // 5 minutes for validation config
+            pendingPlans: 30 * 1000,             // 30 seconds for pending plans (frequently changes)
+            reports: 2 * 60 * 1000,             // 2 minutes for reports (more dynamic)
+            defaultPrompts: 30 * 60 * 1000,     // 30 minutes for default prompts (rarely change)
+            aiLogs: 1 * 60 * 1000,              // 1 minute for AI logs (frequently updated)
+            short: 2 * 60 * 1000,              // 2 minutes for notification settings/templates
         };
 
         // In-memory cache object
@@ -3927,6 +3932,26 @@
         function invalidateAILogsCache() {
             apiCache.clearPattern('admin:aiLogs:*');
             console.log('[Cache] Invalidated AI logs cache');
+        }
+
+        function invalidateValidationConfigCache() {
+            apiCache.clear('admin:validationConfig');
+            console.log('[Cache] Invalidated validation config cache');
+        }
+
+        function invalidateMainlistStatusCache() {
+            apiCache.clear('admin:mainlistStatus');
+            console.log('[Cache] Invalidated mainlist status cache');
+        }
+
+        function invalidateMainlistPresetsCache() {
+            apiCache.clear('admin:mainlistPresets');
+            console.log('[Cache] Invalidated mainlist presets cache');
+        }
+
+        function invalidatePendingPlansCache() {
+            apiCache.clear('admin:pendingPlans');
+            console.log('[Cache] Invalidated pending plans cache');
         }
         // ============================================================================
         // END OF CACHE SYSTEM
@@ -5381,11 +5406,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
         async function loadValidationConfig() {
             try {
-                const res = await fetch(WORKER_URL + '/api/admin/get-validation-config', {
-                    headers: { 'X-Admin-Password': ADMIN_PASSWORD }
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
+                const data = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-validation-config',
+                    'admin:validationConfig',
+                    CACHE_CONFIG.validationConfig,
+                    { headers: { 'X-Admin-Password': ADMIN_PASSWORD } }
+                );
                 if (data.success && data.config) {
                     applyValidationConfigToUI(data.config);
                 }
@@ -5405,6 +5431,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 });
                 const data = await res.json();
                 if (data.success) {
+                    invalidateValidationConfigCache();
                     showSuccess('Правилата за валидация са запазени успешно!');
                 } else {
                     showError('Грешка при запазване: ' + (data.error || 'Unknown error'));
@@ -6523,8 +6550,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Mainlist toggle enable/disable
         async function loadMainlistStatus() {
             try {
-                const response = await fetch(WORKER_URL + '/api/admin/get-mainlist-status');
-                const result = await response.json();
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-mainlist-status',
+                    'admin:mainlistStatus',
+                    CACHE_CONFIG.mainlistStatus
+                );
                 updateMainlistStatusUI(result.enabled !== false);
             } catch (error) {
                 console.error('Error loading mainlist status:', error);
@@ -6562,6 +6592,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 });
                 const result = await response.json();
                 if (result.success) {
+                    invalidateMainlistStatusCache();
                     updateMainlistStatusUI(result.enabled);
                     showSuccess(enable ? 'Mainlist е ВКЛЮЧЕН — AI ще използва само тези продукти!' : 'Mainlist е ИЗКЛЮЧЕН — AI може да избира свободно.');
                 } else {
@@ -6576,8 +6607,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Mainlist presets
         async function loadMainlistPresets() {
             try {
-                const response = await fetch(WORKER_URL + '/api/admin/get-mainlist-presets');
-                const result = await response.json();
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-mainlist-presets',
+                    'admin:mainlistPresets',
+                    CACHE_CONFIG.mainlistPresets
+                );
                 displayMainlistPresets(result.presets || []);
             } catch (error) {
                 console.error('Error loading mainlist presets:', error);
@@ -6620,6 +6654,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 });
                 const result = await response.json();
                 if (result.success) {
+                    invalidateMainlistPresetsCache();
                     displayMainlistPresets(result.presets || []);
                     nameInput.value = '';
                     showSuccess(`Шаблон "${name}" е запазен!`);
@@ -6644,6 +6679,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (result.success) {
                     currentMainlist = result.mainlist || [];
                     invalidateMainlistCache();
+                    invalidateMainlistStatusCache();
                     displayMainlist();
                     updateMainlistStatusUI(true);
                     showSuccess(`Шаблон "${name}" е зареден и mainlist е активиран!`);
@@ -6666,6 +6702,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 });
                 const result = await response.json();
                 if (result.success) {
+                    invalidateMainlistPresetsCache();
                     displayMainlistPresets(result.presets || []);
                     showSuccess(`Шаблон "${name}" е изтрит!`);
                 } else {
@@ -7380,8 +7417,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             container.innerHTML = '<p style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане…</p>';
             statusEl.textContent = '';
             try {
-                const response = await fetch(WORKER_URL + '/api/admin/get-clients-list');
-                const result = await response.json();
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/get-clients-list',
+                    'admin:pendingPlans',
+                    CACHE_CONFIG.pendingPlans
+                );
                 if (!result.success || !result.clients) throw new Error('Invalid response');
 
                 const pending = result.clients.filter(c => c.planStatus === 'pending');
@@ -7451,6 +7491,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             const res = await resp.json();
                             if (res.success) {
                                 showSuccess('Планът е активиран! Клиентът вече има достъп.');
+                                invalidatePendingPlansCache();
                                 loadPendingPlans(); // Refresh pending list
                             } else {
                                 throw new Error(res.error || 'Unknown error');
@@ -7894,6 +7935,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         if (res.success) {
                             showSuccess('Планът е активиран! Клиентът вече има достъп.');
                             modal.remove();
+                            invalidatePendingPlansCache();
                             loadPendingPlans(); // Refresh pending plans widget
                             if (allClientsData.length) loadClientsList(); // Refresh full list if already loaded
                         } else {

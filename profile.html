@@ -3036,34 +3036,47 @@
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
             const WORKER = 'https://aidiet.radilov-k.workers.dev';
+            const CACHE_KEY = 'uiImages:cache';
+            const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+            function applyData(data) {
+                const img = (data.images || {})['profile_cover'];
+                if (!img) return;
+                const header = document.querySelector('.profile-header');
+                if (!header) return;
+                header.style.backgroundImage = `url(${img})`;
+                header.style.backgroundSize = 'cover';
+                header.style.backgroundPosition = 'center';
+                header.style.backgroundRepeat = 'no-repeat';
+                header.style.position = 'relative';
+                header.style.overflow = 'hidden';
+                if (!header.querySelector('.ui-img-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'ui-img-overlay';
+                    overlay.setAttribute('aria-hidden', 'true');
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    overlay.style.cssText = 'position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;background:' + (isDark ? 'rgba(10,26,26,0.65)' : 'rgba(240,253,250,0.65)') + ';';
+                    header.insertBefore(overlay, header.firstChild);
+                    new MutationObserver(() => {
+                        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        overlay.style.background = dark ? 'rgba(10,26,26,0.65)' : 'rgba(240,253,250,0.65)';
+                    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+                }
+                Array.from(header.children).forEach(ch => {
+                    if (!ch.classList.contains('ui-img-overlay')) ch.style.position = 'relative';
+                });
+            }
+            try {
+                const cached = sessionStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const { data, expiry } = JSON.parse(cached);
+                    if (Date.now() < expiry) { applyData(data); return; }
+                }
+            } catch (_) {}
             fetch(WORKER + '/api/ui-images')
                 .then(r => r.json())
                 .then(data => {
-                    const img = (data.images || {})['profile_cover'];
-                    if (!img) return;
-                    const header = document.querySelector('.profile-header');
-                    if (!header) return;
-                    header.style.backgroundImage = `url(${img})`;
-                    header.style.backgroundSize = 'cover';
-                    header.style.backgroundPosition = 'center';
-                    header.style.backgroundRepeat = 'no-repeat';
-                    header.style.position = 'relative';
-                    header.style.overflow = 'hidden';
-                    if (!header.querySelector('.ui-img-overlay')) {
-                        const overlay = document.createElement('div');
-                        overlay.className = 'ui-img-overlay';
-                        overlay.setAttribute('aria-hidden', 'true');
-                        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                        overlay.style.cssText = 'position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;background:' + (isDark ? 'rgba(10,26,26,0.65)' : 'rgba(240,253,250,0.65)') + ';';
-                        header.insertBefore(overlay, header.firstChild);
-                        new MutationObserver(() => {
-                            const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-                            overlay.style.background = dark ? 'rgba(10,26,26,0.65)' : 'rgba(240,253,250,0.65)';
-                        }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-                    }
-                    Array.from(header.children).forEach(ch => {
-                        if (!ch.classList.contains('ui-img-overlay')) ch.style.position = 'relative';
-                    });
+                    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, expiry: Date.now() + CACHE_TTL })); } catch (_) {}
+                    applyData(data);
                 })
                 .catch(() => {});
         })();

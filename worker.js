@@ -9296,7 +9296,9 @@ async function handleGetConfig(request, env) {
 async function handleGetValidationConfig(request, env) {
   try {
     const config = await getValidationConfig(env);
-    return jsonResponse({ success: true, config });
+    return jsonResponse({ success: true, config }, 200, {
+      cacheControl: 'public, max-age=300' // Cache for 5 minutes - validation config changes infrequently
+    });
   } catch (error) {
     console.error('Error getting validation config:', error);
     return jsonResponse({ error: 'Failed to get validation config: ' + error.message }, 500);
@@ -10002,7 +10004,7 @@ async function handleGetMainlistStatus(request, env) {
     }
     const val = await env.page_content.get('food_mainlist_enabled');
     const enabled = val === null ? true : val !== 'false';
-    return jsonResponse({ success: true, enabled }, 200, { cacheControl: 'no-cache' });
+    return jsonResponse({ success: true, enabled }, 200, { cacheControl: 'public, max-age=60' }); // Cache 60s; invalidated on toggle
   } catch (error) {
     console.error('Error getting mainlist status:', error);
     return jsonResponse({ error: `Failed to get mainlist status: ${error.message}` }, 500);
@@ -10039,7 +10041,7 @@ async function handleGetMainlistPresets(request, env) {
     }
     const raw = await env.page_content.get('food_mainlist_presets');
     const presets = raw ? Object.keys(JSON.parse(raw)) : [];
-    return jsonResponse({ success: true, presets }, 200, { cacheControl: 'no-cache' });
+    return jsonResponse({ success: true, presets }, 200, { cacheControl: 'public, max-age=60' }); // Cache 60s; invalidated on preset changes
   } catch (error) {
     console.error('Error getting mainlist presets:', error);
     return jsonResponse({ error: `Failed to get presets: ${error.message}` }, 500);
@@ -10436,7 +10438,9 @@ async function handleGetAllUIImages(request, env) {
     if (raw) {
       try { images = JSON.parse(raw); } catch (parseError) { console.error('Error parsing UI images JSON:', parseError); }
     }
-    return jsonResponse({ success: true, images });
+    return jsonResponse({ success: true, images }, 200, {
+      cacheControl: 'public, max-age=1800' // Cache for 30 minutes - UI images change rarely
+    });
   } catch (error) {
     console.error('Error getting UI images:', error);
     return jsonResponse({ error: `Failed to get UI images: ${error.message}` }, 500);
