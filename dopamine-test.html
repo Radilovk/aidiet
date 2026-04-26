@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Предизвикателство</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f1a;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Question card ── */
+    #card {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 48px 40px 40px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      position: relative;
+      z-index: 10;
+      transition: transform 0.4s cubic-bezier(.34,1.56,.64,1), opacity 0.4s ease;
+    }
+
+    #card.hide { transform: scale(0.7); opacity: 0; pointer-events: none; }
+
+    .emoji { font-size: 64px; margin-bottom: 20px; display: block; }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f0f0ff;
+      line-height: 1.4;
+      margin-bottom: 32px;
+    }
+
+    .buttons { display: flex; gap: 16px; justify-content: center; }
+
+    button {
+      padding: 16px 40px;
+      border: none;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      letter-spacing: 0.5px;
+    }
+    button:hover  { transform: translateY(-3px); }
+    button:active { transform: scale(0.95); }
+
+    #btn-yes {
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      color: #1a1a00;
+      box-shadow: 0 8px 24px rgba(255, 200, 0, 0.4);
+    }
+    #btn-no {
+      background: rgba(255,255,255,0.08);
+      color: #aaaacc;
+      box-shadow: none;
+    }
+    #btn-no:hover { background: rgba(255,255,255,0.14); }
+
+    /* ── Reward overlay ── */
+    #reward {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, #1a0040 0%, #050510 100%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 20;
+      transition: opacity 0.5s ease;
+    }
+    #reward.show { opacity: 1; pointer-events: all; }
+
+    #reward-text {
+      font-size: clamp(2rem, 8vw, 4rem);
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 40px #ffd200, 0 0 80px #ff6600;
+      text-align: center;
+      padding: 0 20px;
+      animation: pulse-text 0.6s ease infinite alternate;
+      z-index: 2;
+    }
+    #reward-sub {
+      margin-top: 16px;
+      font-size: 1.25rem;
+      color: #ffdd88;
+      text-align: center;
+      padding: 0 20px;
+      z-index: 2;
+    }
+
+    #play-again {
+      margin-top: 48px;
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      color: #1a1a00;
+      padding: 14px 36px;
+      font-size: 1rem;
+      box-shadow: 0 8px 24px rgba(255,200,0,0.4);
+      z-index: 2;
+    }
+
+    /* Burst rings */
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 4px solid;
+      opacity: 0;
+      animation: ring-burst 1s ease-out forwards;
+    }
+
+    @keyframes ring-burst {
+      0%   { transform: translate(-50%,-50%) scale(0); opacity: 0.9; }
+      100% { transform: translate(-50%,-50%) scale(6); opacity: 0; }
+    }
+
+    /* Stars */
+    .star {
+      position: absolute;
+      width: 12px; height: 12px;
+      clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+      animation: star-fly 1.4s ease-out forwards;
+      z-index: 3;
+    }
+
+    @keyframes star-fly {
+      0%   { transform: translate(0,0) scale(0) rotate(0deg); opacity: 1; }
+      60%  { opacity: 1; }
+      100% { transform: translate(var(--tx), var(--ty)) scale(1.4) rotate(var(--rot)); opacity: 0; }
+    }
+
+    /* Confetti pieces */
+    .confetti {
+      position: absolute;
+      width: 10px; height: 16px;
+      border-radius: 3px;
+      animation: confetti-fall var(--dur) ease-out forwards;
+      z-index: 3;
+    }
+
+    @keyframes confetti-fall {
+      0%   { transform: translate(var(--sx), -80px) rotate(0deg); opacity: 1; }
+      100% { transform: translate(var(--ex), 110vh)  rotate(var(--rot)); opacity: 0.2; }
+    }
+
+    /* Glow pulse on background */
+    @keyframes bg-glow {
+      0%,100% { background: radial-gradient(ellipse at center, #1a0040 0%, #050510 100%); }
+      30%      { background: radial-gradient(ellipse at center, #300060 0%, #0a0030 100%); }
+      60%      { background: radial-gradient(ellipse at center, #1a3000 0%, #050510 100%); }
+    }
+    #reward.show { animation: bg-glow 2.4s ease infinite; }
+
+    @keyframes pulse-text {
+      from { transform: scale(1);    text-shadow: 0 0 40px #ffd200, 0 0 80px #ff6600; }
+      to   { transform: scale(1.06); text-shadow: 0 0 70px #ffaa00, 0 0 140px #ff3300; }
+    }
+
+    /* No-answer panel */
+    #no-panel {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #0f0f1a;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 20;
+      transition: opacity 0.5s ease;
+      gap: 24px;
+    }
+    #no-panel.show { opacity: 1; pointer-events: all; }
+    #no-panel p {
+      font-size: 1.4rem;
+      color: #888;
+    }
+    #no-panel button {
+      background: rgba(255,255,255,0.1);
+      color: #ccc;
+      padding: 14px 36px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Question card -->
+<div id="card">
+  <span class="emoji">🎯</span>
+  <h1>Готов ли си да постигнеш<br>целта си днес?</h1>
+  <div class="buttons">
+    <button id="btn-yes">✅ Да!</button>
+    <button id="btn-no">Не сега</button>
+  </div>
+</div>
+
+<!-- High-dopamine reward overlay -->
+<div id="reward">
+  <div id="reward-text">🔥 СТРАХОТНО! 🔥</div>
+  <div id="reward-sub">Ти направи избора на победител!</div>
+  <button id="play-again">↩ Върни се</button>
+</div>
+
+<!-- No-answer panel -->
+<div id="no-panel">
+  <p>😔 Може би друг път…</p>
+  <button id="try-again">↩ Опитай пак</button>
+</div>
+
+<script>
+  const card      = document.getElementById('card');
+  const reward    = document.getElementById('reward');
+  const noPanel   = document.getElementById('no-panel');
+  const btnYes    = document.getElementById('btn-yes');
+  const btnNo     = document.getElementById('btn-no');
+  const playAgain = document.getElementById('play-again');
+  const tryAgain  = document.getElementById('try-again');
+
+  const COLORS = ['#ffd200','#ff6b6b','#48c6ef','#6f86d6','#a8ff78','#ff9966','#ff5e62','#fff'];
+
+  /* ── Utilities ── */
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+  function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+  function pick(arr) { return arr[randInt(0, arr.length - 1)]; }
+
+  /* ── Burst rings ── */
+  function spawnRings(n = 5) {
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('div');
+      el.className = 'ring';
+      const size = randInt(80, 180);
+      const cx = rand(20, 80);
+      const cy = rand(20, 80);
+      Object.assign(el.style, {
+        width: size + 'px', height: size + 'px',
+        left: cx + '%', top: cy + '%',
+        borderColor: pick(COLORS),
+        animationDelay: rand(0, 0.6) + 's',
+        animationDuration: rand(0.8, 1.4) + 's',
+      });
+      reward.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  /* ── Stars ── */
+  function spawnStars(n = 20) {
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('div');
+      el.className = 'star';
+      const cx = rand(10, 90);
+      const cy = rand(20, 80);
+      Object.assign(el.style, {
+        background: pick(COLORS),
+        left: cx + '%',
+        top:  cy + '%',
+        '--tx': rand(-300, 300) + 'px',
+        '--ty': rand(-300, 300) + 'px',
+        '--rot': randInt(0, 720) + 'deg',
+        animationDelay: rand(0, 0.5) + 's',
+        animationDuration: rand(0.9, 1.6) + 's',
+      });
+      reward.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  /* ── Confetti shower ── */
+  function spawnConfetti(n = 60) {
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      Object.assign(el.style, {
+        background: pick(COLORS),
+        left: rand(0, 100) + '%',
+        '--sx': rand(-60, 60)  + 'px',
+        '--ex': rand(-180, 180) + 'px',
+        '--rot': randInt(180, 1080) + 'deg',
+        '--dur': rand(1.4, 2.8) + 's',
+        animationDelay: rand(0, 1.2) + 's',
+      });
+      reward.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  /* ── Haptic (if available) ── */
+  function haptic() {
+    if (navigator.vibrate) navigator.vibrate([80, 50, 120, 50, 200]);
+  }
+
+  /* ── Repeat animations loop ── */
+  let loopTimer = null;
+  function startLoop() {
+    spawnRings(6);
+    spawnStars(22);
+    spawnConfetti(60);
+    loopTimer = setInterval(() => {
+      spawnRings(4);
+      spawnStars(14);
+      spawnConfetti(40);
+    }, 2000);
+  }
+  function stopLoop() {
+    clearInterval(loopTimer);
+    loopTimer = null;
+  }
+
+  /* ── YES ── */
+  btnYes.addEventListener('click', () => {
+    haptic();
+    card.classList.add('hide');
+    reward.classList.add('show');
+    startLoop();
+  });
+
+  /* ── NO ── */
+  btnNo.addEventListener('click', () => {
+    card.classList.add('hide');
+    noPanel.classList.add('show');
+  });
+
+  /* ── Reset from reward ── */
+  playAgain.addEventListener('click', () => {
+    stopLoop();
+    reward.classList.remove('show');
+    setTimeout(() => card.classList.remove('hide'), 200);
+  });
+
+  /* ── Reset from no-panel ── */
+  tryAgain.addEventListener('click', () => {
+    noPanel.classList.remove('show');
+    setTimeout(() => card.classList.remove('hide'), 200);
+  });
+</script>
+</body>
+</html>
