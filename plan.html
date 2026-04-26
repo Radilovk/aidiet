@@ -312,15 +312,26 @@
             letter-spacing: 0.5px;
             text-shadow: 0 1px 6px rgba(0,0,0,0.18);
             transition: opacity 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
         }
 
-        .day-banner-sub {
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: rgba(255,255,255,0.82);
-            margin-top: 2px;
-            letter-spacing: 0.4px;
-            text-transform: uppercase;
+        .day-time-icon {
+            display: inline-flex;
+            align-items: center;
+            opacity: 0.92;
+            flex-shrink: 0;
+        }
+
+        .day-time-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: white;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         /* Slide animation for day change */
@@ -2781,7 +2792,6 @@
         </button>
         <div class="day-banner-center" id="dayBannerCenter">
             <div class="day-banner-label" id="dayBannerLabel">Понеделник</div>
-            <div class="day-banner-sub" id="dayBannerSub">Ден 1 от 7</div>
         </div>
         <button class="day-banner-arrow day-banner-next" id="dayBannerNext" aria-label="Следващ ден">
             <i class="fas fa-chevron-right"></i>
@@ -4687,10 +4697,53 @@
             window.location.href = 'profile.html';
         }
 
+        function getDayTimeIcon() {
+            const h = new Date().getHours();
+            // Morning 5–11: sun rising
+            if (h >= 5 && h < 12) {
+                return `<span class="day-time-icon" aria-label="сутрин"><svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4"/>
+                    <line x1="12" y1="2" x2="12" y2="4"/>
+                    <line x1="12" y1="20" x2="12" y2="22"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="2" y1="12" x2="4" y2="12"/>
+                    <line x1="20" y1="12" x2="22" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg></span>`;
+            }
+            // Noon 12–16: sun at peak
+            if (h >= 12 && h < 17) {
+                return `<span class="day-time-icon" aria-label="обед"><svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg></span>`;
+            }
+            // Evening 17–21: crescent moon
+            if (h >= 17 && h < 22) {
+                return `<span class="day-time-icon" aria-label="вечер"><svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg></span>`;
+            }
+            // Night 22–4: moon + star
+            return `<span class="day-time-icon" aria-label="нощ"><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                <line x1="19" y1="3" x2="19" y2="5"/>
+                <line x1="18" y1="4" x2="20" y2="4"/>
+            </svg></span>`;
+        }
+
         function renderDayBanner(activeDayNum, direction) {
             const fullDayNames = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
             const label = document.getElementById('dayBannerLabel');
-            const sub   = document.getElementById('dayBannerSub');
 
             // Animate label
             if (direction) {
@@ -4700,8 +4753,7 @@
                 label.classList.add(direction === 'next' ? 'slide-left' : 'slide-right');
             }
 
-            label.textContent = fullDayNames[activeDayNum - 1];
-            sub.textContent   = `Ден ${activeDayNum} от 7`;
+            label.innerHTML = fullDayNames[activeDayNum - 1] + getDayTimeIcon();
         }
 
         function selectDay(dayNum, direction) {
