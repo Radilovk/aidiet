@@ -3333,6 +3333,31 @@
             return QUESTION_LABELS[key] || key;
         }
 
+        // Returns an HTML table row for a questionnaire answer key/value pair
+        function makeAnswerRow(key, value) {
+            let val = Array.isArray(value) ? value.join(', ') : value;
+            return `<tr>
+                <td style="padding:7px 10px 7px 0;vertical-align:top;white-space:nowrap;font-weight:600;color:var(--text-dark);width:45%;font-size:0.88rem;">${escapeHtml(questionLabel(key))}</td>
+                <td style="padding:7px 0 7px 10px;color:var(--text-gray);font-size:0.88rem;">${escapeHtml(String(val))}</td>
+            </tr>`;
+        }
+
+        // Returns a plan-status badge HTML string
+        function planStatusBadge(planStatus) {
+            if (planStatus === 'activated') {
+                return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#CCFBF1;color:#0F766E;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>';
+            }
+            if (planStatus === 'pending') {
+                return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>';
+            }
+            return '';
+        }
+
+        // Returns a formatted date string from a timestamp value
+        function formatClientDate(timestamp) {
+            return new Date(timestamp).toLocaleString('bg-BG');
+        }
+
         // ============================================================================
         // CLIENT-SIDE CACHE SYSTEM FOR REDUCING BACKEND REQUESTS
         // ============================================================================
@@ -6933,10 +6958,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 let html = '<div style="display:grid;gap:12px;">';
                 pending.forEach(client => {
-                    const dateStr = new Date(client.submittedAt || client.timestamp).toLocaleString('bg-BG', {
-                        year: 'numeric', month: 'long', day: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                    });
+                    const dateStr = formatClientDate(client.submittedAt || client.timestamp);
                     html += `
                         <div class="pending-client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}">
                             <div class="pending-client-info">
@@ -7050,22 +7072,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             let html = '<div style="display: grid; gap: 15px;">';
             
             clients.forEach(client => {
-                const submittedDate = new Date(client.submittedAt || client.timestamp);
-                const dateStr = submittedDate.toLocaleString('bg-BG', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const dateStr = formatClientDate(client.submittedAt || client.timestamp);
                 
                 // Plan status badge
-                let statusBadge = '';
-                if (client.planStatus === 'activated') {
-                    statusBadge = '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#CCFBF1;color:#0F766E;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>';
-                } else if (client.planStatus === 'pending') {
-                    statusBadge = '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>';
-                }
+                const statusBadge = planStatusBadge(client.planStatus);
                 
                 html += `
                     <div class="client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}" style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid ${client.planStatus === 'pending' ? '#fbbf24' : client.planStatus === 'activated' ? '#0D9488' : '#e0e0e0'}; transition: all 0.3s ease;">
@@ -7149,8 +7159,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 }
                 
                 const client = result.client;
-                const submittedDate = new Date(client.submittedAt || client.timestamp);
-                const dateStr = submittedDate.toLocaleString('bg-BG');
+                const dateStr = formatClientDate(client.submittedAt || client.timestamp);
 
                 // ── Build questionnaire answers section ──────────────────────────
                 // Group answers into sections for readability
@@ -7206,12 +7215,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         .filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '')
                         .map(k => {
                             usedKeys.add(k);
-                            let val = answers[k];
-                            if (Array.isArray(val)) val = val.join(', ');
-                            return `<tr>
-                                <td style="padding:7px 10px 7px 0;vertical-align:top;white-space:nowrap;font-weight:600;color:var(--text-dark);width:45%;font-size:0.88rem;">${escapeHtml(questionLabel(k))}</td>
-                                <td style="padding:7px 0 7px 10px;color:var(--text-gray);font-size:0.88rem;">${escapeHtml(String(val))}</td>
-                            </tr>`;
+                            return makeAnswerRow(k, answers[k]);
                         });
 
                     if (rows.length === 0) return;
@@ -7225,13 +7229,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 // Any remaining keys not covered by sections
                 const remaining = Object.entries(answers).filter(([k]) => !usedKeys.has(k));
                 if (remaining.length > 0) {
-                    const rows = remaining.map(([k, v]) => {
-                        let val = Array.isArray(v) ? v.join(', ') : v;
-                        return `<tr>
-                            <td style="padding:7px 10px 7px 0;vertical-align:top;font-weight:600;color:var(--text-dark);width:45%;font-size:0.88rem;">${escapeHtml(questionLabel(k))}</td>
-                            <td style="padding:7px 0 7px 10px;color:var(--text-gray);font-size:0.88rem;">${escapeHtml(String(val))}</td>
-                        </tr>`;
-                    });
+                    const rows = remaining.map(([k, v]) => makeAnswerRow(k, v));
                     answersHtml += `
                         <div style="margin-bottom:16px;">
                             <div style="font-weight:700;font-size:0.9rem;color:var(--primary-red);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--soft-red);">📋 Друго</div>
@@ -7243,11 +7241,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const planReadableHtml = client.plan ? buildPlanReadableHtml(client.plan) : '';
 
                 // ── Status badge ────────────────────────────────────────────────
-                const statusBadgeHtml = client.planStatus === 'activated'
-                    ? '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#CCFBF1;color:#0F766E;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>'
-                    : client.planStatus === 'pending'
-                        ? '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>'
-                        : '';
+                const statusBadgeHtml = planStatusBadge(client.planStatus);
 
                 // ── Assemble modal HTML ──────────────────────────────────────────
                 let detailsHtml = `
