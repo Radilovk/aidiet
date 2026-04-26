@@ -360,6 +360,46 @@
         @media (max-width: 440px) {
             .fp-foods { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* ── Custom product input ── */
+        .cat-add-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px 14px;
+            border-top: 1px solid var(--border);
+        }
+        .cat-add-input {
+            flex: 1;
+            font-size: 0.85rem;
+            padding: 7px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text-dark);
+            outline: none;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+        .cat-add-input::placeholder { color: var(--text-gray); opacity: 0.7; }
+        .cat-add-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13,148,136,0.12); }
+        .cat-add-btn {
+            flex-shrink: 0;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 7px 14px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: var(--transition);
+        }
+        .cat-add-btn:hover { opacity: 0.88; }
+        .cat-add-btn:active { transform: scale(0.96); }
     </style>
 </head>
 <body>
@@ -372,8 +412,8 @@
 </div>
 
 <div class="fp-header">
-    <h1><i class="fas fa-basket-shopping" style="margin-right:8px;"></i>Какво има в хладилника ти?</h1>
-    <p>Отбележи наличните продукти — планът ще се направи само с тях</p>
+    <h1><i class="fas fa-leaf" style="margin-right:8px;"></i>Моите храни и продукти</h1>
+    <p>Персонализиран списък с храни и продукти за твоя хранителен план — избери всичко, с което разполагаш и обичаш</p>
 </div>
 
 <!-- Sticky count bar -->
@@ -429,11 +469,11 @@ const CATALOG = [
     {
         id: 'dairy',
         icon: '🥛',
-        label: 'Млечни и яйца',
+        label: 'Млечни продукти',
         items: [
             'Кисело мляко (2%)', 'Кисело мляко (0%)', 'Гръцко кисело мляко',
             'Извара (кварк)', 'Извара (нискомаслена)', 'Сирене', 'Кашкавал (нискомаслен)',
-            'Рикота', 'Мляко (2%)', 'Растително мляко', 'Яйца'
+            'Рикота', 'Мляко (2%)', 'Растително мляко'
         ]
     },
     {
@@ -455,7 +495,7 @@ const CATALOG = [
             'Овесени ядки', 'Ориз (бял)', 'Ориз (кафяв)', 'Киноа',
             'Леща', 'Нахут', 'Черен боб', 'Бял боб', 'Елда',
             'Просо', 'Пълнозърнест хляб', 'Ръжен хляб', 'Тортила (пълнозърнеста)',
-            'Картофи', 'Сладки картофи', 'Паста (пълнозърнеста)', 'Царевица'
+            'Паста (пълнозърнеста)', 'Царевица'
         ]
     },
     {
@@ -485,7 +525,7 @@ const CATALOG = [
         icon: '🫙',
         label: 'Подправки и добавки',
         items: [
-            'Зехтин (за готвене)', 'Соев сос', 'Хумус', 'Горчица',
+            'Соев сос', 'Хумус', 'Горчица',
             'Лимонов сок', 'Оцет (ябълков)', 'Доматено пюре',
             'Кокосово мляко', 'Мед', 'Стевия', 'Канела',
             'Куркума', 'Джинджифил', 'Чили', 'Черен пипер'
@@ -555,14 +595,29 @@ async function loadBlockedFoods() {
     return blocked;
 }
 
+// ── Custom items storage key ───────────────────────────────────────────────
+const CUSTOM_KEY = 'userCustomFoods'; // { catId: [name, ...] }
+
+function loadCustomItems() {
+    try { return JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveCustomItems(map) {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(map));
+}
+
 // ── Build UI ───────────────────────────────────────────────────────────────
 function buildUI(blockedTerms = []) {
+    const customMap = loadCustomItems();
     const container = document.getElementById('fpContent');
     CATALOG.forEach(cat => {
+        // Merge predefined + custom items (custom come last)
+        const customItems = customMap[cat.id] || [];
+        const allItems = [...cat.items, ...customItems];
+
         // Filter out blocked items before rendering
         const visibleItems = blockedTerms.length
-            ? cat.items.filter(name => !isBlocked(name, blockedTerms))
-            : cat.items;
+            ? allItems.filter(name => !isBlocked(name, blockedTerms))
+            : allItems;
 
         // Skip the whole category if every item is blocked
         if (visibleItems.length === 0) return;
@@ -599,20 +654,87 @@ function buildUI(blockedTerms = []) {
         grid.id = `grid-${cat.id}`;
 
         visibleItems.forEach(itemName => {
-            const label = document.createElement('label');
-            label.className = 'fp-item';
-            label.dataset.cat = cat.id;
-            label.dataset.item = itemName;
-            label.innerHTML = `
-                <input type="checkbox" value="${itemName}" onchange="onCheck(this)">
-                <span class="fp-item-name">${itemName}</span>
-            `;
-            grid.appendChild(label);
+            grid.appendChild(createItemLabel(itemName, cat.id));
         });
 
         details.appendChild(grid);
+
+        // Custom product add row
+        const addWrap = document.createElement('div');
+        addWrap.className = 'cat-add-wrap';
+        addWrap.innerHTML = `
+            <input class="cat-add-input" id="add-input-${cat.id}" type="text"
+                placeholder="Добави продукт…" maxlength="80"
+                onkeydown="if(event.key==='Enter')addCustomItem('${cat.id}')">
+            <button class="cat-add-btn" onclick="addCustomItem('${cat.id}')">
+                <i class="fas fa-plus"></i> Добави
+            </button>
+        `;
+        details.appendChild(addWrap);
+
         container.appendChild(details);
     });
+}
+
+function createItemLabel(itemName, catId) {
+    const label = document.createElement('label');
+    label.className = 'fp-item';
+    label.dataset.cat = catId;
+    label.dataset.item = itemName;
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = itemName;
+    cb.addEventListener('change', function() { onCheck(this); });
+
+    const span = document.createElement('span');
+    span.className = 'fp-item-name';
+    span.textContent = itemName;
+
+    label.appendChild(cb);
+    label.appendChild(span);
+    return label;
+}
+
+// ── Add custom item ────────────────────────────────────────────────────────
+function addCustomItem(catId) {
+    const input = document.getElementById(`add-input-${catId}`);
+    const name = (input.value || '').trim();
+    if (!name) return;
+
+    // Check for duplicates across ALL categories (case-insensitive)
+    const nameLower = name.toLowerCase();
+    const allExisting = [];
+    CATALOG.forEach(c => allExisting.push(...c.items));
+    const customMap = loadCustomItems();
+    Object.values(customMap).forEach(arr => allExisting.push(...arr));
+
+    if (allExisting.some(n => n.toLowerCase() === nameLower)) {
+        showToast(`„${name}" вече е в списъка.`, true);
+        input.value = '';
+        return;
+    }
+
+    // Save custom item
+    if (!customMap[catId]) customMap[catId] = [];
+    customMap[catId].push(name);
+    saveCustomItems(customMap);
+
+    // Add to grid
+    const grid = document.getElementById(`grid-${catId}`);
+    const label = createItemLabel(name, catId);
+    grid.appendChild(label);
+
+    // Auto-check the newly added item
+    const cb = label.querySelector('input');
+    cb.checked = true;
+    selected[name] = true;
+    label.classList.add('checked');
+    updateBadge(catId);
+    updateTotal();
+
+    input.value = '';
+    showToast(`„${name}" добавен!`, false);
 }
 
 // ── Check / uncheck logic ──────────────────────────────────────────────────
