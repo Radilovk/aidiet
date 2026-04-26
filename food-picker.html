@@ -599,10 +599,20 @@ async function loadBlockedFoods() {
 const CUSTOM_KEY = 'userCustomFoods'; // { catId: [name, ...] }
 
 function loadCustomItems() {
-    try { return JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}'); } catch(e) { return {}; }
+    try { return JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}'); }
+    catch(e) { console.error('Failed to load custom foods:', e); return {}; }
 }
 function saveCustomItems(map) {
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(map));
+}
+
+// Set of all known item names (lowercase) for O(1) duplicate detection
+const knownItemsLower = new Set();
+
+function initKnownItems() {
+    CATALOG.forEach(c => c.items.forEach(n => knownItemsLower.add(n.toLowerCase())));
+    const customMap = loadCustomItems();
+    Object.values(customMap).forEach(arr => arr.forEach(n => knownItemsLower.add(n.toLowerCase())));
 }
 
 // ── Build UI ───────────────────────────────────────────────────────────────
@@ -662,14 +672,24 @@ function buildUI(blockedTerms = []) {
         // Custom product add row
         const addWrap = document.createElement('div');
         addWrap.className = 'cat-add-wrap';
-        addWrap.innerHTML = `
-            <input class="cat-add-input" id="add-input-${cat.id}" type="text"
-                placeholder="Добави продукт…" maxlength="80"
-                onkeydown="if(event.key==='Enter')addCustomItem('${cat.id}')">
-            <button class="cat-add-btn" onclick="addCustomItem('${cat.id}')">
-                <i class="fas fa-plus"></i> Добави
-            </button>
-        `;
+
+        const addInput = document.createElement('input');
+        addInput.className = 'cat-add-input';
+        addInput.id = `add-input-${cat.id}`;
+        addInput.type = 'text';
+        addInput.placeholder = 'Добави продукт…';
+        addInput.maxLength = 80;
+        addInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') addCustomItem(cat.id);
+        });
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'cat-add-btn';
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> Добави';
+        addBtn.addEventListener('click', function() { addCustomItem(cat.id); });
+
+        addWrap.appendChild(addInput);
+        addWrap.appendChild(addBtn);
         details.appendChild(addWrap);
 
         container.appendChild(details);
@@ -702,23 +722,22 @@ function addCustomItem(catId) {
     const name = (input.value || '').trim();
     if (!name) return;
 
-    // Check for duplicates across ALL categories (case-insensitive)
+    // Check for duplicates using the pre-built Set (O(1) lookup)
     const nameLower = name.toLowerCase();
-    const allExisting = [];
-    CATALOG.forEach(c => allExisting.push(...c.items));
-    const customMap = loadCustomItems();
-    Object.values(customMap).forEach(arr => allExisting.push(...arr));
-
-    if (allExisting.some(n => n.toLowerCase() === nameLower)) {
+    if (knownItemsLower.has(nameLower)) {
         showToast(`„${name}" вече е в списъка.`, true);
         input.value = '';
         return;
     }
 
     // Save custom item
+    const customMap = loadCustomItems();
     if (!customMap[catId]) customMap[catId] = [];
     customMap[catId].push(name);
     saveCustomItems(customMap);
+
+    // Update the known-items set so subsequent checks are correct
+    knownItemsLower.add(nameLower);
 
     // Add to grid
     const grid = document.getElementById(`grid-${catId}`);
@@ -988,6 +1007,7 @@ function restoreFromStorage() {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 (async function init() {
+    initKnownItems();
     const blockedTerms = await loadBlockedFoods();
     buildUI(blockedTerms);
     restoreFromStorage();
