@@ -184,7 +184,7 @@
         body.at-limit .fp-item:not(.checked) input[type="checkbox"] {
             cursor: not-allowed;
         }
-        /* Warning colour for the counter when approaching/reaching the limit */
+        /* Warning color for the counter when approaching/reaching the limit */
         .fp-bar-count.near-limit { color: #f59e0b; }
         .fp-bar-count.at-limit   { color: #ef4444; }
 
@@ -522,6 +522,7 @@ const DEMO_MAX_PLAN_GENERATIONS = 1; // Demo: max 1 plan generation via food pic
 // the constraint remains meaningful.  Beyond this cap the list is truncated on
 // the backend anyway (MAX_MAINLIST_CHARS = 1500 chars in worker.js).
 const MAX_SELECTED_FOODS = 30;
+const NEAR_LIMIT_THRESHOLD = 5; // warn when within this many selections of the limit
 
 function getDemoFoodPickerCount() {
     return parseInt(localStorage.getItem(DEMO_FOOD_PICKER_KEY) || '0', 10);
@@ -896,7 +897,7 @@ function updateTotal() {
 
     // Visual feedback for selection limit
     const atLimit  = count >= MAX_SELECTED_FOODS;
-    const nearLimit = count >= MAX_SELECTED_FOODS - 5 && !atLimit;
+    const nearLimit = count >= MAX_SELECTED_FOODS - NEAR_LIMIT_THRESHOLD && !atLimit;
     document.body.classList.toggle('at-limit', atLimit);
     const bar = document.getElementById('fpBarCount');
     bar.classList.toggle('at-limit',   atLimit);
