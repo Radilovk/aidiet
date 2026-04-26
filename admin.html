@@ -66,6 +66,33 @@
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
+        [data-theme="dark"] #pendingPlansCard {
+            background: linear-gradient(135deg, rgba(120,53,15,0.25) 0%, var(--white) 100%) !important;
+            border-color: #b45309 !important;
+        }
+
+        /* Pending client card */
+        .pending-client-card {
+            background: var(--white);
+            border: 2px solid #fde68a;
+            border-radius: 12px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            transition: box-shadow 0.2s;
+        }
+        .pending-client-card:hover { box-shadow: 0 4px 16px rgba(251,191,36,0.3); }
+        [data-theme="dark"] .pending-client-card {
+            background: rgba(120,53,15,0.18);
+            border-color: #92400e;
+        }
+        .pending-client-info { flex: 1; min-width: 180px; }
+        .pending-client-name { font-weight: 700; font-size: 1rem; color: var(--text-dark); margin-bottom: 3px; }
+        .pending-client-meta { color: var(--text-gray); font-size: 0.85rem; }
+        .pending-client-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
         * {
             margin: 0;
             padding: 0;
@@ -1045,6 +1072,30 @@
                     <p>Активен AI Модел</p>
                 </div>
             </div>
+
+            <!-- ═══════════════════════════════════════════
+                 PENDING PLANS — CENTRAL APPROVAL MODULE
+                 Loads automatically on login
+            ════════════════════════════════════════════ -->
+            <div class="card" id="pendingPlansCard" style="border: 2px solid #fbbf24; background: linear-gradient(135deg, #fffbeb 0%, var(--white) 100%);">
+                <h2 style="color: #d97706; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <i class="fas fa-clock" style="color: #fbbf24;"></i>
+                    Клиенти чакащи одобрение на план
+                    <span id="pendingBadge" style="display:none; background:#ef4444; color:#fff; border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:700;"></span>
+                </h2>
+                <div style="display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap;">
+                    <button class="btn" onclick="loadPendingPlans()" style="background:#d97706;">
+                        <i class="fas fa-sync"></i> Обнови
+                    </button>
+                    <span id="pendingLoadStatus" style="color:var(--text-gray); font-size:0.9rem;"></span>
+                </div>
+                <div id="pendingPlansContainer">
+                    <p style="text-align:center; color:var(--text-gray); padding:20px;">
+                        <i class="fas fa-spinner fa-spin"></i> Зареждане…
+                    </p>
+                </div>
+            </div>
+            <!-- ─────────────────────────────────────────── -->
 
             <div id="successMessage" class="success-message"></div>
             <div id="errorMessage" class="error-message"></div>
@@ -3234,6 +3285,55 @@
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
         // ============================================================================
+        // QUESTION LABELS — human-readable labels for questionnaire answer keys
+        // ============================================================================
+        const QUESTION_LABELS = {
+            name:                  'Име',
+            gender:                'Пол',
+            age:                   'Възраст',
+            height:                'Ръст (см)',
+            weight:                'Тегло (кг)',
+            email:                 'Имейл',
+            healthConditions:      'Здравословни състояния',
+            medicalConditions:     'Здравословни състояния',
+            medicalConditions_other: 'Здравословни състояния (друго)',
+            goal:                  'Основна цел',
+            lossKg:                'Желани кг за сваляне',
+            sleepHours:            'Сън (часове/нощ)',
+            sleepInterrupt:        'Прекъсвания на съня',
+            chronotype:            'Хронотип',
+            dailyActivityLevel:    'Ниво на дневна активност',
+            stressLevel:           'Ниво на стрес',
+            sportActivity:         'Спортна активност',
+            waterIntake:           'Прием на вода',
+            drinksSweet:           'Сладки напитки / сокове',
+            drinksAlcohol:         'Алкохолни напитки',
+            weightChange:          'Промяна в теглото (последна година)',
+            weightChangeDetails:   'Детайли за промяната в теглото',
+            dietHistory:           'Спазвана диета (последна година)',
+            dietType:              'Тип диета',
+            dietResult:            'Резултат от диетата',
+            overeatingFrequency:   'Честота на преяждане',
+            foodCravings:          'Желание за конкретна храна',
+            foodTriggers:          'Ситуации, предизвикващи хранене',
+            eatingHabits:          'Хранителни навици',
+            compensationMethods:   'Методи на компенсация',
+            socialComparison:      'Сравнение с другите',
+            dietPreference:        'Предпочитан тип диета',
+            dietDislike:           'Непоносимост / нелюбими храни',
+            dietLove:              'Любими / задължителни храни',
+            medications:           'Лекарства или хранителни добавки',
+            medicationsDetails:    'Детайли за лекарствата',
+            additionalNotes:       'Допълнителни бележки',
+            medicalFiles:          'Медицински файлове'
+        };
+
+        // Returns human-readable label for a questionnaire answer key
+        function questionLabel(key) {
+            return QUESTION_LABELS[key] || key;
+        }
+
+        // ============================================================================
         // CLIENT-SIDE CACHE SYSTEM FOR REDUCING BACKEND REQUESTS
         // ============================================================================
         // Cache Configuration
@@ -4104,6 +4204,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             // Load mainlist status and presets on dashboard open
             loadMainlistStatus();
             loadMainlistPresets();
+            // Auto-load pending plans on login
+            loadPendingPlans();
             // Note: Blacklist, whitelist, and logging status are now loaded on-demand
             // when the user clicks the respective "Refresh" buttons to reduce backend load
         }
@@ -6797,6 +6899,109 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
+        // ============================================================================
+        // PENDING PLANS MODULE — Central approval hub
+        // ============================================================================
+        async function loadPendingPlans() {
+            const container = document.getElementById('pendingPlansContainer');
+            const statusEl  = document.getElementById('pendingLoadStatus');
+            const badge     = document.getElementById('pendingBadge');
+            container.innerHTML = '<p style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане…</p>';
+            statusEl.textContent = '';
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/get-clients-list');
+                const result = await response.json();
+                if (!result.success || !result.clients) throw new Error('Invalid response');
+
+                const pending = result.clients.filter(c => c.planStatus === 'pending');
+
+                // Update badge
+                if (pending.length > 0) {
+                    badge.textContent = pending.length;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                if (pending.length === 0) {
+                    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-gray);"><i class="fas fa-check-circle" style="color:#10b981;font-size:1.5rem;"></i><p style="margin-top:8px;">Няма клиенти, чакащи одобрение.</p></div>';
+                    statusEl.textContent = 'Всички планове са одобрени.';
+                    return;
+                }
+
+                statusEl.textContent = `Намерени: ${pending.length} клиент(а)`;
+
+                let html = '<div style="display:grid;gap:12px;">';
+                pending.forEach(client => {
+                    const dateStr = new Date(client.submittedAt || client.timestamp).toLocaleString('bg-BG', {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                    html += `
+                        <div class="pending-client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}">
+                            <div class="pending-client-info">
+                                <div class="pending-client-name"><i class="fas fa-user-circle" style="color:#d97706;margin-right:6px;"></i>${escapeHtml(client.name)}</div>
+                                <div class="pending-client-meta">
+                                    <i class="fas fa-envelope"></i> ${escapeHtml(client.email)}&nbsp;&nbsp;
+                                    <i class="fas fa-bullseye"></i> ${escapeHtml(client.goal)}&nbsp;&nbsp;
+                                    <i class="fas fa-clock"></i> ${dateStr}
+                                </div>
+                            </div>
+                            <div class="pending-client-actions">
+                                <button class="btn pending-view-btn" style="background:var(--accent-blue);font-size:0.85rem;padding:8px 14px;">
+                                    <i class="fas fa-eye"></i> Преглед
+                                </button>
+                                <button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.85rem;padding:8px 14px;">
+                                    <i class="fas fa-rocket"></i> Активирай
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+                // Wire up buttons
+                container.querySelectorAll('.pending-view-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const card = this.closest('.pending-client-card');
+                        viewClientDetails(card.getAttribute('data-client-id'));
+                    });
+                });
+                container.querySelectorAll('.pending-activate-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const cId = this.getAttribute('data-client-id');
+                        if (!confirm('Сигурни ли сте, че искате да активирате достъпа до плана за този клиент?')) return;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        this.disabled = true;
+                        try {
+                            const resp = await fetch(WORKER_URL + '/api/admin/activate-client-plan', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ clientId: cId })
+                            });
+                            const res = await resp.json();
+                            if (res.success) {
+                                showSuccess('Планът е активиран! Клиентът вече има достъп.');
+                                loadPendingPlans(); // Refresh pending list
+                            } else {
+                                throw new Error(res.error || 'Unknown error');
+                            }
+                        } catch (e) {
+                            showError('Грешка при активиране: ' + e.message);
+                            this.innerHTML = '<i class="fas fa-rocket"></i> Активирай';
+                            this.disabled = false;
+                        }
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error loading pending plans:', error);
+                container.innerHTML = '<p style="text-align:center;color:#e74c3c;padding:20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане</p>';
+                statusEl.textContent = 'Грешка: ' + error.message;
+            }
+        }
+
         // Load clients list
         let allClientsData = []; // Store all clients for filtering
         
@@ -6946,242 +7151,425 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const client = result.client;
                 const submittedDate = new Date(client.submittedAt || client.timestamp);
                 const dateStr = submittedDate.toLocaleString('bg-BG');
-                
-                // Create a modal to display client details
+
+                // ── Build questionnaire answers section ──────────────────────────
+                // Group answers into sections for readability
+                const SECTIONS = [
+                    {
+                        title: '👤 Лични данни',
+                        keys: ['name', 'gender', 'age', 'height', 'weight', 'email']
+                    },
+                    {
+                        title: '🎯 Цели',
+                        keys: ['goal', 'lossKg']
+                    },
+                    {
+                        title: '🏥 Здраве',
+                        keys: ['healthConditions', 'medicalConditions', 'medicalConditions_other', 'medications', 'medicationsDetails']
+                    },
+                    {
+                        title: '😴 Сън & Хронотип',
+                        keys: ['sleepHours', 'sleepInterrupt', 'chronotype']
+                    },
+                    {
+                        title: '⚡ Активност & Стрес',
+                        keys: ['dailyActivityLevel', 'sportActivity', 'stressLevel']
+                    },
+                    {
+                        title: '🥤 Напитки',
+                        keys: ['waterIntake', 'drinksSweet', 'drinksAlcohol']
+                    },
+                    {
+                        title: '🍽️ Хранителни навици',
+                        keys: ['eatingHabits', 'overeatingFrequency', 'foodCravings', 'foodTriggers', 'compensationMethods', 'socialComparison']
+                    },
+                    {
+                        title: '⚖️ История с теглото & диети',
+                        keys: ['weightChange', 'weightChangeDetails', 'dietHistory', 'dietType', 'dietResult']
+                    },
+                    {
+                        title: '🥗 Хранителни предпочитания',
+                        keys: ['dietPreference', 'dietDislike', 'dietLove']
+                    },
+                    {
+                        title: '📝 Допълнителна информация',
+                        keys: ['additionalNotes', 'medicalFiles']
+                    }
+                ];
+
+                const answers = client.answers || {};
+                const usedKeys = new Set();
+                let answersHtml = '';
+
+                SECTIONS.forEach(section => {
+                    const rows = section.keys
+                        .filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '')
+                        .map(k => {
+                            usedKeys.add(k);
+                            let val = answers[k];
+                            if (Array.isArray(val)) val = val.join(', ');
+                            return `<tr>
+                                <td style="padding:7px 10px 7px 0;vertical-align:top;white-space:nowrap;font-weight:600;color:var(--text-dark);width:45%;font-size:0.88rem;">${escapeHtml(questionLabel(k))}</td>
+                                <td style="padding:7px 0 7px 10px;color:var(--text-gray);font-size:0.88rem;">${escapeHtml(String(val))}</td>
+                            </tr>`;
+                        });
+
+                    if (rows.length === 0) return;
+                    answersHtml += `
+                        <div style="margin-bottom:16px;">
+                            <div style="font-weight:700;font-size:0.9rem;color:var(--primary-red);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--soft-red);">${section.title}</div>
+                            <table style="width:100%;border-collapse:collapse;">${rows.join('')}</table>
+                        </div>`;
+                });
+
+                // Any remaining keys not covered by sections
+                const remaining = Object.entries(answers).filter(([k]) => !usedKeys.has(k));
+                if (remaining.length > 0) {
+                    const rows = remaining.map(([k, v]) => {
+                        let val = Array.isArray(v) ? v.join(', ') : v;
+                        return `<tr>
+                            <td style="padding:7px 10px 7px 0;vertical-align:top;font-weight:600;color:var(--text-dark);width:45%;font-size:0.88rem;">${escapeHtml(questionLabel(k))}</td>
+                            <td style="padding:7px 0 7px 10px;color:var(--text-gray);font-size:0.88rem;">${escapeHtml(String(val))}</td>
+                        </tr>`;
+                    });
+                    answersHtml += `
+                        <div style="margin-bottom:16px;">
+                            <div style="font-weight:700;font-size:0.9rem;color:var(--primary-red);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--soft-red);">📋 Друго</div>
+                            <table style="width:100%;border-collapse:collapse;">${rows.join('')}</table>
+                        </div>`;
+                }
+
+                // ── Build readable plan HTML ─────────────────────────────────────
+                const planReadableHtml = client.plan ? buildPlanReadableHtml(client.plan) : '';
+
+                // ── Status badge ────────────────────────────────────────────────
+                const statusBadgeHtml = client.planStatus === 'activated'
+                    ? '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#CCFBF1;color:#0F766E;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>'
+                    : client.planStatus === 'pending'
+                        ? '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>'
+                        : '';
+
+                // ── Assemble modal HTML ──────────────────────────────────────────
                 let detailsHtml = `
-                    <div class="client-modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
-                        <div class="client-modal-content" style="background: var(--bg-color); padding: 30px; border-radius: 12px; max-width: 800px; max-height: 90vh; overflow-y: auto; width: 100%;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <h2 style="margin: 0; color: var(--text-dark);">
-                                    <i class="fas fa-user-circle"></i> ${escapeHtml(client.answers.name || 'N/A')}
+                    <div class="client-modal-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+                        <div class="client-modal-content" style="background:var(--bg-color);border-radius:16px;max-width:860px;max-height:92vh;overflow-y:auto;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+
+                            <!-- Modal Header -->
+                            <div style="position:sticky;top:0;background:var(--bg-color);padding:20px 24px 14px;border-bottom:2px solid var(--soft-red);display:flex;justify-content:space-between;align-items:center;z-index:1;">
+                                <h2 style="margin:0;color:var(--text-dark);font-size:1.2rem;">
+                                    <i class="fas fa-user-circle" style="color:var(--primary-red);margin-right:8px;"></i>
+                                    ${escapeHtml(answers.name || 'N/A')} ${statusBadgeHtml}
                                 </h2>
-                                <button class="client-modal-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-gray);">
+                                <button class="client-modal-close" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-gray);padding:4px 8px;" title="Затвори">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
-                            
-                            <div style="background: var(--soft-red); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                                <p style="margin: 5px 0; color: var(--text-dark);">
-                                    <strong><i class="fas fa-clock"></i> Дата на подаване:</strong> ${dateStr}
-                                </p>
-                                <p style="margin: 5px 0; color: var(--text-dark);">
-                                    <strong><i class="fas fa-hashtag"></i> ID:</strong> ${escapeHtml(client.id)}
-                                </p>
-                                <p style="margin: 5px 0; color: var(--text-dark);">
-                                    <strong><i class="fas fa-envelope"></i> Email:</strong> ${escapeHtml(client.answers.email || 'N/A')}
-                                </p>
+
+                            <div style="padding:20px 24px;">
+
+                            <!-- Summary strip -->
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;background:var(--soft-red);padding:14px;border-radius:10px;margin-bottom:20px;">
+                                <div><i class="fas fa-envelope" style="color:var(--primary-red);margin-right:4px;"></i><small style="color:var(--text-gray);">${escapeHtml(answers.email || '—')}</small></div>
+                                <div><i class="fas fa-clock" style="color:var(--primary-red);margin-right:4px;"></i><small style="color:var(--text-gray);">${dateStr}</small></div>
+                                <div><i class="fas fa-hashtag" style="color:var(--primary-red);margin-right:4px;"></i><small style="color:var(--text-gray);word-break:break-all;">${escapeHtml(client.id)}</small></div>
                             </div>
-                            
-                            <h3 style="color: var(--text-dark); margin-bottom: 15px;">Отговори от въпросника:</h3>
-                            <div style="background: var(--card-bg); padding: 20px; border-radius: 8px; max-height: 400px; overflow-y: auto;">
-                `;
-                
-                // Display all answers
-                for (const [key, value] of Object.entries(client.answers)) {
-                    let displayValue = value;
-                    if (Array.isArray(value)) {
-                        displayValue = value.join(', ');
-                    }
-                    detailsHtml += `
-                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
-                            <strong style="color: var(--text-dark); display: block; margin-bottom: 5px;">${escapeHtml(key)}:</strong>
-                            <span style="color: var(--text-gray);">${escapeHtml(String(displayValue))}</span>
-                        </div>
-                    `;
-                }
-                
-                detailsHtml += `
-                            </div>
-                            
-                            ${client.files && client.files.length > 0 ? `
-                                <h3 style="color: var(--text-dark); margin: 20px 0 15px 0;">Прикачени файлове:</h3>
-                                <div style="background: var(--card-bg); padding: 15px; border-radius: 8px;">
-                                    ${client.files.map(file => `
-                                        <div style="margin-bottom: 10px; color: var(--text-dark);">
-                                            <i class="fas fa-file"></i> ${escapeHtml(file.name)} 
-                                            <span style="color: var(--text-gray); font-size: 0.85rem;">(${(file.size / 1024).toFixed(2)} KB)</span>
-                                        </div>
-                                    `).join('')}
+
+                            <!-- Questionnaire answers -->
+                            <details open>
+                                <summary style="cursor:pointer;font-weight:700;font-size:1rem;color:var(--text-dark);padding:10px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:8px;">
+                                    <i class="fas fa-clipboard-list" style="color:var(--primary-red);"></i>
+                                    Въпросник — отговори на клиента
+                                    <i class="fas fa-chevron-down" style="margin-left:auto;font-size:0.8rem;color:var(--text-gray);"></i>
+                                </summary>
+                                <div style="background:var(--card-bg);padding:16px;border-radius:10px;margin-top:10px;max-height:420px;overflow-y:auto;">
+                                    ${answersHtml || '<p style="color:var(--text-gray);">Няма отговори.</p>'}
                                 </div>
+                            </details>
+
+                            ${client.files && client.files.length > 0 ? `
+                                <details style="margin-top:14px;">
+                                    <summary style="cursor:pointer;font-weight:700;font-size:1rem;color:var(--text-dark);padding:10px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:8px;">
+                                        <i class="fas fa-paperclip" style="color:var(--primary-red);"></i>
+                                        Прикачени файлове (${client.files.length})
+                                    </summary>
+                                    <div style="background:var(--card-bg);padding:15px;border-radius:10px;margin-top:10px;">
+                                        ${client.files.map(f => `<div style="margin-bottom:8px;color:var(--text-dark);"><i class="fas fa-file"></i> ${escapeHtml(f.name)} <span style="color:var(--text-gray);font-size:0.82rem;">(${(f.size/1024).toFixed(1)} KB)</span></div>`).join('')}
+                                    </div>
+                                </details>
                             ` : ''}
-                            
+
                             ${client.plan ? `
-                                <h3 style="color: var(--text-dark); margin: 20px 0 15px 0;">
-                                    <i class="fas fa-utensils"></i> Хранителен план
-                                    ${client.planStatus === 'activated' 
-                                        ? '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#CCFBF1;color:#0F766E;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>' 
-                                        : '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>'}
-                                </h3>
-                                <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
-                                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                                        <button class="btn client-plan-toggle-btn" style="background: var(--accent-blue); font-size: 0.85rem; padding: 6px 14px;">
-                                            <i class="fas fa-eye"></i> Преглед на плана
-                                        </button>
-                                        <button class="btn client-plan-edit-btn" style="background: #6366f1; font-size: 0.85rem; padding: 6px 14px;">
-                                            <i class="fas fa-edit"></i> Редактирай
-                                        </button>
+                                <!-- Plan section -->
+                                <div style="margin-top:18px;">
+                                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                                        <h3 style="margin:0;color:var(--text-dark);font-size:1rem;"><i class="fas fa-utensils" style="color:var(--primary-red);margin-right:6px;"></i>Хранителен план ${statusBadgeHtml}</h3>
                                         ${client.planStatus !== 'activated' ? `
-                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background: #0D9488; font-size: 0.85rem; padding: 6px 14px;">
+                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.82rem;padding:6px 14px;margin-left:auto;">
                                                 <i class="fas fa-rocket"></i> Активирай достъп
                                             </button>
                                         ` : `
-                                            <span style="display:flex;align-items:center;gap:4px;color:#0F766E;font-size:0.85rem;font-weight:600;">
-                                                <i class="fas fa-check-circle"></i> Активиран на ${client.planActivatedAt ? new Date(client.planActivatedAt).toLocaleString('bg-BG') : '—'}
-                                            </span>
+                                            <span style="margin-left:auto;color:#0F766E;font-size:0.82rem;font-weight:600;"><i class="fas fa-check-circle"></i> Активиран на ${client.planActivatedAt ? new Date(client.planActivatedAt).toLocaleString('bg-BG') : '—'}</span>
                                         `}
                                     </div>
-                                    <div class="client-plan-preview" style="display: none; max-height: 400px; overflow-y: auto; font-size: 0.85rem; white-space: pre-wrap; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; color: var(--text-dark);">${escapeHtml(JSON.stringify(client.plan, null, 2))}</div>
-                                    <div class="client-plan-editor-wrap" style="display: none;">
-                                        <textarea class="client-plan-editor" style="width:100%;min-height:300px;font-family:monospace;font-size:0.82rem;border:2px solid #6366f1;border-radius:8px;padding:12px;resize:vertical;background:#f9fafb;color:var(--text-dark);">${escapeHtml(JSON.stringify(client.plan, null, 2))}</textarea>
+
+                                    <!-- Plan tabs -->
+                                    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+                                        <button class="btn plan-tab-btn" data-tab="readable" style="font-size:0.82rem;padding:6px 12px;background:var(--primary-red);">
+                                            <i class="fas fa-list"></i> Преглед
+                                        </button>
+                                        <button class="btn plan-tab-btn" data-tab="json" style="font-size:0.82rem;padding:6px 12px;background:#6366f1;">
+                                            <i class="fas fa-code"></i> JSON редактор
+                                        </button>
+                                    </div>
+
+                                    <!-- Readable plan view -->
+                                    <div class="plan-tab-content" data-tab="readable" style="background:var(--card-bg);border-radius:10px;padding:16px;max-height:520px;overflow-y:auto;">
+                                        ${planReadableHtml}
+                                    </div>
+
+                                    <!-- JSON editor -->
+                                    <div class="plan-tab-content" data-tab="json" style="display:none;">
+                                        <textarea class="client-plan-editor" style="width:100%;min-height:350px;font-family:monospace;font-size:0.8rem;border:2px solid #6366f1;border-radius:10px;padding:14px;resize:vertical;background:#f9fafb;color:var(--text-dark);">${escapeHtml(JSON.stringify(client.plan, null, 2))}</textarea>
                                         <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end;">
-                                            <button class="btn client-plan-save-btn" data-client-id="${escapeHtml(client.id)}" style="background:#6366f1;font-size:0.85rem;padding:6px 14px;">
+                                            <button class="btn client-plan-save-btn" data-client-id="${escapeHtml(client.id)}" style="background:#6366f1;font-size:0.85rem;padding:7px 16px;">
                                                 <i class="fas fa-save"></i> Запази промените
-                                            </button>
-                                            <button class="btn client-plan-cancel-btn" style="background:var(--text-gray);font-size:0.85rem;padding:6px 14px;">
-                                                <i class="fas fa-times"></i> Откажи
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             ` : `
-                                <div style="margin: 20px 0 15px 0; padding: 15px; background: #f3f4f6; border-radius: 8px; text-align: center; color: var(--text-gray);">
+                                <div style="margin-top:18px;padding:16px;background:#f3f4f6;border-radius:10px;text-align:center;color:var(--text-gray);">
                                     <i class="fas fa-info-circle"></i> Няма генериран план за този клиент.
                                 </div>
                             `}
-                            
-                            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
-                                <button class="btn client-modal-download" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.answers.name || 'client')}" style="background: #28a745;">
+
+                            <!-- Footer buttons -->
+                            <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+                                <button class="btn client-modal-download" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(answers.name || 'client')}" style="background:#28a745;">
                                     <i class="fas fa-download"></i> Изтегли JSON
                                 </button>
-                                <button class="btn client-modal-close-btn" style="background: var(--text-gray);">
+                                <button class="btn client-modal-close-btn" style="background:var(--text-gray);">
                                     <i class="fas fa-times"></i> Затвори
                                 </button>
                             </div>
+
+                            </div><!-- /padding wrapper -->
                         </div>
                     </div>
                 `;
                 
                 document.body.insertAdjacentHTML('beforeend', detailsHtml);
                 
-                // Add event listeners for modal buttons
                 const modal = document.querySelector('.client-modal-overlay');
-                const modalContent = modal.querySelector('.client-modal-content');
-                
-                // Close modal when clicking overlay (but not modal content)
-                modal.addEventListener('click', function(e) {
-                    if (e.target === modal) {
-                        modal.remove();
-                    }
-                });
-                
-                // Close buttons
+
+                // Close handlers
+                modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
                 modal.querySelectorAll('.client-modal-close, .client-modal-close-btn').forEach(btn => {
                     btn.addEventListener('click', () => modal.remove());
                 });
                 
                 // Download button
-                const downloadBtn = modal.querySelector('.client-modal-download');
-                downloadBtn.addEventListener('click', function() {
-                    const clientId = this.getAttribute('data-client-id');
-                    const clientName = this.getAttribute('data-client-name');
-                    downloadClientData(clientId, clientName);
+                modal.querySelector('.client-modal-download')?.addEventListener('click', function() {
+                    downloadClientData(this.getAttribute('data-client-id'), this.getAttribute('data-client-name'));
                 });
-                
-                // Plan toggle preview
-                const planToggleBtn = modal.querySelector('.client-plan-toggle-btn');
-                if (planToggleBtn) {
-                    planToggleBtn.addEventListener('click', function() {
-                        const preview = modal.querySelector('.client-plan-preview');
-                        preview.style.display = preview.style.display === 'none' ? 'block' : 'none';
+
+                // Plan tabs
+                modal.querySelectorAll('.plan-tab-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const tab = this.getAttribute('data-tab');
+                        modal.querySelectorAll('.plan-tab-content').forEach(el => {
+                            el.style.display = el.getAttribute('data-tab') === tab ? 'block' : 'none';
+                        });
+                        modal.querySelectorAll('.plan-tab-btn').forEach(b => {
+                            b.style.opacity = b === this ? '1' : '0.65';
+                        });
                     });
-                }
-                
-                // Plan edit button
-                const planEditBtn = modal.querySelector('.client-plan-edit-btn');
-                if (planEditBtn) {
-                    planEditBtn.addEventListener('click', function() {
-                        const editorWrap = modal.querySelector('.client-plan-editor-wrap');
-                        const preview = modal.querySelector('.client-plan-preview');
-                        preview.style.display = 'none';
-                        editorWrap.style.display = editorWrap.style.display === 'none' ? 'block' : 'none';
-                    });
-                }
-                
-                // Plan cancel edit
-                const planCancelBtn = modal.querySelector('.client-plan-cancel-btn');
-                if (planCancelBtn) {
-                    planCancelBtn.addEventListener('click', function() {
-                        modal.querySelector('.client-plan-editor-wrap').style.display = 'none';
-                    });
-                }
-                
-                // Plan save
-                const planSaveBtn = modal.querySelector('.client-plan-save-btn');
-                if (planSaveBtn) {
-                    planSaveBtn.addEventListener('click', async function() {
-                        const cId = this.getAttribute('data-client-id');
-                        const editor = modal.querySelector('.client-plan-editor');
-                        try {
-                            const updatedPlan = JSON.parse(editor.value);
-                            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Запазване...';
-                            this.disabled = true;
-                            const resp = await fetch(WORKER_URL + '/api/admin/update-client-plan', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ clientId: cId, plan: updatedPlan })
-                            });
-                            const res = await resp.json();
-                            if (res.success) {
-                                showSuccess('Планът е обновен успешно!');
-                                modal.querySelector('.client-plan-preview').textContent = JSON.stringify(updatedPlan, null, 2);
-                                modal.querySelector('.client-plan-editor-wrap').style.display = 'none';
-                            } else {
-                                throw new Error(res.error || 'Unknown error');
-                            }
-                        } catch (e) {
-                            showError('Грешка: ' + e.message);
-                        } finally {
-                            this.innerHTML = '<i class="fas fa-save"></i> Запази промените';
-                            this.disabled = false;
-                        }
-                    });
-                }
-                
-                // Activate plan
-                const activateBtn = modal.querySelector('.client-plan-activate-btn');
-                if (activateBtn) {
-                    activateBtn.addEventListener('click', async function() {
-                        const cId = this.getAttribute('data-client-id');
-                        if (!confirm('Сигурни ли сте, че искате да активирате достъпа до плана за този клиент?')) return;
-                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Активиране...';
+                });
+
+                // Plan save (JSON editor)
+                modal.querySelector('.client-plan-save-btn')?.addEventListener('click', async function() {
+                    const cId = this.getAttribute('data-client-id');
+                    const editor = modal.querySelector('.client-plan-editor');
+                    try {
+                        const updatedPlan = JSON.parse(editor.value);
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Запазване...';
                         this.disabled = true;
-                        try {
-                            const resp = await fetch(WORKER_URL + '/api/admin/activate-client-plan', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ clientId: cId })
-                            });
-                            const res = await resp.json();
-                            if (res.success) {
-                                showSuccess('Планът е активиран! Клиентът вече има достъп.');
-                                modal.remove();
-                                loadClientsList(); // Refresh client list to show updated status
-                            } else {
-                                throw new Error(res.error || 'Unknown error');
-                            }
-                        } catch (e) {
-                            showError('Грешка при активиране: ' + e.message);
-                            this.innerHTML = '<i class="fas fa-rocket"></i> Активирай достъп';
-                            this.disabled = false;
+                        const resp = await fetch(WORKER_URL + '/api/admin/update-client-plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ clientId: cId, plan: updatedPlan })
+                        });
+                        const res = await resp.json();
+                        if (res.success) {
+                            showSuccess('Планът е обновен успешно!');
+                            // Refresh readable view
+                            const readableTab = modal.querySelector('.plan-tab-content[data-tab="readable"]');
+                            if (readableTab) readableTab.innerHTML = buildPlanReadableHtml(updatedPlan);
+                        } else {
+                            throw new Error(res.error || 'Unknown error');
                         }
-                    });
-                }
+                    } catch (e) {
+                        showError('Грешка: ' + e.message);
+                    } finally {
+                        this.innerHTML = '<i class="fas fa-save"></i> Запази промените';
+                        this.disabled = false;
+                    }
+                });
+
+                // Activate plan
+                modal.querySelector('.client-plan-activate-btn')?.addEventListener('click', async function() {
+                    const cId = this.getAttribute('data-client-id');
+                    if (!confirm('Сигурни ли сте, че искате да активирате достъпа до плана за този клиент?')) return;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Активиране...';
+                    this.disabled = true;
+                    try {
+                        const resp = await fetch(WORKER_URL + '/api/admin/activate-client-plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ clientId: cId })
+                        });
+                        const res = await resp.json();
+                        if (res.success) {
+                            showSuccess('Планът е активиран! Клиентът вече има достъп.');
+                            modal.remove();
+                            loadPendingPlans(); // Refresh pending plans widget
+                            if (allClientsData.length) loadClientsList(); // Refresh full list if already loaded
+                        } else {
+                            throw new Error(res.error || 'Unknown error');
+                        }
+                    } catch (e) {
+                        showError('Грешка при активиране: ' + e.message);
+                        this.innerHTML = '<i class="fas fa-rocket"></i> Активирай достъп';
+                        this.disabled = false;
+                    }
+                });
                 
             } catch (error) {
                 console.error('Error viewing client details:', error);
                 showError('Грешка при зареждане на детайли: ' + error.message);
             }
         }
+
+        // ── Renders a diet plan JSON into a readable HTML summary ──────────────
+        function buildPlanReadableHtml(plan) {
+            if (!plan || typeof plan !== 'object') return '<p style="color:var(--text-gray);">Планът е в неочакван формат.</p>';
+
+            let html = '';
+
+            // Strategy section
+            const strategy = plan.strategy || plan.step1 || null;
+            if (strategy) {
+                html += `<div style="margin-bottom:16px;padding:14px;background:var(--soft-red);border-radius:10px;">
+                    <div style="font-weight:700;color:var(--primary-red);font-size:0.95rem;margin-bottom:10px;"><i class="fas fa-lightbulb"></i> Стратегия</div>`;
+                const stratFields = [
+                    ['dietaryModifier',       '🏷️ Диетичен профил'],
+                    ['dietType',              '🥗 Тип диета'],
+                    ['weeklyMealPattern',     '📅 Седмична схема'],
+                    ['planJustification',     '📋 Обосновка'],
+                    ['longTermStrategy',      '🔭 Дългосрочна стратегия'],
+                    ['hydrationStrategy',     '💧 Хидратация'],
+                    ['mealCountJustification','🍽️ Брой хранения'],
+                ];
+                stratFields.forEach(([k, label]) => {
+                    if (strategy[k]) {
+                        html += `<div style="margin-bottom:8px;"><strong style="color:var(--text-dark);font-size:0.85rem;">${label}:</strong><div style="color:var(--text-gray);font-size:0.85rem;margin-top:2px;">${escapeHtml(String(strategy[k]))}</div></div>`;
+                    }
+                });
+                if (Array.isArray(strategy.keyPrinciples) && strategy.keyPrinciples.length) {
+                    html += `<div style="margin-bottom:8px;"><strong style="color:var(--text-dark);font-size:0.85rem;">✅ Ключови принципи:</strong><ul style="margin:4px 0 0 16px;color:var(--text-gray);font-size:0.85rem;">${strategy.keyPrinciples.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul></div>`;
+                }
+                if (Array.isArray(strategy.foodsToInclude) && strategy.foodsToInclude.length) {
+                    html += `<div style="margin-bottom:8px;"><strong style="color:var(--text-dark);font-size:0.85rem;">👍 Включвай:</strong><div style="color:var(--text-gray);font-size:0.85rem;margin-top:2px;">${strategy.foodsToInclude.map(f => escapeHtml(f)).join(', ')}</div></div>`;
+                }
+                if (Array.isArray(strategy.foodsToAvoid) && strategy.foodsToAvoid.length) {
+                    html += `<div style="margin-bottom:8px;"><strong style="color:var(--text-dark);font-size:0.85rem;">👎 Избягвай:</strong><div style="color:var(--text-gray);font-size:0.85rem;margin-top:2px;">${strategy.foodsToAvoid.map(f => escapeHtml(f)).join(', ')}</div></div>`;
+                }
+                html += '</div>';
+            }
+
+            // Weekly plan days
+            const weekPlan = plan.weekPlan || {};
+            const DAY_NAMES = ['', 'Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
+            const dayKeys = Object.keys(weekPlan).filter(k => /^day\d+$/.test(k)).sort((a, b) => parseInt(a.slice(3)) - parseInt(b.slice(3)));
+
+            if (dayKeys.length > 0) {
+                html += `<div style="font-weight:700;color:var(--text-dark);font-size:0.95rem;margin-bottom:10px;"><i class="fas fa-calendar-week"></i> 7-дневен хранителен план</div>`;
+                dayKeys.forEach(dayKey => {
+                    const dayNum = parseInt(dayKey.slice(3));
+                    const day = weekPlan[dayKey];
+                    const meals = Array.isArray(day.meals) ? day.meals : [];
+                    const totals = day.dailyTotals || {};
+
+                    html += `<details style="margin-bottom:10px;border:1px solid var(--soft-red);border-radius:10px;overflow:hidden;">
+                        <summary style="cursor:pointer;padding:10px 14px;background:var(--soft-red);font-weight:600;color:var(--text-dark);list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+                            <span><i class="fas fa-sun" style="color:var(--primary-red);margin-right:6px;"></i>Ден ${dayNum}${DAY_NAMES[dayNum] ? ' — ' + DAY_NAMES[dayNum] : ''}</span>
+                            ${totals.calories ? `<span style="color:var(--primary-red);font-size:0.82rem;font-weight:700;">${totals.calories} kcal</span>` : ''}
+                        </summary>
+                        <div style="padding:12px 14px;">`;
+
+                    meals.forEach(meal => {
+                        const macros = meal.macros || {};
+                        html += `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--soft-red);">
+                            <div style="font-weight:700;color:var(--text-dark);font-size:0.88rem;margin-bottom:3px;">
+                                <span style="color:var(--primary-red);">${escapeHtml(meal.type || '')}</span>
+                                ${meal.name ? ' — ' + escapeHtml(meal.name) : ''}
+                                ${meal.calories ? `<span style="float:right;color:var(--text-gray);font-size:0.82rem;">${meal.calories} kcal</span>` : ''}
+                            </div>
+                            ${meal.weight ? `<div style="font-size:0.82rem;color:var(--text-gray);">⚖️ ${escapeHtml(meal.weight)}</div>` : ''}
+                            ${meal.description ? `<div style="font-size:0.82rem;color:var(--text-gray);margin-top:3px;">${escapeHtml(meal.description)}</div>` : ''}
+                            ${meal.benefits ? `<div style="font-size:0.8rem;color:#0D9488;margin-top:3px;"><i class="fas fa-check"></i> ${escapeHtml(meal.benefits)}</div>` : ''}
+                            ${(macros.protein || macros.carbs || macros.fats) ? `<div style="font-size:0.78rem;color:var(--text-gray);margin-top:4px;">
+                                ${macros.protein !== undefined ? `🥩 ${macros.protein}g П` : ''}
+                                ${macros.carbs !== undefined ? `&nbsp; 🌾 ${macros.carbs}g В` : ''}
+                                ${macros.fats !== undefined ? `&nbsp; 🫒 ${macros.fats}g М` : ''}
+                                ${macros.fiber !== undefined ? `&nbsp; 🌿 ${macros.fiber}g Фибри` : ''}
+                            </div>` : ''}
+                        </div>`;
+                    });
+
+                    if (totals.calories) {
+                        html += `<div style="font-size:0.82rem;font-weight:600;color:var(--primary-red);text-align:right;">
+                            Общо: ${totals.calories} kcal
+                            ${totals.protein !== undefined ? ` | П: ${totals.protein}g` : ''}
+                            ${totals.carbs !== undefined ? ` | В: ${totals.carbs}g` : ''}
+                            ${totals.fats !== undefined ? ` | М: ${totals.fats}g` : ''}
+                        </div>`;
+                    }
+
+                    html += '</div></details>';
+                });
+            }
+
+            // Summary / recommendations
+            if (plan.recommendations || plan.forbidden || plan.supplements) {
+                html += `<details style="margin-bottom:10px;border:1px solid var(--soft-red);border-radius:10px;overflow:hidden;">
+                    <summary style="cursor:pointer;padding:10px 14px;background:var(--soft-red);font-weight:600;color:var(--text-dark);list-style:none;user-select:none;">
+                        <i class="fas fa-info-circle" style="color:var(--primary-red);margin-right:6px;"></i>Допълнителни препоръки
+                    </summary>
+                    <div style="padding:12px 14px;font-size:0.85rem;">`;
+                if (plan.recommendations?.length) {
+                    html += `<div style="margin-bottom:10px;"><strong>✅ Препоръки:</strong><ul style="margin:4px 0 0 16px;color:var(--text-gray);">${plan.recommendations.map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul></div>`;
+                }
+                if (plan.forbidden?.length) {
+                    html += `<div style="margin-bottom:10px;"><strong>🚫 Забранени:</strong><ul style="margin:4px 0 0 16px;color:var(--text-gray);">${plan.forbidden.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul></div>`;
+                }
+                if (plan.supplements) {
+                    const supArr = Array.isArray(plan.supplements) ? plan.supplements : [plan.supplements];
+                    html += `<div><strong>💊 Добавки:</strong><ul style="margin:4px 0 0 16px;color:var(--text-gray);">${supArr.map(s => `<li>${escapeHtml(String(s))}</li>`).join('')}</ul></div>`;
+                }
+                if (plan.waterIntake) {
+                    html += `<div style="margin-top:8px;"><strong>💧 Вода:</strong> <span style="color:var(--text-gray);">${escapeHtml(String(plan.waterIntake))}</span></div>`;
+                }
+                html += '</div></details>';
+            }
+
+            if (!strategy && dayKeys.length === 0) {
+                html += `<div style="background:#f9fafb;border-radius:8px;padding:12px;max-height:300px;overflow-y:auto;"><pre style="font-size:0.78rem;white-space:pre-wrap;color:var(--text-gray);">${escapeHtml(JSON.stringify(plan, null, 2))}</pre></div>`;
+            }
+
+            return html || '<p style="color:var(--text-gray);">Планът е празен.</p>';
+        }
+
         
         async function downloadClientData(clientId, clientName) {
             try {
