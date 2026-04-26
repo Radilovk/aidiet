@@ -176,6 +176,9 @@
         }
         .btn-cat:hover, .btn-cat:focus { background: var(--primary-light); color: var(--primary); outline: none; }
 
+        /* Warning color for the counter when below the minimum selection */
+        .fp-bar-count.below-min { color: #f59e0b; }
+
         /* ── Food grid ── */
         .fp-foods {
             display: grid;
@@ -458,7 +461,7 @@
 
 <!-- Sticky count bar -->
 <div class="fp-bar">
-    <div class="fp-bar-count">Избрани: <span id="totalCount">0</span> <span id="totalWord">продукта</span></div>
+    <div class="fp-bar-count" id="fpBarCount">Избрани: <span id="totalCount">0</span> <span id="totalWord">продукта</span></div>
     <button class="btn-clear-all" onclick="clearAll()"><i class="fas fa-xmark" style="margin-right:4px;"></i>Изчисти всички</button>
 </div>
 
@@ -504,6 +507,17 @@ const PLAN_GENERATION_TIMEOUT_MS = 360000; // 6 minutes
 // ── Demo mode ──────────────────────────────────────────────────────────────
 const DEMO_FOOD_PICKER_KEY = 'demoFoodPickerPlanCount';
 const DEMO_MAX_PLAN_GENERATIONS = 1; // Demo: max 1 plan generation via food picker
+
+// ── Selection constants ────────────────────────────────────────────────────
+// Minimum items required for a nutritionally meaningful plan.
+const MIN_SELECTED_FOODS = 10;
+// Minimum number of distinct food categories (protein, veggies, carbs, etc.)
+const MIN_CATEGORIES = 3;
+// When the user selects >= this fraction of all visible catalog items we switch
+// to "exclusion mode": unselected items go to the blacklist and the mainlist is
+// cleared.  Below the threshold we use "inclusion mode": only the selected items
+// go to the mainlist (strict AI constraint).
+const EXCLUSION_THRESHOLD = 0.6;
 
 function getDemoFoodPickerCount() {
     return parseInt(localStorage.getItem(DEMO_FOOD_PICKER_KEY) || '0', 10);
@@ -866,6 +880,10 @@ function updateTotal() {
     document.getElementById('totalCount').textContent = count;
     document.getElementById('totalWord').textContent = productWord(count);
     document.getElementById('btnSubmit').disabled = count === 0;
+
+    // Amber warning when selection is below the minimum needed for a valid plan
+    const bar = document.getElementById('fpBarCount');
+    bar.classList.toggle('below-min', count > 0 && count < MIN_SELECTED_FOODS);
 }
 
 function selectAllInCat(catId) {
@@ -896,6 +914,56 @@ function clearCat(catId) {
 
 function clearAll() {
     CATALOG.forEach(cat => clearCat(cat.id));
+}
+
+// ── Smart mode helpers ──────────────────────────────────────────────────────
+
+/**
+ * Returns the number of distinct catalog categories that have at least one
+ * selected item (including custom items added by the user).
+ */
+function countSelectedCategories() {
+    const customMap = loadCustomItems();
+    let cats = 0;
+    CATALOG.forEach(cat => {
+        const allItems = [...cat.items, ...(customMap[cat.id] || [])];
+        if (allItems.some(item => selected[item])) cats++;
+    });
+    return cats;
+}
+
+/**
+ * Returns the total number of visible (non-blocked) catalog items across all
+ * categories, including custom items added by the user.
+ */
+function countVisibleCatalogItems(blockedTerms) {
+    const customMap = loadCustomItems();
+    let total = 0;
+    CATALOG.forEach(cat => {
+        const allItems = [...cat.items, ...(customMap[cat.id] || [])];
+        const visible = blockedTerms.length
+            ? allItems.filter(n => !isBlocked(n, blockedTerms))
+            : allItems;
+        total += visible.length;
+    });
+    return total;
+}
+
+/**
+ * Returns all visible catalog item names that are NOT currently selected.
+ * Used in exclusion mode to build the blacklist.
+ */
+function getUnselectedVisibleItems(blockedTerms) {
+    const customMap = loadCustomItems();
+    const unselected = [];
+    CATALOG.forEach(cat => {
+        const allItems = [...cat.items, ...(customMap[cat.id] || [])];
+        const visible = blockedTerms.length
+            ? allItems.filter(n => !isBlocked(n, blockedTerms))
+            : allItems;
+        visible.forEach(name => { if (!selected[name]) unselected.push(name); });
+    });
+    return unselected;
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────────
@@ -937,30 +1005,98 @@ async function handleSubmit() {
             );
         }
 
-        setLoading(true, 'Запазване на продуктите…');
-
-        // 1. Set the food mainlist in KV (only non-blacklisted items)
-        const setRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: filteredList })
-        });
-        if (!setRes.ok) {
-            const errData = await setRes.json().catch(() => ({}));
-            throw new Error(errData.error || `HTTP ${setRes.status}`);
+        // 1. Minimum selection guard
+        if (filteredList.length < MIN_SELECTED_FOODS) {
+            setLoading(false);
+            showError(`Моля, избери поне ${MIN_SELECTED_FOODS} продукта, за да може AI да генерира балансиран план. Сега имаш ${filteredList.length}.`);
+            return;
+        }
+        if (countSelectedCategories() < MIN_CATEGORIES) {
+            setLoading(false);
+            showError(`Моля, избери продукти от поне ${MIN_CATEGORIES} различни групи (протеини, зеленчуци, въглехидрати и др.), за да може планът да бъде балансиран.`);
+            return;
         }
 
-        setLoading(true, 'Активиране на списъка…');
+        // 2. Decide mode: exclusion vs inclusion
+        const totalVisible = countVisibleCatalogItems(blockedTerms);
+        const useExclusionMode = filteredList.length >= EXCLUSION_THRESHOLD * totalVisible;
 
-        // 2. Enable the mainlist
-        const enableRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist-enabled`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: true })
-        });
-        if (!enableRes.ok) {
-            const errData = await enableRes.json().catch(() => ({}));
-            throw new Error(errData.error || `HTTP ${enableRes.status}`);
+        if (useExclusionMode) {
+            // ── EXCLUSION MODE ──────────────────────────────────────────────
+            // User selected most foods — record only the rejected ones as blacklist.
+            setLoading(true, 'Записване на изключенията…');
+            const unselected = getUnselectedVisibleItems(blockedTerms);
+
+            // Replace blacklist with only the unselected items
+            const blRes = await fetch(`${WORKER_URL}/api/admin/set-blacklist`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: unselected })
+            });
+            if (!blRes.ok) {
+                const errData = await blRes.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${blRes.status}`);
+            }
+
+            setLoading(true, 'Изчистване на предпочитанията…');
+
+            // Clear mainlist and disable it (everything except the blacklist is allowed)
+            const clearRes = await fetch(`${WORKER_URL}/api/admin/clear-mainlist`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            if (!clearRes.ok) {
+                const errData = await clearRes.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${clearRes.status}`);
+            }
+            const disableRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist-enabled`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: false })
+            });
+            if (!disableRes.ok) {
+                const errData = await disableRes.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${disableRes.status}`);
+            }
+        } else {
+            // ── INCLUSION MODE ──────────────────────────────────────────────
+            // User selected only a subset — use strict mainlist so AI uses exactly these foods.
+            setLoading(true, 'Записване на предпочитаните продукти…');
+
+            // Clear any previously set exclusion blacklist
+            const clearBlRes = await fetch(`${WORKER_URL}/api/admin/set-blacklist`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: [] })
+            });
+            if (!clearBlRes.ok) {
+                const errData = await clearBlRes.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${clearBlRes.status}`);
+            }
+
+            // Set mainlist to exactly the selected items
+            const setRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: filteredList })
+            });
+            if (!setRes.ok) {
+                const errData = await setRes.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${setRes.status}`);
+            }
+
+            setLoading(true, 'Активиране на списъка…');
+
+            const enableRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist-enabled`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: true })
+            });
+            if (!enableRes.ok) {
+                const errData = await enableRes.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${enableRes.status}`);
+            }
         }
 
         // 3. Persist selection locally (for UI restore and debug)
@@ -970,9 +1106,12 @@ async function handleSubmit() {
             const debugWrap = document.getElementById('fpDebugWrap');
             const debugBox = document.getElementById('debugBox');
             debugBox.textContent = JSON.stringify({
+                mode: useExclusionMode ? 'exclusion' : 'inclusion',
                 userFoodList: filteredList,
                 removedBlocked: list.filter(i => isBlocked(i, blockedTerms)),
                 count: filteredList.length,
+                totalVisible,
+                threshold: Math.round(EXCLUSION_THRESHOLD * totalVisible),
                 savedAt: new Date().toISOString()
             }, null, 2);
             debugWrap.style.display = 'block';
