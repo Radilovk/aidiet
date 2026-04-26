@@ -726,60 +726,6 @@
             font-size: 15px;
         }
 
-        /* --- CHANGE MEAL BUTTON --- */
-        .change-meal-btn {
-            width: 42px;
-            height: 42px;
-            min-width: 42px;
-            min-height: 42px;
-            max-width: 42px;
-            max-height: 42px;
-            border-radius: 12px;
-            border: none;
-            background: linear-gradient(135deg, rgba(13,148,136,0.12) 0%, rgba(6,182,212,0.08) 100%);
-            color: var(--primary-red);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            margin-left: 6px;
-            flex-shrink: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 15px;
-            -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 2px 8px rgba(13,148,136,0.12), inset 0 1px 0 rgba(255,255,255,0.5);
-            border: 1px solid rgba(13,148,136,0.15);
-            position: relative;
-            z-index: 1;
-        }
-        [data-theme="dark"] .change-meal-btn {
-            background: linear-gradient(135deg, rgba(45,212,191,0.12) 0%, rgba(6,182,212,0.08) 100%);
-            border-color: rgba(45,212,191,0.15);
-            box-shadow: 0 2px 8px rgba(45,212,191,0.12), inset 0 1px 0 rgba(255,255,255,0.04);
-        }
-        .change-meal-btn:hover {
-            background: linear-gradient(135deg, rgba(13,148,136,0.2) 0%, rgba(6,182,212,0.15) 100%);
-            transform: scale(1.08) rotate(-8deg);
-            box-shadow: 0 6px 18px rgba(13,148,136,0.25);
-            border-color: rgba(13,148,136,0.3);
-        }
-        .change-meal-btn:active { transform: scale(0.95); }
-        .change-meal-btn.changed {
-            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 4px 14px rgba(16,185,129,0.4);
-        }
-        .meal-card .meal-btns {
-            display: flex;
-            align-items: center;
-            flex-shrink: 0;
-            margin-left: auto;
-        }
-        .meal-card .meal-btns .info-btn {
-            margin-left: 0;
-        }
-
         /* --- COLLAPSIBLE SECTIONS (ACCORDION) - Premium Design --- */
         .accordion {
             margin-top: 36px;
@@ -4120,8 +4066,6 @@
             loadChatHistory();
             // Check for notification updates from backend (only call if admin changed)
             checkNotificationUpdates();
-            // Apply Meal Picker feature flag on load
-            applyMealPickerFeatureFlag(isMealPickerEnabled());
             // Auto-open chat if navigated with ?chat=1
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('chat') === '1') {
@@ -4456,29 +4400,12 @@
 
             effectiveMeals.forEach((meal) => {
                 const isFreeMeal = meal.type === 'Свободно хранене';
-
-                // Check for a user-selected meal override from meal-picker
-                const savedMeals = getSavedMealOverrides();
-                const overrideKey = `${currentDay}_${meal.type}`;
-                const override = savedMeals[overrideKey];
-                const displayMeal = override ? {
-                    ...meal,
-                    name: override.name || meal.name,
-                    description: override.description || override.desc || meal.description || '',
-                    calories: override.calories || override.kcal || meal.calories
-                } : meal;
-                const isOverridden = !!override;
-
                 const mealCard = document.createElement('div');
                 mealCard.className = isFreeMeal ? 'meal-card free-day' : 'meal-card';
-                if (isOverridden) mealCard.classList.add('meal-overridden');
-                mealCard.setAttribute('data-meal-type', meal.type);
-                mealCard.setAttribute('data-day', currentDay);
                 
-                // Info button
+                // Create button element separately to handle click with meal data
                 const infoBtn = document.createElement('button');
                 infoBtn.className = 'info-btn';
-                infoBtn.setAttribute('aria-label', 'Детайли за ястието');
                 infoBtn.innerHTML = '<i class="fas fa-info"></i>';
                 infoBtn.onclick = function() {
                     if (isFreeMeal) {
@@ -4490,74 +4417,35 @@
                         );
                     } else {
                         openModal(
-                            displayMeal.name, 
-                            displayMeal.description || '', 
+                            meal.name, 
+                            meal.description || '', 
                             meal.benefits || '',
                             meal.macros || null,
                             meal.dessert || null
                         );
                     }
                 };
-
-                // Change-meal button (not shown for free meals; only when Meal Picker feature is enabled)
-                const btnsWrap = document.createElement('div');
-                btnsWrap.className = 'meal-btns';
-                if (!isFreeMeal && isMealPickerEnabled()) {
-                    const changeBtn = document.createElement('button');
-                    changeBtn.className = 'change-meal-btn' + (isOverridden ? ' changed' : '');
-                    changeBtn.setAttribute('aria-label', `Смени ${meal.type}`);
-                    changeBtn.title = isOverridden ? 'Ястието е заменено — смени отново' : 'Смени ястието';
-                    changeBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                    changeBtn.onclick = function(e) {
-                        e.stopPropagation();
-                        const params = new URLSearchParams({ mealType: meal.type, day: currentDay, returnTo: 'plan' });
-                        window.location.href = `meal-picker.html?${params.toString()}`;
-                    };
-                    btnsWrap.appendChild(changeBtn);
-                }
-                btnsWrap.appendChild(infoBtn);
                 
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
                 // For free eating meals: omit calories and macros display
                 // meal.calories already includes the dessert contribution (dessert is part of the meal)
-                const totalMealCalories = displayMeal.calories || 0;
+                const totalMealCalories = meal.calories || 0;
                 const weightLine = isFreeMeal
                     ? `<div class="meal-weight"><i class="fas fa-utensils"></i> Любима храна по избор</div>`
                     : `<div class="meal-weight"><i class="fas fa-weight-hanging"></i> ${escapeHtmlWithBreaks(meal.weight)}${totalMealCalories ? ` • ${Math.round(totalMealCalories)} kcal` : ''}</div>`;
-                const overrideBadge = isOverridden ? `<span style="font-size:0.7rem;color:#10B981;font-weight:700;margin-left:6px;vertical-align:middle;" title="Заменено от Meal Picker">✓ Заменено</span>` : '';
                 mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(meal.type)}</div>
-                    <div class="meal-name">${isFreeMeal ? 'Свободно хранене' : escapeHtmlWithBreaks(displayMeal.name)}${overrideBadge}</div>
+                    <div class="meal-name">${isFreeMeal ? 'Свободно хранене' : escapeHtmlWithBreaks(meal.name)}</div>
                     ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}${weightLine}
                 `;
                 
                 mealCard.appendChild(mealInfo);
-                mealCard.appendChild(btnsWrap);
+                mealCard.appendChild(infoBtn);
                 mealContainer.appendChild(mealCard);
             });
 
             // breakfast-note is only shown when the client skips breakfast (already appended above)
-        }
-
-        // --- Helper: Read saved meal overrides from localStorage ---
-        function getSavedMealOverrides() {
-            try {
-                const raw = localStorage.getItem('selectedMeals');
-                if (!raw) return {};
-                const parsed = JSON.parse(raw);
-                return (parsed && typeof parsed === 'object') ? parsed : {};
-            } catch(e) { return {}; }
-        }
-
-        // --- Meal Picker feature flag helpers ---
-        function isMealPickerEnabled() {
-            return localStorage.getItem('mealPickerEnabled') === 'true';
-        }
-
-        function applyMealPickerFeatureFlag(enabled) {
-            const navItem = document.getElementById('mealPickerNavItem');
-            if (navItem) navItem.style.display = enabled ? '' : 'none';
         }
 
         // --- Helper function to format text with bullet points ---
@@ -5315,15 +5203,11 @@
             
             if (!message) return;
 
-            // Meal Picker feature toggle command
+            // Food picker command
             if (message.toLowerCase() === '*selectfoods') {
+                addMessageToChat('🥗 Отваряне на избора на продукти…', 'assistant');
                 input.value = '';
-                const currentlyEnabled = localStorage.getItem('mealPickerEnabled') === 'true';
-                const newState = !currentlyEnabled;
-                localStorage.setItem('mealPickerEnabled', newState ? 'true' : 'false');
-                applyMealPickerFeatureFlag(newState);
-                const stateLabel = newState ? '✅ активиран' : '🔒 деактивиран';
-                addMessageToChat(`🥗 Meal Picker е ${stateLabel} за твоя профил. ${newState ? 'Ще видиш бутон 🔄 до всяко хранене.' : 'Бутоните за смяна на ястие са скрити.'}`, 'assistant');
+                setTimeout(() => { window.location.href = 'food-picker.html'; }, 700);
                 return;
             }
 
@@ -7387,10 +7271,6 @@
         <a href="plan.html" class="bottom-nav-item active">
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
-        </a>
-        <a href="meal-picker.html" class="bottom-nav-item" id="mealPickerNavItem">
-            <i class="fas fa-th-list"></i>
-            <span>Ястия</span>
         </a>
         <a href="guidelines.html" class="bottom-nav-item">
             <i class="fas fa-compass"></i>
