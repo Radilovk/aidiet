@@ -4497,8 +4497,8 @@ const ALLOWED_MEAL_TYPES = ['Напитка', 'Закуска', 'Обяд', 'С�
 // Fixed dessert object injected by the backend for users who crave sweets.
 // The AI includes the dessert's calories and macros directly in meal.calories/meal.macros,
 // and marks the meal with "dessert": true so the client can render the dessert detail card.
-// injectFixedDesserts() only replaces the boolean marker with the full object — it does NOT
-// add extra calories because the AI has already accounted for them.
+// injectFixedDesserts() replaces the boolean marker with the full object and also adds the
+// dessert weight to meal.weight (the AI prompt does not instruct the AI to include it).
 const FIXED_DESSERT = {
   name: 'Пълномаслен шоколад с лешници',
   weight: '30г',
@@ -4507,7 +4507,16 @@ const FIXED_DESSERT = {
   macros: { protein: 2, carbs: 14, fats: 12, fiber: 1 }
 };
 
-// Replaces "dessert": true markers left by the AI with the full fixed dessert object.
+// Numeric grams value extracted from FIXED_DESSERT.weight (e.g. '30г' → 30).
+const FIXED_DESSERT_WEIGHT_GRAMS = (() => {
+  const m = FIXED_DESSERT.weight.match(/(\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : 0;
+})();
+
+// Replaces "dessert": true markers left by the AI with the full fixed dessert object and
+// adds the dessert weight to meal.weight so the stored value reflects the full portion.
+// Sets meal.dessert._weightAddedToMeal = true so the frontend knows meal.weight already
+// includes the dessert weight and does not add it again.
 // Calories and macros are NOT modified here because the AI already included the dessert
 // values in meal.calories/meal.macros when building the plan.
 // Accepts any truthy non-object value ("true", 1, true) in case the AI wraps the boolean in quotes.
@@ -4517,8 +4526,15 @@ function injectFixedDesserts(weekPlan) {
     if (day && day.meals) {
       for (const meal of day.meals) {
         if (meal.dessert && typeof meal.dessert !== 'object') {
-          // Only replace the marker; do NOT add extra calories/macros.
-          meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros } };
+          meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros }, _weightAddedToMeal: true };
+          // Add the dessert weight to the meal's total weight so the stored value is complete.
+          if (meal.weight && FIXED_DESSERT_WEIGHT_GRAMS > 0) {
+            const mainMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)/);
+            if (mainMatch) {
+              const totalGrams = Math.round(parseFloat(mainMatch[1]) + FIXED_DESSERT_WEIGHT_GRAMS);
+              meal.weight = `${totalGrams}г`;
+            }
+          }
         }
       }
     }
