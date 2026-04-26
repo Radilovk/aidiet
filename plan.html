@@ -5022,8 +5022,20 @@
             const mWeightText  = document.getElementById('mWeightText');
             if (mWeightBadge && mWeightText) {
                 if (weight) {
+                    // For plans generated before the backend started adding dessert weight to
+                    // meal.weight, add the dessert weight here at display time.
+                    // New plans have dessert._weightAddedToMeal = true so we skip the addition.
+                    let displayWeight = weight;
+                    if (dessert && dessert.weight && !dessert._weightAddedToMeal) {
+                        const mainMatch = String(weight).match(/(\d+(?:\.\d+)?)/);
+                        const dessertMatch = String(dessert.weight).match(/(\d+(?:\.\d+)?)/);
+                        if (mainMatch && dessertMatch) {
+                            const totalGrams = Math.round(parseFloat(mainMatch[1]) + parseFloat(dessertMatch[1]));
+                            displayWeight = `${totalGrams}г`;
+                        }
+                    }
                     const calText = calories ? ` • ${Math.round(calories)} kcal` : '';
-                    mWeightText.textContent = `${weight}${calText}`;
+                    mWeightText.textContent = `${displayWeight}${calText}`;
                     mWeightBadge.style.display = 'inline-flex';
                 } else {
                     mWeightBadge.style.display = 'none';
