@@ -1084,6 +1084,49 @@
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
         <div id="guidelinesBanner" style="display:none; position:relative; overflow:hidden; border-radius:20px; margin-bottom:20px; min-height:180px; background:transparent;"></div>
 
+        <!-- MACROS VISUALIZATION CONTAINER (on top) -->
+        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
+            <div class="macros-viz-header">
+                <div class="macros-viz-title">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Вашата Хранителна Цел</span>
+                </div>
+                <div class="macros-viz-subtitle">Препоръчителен дневен прием</div>
+            </div>
+
+            <div class="calories-display">
+                <div class="calories-label">Дневни Калории</div>
+                <div class="calories-value" id="targetCalories">2000</div>
+                <div class="calories-unit">kcal</div>
+            </div>
+
+            <div class="macros-grid">
+                <div class="macro-card protein">
+                    <div class="macro-icon">🥩</div>
+                    <div class="macro-label">Протеини</div>
+                    <div class="macro-value" id="targetProtein">120</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="proteinPercentage">25%</div>
+                </div>
+
+                <div class="macro-card carbs">
+                    <div class="macro-icon">🍞</div>
+                    <div class="macro-label">Въглехидрати</div>
+                    <div class="macro-value" id="targetCarbs">250</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="carbsPercentage">50%</div>
+                </div>
+
+                <div class="macro-card fats">
+                    <div class="macro-icon">🥑</div>
+                    <div class="macro-label">Мазнини</div>
+                    <div class="macro-value" id="targetFats">55</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="fatsPercentage">25%</div>
+                </div>
+            </div>
+        </div>
+
         <!-- GUIDELINES ACCORDION (moved from plan tab) -->
         <div class="accordion">
             <div class="acc-item">
@@ -1154,49 +1197,6 @@
                     <div class="acc-content-inner" id="hacksContent">
                         <p style="color: var(--text-light); font-style: italic;">Практически съвети за по-добри резултати...</p>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- MACROS VISUALIZATION CONTAINER (on top) -->
-        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
-            <div class="macros-viz-header">
-                <div class="macros-viz-title">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Вашата Хранителна Цел</span>
-                </div>
-                <div class="macros-viz-subtitle">Препоръчителен дневен прием</div>
-            </div>
-
-            <div class="calories-display">
-                <div class="calories-label">Дневни Калории</div>
-                <div class="calories-value" id="targetCalories">2000</div>
-                <div class="calories-unit">kcal</div>
-            </div>
-
-            <div class="macros-grid">
-                <div class="macro-card protein">
-                    <div class="macro-icon">🥩</div>
-                    <div class="macro-label">Протеини</div>
-                    <div class="macro-value" id="targetProtein">120</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="proteinPercentage">25%</div>
-                </div>
-
-                <div class="macro-card carbs">
-                    <div class="macro-icon">🍞</div>
-                    <div class="macro-label">Въглехидрати</div>
-                    <div class="macro-value" id="targetCarbs">250</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="carbsPercentage">50%</div>
-                </div>
-
-                <div class="macro-card fats">
-                    <div class="macro-icon">🥑</div>
-                    <div class="macro-label">Мазнини</div>
-                    <div class="macro-value" id="targetFats">55</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="fatsPercentage">25%</div>
                 </div>
             </div>
         </div>
