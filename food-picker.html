@@ -176,6 +176,18 @@
         }
         .btn-cat:hover, .btn-cat:focus { background: var(--primary-light); color: var(--primary); outline: none; }
 
+        /* ── At-limit dimming: unchecked items when max foods reached ── */
+        body.at-limit .fp-item:not(.checked) {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        body.at-limit .fp-item:not(.checked) input[type="checkbox"] {
+            cursor: not-allowed;
+        }
+        /* Warning colour for the counter when approaching/reaching the limit */
+        .fp-bar-count.near-limit { color: #f59e0b; }
+        .fp-bar-count.at-limit   { color: #ef4444; }
+
         /* ── Food grid ── */
         .fp-foods {
             display: grid;
@@ -458,7 +470,7 @@
 
 <!-- Sticky count bar -->
 <div class="fp-bar">
-    <div class="fp-bar-count">Избрани: <span id="totalCount">0</span> <span id="totalWord">продукта</span></div>
+    <div class="fp-bar-count" id="fpBarCount">Избрани: <span id="totalCount">0</span> / 30 <span id="totalWord">продукта</span></div>
     <button class="btn-clear-all" onclick="clearAll()"><i class="fas fa-xmark" style="margin-right:4px;"></i>Изчисти всички</button>
 </div>
 
@@ -504,6 +516,12 @@ const PLAN_GENERATION_TIMEOUT_MS = 360000; // 6 minutes
 // ── Demo mode ──────────────────────────────────────────────────────────────
 const DEMO_FOOD_PICKER_KEY = 'demoFoodPickerPlanCount';
 const DEMO_MAX_PLAN_GENERATIONS = 1; // Demo: max 1 plan generation via food picker
+
+// ── Selection limit ────────────────────────────────────────────────────────
+// Keep the mainlist compact so every AI prompt stays within token budget and
+// the constraint remains meaningful.  Beyond this cap the list is truncated on
+// the backend anyway (MAX_MAINLIST_CHARS = 1500 chars in worker.js).
+const MAX_SELECTED_FOODS = 30;
 
 function getDemoFoodPickerCount() {
     return parseInt(localStorage.getItem(DEMO_FOOD_PICKER_KEY) || '0', 10);
@@ -821,11 +839,15 @@ function addCustomItem(catId) {
     const label = createItemLabel(name, catId);
     grid.appendChild(label);
 
-    // Auto-check the newly added item
+    // Auto-check the newly added item only if the limit allows it
     const cb = label.querySelector('input');
-    cb.checked = true;
-    selected[name] = true;
-    label.classList.add('checked');
+    if (Object.keys(selected).length < MAX_SELECTED_FOODS) {
+        cb.checked = true;
+        selected[name] = true;
+        label.classList.add('checked');
+    } else {
+        showToast(`„${name}" добавен, но лимитът от ${MAX_SELECTED_FOODS} продукта е достигнат. Премахни друг, за да го включиш в плана.`, true);
+    }
     updateBadge(catId);
     updateTotal();
 
@@ -838,6 +860,11 @@ function onCheck(checkbox) {
     const name = checkbox.value;
     const label = checkbox.closest('.fp-item');
     if (checkbox.checked) {
+        if (Object.keys(selected).length >= MAX_SELECTED_FOODS) {
+            checkbox.checked = false;
+            showToast(`Максимум ${MAX_SELECTED_FOODS} продукта. Премахни друг, за да добавиш нов.`, true);
+            return;
+        }
         selected[name] = true;
         label.classList.add('checked');
     } else {
@@ -866,17 +893,32 @@ function updateTotal() {
     document.getElementById('totalCount').textContent = count;
     document.getElementById('totalWord').textContent = productWord(count);
     document.getElementById('btnSubmit').disabled = count === 0;
+
+    // Visual feedback for selection limit
+    const atLimit  = count >= MAX_SELECTED_FOODS;
+    const nearLimit = count >= MAX_SELECTED_FOODS - 5 && !atLimit;
+    document.body.classList.toggle('at-limit', atLimit);
+    const bar = document.getElementById('fpBarCount');
+    bar.classList.toggle('at-limit',   atLimit);
+    bar.classList.toggle('near-limit', nearLimit);
 }
 
 function selectAllInCat(catId) {
     const grid = document.getElementById(`grid-${catId}`);
+    let count = Object.keys(selected).length;
+    let limited = false;
     grid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         if (!cb.checked) {
+            if (count >= MAX_SELECTED_FOODS) { limited = true; return; }
             cb.checked = true;
             selected[cb.value] = true;
             cb.closest('.fp-item').classList.add('checked');
+            count++;
         }
     });
+    if (limited) {
+        showToast(`Достигнат лимит от ${MAX_SELECTED_FOODS} продукта.`, true);
+    }
     updateBadge(catId);
     updateTotal();
 }
