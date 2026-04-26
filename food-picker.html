@@ -28,11 +28,16 @@
             --transition: all 0.25s cubic-bezier(0.25,0.8,0.25,1);
         }
         [data-theme="dark"] {
+            --primary: #2DD4BF;
+            --primary-dark: #0F766E;
+            --primary-light: rgba(45,212,191,0.15);
+            --accent: #22d3ee;
             --bg: #0a1f1e;
             --card-bg: rgba(15,47,46,0.85);
             --text-dark: #e2f8f5;
             --text-gray: #94a3b8;
             --border: rgba(45,212,191,0.15);
+            --shadow: 0 10px 30px rgba(0,0,0,0.35);
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -361,6 +366,41 @@
             .fp-foods { grid-template-columns: repeat(2, 1fr); }
         }
 
+        /* ── Demo mode notice ── */
+        .fp-demo-notice {
+            max-width: 680px;
+            margin: 14px auto 0;
+            padding: 0 16px;
+        }
+        .fp-demo-box {
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 0.88rem;
+            color: #7a5c00;
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .fp-demo-box i { flex-shrink: 0; margin-top: 2px; }
+        .fp-demo-box.limit-reached {
+            background: #fff3cd;
+            border-color: #ff9800;
+            color: #7a3b00;
+        }
+        [data-theme="dark"] .fp-demo-box {
+            background: rgba(255,193,7,0.12);
+            border-color: rgba(255,193,7,0.45);
+            color: #fcd34d;
+        }
+        [data-theme="dark"] .fp-demo-box.limit-reached {
+            background: rgba(255,152,0,0.15);
+            border-color: rgba(255,152,0,0.5);
+            color: #fbbf24;
+        }
+
         /* ── Custom product input ── */
         .cat-add-wrap {
             display: flex;
@@ -427,6 +467,14 @@
     <div class="fp-error-box" id="fpErrorBox"></div>
 </div>
 
+<!-- Demo notice banner -->
+<div class="fp-demo-notice" id="fpDemoNotice" style="display:none;">
+    <div class="fp-demo-box" id="fpDemoBox">
+        <i class="fas fa-info-circle"></i>
+        <span id="fpDemoText"></span>
+    </div>
+</div>
+
 <!-- Category accordions -->
 <div class="fp-content" id="fpContent"></div>
 
@@ -452,6 +500,35 @@
 const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
 const PLAN_GENERATION_TIMEOUT_MS = 360000; // 6 minutes
+
+// ── Demo mode ──────────────────────────────────────────────────────────────
+const DEMO_FOOD_PICKER_KEY = 'demoFoodPickerPlanCount';
+const DEMO_MAX_PLAN_GENERATIONS = 1; // Demo: max 1 plan generation via food picker
+
+function getDemoFoodPickerCount() {
+    return parseInt(localStorage.getItem(DEMO_FOOD_PICKER_KEY) || '0', 10);
+}
+function incrementDemoFoodPickerCount() {
+    const n = getDemoFoodPickerCount() + 1;
+    localStorage.setItem(DEMO_FOOD_PICKER_KEY, String(n));
+    return n;
+}
+function isDemoLimitUnlocked() {
+    return localStorage.getItem('chatDemoLimitUnlocked') === 'true';
+}
+function showDemoNotice(limitReached) {
+    const wrap = document.getElementById('fpDemoNotice');
+    const box = document.getElementById('fpDemoBox');
+    const text = document.getElementById('fpDemoText');
+    wrap.style.display = 'block';
+    if (limitReached) {
+        box.classList.add('limit-reached');
+        text.innerHTML = '<strong>Демо режим — лимит достигнат:</strong> В демо версията се позволява само едно генериране на план чрез тази функция.';
+    } else {
+        box.classList.remove('limit-reached');
+        text.innerHTML = '<strong>Демо режим:</strong> В демо версията се позволява само едно генериране на план чрез тази функция.';
+    }
+}
 
 
 const CATALOG = [
@@ -829,6 +906,13 @@ async function handleSubmit() {
         return;
     }
 
+    // Demo mode check: limit plan generation to once
+    if (!isDemoLimitUnlocked() && getDemoFoodPickerCount() >= DEMO_MAX_PLAN_GENERATIONS) {
+        showDemoNotice(true);
+        showToast('Демо лимит: само 1 генериране е позволено.', true);
+        return;
+    }
+
     hideError();
     setLoading(true, 'Проверка на продуктите…');
 
@@ -929,6 +1013,9 @@ async function handleSubmit() {
             }
             localStorage.removeItem('hasSeenPlanJustification');
 
+            // Demo: increment plan generation counter
+            incrementDemoFoodPickerCount();
+
             setLoading(true, 'Пренасочване към плана…');
             await new Promise(r => setTimeout(r, 700));
             window.location.href = 'plan.html';
@@ -1011,6 +1098,13 @@ function restoreFromStorage() {
     const blockedTerms = await loadBlockedFoods();
     buildUI(blockedTerms);
     restoreFromStorage();
+
+    // Show demo notice on load
+    if (!isDemoLimitUnlocked()) {
+        const limitReached = getDemoFoodPickerCount() >= DEMO_MAX_PLAN_GENERATIONS;
+        showDemoNotice(limitReached);
+    }
+
     if (DEBUG_MODE) {
         document.getElementById('fpDebugWrap').style.display = 'block';
         document.getElementById('debugBox').textContent = blockedTerms.length
