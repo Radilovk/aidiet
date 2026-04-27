@@ -3145,7 +3145,7 @@
                 const cards = document.querySelectorAll(`#tab-${tabName} .card`);
                 for (const card of cards) {
                     const h2 = card.querySelector('h2');
-                    if (h2 && h2.textContent.trim().replace(/\s+/g,' ').includes(cardTitle.replace(/\s+/g,' '))) {
+                    if (h2 && h2.textContent.trim().replace(/\s+/g,' ') === cardTitle.replace(/\s+/g,' ')) {
                         // Expand the card if it has a collapsible body
                         const body = card.querySelector('.prompt-card-body');
                         if (body && !body.classList.contains('open')) {
