@@ -7948,7 +7948,17 @@ async function handleAnalyzeMenuImage(request, env) {
 
     const mealTime = mealContext || 'неуточнено';
 
-    const menuPrompt = `Ти си експерт диетолог. На снимката има меню от ресторант. Прочети всички ястия и препоръчай НАЙ-ПОДХОДЯЩОТО за клиента. Върни САМО валиден JSON (без markdown, без backtick блокове).
+    // Try to load custom prompt from KV, fall back to hardcoded default
+    const customMenuPrompt = await getCustomPrompt(env, 'admin_menu_analysis_prompt');
+
+    let menuPrompt;
+    if (customMenuPrompt && customMenuPrompt.trim()) {
+      menuPrompt = customMenuPrompt
+        .replace(/\{dietContext\}/g, dietContext || 'Не е предоставен')
+        .replace(/\{planContext\}/g, planContext || 'Не е предоставен')
+        .replace(/\{mealTime\}/g, mealTime);
+    } else {
+      menuPrompt = `Ти си експерт диетолог. На снимката има меню от ресторант. Прочети всички ястия и препоръчай НАЙ-ПОДХОДЯЩОТО за клиента. Върни САМО валиден JSON (без markdown, без backtick блокове).
 
 ${dietContext ? `ПРОФИЛ НА КЛИЕНТА: ${dietContext}` : ''}
 ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
@@ -7978,6 +7988,7 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
 }
 
 ВАЖНО: Ако менюто не се чете ясно, постави suitabilityScore: 0 и обясни в reasoning. Отговори САМО с JSON.`;
+    }
 
     const aiResponse = await callAIModelWithVision(env, menuPrompt, base64Data, effectiveMimeType, 1200);
 
@@ -8595,6 +8606,7 @@ function getPromptKVKey(type) {
     'plan': 'admin_plan_prompt',
     'emoeat': 'admin_emoeat_prompt',
     'food_analysis': 'admin_food_analysis_prompt',
+    'menu_analysis': 'admin_menu_analysis_prompt',
     'validation': 'admin_validation_prompt'
   };
   
@@ -8665,13 +8677,14 @@ async function handleGetDefaultPrompt(request, env) {
       'correction': 'admin_correction_prompt',
       'emoeat': 'admin_emoeat_prompt',
       'food_analysis': 'admin_food_analysis_prompt',
+      'menu_analysis': 'admin_menu_analysis_prompt',
       'validation': 'admin_validation_prompt'
     };
     
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, food_analysis, validation` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, food_analysis, menu_analysis, validation` 
       }, 400);
     }
     
@@ -9246,6 +9259,7 @@ async function handleGetConfig(request, env) {
       protocolModelName,
       emoeatPrompt,
       foodAnalysisPrompt,
+      menuAnalysisPrompt,
       modificationModeEnabled,
       visionProvider,
       visionModelName,
@@ -9279,6 +9293,7 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_protocol_model_name'),
       env.page_content.get('admin_emoeat_prompt'),
       env.page_content.get('admin_food_analysis_prompt'),
+      env.page_content.get('admin_menu_analysis_prompt'),
       env.page_content.get('admin_chat_modification_mode_enabled'),
       env.page_content.get('admin_vision_provider'),
       env.page_content.get('admin_vision_model_name'),
@@ -9319,6 +9334,7 @@ async function handleGetConfig(request, env) {
       protocolModelName: protocolModelName || null,
       emoeatPrompt,
       foodAnalysisPrompt,
+      menuAnalysisPrompt,
       validationPrompt,
       modificationModeEnabled: parsedModificationModeEnabled,
       visionProvider: visionProvider || null,
