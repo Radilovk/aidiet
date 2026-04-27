@@ -7836,7 +7836,7 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
   "totalFiber": общо_фибри_число,
   "totalWeight": "общ_приблизителен_грамаж",
   "dietSuitability": {
-    "score": число_от_1_до_10,
+    "score": число_от_0_до_5,
     "verdict": "Подходяща" или "Частично подходяща" или "Неподходяща",
     "explanation": "Кратко обяснение защо е или не е подходяща за текущата диета и момент"
   },
@@ -7899,7 +7899,7 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
  * Handle Restaurant Menu Image Analysis
  * Analyzes a photo of a restaurant menu and recommends the most suitable dish
  * for the client's current diet plan and meal context.
- * Returns a 1-5 suitability score, description, argumentation, and adaptation tip.
+ * Returns a 0-5 suitability score, description, argumentation, and adaptation tip.
  */
 async function handleAnalyzeMenuImage(request, env) {
   try {
@@ -7957,14 +7957,14 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
 ИНСТРУКЦИИ:
 - Прочети внимателно менюто
 - Избери НАЙ-ПОДХОДЯЩОТО ястие спрямо профила и целта на клиента
-- Дай оценка за подходящост от 1 до 5 (5 = отлично, 1 = неподходящо)
+- Дай оценка за подходящост от 0 до 5 (5 = отлично, 0 = абсолютно неподходящо)
 - Посочи и до 2 алтернативи ако има
 - Дай конкретна адаптация за поръчката (напр. "Поискайте без сос", "Добавете само лимон")
 
 Върни ТОЧНО този JSON:
 {
   "recommendedDish": "Пълно название на препоръчаното ястие точно от менюто",
-  "suitabilityScore": число от 1 до 5,
+  "suitabilityScore": число от 0 до 5,
   "description": "Кратко описание на ястието (1-2 изречения)",
   "reasoning": "Защо е подходящо за целта и профила на клиента (2-3 изречения)",
   "adaptationTip": "Конкретна препоръка за адаптация при поръчката (напр. 'Поръчайте салатата без дресинг, добавете само лимон и зехтин')",
@@ -7977,7 +7977,7 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
   "dishesRead": число_разчетени_ястия
 }
 
-ВАЖНО: Ако менюто не се чете ясно, постави suitabilityScore: 1 и обясни в reasoning. Отговори САМО с JSON.`;
+ВАЖНО: Ако менюто не се чете ясно, постави suitabilityScore: 0 и обясни в reasoning. Отговори САМО с JSON.`;
 
     const aiResponse = await callAIModelWithVision(env, menuPrompt, base64Data, effectiveMimeType, 1200);
 
