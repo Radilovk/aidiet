@@ -3227,7 +3227,9 @@
                 }
             });
             var avgBalance = stressSamples.length > 0 ? stressSum / stressSamples.length : null;
-            // emotionalBalance 1-3 → stress 100-33 % (inverted, 3 = low stress)
+            // emotionalBalance is 1 (low) to 3 (high). Invert to stress:
+            //   balance=3 → stress=33%,  balance=2 → stress=67%,  balance=1 → stress=100%
+            //   formula: (4 - balance) / 3 * 100
             var stressPct = avgBalance != null ? Math.round((4 - avgBalance) / 3 * 100) : null;
 
             // ── Index 4: Sleep quality ────────────────────────────────────────

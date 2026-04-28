@@ -7661,6 +7661,14 @@
         var GAME_DATA_KEY    = 'gameData';   // { 'YYYY-MM-DD': DayRecord }
         var GAME_WEEKLY_AI_KEY = 'gameWeeklyAI'; // { lastRun: ISO, nextDue: ISO }
 
+        // Single interval ID to prevent duplicate time-check intervals
+        var _promptIntervalId = null;
+
+        function startPromptInterval() {
+            if (_promptIntervalId) { clearInterval(_promptIntervalId); }
+            _promptIntervalId = setInterval(checkTimePrompts, 60000);
+        }
+
         function isGameEnabled()  { return localStorage.getItem(GAME_ENABLED_KEY) === 'true'; }
         function enableGame()     { localStorage.setItem(GAME_ENABLED_KEY, 'true'); }
 
@@ -7672,17 +7680,10 @@
 
         function getTodayKey() {
             var d = new Date();
-            return d.getFullYear() + '-' +
-                   String(d.getMonth()+1).padStart(2,'0') +
-                   '-' + String(d.getDate()).padStart(2,'0');
+            // zero-pad helper to avoid modifying String.prototype
+            function zp(n) { return n < 10 ? '0' + n : '' + n; }
+            return d.getFullYear() + '-' + zp(d.getMonth()+1) + '-' + zp(d.getDate());
         }
-        // String.padStart polyfill-safe helper
-        String.prototype.padStart = String.prototype.padStart || function(len, ch) {
-            var s = String(this);
-            ch = ch || ' ';
-            while (s.length < len) s = ch + s;
-            return s;
-        };
 
         function getTodayRecord() {
             var data = getGameData();
@@ -7807,6 +7808,7 @@
         function logExtraFood(name, calories, suitabilityScore, mealContext) {
             if (!isGameEnabled()) return;
             var rec = getTodayRecord();
+            // dietSuitability score range is 0-5; scores ≤2 indicate poor diet fit → classified as junk
             var isJunk = (suitabilityScore != null && suitabilityScore <= 2);
             rec.extraMeals.push({
                 name: name || 'Допълнително хранене',
@@ -7957,12 +7959,29 @@
         }
 
         // ── Time-based prompts ────────────────────────────────────────────────
+        // Each prompt is shown at most once per day (answered OR dismissed).
+        // A "shownToday" flag prevents re-triggering every minute during the window.
         function checkTimePrompts() {
             if (!isGameEnabled()) return;
             var h = new Date().getHours();
+            var today = getTodayKey();
             var rec = getTodayRecord();
-            if (h === 5  && !rec.morningCheck)  { showMorningQuestion(); }
-            if (h === 20 && !rec.eveningCheck)  { showEveningFlow(); }
+            // Morning window 05:00-05:59 — show only if not yet answered AND not already shown today
+            if (h === 5 && !rec.morningCheck) {
+                var shownMorning = localStorage.getItem('gameMorningShown_' + today);
+                if (!shownMorning) {
+                    localStorage.setItem('gameMorningShown_' + today, '1');
+                    showMorningQuestion();
+                }
+            }
+            // Evening window 20:00-20:59 — show only if not yet answered AND not already shown today
+            if (h === 20 && !rec.eveningCheck) {
+                var shownEvening = localStorage.getItem('gameEveningShown_' + today);
+                if (!shownEvening) {
+                    localStorage.setItem('gameEveningShown_' + today, '1');
+                    showEveningFlow();
+                }
+            }
         }
 
         // ── Weekly AI analysis (once per 7 days) ─────────────────────────────
@@ -7997,7 +8016,7 @@
                 recalcAndShowScore();
                 checkTimePrompts();
                 showEncouragement(buildEncouragement());
-                setInterval(checkTimePrompts, 60000);
+                startPromptInterval();
                 maybeRequestWeeklyAI();
             }, 200);
         }
@@ -8009,7 +8028,7 @@
                 enhanceMealCards();
                 recalcAndShowScore();
                 checkTimePrompts();
-                setInterval(checkTimePrompts, 60000);
+                startPromptInterval();
                 maybeRequestWeeklyAI();
                 var seenKey = 'gameEncourageSeen_' + getTodayKey();
                 if (!localStorage.getItem(seenKey)) {
