@@ -468,6 +468,83 @@
             color: var(--text-dark);
         }
 
+        /* ── Gamification Analytics Section ─────────────────────────────────── */
+        .game-analytics-section {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+        }
+        .game-analytics-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #0D9488, #0F766E);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .game-analytics-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .game-analytics-body { padding: 18px 20px; }
+        .game-index-row {
+            margin-bottom: 16px;
+        }
+        .game-index-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+        }
+        .game-index-bar-wrap {
+            height: 10px;
+            background: var(--soft-red);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .game-index-bar {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--primary-red), var(--accent-blue, #06B6D4));
+            transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+        }
+        .game-encourage-note {
+            background: var(--soft-red);
+            border-radius: 14px;
+            padding: 12px 16px;
+            font-size: 0.86rem;
+            color: var(--text-dark);
+            line-height: 1.55;
+            margin-top: 14px;
+        }
+        .game-weekly-info {
+            font-size: 0.78rem;
+            color: var(--text-light, #6b7280);
+            margin-top: 10px;
+            text-align: right;
+        }
+        [data-theme="dark"] .game-analytics-section {
+            border-color: rgba(45, 212, 191, 0.15);
+        }
+        [data-theme="dark"] .game-index-bar-wrap {
+            background: rgba(45, 212, 191, 0.1);
+        }
+        [data-theme="dark"] .game-encourage-note {
+            background: rgba(45, 212, 191, 0.08);
+        }
+        /* ── End Gamification Analytics ──────────────────────────────────────── */
+
         /* === SEPARATE NOTES CONTAINER (removed) === */
 
         /* === QUESTIONNAIRE ACTIONS (bottom of expanded container) === */
@@ -1627,6 +1704,20 @@
                     <i class="fas fa-chart-line"></i>
                     Виж пълен анализ
                 </button>
+            </div>
+        </div>
+
+        <!-- GAMIFICATION ANALYTICS SECTION -->
+        <div class="game-analytics-section" id="gameAnalyticsSection" style="display:none;">
+            <div class="game-analytics-header">
+                <div class="game-analytics-title">
+                    <i class="fas fa-gamepad"></i>
+                    <span>Геймификация – Анализ</span>
+                </div>
+                <span id="gameAnalyticsBadge" style="font-size:0.75rem;background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:20px;font-weight:600;"></span>
+            </div>
+            <div class="game-analytics-body" id="gameAnalyticsBody">
+                <p style="color:var(--text-light);font-style:italic;">Зареждане…</p>
             </div>
         </div>
 
@@ -3081,6 +3172,147 @@
                 .catch(() => {});
         })();
         // ── End UI Zone Images ─────────────────────────────────────────────────────
+
+        // ── Gamification Analytics Loader ──────────────────────────────────────────
+        (function loadGameAnalytics() {
+            var section = document.getElementById('gameAnalyticsSection');
+            var body    = document.getElementById('gameAnalyticsBody');
+            var badge   = document.getElementById('gameAnalyticsBadge');
+            if (!section || !body) return;
+
+            var enabled = localStorage.getItem('gameEnabled') === 'true';
+            if (!enabled) return;
+
+            section.style.display = 'block';
+
+            // Collect last 7 days of game data
+            var allData = {};
+            try { allData = JSON.parse(localStorage.getItem('gameData') || '{}'); } catch(e) {}
+
+            var today = new Date();
+            var days = [];
+            for (var i = 6; i >= 0; i--) {
+                var d = new Date(today);
+                d.setDate(d.getDate() - i);
+                var key = d.getFullYear() + '-' +
+                          String(d.getMonth()+1).padStart(2,'0') +
+                          '-' + String(d.getDate()).padStart(2,'0');
+                days.push({ key: key, rec: allData[key] || null });
+            }
+
+            // ── Index 1: Engagement (meal adherence) ─────────────────────────
+            var totalMeals = 0, completedMeals = 0;
+            days.forEach(function(day) {
+                if (!day.rec || !day.rec.meals) return;
+                Object.keys(day.rec.meals).forEach(function(m) {
+                    totalMeals++;
+                    if (day.rec.meals[m] === true) completedMeals++;
+                });
+            });
+            var engagementPct = totalMeals > 0 ? Math.round(completedMeals / totalMeals * 100) : 0;
+
+            // ── Index 2: Total extra calories (7 days) ───────────────────────
+            var totalExtraCals = 0;
+            days.forEach(function(day) {
+                if (!day.rec || !day.rec.extraMeals) return;
+                day.rec.extraMeals.forEach(function(em) { totalExtraCals += (em.calories || 0); });
+            });
+
+            // ── Index 3: Stress proxy (inverted emotional balance avg) ───────
+            var stressSamples = [], stressSum = 0;
+            days.forEach(function(day) {
+                if (day.rec && day.rec.eveningCheck && day.rec.eveningCheck.emotionalBalance != null) {
+                    stressSamples.push(day.rec.eveningCheck.emotionalBalance);
+                    stressSum += day.rec.eveningCheck.emotionalBalance;
+                }
+            });
+            var avgBalance = stressSamples.length > 0 ? stressSum / stressSamples.length : null;
+            // emotionalBalance 1-3 → stress 100-33 % (inverted, 3 = low stress)
+            var stressPct = avgBalance != null ? Math.round((4 - avgBalance) / 3 * 100) : null;
+
+            // ── Index 4: Sleep quality ────────────────────────────────────────
+            var sleepGood = 0, sleepTotal = 0;
+            days.forEach(function(day) {
+                if (day.rec && day.rec.morningCheck && day.rec.morningCheck.sleptWell != null) {
+                    sleepTotal++;
+                    if (day.rec.morningCheck.sleptWell) sleepGood++;
+                }
+            });
+            var sleepPct = sleepTotal > 0 ? Math.round(sleepGood / sleepTotal * 100) : null;
+
+            // ── Encouragement (same logic as plan.html) ───────────────────────
+            var ENCOURAGEMENTS = {
+                sleep:    '😴 Добрият сън е основата на здравето. Лягайте по-рано — тялото ви ще ви благодари!',
+                water:    '💧 Увеличете приема на вода. Целта е поне 2 литра на ден.',
+                activity: '🚶 Малко движение прави голяма разлика. Дори 15 минути разходка помага!',
+                junk:     '🥗 Намалете вредните храни — планът работи, когато го следвате!',
+                engagement: '✅ Спазвайте храненията по план всеки ден — резултатите идват!',
+                perfect:  '🏆 Страхотно! Продължавайте в същия дух — резултатите идват!',
+                default:  '💪 Последователността е ключът към успеха. Продължавайте!'
+            };
+            var leadingCriterion = '';
+            var encourageText = ENCOURAGEMENTS.default;
+            // Check for junk food in last 7 days
+            var junkCount7 = 0;
+            days.forEach(function(day) {
+                if (!day.rec || !day.rec.extraMeals) return;
+                day.rec.extraMeals.forEach(function(em) { if (em.isJunk) junkCount7++; });
+            });
+            if (junkCount7 > 2) { leadingCriterion = 'Вредни храни'; encourageText = ENCOURAGEMENTS.junk; }
+            else if (sleepPct != null && sleepPct < 50) { leadingCriterion = 'Сън'; encourageText = ENCOURAGEMENTS.sleep; }
+            else if (engagementPct < 60) { leadingCriterion = 'Ангажираност'; encourageText = ENCOURAGEMENTS.engagement; }
+            else if (stressPct != null && stressPct > 60) { leadingCriterion = 'Стрес'; encourageText = ENCOURAGEMENTS.activity; }
+            else if (engagementPct === 100) { leadingCriterion = 'Отлично'; encourageText = ENCOURAGEMENTS.perfect; }
+            if (badge) badge.textContent = leadingCriterion || '7 дни';
+
+            // ── Weekly AI info ────────────────────────────────────────────────
+            var weeklyInfo = {};
+            try { weeklyInfo = JSON.parse(localStorage.getItem('gameWeeklyAI') || '{}'); } catch(e) {}
+            var nextDueText = '';
+            if (weeklyInfo.nextDue) {
+                var nd = new Date(weeklyInfo.nextDue);
+                nextDueText = 'Следващ AI анализ: ' + nd.toLocaleDateString('bg-BG');
+            }
+
+            // ── Render ────────────────────────────────────────────────────────
+            function pBar(pct, color) {
+                if (pct == null) return '<span style="font-size:0.8rem;color:var(--text-light)">Няма данни</span>';
+                return '<div class="game-index-bar-wrap"><div class="game-index-bar" style="width:' +
+                       Math.min(100, pct) + '%;background:' + color + '"></div></div>';
+            }
+
+            var html = '';
+            // Engagement
+            html += '<div class="game-index-row">' +
+                '<div class="game-index-label"><span>🍽️ Ангажираност към плана</span><span>' + engagementPct + '%</span></div>' +
+                pBar(engagementPct, 'linear-gradient(90deg,#0D9488,#06B6D4)') + '</div>';
+            // Calories
+            html += '<div class="game-index-row">' +
+                '<div class="game-index-label"><span>🔥 Допълнителни калории (7 дни)</span><span>' + totalExtraCals + ' kcal</span></div>' +
+                '<div style="font-size:0.8rem;color:var(--text-light)">' +
+                    (totalExtraCals === 0 ? '✅ Без допълнителни калории' :
+                     totalExtraCals < 700 ? '🟡 Умерено' : '🔴 Много допълнителни калории') +
+                '</div></div>';
+            // Stress
+            html += '<div class="game-index-row">' +
+                '<div class="game-index-label"><span>😤 Стрес индекс</span>' +
+                '<span>' + (stressPct != null ? stressPct + '%' : '—') + '</span></div>' +
+                pBar(stressPct, 'linear-gradient(90deg,#f59e0b,#ef4444)') + '</div>';
+            // Sleep
+            html += '<div class="game-index-row">' +
+                '<div class="game-index-label"><span>😴 Качество на съня</span>' +
+                '<span>' + (sleepPct != null ? sleepPct + '%' : '—') + '</span></div>' +
+                pBar(sleepPct, 'linear-gradient(90deg,#6366f1,#8b5cf6)') + '</div>';
+            // Encouragement
+            html += '<div class="game-encourage-note">' + encourageText + '</div>';
+            // Weekly AI note
+            if (nextDueText) {
+                html += '<div class="game-weekly-info"><i class="fas fa-robot"></i> ' + nextDueText + '</div>';
+            }
+
+            body.innerHTML = html;
+        })();
+        // ── End Gamification Analytics Loader ──────────────────────────────────
     </script>
 
     <!-- Chat Assistant Button -->

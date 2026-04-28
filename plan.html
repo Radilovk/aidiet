@@ -1928,7 +1928,149 @@
         .meal-card-wrapper.completed .meal-card {
             border-color: var(--ds-primary-300, rgba(13, 148, 136, 0.3));
         }
-        
+
+        /* ── Gamification UI ─────────────────────────────────────────────────── */
+        .game-bubble {
+            position: fixed;
+            bottom: calc(160px + var(--safe-area-inset-bottom));
+            right: calc(24px + var(--safe-area-inset-right));
+            background: var(--card-bg, rgba(255,255,255,0.97));
+            border-radius: 20px 20px 4px 20px;
+            padding: 16px 14px 14px;
+            max-width: 270px;
+            min-width: 200px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            z-index: 950;
+            animation: bubbleIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            border: 1.5px solid var(--glass-border);
+            backdrop-filter: blur(var(--glass-blur));
+        }
+        @keyframes bubbleIn {
+            from { opacity: 0; transform: scale(0.7) translateY(20px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .game-bubble-q {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            line-height: 1.45;
+            padding-right: 18px;
+        }
+        .game-bubble-answers {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .game-answer-btn {
+            flex: 1;
+            min-width: 52px;
+            padding: 7px 10px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-red);
+            color: white;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .game-answer-btn:hover { opacity: 0.82; }
+        .game-answer-btn.alt {
+            background: var(--soft-red);
+            color: var(--primary-red);
+        }
+        .game-bubble-close {
+            position: absolute;
+            top: 7px;
+            right: 9px;
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 2px 4px;
+            line-height: 1;
+        }
+        /* Meal check button */
+        .meal-check-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-red);
+            background: transparent;
+            color: var(--primary-red);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            flex-shrink: 0;
+            margin-left: 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .meal-check-btn.done {
+            background: var(--primary-red);
+            color: white;
+            transform: scale(1.12);
+        }
+        .meal-check-btn:active { transform: scale(0.88); }
+        /* Daily score card */
+        #dailyScoreCard {
+            display: none;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent, #0F766E) 100%);
+            border-radius: 18px;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+            color: white;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 6px 24px rgba(13,148,136,0.3);
+        }
+        .daily-score-icon { font-size: 2rem; line-height: 1; }
+        .daily-score-info { flex: 1; }
+        .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; }
+        .daily-score-value { font-size: 1.2rem; font-weight: 700; }
+        .daily-score-stars { font-size: 0.95rem; margin-top: 2px; }
+        /* FAB bounce for game prompts */
+        @keyframes fabBounce {
+            0%,100% { transform: translateY(0); }
+            18%     { transform: translateY(-20px); }
+            36%     { transform: translateY(-8px); }
+            54%     { transform: translateY(-16px); }
+            72%     { transform: translateY(-4px); }
+        }
+        .fab-chat.game-prompt { animation: fabBounce 1.1s ease-in-out 2, fabPulse 3s ease-in-out 2.2s infinite; }
+        /* Encouragement toast */
+        .game-encourage-toast {
+            position: fixed;
+            bottom: calc(158px + var(--safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--card-bg, rgba(255,255,255,0.97));
+            border: 1.5px solid var(--glass-border);
+            backdrop-filter: blur(var(--glass-blur));
+            border-radius: 18px;
+            padding: 12px 18px;
+            max-width: 88vw;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.16);
+            z-index: 960;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            text-align: center;
+            line-height: 1.5;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events: none;
+        }
+        .game-encourage-toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        /* ── End Gamification UI ────────────────────────────────────────────── */
+
         /* Skip link styling */
         .ds-skip-link {
             position: absolute;
@@ -4564,6 +4706,11 @@
                 mealContainer.appendChild(mealCard);
             });
 
+            // Enhance meal cards with game checkmarks if game is enabled
+            if (typeof window._gameEnhanceMealCards === 'function') {
+                setTimeout(window._gameEnhanceMealCards, 0);
+            }
+
             // breakfast-note is only shown when the client skips breakfast (already appended above)
         }
 
@@ -5416,6 +5563,36 @@
                 addMessageToChat('🥗 Отваряне на избора на продукти…', 'assistant');
                 input.value = '';
                 setTimeout(() => { window.location.href = 'food-picker.html'; }, 700);
+                return;
+            }
+
+            // Gamification command
+            if (message.toLowerCase() === '*game') {
+                input.value = '';
+                if (window.gameModule) {
+                    if (!window.gameModule.isEnabled()) {
+                        window.gameModule.activateGame();
+                        addMessageToChat('🎮 Геймификацията е активирана!\n\nОт сега ще събирам данни за:\n• ✅ Отбелязване на храненията\n• 🌅 Сутрешна проверка (05:00) – качество на съня\n• 🌙 Вечерна проверка (20:00) – активност, емоционален баланс, вода\n• 📊 Дневна оценка и насърчение\n\nАнализът ще е наличен в таба „Профил" → раздел Геймификация.\n\nЗа да тествате сега, напишете *game-morning или *game-evening.', 'assistant');
+                    } else {
+                        addMessageToChat('🎮 Геймификацията вече е активирана. Следете оценките в таба „Профил".', 'assistant');
+                    }
+                } else {
+                    addMessageToChat('⚠️ Геймификационният модул се зарежда. Моля, опитайте след малко.', 'assistant');
+                }
+                return;
+            }
+
+            // Gamification test commands
+            if (message.toLowerCase() === '*game-morning') {
+                input.value = '';
+                if (window._gameShowMorning) { window._gameShowMorning(true); }
+                addMessageToChat('🌅 Показвам сутрешния въпрос…', 'assistant');
+                return;
+            }
+            if (message.toLowerCase() === '*game-evening') {
+                input.value = '';
+                if (window._gameShowEvening) { window._gameShowEvening(true); }
+                addMessageToChat('🌙 Показвам вечерните въпроси…', 'assistant');
                 return;
             }
 
@@ -6630,6 +6807,16 @@
             resultsDiv.innerHTML = html;
             resultsDiv.classList.add('visible');
 
+            // Log consumed food to game data if game is enabled
+            if (window.gameModule && window.gameModule.isEnabled() && analysis.foods && analysis.foods.length > 0) {
+                const foodNames = analysis.foods.map(function(f) { return f.name; }).join(', ');
+                const totalCals = analysis.totalCalories || 0;
+                const suitScore = analysis.dietSuitability ? analysis.dietSuitability.score : 3;
+                const mealCtxEl = document.getElementById('foodMealContext');
+                const context = mealCtxEl ? mealCtxEl.value : '';
+                window.gameModule.logExtraFood(foodNames, totalCals, suitScore, context);
+            }
+
             // Scroll to results
             setTimeout(function() {
                 resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7464,6 +7651,393 @@
             .catch(() => {});
     })();
     // ── End UI Zone Images ─────────────────────────────────────────────────────
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GAMIFICATION MODULE — test variant (*game command)
+    // Data stored in localStorage, backend AI call once per 7 days
+    // ═══════════════════════════════════════════════════════════════════════════
+    (function() {
+        var GAME_ENABLED_KEY = 'gameEnabled';
+        var GAME_DATA_KEY    = 'gameData';   // { 'YYYY-MM-DD': DayRecord }
+        var GAME_WEEKLY_AI_KEY = 'gameWeeklyAI'; // { lastRun: ISO, nextDue: ISO }
+
+        function isGameEnabled()  { return localStorage.getItem(GAME_ENABLED_KEY) === 'true'; }
+        function enableGame()     { localStorage.setItem(GAME_ENABLED_KEY, 'true'); }
+
+        function getGameData() {
+            try { return JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}'); }
+            catch(e) { return {}; }
+        }
+        function saveGameData(d) { localStorage.setItem(GAME_DATA_KEY, JSON.stringify(d)); }
+
+        function getTodayKey() {
+            var d = new Date();
+            return d.getFullYear() + '-' +
+                   String(d.getMonth()+1).padStart(2,'0') +
+                   '-' + String(d.getDate()).padStart(2,'0');
+        }
+        // String.padStart polyfill-safe helper
+        String.prototype.padStart = String.prototype.padStart || function(len, ch) {
+            var s = String(this);
+            ch = ch || ' ';
+            while (s.length < len) s = ch + s;
+            return s;
+        };
+
+        function getTodayRecord() {
+            var data = getGameData();
+            return data[getTodayKey()] || {
+                date: getTodayKey(),
+                meals: {},
+                extraMeals: [],
+                morningCheck: null,
+                eveningCheck: null,
+                dailyScore: null
+            };
+        }
+        function saveTodayRecord(rec) {
+            var data = getGameData();
+            data[getTodayKey()] = rec;
+            saveGameData(data);
+        }
+
+        // ── Scoring ──────────────────────────────────────────────────────────
+        var PLAN_MEALS = ['Закуска', 'Обяд', 'Вечеря', 'Десерт', 'Перекуска'];
+
+        function calcDayScore(rec) {
+            var score = 5;
+            var junkCount = 0;
+            var excessCalories = false;
+
+            // Each explicitly skipped plan meal (marked false) loses 1 point
+            Object.keys(rec.meals).forEach(function(m) {
+                if (rec.meals[m] === false) { score = Math.max(0, score - 1); }
+            });
+
+            // Extra logged foods
+            (rec.extraMeals || []).forEach(function(em) {
+                if (em.isJunk) { junkCount++; excessCalories = true; }
+            });
+
+            var stars = '';
+            var label = '';
+            if (score === 5 && junkCount === 0) {
+                stars = '⭐⭐⭐⭐⭐'; label = 'Отличен ден!';
+            } else if (score >= 4 && junkCount === 0) {
+                stars = '⭐⭐⭐⭐'; label = 'Много добре!';
+            } else if (score >= 3) {
+                stars = '⭐⭐⭐'; label = 'Добре';
+            } else if (score >= 2) {
+                stars = '⭐⭐'; label = 'Може по-добре';
+            } else {
+                stars = '⭐'; label = 'Подобри се утре';
+            }
+            if (junkCount > 0) label += ' (' + junkCount + ' вредни)';
+            if (excessCalories) label += ' ⚠️ излишни кал.';
+
+            return { score: score, stars: stars, label: label, junkCount: junkCount, excessCalories: excessCalories };
+        }
+
+        function recalcAndShowScore() {
+            var rec = getTodayRecord();
+            rec.dailyScore = calcDayScore(rec);
+            saveTodayRecord(rec);
+            renderDailyScoreCard();
+        }
+
+        function renderDailyScoreCard() {
+            var card = document.getElementById('dailyScoreCard');
+            if (!card) {
+                card = document.createElement('div');
+                card.id = 'dailyScoreCard';
+                card.setAttribute('role', 'status');
+                card.setAttribute('aria-live', 'polite');
+                var container = document.getElementById('mealContainer');
+                if (container && container.parentNode) {
+                    container.parentNode.insertBefore(card, container);
+                }
+            }
+            var rec = getTodayRecord();
+            if (!rec.dailyScore) { card.style.display = 'none'; return; }
+            var ds = rec.dailyScore;
+            card.style.display = 'flex';
+            card.innerHTML =
+                '<div class="daily-score-icon">📊</div>' +
+                '<div class="daily-score-info">' +
+                    '<div class="daily-score-label">Оценка на деня</div>' +
+                    '<div class="daily-score-value">' + escapeHtmlWithBreaks(ds.label) + '</div>' +
+                    '<div class="daily-score-stars">' + ds.stars + '</div>' +
+                '</div>';
+        }
+
+        // ── Meal checkmarks ───────────────────────────────────────────────────
+        function enhanceMealCards() {
+            if (!isGameEnabled()) return;
+            var container = document.getElementById('mealContainer');
+            if (!container) return;
+            var rec = getTodayRecord();
+            var cards = Array.from(container.querySelectorAll('.meal-card:not([data-ge])'));
+            cards.forEach(function(card) {
+                var typeEl = card.querySelector('.meal-type');
+                var rawType = typeEl ? typeEl.textContent : '';
+                var mealType = rawType.replace(/\(.*\)/, '').trim();
+                if (!mealType) return;
+                card.setAttribute('data-ge', '1');
+                var isDone = rec.meals[mealType] === true;
+                var checkBtn = document.createElement('button');
+                checkBtn.className = 'meal-check-btn' + (isDone ? ' done' : '');
+                checkBtn.innerHTML = '<i class="fas fa-check"></i>';
+                checkBtn.setAttribute('aria-label', 'Отбележи хранене');
+                checkBtn.title = 'Отбележи като изядено';
+                checkBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var r = getTodayRecord();
+                    var cur = r.meals[mealType];
+                    r.meals[mealType] = !cur;
+                    saveTodayRecord(r);
+                    checkBtn.classList.toggle('done', !cur);
+                    recalcAndShowScore();
+                });
+                card.appendChild(checkBtn);
+            });
+            recalcAndShowScore();
+        }
+
+        // ── Extra food logging ────────────────────────────────────────────────
+        function logExtraFood(name, calories, suitabilityScore, mealContext) {
+            if (!isGameEnabled()) return;
+            var rec = getTodayRecord();
+            var isJunk = (suitabilityScore != null && suitabilityScore <= 2);
+            rec.extraMeals.push({
+                name: name || 'Допълнително хранене',
+                calories: Math.round(calories || 0),
+                isJunk: isJunk,
+                mealContext: mealContext || '',
+                ts: new Date().toISOString()
+            });
+            saveTodayRecord(rec);
+            recalcAndShowScore();
+        }
+
+        // ── Bubble questions ──────────────────────────────────────────────────
+        function removeBubble() {
+            var old = document.getElementById('gameBubble');
+            if (old) old.remove();
+        }
+
+        function showBubble(question, answers, onAnswer) {
+            removeBubble();
+            var fab = document.querySelector('.fab-chat');
+            if (fab) {
+                fab.classList.add('game-prompt');
+                setTimeout(function() { fab.classList.remove('game-prompt'); }, 2600);
+            }
+            var bubble = document.createElement('div');
+            bubble.id = 'gameBubble';
+            bubble.className = 'game-bubble';
+            var closeBtn = document.createElement('button');
+            closeBtn.className = 'game-bubble-close';
+            closeBtn.innerHTML = '✕';
+            closeBtn.setAttribute('aria-label', 'Затвори');
+            closeBtn.onclick = removeBubble;
+            var qDiv = document.createElement('div');
+            qDiv.className = 'game-bubble-q';
+            qDiv.textContent = question;
+            var ansWrap = document.createElement('div');
+            ansWrap.className = 'game-bubble-answers';
+            answers.forEach(function(a) {
+                var btn = document.createElement('button');
+                btn.className = 'game-answer-btn' + (a.alt ? ' alt' : '');
+                btn.textContent = a.label;
+                btn.addEventListener('click', function() {
+                    onAnswer(a.value);
+                    removeBubble();
+                });
+                ansWrap.appendChild(btn);
+            });
+            bubble.appendChild(closeBtn);
+            bubble.appendChild(qDiv);
+            bubble.appendChild(ansWrap);
+            document.body.appendChild(bubble);
+        }
+
+        function showMorningQuestion(force) {
+            var rec = getTodayRecord();
+            if (!force && rec.morningCheck) return;
+            showBubble('🌅 Добро утро! Спахте ли добре тази нощ?', [
+                { label: '✅ Да', value: true },
+                { label: '❌ Не', value: false, alt: true }
+            ], function(val) {
+                var r = getTodayRecord();
+                r.morningCheck = { sleptWell: val, ts: new Date().toISOString() };
+                saveTodayRecord(r);
+                recalcAndShowScore();
+                setTimeout(function() { showEncouragement(buildEncouragement()); }, 400);
+            });
+        }
+
+        function showEveningFlow(force) {
+            var rec = getTodayRecord();
+            if (!force && rec.eveningCheck) return;
+            var eveningData = {};
+
+            function q3() {
+                showBubble('💧 Изпихте ли поне 2 л вода днес?', [
+                    { label: '✅ Да', value: true },
+                    { label: '❌ Не', value: false, alt: true }
+                ], function(v) {
+                    eveningData.waterIntake = v;
+                    var r = getTodayRecord();
+                    r.eveningCheck = {
+                        activityLevel: eveningData.activityLevel,
+                        emotionalBalance: eveningData.emotionalBalance,
+                        waterIntake: eveningData.waterIntake,
+                        ts: new Date().toISOString()
+                    };
+                    saveTodayRecord(r);
+                    recalcAndShowScore();
+                    setTimeout(function() { showEncouragement(buildEncouragement()); }, 400);
+                });
+            }
+            function q2() {
+                showBubble('🧘 Емоционален баланс днес?', [
+                    { label: '⭐', value: 1, alt: true },
+                    { label: '⭐⭐', value: 2 },
+                    { label: '⭐⭐⭐', value: 3 }
+                ], function(v) { eveningData.emotionalBalance = v; setTimeout(q3, 450); });
+            }
+            function q1() {
+                showBubble('🌙 Ниво на активност днес?', [
+                    { label: '⭐', value: 1, alt: true },
+                    { label: '⭐⭐', value: 2 },
+                    { label: '⭐⭐⭐', value: 3 }
+                ], function(v) { eveningData.activityLevel = v; setTimeout(q2, 450); });
+            }
+            q1();
+        }
+
+        // ── Encouragement (hardcoded, no backend) ────────────────────────────
+        var ENCOURAGEMENTS = {
+            sleep:    '😴 Добрият сън е основата на здравето. Лягайте по-рано довечера — тялото ви ще ви благодари!',
+            water:    '💧 Не забравяйте водата! Целта е поне 2 литра на ден. Поставете си бутилка на видно място.',
+            activity: '🚶 Малко движение прави голяма разлика. Дори 15 минути разходка подобрява метаболизма!',
+            junk:     '🥗 Вредните храни временно задоволяват, но планът работи. Утре нов старт с пълна сила!',
+            perfect:  '🏆 Страхотен ден! Спазили сте плана си отлично. Продължавайте — резултатите идват!',
+            good:     '👏 Добре се справяте! Всеки ден по-добре. Малките стъпки водят до голямата цел!',
+            default:  '💪 Вие сте на прав път! Последователността е ключът към успеха. Продължавайте!'
+        };
+
+        function buildEncouragement() {
+            var rec = getTodayRecord();
+            var ds = rec.dailyScore || calcDayScore(rec);
+            if (ds.junkCount > 0) return ENCOURAGEMENTS.junk;
+            if (rec.morningCheck && !rec.morningCheck.sleptWell) return ENCOURAGEMENTS.sleep;
+            if (rec.eveningCheck && !rec.eveningCheck.waterIntake) return ENCOURAGEMENTS.water;
+            if (rec.eveningCheck && rec.eveningCheck.activityLevel === 1) return ENCOURAGEMENTS.activity;
+            if (ds.score === 5 && ds.junkCount === 0) return ENCOURAGEMENTS.perfect;
+            if (ds.score >= 4) return ENCOURAGEMENTS.good;
+            return ENCOURAGEMENTS.default;
+        }
+
+        function showEncouragement(text) {
+            var toast = document.getElementById('gameEncourageToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'gameEncourageToast';
+                toast.className = 'game-encourage-toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = text;
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    toast.classList.add('visible');
+                    setTimeout(function() { toast.classList.remove('visible'); }, 4500);
+                });
+            });
+        }
+
+        // ── Time-based prompts ────────────────────────────────────────────────
+        function checkTimePrompts() {
+            if (!isGameEnabled()) return;
+            var h = new Date().getHours();
+            var rec = getTodayRecord();
+            if (h === 5  && !rec.morningCheck)  { showMorningQuestion(); }
+            if (h === 20 && !rec.eveningCheck)  { showEveningFlow(); }
+        }
+
+        // ── Weekly AI analysis (once per 7 days) ─────────────────────────────
+        function maybeRequestWeeklyAI() {
+            if (!isGameEnabled()) return;
+            var info = {};
+            try { info = JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY) || '{}'); } catch(e) {}
+            var now = Date.now();
+            var last = info.lastRun ? new Date(info.lastRun).getTime() : 0;
+            var sevenDays = 7 * 24 * 60 * 60 * 1000;
+            if (now - last < sevenDays) return;
+            // Collect last 7 days of game data for the summary stored in localStorage
+            var allData = getGameData();
+            var keys = Object.keys(allData).sort().slice(-7);
+            var weekSummary = {};
+            keys.forEach(function(k) { weekSummary[k] = allData[k]; });
+            localStorage.setItem('gameWeeklySummary', JSON.stringify({
+                generatedAt: new Date().toISOString(),
+                data: weekSummary
+            }));
+            // Update tracking — actual AI call happens from profile.html if needed
+            info.lastRun = new Date().toISOString();
+            info.nextDue = new Date(now + sevenDays).toISOString();
+            localStorage.setItem(GAME_WEEKLY_AI_KEY, JSON.stringify(info));
+        }
+
+        // ── Activate game ─────────────────────────────────────────────────────
+        function activateGame() {
+            enableGame();
+            setTimeout(function() {
+                enhanceMealCards();
+                recalcAndShowScore();
+                checkTimePrompts();
+                showEncouragement(buildEncouragement());
+                setInterval(checkTimePrompts, 60000);
+                maybeRequestWeeklyAI();
+            }, 200);
+        }
+
+        // ── Init on page load ─────────────────────────────────────────────────
+        window.addEventListener('DOMContentLoaded', function() {
+            if (!isGameEnabled()) return;
+            setTimeout(function() {
+                enhanceMealCards();
+                recalcAndShowScore();
+                checkTimePrompts();
+                setInterval(checkTimePrompts, 60000);
+                maybeRequestWeeklyAI();
+                var seenKey = 'gameEncourageSeen_' + getTodayKey();
+                if (!localStorage.getItem(seenKey)) {
+                    setTimeout(function() {
+                        showEncouragement(buildEncouragement());
+                        localStorage.setItem(seenKey, '1');
+                    }, 2200);
+                }
+            }, 1600);
+        });
+
+        // ── Public API ────────────────────────────────────────────────────────
+        window.gameModule = {
+            isEnabled:      isGameEnabled,
+            activateGame:   activateGame,
+            getTodayRecord: getTodayRecord,
+            saveTodayRecord: saveTodayRecord,
+            getGameData:    getGameData,
+            logExtraFood:   logExtraFood,
+            calcDayScore:   calcDayScore
+        };
+        window._gameEnhanceMealCards = enhanceMealCards;
+        window._gameShowMorning = showMorningQuestion;
+        window._gameShowEvening = showEveningFlow;
+    })();
+    // ═══════════════════════════════════════════════════════════════════════════
+    // END GAMIFICATION MODULE
+    // ═══════════════════════════════════════════════════════════════════════════
     </script>
     <!-- Swipe navigation between tabs -->
     <script>
