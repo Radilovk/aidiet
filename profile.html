@@ -3422,13 +3422,14 @@
                 else if (score>=3)              { stars=starIcon+starIcon+starIcon;                   label='Добре'; }
                 else if (score>=2)              { stars=starIcon+starIcon;                            label='Може по-добре'; }
                 else                            { stars=starIcon;                                     label='Подобри се утре'; }
+                if (!meals.length) { score = null; stars = ''; label = 'Хранения не отбелязани'; }
                 return { score:score, stars:stars, label:label, junkCount:junkCount, engPct:engPct };
             }
 
             // ── Core metrics ──────────────────────────────────────────────────
             var weekScores = days.map(function(d){ return d.rec ? calcDayScore(d.rec) : null; });
             var validScores= weekScores.filter(function(s){ return s&&s.score!=null; });
-            var avgScore   = validScores.length>0 ? Math.round(validScores.reduce(function(a,s){return a+s.score;},0)/validScores.length*10)/10 : 0;
+            var avgScore   = days.length>0 ? Math.round(validScores.reduce(function(a,s){return a+s.score;},0)/days.length*10)/10 : 0;
 
             var engPcts = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : null; });
             // No-data days count as 0% engagement (honest representation of missed tracking)
@@ -3463,6 +3464,13 @@
             var actValid = actByDay.filter(function(v){return v!==null;});
             var actPct = actValid.length>0 ? Math.round(actValid.reduce(function(a,b){return a+b;},0)/actValid.length) : null;
 
+            var waterByDay = days.map(function(d){
+                if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.waterIntake==null) return null;
+                return d.rec.eveningCheck.waterIntake===true ? 100 : 0;
+            });
+            var waterValid = waterByDay.filter(function(v){return v!==null;});
+            var waterPct = waterValid.length>0 ? Math.round(waterValid.reduce(function(a,b){return a+b;},0)/waterValid.length) : null;
+
             // Junk count 7 days
             var junkCount7=0;
             days.forEach(function(d){ ((d.rec&&d.rec.extraMeals)||[]).forEach(function(em){if(em.isJunk)junkCount7++;}); });
@@ -3477,14 +3485,16 @@
                 (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length) >
                 (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length + 0.3);
 
-            // Composite health score 0-100
-            var healthScore = 0, healthParts = 0;
-            healthScore += engagementPct * 0.35; healthParts++;
-            if(sleepPct!=null){ healthScore += sleepPct * 0.25; healthParts++; }
-            if(balancePct!=null){ healthScore += balancePct * 0.2; healthParts++; }
-            if(actPct!=null){ healthScore += actPct * 0.2; healthParts++; }
+            // Composite health score 0-100 (normalized by actual available weights)
+            var healthScore = 0;
+            var totalWeight = 0.35;
+            healthScore += engagementPct * 0.35;
+            if(sleepPct!=null){ healthScore += sleepPct * 0.25; totalWeight += 0.25; }
+            if(balancePct!=null){ healthScore += balancePct * 0.2; totalWeight += 0.2; }
+            if(actPct!=null){ healthScore += actPct * 0.2; totalWeight += 0.2; }
             var totalCalsWeight = Math.max(0, 100 - Math.round(totalExtraCals/700*100));
-            healthScore = Math.round(Math.max(0,Math.min(100, healthScore + totalCalsWeight*0.05)));
+            healthScore += totalCalsWeight * 0.05; totalWeight += 0.05;
+            healthScore = Math.round(Math.max(0, Math.min(100, healthScore / totalWeight)));
 
             // ── Correlation insights ──────────────────────────────────────────
             var insights = [];
@@ -3509,12 +3519,12 @@
             if(lowBalanceDays.length>0&&hbJunk===0&&lbJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ви');
             else if(lowBalanceDays.length>0&&hbJunk<lbJunk) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Забелязваме повече вредни хранения в дни с по-нисък емоционален баланс');
             // Consecutive adherence streak
-            var streak=0, maxStreak=0;
+            var streak=0, currentStreak=0;
             for(var si=days.length-1;si>=0;si--){
-                if(days[si].rec&&calcDayScore(days[si].rec).score>=4){ streak++; maxStreak=Math.max(maxStreak,streak); } else break;
+                if(days[si].rec&&calcDayScore(days[si].rec).score>=4){ streak++; currentStreak=Math.max(currentStreak,streak); } else break;
             }
-            if(maxStreak>=3) insights.push('<i class="fas fa-fire" style="color:#f59e0b"></i> Имате серия от <strong>'+maxStreak+' отлични дни</strong> подред! Продължавайте!');
-            else if(maxStreak===2) insights.push('<i class="fas fa-bolt" style="color:#0D9488"></i> Два отлични дни подред — вие сте в страхотен ритъм!');
+            if(currentStreak>=3) insights.push('<i class="fas fa-fire" style="color:#f59e0b"></i> Имате текуща серия от <strong>'+currentStreak+' отлични дни</strong> подред! Продължавайте!');
+            else if(currentStreak===2) insights.push('<i class="fas fa-bolt" style="color:#0D9488"></i> Два отлични дни подред — вие сте в страхотен ритъм!');
 
             // ── Scenario / Prediction ─────────────────────────────────────────
             var scenario = null;
@@ -3674,6 +3684,18 @@
                 '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span>'+sleepPct+'%</span></div>' +
                 '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
                 pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1') +
+            '</div>';
+
+            if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
+                '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actPct+'%</span></div>' +
+                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(actPct,'linear-gradient(90deg,#f59e0b,#fbbf24)') + miniBarChart(actByDay,100,'#f59e0b') +
+            '</div>';
+
+            if(waterPct!=null) html += '<div class="game-index-row" data-explain="water">' +
+                '<div class="game-index-label"><span><i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратация</span><span>'+waterPct+'%</span></div>' +
+                '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добра':waterPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' · Дни с достатъчен прием вода · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4') +
             '</div>';
 
             if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (отчетени като 0%)</div>';

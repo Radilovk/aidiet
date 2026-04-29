@@ -7924,6 +7924,7 @@
             else                                 { stars=starIcon;                                     label='Подобри се утре'; }
             if (junkCount>0)    label += ' (' + junkCount + ' вредни)';
             if (excessCalories) label += ' — излишни кал.';
+            if (!meals.length) { score = null; stars = ''; label = 'Хранения не отбелязани'; }
             return { score:score, stars:stars, label:label, junkCount:junkCount, excessCalories:excessCalories, engPct:engPct };
         }
 
@@ -8256,39 +8257,38 @@
             }); }, 1800);
         }
 
-        // ── Retroactive entry (yesterday, within 24h window) ─────────────────
+        // ── Retroactive entry (last 3 days) ─────────────────────────────────
         function checkRetroEntry() {
             if (!isGameEnabled()) return;
-            var yKey = getYesterdayKey();
-            var rec  = getRecord(yKey);
-            if (rec.missing) return;
-            if (rec.morningCheck && rec.eveningCheck) return;
-            var now  = new Date();
-            var noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
-            if (now > noon) {
-                // Beyond window: mark as missing so engagement drops
-                if (!rec.morningCheck || !rec.eveningCheck) {
-                    rec.missing = true;
-                    saveRecord(yKey, rec);
-                    recalcAndShowScore(yKey);
-                }
-                return;
+            for (var offset = 1; offset <= 3; offset++) {
+                var pastDate = new Date(); pastDate.setDate(pastDate.getDate() - offset);
+                var pKey = dateKey(pastDate);
+                var rec  = getRecord(pKey);
+                if (rec.missing) continue;
+                if (rec.morningCheck && rec.eveningCheck) continue;
+                var offerKey = 'gameRetroOffered_' + pKey;
+                if (localStorage.getItem(offerKey)) continue;
+                localStorage.setItem(offerKey, '1');
+                (function(dayKey, daysAgo) {
+                    var greeting = daysAgo === 1 ? 'Вчерашни данни' : 'Данни от преди ' + daysAgo + ' дни';
+                    var msg = daysAgo === 1
+                        ? 'Вчерашните въпроси не са попълнени. Искате ли да ги попълните сега?'
+                        : 'Данните от ' + daysAgo + ' дни назад не са попълнени. Искате ли да ги въведете сега?';
+                    setTimeout(function(){
+                        showBubble(
+                            msg,
+                            YES_NO,
+                            function(yes){
+                                if (!yes) return;
+                                var q = buildDayQueue(dayKey);
+                                if (q.length) setTimeout(function(){ runQueue(q); }, 350);
+                            },
+                            { greeting: greeting }
+                        );
+                    }, 2800);
+                })(pKey, offset);
+                break; // offer one at a time to avoid bubble spam
             }
-            var offerKey = 'gameRetroOffered_' + yKey;
-            if (localStorage.getItem(offerKey)) return;
-            localStorage.setItem(offerKey, '1');
-            setTimeout(function(){
-                showBubble(
-                    'Вчерашните въпроси не са попълнени. Искате ли да ги попълните сега? (възможно само до обяд)',
-                    YES_NO,
-                    function(yes){
-                        if (!yes) return;
-                        var q = buildDayQueue(yKey);
-                        if (q.length) setTimeout(function(){ runQueue(q); }, 350);
-                    },
-                    { greeting: 'Вчерашни данни' }
-                );
-            }, 2800);
         }
 
         // ── Encouragement ─────────────────────────────────────────────────────
@@ -8551,10 +8551,6 @@
             try { info = JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY)||'{}'); } catch(e) {}
             var now = Date.now();
             if (info.lastRun && now - new Date(info.lastRun).getTime() < 7*24*60*60*1000) return;
-            var allData = getGameData();
-            var keys = Object.keys(allData).sort().slice(-7);
-            var ws = {}; keys.forEach(function(k){ ws[k]=allData[k]; });
-            localStorage.setItem('gameWeeklySummary', JSON.stringify({ generatedAt:new Date().toISOString(), data:ws }));
             var wd = calcWeeklyScore();
             if (wd.daysRecorded >= 5) {
                 var shownKey = 'gameWeeklyRecapShown_' + getTodayKey();
