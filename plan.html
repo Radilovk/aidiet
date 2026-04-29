@@ -1934,7 +1934,7 @@
             position: fixed;
             bottom: calc(152px + var(--safe-area-inset-bottom, 0px));
             right: calc(18px + var(--safe-area-inset-right));
-            background: var(--card-bg, rgba(255,255,255,0.97));
+            background: #ffffff; /* fully opaque — override glassy --card-bg variable */
             border-radius: 20px 4px 20px 20px;
             width: 300px;
             max-width: calc(100vw - 32px);
@@ -1943,6 +1943,9 @@
             animation: bubbleIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
             border: 1.5px solid rgba(13,148,136,0.22);
             overflow: hidden;
+        }
+        [data-theme="dark"] .game-bubble {
+            background: rgb(15, 40, 40); /* fully opaque dark variant */
         }
         /* When FAB is raised to top, the bubble follows it and appears below the FAB.
            148px = ~80px top bar + 56px FAB height + 12px gap */
@@ -2607,6 +2610,45 @@
             border-radius: 10px;
             border-left: 3px solid #06B6D4;
         }
+
+        /* "Add to my menu" action buttons shown after food/menu analysis */
+        .food-action-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(0,0,0,0.07);
+        }
+        [data-theme="dark"] .food-action-btns { border-top-color: rgba(255,255,255,0.08); }
+        .food-add-menu-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .food-add-menu-btn:active { transform: scale(0.97); }
+        .food-no-add-btn {
+            background: transparent;
+            color: var(--text-light);
+            border: 1.5px solid rgba(0,0,0,0.12);
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        [data-theme="dark"] .food-no-add-btn { border-color: rgba(255,255,255,0.15); }
+        .food-no-add-btn:active { transform: scale(0.97); }
 
         /* Spinner for loading */
         .food-spinner {
@@ -3292,6 +3334,7 @@
                     <option value="Вечеря">🌙 Вечеря</option>
                     <option value="Междинно хранене">🥤 Междинно хранене</option>
                     <option value="Десерт">🍰 Десерт</option>
+                    <option value="Свободно хранене">🎉 Свободно хранене</option>
                 </select>
 
                 <!-- Analyze Button -->
@@ -6547,6 +6590,7 @@
         let foodAnalysisImageMime = null;  // MIME type
         let foodAnalysisInProgress = false;
         let foodAnalysisMode = 'food';     // 'food' | 'menu'
+        let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
 
         function resetFoodCaptureUI(mode) {
             const hint = mode === 'menu'
@@ -6983,6 +7027,20 @@
             resultsDiv.innerHTML = html;
             resultsDiv.classList.add('visible');
 
+            // Store analysis for "add to my menu" action
+            _lastFoodAnalysis = { type: 'food', ts: new Date().toISOString(), analysis };
+
+            // Append "Add to my menu" / "не добавяй" action buttons
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'food-action-btns';
+            actionDiv.innerHTML = `
+                <button class="food-add-menu-btn" onclick="addToMyMenu()">
+                    <i class="fas fa-plus"></i> Добави в моето меню
+                </button>
+                <button class="food-no-add-btn" onclick="closeFoodAnalysis()">не добавяй</button>
+            `;
+            resultsDiv.appendChild(actionDiv);
+
             // Log consumed food to game data if game is enabled
             if (window.gameModule && window.gameModule.isEnabled() && analysis.foods && analysis.foods.length > 0) {
                 const foodNames = analysis.foods.map(function(f) { return f.name; }).join(', ');
@@ -7170,6 +7228,20 @@
             resultsDiv.innerHTML = html;
             resultsDiv.classList.add('visible');
 
+            // Store analysis for "add to my menu" action
+            _lastFoodAnalysis = { type: 'menu', ts: new Date().toISOString(), analysis };
+
+            // Append "Add to my menu" / "не добавяй" action buttons
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'food-action-btns';
+            actionDiv.innerHTML = `
+                <button class="food-add-menu-btn" onclick="addToMyMenu()">
+                    <i class="fas fa-plus"></i> Добави в моето меню
+                </button>
+                <button class="food-no-add-btn" onclick="closeFoodAnalysis()">не добавяй</button>
+            `;
+            resultsDiv.appendChild(actionDiv);
+
             setTimeout(function() {
                 resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 100);
@@ -7178,6 +7250,59 @@
         // ═══════════════════════════════════════════════════════════
         // END MENU ANALYSIS FEATURE
         // ═══════════════════════════════════════════════════════════
+
+        // ── My Menu: save analysed food/menu items to personal log ──
+        var MY_MENU_KEY = 'myMenu';
+        function addToMyMenu() {
+            if (!_lastFoodAnalysis) return;
+            var menu = [];
+            try { menu = JSON.parse(localStorage.getItem(MY_MENU_KEY) || '[]'); } catch(e) {}
+            var entry = {
+                ts:      _lastFoodAnalysis.ts,
+                type:    _lastFoodAnalysis.type, // 'food' | 'menu'
+                context: (document.getElementById('foodMealContext') || {}).value || '',
+                summary: buildMyMenuSummary(_lastFoodAnalysis)
+            };
+            menu.unshift(entry); // newest first
+            // Keep at most 100 entries to avoid storage bloat
+            if (menu.length > 100) menu = menu.slice(0, 100);
+            localStorage.setItem(MY_MENU_KEY, JSON.stringify(menu));
+            _lastFoodAnalysis = null;
+            closeFoodAnalysis();
+            // Brief toast confirmation
+            var toast = document.createElement('div');
+            toast.textContent = '✓ Добавено в моето меню';
+            toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);' +
+                'background:#0D9488;color:#fff;padding:10px 20px;border-radius:20px;' +
+                'font-size:0.88rem;font-weight:600;z-index:9999;pointer-events:none;' +
+                'animation:bubbleIn 0.3s ease;';
+            document.body.appendChild(toast);
+            setTimeout(function(){ toast.remove(); }, 2400);
+        }
+
+        function buildMyMenuSummary(snapshot) {
+            var a = snapshot.analysis || {};
+            if (snapshot.type === 'food') {
+                var names = (a.foods || []).map(function(f){ return f.name; }).join(', ');
+                return {
+                    title:    names || 'Анализирана храна',
+                    calories: a.totalCalories || 0,
+                    protein:  a.totalProtein  || 0,
+                    carbs:    a.totalCarbs    || 0,
+                    fats:     a.totalFats     || 0,
+                    suitabilityScore: a.dietSuitability ? a.dietSuitability.score : null,
+                    verdict:  a.dietSuitability ? (a.dietSuitability.verdict || '') : ''
+                };
+            } else {
+                return {
+                    title:    a.recommendedDish || 'Анализирано меню',
+                    calories: 0,
+                    suitabilityScore: a.suitabilityScore != null ? a.suitabilityScore : null,
+                    verdict:  a.description || ''
+                };
+            }
+        }
+        // ── End My Menu ─────────────────────────────────────────────
 
 
         // --- PWA Install Banner Functionality ---
