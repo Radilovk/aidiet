@@ -4807,6 +4807,28 @@
             return div.innerHTML.replace(/\n/g, '<br>');
         }
 
+        // --- Date-key helpers (global scope, shared by renderDay and addToMyMenu) ---
+        function _zp(n) { return n < 10 ? '0' + n : '' + n; }
+        /** Return 'YYYY-MM-DD' for the calendar date that corresponds to plan day 1-7 (Mon-Sun). */
+        function planDayToDateKey(dayNum) {
+            var now = new Date();
+            var jsDay = now.getDay(); // 0=Sun
+            var todayPlanDay = jsDay === 0 ? 7 : jsDay;
+            var offset = dayNum - todayPlanDay;
+            var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+            return d.getFullYear() + '-' + _zp(d.getMonth() + 1) + '-' + _zp(d.getDate());
+        }
+        /** Return 'YYYY-MM-DD' for today. */
+        function todayDateKey() {
+            var now = new Date();
+            return now.getFullYear() + '-' + _zp(now.getMonth() + 1) + '-' + _zp(now.getDate());
+        }
+        /** Format a suitability object into a benefit string for openModal. */
+        function formatSuitabilityBenefit(suitability) {
+            if (!suitability) return '';
+            return (suitability.verdict || '') + (suitability.explanation ? ': ' + suitability.explanation : '');
+        }
+
         // --- Render Day Meals ---
         function renderDay(dayNum) {
             currentDay = dayNum;
@@ -4918,14 +4940,7 @@
 
             // Render photo-added meals for this day (from "Добави в плана")
             (function() {
-                // Compute calendar date key for the currently viewed plan day
-                var now = new Date();
-                var jsDay = now.getDay(); // 0=Sun
-                var todayPlanDay = jsDay === 0 ? 7 : jsDay;
-                var offset = dayNum - todayPlanDay;
-                var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
-                var mm = d.getMonth() + 1, dd2 = d.getDate();
-                var viewDateKey = d.getFullYear() + '-' + (mm < 10 ? '0' : '') + mm + '-' + (dd2 < 10 ? '0' : '') + dd2;
+                var viewDateKey = planDayToDateKey(dayNum);
                 var addedMeals = [];
                 try { addedMeals = JSON.parse(localStorage.getItem('addedMeals_' + viewDateKey) || '[]'); } catch(e) {}
                 addedMeals.forEach(function(addedMeal, idx) {
@@ -4944,10 +4959,7 @@
                     addedBtn.innerHTML = '<i class="fas fa-info"></i>';
                     (function(m) {
                         addedBtn.onclick = function() {
-                            var benefit = m.suitability
-                                ? ((m.suitability.verdict || '') + (m.suitability.explanation ? ': ' + m.suitability.explanation : ''))
-                                : '';
-                            openModal(m.name, m.description || '', benefit, m.macros || null, null, m.weight || null, m.calories || null);
+                            openModal(m.name, m.description || '', formatSuitabilityBenefit(m.suitability), m.macros || null, null, m.weight || null, m.calories || null);
                         };
                     })(addedMeal);
 
@@ -7351,10 +7363,7 @@
             }
 
             // Save to per-day added meals for TODAY (food is always eaten now)
-            var now = new Date();
-            var mm = now.getMonth() + 1, dd2 = now.getDate();
-            var todayDateKey = now.getFullYear() + '-' + (mm < 10 ? '0' : '') + mm + '-' + (dd2 < 10 ? '0' : '') + dd2;
-            var storageKey = 'addedMeals_' + todayDateKey;
+            var storageKey = 'addedMeals_' + todayDateKey();
             var added = [];
             try { added = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch(e) {}
             added.push(mealEntry);
@@ -7370,7 +7379,7 @@
 
             // Brief toast
             var toast = document.createElement('div');
-            toast.textContent = '\u2713 \u0414\u043e\u0431\u0430\u0432\u0435\u043d\u043e \u0432 \u043f\u043b\u0430\u043d\u0430';
+            toast.textContent = '✓ Добавено в плана';
             toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);' +
                 'background:#0D9488;color:#fff;padding:10px 20px;border-radius:20px;' +
                 'font-size:0.88rem;font-weight:600;z-index:9999;pointer-events:none;';
