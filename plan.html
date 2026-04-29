@@ -4900,7 +4900,7 @@
                 const mealCard = document.createElement('div');
                 mealCard.className = isFreeMeal ? 'meal-card free-day' : 'meal-card';
                 if (meal.calories) mealCard.setAttribute('data-meal-calories', meal.calories);
-                if (meal.type)     mealCard.setAttribute('data-meal-type', meal.type);
+                if (meal.type) mealCard.setAttribute('data-meal-type', meal.type);
                 
                 // Create button element separately to handle click with meal data
                 const infoBtn = document.createElement('button');
@@ -8462,7 +8462,10 @@
                     r.meals[mealType] = !r.meals[mealType];
                     // Sync per-meal calories from DOM at check time
                     var cAttr = card.getAttribute('data-meal-calories');
-                    if (cAttr) { var cVal = Math.round(parseFloat(cAttr)||0); if (cVal>0) r.mealCalories[mealType]=cVal; }
+                    if (cAttr) {
+                        var cVal = Math.round(parseFloat(cAttr) || 0);
+                        if (cVal > 0) r.mealCalories[mealType] = cVal;
+                    }
                     saveRecord(dayKey, r);
                     checkBtn.classList.toggle('done', r.meals[mealType]);
                     recalcAndShowScore(dayKey);
