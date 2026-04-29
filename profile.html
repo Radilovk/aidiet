@@ -495,10 +495,41 @@
             font-size: 1.05rem;
             font-weight: 700;
         }
-        .game-analytics-body { padding: 18px 20px; }
-        .game-index-row {
+        .game-analytics-body { padding: 16px 18px 18px; }
+        /* Weekly overview card */
+        .game-week-card {
+            background: linear-gradient(135deg,#0D9488,#0F766E);
+            border-radius: 16px;
+            padding: 14px 16px;
             margin-bottom: 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 14px;
         }
+        .game-week-emoji { font-size: 2.2rem; line-height: 1; }
+        .game-week-info { flex: 1; }
+        .game-week-title { font-size: 0.85rem; opacity: 0.85; font-weight: 500; }
+        .game-week-score { font-size: 1.25rem; font-weight: 800; }
+        .game-week-sub   { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+        /* 7-day dot strip */
+        .game-week-dots { display:flex; gap:4px; margin-top: 8px; }
+        .game-week-dot  {
+            width:16px; height:16px; border-radius:50%;
+            background:#e5e7eb; cursor:default;
+            border: 2px solid rgba(255,255,255,0.25);
+        }
+        /* Index rows */
+        .game-index-row {
+            margin-bottom: 14px;
+            cursor: pointer;
+            border-radius: 12px;
+            padding: 8px 10px;
+            transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .game-index-row:hover { background: rgba(13,148,136,0.06); }
+        .game-index-row:active { background: rgba(13,148,136,0.1); }
         .game-index-label {
             display: flex;
             justify-content: space-between;
@@ -506,6 +537,11 @@
             font-weight: 600;
             color: var(--text-dark);
             margin-bottom: 6px;
+        }
+        .game-index-hint {
+            font-size: 0.7rem;
+            color: var(--text-light, #6b7280);
+            margin-bottom: 5px;
         }
         .game-index-bar-wrap {
             height: 10px;
@@ -516,17 +552,27 @@
         .game-index-bar {
             height: 100%;
             border-radius: 999px;
-            background: linear-gradient(90deg, var(--primary-red), var(--accent-blue, #06B6D4));
-            transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+            transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
         }
+        /* Day-by-day mini dots per index */
+        .game-day-dots { display:flex; gap:4px; margin-top:6px; align-items:flex-end; }
+        .game-day-dot  {
+            flex: 1;
+            max-width: 24px;
+            border-radius: 3px 3px 0 0;
+            min-height: 4px;
+            transition: height 0.5s ease;
+        }
+        /* Encouragement note */
         .game-encourage-note {
-            background: var(--soft-red);
+            background: rgba(13,148,136,0.08);
             border-radius: 14px;
             padding: 12px 16px;
             font-size: 0.86rem;
             color: var(--text-dark);
             line-height: 1.55;
             margin-top: 14px;
+            border-left: 3px solid #0D9488;
         }
         .game-weekly-info {
             font-size: 0.78rem;
@@ -534,15 +580,40 @@
             margin-top: 10px;
             text-align: right;
         }
-        [data-theme="dark"] .game-analytics-section {
-            border-color: rgba(45, 212, 191, 0.15);
+        /* Explanation modal */
+        .game-explain-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(4px);
+            z-index: 3000;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+            animation: geFade 0.25s ease;
         }
-        [data-theme="dark"] .game-index-bar-wrap {
-            background: rgba(45, 212, 191, 0.1);
+        @keyframes geFade { from{opacity:0} to{opacity:1} }
+        .game-explain-box {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 22px 20px 18px;
+            max-width: 320px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            animation: gePop 0.35s cubic-bezier(0.34,1.56,0.64,1);
         }
-        [data-theme="dark"] .game-encourage-note {
-            background: rgba(45, 212, 191, 0.08);
+        @keyframes gePop {
+            from { opacity:0; transform:scale(0.8) translateY(20px); }
+            to   { opacity:1; transform:scale(1) translateY(0); }
         }
+        .game-explain-title { font-size:1rem; font-weight:700; color:var(--text-dark); margin-bottom:10px; }
+        .game-explain-text  { font-size:0.85rem; color:var(--text-dark); opacity:0.8; line-height:1.6; }
+        .game-explain-close {
+            margin-top:14px; width:100%; padding:10px;
+            border:none; border-radius:12px;
+            background:linear-gradient(135deg,#0D9488,#0F766E);
+            color:white; font-weight:700; cursor:pointer; font-size:0.88rem;
+        }
+        [data-theme="dark"] .game-analytics-section { border-color: rgba(45,212,191,0.15); }
+        [data-theme="dark"] .game-index-bar-wrap    { background: rgba(45,212,191,0.1); }
+        [data-theme="dark"] .game-encourage-note    { background: rgba(45,212,191,0.08); border-color: rgba(45,212,191,0.4); }
         /* ── End Gamification Analytics ──────────────────────────────────────── */
 
         /* === SEPARATE NOTES CONTAINER (removed) === */
@@ -3182,137 +3253,245 @@
 
             var enabled = localStorage.getItem('gameEnabled') === 'true';
             if (!enabled) return;
-
             section.style.display = 'block';
 
-            // Collect last 7 days of game data
+            // ── Data loading ──────────────────────────────────────────────────
             var allData = {};
             try { allData = JSON.parse(localStorage.getItem('gameData') || '{}'); } catch(e) {}
+
+            function zp(n) { return n < 10 ? '0' + n : '' + n; }
+            function dk(d)  { return d.getFullYear()+'-'+zp(d.getMonth()+1)+'-'+zp(d.getDate()); }
 
             var today = new Date();
             var days = [];
             for (var i = 6; i >= 0; i--) {
-                var d = new Date(today);
-                d.setDate(d.getDate() - i);
-                var key = d.getFullYear() + '-' +
-                          String(d.getMonth()+1).padStart(2,'0') +
-                          '-' + String(d.getDate()).padStart(2,'0');
-                days.push({ key: key, rec: allData[key] || null });
+                var dd = new Date(today); dd.setDate(dd.getDate() - i);
+                days.push({ key: dk(dd), rec: allData[dk(dd)] || null });
             }
 
-            // ── Index 1: Engagement (meal adherence) ─────────────────────────
-            var totalMeals = 0, completedMeals = 0;
-            days.forEach(function(day) {
-                if (!day.rec || !day.rec.meals) return;
-                Object.keys(day.rec.meals).forEach(function(m) {
-                    totalMeals++;
-                    if (day.rec.meals[m] === true) completedMeals++;
+            // ── calcDayScore (mirrors plan.html) ─────────────────────────────
+            function calcDayScore(rec) {
+                if (!rec) return { score:0, stars:'', label:'Без данни', junkCount:0, engPct:0 };
+                var score=5, junkCount=0;
+                Object.keys(rec.meals||{}).forEach(function(m){
+                    if (rec.meals[m]===false) score=Math.max(0,score-1);
                 });
-            });
-            var engagementPct = totalMeals > 0 ? Math.round(completedMeals / totalMeals * 100) : 0;
+                (rec.extraMeals||[]).forEach(function(em){ if(em.isJunk) junkCount++; });
+                var meals=Object.keys(rec.meals||{});
+                var done=meals.filter(function(m){return rec.meals[m]===true;}).length;
+                var mealPct = meals.length>0 ? done/meals.length*50 : 0;
+                var mornPct = rec.morningCheck ? 15 : 0;
+                var evePct  = rec.eveningCheck ? 15 : 0;
+                var junkPct = Math.max(0, 20 - junkCount*7);
+                var engPct  = Math.round(mealPct+mornPct+evePct+junkPct);
+                var stars='', label='';
+                if      (score===5&&!junkCount) { stars='⭐⭐⭐⭐⭐'; label='Отличен ден!'; }
+                else if (score>=4 &&!junkCount) { stars='⭐⭐⭐⭐';   label='Много добре!'; }
+                else if (score>=3)              { stars='⭐⭐⭐';     label='Добре'; }
+                else if (score>=2)              { stars='⭐⭐';       label='Може по-добре'; }
+                else                            { stars='⭐';         label='Подобри се утре'; }
+                return { score:score, stars:stars, label:label, junkCount:junkCount, engPct:engPct };
+            }
 
-            // ── Index 2: Total extra calories (7 days) ───────────────────────
-            var totalExtraCals = 0;
-            days.forEach(function(day) {
-                if (!day.rec || !day.rec.extraMeals) return;
-                day.rec.extraMeals.forEach(function(em) { totalExtraCals += (em.calories || 0); });
+            // ── Compute all indices ───────────────────────────────────────────
+            // Index 1: per-day engagement %
+            var engPcts = days.map(function(day) {
+                return day.rec ? calcDayScore(day.rec).engPct : null;
             });
+            var engValid = engPcts.filter(function(v){return v!==null;});
+            var engagementPct = engValid.length>0 ? Math.round(engValid.reduce(function(a,b){return a+b;},0)/engValid.length) : 0;
 
-            // ── Index 3: Stress proxy (inverted emotional balance avg) ───────
-            var stressSamples = [], stressSum = 0;
-            days.forEach(function(day) {
-                if (day.rec && day.rec.eveningCheck && day.rec.eveningCheck.emotionalBalance != null) {
-                    stressSamples.push(day.rec.eveningCheck.emotionalBalance);
-                    stressSum += day.rec.eveningCheck.emotionalBalance;
-                }
+            // Index 2: extra calories per day
+            var extraCalsByDay = days.map(function(day) {
+                if (!day.rec||!day.rec.extraMeals) return null;
+                return day.rec.extraMeals.reduce(function(s,em){return s+(em.calories||0);},0);
             });
-            var avgBalance = stressSamples.length > 0 ? stressSum / stressSamples.length : null;
-            // emotionalBalance is 1 (low) to 3 (high). Invert to stress:
-            //   balance=3 → stress=33%,  balance=2 → stress=67%,  balance=1 → stress=100%
-            //   formula: (4 - balance) / 3 * 100
-            var stressPct = avgBalance != null ? Math.round((4 - avgBalance) / 3 * 100) : null;
+            var totalExtraCals = extraCalsByDay.reduce(function(s,v){return s+(v||0);},0);
 
-            // ── Index 4: Sleep quality ────────────────────────────────────────
-            var sleepGood = 0, sleepTotal = 0;
-            days.forEach(function(day) {
-                if (day.rec && day.rec.morningCheck && day.rec.morningCheck.sleptWell != null) {
-                    sleepTotal++;
-                    if (day.rec.morningCheck.sleptWell) sleepGood++;
-                }
+            // Index 3: stress per day (inverted emotional balance; null if no data)
+            var stressByDay = days.map(function(day) {
+                if (!day.rec||!day.rec.eveningCheck||day.rec.eveningCheck.emotionalBalance==null) return null;
+                // balance 1-3 → stress: balance=3→33%, balance=2→67%, balance=1→100%
+                return Math.round((4 - day.rec.eveningCheck.emotionalBalance) / 3 * 100);
             });
-            var sleepPct = sleepTotal > 0 ? Math.round(sleepGood / sleepTotal * 100) : null;
+            var stressValid = stressByDay.filter(function(v){return v!==null;});
+            var stressPct = stressValid.length>0 ? Math.round(stressValid.reduce(function(a,b){return a+b;},0)/stressValid.length) : null;
 
-            // ── Encouragement (same logic as plan.html) ───────────────────────
-            var ENCOURAGEMENTS = {
-                sleep:    '😴 Добрият сън е основата на здравето. Лягайте по-рано — тялото ви ще ви благодари!',
-                water:    '💧 Увеличете приема на вода. Целта е поне 2 литра на ден.',
-                activity: '🚶 Малко движение прави голяма разлика. Дори 15 минути разходка помага!',
-                junk:     '🥗 Намалете вредните храни — планът работи, когато го следвате!',
-                engagement: '✅ Спазвайте храненията по план всеки ден — резултатите идват!',
-                perfect:  '🏆 Страхотно! Продължавайте в същия дух — резултатите идват!',
-                default:  '💪 Последователността е ключът към успеха. Продължавайте!'
-            };
-            var leadingCriterion = '';
-            var encourageText = ENCOURAGEMENTS.default;
-            // Check for junk food in last 7 days
-            var junkCount7 = 0;
-            days.forEach(function(day) {
-                if (!day.rec || !day.rec.extraMeals) return;
-                day.rec.extraMeals.forEach(function(em) { if (em.isJunk) junkCount7++; });
+            // Index 4: sleep quality per day (true=100, false=0, null=null)
+            var sleepByDay = days.map(function(day) {
+                if (!day.rec||!day.rec.morningCheck||day.rec.morningCheck.sleptWell==null) return null;
+                return day.rec.morningCheck.sleptWell ? 100 : 0;
             });
-            if (junkCount7 > 2) { leadingCriterion = 'Вредни храни'; encourageText = ENCOURAGEMENTS.junk; }
-            else if (sleepPct != null && sleepPct < 50) { leadingCriterion = 'Сън'; encourageText = ENCOURAGEMENTS.sleep; }
-            else if (engagementPct < 60) { leadingCriterion = 'Ангажираност'; encourageText = ENCOURAGEMENTS.engagement; }
-            else if (stressPct != null && stressPct > 60) { leadingCriterion = 'Стрес'; encourageText = ENCOURAGEMENTS.activity; }
-            else if (engagementPct === 100) { leadingCriterion = 'Отлично'; encourageText = ENCOURAGEMENTS.perfect; }
+            var sleepValid = sleepByDay.filter(function(v){return v!==null;});
+            var sleepPct = sleepValid.length>0 ? Math.round(sleepValid.reduce(function(a,b){return a+b;},0)/sleepValid.length) : null;
+
+            // Weekly scores
+            var weekScores = days.map(function(day){return day.rec ? calcDayScore(day.rec) : null;});
+            var validScores = weekScores.filter(function(s){return s&&s.score!==null;});
+            var avgScore = validScores.length>0 ? Math.round(validScores.reduce(function(a,s){return a+s.score;},0)/validScores.length*10)/10 : 0;
+            var weekEmoji = avgScore>=4.5?'🏆':avgScore>=3.5?'🎯':avgScore>=2.5?'📈':'🌱';
+            var weekTitle = avgScore>=4.5?'Отлична седмица':avgScore>=3.5?'Много добра':avgScore>=2.5?'Добра седмица':'Продължавайте';
+
+            // Encouragement
+            var junkCount7=0;
+            days.forEach(function(d){ (d.rec&&d.rec.extraMeals||[]).forEach(function(em){if(em.isJunk)junkCount7++;}); });
+            var leadingCriterion='', encourageText='💪 Последователността е ключът към успеха!';
+            if      (junkCount7>2)                         { leadingCriterion='Вредни храни'; encourageText='🥗 Намалете вредните храни — планът работи, когато го следвате!'; }
+            else if (sleepPct!=null && sleepPct<50)        { leadingCriterion='Сън';          encourageText='😴 Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!'; }
+            else if (engagementPct<60)                     { leadingCriterion='Ангажираност'; encourageText='✅ Спазвайте храненията по план — резултатите идват!'; }
+            else if (stressPct!=null && stressPct>60)      { leadingCriterion='Стрес';        encourageText='🚶 Малко движение прави голяма разлика. Дори 15 минути помагат!'; }
+            else if (engagementPct>=90)                    { leadingCriterion='Отлично';      encourageText='🏆 Страхотно! Продължавайте в същия дух — резултатите идват!'; }
             if (badge) badge.textContent = leadingCriterion || '7 дни';
 
-            // ── Weekly AI info ────────────────────────────────────────────────
-            var weeklyInfo = {};
-            try { weeklyInfo = JSON.parse(localStorage.getItem('gameWeeklyAI') || '{}'); } catch(e) {}
-            var nextDueText = '';
-            if (weeklyInfo.nextDue) {
-                var nd = new Date(weeklyInfo.nextDue);
-                nextDueText = 'Следващ AI анализ: ' + nd.toLocaleDateString('bg-BG');
+            // Weekly AI next due
+            var weeklyInfo={};
+            try { weeklyInfo=JSON.parse(localStorage.getItem('gameWeeklyAI')||'{}'); } catch(e) {}
+            var nextDueText='';
+            if (weeklyInfo.nextDue) { var nd=new Date(weeklyInfo.nextDue); nextDueText='Следващ AI анализ: '+nd.toLocaleDateString('bg-BG'); }
+
+            // ── Explanation modal ─────────────────────────────────────────────
+            var EXPLANATIONS = {
+                engagement: {
+                    title: '🍽️ Ангажираност към плана',
+                    text: 'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни храни (20 т.)\n\nСедмичният % е средна стойност на дневните.\nЦел: 80%+'
+                },
+                calories: {
+                    title: '🔥 Допълнителни калории',
+                    text: 'Сума от всички допълнителни хранения (снимани с AI) за последните 7 дни.\n\n✅ 0 kcal — отлично\n🟡 1-700 kcal — умерено\n🔴 >700 kcal — прекалено много\n\nНяма пряка връзка с дневния план.'
+                },
+                stress: {
+                    title: '😤 Стрес индекс',
+                    text: 'Изчислява се от вечерния въпрос "Емоционален баланс".\n\nФормула: (4 − баланс) ÷ 3 × 100%\n• Баланс 3 (Отлично) → стрес 33%\n• Баланс 2 (Добре) → стрес 67%\n• Баланс 1 (Слабо) → стрес 100%\n\nПо-нисък % = по-добре.'
+                },
+                sleep: {
+                    title: '😴 Качество на съня',
+                    text: 'Изчислява се от сутрешния въпрос "Спахте ли добре?".\n\nФормула: брой "Да" ÷ общо отговори × 100%\n\nПо-висок % = по-добре.\nЦел: 70%+'
+                }
+            };
+
+            function showExplanation(key) {
+                var info = EXPLANATIONS[key];
+                if (!info) return;
+                var old = document.getElementById('gameExplainOverlay');
+                if (old) old.remove();
+                var overlay = document.createElement('div');
+                overlay.id = 'gameExplainOverlay';
+                overlay.className = 'game-explain-overlay';
+                overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+                var box = document.createElement('div');
+                box.className = 'game-explain-box';
+                var title = document.createElement('div');
+                title.className = 'game-explain-title';
+                title.textContent = info.title;
+                var text = document.createElement('div');
+                text.className = 'game-explain-text';
+                text.style.whiteSpace = 'pre-line';
+                text.textContent = info.text;
+                var closeBtn = document.createElement('button');
+                closeBtn.className = 'game-explain-close';
+                closeBtn.textContent = 'Разбрах';
+                closeBtn.onclick = function(){ overlay.remove(); };
+                box.appendChild(title); box.appendChild(text); box.appendChild(closeBtn);
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+            }
+
+            // ── Render helpers ────────────────────────────────────────────────
+            function pBar(pct, color) {
+                if (pct==null) return '<span style="font-size:0.78rem;color:var(--text-light)">Няма данни</span>';
+                return '<div class="game-index-bar-wrap">' +
+                    '<div class="game-index-bar" style="width:'+Math.min(100,Math.max(0,pct))+'%;background:'+color+'"></div></div>';
+            }
+
+            // Mini bar chart — one column per day (height proportional to value)
+            function miniBarChart(perDayValues, maxVal, color) {
+                var cols = perDayValues.map(function(v, idx) {
+                    var dayNames = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+                    var dow = new Date(days[idx].key).getDay(); // 0=Sun
+                    var label = dayNames[(dow+6)%7];
+                    if (v==null) {
+                        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">' +
+                            '<div class="game-day-dot" style="height:4px;background:rgba(156,163,175,0.3)"></div>' +
+                            '<span style="font-size:0.58rem;color:var(--text-light)">'+label+'</span></div>';
+                    }
+                    var pct = maxVal>0 ? Math.min(100, Math.round(v/maxVal*100)) : 0;
+                    var h = Math.max(4, Math.round(pct*28/100));
+                    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">' +
+                        '<div class="game-day-dot" style="height:'+h+'px;background:'+color+'"></div>' +
+                        '<span style="font-size:0.58rem;color:var(--text-light)">'+label+'</span></div>';
+                });
+                return '<div class="game-day-dots" style="align-items:flex-end">' + cols.join('') + '</div>';
             }
 
             // ── Render ────────────────────────────────────────────────────────
-            function pBar(pct, color) {
-                if (pct == null) return '<span style="font-size:0.8rem;color:var(--text-light)">Няма данни</span>';
-                return '<div class="game-index-bar-wrap"><div class="game-index-bar" style="width:' +
-                       Math.min(100, pct) + '%;background:' + color + '"></div></div>';
-            }
-
             var html = '';
-            // Engagement
-            html += '<div class="game-index-row">' +
-                '<div class="game-index-label"><span>🍽️ Ангажираност към плана</span><span>' + engagementPct + '%</span></div>' +
-                pBar(engagementPct, 'linear-gradient(90deg,#0D9488,#06B6D4)') + '</div>';
-            // Calories
-            html += '<div class="game-index-row">' +
-                '<div class="game-index-label"><span>🔥 Допълнителни калории (7 дни)</span><span>' + totalExtraCals + ' kcal</span></div>' +
-                '<div style="font-size:0.8rem;color:var(--text-light)">' +
-                    (totalExtraCals === 0 ? '✅ Без допълнителни калории' :
-                     totalExtraCals < 700 ? '🟡 Умерено' : '🔴 Много допълнителни калории') +
-                '</div></div>';
-            // Stress
-            html += '<div class="game-index-row">' +
-                '<div class="game-index-label"><span>😤 Стрес индекс</span>' +
-                '<span>' + (stressPct != null ? stressPct + '%' : '—') + '</span></div>' +
-                pBar(stressPct, 'linear-gradient(90deg,#f59e0b,#ef4444)') + '</div>';
-            // Sleep
-            html += '<div class="game-index-row">' +
-                '<div class="game-index-label"><span>😴 Качество на съня</span>' +
-                '<span>' + (sleepPct != null ? sleepPct + '%' : '—') + '</span></div>' +
-                pBar(sleepPct, 'linear-gradient(90deg,#6366f1,#8b5cf6)') + '</div>';
+
+            // Weekly overview card
+            html += '<div class="game-week-card">' +
+                '<div class="game-week-emoji">'+weekEmoji+'</div>' +
+                '<div class="game-week-info">' +
+                    '<div class="game-week-title">Седмичен преглед</div>' +
+                    '<div class="game-week-score">'+avgScore+'/5 ⭐</div>' +
+                    '<div class="game-week-sub">Ангажираност: '+engagementPct+'% · '+validScores.length+' дни записани</div>' +
+                    '<div class="game-week-dots">' +
+                    weekScores.map(function(s) {
+                        var bg = s ? (s.score>=4?'rgba(255,255,255,0.9)':s.score>=3?'rgba(251,191,36,0.85)':'rgba(248,113,113,0.85)') : 'rgba(255,255,255,0.2)';
+                        return '<div class="game-week-dot" style="background:'+bg+'" title="'+(s?s.label:'Няма данни')+'"></div>';
+                    }).join('') +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+            // Index 1: Engagement
+            html += '<div class="game-index-row" data-explain="engagement" title="Натиснете за обяснение">' +
+                '<div class="game-index-label"><span>🍽️ Ангажираност към плана</span><span>'+engagementPct+'%</span></div>' +
+                '<div class="game-index-hint">Среден дневен % (хранения + чек-ини) · Натиснете за детайли ℹ️</div>' +
+                pBar(engagementPct, 'linear-gradient(90deg,#0D9488,#06B6D4)') +
+                miniBarChart(engPcts, 100, '#0D9488') +
+            '</div>';
+
+            // Index 2: Calories
+            var calMax = Math.max(totalExtraCals, 700, 1);
+            html += '<div class="game-index-row" data-explain="calories" title="Натиснете за обяснение">' +
+                '<div class="game-index-label"><span>🔥 Допълнителни калории (7 дни)</span><span>'+totalExtraCals+' kcal</span></div>' +
+                '<div class="game-index-hint">' +
+                    (totalExtraCals===0?'✅ Без допълнителни калории':totalExtraCals<700?'🟡 Умерено':'🔴 Много допълнителни') +
+                    ' · Натиснете за детайли ℹ️</div>' +
+                miniBarChart(extraCalsByDay, calMax, totalExtraCals>700?'#ef4444':'#f59e0b') +
+            '</div>';
+
+            // Index 3: Stress
+            html += '<div class="game-index-row" data-explain="stress" title="Натиснете за обяснение">' +
+                '<div class="game-index-label"><span>😤 Стрес индекс</span><span>'+(stressPct!=null?stressPct+'%':'—')+'</span></div>' +
+                '<div class="game-index-hint">По-нисък % = по-добре · Натиснете за детайли ℹ️</div>' +
+                pBar(stressPct, 'linear-gradient(90deg,#f59e0b,#ef4444)') +
+                miniBarChart(stressByDay, 100, '#f59e0b') +
+            '</div>';
+
+            // Index 4: Sleep
+            html += '<div class="game-index-row" data-explain="sleep" title="Натиснете за обяснение">' +
+                '<div class="game-index-label"><span>😴 Качество на съня</span><span>'+(sleepPct!=null?sleepPct+'%':'—')+'</span></div>' +
+                '<div class="game-index-hint">По-висок % = по-добре · Натиснете за детайли ℹ️</div>' +
+                pBar(sleepPct, 'linear-gradient(90deg,#6366f1,#8b5cf6)') +
+                miniBarChart(sleepByDay, 100, '#6366f1') +
+            '</div>';
+
             // Encouragement
             html += '<div class="game-encourage-note">' + encourageText + '</div>';
+
             // Weekly AI note
             if (nextDueText) {
                 html += '<div class="game-weekly-info"><i class="fas fa-robot"></i> ' + nextDueText + '</div>';
             }
 
             body.innerHTML = html;
+
+            // Attach click handlers after rendering
+            body.querySelectorAll('.game-index-row[data-explain]').forEach(function(row) {
+                row.addEventListener('click', function() {
+                    showExplanation(row.getAttribute('data-explain'));
+                });
+            });
         })();
         // ── End Gamification Analytics Loader ──────────────────────────────────
     </script>
