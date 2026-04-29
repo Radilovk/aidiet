@@ -7819,11 +7819,11 @@
 
         // Map plan day number (1=Mon … 7=Sun) to actual calendar date string
         function getDateForPlanDay(planDay) {
-            var jsDay = new Date().getDay(); // 0=Sun
+            var now = new Date(); // single snapshot to avoid midnight boundary issues
+            var jsDay = now.getDay(); // 0=Sun
             var todayPlanDay = jsDay === 0 ? 7 : jsDay;
             var offset = planDay - todayPlanDay;
-            var d = new Date();
-            d.setDate(d.getDate() + offset);
+            var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
             return dateKey(d);
         }
         // Return the date key for the plan day currently being viewed

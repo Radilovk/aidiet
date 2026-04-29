@@ -1882,7 +1882,7 @@
 
         <!-- CURRENT ANALYSIS SECTION -->
         <div class="game-analytics-section" id="gameAnalyticsSection" style="display:none;">
-            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="false" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' ')toggleGameAnalytics()">
+            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="false" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
                 <div class="game-analytics-title">
                     <i class="fas fa-brain"></i>
                     <span>Текущ Анализ</span>
@@ -3526,7 +3526,7 @@
             if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='🥗 Намалете вредните храни — планът работи когато го следвате!'; }
             else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='😴 Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!'; }
             else if (engagementPct<60)                 { leadingCriterion='Ангажираност'; encourageText='✅ Спазвайте храненията по план — резултатите идват!'; }
-            else if (stressPct!=null&&stressPct>60)    { leadingCriterion='Стрес';        encourageText='🚶 Малко движение прави голяма разлика. Дори 15 мин помагат!'; }
+            else if (stressPct!=null&&stressPct>60)    { leadingCriterion='Стрес';        encourageText='🚶 Малко движение прави голяма разлика. Дори 15 минути помагат!'; }
             else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='🏆 Страхотно! Продължавайте в същия дух — резултатите идват!'; }
             if (badge) badge.textContent = leadingCriterion || (validScores.length+' дни');
 
@@ -3611,7 +3611,7 @@
             // Health score rings
             html += '<div class="game-health-ring-row">' +
                 '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488') + '<div class="game-ring-label">Здраве</div></div>' +
-                '<div class="game-ring-wrap" data-explain="engagement" style="cursor:pointer">' + ringChart(engagementPct,'#06B6D4',22) + '<div class="game-ring-label">Ангажир.</div></div>' +
+                '<div class="game-ring-wrap" data-explain="engagement" style="cursor:pointer">' + ringChart(engagementPct,'#06B6D4',22) + '<div class="game-ring-label">План %</div></div>' +
                 (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
                 (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#10b981',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
             '</div>';
