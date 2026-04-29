@@ -977,11 +977,10 @@
             font-size: 1.1rem;
         }
 
-        /* --- CHAT FAB --- */
         /* --- CHAT FAB - Premium Design --- */
         .fab-chat {
             position: fixed;
-            top: calc(var(--safe-area-inset-top, 0px) + 144px);
+            bottom: calc(80px + var(--safe-area-inset-bottom, 0px));
             right: calc(16px + var(--safe-area-inset-right));
             width: 56px;
             height: 56px;
@@ -1933,7 +1932,7 @@
         /* Chat bubble */
         .game-bubble {
             position: fixed;
-            top: calc(var(--safe-area-inset-top, 0px) + 210px);
+            bottom: calc(152px + var(--safe-area-inset-bottom, 0px));
             right: calc(18px + var(--safe-area-inset-right));
             background: var(--card-bg, rgba(255,255,255,0.97));
             border-radius: 20px 4px 20px 20px;
@@ -2107,15 +2106,20 @@
         .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; }
         .daily-score-value { font-size: 1.2rem; font-weight: 700; }
         .daily-score-stars { font-size: 0.95rem; margin-top: 2px; }
-        /* FAB bounce */
+        /* FAB bounce/raise states */
         @keyframes fabBounce {
             0%,100% { transform: translateY(0); }
-            18% { transform: translateY(-20px); }
-            36% { transform: translateY(-8px); }
-            54% { transform: translateY(-16px); }
-            72% { transform: translateY(-4px); }
+            18% { transform: translateY(-10px); }
+            36% { transform: translateY(-4px); }
+            54% { transform: translateY(-8px); }
+            72% { transform: translateY(-2px); }
         }
         .fab-chat.game-prompt { animation: fabBounce 1.1s ease-in-out 2, fabPulse 3s ease-in-out 2.2s infinite; }
+        .fab-chat.fab-raised {
+            /* Move FAB near the top while game questions are shown.
+               80px ≈ top bar height, 56px = FAB height */
+            bottom: calc(100vh - var(--safe-area-inset-top, 0px) - 80px - 56px);
+        }
         /* Encouragement toast */
         .game-encourage-toast {
             position: fixed;
@@ -4804,7 +4808,7 @@
             if (effectiveHasFreeMeal) {
                 const banner = document.createElement('div');
                 banner.className = 'free-day-banner';
-                banner.innerHTML = '<span class="free-day-icon">🏆</span><div class="free-day-title">Свободно хранене!</div><div class="free-day-subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
+                banner.innerHTML = '<span class="free-day-icon"><i class="fas fa-trophy" style="color:#fbbf24"></i></span><div class="free-day-title">Свободно хранене!</div><div class="free-day-subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
                 mealContainer.appendChild(banner);
             }
 
@@ -4822,7 +4826,7 @@
                         openModal(
                             'Свободно хранене',
                             'Можеш свободно да консумираш любимата си храна.\n\nВажно: Любимата храна може да бъде консумирана след прием на зеленолистна салата, поръсена със семена или смлени ядки, поправена със зехтин и лимонов сок.',
-                            'Насладете се на любимата си храна — заслужихте го! 🏆',
+                            'Насладете се на любимата си храна — заслужихте го!',
                             null, null, null, null
                         );
                     } else {
@@ -5718,9 +5722,9 @@
                 if (window.gameModule) {
                     if (!window.gameModule.isEnabled()) {
                         window.gameModule.activateGame();
-                        addMessageToChat('🎮 Геймификацията е активирана!\n\nОт сега ще събирам данни за:\n• ✅ Отбелязване на храненията\n• 🌅 Сутрешна проверка (05:00) – качество на съня\n• 🌙 Вечерна проверка (20:00) – активност, емоционален баланс, вода\n• 📊 Дневна оценка и насърчение\n\nАнализът ще е наличен в таба „Профил" → раздел Геймификация.\n\nЗа да тествате сега, напишете *game-morning или *game-evening.', 'assistant');
+                        addMessageToChat('Геймификацията е активирана!\n\nОт сега ще събирам данни за:\n• Отбелязване на храненията\n• Сутрешна проверка (05:00) – качество на съня\n• Вечерна проверка (20:00) – активност, емоционален баланс, вода\n• Дневна оценка и насърчение\n\nАнализът ще е наличен в таба „Профил" → раздел Геймификация.\n\nЗа да тествате сега, напишете *game-morning или *game-evening.', 'assistant');
                     } else {
-                        addMessageToChat('🎮 Геймификацията вече е активирана. Следете оценките в таба „Профил".', 'assistant');
+                        addMessageToChat('Геймификацията вече е активирана. Следете оценките в таба „Профил".', 'assistant');
                     }
                 } else {
                     addMessageToChat('⚠️ Геймификационният модул се зарежда. Моля, опитайте след малко.', 'assistant');
@@ -5732,13 +5736,13 @@
             if (message.toLowerCase() === '*game-morning') {
                 input.value = '';
                 if (window._gameShowMorning) { window._gameShowMorning(true); }
-                addMessageToChat('🌅 Показвам сутрешния въпрос…', 'assistant');
+                addMessageToChat('Показвам сутрешния въпрос…', 'assistant');
                 return;
             }
             if (message.toLowerCase() === '*game-evening') {
                 input.value = '';
                 if (window._gameShowEvening) { window._gameShowEvening(true); }
-                addMessageToChat('🌙 Показвам вечерните въпроси…', 'assistant');
+                addMessageToChat('Показвам вечерните въпроси…', 'assistant');
                 return;
             }
 
@@ -7911,14 +7915,15 @@
             var junkPct = Math.max(0, 20 - junkCount * 7);
             var engPct  = Math.round(mealPct + mornPct + evePct + junkPct);
 
+            var starIcon = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.85em"></i>';
             var stars='', label='';
-            if      (score===5 && junkCount===0) { stars='⭐⭐⭐⭐⭐'; label='Отличен ден!'; }
-            else if (score>=4  && junkCount===0) { stars='⭐⭐⭐⭐';   label='Много добре!'; }
-            else if (score>=3)                   { stars='⭐⭐⭐';     label='Добре'; }
-            else if (score>=2)                   { stars='⭐⭐';       label='Може по-добре'; }
-            else                                 { stars='⭐';         label='Подобри се утре'; }
+            if      (score===5 && junkCount===0) { stars=starIcon+starIcon+starIcon+starIcon+starIcon; label='Отличен ден!'; }
+            else if (score>=4  && junkCount===0) { stars=starIcon+starIcon+starIcon+starIcon;           label='Много добре!'; }
+            else if (score>=3)                   { stars=starIcon+starIcon+starIcon;                   label='Добре'; }
+            else if (score>=2)                   { stars=starIcon+starIcon;                            label='Може по-добре'; }
+            else                                 { stars=starIcon;                                     label='Подобри се утре'; }
             if (junkCount>0)    label += ' (' + junkCount + ' вредни)';
-            if (excessCalories) label += ' ⚠️ излишни кал.';
+            if (excessCalories) label += ' — излишни кал.';
             return { score:score, stars:stars, label:label, junkCount:junkCount, excessCalories:excessCalories, engPct:engPct };
         }
 
@@ -7955,7 +7960,7 @@
                 dayLabel = ' \u2014 ' + dayNames[dPast.getDay()];
             }
             var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(s){return s;};
-            card.innerHTML = '<div class="daily-score-icon">\uD83D\uDCCA</div>' +
+            card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-chart-bar" style="color:#0D9488"></i></div>' +
                 '<div class="daily-score-info">' +
                     '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F' + esc(dayLabel) + '</div>' +
                     '<div class="daily-score-value">' + esc(ds.label) + '</div>' +
@@ -8017,22 +8022,39 @@
 
         // ── Bubble UI ─────────────────────────────────────────────────────────
         var YES_NO = [
-            { label:'\u0414\u0430', icon:'\u2705', value:true,  cls:'yes' },
-            { label:'\u041D\u0435', icon:'\u274C', value:false, cls:'no'  }
+            { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' },
+            { label:'Не', icon:'<i class="fas fa-xmark" style="color:#ef4444"></i>', value:false, cls:'no'  }
         ];
+        var starI = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
         var STARS_1_3 = [
-            { label:'\u0421\u043B\u0430\u0431\u043E',   icons:'\u2B50',       value:1, stars:true },
-            { label:'\u0414\u043E\u0431\u0440\u0435',   icons:'\u2B50\u2B50', value:2, stars:true },
-            { label:'\u041E\u0442\u043B\u0438\u0447\u043D\u043E', icons:'\u2B50\u2B50\u2B50', value:3, stars:true }
+            { label:'Слабо',   icons:starI,         value:1, stars:true },
+            { label:'Добре',   icons:starI+starI,   value:2, stars:true },
+            { label:'Отлично', icons:starI+starI+starI, value:3, stars:true }
         ];
 
-        function removeBubble() { var o=document.getElementById('gameBubble'); if(o) o.remove(); }
+        var _fabLowerTimer = null;
+        // Short delay allows a chained showBubble call to cancel the lower animation
+        var FAB_LOWER_DELAY = 80;
+        function removeBubble() {
+            var o=document.getElementById('gameBubble'); if(o) o.remove();
+            // Schedule FAB lowering — cancelled if a new showBubble fires immediately
+            var fab = document.querySelector('.fab-chat');
+            if (fab) {
+                if (_fabLowerTimer) clearTimeout(_fabLowerTimer);
+                _fabLowerTimer = setTimeout(function(){
+                    fab.classList.remove('fab-raised');
+                    _fabLowerTimer = null;
+                }, FAB_LOWER_DELAY);
+            }
+        }
 
         function showBubble(question, answers, onAnswer, opts) {
             opts = opts || {};
+            // Cancel pending lower animation — new question is coming
+            if (_fabLowerTimer) { clearTimeout(_fabLowerTimer); _fabLowerTimer = null; }
             removeBubble();
             var fab = document.querySelector('.fab-chat');
-            if (fab) { fab.classList.add('game-prompt'); setTimeout(function(){ fab.classList.remove('game-prompt'); },2600); }
+            if (fab) { fab.classList.add('fab-raised', 'game-prompt'); setTimeout(function(){ fab.classList.remove('game-prompt'); },2600); }
 
             var bubble = document.createElement('div');
             bubble.id = 'gameBubble';
@@ -8043,13 +8065,13 @@
             hdr.className = 'game-bubble-header';
             var av = document.createElement('div');
             av.className = 'game-bubble-avatar';
-            av.textContent = '\uD83E\uDD16';
+            av.innerHTML = '<i class="fas fa-robot"></i>';
             var gr = document.createElement('div');
             gr.className = 'game-bubble-greeting';
             var name = getUserName();
             gr.textContent = opts.greeting ? opts.greeting :
-                             (opts.showName && name) ? '\u0417\u0434\u0440\u0430\u0432\u0435\u0439\u0442\u0435, '+name+'! \uD83D\uDC4B' :
-                             'AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442';
+                             (opts.showName && name) ? 'Здравейте, '+name+'!' :
+                             'AI Асистент';
             var closeBtn = document.createElement('button');
             closeBtn.className = 'game-bubble-close';
             closeBtn.innerHTML = '\u2715';
@@ -8107,7 +8129,7 @@
             if (!force && rec.morningCheck) { if (doneCb) doneCb(); return; }
             var isYesterday = recordKey !== getTodayKey();
             showBubble(
-                (isYesterday ? '[\u0412\u0447\u0435\u0440\u0430] ' : '') + '\uD83C\uDF05 \u0421\u043F\u0430\u0445\u0442\u0435 \u043B\u0438 \u0434\u043E\u0431\u0440\u0435 \u0442\u0430\u0437\u0438 \u043D\u043E\u0449?',
+                (isYesterday ? '[Вчера] ' : '') + 'Спахте ли добре тази нощ?',
                 YES_NO,
                 function(val) {
                     var r = getRecord(recordKey);
@@ -8117,7 +8139,7 @@
                     if (doneCb) { setTimeout(doneCb, 350); }
                     else { setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400); }
                 },
-                { greeting: isYesterday ? '\uD83D\uDCC5 \u0412\u044A\u0432\u0435\u0436\u0434\u0430\u043D\u0435 \u0437\u0430 \u0432\u0447\u0435\u0440\u0430' : undefined, showName: !isYesterday }
+                { greeting: isYesterday ? 'Въвеждане за вчера' : undefined, showName: !isYesterday }
             );
         }
 
@@ -8126,11 +8148,11 @@
             var rec = getRecord(recordKey);
             if (!force && rec.eveningCheck) { if (doneCb) doneCb(); return; }
             var isYesterday = recordKey !== getTodayKey();
-            var prefix = isYesterday ? '[\u0412\u0447\u0435\u0440\u0430] ' : '';
-            var hdrOpts = { greeting: isYesterday ? '\uD83D\uDCC5 \u0412\u044A\u0432\u0435\u0436\u0434\u0430\u043D\u0435 \u0437\u0430 \u0432\u0447\u0435\u0440\u0430' : '\u0414\u043E\u0431\u044A\u0440 \u0432\u0435\u0447\u0435\u0440! \uD83C\uDF19' };
+            var prefix = isYesterday ? '[Вчера] ' : '';
+            var hdrOpts = { greeting: isYesterday ? 'Въвеждане за вчера' : 'Добър вечер!' };
             var eveData = {};
             function q3() {
-                showBubble(prefix+'\uD83D\uDCA7 \u0418\u0437\u043F\u0438\u0445\u0442\u0435 \u043B\u0438 \u043F\u043E\u043D\u0435 2 \u043B \u0432\u043E\u0434\u0430?', YES_NO, function(v) {
+                showBubble(prefix+'Изпихте ли поне 2 л вода?', YES_NO, function(v) {
                     eveData.waterIntake = v;
                     var r = getRecord(recordKey);
                     r.eveningCheck = { activityLevel: eveData.activityLevel,
@@ -8149,11 +8171,11 @@
                 }, hdrOpts);
             }
             function q2() {
-                showBubble(prefix+'\uD83E\uDDD8 \u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u0431\u0430\u043B\u0430\u043D\u0441?', STARS_1_3,
+                showBubble(prefix+'Емоционален баланс?', STARS_1_3,
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
-                showBubble(prefix+'\uD83C\uDF19 \u041D\u0438\u0432\u043E \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442?', STARS_1_3,
+                showBubble(prefix+'Ниво на активност?', STARS_1_3,
                     function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
             }
             q1();
@@ -8221,27 +8243,27 @@
             localStorage.setItem(offerKey, '1');
             setTimeout(function(){
                 showBubble(
-                    '\uD83D\uDCC5 \u0412\u0447\u0435\u0440\u0430\u0448\u043D\u0438\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0438 \u043D\u0435 \u0441\u0430 \u043F\u043E\u043F\u044A\u043B\u043D\u0435\u043D\u0438. \u0418\u0441\u043A\u0430\u0442\u0435 \u043B\u0438 \u0434\u0430 \u0433\u0438 \u043F\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435 \u0441\u0435\u0433\u0430? (\u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0441\u0430\u043C\u043E \u0434\u043E \u043E\u0431\u044F\u0434)',
+                    'Вчерашните въпроси не са попълнени. Искате ли да ги попълните сега? (възможно само до обяд)',
                     YES_NO,
                     function(yes){
                         if (!yes) return;
                         var q = buildDayQueue(yKey);
                         if (q.length) setTimeout(function(){ runQueue(q); }, 350);
                     },
-                    { greeting: '\uD83D\uDCC5 \u0412\u0447\u0435\u0440\u0430\u0448\u043D\u0438 \u0434\u0430\u043D\u043D\u0438' }
+                    { greeting: 'Вчерашни данни' }
                 );
             }, 2800);
         }
 
         // ── Encouragement ─────────────────────────────────────────────────────
         var ENC = {
-            sleep:   '\uD83D\uDE34 \u0414\u043E\u0431\u0440\u0438\u044F\u0442 \u0441\u044A\u043D \u0435 \u043E\u0441\u043D\u043E\u0432\u0430\u0442\u0430. \u041B\u044F\u0433\u0430\u0439\u0442\u0435 \u043F\u043E-\u0440\u0430\u043D\u043E \u2014 \u0442\u044F\u043B\u043E\u0442\u043E \u0432\u0438 \u0449\u0435 \u0432\u0438 \u0431\u043B\u0430\u0433\u043E\u0434\u0430\u0440\u0438!',
-            water:   '\uD83D\uDCA7 \u0426\u0435\u043B\u0442\u0430 \u0435 2 \u043B \u0432\u043E\u0434\u0430 \u043D\u0430 \u0434\u0435\u043D. \u041F\u043E\u0441\u0442\u0430\u0432\u0435\u0442\u0435 \u0431\u0443\u0442\u0438\u043B\u043A\u0430 \u043D\u0430 \u0432\u0438\u0434\u043D\u043E \u043C\u044F\u0441\u0442\u043E!',
-            activity:'\uD83D\uDEB6 \u0414\u043E\u0440\u0438 15 \u043C\u0438\u043D. \u0440\u0430\u0437\u0445\u043E\u0434\u043A\u0430 \u043F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430 \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u043C\u0430 \u0438 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u0435\u0442\u043E!',
-            junk:    '\uD83E\uDD57 \u0412\u0440\u0435\u0434\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0438 \u0441\u0430 \u0438\u0437\u043A\u0443\u0448\u0435\u043D\u0438\u0435, \u043D\u043E \u043F\u043B\u0430\u043D\u044A\u0442 \u0440\u0430\u0431\u043E\u0442\u0438. \u0423\u0442\u0440\u0435 \u043D\u043E\u0432 \u0441\u0442\u0430\u0440\u0442!',
-            perfect: '\uD83C\uDFC6 \u0421\u0442\u0440\u0430\u0445\u043E\u0442\u0435\u043D \u0434\u0435\u043D! \u0421\u043F\u0430\u0437\u0438\u0445\u0442\u0435 \u043F\u043B\u0430\u043D\u0430 \u043E\u0442\u043B\u0438\u0447\u043D\u043E. \u0420\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438\u0442\u0435 \u0438\u0434\u0432\u0430\u0442!',
-            good:    '\uD83D\uDC4F \u0414\u043E\u0431\u0440\u0435 \u0441\u0435 \u0441\u043F\u0440\u0430\u0432\u044F\u0442\u0435! \u041C\u0430\u043B\u043A\u0438\u0442\u0435 \u043A\u0440\u0430\u0447\u043A\u0438 \u0432\u043E\u0434\u044F\u0442 \u0434\u043E \u0433\u043E\u043B\u044F\u043C\u0430\u0442\u0430 \u0446\u0435\u043B!',
-            def:     '\uD83D\uDCAA \u041D\u0430 \u043F\u0440\u0430\u0432 \u043F\u044A\u0442 \u0441\u0442\u0435! \u041F\u043E\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u043D\u043E\u0441\u0442\u0442\u0430 \u0435 \u043A\u043B\u044E\u0447\u044A\u0442!'
+            sleep:   '<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!',
+            water:   '<i class="fas fa-droplet" style="color:#06B6D4"></i> Целта е 2 л вода на ден. Поставете бутилка на видно място!',
+            activity:'<i class="fas fa-person-walking" style="color:#0D9488"></i> Дори 15 мин. разходка подобрява метаболизма и настроението!',
+            junk:    '<i class="fas fa-leaf" style="color:#10b981"></i> Вредните храни са изкушение, но планът работи. Утре нов старт!',
+            perfect: '<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотен ден! Спазихте плана отлично. Резултатите идват!',
+            good:    '<i class="fas fa-check-circle" style="color:#10b981"></i> Добре се справяте! Малките крачки водят до голямата цел!',
+            def:     '<i class="fas fa-dumbbell" style="color:#0D9488"></i> На прав път сте! Последователността е ключът!'
         };
         function buildEncouragement(recordKey) {
             var rec = getRecord(recordKey || getTodayKey());
@@ -8262,7 +8284,7 @@
                 t.className = 'game-encourage-toast';
                 document.body.appendChild(t);
             }
-            t.textContent = text;
+            t.innerHTML = text;
             requestAnimationFrame(function(){
                 requestAnimationFrame(function(){
                     t.classList.add('visible');
@@ -8273,16 +8295,16 @@
 
         // ── Day-end modal ─────────────────────────────────────────────────────
         var DAY_LEVELS = [
-            { min:5, emoji:'\uD83C\uDFC6', title:'\u041F\u0435\u0440\u0444\u0435\u043A\u0442\u0435\u043D \u0434\u0435\u043D!',  color:'#fbbf24',
-              msg:'\u0418\u0437\u043F\u044A\u043B\u043D\u0438\u0445\u0442\u0435 \u043F\u043B\u0430\u043D\u0430 100%! \u0412\u0438\u0435 \u0441\u0442\u0435 \u0448\u0430\u043C\u043F\u0438\u043E\u043D. \u0420\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438\u0442\u0435 \u0449\u0435 \u0434\u043E\u0439\u0434\u0430\u0442!', confetti:true  },
-            { min:4, emoji:'\uD83C\uDF89', title:'\u041E\u0442\u043B\u0438\u0447\u0435\u043D \u0434\u0435\u043D!',    color:'#10b981',
-              msg:'\u0411\u0440\u0430\u0432\u043E! \u041F\u043E\u0447\u0442\u0438 \u043F\u0435\u0440\u0444\u0435\u043A\u0442\u043D\u043E. \u041C\u0430\u043B\u043A\u043E \u043A\u0440\u0430\u0447\u043A\u0438 = \u0433\u043E\u043B\u044F\u043C \u0443\u0441\u043F\u0435\u0445!', confetti:true  },
-            { min:3, emoji:'\uD83D\uDC4D', title:'\u0414\u043E\u0431\u044A\u0440 \u0434\u0435\u043D!',      color:'#0D9488',
-              msg:'\u0421\u043F\u0440\u0430\u0432\u0438\u0445\u0442\u0435 \u0441\u0435 \u0434\u043E\u0431\u0440\u0435. \u0423\u0442\u0440\u0435 \u043C\u043E\u0436\u0435 \u0434\u043E\u0440\u0438 \u043F\u043E-\u0434\u043E\u0431\u0440\u0435!', confetti:false },
-            { min:2, emoji:'\uD83D\uDCAA', title:'\u041C\u043E\u0436\u0435 \u043F\u043E-\u0434\u043E\u0431\u0440\u0435',   color:'#f59e0b',
-              msg:'\u0422\u0440\u0443\u0434\u043D\u043E \u0435 \u043F\u043E\u043D\u044F\u043A\u043E\u0433\u0430, \u043D\u043E \u043D\u0435 \u0441\u0435 \u043E\u0442\u043A\u0430\u0437\u0432\u0430\u0439\u0442\u0435. \u0412\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u0435 \u043D\u043E\u0432 \u0448\u0430\u043D\u0441!', confetti:false },
-            { min:0, emoji:'\uD83C\uDF31', title:'\u041D\u043E\u0432 \u0441\u0442\u0430\u0440\u0442 \u0443\u0442\u0440\u0435!', color:'#6366f1',
-              msg:'\u0414\u043D\u0435\u0441 \u0431\u0435\u0448\u0435 \u043F\u0440\u0435\u0434\u0438\u0437\u0432\u0438\u043A\u0430\u0442\u0435\u043B\u043D\u043E. \u041C\u0430\u043B\u043A\u0438\u0442\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u043F\u0440\u0430\u0432\u044F\u0442 \u0433\u043E\u043B\u044F\u043C\u0430 \u0440\u0430\u0437\u043B\u0438\u043A\u0430!', confetti:false }
+            { min:5, iconClass:'fas fa-trophy', iconColor:'#fbbf24', title:'Перфектен ден!',  color:'#fbbf24',
+              msg:'Изпълнихте плана 100%! Вие сте шампион. Резултатите ще дойдат!', confetti:true  },
+            { min:4, iconClass:'fas fa-award',  iconColor:'#10b981', title:'Отличен ден!',    color:'#10b981',
+              msg:'Браво! Почти перфектно. Малко крачки = голям успех!', confetti:true  },
+            { min:3, iconClass:'fas fa-thumbs-up', iconColor:'#0D9488', title:'Добър ден!',   color:'#0D9488',
+              msg:'Справихте се добре. Утре може дори по-добре!', confetti:false },
+            { min:2, iconClass:'fas fa-dumbbell', iconColor:'#f59e0b', title:'Може по-добре', color:'#f59e0b',
+              msg:'Трудно е понякога, но не се отказвайте. Всеки ден е нов шанс!', confetti:false },
+            { min:0, iconClass:'fas fa-seedling', iconColor:'#6366f1', title:'Нов старт утре!', color:'#6366f1',
+              msg:'Днес беше предизвикателно. Малките промени правят голяма разлика!', confetti:false }
         ];
 
         function showDayEndModal(ds) {
@@ -8309,7 +8331,7 @@
 
             var emoEl = document.createElement('span');
             emoEl.className = 'game-modal-emoji';
-            emoEl.textContent = lv.emoji;
+            emoEl.innerHTML = '<i class="'+lv.iconClass+'" style="color:'+lv.iconColor+'"></i>';
             modal.appendChild(emoEl);
 
             var titleEl = document.createElement('div');
@@ -8326,7 +8348,7 @@
             var engEl = document.createElement('div');
             engEl.className = 'game-modal-score';
             engEl.style.cssText = 'background:rgba(13,148,136,0.12);color:#0D9488;';
-            engEl.innerHTML = '\uD83D\uDCCA \u0410\u043D\u0433\u0430\u0436\u0438\u0440\u0430\u043D\u043E\u0441\u0442: <strong>' + (ds.engPct||0) + '%</strong>';
+            engEl.innerHTML = '<i class="fas fa-chart-bar" style="color:#0D9488"></i> Ангажираност: <strong>' + (ds.engPct||0) + '%</strong>';
             modal.appendChild(engEl);
 
             var msgEl = document.createElement('div');
@@ -8370,15 +8392,15 @@
             var old = document.getElementById('gameWeeklyModal');
             if (old) old.remove();
             var avg = wd.avgScore;
-            var emoji, title, msg, color;
-            if      (avg>=4.5){ emoji='\uD83C\uDFC6'; title='\u0424\u0430\u043D\u0442\u0430\u0441\u0442\u0438\u0447\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430!'; color='#fbbf24';
-                msg='\u0418\u0437\u043A\u043B\u044E\u0447\u0438\u0442\u0435\u043B\u043D\u043E \u043F\u0440\u0435\u0434\u0441\u0442\u0430\u0432\u044F\u043D\u0435! \u0412\u0438\u0435 \u0441\u0442\u0435 \u043D\u0430 \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u0438\u044F \u043F\u044A\u0442. \u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439\u0442\u0435!'; }
-            else if (avg>=3.5){ emoji='\uD83C\uDFAF'; title='\u041C\u043D\u043E\u0433\u043E \u0434\u043E\u0431\u0440\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430!'; color='#10b981';
-                msg='\u041E\u0442\u043B\u0438\u0447\u043D\u043E! \u041C\u0430\u043B\u043A\u043E \u043F\u043E\u0432\u0435\u0447\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u0449\u0435 \u0432\u0438 \u0434\u043E\u0432\u0435\u0434\u0435 \u0434\u043E \u043F\u0435\u0440\u0444\u0435\u043A\u0446\u0438\u044F\u0442\u0430.'; }
-            else if (avg>=2.5){ emoji='\uD83D\uDCC8'; title='\u0414\u043E\u0431\u0440\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430!'; color='#0D9488';
-                msg='\u041D\u0430\u043F\u0440\u0435\u0434\u0432\u0430\u0442\u0435 \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u043E. \u041D\u0430\u043C\u0435\u0440\u0435\u0442\u0435 \u043A\u043E\u0439 \u0430\u0441\u043F\u0435\u043A\u0442 \u0434\u0430 \u043F\u043E\u0434\u043E\u0431\u0440\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430.'; }
-            else               { emoji='\uD83C\uDF31'; title='\u041D\u043E\u0432\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430, \u043D\u043E\u0432 \u0448\u0430\u043D\u0441!'; color='#6366f1';
-                msg='\u0412\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0435 \u043D\u043E\u0432 \u0441\u0442\u0430\u0440\u0442. \u041C\u0430\u043B\u043A\u0438\u0442\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u043F\u0440\u0430\u0432\u044F\u0442 \u0442\u0440\u0430\u0439\u043D\u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438!'; }
+            var iconClass, iconColor, title, msg, color;
+            if      (avg>=4.5){ iconClass='fas fa-trophy'; iconColor='#fbbf24'; title='Фантастична седмица!'; color='#fbbf24';
+                msg='Изключително представяне! Вие сте на правилния път. Продължавайте!'; }
+            else if (avg>=3.5){ iconClass='fas fa-bullseye'; iconColor='#10b981'; title='Много добра седмица!'; color='#10b981';
+                msg='Отлично! Малко повече внимание ще ви доведе до перфекцията.'; }
+            else if (avg>=2.5){ iconClass='fas fa-chart-line'; iconColor='#0D9488'; title='Добра седмица!'; color='#0D9488';
+                msg='Напредвате стабилно. Наберете кой аспект да подобрите следващата седмица.'; }
+            else               { iconClass='fas fa-seedling'; iconColor='#6366f1'; title='Нова седмица, нов шанс!'; color='#6366f1';
+                msg='Всяка седмица е нов старт. Малките промени правят трайни резултати!'; }
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyModal';
@@ -8397,7 +8419,7 @@
 
             var emoEl2 = document.createElement('span');
             emoEl2.className = 'game-modal-emoji';
-            emoEl2.textContent = emoji;
+            emoEl2.innerHTML = '<i class="'+iconClass+'" style="color:'+iconColor+'"></i>';
             modal.appendChild(emoEl2);
 
             var titleEl2 = document.createElement('div');
@@ -8414,7 +8436,7 @@
             var en2 = document.createElement('div');
             en2.className = 'game-modal-score';
             en2.style.cssText = 'background:rgba(13,148,136,0.12);color:#0D9488;';
-            en2.innerHTML = '\uD83D\uDCCA \u0410\u043D\u0433\u0430\u0436\u0438\u0440\u0430\u043D\u043E\u0441\u0442: <strong>' + wd.avgEngPct + '%</strong>';
+            en2.innerHTML = '<i class="fas fa-chart-bar" style="color:#0D9488"></i> Ангажираност: <strong>' + wd.avgEngPct + '%</strong>';
             modal.appendChild(en2);
 
             var mg2 = document.createElement('div');
