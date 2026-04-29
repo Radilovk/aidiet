@@ -8086,7 +8086,8 @@
             }
 
             // If FAB wasn't already raised, wait for the raise animation to complete
-            // before showing the bubble (gives the animated-upward effect)
+            // before showing the bubble (gives the animated-upward effect).
+            // 440ms = 400ms CSS transition duration + 40ms buffer for smooth UX.
             var raiseDelay = (!wasRaised && fab) ? 440 : 0;
 
             setTimeout(function() {

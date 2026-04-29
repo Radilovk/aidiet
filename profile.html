@@ -652,6 +652,14 @@
             color: var(--text-dark);
             line-height: 1.5;
         }
+        /* No-data days note */
+        .game-no-data-note {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            text-align: center;
+            padding: 6px 0;
+            opacity: 0.8;
+        }
         /* Encouragement note */
         .game-encourage-note {
             background: rgba(13,148,136,0.07);
@@ -3668,7 +3676,7 @@
                 pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1') +
             '</div>';
 
-            if(noDataDaysCount>0) html += '<div style="font-size:0.75rem;color:var(--text-gray);text-align:center;padding:6px 0;opacity:0.8"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (отчетени като 0%)</div>';
+            if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (отчетени като 0%)</div>';
 
             // Correlations & insights section
             if(insights.length>0){
