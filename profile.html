@@ -3402,28 +3402,87 @@
 
             // ── calcDayScore ──────────────────────────────────────────────────
             function calcDayScore(rec) {
-                if (!rec) return { score:0, stars:'', label:'Без данни', junkCount:0, engPct:0 };
-                var score=5, junkCount=0;
-                Object.keys(rec.meals||{}).forEach(function(m){
-                    if (rec.meals[m]===false) score=Math.max(0,score-1);
+                if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0, incorrectMeals:0, excessCalories:false, calorieBalance:'balanced', engPct:0 };
+                var meals = Object.keys(rec.meals || {});
+                var freeMealRatings = rec.freeMealRatings || {};
+                var mealPts = 0, mealMax = meals.length * 10;
+                var incorrectMeals = 0;
+                meals.forEach(function(m) {
+                    if (m === 'Свободно хранене') {
+                        var rating = freeMealRatings[m];
+                        if (rating != null) { if (rating >= 4) { mealPts += 10; } else { incorrectMeals++; } }
+                    } else {
+                        if (rec.meals[m] === true) mealPts += 10;
+                    }
                 });
-                (rec.extraMeals||[]).forEach(function(em){ if(em.isJunk) junkCount++; });
-                var meals=Object.keys(rec.meals||{});
-                var done=meals.filter(function(m){return rec.meals[m]===true;}).length;
-                var mealPct = meals.length>0 ? done/meals.length*50 : 0;
-                var mornPct = rec.morningCheck ? 15 : 0;
-                var evePct  = rec.eveningCheck ? 15 : 0;
-                var junkPct = Math.max(0, 20 - junkCount*7);
-                var engPct  = Math.round(mealPct+mornPct+evePct+junkPct);
-                var starIcon = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.8em"></i>';
-                var stars='', label='';
-                if      (score===5&&!junkCount) { stars=starIcon+starIcon+starIcon+starIcon+starIcon; label='Отличен ден!'; }
-                else if (score>=4 &&!junkCount) { stars=starIcon+starIcon+starIcon+starIcon;           label='Много добре!'; }
-                else if (score>=3)              { stars=starIcon+starIcon+starIcon;                   label='Добре'; }
-                else if (score>=2)              { stars=starIcon+starIcon;                            label='Може по-добре'; }
-                else                            { stars=starIcon;                                     label='Подобри се утре'; }
-                if (!meals.length) { score = null; stars = ''; label = 'Хранения не отбелязани'; }
-                return { score:score, stars:stars, label:label, junkCount:junkCount, engPct:engPct };
+                var junkCount = 0;
+                var extraCalSum = 0;
+                (rec.extraMeals || []).forEach(function(em) {
+                    if (em.isJunk) junkCount++;
+                    if (!em.isFreeMealReplacement) extraCalSum += (em.calories || 0);
+                });
+                var planned = rec.plannedCalories || null;
+                var excessCalories = false, calorieBalance = 'balanced';
+                if (extraCalSum > 0) {
+                    if (planned && planned > 0) {
+                        if (extraCalSum / planned > 0.10) { excessCalories = true; calorieBalance = 'surplus'; }
+                        else { calorieBalance = 'surplus'; }
+                    } else {
+                        if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
+                        else { calorieBalance = 'surplus'; }
+                    }
+                }
+                var sleepPts    = rec.morningCheck  ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
+                var waterPts    = rec.eveningCheck  ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
+                var activityPts = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.activityLevel] || 0) : null;
+                var balancePts  = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
+                var wellnessEarned = (sleepPts||0)+(waterPts||0)+(activityPts||0)+(balancePts||0);
+                var allMealsOk = meals.length > 0 && meals.every(function(m) {
+                    if (m === 'Свободно хранене') { var r=freeMealRatings[m]; return r==null||r>=4; }
+                    return rec.meals[m] === true;
+                });
+                var badSleep = rec.morningCheck && rec.morningCheck.sleptWell === false;
+                var badWater = rec.eveningCheck && rec.eveningCheck.waterIntake === false;
+                var lowActivity = rec.eveningCheck && rec.eveningCheck.activityLevel === 1;
+                var lowBalance  = rec.eveningCheck && rec.eveningCheck.emotionalBalance === 1;
+                var has5StarBlocker = !allMealsOk || incorrectMeals>0 || excessCalories || badSleep || badWater || lowActivity || lowBalance || junkCount>0;
+                var done = meals.filter(function(m) {
+                    if (m==='Свободно хранене') return (freeMealRatings[m]||0)>=4;
+                    return rec.meals[m]===true;
+                }).length;
+                var mealEngPct = meals.length>0 ? done/meals.length*50 : 0;
+                var mornEngPct = rec.morningCheck ? 15 : 0;
+                var eveEngPct  = rec.eveningCheck  ? 15 : 0;
+                var junkPct    = Math.max(0, 20-(junkCount+incorrectMeals)*7);
+                var engPct     = Math.round(mealEngPct+mornEngPct+eveEngPct+junkPct);
+                var totalMax = mealMax + 40;
+                var totalEarned = mealPts + wellnessEarned;
+                var score = null;
+                if (totalMax > 0 && (totalEarned > 0 || meals.length > 0)) {
+                    var pct = totalEarned / totalMax;
+                    if (pct>=1.00 && !has5StarBlocker) score=5;
+                    else if (pct>=0.80) score=4;
+                    else if (pct>=0.55) score=3;
+                    else if (pct>=0.30) score=2;
+                    else score=1;
+                    if (score===5 && has5StarBlocker) score=4;
+                }
+                var starIcon='<i class="fas fa-star" style="color:#fbbf24;font-size:0.8em"></i>';
+                var stars='';
+                for (var _s=0;_s<(score||0);_s++) stars+=starIcon;
+                var label='';
+                if (score===null) { label=meals.length?'Без отбелязана активност':'Без данни'; }
+                else if (score===5) label='Отличен ден!';
+                else if (score===4) label='Много добре!';
+                else if (score===3) label='Добре';
+                else if (score===2) label='Може по-добре';
+                else label='Подобри се утре';
+                if (incorrectMeals>0) label+=' ⚠ '+incorrectMeals+' неправилно хранене';
+                if (junkCount>0) label+=' ('+junkCount+' вредни)';
+                if (calorieBalance==='surplus'&&excessCalories) label+=' — излишни кал.';
+                return { score:score, stars:stars, label:label, junkCount:junkCount,
+                         incorrectMeals:incorrectMeals, excessCalories:excessCalories,
+                         calorieBalance:calorieBalance, engPct:engPct };
             }
 
             // ── Core metrics ──────────────────────────────────────────────────
@@ -3439,9 +3498,21 @@
 
             var extraCalsByDay = days.map(function(d){
                 if(!d.rec||!d.rec.extraMeals) return null;
-                return d.rec.extraMeals.reduce(function(s,em){return s+(em.calories||0);},0);
+                // Only count extra (non-replacement) meals for calorie balance
+                return d.rec.extraMeals.reduce(function(s,em){
+                    return em.isFreeMealReplacement ? s : s+(em.calories||0);
+                },0);
             });
             var totalExtraCals = extraCalsByDay.reduce(function(s,v){return s+(v||0);},0);
+
+            // Incorrect meal count (free meals rated 0-3) for weekly health impact
+            var incorrectMealsCount7 = 0;
+            days.forEach(function(d){
+                if (d.rec) {
+                    var ds = calcDayScore(d.rec);
+                    incorrectMealsCount7 += ds.incorrectMeals || 0;
+                }
+            });
 
             var balanceByDay = days.map(function(d){
                 if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.emotionalBalance==null) return null;
@@ -3488,11 +3559,15 @@
             // Composite health score 0-100 (normalized by actual available weights)
             var healthScore = 0;
             var totalWeight = 0.35;
-            healthScore += engagementPct * 0.35;
+            // Incorrect meals reduce engagement pct for health score purposes
+            var adjustedEngPct = Math.max(0, engagementPct - incorrectMealsCount7 * 5);
+            healthScore += adjustedEngPct * 0.35;
             if(sleepPct!=null){ healthScore += sleepPct * 0.25; totalWeight += 0.25; }
             if(balancePct!=null){ healthScore += balancePct * 0.2; totalWeight += 0.2; }
             if(actPct!=null){ healthScore += actPct * 0.2; totalWeight += 0.2; }
             var totalCalsWeight = Math.max(0, 100 - Math.round(totalExtraCals/700*100));
+            // Incorrect meals also reduce calorie balance weight
+            totalCalsWeight = Math.max(0, totalCalsWeight - incorrectMealsCount7 * 10);
             healthScore += totalCalsWeight * 0.05; totalWeight += 0.05;
             healthScore = Math.round(Math.max(0, Math.min(100, healthScore / totalWeight)));
 
@@ -3541,6 +3616,7 @@
             var missedLast2 = days.slice(-2).filter(function(d){ return !d.rec||calcDayScore(d.rec).score<2; });
             if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имате ниска ангажираност — проверете дали имате нужда от промяна в плана.');
             if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Открихме '+junkCount7+' вредни хранения за седмицата. Опитайте да намалите до 1-2 максимум.');
+            if(incorrectMealsCount7>0) alerts.push('<i class="fas fa-exclamation-circle" style="color:#ef4444"></i> '+incorrectMealsCount7+' неправилно свободно хранене за седмицата — нискокачествените замени снижават здравния ви индекс.');
             if(sleepPct!=null&&sleepPct<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
 
             // ── Encouragement ─────────────────────────────────────────────────
@@ -3555,9 +3631,9 @@
             // ── Explanation modal ─────────────────────────────────────────────
             var EXPLANATIONS = {
                 engagement: { title:'Ангажираност към плана',
-                    text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни храни (20 т.)\n\nСедмичният % е средна стойност (дни без данни се броят като 0%).\nЦел: 80%+' },
-                calories: { title:'Допълнителни калории',
-                    text:'Сума от всички допълнителни хранения за последните дни.\n\n0 kcal — отлично\n1-700 kcal — умерено\n>700 kcal — прекалено\n\nНяма пряка връзка с плана.' },
+                    text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни/неправилни храни (20 т.)\n\nВсяко неправилно свободно хранене (рейтинг 0-3/5) намалява точките.\nСедмичният % е средна стойност (дни без данни = 0%).\nЦел: 80%+' },
+                calories: { title:'Калориен баланс',
+                    text:'Показва нетния калориен излишък от допълнителни хранения (незаместващи) за последните дни.\n\n0 kcal — балансиран ден\n1-200 kcal — лек излишък\n>200 kcal — значителен излишък\n\nСвободните хранения с рейтинг 0-3 се отчитат като "Неправилно хранене" и допълнително влошават здравния индекс.' },
                 stress: { title:'Емоционален баланс',
                     text:'Изчислява се от вечерния въпрос "Емоционален баланс".\n\n• Баланс Отлично → 100%\n• Баланс Добре → 50%\n• Баланс Слабо → 0%\n\nПо-висок % = по-добре.\nЦел: 70%+\n\nВисок емоционален баланс означава нисък стрес и по-добро самочувствие.' },
                 sleep: { title:'Качество на съня',
@@ -3668,9 +3744,14 @@
             '</div>';
 
             var calMax = Math.max(totalExtraCals,700,1);
+            var calBalanceLabel = totalExtraCals === 0
+                ? '<i class="fas fa-check-circle" style="color:#10b981"></i> Балансиран'
+                : totalExtraCals < 700
+                    ? '<i class="fas fa-circle" style="color:#f59e0b"></i> Излишък'
+                    : '<i class="fas fa-circle" style="color:#ef4444"></i> Голям излишък';
             html += '<div class="game-index-row" data-explain="calories">' +
-                '<div class="game-index-label"><span><i class="fas fa-fire" style="color:#f59e0b"></i> Допълнителни кал.</span><span>'+totalExtraCals+' kcal</span></div>' +
-                '<div class="game-index-hint">'+(totalExtraCals===0?'<i class="fas fa-check-circle" style="color:#10b981"></i> Нула':totalExtraCals<700?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерено':'<i class="fas fa-circle" style="color:#ef4444"></i> Много')+' · По-малко = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(totalExtraCals>0?'+':'')+totalExtraCals+' kcal</span></div>' +
+                '<div class="game-index-hint">'+calBalanceLabel+' · Излишък от допълнителни хранения · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
                 miniBarChart(extraCalsByDay,calMax,totalExtraCals>700?'#ef4444':'#f59e0b') +
             '</div>';
 
