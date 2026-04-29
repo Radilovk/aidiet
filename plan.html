@@ -7252,7 +7252,8 @@
         // ═══════════════════════════════════════════════════════════
 
         // ── My Menu: save analysed food/menu items to personal log ──
-        var MY_MENU_KEY = 'myMenu';
+        var MY_MENU_KEY          = 'myMenu';
+        var MAX_MY_MENU_ENTRIES  = 100;   // Max saved items to avoid localStorage bloat
         function addToMyMenu() {
             if (!_lastFoodAnalysis) return;
             var menu = [];
@@ -7264,8 +7265,8 @@
                 summary: buildMyMenuSummary(_lastFoodAnalysis)
             };
             menu.unshift(entry); // newest first
-            // Keep at most 100 entries to avoid storage bloat
-            if (menu.length > 100) menu = menu.slice(0, 100);
+            // Keep at most MAX_MY_MENU_ENTRIES entries to avoid storage bloat
+            if (menu.length > MAX_MY_MENU_ENTRIES) menu = menu.slice(0, MAX_MY_MENU_ENTRIES);
             localStorage.setItem(MY_MENU_KEY, JSON.stringify(menu));
             _lastFoodAnalysis = null;
             closeFoodAnalysis();
@@ -7958,10 +7959,13 @@
     // All data in localStorage; no backend except weekly summary prep
     // ═══════════════════════════════════════════════════════════════════════════
     (function() {
-        var GAME_ENABLED_KEY   = 'gameEnabled';
-        var GAME_DATA_KEY      = 'gameData';
-        var GAME_WEEKLY_AI_KEY = 'gameWeeklyAI';
-        var _promptIntervalId  = null;
+        var GAME_ENABLED_KEY       = 'gameEnabled';
+        var GAME_DATA_KEY          = 'gameData';
+        var GAME_WEEKLY_AI_KEY     = 'gameWeeklyAI';
+        var FREE_MEAL_MIN_RATING   = 4;   // Suitability rating threshold: >=4 = correct free meal
+        var JUNK_MAX_POINTS        = 20;  // Max engagement pts from junk/incorrect-meal component
+        var JUNK_PENALTY_PER_MEAL  = 7;   // Engagement pts lost per junk or incorrect meal
+        var _promptIntervalId      = null;
 
         // ── Helpers ──────────────────────────────────────────────────────────
         function zp(n) { return n < 10 ? '0' + n : '' + n; }
@@ -8076,11 +8080,11 @@
             meals.forEach(function(m) {
                 var isFree = (m === 'Свободно хранене');
                 if (isFree) {
-                    // Free meal counts only if a photo was analyzed with rating 4-5
+                    // Free meal counts only if a photo was analyzed with rating >= FREE_MEAL_MIN_RATING
                     var rating = freeMealRatings[m];
                     if (rating != null) {
-                        if (rating >= 4) { mealPts += 10; }
-                        else             { incorrectMeals++; } // rating 0-3 = incorrect meal
+                        if (rating >= FREE_MEAL_MIN_RATING) { mealPts += 10; }
+                        else             { incorrectMeals++; } // rating below threshold = incorrect meal
                     }
                     // if not rated but marked done → do not penalise, treat as uncertain (0 pts, no flag)
                 } else {
@@ -8131,7 +8135,7 @@
             var allMealsOk    = meals.length > 0 && meals.every(function(m) {
                 if (m === 'Свободно хранене') {
                     var r = freeMealRatings[m];
-                    return r == null || r >= 4; // not rated = uncertain, don't block; rated low = blocks
+                    return r == null || r >= FREE_MEAL_MIN_RATING; // not rated = uncertain, don't block; rated low = blocks
                 }
                 return rec.meals[m] === true;
             });
@@ -8144,13 +8148,13 @@
 
             // ── Engagement % (kept for backward compatibility) ──────────────
             var done     = meals.filter(function(m) {
-                if (m === 'Свободно хранене') return (freeMealRatings[m] || 0) >= 4;
+                if (m === 'Свободно хранене') return (freeMealRatings[m] || 0) >= FREE_MEAL_MIN_RATING;
                 return rec.meals[m] === true;
             }).length;
             var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
             var mornEngPct = rec.morningCheck ? 15 : 0;
             var eveEngPct  = rec.eveningCheck ? 15 : 0;
-            var junkPct    = Math.max(0, 20 - (junkCount + incorrectMeals) * 7); // 7 pts per junk/incorrect meal (20 pts total component)
+            var junkPct    = Math.max(0, JUNK_MAX_POINTS - (junkCount + incorrectMeals) * JUNK_PENALTY_PER_MEAL); // engagement pts from junk/incorrect meal component
             var engPct     = Math.round(mealEngPct + mornEngPct + eveEngPct + junkPct);
 
             // ── Score calculation ───────────────────────────────────────────
@@ -8323,13 +8327,13 @@
                     var ratingBadge = document.createElement('span');
                     ratingBadge.className = 'free-meal-rating-badge';
                     if (freeMealRating != null) {
-                        ratingBadge.title = freeMealRating >= 4 ? 'Правилно хранене' : 'Неправилно хранене!';
-                        ratingBadge.innerHTML = freeMealRating >= 4
+                        ratingBadge.title = freeMealRating >= FREE_MEAL_MIN_RATING ? 'Правилно хранене' : 'Неправилно хранене!';
+                        ratingBadge.innerHTML = freeMealRating >= FREE_MEAL_MIN_RATING
                             ? '<i class="fas fa-check-circle" style="color:#10b981"></i>'
-                            : '<i class="fas fa-exclamation-circle" style="color:#ef4444" title="\u041D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435!"></i>';
-                        card.setAttribute('data-incorrect-meal', freeMealRating < 4 ? '1' : '0');
+                            : '<i class="fas fa-exclamation-circle" style="color:#ef4444" title="Неправилно хранене!"></i>';
+                        card.setAttribute('data-incorrect-meal', freeMealRating < FREE_MEAL_MIN_RATING ? '1' : '0');
                     } else {
-                        ratingBadge.innerHTML = '<i class="fas fa-camera" style="color:#9ca3af;font-size:0.75em" title="\u0421\u043D\u0438\u043C\u0435\u0442\u0435 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0437\u0430 \u043E\u0446\u0435\u043D\u043A\u0430"></i>';
+                        ratingBadge.innerHTML = '<i class="fas fa-camera" style="color:#9ca3af;font-size:0.75em" title="Снимете храната за оценка"></i>';
                     }
                     card.appendChild(ratingBadge);
                 }
@@ -8362,11 +8366,10 @@
 
             if (isFreeMealReplacement) {
                 // Store the suitability rating for the free meal slot
-                var prevRating = rec.freeMealRatings[mealContext];
                 // Keep the best rating if multiple photos taken for the same slot
                 var newRating = suitabilityScore != null ? Math.round(suitabilityScore) : null;
                 if (newRating != null) {
-                    rec.freeMealRatings[mealContext] = (prevRating != null) ? Math.max(prevRating, newRating) : newRating;
+                    rec.freeMealRatings[mealContext] = Math.max(rec.freeMealRatings[mealContext] || 0, newRating);
                 }
                 // Also record in extraMeals for calorie tracking (flagged as free replacement)
                 rec.extraMeals.push({ name: name || 'Свободно хранене',
