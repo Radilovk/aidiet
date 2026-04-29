@@ -981,10 +981,10 @@
         /* --- CHAT FAB - Premium Design --- */
         .fab-chat {
             position: fixed;
-            bottom: calc(80px + var(--safe-area-inset-bottom));
-            right: calc(24px + var(--safe-area-inset-right));
-            width: 64px;
-            height: 64px;
+            top: calc(var(--safe-area-inset-top, 0px) + 144px);
+            right: calc(16px + var(--safe-area-inset-right));
+            width: 56px;
+            height: 56px;
             background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent, #0F766E) 100%);
             border-radius: 20px;
             box-shadow: 
@@ -1933,10 +1933,10 @@
         /* Chat bubble */
         .game-bubble {
             position: fixed;
-            bottom: calc(148px + var(--safe-area-inset-bottom));
+            top: calc(var(--safe-area-inset-top, 0px) + 210px);
             right: calc(18px + var(--safe-area-inset-right));
             background: var(--card-bg, rgba(255,255,255,0.97));
-            border-radius: 20px 20px 4px 20px;
+            border-radius: 20px 4px 20px 20px;
             width: 300px;
             max-width: calc(100vw - 32px);
             box-shadow: 0 12px 44px rgba(0,0,0,0.22), 0 4px 12px rgba(13,148,136,0.18);
@@ -2119,7 +2119,7 @@
         /* Encouragement toast */
         .game-encourage-toast {
             position: fixed;
-            bottom: calc(148px + var(--safe-area-inset-bottom));
+            bottom: calc(80px + var(--safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%) translateY(20px);
             background: var(--card-bg, rgba(255,255,255,0.97));
@@ -4852,6 +4852,7 @@
             });
 
             // Enhance meal cards with game checkmarks if game is enabled
+            window._gameCurrentPlanDay = dayNum;
             if (typeof window._gameEnhanceMealCards === 'function') {
                 setTimeout(window._gameEnhanceMealCards, 0);
             }
@@ -7816,6 +7817,24 @@
         function getTodayKey()     { return dateKey(new Date()); }
         function getYesterdayKey() { var d = new Date(); d.setDate(d.getDate()-1); return dateKey(d); }
 
+        // Map plan day number (1=Mon … 7=Sun) to actual calendar date string
+        function getDateForPlanDay(planDay) {
+            var jsDay = new Date().getDay(); // 0=Sun
+            var todayPlanDay = jsDay === 0 ? 7 : jsDay;
+            var offset = planDay - todayPlanDay;
+            var d = new Date();
+            d.setDate(d.getDate() + offset);
+            return dateKey(d);
+        }
+        // Return the date key for the plan day currently being viewed
+        function getCurrentViewDayKey() {
+            var planDay = window._gameCurrentPlanDay;
+            if (!planDay) return getTodayKey();
+            return getDateForPlanDay(planDay);
+        }
+        function isFutureDayKey(key) { return key > getTodayKey(); }
+        function isPastDayKey(key)   { return key < getTodayKey(); }
+
         function startPromptInterval() {
             if (_promptIntervalId) clearInterval(_promptIntervalId);
             _promptIntervalId = setInterval(checkTimePrompts, 60000);
@@ -7904,14 +7923,16 @@
         }
 
         function recalcAndShowScore(key) {
-            key = key || getTodayKey();
+            key = key || getCurrentViewDayKey();
             var rec = getRecord(key);
             rec.dailyScore = calcDayScore(rec);
             saveRecord(key, rec);
-            if (key === getTodayKey()) renderDailyScoreCard();
+            var viewKey = getCurrentViewDayKey();
+            if (key === viewKey) renderDailyScoreCard(key);
         }
 
-        function renderDailyScoreCard() {
+        function renderDailyScoreCard(dayKey) {
+            dayKey = dayKey || getCurrentViewDayKey();
             var card = document.getElementById('dailyScoreCard');
             if (!card) {
                 card = document.createElement('div');
@@ -7921,14 +7942,22 @@
                 var container = document.getElementById('mealContainer');
                 if (container && container.parentNode) container.parentNode.insertBefore(card, container);
             }
-            var rec = getTodayRecord();
-            if (!rec.dailyScore) { card.style.display='none'; return; }
+            // Future days: never show analysis
+            if (isFutureDayKey(dayKey)) { card.style.display='none'; return; }
+            var rec = getRecord(dayKey);
+            if (!rec || !rec.dailyScore) { card.style.display='none'; return; }
             var ds = rec.dailyScore;
             card.style.display = 'flex';
+            var dayLabel = '';
+            if (isPastDayKey(dayKey)) {
+                var dayNames = ['\u041D\u0434','\u041F\u043D','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041F\u0442','\u0421\u0431'];
+                var dPast = new Date(dayKey + 'T00:00:00');
+                dayLabel = ' \u2014 ' + dayNames[dPast.getDay()];
+            }
             var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(s){return s;};
             card.innerHTML = '<div class="daily-score-icon">\uD83D\uDCCA</div>' +
                 '<div class="daily-score-info">' +
-                    '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F</div>' +
+                    '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F' + esc(dayLabel) + '</div>' +
                     '<div class="daily-score-value">' + esc(ds.label) + '</div>' +
                     '<div class="daily-score-stars">' + ds.stars + '</div>' +
                 '</div>';
@@ -7939,7 +7968,17 @@
             if (!isGameEnabled()) return;
             var container = document.getElementById('mealContainer');
             if (!container) return;
-            var rec = getTodayRecord();
+            var dayKey = getCurrentViewDayKey();
+
+            // Future days: remove any leftover check buttons, hide score card
+            if (isFutureDayKey(dayKey)) {
+                container.querySelectorAll('.meal-check-btn').forEach(function(b){ b.remove(); });
+                var sc = document.getElementById('dailyScoreCard');
+                if (sc) sc.style.display = 'none';
+                return;
+            }
+
+            var rec = getRecord(dayKey);
             container.querySelectorAll('.meal-card:not([data-ge])').forEach(function(card) {
                 var typeEl = card.querySelector('.meal-type');
                 var mealType = typeEl ? typeEl.textContent.replace(/\(.*\)/,'').trim() : '';
@@ -7952,15 +7991,15 @@
                 checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
                 checkBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    var r = getTodayRecord();
+                    var r = getRecord(dayKey);
                     r.meals[mealType] = !r.meals[mealType];
-                    saveTodayRecord(r);
+                    saveRecord(dayKey, r);
                     checkBtn.classList.toggle('done', r.meals[mealType]);
-                    recalcAndShowScore();
+                    recalcAndShowScore(dayKey);
                 });
                 card.appendChild(checkBtn);
             });
-            recalcAndShowScore();
+            recalcAndShowScore(dayKey);
         }
 
         // ── Extra food logging ────────────────────────────────────────────────
