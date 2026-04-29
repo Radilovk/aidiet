@@ -1944,6 +1944,12 @@
             border: 1.5px solid rgba(13,148,136,0.22);
             overflow: hidden;
         }
+        /* When FAB is raised to top, the bubble follows it and appears below the FAB */
+        .game-bubble.game-bubble--top {
+            bottom: auto;
+            top: calc(var(--safe-area-inset-top, 0px) + 148px);
+            border-radius: 20px 4px 20px 20px;
+        }
         @keyframes bubbleIn {
             from { opacity: 0; transform: scale(0.6) translateY(30px); }
             to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -7895,20 +7901,34 @@
         }
 
         // ── Scoring ───────────────────────────────────────────────────────────
-        // Day score: 0-5 base (each skipped plan meal = -1)
+        // Day score: positive points from completed meals + completed questionnaires (morning + evening).
+        // Max points = number of planned meals + 2 (morning check + evening check) → maps to 5 stars.
         // Engagement pct: 4-component index (0-100)
         function calcDayScore(rec) {
-            if (!rec) return { score:0, stars:'', label:'Без данни', junkCount:0, excessCalories:false, engPct:0 };
-            var score = 5, junkCount = 0, excessCalories = false;
-            Object.keys(rec.meals || {}).forEach(function(m) {
-                if (rec.meals[m] === false) score = Math.max(0, score - 1);
-            });
+            if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0, excessCalories:false, engPct:0 };
+            var junkCount = 0, excessCalories = false;
             (rec.extraMeals || []).forEach(function(em) {
                 if (em.isJunk) { junkCount++; excessCalories = true; }
             });
-            // Engagement %: meal adherence 50 + morning check 15 + evening check 15 + no-junk 20
             var meals = Object.keys(rec.meals || {});
             var done  = meals.filter(function(m) { return rec.meals[m] === true; }).length;
+
+            // Positive scoring: each completed meal = 1 pt; morning check = 1 pt; evening check = 1 pt
+            var maxPoints   = meals.length + 2;
+            var earnedPoints = done + (rec.morningCheck ? 1 : 0) + (rec.eveningCheck ? 1 : 0);
+            earnedPoints = Math.max(0, earnedPoints - junkCount); // junk penalty
+
+            var score = null;
+            if (maxPoints > 0) {
+                var pct = earnedPoints / maxPoints;
+                if      (pct >= 0.95) score = 5;
+                else if (pct >= 0.75) score = 4;
+                else if (pct >= 0.50) score = 3;
+                else if (pct >= 0.25) score = 2;
+                else if (earnedPoints > 0) score = 1;
+            }
+
+            // Engagement %: meal adherence 50 + morning check 15 + evening check 15 + no-junk 20
             var mealPct = meals.length > 0 ? done / meals.length * 50 : 0;
             var mornPct = rec.morningCheck ? 15 : 0;
             var evePct  = rec.eveningCheck ? 15 : 0;
@@ -7916,15 +7936,20 @@
             var engPct  = Math.round(mealPct + mornPct + evePct + junkPct);
 
             var starIcon = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.85em"></i>';
-            var stars='', label='';
-            if      (score===5 && junkCount===0) { stars=starIcon+starIcon+starIcon+starIcon+starIcon; label='Отличен ден!'; }
-            else if (score>=4  && junkCount===0) { stars=starIcon+starIcon+starIcon+starIcon;           label='Много добре!'; }
-            else if (score>=3)                   { stars=starIcon+starIcon+starIcon;                   label='Добре'; }
-            else if (score>=2)                   { stars=starIcon+starIcon;                            label='Може по-добре'; }
-            else                                 { stars=starIcon;                                     label='Подобри се утре'; }
-            if (junkCount>0)    label += ' (' + junkCount + ' вредни)';
-            if (excessCalories) label += ' — излишни кал.';
-            if (!meals.length) { score = null; stars = ''; label = 'Хранения не отбелязани'; }
+            var stars = '';
+            for (var _s = 0; _s < (score || 0); _s++) { stars += starIcon; }
+
+            var label = '';
+            if (score === null) {
+                label = meals.length ? 'Хранения не отбелязани' : 'Без данни';
+            } else if (score === 5 && junkCount === 0) { label = 'Отличен ден!'; }
+            else if   (score >= 4 && junkCount === 0)  { label = 'Много добре!'; }
+            else if   (score >= 3)                     { label = 'Добре'; }
+            else if   (score >= 2)                     { label = 'Може по-добре'; }
+            else                                       { label = 'Подобри се утре'; }
+            if (junkCount > 0)    label += ' (' + junkCount + ' вредни)';
+            if (excessCalories)   label += ' — излишни кал.';
+
             return { score:score, stars:stars, label:label, junkCount:junkCount, excessCalories:excessCalories, engPct:engPct };
         }
 
@@ -7984,10 +8009,12 @@
                 dayLabel = ' \u2014 ' + dayNames[dPast.getDay()];
             }
             var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(s){return s;};
+            // Label is shown only for past days (after midnight). For the current day show stars only.
+            var showLabel = isPastDayKey(dayKey);
             card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-chart-bar" style="color:#0D9488"></i></div>' +
                 '<div class="daily-score-info">' +
                     '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F' + esc(dayLabel) + '</div>' +
-                    '<div class="daily-score-value">' + esc(ds.label) + '</div>' +
+                    (showLabel ? '<div class="daily-score-value">' + esc(ds.label) + '</div>' : '') +
                     '<div class="daily-score-stars">' + ds.stars + '</div>' +
                 '</div>';
         }
@@ -8008,11 +8035,17 @@
             }
 
             var rec = getRecord(dayKey);
+            var mealsInitialized = false;
             container.querySelectorAll('.meal-card:not([data-ge])').forEach(function(card) {
                 var typeEl = card.querySelector('.meal-type');
                 var mealType = typeEl ? typeEl.textContent.replace(/\(.*\)/,'').trim() : '';
                 if (!mealType) return;
                 card.setAttribute('data-ge','1');
+                // Ensure all planned meals are present in the record so calcDayScore knows the total
+                if (!(mealType in rec.meals)) {
+                    rec.meals[mealType] = false;
+                    mealsInitialized = true;
+                }
                 var isDone = rec.meals[mealType] === true;
                 var checkBtn = document.createElement('button');
                 checkBtn.className = 'meal-check-btn' + (isDone ? ' done' : '');
@@ -8028,6 +8061,7 @@
                 });
                 card.appendChild(checkBtn);
             });
+            if (mealsInitialized) saveRecord(dayKey, rec);
             recalcAndShowScore(dayKey);
         }
 
@@ -8095,6 +8129,11 @@
                 var bubble = document.createElement('div');
                 bubble.id = 'gameBubble';
                 bubble.className = 'game-bubble';
+                // If the FAB is currently raised to top, position the bubble below it
+                var fabForPos = document.querySelector('.fab-chat');
+                if (fabForPos && fabForPos.classList.contains('fab-raised')) {
+                    bubble.classList.add('game-bubble--top');
+                }
 
                 // Header
                 var hdr = document.createElement('div');
