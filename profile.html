@@ -3453,7 +3453,7 @@
                 var mealEngPct = meals.length>0 ? done/meals.length*50 : 0;
                 var mornEngPct = rec.morningCheck ? 15 : 0;
                 var eveEngPct  = rec.eveningCheck  ? 15 : 0;
-                var junkPct    = Math.max(0, 20-(junkCount+incorrectMeals)*7);
+                var junkPct    = Math.max(0, 20-(junkCount+incorrectMeals)*7); // 7 pts penalty per junk/incorrect meal (caps at 20 pts total junk component)
                 var engPct     = Math.round(mealEngPct+mornEngPct+eveEngPct+junkPct);
                 var totalMax = mealMax + 40;
                 var totalEarned = mealPts + wellnessEarned;
@@ -3557,17 +3557,18 @@
                 (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length + 0.3);
 
             // Composite health score 0-100 (normalized by actual available weights)
+            // Each incorrect free meal lowers engagement by 5% and calorie balance weight by 10 pts
+            var INCORRECT_MEAL_ENG_PENALTY  = 5;  // engagement% penalty per incorrect free meal
+            var INCORRECT_MEAL_CAL_PENALTY  = 10; // calorie balance weight penalty per incorrect free meal
             var healthScore = 0;
             var totalWeight = 0.35;
-            // Incorrect meals reduce engagement pct for health score purposes
-            var adjustedEngPct = Math.max(0, engagementPct - incorrectMealsCount7 * 5);
+            var adjustedEngPct = Math.max(0, engagementPct - incorrectMealsCount7 * INCORRECT_MEAL_ENG_PENALTY);
             healthScore += adjustedEngPct * 0.35;
             if(sleepPct!=null){ healthScore += sleepPct * 0.25; totalWeight += 0.25; }
             if(balancePct!=null){ healthScore += balancePct * 0.2; totalWeight += 0.2; }
             if(actPct!=null){ healthScore += actPct * 0.2; totalWeight += 0.2; }
             var totalCalsWeight = Math.max(0, 100 - Math.round(totalExtraCals/700*100));
-            // Incorrect meals also reduce calorie balance weight
-            totalCalsWeight = Math.max(0, totalCalsWeight - incorrectMealsCount7 * 10);
+            totalCalsWeight = Math.max(0, totalCalsWeight - incorrectMealsCount7 * INCORRECT_MEAL_CAL_PENALTY);
             healthScore += totalCalsWeight * 0.05; totalWeight += 0.05;
             healthScore = Math.round(Math.max(0, Math.min(100, healthScore / totalWeight)));
 

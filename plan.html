@@ -1944,10 +1944,11 @@
             border: 1.5px solid rgba(13,148,136,0.22);
             overflow: hidden;
         }
-        /* When FAB is raised to top, the bubble follows it and appears below the FAB */
+        /* When FAB is raised to top, the bubble follows it and appears below the FAB.
+           148px = ~80px top bar + 56px FAB height + 12px gap */
         .game-bubble.game-bubble--top {
             bottom: auto;
-            top: calc(var(--safe-area-inset-top, 0px) + 148px);
+            top: calc(var(--safe-area-inset-top, 0px) + 148px); /* 80px top bar + 56px FAB + 12px gap */
             border-radius: 20px 4px 20px 20px;
         }
         @keyframes bubbleIn {
@@ -8024,7 +8025,7 @@
             var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
             var mornEngPct = rec.morningCheck ? 15 : 0;
             var eveEngPct  = rec.eveningCheck ? 15 : 0;
-            var junkPct    = Math.max(0, 20 - (junkCount + incorrectMeals) * 7);
+            var junkPct    = Math.max(0, 20 - (junkCount + incorrectMeals) * 7); // 7 pts per junk/incorrect meal (20 pts total component)
             var engPct     = Math.round(mealEngPct + mornEngPct + eveEngPct + junkPct);
 
             // ── Score calculation ───────────────────────────────────────────
@@ -8035,13 +8036,12 @@
             var score = null;
             if (totalMax > 0 && hasAnyActivity) {
                 var pct = totalEarned / totalMax;
-                if (pct >= 1.00 && !has5StarBlocker) score = 5;
-                else if (pct >= 0.80 && !has5StarBlocker) score = 4;
-                else if (pct >= 0.80)  score = 4; // could become 4 even with minor blockers that don't hit <80%
-                else if (pct >= 0.55)  score = 3;
-                else if (pct >= 0.30)  score = 2;
-                else                   score = 1;
-                // Enforce: 5-star blocker caps at 4
+                if      (pct >= 1.00 && !has5StarBlocker) score = 5;
+                else if (pct >= 0.80) score = 4; // 5-star blockers cap the ceiling, not this band
+                else if (pct >= 0.55) score = 3;
+                else if (pct >= 0.30) score = 2;
+                else                  score = 1;
+                // Hard enforce: 5-star blockers always cap at 4
                 if (score === 5 && has5StarBlocker) score = 4;
             }
 
@@ -8133,11 +8133,11 @@
             }, 0);
             if (extraCals > 0) {
                 calBadge = '<div class="daily-cal-balance surplus" style="font-size:0.72rem;color:#f59e0b;margin-top:3px">' +
-                    '<i class="fas fa-fire"></i> \u041A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u0431\u0430\u043B\u0430\u043D\u0441: +' + extraCals + ' kcal</div>';
+                    '<i class="fas fa-fire"></i> Калориен баланс: +' + extraCals + ' kcal</div>';
             }
             // Incorrect meal badge
             var incorrectBadge = ds.incorrectMeals > 0
-                ? '<div style="font-size:0.72rem;color:#ef4444;margin-top:3px"><i class="fas fa-exclamation-circle"></i> \u041D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435!</div>' : '';
+                ? '<div style="font-size:0.72rem;color:#ef4444;margin-top:3px"><i class="fas fa-exclamation-circle"></i> Неправилно хранене!</div>' : '';
             card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-chart-bar" style="color:#0D9488"></i></div>' +
                 '<div class="daily-score-info">' +
                     '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F' + esc(dayLabel) + '</div>' +
