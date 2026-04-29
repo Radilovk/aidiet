@@ -7845,6 +7845,7 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
 }
 
 ВАЖНО:
+- calories за ВСЯКА храна е ЗАДЪЛЖИТЕЛНО числово поле — изчисли го ВИНАГИ: протеини×4 + въглехидрати×4 + мазнини×9
 - Оценявай грамажа визуално спрямо размера на чинията/контейнера
 - Ако не можеш да разпознаеш храната, постави confidence: "low" и обясни
 - Всички числа да са числа (не текст)
@@ -7879,6 +7880,28 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
         parseError: true,
         message: 'AI анализът е готов, но не успяхме да го структурираме. Вижте суровия отговор.'
       });
+    }
+
+    // b6 guarantee: every food item MUST have numeric calories.
+    // If the AI left calories missing or zero, compute from macros (protein*4 + carbs*4 + fats*9).
+    if (analysisResult && Array.isArray(analysisResult.foods)) {
+      analysisResult.foods = analysisResult.foods.map(food => {
+        if (!(food.calories > 0)) {
+          const p = parseFloat(food.protein) || 0;
+          const c = parseFloat(food.carbs)   || 0;
+          const f = parseFloat(food.fats)    || 0;
+          if (p > 0 || c > 0 || f > 0) {
+            food.calories = Math.round(p * 4 + c * 4 + f * 9);
+          }
+        }
+        return food;
+      });
+      // Recompute totalCalories if missing or zero
+      if (!(analysisResult.totalCalories > 0)) {
+        analysisResult.totalCalories = analysisResult.foods.reduce(
+          (sum, food) => sum + (food.calories || 0), 0
+        );
+      }
     }
 
     return jsonResponse({
