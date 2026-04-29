@@ -523,6 +523,15 @@
             background: #292116;
             color: #fbbf24;
         }
+        /* Photo-added meal cards (from "Добави в плана") */
+        .meal-card.added-meal-card {
+            border-left: 3px solid #06B6D4;
+        }
+        .added-meal-kcal {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 3px;
+        }
 
 
             flex: 1;
@@ -4801,6 +4810,8 @@
         // --- Render Day Meals ---
         function renderDay(dayNum) {
             currentDay = dayNum;
+            // Set early so getCurrentViewDayKey() works correctly for the entire function
+            window._gameCurrentPlanDay = dayNum;
             const dayKey = `day${dayNum}`;
             const dayData = dietPlan.weekPlan && dietPlan.weekPlan[dayKey];
             
@@ -4905,8 +4916,49 @@
                 mealContainer.appendChild(mealCard);
             });
 
+            // Render photo-added meals for this day (from "Добави в плана")
+            (function() {
+                // Compute calendar date key for the currently viewed plan day
+                var now = new Date();
+                var jsDay = now.getDay(); // 0=Sun
+                var todayPlanDay = jsDay === 0 ? 7 : jsDay;
+                var offset = dayNum - todayPlanDay;
+                var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+                var mm = d.getMonth() + 1, dd2 = d.getDate();
+                var viewDateKey = d.getFullYear() + '-' + (mm < 10 ? '0' : '') + mm + '-' + (dd2 < 10 ? '0' : '') + dd2;
+                var addedMeals = [];
+                try { addedMeals = JSON.parse(localStorage.getItem('addedMeals_' + viewDateKey) || '[]'); } catch(e) {}
+                addedMeals.forEach(function(addedMeal, idx) {
+                    var addedCard = document.createElement('div');
+                    addedCard.className = 'meal-card added-meal-card';
+
+                    var addedInfo = document.createElement('div');
+                    addedInfo.className = 'meal-info';
+                    addedInfo.innerHTML =
+                        '<div class="meal-type"><i class="fas fa-camera" style="font-size:0.75em;margin-right:4px;opacity:0.7"></i>' + escapeHtmlWithBreaks(addedMeal.type) + '</div>' +
+                        '<div class="meal-name">' + escapeHtmlWithBreaks(addedMeal.name) + '</div>' +
+                        (addedMeal.calories > 0 ? '<div class="added-meal-kcal">' + Math.round(addedMeal.calories) + ' kcal</div>' : '');
+
+                    var addedBtn = document.createElement('button');
+                    addedBtn.className = 'info-btn';
+                    addedBtn.innerHTML = '<i class="fas fa-info"></i>';
+                    (function(m) {
+                        addedBtn.onclick = function() {
+                            var benefit = m.suitability
+                                ? ((m.suitability.verdict || '') + (m.suitability.explanation ? ': ' + m.suitability.explanation : ''))
+                                : '';
+                            openModal(m.name, m.description || '', benefit, m.macros || null, null, m.weight || null, m.calories || null);
+                        };
+                    })(addedMeal);
+
+                    addedCard.appendChild(addedInfo);
+                    addedCard.appendChild(addedBtn);
+                    mealContainer.appendChild(addedCard);
+                });
+            })();
+
             // Enhance meal cards with game checkmarks if game is enabled
-            window._gameCurrentPlanDay = dayNum;
+            // (window._gameCurrentPlanDay already set at the top of renderDay)
             // Store planned calories in game record for this day (used for calorie balance computation)
             if (typeof window.gameModule !== 'undefined' && window.gameModule.isEnabled()) {
                 var planCalTotal = effectiveMeals.reduce(function(s, m) { return s + (m.calories || 0); }, 0);
@@ -7251,59 +7303,81 @@
         // END MENU ANALYSIS FEATURE
         // ═══════════════════════════════════════════════════════════
 
-        // ── My Menu: save analysed food/menu items to personal log ──
-        var MY_MENU_KEY          = 'myMenu';
-        var MAX_MY_MENU_ENTRIES  = 100;   // Max saved items to avoid localStorage bloat
+        // ── Add to plan: save photo-analysed food as a meal card in today’s plan tab ──
         function addToMyMenu() {
             if (!_lastFoodAnalysis) return;
-            var menu = [];
-            try { menu = JSON.parse(localStorage.getItem(MY_MENU_KEY) || '[]'); } catch(e) {}
-            var entry = {
-                ts:      _lastFoodAnalysis.ts,
-                type:    _lastFoodAnalysis.type, // 'food' | 'menu'
-                context: (document.getElementById('foodMealContext') || {}).value || '',
-                summary: buildMyMenuSummary(_lastFoodAnalysis)
-            };
-            menu.unshift(entry); // newest first
-            // Keep at most MAX_MY_MENU_ENTRIES entries to avoid storage bloat
-            if (menu.length > MAX_MY_MENU_ENTRIES) menu = menu.slice(0, MAX_MY_MENU_ENTRIES);
-            localStorage.setItem(MY_MENU_KEY, JSON.stringify(menu));
+            var snapshot = _lastFoodAnalysis;
+            var a = snapshot.analysis || {};
+            var mealCtx = (document.getElementById('foodMealContext') || {}).value || 'Хранене';
+
+            var mealEntry;
+            if (snapshot.type === 'food') {
+                var names = (a.foods || []).map(function(f){ return f.name; }).join(', ');
+                var foodLines = (a.foods || []).map(function(f) {
+                    var parts = [f.name];
+                    if (f.estimatedWeight) parts.push(f.estimatedWeight);
+                    if (f.calories) parts.push(Math.round(f.calories) + ' kcal');
+                    return parts.join(' • ');
+                }).join('\n');
+                mealEntry = {
+                    type:        mealCtx,
+                    name:        names || 'Анализирана храна',
+                    weight:      a.totalWeight || '',
+                    calories:    a.totalCalories || 0,
+                    description: foodLines,
+                    macros:      {
+                        protein: a.totalProtein || 0,
+                        carbs:   a.totalCarbs   || 0,
+                        fats:    a.totalFats    || 0,
+                        fiber:   a.totalFiber   || 0
+                    },
+                    suitability: a.dietSuitability || null,
+                    addedFrom:   'photo',
+                    ts:          snapshot.ts
+                };
+            } else {
+                // Menu analysis — no direct calorie data, just the recommended dish
+                mealEntry = {
+                    type:        mealCtx,
+                    name:        a.recommendedDish || 'Препоръчано ястие',
+                    weight:      '',
+                    calories:    0,
+                    description: a.description || '',
+                    macros:      null,
+                    suitability: { verdict: (a.suitabilityScore || 0) + '/5', explanation: a.reasoning || '' },
+                    addedFrom:   'photo',
+                    ts:          snapshot.ts
+                };
+            }
+
+            // Save to per-day added meals for TODAY (food is always eaten now)
+            var now = new Date();
+            var mm = now.getMonth() + 1, dd2 = now.getDate();
+            var todayDateKey = now.getFullYear() + '-' + (mm < 10 ? '0' : '') + mm + '-' + (dd2 < 10 ? '0' : '') + dd2;
+            var storageKey = 'addedMeals_' + todayDateKey;
+            var added = [];
+            try { added = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch(e) {}
+            added.push(mealEntry);
+            localStorage.setItem(storageKey, JSON.stringify(added));
+
             _lastFoodAnalysis = null;
             closeFoodAnalysis();
-            // Brief toast confirmation
+
+            // Refresh current plan day view to show the new card inline
+            if (typeof renderDay === 'function' && typeof currentDay !== 'undefined') {
+                renderDay(currentDay);
+            }
+
+            // Brief toast
             var toast = document.createElement('div');
-            toast.textContent = '✓ Добавено в моето меню';
+            toast.textContent = '\u2713 \u0414\u043e\u0431\u0430\u0432\u0435\u043d\u043e \u0432 \u043f\u043b\u0430\u043d\u0430';
             toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);' +
                 'background:#0D9488;color:#fff;padding:10px 20px;border-radius:20px;' +
-                'font-size:0.88rem;font-weight:600;z-index:9999;pointer-events:none;' +
-                'animation:bubbleIn 0.3s ease;';
+                'font-size:0.88rem;font-weight:600;z-index:9999;pointer-events:none;';
             document.body.appendChild(toast);
             setTimeout(function(){ toast.remove(); }, 2400);
         }
-
-        function buildMyMenuSummary(snapshot) {
-            var a = snapshot.analysis || {};
-            if (snapshot.type === 'food') {
-                var names = (a.foods || []).map(function(f){ return f.name; }).join(', ');
-                return {
-                    title:    names || 'Анализирана храна',
-                    calories: a.totalCalories || 0,
-                    protein:  a.totalProtein  || 0,
-                    carbs:    a.totalCarbs    || 0,
-                    fats:     a.totalFats     || 0,
-                    suitabilityScore: a.dietSuitability ? a.dietSuitability.score : null,
-                    verdict:  a.dietSuitability ? (a.dietSuitability.verdict || '') : ''
-                };
-            } else {
-                return {
-                    title:    a.recommendedDish || 'Анализирано меню',
-                    calories: 0,
-                    suitabilityScore: a.suitabilityScore != null ? a.suitabilityScore : null,
-                    verdict:  a.description || ''
-                };
-            }
-        }
-        // ── End My Menu ─────────────────────────────────────────────
+        // ── End Add to plan ─────────────────────────────────────────────
 
 
         // --- PWA Install Banner Functionality ---
