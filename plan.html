@@ -7924,6 +7924,7 @@
             else                                 { stars=starIcon;                                     label='Подобри се утре'; }
             if (junkCount>0)    label += ' (' + junkCount + ' вредни)';
             if (excessCalories) label += ' — излишни кал.';
+            if (!meals.length) { score = null; stars = ''; label = 'Хранения не отбелязани'; }
             return { score:score, stars:stars, label:label, junkCount:junkCount, excessCalories:excessCalories, engPct:engPct };
         }
 
@@ -7949,10 +7950,33 @@
             }
             // Future days: never show analysis
             if (isFutureDayKey(dayKey)) { card.style.display='none'; return; }
+
+            // Check if there is any real data for this day
+            var rawData = getGameData();
+            var hasStoredRecord = !!rawData[dayKey];
+
+            // Past day with no recorded data at all — show "missing data" notice
+            if (isPastDayKey(dayKey) && !hasStoredRecord) {
+                var dayNames2 = ['\u041D\u0434','\u041F\u043D','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041F\u0442','\u0421\u0431'];
+                var dMissing = new Date(dayKey + 'T00:00:00');
+                card.style.display = 'flex';
+                card.style.background = 'linear-gradient(135deg, rgba(107,114,128,0.18) 0%, rgba(75,85,99,0.22) 100%)';
+                card.style.boxShadow = 'none';
+                card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-calendar-xmark" style="color:#9ca3af"></i></div>' +
+                    '<div class="daily-score-info">' +
+                        '<div class="daily-score-label" style="opacity:0.7">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u2014 ' + dayNames2[dMissing.getDay()] + '</div>' +
+                        '<div class="daily-score-value" style="color:var(--text-gray)">\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u0434\u0430\u043D\u043D\u0438</div>' +
+                        '<div class="daily-score-stars" style="font-size:0.75rem;color:var(--text-gray);opacity:0.72">\u041D\u0435 \u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442</div>' +
+                    '</div>';
+                return;
+            }
+
             var rec = getRecord(dayKey);
             if (!rec || !rec.dailyScore) { card.style.display='none'; return; }
             var ds = rec.dailyScore;
             card.style.display = 'flex';
+            card.style.background = '';
+            card.style.boxShadow = '';
             var dayLabel = '';
             if (isPastDayKey(dayKey)) {
                 var dayNames = ['\u041D\u0434','\u041F\u043D','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041F\u0442','\u0421\u0431'];
@@ -8052,74 +8076,87 @@
             opts = opts || {};
             // Cancel pending lower animation — new question is coming
             if (_fabLowerTimer) { clearTimeout(_fabLowerTimer); _fabLowerTimer = null; }
-            removeBubble();
+            // Remove existing bubble directly (without re-scheduling a lower timer)
+            var existing = document.getElementById('gameBubble'); if (existing) existing.remove();
+
             var fab = document.querySelector('.fab-chat');
-            if (fab) { fab.classList.add('fab-raised', 'game-prompt'); setTimeout(function(){ fab.classList.remove('game-prompt'); },2600); }
-
-            var bubble = document.createElement('div');
-            bubble.id = 'gameBubble';
-            bubble.className = 'game-bubble';
-
-            // Header
-            var hdr = document.createElement('div');
-            hdr.className = 'game-bubble-header';
-            var av = document.createElement('div');
-            av.className = 'game-bubble-avatar';
-            av.innerHTML = '<i class="fas fa-robot"></i>';
-            var gr = document.createElement('div');
-            gr.className = 'game-bubble-greeting';
-            var name = getUserName();
-            gr.textContent = opts.greeting ? opts.greeting :
-                             (opts.showName && name) ? 'Здравейте, '+name+'!' :
-                             'AI Асистент';
-            var closeBtn = document.createElement('button');
-            closeBtn.className = 'game-bubble-close';
-            closeBtn.innerHTML = '\u2715';
-            closeBtn.setAttribute('aria-label','\u0417\u0430\u0442\u0432\u043E\u0440\u0438');
-            closeBtn.onclick = removeBubble;
-            hdr.appendChild(av); hdr.appendChild(gr); hdr.appendChild(closeBtn);
-
-            // Body
-            var body = document.createElement('div');
-            body.className = 'game-bubble-body';
-            var qDiv = document.createElement('div');
-            qDiv.className = 'game-bubble-q';
-            var ansWrap = document.createElement('div');
-            ansWrap.className = 'game-bubble-answers';
-
-            // Build answer buttons
-            var isStars = answers.length === 3 && answers[0].stars;
-            if (isStars) {
-                var starsRow = document.createElement('div');
-                starsRow.className = 'game-stars-wrap';
-                answers.forEach(function(a) {
-                    var btn = document.createElement('button');
-                    btn.className = 'game-star-btn';
-                    btn.innerHTML = '<span class="star-icons">'+a.icons+'</span><span class="star-label">'+a.label+'</span>';
-                    btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
-                    starsRow.appendChild(btn);
-                });
-                ansWrap.appendChild(starsRow);
-            } else {
-                answers.forEach(function(a) {
-                    var btn = document.createElement('button');
-                    btn.className = 'game-answer-btn ' + (a.cls||'yes');
-                    btn.innerHTML = (a.icon?'<span>'+a.icon+'</span>':'') + '<span>'+a.label+'</span>';
-                    btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
-                    ansWrap.appendChild(btn);
-                });
+            var wasRaised = fab && fab.classList.contains('fab-raised');
+            if (fab) {
+                fab.classList.add('fab-raised', 'game-prompt');
+                setTimeout(function(){ fab.classList.remove('game-prompt'); }, 2600);
             }
 
-            body.appendChild(qDiv);
-            body.appendChild(ansWrap);
-            bubble.appendChild(hdr);
-            bubble.appendChild(body);
-            document.body.appendChild(bubble);
+            // If FAB wasn't already raised, wait for the raise animation to complete
+            // before showing the bubble (gives the animated-upward effect).
+            // 440ms = 400ms CSS transition duration + 40ms buffer for smooth UX.
+            var raiseDelay = (!wasRaised && fab) ? 440 : 0;
 
-            // Typewriter then reveal buttons
-            typewriter(qDiv, question, 32, function() {
-                setTimeout(function(){ ansWrap.classList.add('visible'); }, 120);
-            });
+            setTimeout(function() {
+                var bubble = document.createElement('div');
+                bubble.id = 'gameBubble';
+                bubble.className = 'game-bubble';
+
+                // Header
+                var hdr = document.createElement('div');
+                hdr.className = 'game-bubble-header';
+                var av = document.createElement('div');
+                av.className = 'game-bubble-avatar';
+                av.innerHTML = '<i class="fas fa-robot"></i>';
+                var gr = document.createElement('div');
+                gr.className = 'game-bubble-greeting';
+                var name = getUserName();
+                gr.textContent = opts.greeting ? opts.greeting :
+                                 (opts.showName && name) ? 'Здравейте, '+name+'!' :
+                                 'AI Асистент';
+                var closeBtn = document.createElement('button');
+                closeBtn.className = 'game-bubble-close';
+                closeBtn.innerHTML = '\u2715';
+                closeBtn.setAttribute('aria-label','\u0417\u0430\u0442\u0432\u043E\u0440\u0438');
+                closeBtn.onclick = removeBubble;
+                hdr.appendChild(av); hdr.appendChild(gr); hdr.appendChild(closeBtn);
+
+                // Body
+                var body = document.createElement('div');
+                body.className = 'game-bubble-body';
+                var qDiv = document.createElement('div');
+                qDiv.className = 'game-bubble-q';
+                var ansWrap = document.createElement('div');
+                ansWrap.className = 'game-bubble-answers';
+
+                // Build answer buttons
+                var isStars = answers.length === 3 && answers[0].stars;
+                if (isStars) {
+                    var starsRow = document.createElement('div');
+                    starsRow.className = 'game-stars-wrap';
+                    answers.forEach(function(a) {
+                        var btn = document.createElement('button');
+                        btn.className = 'game-star-btn';
+                        btn.innerHTML = '<span class="star-icons">'+a.icons+'</span><span class="star-label">'+a.label+'</span>';
+                        btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
+                        starsRow.appendChild(btn);
+                    });
+                    ansWrap.appendChild(starsRow);
+                } else {
+                    answers.forEach(function(a) {
+                        var btn = document.createElement('button');
+                        btn.className = 'game-answer-btn ' + (a.cls||'yes');
+                        btn.innerHTML = (a.icon?'<span>'+a.icon+'</span>':'') + '<span>'+a.label+'</span>';
+                        btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
+                        ansWrap.appendChild(btn);
+                    });
+                }
+
+                body.appendChild(qDiv);
+                body.appendChild(ansWrap);
+                bubble.appendChild(hdr);
+                bubble.appendChild(body);
+                document.body.appendChild(bubble);
+
+                // Typewriter then reveal buttons
+                typewriter(qDiv, question, 32, function() {
+                    setTimeout(function(){ ansWrap.classList.add('visible'); }, 120);
+                });
+            }, raiseDelay);
         }
 
         // ── Morning / Evening questions ───────────────────────────────────────
@@ -8220,39 +8257,38 @@
             }); }, 1800);
         }
 
-        // ── Retroactive entry (yesterday, within 24h window) ─────────────────
+        // ── Retroactive entry (last 3 days) ─────────────────────────────────
         function checkRetroEntry() {
             if (!isGameEnabled()) return;
-            var yKey = getYesterdayKey();
-            var rec  = getRecord(yKey);
-            if (rec.missing) return;
-            if (rec.morningCheck && rec.eveningCheck) return;
-            var now  = new Date();
-            var noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
-            if (now > noon) {
-                // Beyond window: mark as missing so engagement drops
-                if (!rec.morningCheck || !rec.eveningCheck) {
-                    rec.missing = true;
-                    saveRecord(yKey, rec);
-                    recalcAndShowScore(yKey);
-                }
-                return;
+            for (var offset = 1; offset <= 3; offset++) {
+                var pastDate = new Date(); pastDate.setDate(pastDate.getDate() - offset);
+                var pKey = dateKey(pastDate);
+                var rec  = getRecord(pKey);
+                if (rec.missing) continue;
+                if (rec.morningCheck && rec.eveningCheck) continue;
+                var offerKey = 'gameRetroOffered_' + pKey;
+                if (localStorage.getItem(offerKey)) continue;
+                localStorage.setItem(offerKey, '1');
+                (function(dayKey, daysAgo) {
+                    var greeting = daysAgo === 1 ? 'Вчерашни данни' : 'Данни от преди ' + daysAgo + ' дни';
+                    var msg = daysAgo === 1
+                        ? 'Вчерашните въпроси не са попълнени. Искате ли да ги попълните сега?'
+                        : 'Данните от ' + daysAgo + ' дни назад не са попълнени. Искате ли да ги въведете сега?';
+                    setTimeout(function(){
+                        showBubble(
+                            msg,
+                            YES_NO,
+                            function(yes){
+                                if (!yes) return;
+                                var q = buildDayQueue(dayKey);
+                                if (q.length) setTimeout(function(){ runQueue(q); }, 350);
+                            },
+                            { greeting: greeting }
+                        );
+                    }, 2800);
+                })(pKey, offset);
+                break; // offer one at a time to avoid bubble spam
             }
-            var offerKey = 'gameRetroOffered_' + yKey;
-            if (localStorage.getItem(offerKey)) return;
-            localStorage.setItem(offerKey, '1');
-            setTimeout(function(){
-                showBubble(
-                    'Вчерашните въпроси не са попълнени. Искате ли да ги попълните сега? (възможно само до обяд)',
-                    YES_NO,
-                    function(yes){
-                        if (!yes) return;
-                        var q = buildDayQueue(yKey);
-                        if (q.length) setTimeout(function(){ runQueue(q); }, 350);
-                    },
-                    { greeting: 'Вчерашни данни' }
-                );
-            }, 2800);
         }
 
         // ── Encouragement ─────────────────────────────────────────────────────
@@ -8371,7 +8407,7 @@
         function calcWeeklyScore() {
             var allData = getGameData();
             var today = new Date();
-            var days = [], engSum=0, scoreSum=0, count=0;
+            var days = [], engSum=0, scoreSum=0, count=0, noDataDays=0;
             for (var i=6; i>=0; i--) {
                 var d = new Date(today); d.setDate(d.getDate()-i);
                 var key = dateKey(d);
@@ -8382,10 +8418,15 @@
                     engSum   += ds.engPct || 0;
                     scoreSum += ds.score  || 0;
                     count++;
+                } else if (key <= dateKey(today)) {
+                    // Past or today with no data counts as 0% engagement
+                    noDataDays++;
+                    count++;
                 }
             }
             return { days:days, avgScore:count>0?Math.round(scoreSum/count*10)/10:0,
-                     avgEngPct:count>0?Math.round(engSum/count):0, daysRecorded:count };
+                     avgEngPct:count>0?Math.round(engSum/count):0,
+                     daysRecorded:count-noDataDays, noDataDays:noDataDays };
         }
 
         function showWeeklyRecapModal(wd) {
@@ -8438,6 +8479,14 @@
             en2.style.cssText = 'background:rgba(13,148,136,0.12);color:#0D9488;';
             en2.innerHTML = '<i class="fas fa-chart-bar" style="color:#0D9488"></i> Ангажираност: <strong>' + wd.avgEngPct + '%</strong>';
             modal.appendChild(en2);
+
+            if (wd.noDataDays > 0) {
+                var nd2 = document.createElement('div');
+                nd2.className = 'game-modal-score';
+                nd2.style.cssText = 'background:rgba(107,114,128,0.1);color:#6b7280;font-size:0.8rem;';
+                nd2.innerHTML = '<i class="fas fa-calendar-xmark"></i> ' + wd.noDataDays + ' ' + (wd.noDataDays === 1 ? 'ден' : 'дни') + ' без отбелязана активност';
+                modal.appendChild(nd2);
+            }
 
             var mg2 = document.createElement('div');
             mg2.className = 'game-modal-msg';
@@ -8502,10 +8551,6 @@
             try { info = JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY)||'{}'); } catch(e) {}
             var now = Date.now();
             if (info.lastRun && now - new Date(info.lastRun).getTime() < 7*24*60*60*1000) return;
-            var allData = getGameData();
-            var keys = Object.keys(allData).sort().slice(-7);
-            var ws = {}; keys.forEach(function(k){ ws[k]=allData[k]; });
-            localStorage.setItem('gameWeeklySummary', JSON.stringify({ generatedAt:new Date().toISOString(), data:ws }));
             var wd = calcWeeklyScore();
             if (wd.daysRecorded >= 5) {
                 var shownKey = 'gameWeeklyRecapShown_' + getTodayKey();
