@@ -3423,8 +3423,10 @@
             var avgScore   = validScores.length>0 ? Math.round(validScores.reduce(function(a,s){return a+s.score;},0)/validScores.length*10)/10 : 0;
 
             var engPcts = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : null; });
-            var engValid = engPcts.filter(function(v){return v!==null;});
-            var engagementPct = engValid.length>0 ? Math.round(engValid.reduce(function(a,b){return a+b;},0)/engValid.length) : 0;
+            // No-data days count as 0% engagement (honest representation of missed tracking)
+            var noDataDaysCount = days.filter(function(d){ return !d.rec; }).length;
+            var engForAvg = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : 0; });
+            var engagementPct = Math.round(engForAvg.reduce(function(a,b){return a+b;},0)/days.length);
 
             var extraCalsByDay = days.map(function(d){
                 if(!d.rec||!d.rec.extraMeals) return null;
@@ -3432,12 +3434,12 @@
             });
             var totalExtraCals = extraCalsByDay.reduce(function(s,v){return s+(v||0);},0);
 
-            var stressByDay = days.map(function(d){
+            var balanceByDay = days.map(function(d){
                 if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.emotionalBalance==null) return null;
-                return Math.round((4-d.rec.eveningCheck.emotionalBalance)/3*100);
+                return Math.round((d.rec.eveningCheck.emotionalBalance-1)/2*100);
             });
-            var stressValid = stressByDay.filter(function(v){return v!==null;});
-            var stressPct = stressValid.length>0 ? Math.round(stressValid.reduce(function(a,b){return a+b;},0)/stressValid.length) : null;
+            var balanceValid = balanceByDay.filter(function(v){return v!==null;});
+            var balancePct = balanceValid.length>0 ? Math.round(balanceValid.reduce(function(a,b){return a+b;},0)/balanceValid.length) : null;
 
             var sleepByDay = days.map(function(d){
                 if(!d.rec||!d.rec.morningCheck||d.rec.morningCheck.sleptWell==null) return null;
@@ -3471,7 +3473,7 @@
             var healthScore = 0, healthParts = 0;
             healthScore += engagementPct * 0.35; healthParts++;
             if(sleepPct!=null){ healthScore += sleepPct * 0.25; healthParts++; }
-            if(stressPct!=null){ healthScore += (100-stressPct) * 0.2; healthParts++; }
+            if(balancePct!=null){ healthScore += balancePct * 0.2; healthParts++; }
             if(actPct!=null){ healthScore += actPct * 0.2; healthParts++; }
             var totalCalsWeight = Math.max(0, 100 - Math.round(totalExtraCals/700*100));
             healthScore = Math.round(Math.max(0,Math.min(100, healthScore + totalCalsWeight*0.05)));
@@ -3491,13 +3493,13 @@
                 var sbAvg=Math.round(sleepBadEng.reduce(function(a,b){return a+b;},0)/sleepBadEng.length);
                 if(sgAvg-sbAvg>15) insights.push('<i class="fas fa-bed" style="color:#6366f1"></i> В дните с добър сън ангажираността ви е <strong>'+sgAvg+'%</strong> (vs '+sbAvg+'% без добър сън)');
             }
-            // Stress → Junk correlation
-            var highStressDays = days.filter(function(d,i){ return stressByDay[i]!=null&&stressByDay[i]>60; });
-            var lowStressDays  = days.filter(function(d,i){ return stressByDay[i]!=null&&stressByDay[i]<=40; });
-            var hsJunk = highStressDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){return e.isJunk;}).length);},0);
-            var lsJunk = lowStressDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){return e.isJunk;}).length);},0);
-            if(highStressDays.length>0&&lsJunk===0&&hsJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ви');
-            else if(highStressDays.length>0&&lsJunk<hsJunk) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Забелязваме повече вредни хранения в дни с по-нисък емоционален баланс');
+            // Balance → Junk correlation (low emotional balance = high stress = more junk)
+            var lowBalanceDays  = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]<=40; });
+            var highBalanceDays = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]>=60; });
+            var lbJunk = lowBalanceDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){return e.isJunk;}).length);},0);
+            var hbJunk = highBalanceDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){return e.isJunk;}).length);},0);
+            if(lowBalanceDays.length>0&&hbJunk===0&&lbJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ви');
+            else if(lowBalanceDays.length>0&&hbJunk<lbJunk) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Забелязваме повече вредни хранения в дни с по-нисък емоционален баланс');
             // Consecutive adherence streak
             var streak=0, maxStreak=0;
             for(var si=days.length-1;si>=0;si--){
@@ -3528,24 +3530,24 @@
             if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намалете вредните храни — планът работи когато го следвате!'; }
             else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!'; }
             else if (engagementPct<60)                 { leadingCriterion='Ангажираност'; encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвайте храненията по план — резултатите идват!'; }
-            else if (stressPct!=null&&stressPct>60)    { leadingCriterion='Баланс';       encourageText='<i class="fas fa-person-walking" style="color:#0D9488"></i> Малко движение прави голяма разлика. Дори 15 минути помагат!'; }
+            else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-person-walking" style="color:#0D9488"></i> Малко движение прави голяма разлика. Дори 15 минути помагат!'; }
             else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавайте в същия дух — резултатите идват!'; }
             if (badge) badge.textContent = leadingCriterion || (validScores.length+' дни');
 
             // ── Explanation modal ─────────────────────────────────────────────
             var EXPLANATIONS = {
                 engagement: { title:'Ангажираност към плана',
-                    text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни храни (20 т.)\n\nСедмичният % е средна стойност.\nЦел: 80%+' },
+                    text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни храни (20 т.)\n\nСедмичният % е средна стойност (дни без данни се броят като 0%).\nЦел: 80%+' },
                 calories: { title:'Допълнителни калории',
                     text:'Сума от всички допълнителни хранения за последните дни.\n\n0 kcal — отлично\n1-700 kcal — умерено\n>700 kcal — прекалено\n\nНяма пряка връзка с плана.' },
                 stress: { title:'Емоционален баланс',
-                    text:'Изчислява се от вечерния въпрос "Емоционален баланс".\n\n• Баланс Отлично → индекс 33%\n• Баланс Добре → индекс 67%\n• Баланс Слабо → индекс 100%\n\nПо-нисък % = по-добре.' },
+                    text:'Изчислява се от вечерния въпрос "Емоционален баланс".\n\n• Баланс Отлично → 100%\n• Баланс Добре → 50%\n• Баланс Слабо → 0%\n\nПо-висок % = по-добре.\nЦел: 70%+\n\nВисок емоционален баланс означава нисък стрес и по-добро самочувствие.' },
                 sleep: { title:'Качество на съня',
                     text:'Изчислява се от сутрешния въпрос "Спахте ли добре?".\n\nФормула: брой "Да" ÷ общо отговори × 100%\n\nПо-висок % = по-добре.\nЦел: 70%+' },
                 activity: { title:'Активност',
                     text:'Изчислява се от вечерния въпрос "Ниво на активност".\n\n• Слабо → 0%\n• Добре → 50%\n• Отлично → 100%\n\nПо-висок % = по-добре.' },
                 health: { title:'Здравен Индекс',
-                    text:'Композитна оценка, изчислена от всички ваши данни:\n\n• Ангажираност: 35%\n• Сън: 25%\n• Активност: 20%\n• Емоционален баланс (инвертиран): 20%\n\nЦел: 70+' }
+                    text:'Композитна оценка, изчислена от всички ваши данни:\n\n• Ангажираност: 35%\n• Сън: 25%\n• Активност: 20%\n• Емоционален баланс: 20%\n\nЦел: 70+' }
             };
             function showExplanation(key) {
                 var info = EXPLANATIONS[key]; if(!info) return;
@@ -3610,7 +3612,7 @@
                 '<div class="game-week-info">' +
                     '<div class="game-week-title">Текуща седмица</div>' +
                     '<div class="game-week-score">'+avgScore+'/5 <i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i></div>' +
-                    '<div class="game-week-sub">Ангажираност: '+engagementPct+'% · '+validScores.length+' '+(validScores.length===1?'ден':'дни')+' данни</div>' +
+                    '<div class="game-week-sub">Ангажираност: '+engagementPct+'% · '+validScores.length+' '+(validScores.length===1?'ден':'дни')+' данни'+(noDataDaysCount>0?' · '+noDataDaysCount+' без данни':'')+' </div>' +
                     '<div class="game-week-dots">' +
                     weekScores.map(function(s){
                         var bg = s?(s.score>=4?'rgba(255,255,255,0.9)':s.score>=3?'rgba(251,191,36,0.85)':'rgba(248,113,113,0.8)'):'rgba(255,255,255,0.18)';
@@ -3625,7 +3627,8 @@
                 '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488') + '<div class="game-ring-label">Здраве</div></div>' +
                 '<div class="game-ring-wrap" data-explain="engagement" style="cursor:pointer">' + ringChart(engagementPct,'#06B6D4',22) + '<div class="game-ring-label">План %</div></div>' +
                 (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
-                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#10b981',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
+                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Баланс</div></div>' : '') +
+                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
             '</div>';
 
             // Trend indicator
@@ -3642,28 +3645,30 @@
 
             html += '<div class="game-index-row" data-explain="engagement">' +
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
-                '<div class="game-index-hint">Дневен % (хранения + чек-ини) · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' · Дневен % (хранения + чек-ини) · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
                 pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
             '</div>';
 
             var calMax = Math.max(totalExtraCals,700,1);
             html += '<div class="game-index-row" data-explain="calories">' +
                 '<div class="game-index-label"><span><i class="fas fa-fire" style="color:#f59e0b"></i> Допълнителни кал.</span><span>'+totalExtraCals+' kcal</span></div>' +
-                '<div class="game-index-hint">'+(totalExtraCals===0?'<i class="fas fa-check-circle" style="color:#10b981"></i> Нула':totalExtraCals<700?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерено':'<i class="fas fa-circle" style="color:#ef4444"></i> Много')+ ' · <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(totalExtraCals===0?'<i class="fas fa-check-circle" style="color:#10b981"></i> Нула':totalExtraCals<700?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерено':'<i class="fas fa-circle" style="color:#ef4444"></i> Много')+' · По-малко = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
                 miniBarChart(extraCalsByDay,calMax,totalExtraCals>700?'#ef4444':'#f59e0b') +
             '</div>';
 
-            if(stressPct!=null) html += '<div class="game-index-row" data-explain="stress">' +
-                '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Емоционален баланс</span><span>'+stressPct+'%</span></div>' +
-                '<div class="game-index-hint">По-нисък % = по-добре · <i class="fas fa-circle-info"></i></div>' +
-                pBar(stressPct,'linear-gradient(90deg,#f59e0b,#ef4444)') + miniBarChart(stressByDay,100,'#f59e0b') +
+            if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +
+                '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#10b981"></i> Емоционален баланс</span><span>'+balancePct+'%</span></div>' +
+                '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висок баланс':balancePct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък баланс')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(balancePct,'linear-gradient(90deg,#10b981,#06B6D4)') + miniBarChart(balanceByDay,100,'#10b981') +
             '</div>';
 
             if(sleepPct!=null) html += '<div class="game-index-row" data-explain="sleep">' +
                 '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span>'+sleepPct+'%</span></div>' +
-                '<div class="game-index-hint">По-висок % = по-добре · <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
                 pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1') +
             '</div>';
+
+            if(noDataDaysCount>0) html += '<div style="font-size:0.75rem;color:var(--text-gray);text-align:center;padding:6px 0;opacity:0.8"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (отчетени като 0%)</div>';
 
             // Correlations & insights section
             if(insights.length>0){
