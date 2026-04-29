@@ -3568,14 +3568,23 @@
                 return '<div class="game-index-bar-wrap"><div class="game-index-bar" style="width:'+Math.min(100,Math.max(0,pct))+'%;background:'+color+'"></div></div>';
             }
             var DAY_NAMES = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+            var BAR_MIN_H = 4;   // px — minimum bar height (empty/zero day)
+            var BAR_MAX_H = 36;  // px — maximum bar height (100%)
+            var LABEL_STYLE = 'font-size:0.6rem;color:var(--text-light)';
+            function miniBarCol(barStyle, label) {
+                return '<div class="game-day-col">' +
+                    '<div class="game-day-dot" style="' + barStyle + '"></div>' +
+                    '<span style="' + LABEL_STYLE + '">' + label + '</span>' +
+                    '</div>';
+            }
             function miniBarChart(perDayValues, maxVal, color) {
                 var cols = perDayValues.map(function(v,idx){
                     var dow   = new Date(days[idx].key).getDay();
                     var label = DAY_NAMES[(dow+6)%7];
-                    if(v==null) return '<div class="game-day-col"><div class="game-day-dot" style="height:4px;background:rgba(156,163,175,0.25)"></div><span style="font-size:0.6rem;color:var(--text-light)">'+label+'</span></div>';
+                    if(v==null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label);
                     var pct2 = maxVal>0?Math.min(100,Math.round(v/maxVal*100)):0;
-                    var h    = Math.max(4,Math.round(pct2*36/100));
-                    return '<div class="game-day-col"><div class="game-day-dot" style="height:'+h+'px;background:'+color+'"></div><span style="font-size:0.6rem;color:var(--text-light)">'+label+'</span></div>';
+                    var h    = Math.max(BAR_MIN_H, Math.round(pct2*BAR_MAX_H/100));
+                    return miniBarCol('height:'+h+'px;background:'+color, label);
                 });
                 return '<div class="game-day-dots">'+ cols.join('') +'</div>';
             }

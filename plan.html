@@ -2116,6 +2116,8 @@
         }
         .fab-chat.game-prompt { animation: fabBounce 1.1s ease-in-out 2, fabPulse 3s ease-in-out 2.2s infinite; }
         .fab-chat.fab-raised {
+            /* Move FAB near the top while game questions are shown.
+               80px ≈ top bar height, 56px = FAB height */
             bottom: calc(100vh - var(--safe-area-inset-top, 0px) - 80px - 56px);
         }
         /* Encouragement toast */
@@ -8031,6 +8033,8 @@
         ];
 
         var _fabLowerTimer = null;
+        // Short delay allows a chained showBubble call to cancel the lower animation
+        var FAB_LOWER_DELAY = 80;
         function removeBubble() {
             var o=document.getElementById('gameBubble'); if(o) o.remove();
             // Schedule FAB lowering — cancelled if a new showBubble fires immediately
@@ -8040,7 +8044,7 @@
                 _fabLowerTimer = setTimeout(function(){
                     fab.classList.remove('fab-raised');
                     _fabLowerTimer = null;
-                }, 80);
+                }, FAB_LOWER_DELAY);
             }
         }
 
