@@ -7914,18 +7914,19 @@
             var done  = meals.filter(function(m) { return rec.meals[m] === true; }).length;
 
             // Positive scoring: each completed meal = 1 pt; morning check = 1 pt; evening check = 1 pt
-            var maxPoints   = meals.length + 2;
-            var earnedPoints = done + (rec.morningCheck ? 1 : 0) + (rec.eveningCheck ? 1 : 0);
-            earnedPoints = Math.max(0, earnedPoints - junkCount); // junk penalty
+            var maxPoints    = meals.length + 2;
+            var rawPoints    = done + (rec.morningCheck ? 1 : 0) + (rec.eveningCheck ? 1 : 0);
+            var earnedPoints = Math.max(0, rawPoints - junkCount); // junk penalty
 
             var score = null;
-            if (maxPoints > 0) {
+            if (maxPoints > 0 && rawPoints > 0) {
+                // Use rawPoints for percentage so junk doesn't turn earned activity into null
                 var pct = earnedPoints / maxPoints;
                 if      (pct >= 0.95) score = 5;
                 else if (pct >= 0.75) score = 4;
                 else if (pct >= 0.50) score = 3;
                 else if (pct >= 0.25) score = 2;
-                else if (earnedPoints > 0) score = 1;
+                else                  score = 1; // some activity exists but junk or low completion
             }
 
             // Engagement %: meal adherence 50 + morning check 15 + evening check 15 + no-junk 20
@@ -7941,7 +7942,7 @@
 
             var label = '';
             if (score === null) {
-                label = meals.length ? 'Хранения не отбелязани' : 'Без данни';
+                label = 'Без отбелязана активност';
             } else if (score === 5 && junkCount === 0) { label = 'Отличен ден!'; }
             else if   (score >= 4 && junkCount === 0)  { label = 'Много добре!'; }
             else if   (score >= 3)                     { label = 'Добре'; }
