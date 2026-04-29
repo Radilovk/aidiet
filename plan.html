@@ -4899,6 +4899,8 @@
                 const isFreeMeal = meal.type === 'Свободно хранене';
                 const mealCard = document.createElement('div');
                 mealCard.className = isFreeMeal ? 'meal-card free-day' : 'meal-card';
+                if (meal.calories) mealCard.setAttribute('data-meal-calories', meal.calories);
+                if (meal.type)     mealCard.setAttribute('data-meal-type', meal.type);
                 
                 // Create button element separately to handle click with meal data
                 const infoBtn = document.createElement('button');
@@ -8093,7 +8095,8 @@
 
         function emptyRecord(key) {
             return { date: key, meals: {}, extraMeals: [], freeMealRatings: {},
-                     morningCheck: null, eveningCheck: null, plannedCalories: null, dailyScore: null, missing: false };
+                     morningCheck: null, eveningCheck: null, plannedCalories: null,
+                     mealCalories: {}, dailyScore: null, missing: false };
         }
         function getRecord(key)       { var d = getGameData(); return d[key] || emptyRecord(key); }
         function saveRecord(key, rec) { var d = getGameData(); d[key] = rec; saveGameData(d); }
@@ -8188,20 +8191,27 @@
             });
 
             // ── Calorie balance ────────────────────────────────────────────
-            // Use stored planned calories (stored by renderDay/enhanceMealCards)
+            // Only flag excess when completed planned meals + extra food exceeds the daily plan.
+            // Completed planned calories come from per-meal calorie data stored at check time.
+            var mealCalMap = rec.mealCalories || {};
+            var completedPlanCals = 0;
+            Object.keys(rec.meals || {}).forEach(function(mt) {
+                if (rec.meals[mt] === true && mealCalMap[mt]) {
+                    completedPlanCals += mealCalMap[mt];
+                }
+            });
+            var totalConsumed = completedPlanCals + extraCalSum;
             var planned = rec.plannedCalories || null;
             var excessCalories = false;
             var calorieBalance = 'balanced';
-            if (extraCalSum > 0) {
-                if (planned && planned > 0) {
-                    var excessPct = extraCalSum / planned;
-                    if (excessPct > 0.10)      { excessCalories = true; calorieBalance = 'surplus'; }
-                    else if (excessPct > 0)    { calorieBalance = 'surplus'; }
-                } else {
-                    // No target known: flag surplus if >200 kcal extra
-                    if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
-                    else if (extraCalSum > 0) { calorieBalance = 'surplus'; }
-                }
+            if (totalConsumed > 0 && planned && planned > 0) {
+                var excessPct = (totalConsumed - planned) / planned;
+                if (excessPct > 0.10)   { excessCalories = true; calorieBalance = 'surplus'; }
+                else if (excessPct > 0) { calorieBalance = 'surplus'; }
+            } else if (extraCalSum > 0 && (!planned || planned === 0)) {
+                // No target known: flag surplus if >200 kcal extra
+                if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
+                else                   { calorieBalance = 'surplus'; }
             }
             // Deficit: no reliable way to compute without planned meals total, skip for now
 
@@ -8338,14 +8348,23 @@
             var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(s){return s;};
             // Label is shown only for past days (after midnight). For the current day show stars only.
             var showLabel = isPastDayKey(dayKey);
-            // Calorie balance badge
+            // Calorie balance badge — only show surplus when completed meals + extra food exceed plan
             var calBadge = '';
             var extraCals = (rec.extraMeals || []).reduce(function(s,em) {
                 return em.isFreeMealReplacement ? s : s + (em.calories || 0);
             }, 0);
-            if (extraCals > 0) {
-                calBadge = '<div class="daily-cal-balance surplus" style="font-size:0.72rem;color:#f59e0b;margin-top:3px">' +
-                    '<i class="fas fa-fire"></i> Калориен баланс: +' + extraCals + ' kcal</div>';
+            var mCalMap = rec.mealCalories || {};
+            var completedCals = Object.keys(rec.meals || {}).reduce(function(s, mt) {
+                return (rec.meals[mt] === true && mCalMap[mt]) ? s + mCalMap[mt] : s;
+            }, 0);
+            var planCals = rec.plannedCalories || 0;
+            var totalCals = completedCals + extraCals;
+            if (ds.calorieBalance === 'surplus' && totalCals > 0) {
+                var surplusKcal = planCals > 0 ? Math.round(totalCals - planCals) : extraCals;
+                if (surplusKcal > 0) {
+                    calBadge = '<div class="daily-cal-balance surplus" style="font-size:0.72rem;color:#f59e0b;margin-top:3px">' +
+                        '<i class="fas fa-fire"></i> Калориен баланс: +' + surplusKcal + ' kcal над плана</div>';
+                }
             }
             // Incorrect meal badge
             var incorrectBadge = ds.incorrectMeals > 0
@@ -8376,9 +8395,11 @@
 
             var rec = getRecord(dayKey);
             if (!rec.freeMealRatings) rec.freeMealRatings = {};
+            if (!rec.mealCalories) rec.mealCalories = {};
             var mealsInitialized = false;
 
             // Compute planned calorie total from rendered meal cards (best effort)
+            // Also capture per-meal calorie data for accurate completed-meal calorie tracking
             var plannedCals = 0;
             container.querySelectorAll('.meal-card').forEach(function(card) {
                 var calEl = card.querySelector('[data-meal-calories]');
@@ -8395,6 +8416,17 @@
                 if (!mealType) return;
                 card.setAttribute('data-ge','1');
                 var isFreeMeal = card.classList.contains('free-day');
+
+                // Store per-meal calories for calorie-balance calculation
+                var calAttr = card.getAttribute('data-meal-calories');
+                if (calAttr) {
+                    var calVal = Math.round(parseFloat(calAttr) || 0);
+                    if (calVal > 0 && !rec.mealCalories[mealType]) {
+                        rec.mealCalories[mealType] = calVal;
+                        mealsInitialized = true;
+                    }
+                }
+
                 // Ensure all planned meals are present in the record so calcDayScore knows the total
                 if (!(mealType in rec.meals)) {
                     rec.meals[mealType] = false;
@@ -8426,7 +8458,11 @@
                 checkBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     var r = getRecord(dayKey);
+                    if (!r.mealCalories) r.mealCalories = {};
                     r.meals[mealType] = !r.meals[mealType];
+                    // Sync per-meal calories from DOM at check time
+                    var cAttr = card.getAttribute('data-meal-calories');
+                    if (cAttr) { var cVal = Math.round(parseFloat(cAttr)||0); if (cVal>0) r.mealCalories[mealType]=cVal; }
                     saveRecord(dayKey, r);
                     checkBtn.classList.toggle('done', r.meals[mealType]);
                     recalcAndShowScore(dayKey);
@@ -8476,6 +8512,11 @@
             { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' },
             { label:'Не', icon:'<i class="fas fa-xmark" style="color:#ef4444"></i>', value:false, cls:'no'  }
         ];
+        // Reversed order for hydration question (Не left, Да right per UX spec)
+        var NO_YES = [
+            { label:'Не', icon:'<i class="fas fa-xmark" style="color:#ef4444"></i>', value:false, cls:'no'  },
+            { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' }
+        ];
         var starI = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
         var STARS_1_3 = [
             { label:'Слабо',   icons:starI,         value:1, stars:true },
@@ -8503,8 +8544,6 @@
             opts = opts || {};
             // Cancel pending lower animation — new question is coming
             if (_fabLowerTimer) { clearTimeout(_fabLowerTimer); _fabLowerTimer = null; }
-            // Remove existing bubble directly (without re-scheduling a lower timer)
-            var existing = document.getElementById('gameBubble'); if (existing) existing.remove();
 
             var fab = document.querySelector('.fab-chat');
             var wasRaised = fab && fab.classList.contains('fab-raised');
@@ -8512,6 +8551,55 @@
                 fab.classList.add('fab-raised', 'game-prompt');
                 setTimeout(function(){ fab.classList.remove('game-prompt'); }, 2600);
             }
+
+            var existing = document.getElementById('gameBubble');
+
+            // Helper: populate answer buttons into a container
+            function fillAnswers(ansWrap) {
+                ansWrap.innerHTML = '';
+                var isStars = answers.length === 3 && answers[0].stars;
+                if (isStars) {
+                    var starsRow = document.createElement('div');
+                    starsRow.className = 'game-stars-wrap';
+                    answers.forEach(function(a) {
+                        var btn = document.createElement('button');
+                        btn.className = 'game-star-btn';
+                        btn.innerHTML = '<span class="star-icons">'+a.icons+'</span><span class="star-label">'+a.label+'</span>';
+                        btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
+                        starsRow.appendChild(btn);
+                    });
+                    ansWrap.appendChild(starsRow);
+                } else {
+                    answers.forEach(function(a) {
+                        var btn = document.createElement('button');
+                        btn.className = 'game-answer-btn ' + (a.cls||'yes');
+                        btn.innerHTML = (a.icon?'<span>'+a.icon+'</span>':'') + '<span>'+a.label+'</span>';
+                        btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
+                        ansWrap.appendChild(btn);
+                    });
+                }
+            }
+
+            // If FAB is already raised and a bubble is visible → update content in-place (no flicker)
+            if (existing && wasRaised) {
+                var grEl = existing.querySelector('.game-bubble-greeting');
+                var qEl  = existing.querySelector('.game-bubble-q');
+                var awEl = existing.querySelector('.game-bubble-answers');
+                if (grEl && qEl && awEl) {
+                    var name = getUserName();
+                    grEl.textContent = opts.greeting ? opts.greeting :
+                                       (opts.showName && name) ? 'Здравейте, '+name+'!' : 'AI Асистент';
+                    awEl.classList.remove('visible');
+                    fillAnswers(awEl);
+                    typewriter(qEl, question, 32, function() {
+                        setTimeout(function(){ awEl.classList.add('visible'); }, 120);
+                    });
+                    return;
+                }
+            }
+
+            // Remove existing bubble (fresh start or no existing bubble)
+            if (existing) existing.remove();
 
             // If FAB wasn't already raised, wait for the raise animation to complete
             // before showing the bubble (gives the animated-upward effect).
@@ -8555,28 +8643,7 @@
                 var ansWrap = document.createElement('div');
                 ansWrap.className = 'game-bubble-answers';
 
-                // Build answer buttons
-                var isStars = answers.length === 3 && answers[0].stars;
-                if (isStars) {
-                    var starsRow = document.createElement('div');
-                    starsRow.className = 'game-stars-wrap';
-                    answers.forEach(function(a) {
-                        var btn = document.createElement('button');
-                        btn.className = 'game-star-btn';
-                        btn.innerHTML = '<span class="star-icons">'+a.icons+'</span><span class="star-label">'+a.label+'</span>';
-                        btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
-                        starsRow.appendChild(btn);
-                    });
-                    ansWrap.appendChild(starsRow);
-                } else {
-                    answers.forEach(function(a) {
-                        var btn = document.createElement('button');
-                        btn.className = 'game-answer-btn ' + (a.cls||'yes');
-                        btn.innerHTML = (a.icon?'<span>'+a.icon+'</span>':'') + '<span>'+a.label+'</span>';
-                        btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
-                        ansWrap.appendChild(btn);
-                    });
-                }
+                fillAnswers(ansWrap);
 
                 body.appendChild(qDiv);
                 body.appendChild(ansWrap);
@@ -8621,7 +8688,7 @@
             var hdrOpts = { greeting: isYesterday ? 'Въвеждане за вчера' : 'Добър вечер!' };
             var eveData = {};
             function q3() {
-                showBubble(prefix+'Изпихте ли поне 2 л вода?', YES_NO, function(v) {
+                showBubble(prefix+'Изпихте ли поне 2 л вода?', NO_YES, function(v) {
                     eveData.waterIntake = v;
                     var r = getRecord(recordKey);
                     r.eveningCheck = { activityLevel: eveData.activityLevel,
