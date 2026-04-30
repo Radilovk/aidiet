@@ -70,8 +70,13 @@ jobs:
             -alias nutriplan \
             -storepass "$TWA_STORE_PASSWORD" 2>/dev/null | grep "SHA256:"
 
+      - name: Configure Bubblewrap JDK and SDK paths
+        run: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\": \"$JAVA_HOME\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+
       - name: Build APK with Bubblewrap
-        run: yes | bubblewrap build --skipPwaValidation
+        run: bubblewrap build --skipPwaValidation
 
       - name: Locate and copy APK
         run: |
