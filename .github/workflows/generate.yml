@@ -17,6 +17,7 @@ jobs:
             -keypass "${{ secrets.KEY_PASSWORD }}" \
             -dname "CN=NutriPlan" \
             -noprompt
-          echo "--- COPY START ---"
+          
+          echo "--- НАЧАЛО НА КОДА (КОПИРАЙ ВСИЧКО ДОЛУ) ---"
           base64 -w 0 nutriplan.keystore
-          echo -e "\n--- COPY END ---"
+          echo -e "\n--- КРАЙ НА КОДА ---"
