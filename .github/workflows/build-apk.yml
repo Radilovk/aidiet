@@ -52,23 +52,34 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
 
-      - name: Configure Bubblewrap
+      - name: Configure Bubblewrap paths
         run: |
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\": \"$JAVA_HOME\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+
+      - name: Update Bubblewrap Project (Non-Interactive)
+        run: |
+          # Извличаме versionName и versionCode от манифеста
+          V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
+          V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
+          
+          echo "Updating to Version Name: $V_NAME, Code: $V_CODE"
+          
+          # Подаваме ги автоматично, за да не спира процеса
+          printf "$V_NAME\n$V_CODE\n" | bubblewrap update --skipPwaValidation
 
       - name: Build APK with Bubblewrap
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.STORE_PASS }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ env.KEY_PASS }}
         run: |
-          bubblewrap update --skipPwaValidation
+          # Вече ползваме директни променливи за паролите
           bubblewrap build --skipPwaValidation
 
       - name: Print signing certificate SHA-256
         run: |
-          echo "SHA-256 Fingerprint for assetlinks.json:"
-          keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" || echo "Warning: Could not extract SHA256"
+          echo "SHA-256 Fingerprint:"
+          keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" || echo "Warning: SHA256 not found"
 
       - name: Locate and copy APK
         run: |
@@ -87,11 +98,9 @@ jobs:
           
           NOTES="## NutriPlan APK Build
           **Mode:** \`$BUILD_MODE\`
-          **Timestamp:** $(date -u '+%Y-%m-%d %H:%M UTC')
+          **Build Date:** $(date -u '+%Y-%m-%d %H:%M UTC')
           
-          1. Download \`NutriPlan.apk\`
-          2. Enable 'Install from unknown sources'
-          3. Install and run."
+          Свалете файла и инсталирайте ръчно."
 
           gh release create "$TAG" NutriPlan.apk \
             --title "NutriPlan APK — Latest" \
