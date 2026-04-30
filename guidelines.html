@@ -71,6 +71,7 @@
             background-color: var(--bg-color);
             color: var(--text-dark);
             transition: background-color 0.3s ease, color 0.3s ease;
+            padding-top: calc(16px + var(--safe-area-inset-top));
             padding-bottom: calc(80px + var(--safe-area-inset-bottom));
         }
 
@@ -1022,7 +1023,39 @@
             border-radius: inherit;
         }
 
-        /* --- BUTTON STYLES --- */
+        /* --- FOOD ANALYSIS FAB (bottom-left) --- */
+        .fab-food {
+            position: fixed;
+            bottom: calc(80px + var(--safe-area-inset-bottom, 0px));
+            left: calc(16px + var(--safe-area-inset-left, 0px));
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
+            border-radius: 20px;
+            box-shadow:
+                0 8px 28px rgba(13, 148, 136, 0.45),
+                0 4px 12px rgba(13, 148, 136, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            border: none;
+            cursor: pointer;
+            z-index: 900;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .fab-food:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 36px rgba(13, 148, 136, 0.55);
+        }
+        .fab-food:active {
+            transform: scale(0.95);
+        }
+
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -1076,12 +1109,15 @@
     </script>
 </head>
 <body>
-    <!-- Header -->
-    <header role="banner" aria-label="Главна навигация">
-        <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
-        <h1>Насоки</h1>
-        <button class="header-food-btn" onclick="window.location.href='plan.html?food=1'" aria-label="Анализ на храна чрез снимка"><i class="fas fa-camera"></i></button>
-    </header>
+    <!-- Chat Assistant Button -->
+    <button class="fab-chat" onclick="window.location.href='plan.html?chat=1'" aria-label="Отвори чат асистент">
+        <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
+    </button>
+
+    <!-- Food Analysis FAB (bottom-left) -->
+    <button class="fab-food" onclick="window.location.href='plan.html?food=1'" aria-label="Анализ на храна чрез снимка">
+        <i class="fas fa-camera" aria-hidden="true"></i>
+    </button>
 
     <div class="container">
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
@@ -1693,11 +1729,6 @@
         })();
         // ── End UI Zone Images ─────────────────────────────────────────────────────
     </script>
-
-    <!-- Chat Assistant Button -->
-    <button class="fab-chat" onclick="window.location.href='plan.html?chat=1'" aria-label="Отвори чат асистент">
-        <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
-    </button>
 
     <!-- Swipe navigation between tabs -->
     <script>

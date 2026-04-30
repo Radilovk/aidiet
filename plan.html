@@ -95,6 +95,7 @@
         body {
             background: var(--bg-color);
             color: var(--text-dark);
+            padding-top: calc(16px + var(--safe-area-inset-top));
             padding-bottom: calc(140px + var(--safe-area-inset-bottom)); /* Space for bottom nav + chat FAB */
             -webkit-overflow-scrolling: touch;
             transition: background-color 0.3s ease, color 0.3s ease;
@@ -1064,7 +1065,39 @@
             border-radius: inherit;
         }
 
-        /* --- MODAL (POPUP) - Premium Design --- */
+        /* --- FOOD ANALYSIS FAB (bottom-left) --- */
+        .fab-food {
+            position: fixed;
+            bottom: calc(80px + var(--safe-area-inset-bottom, 0px));
+            left: calc(16px + var(--safe-area-inset-left, 0px));
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
+            border-radius: 20px;
+            box-shadow:
+                0 8px 28px rgba(13, 148, 136, 0.45),
+                0 4px 12px rgba(13, 148, 136, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            border: none;
+            cursor: pointer;
+            z-index: 900;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .fab-food:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 36px rgba(13, 148, 136, 0.55);
+        }
+        .fab-food:active {
+            transform: scale(0.95);
+        }
+
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -2373,7 +2406,7 @@
             header, .day-banner,
             .install-banner, #ios-banner, #printBtn,
             .back-btn, .theme-toggle-btn, .user-avatar,
-            button:not(.info-btn), nav { display: none !important; }
+            .fab-food, button:not(.info-btn), nav { display: none !important; }
 
             /* Remove backgrounds and shadows for ink economy */
             body, html { background: #fff !important; color: #000 !important; }
@@ -3332,12 +3365,6 @@
     <div class="ds-mesh-bg" aria-hidden="true"></div>
     <div class="ambient-mesh" aria-hidden="true"></div>
 
-    <!-- Header -->
-    <header role="banner" aria-label="Главна навигация">
-        <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
-        <h1>Моят Хранителен План</h1>
-        <button class="header-food-btn" onclick="openFoodAnalysis()" aria-label="Анализ на храна чрез снимка"><i class="fas fa-camera"></i></button>
-    </header>
     <!-- Day Banner (replaces days-nav + greeting-banner) -->
     <div class="day-banner" id="dayBannerContainer" role="navigation" aria-label="Избор на ден" tabindex="0">
         <button class="day-banner-arrow day-banner-prev" id="dayBannerPrev" aria-label="Предишен ден">
@@ -3412,6 +3439,11 @@
     <!-- Chat Assistant Button -->
     <button class="fab-chat" onclick="openChat()" aria-label="Отвори чат асистент">
         <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
+    </button>
+
+    <!-- Food Analysis FAB (bottom-left) -->
+    <button class="fab-food" onclick="openFoodAnalysis()" aria-label="Анализ на храна чрез снимка">
+        <i class="fas fa-camera" aria-hidden="true"></i>
     </button>
 
     <!-- Hidden file input for camera/gallery -->
