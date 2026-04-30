@@ -47,7 +47,7 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "minSdkVersion": 19,
-  "targetSdkVersion": 34,
+  "targetSdkVersion": 35,
   "fingerprints": [],
   "additionalTrustedOrigins": [],
   "retainedBundles": []
