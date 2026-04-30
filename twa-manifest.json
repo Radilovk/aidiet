@@ -1,22 +1,56 @@
 {
-  "packageId": "com.aidiet.twa",
-  "host": "aidiet.bg",
-  "name": "NutriPlan",
+  "packageId": "com.biocode.nutriplan",
+  "host": "biocode.website",
+  "name": "NutriPlan - Интелигентна Хранителна Платформа",
   "launcherName": "NutriPlan",
   "display": "standalone",
+  "orientation": "portrait",
   "themeColor": "#0D9488",
   "navigationColor": "#0D9488",
+  "navigationColorDark": "#0F766E",
+  "navigationDividerColor": "#0D9488",
+  "navigationDividerColorDark": "#0F766E",
   "backgroundColor": "#0D9488",
-  "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://aidiet.bg/icons/icon-512x512.png",
+  "iconUrl": "https://biocode.website/icon-512x512.png",
+  "maskableIconUrl": "https://biocode.website/icon-512x512.png",
+  "monochromeIconUrl": "https://biocode.website/icon-192x192.png",
+  "alphaCode": "1",
+  "appVersion": "1.0.0",
+  "versionCode": 1,
   "splashScreenFadeOutDuration": 300,
-  "signingKeyInfo": {
+  "signingKey": {
     "path": "./nutriplan.keystore",
     "alias": "nutriplan"
   },
-  "appVersion": "1.0.0",
-  "versionCode": 1,
+  "enableNotifications": true,
+  "shortcuts": [
+    {
+      "name": "Моят план",
+      "shortName": "План",
+      "url": "/plan.html",
+      "chosenIconUrl": "https://biocode.website/icon-192x192.png"
+    },
+    {
+      "name": "Профил",
+      "shortName": "Профил",
+      "url": "/profile.html",
+      "chosenIconUrl": "https://biocode.website/icon-192x192.png"
+    },
+    {
+      "name": "Въпросник",
+      "shortName": "Въпросник",
+      "url": "/questionnaire2.html",
+      "chosenIconUrl": "https://biocode.website/icon-192x192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://biocode.website/manifest.json",
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
   "minSdkVersion": 21,
-  "targetSdkVersion": 34
+  "targetSdkVersion": 35,
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
 }
