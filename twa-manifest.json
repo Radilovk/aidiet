@@ -1,97 +1,22 @@
-name: Build Android APK
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-jobs:
-  build-apk:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
-
-      - name: Prepare signing keystore
-        id: keystore
-        run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 --decode > nutriplan.keystore
-            echo "STORE_PASS=${{ secrets.KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
-            echo "KEY_PASS=${{ secrets.KEY_PASSWORD }}" >> "$GITHUB_ENV"
-            echo "IS_PROD=true" >> "$GITHUB_ENV"
-          else
-            echo "IS_PROD=false" >> "$GITHUB_ENV"
-            echo "STORE_PASS=nutriplan-debug-pw" >> "$GITHUB_ENV"
-            echo "KEY_PASS=nutriplan-debug-pw" >> "$GITHUB_ENV"
-            keytool -genkeypair -v -keystore nutriplan.keystore -alias nutriplan -keyalg RSA -keysize 2048 -validity 10000 -storepass "nutriplan-debug-pw" -keypass "nutriplan-debug-pw" -dname "CN=NutriPlan" -noprompt
-          fi
-        env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
-
-      - name: Update Assetlinks and Sync
-        if: env.IS_PROD == 'true'
-        run: |
-          # Екстракция на SHA-256
-          RAW_FINGERPRINT=$(keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" | cut -d' ' -f3)
-          
-          # Инжектиране в JSON
-          node -e "
-            const fs = require('fs');
-            const path = '.well-known/assetlinks.json';
-            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
-            data[0].target.sha256_cert_fingerprints = ['$RAW_FINGERPRINT'];
-            fs.writeFileSync(path, JSON.stringify(data, null, 2));
-          "
-          
-          # Git операцията с автоматично чистене
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .well-known/assetlinks.json
-          git commit -m "chore: update assetlinks.json fingerprint [skip ci]" || echo "No changes"
-          
-          git stash
-          git pull --rebase origin main
-          git push origin main
-          git stash pop || echo "Nothing to pop"
-
-      - name: Build APK
-        env:
-          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.STORE_PASS }}
-          BUBBLEWRAP_KEY_PASSWORD: ${{ env.KEY_PASS }}
-        run: |
-          V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
-          V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
-          printf "$V_NAME\n$V_CODE\n" | bubblewrap update --skipPwaValidation
-          bubblewrap build --skipPwaValidation
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: NutriPlan-APK
-          path: "*.apk"
-
-      - name: Create Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="v-$(date +'%Y%m%d%H%M')"
-          APK_FILE=$(find . -name "*release-signed.apk" | head -1)
-          gh release create "$TAG" "$APK_FILE" --title "NutriPlan Build $TAG" --notes "Автоматичен билд."
+{
+  "packageId": "com.aidiet.twa",
+  "host": "aidiet.bg",
+  "name": "NutriPlan",
+  "launcherName": "NutriPlan",
+  "display": "standalone",
+  "themeColor": "#0D9488",
+  "navigationColor": "#0D9488",
+  "backgroundColor": "#0D9488",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://aidiet.bg/icons/icon-512x512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKeyInfo": {
+    "path": "./nutriplan.keystore",
+    "alias": "nutriplan"
+  },
+  "appVersion": "1.0.0",
+  "versionCode": 1,
+  "minSdkVersion": 21,
+  "targetSdkVersion": 34
+}
