@@ -4,9 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.biocode.nutriplan",
-      "sha256_cert_fingerprints": [
-        "REPLACE_WITH_SHA256_FROM_BUILD_APK_WORKFLOW_LOG"
-      ]
+      "sha256_cert_fingerprints": []
     }
   }
 ]
