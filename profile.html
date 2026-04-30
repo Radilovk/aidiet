@@ -1685,11 +1685,7 @@
                 <span id="profileInstallBtnText">Инсталирай приложение</span>
             </button>
             
-            <!-- Installed Badge -->
-            <div class="profile-installed-badge hidden" id="profileInstalledBadge">
-                <i class="fas fa-check-circle"></i>
-                <span>Приложението е инсталирано</span>
-            </div>
+
         </div>
 
         <div id="alertContainer"></div>
@@ -1969,10 +1965,6 @@
 
         <!-- Back to Plan Button -->
         <div class="back-to-plan-container">
-            <button class="btn btn-secondary back-to-plan-btn" onclick="window.location.href='plan.html'">
-                <i class="fas fa-arrow-left"></i>
-                Към плана
-            </button>
             <a class="btn btn-primary back-to-plan-btn" href="plan-book.html">
                 <i class="fas fa-download"></i>
                 Изтегли целия план
@@ -3170,21 +3162,18 @@
         // Update profile install button based on current state
         function updateProfileInstallButton() {
             const installBtn = document.getElementById('profileInstallBtn');
-            const installedBadge = document.getElementById('profileInstalledBadge');
             const btnText = document.getElementById('profileInstallBtnText');
             
-            if (!installBtn || !installedBadge) return;
+            if (!installBtn) return;
             
             // Check if already installed (running in standalone mode)
             if (isInStandaloneMode()) {
                 installBtn.classList.add('hidden');
-                installedBadge.classList.remove('hidden');
-                if (PWA_DEBUG) console.log('App is installed - showing badge');
+                if (PWA_DEBUG) console.log('App is installed - hiding install button');
                 return;
             }
             
             // Show install button
-            installedBadge.classList.add('hidden');
             installBtn.classList.remove('hidden');
             
             // Update button text based on platform
@@ -3754,7 +3743,7 @@
             var leadingCriterion='', encourageText='<i class="fas fa-dumbbell" style="color:#0D9488"></i> Последователността е ключът към успеха!';
             if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намалете вредните храни — планът работи когато го следвате!'; }
             else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!'; }
-            else if (engagementPct<60)                 { leadingCriterion='Ангажираност'; encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвайте храненията по план — резултатите идват!'; }
+            else if (engagementPct<60)                 { leadingCriterion='';             encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвайте храненията по план — резултатите идват!'; }
             else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-person-walking" style="color:#0D9488"></i> Малко движение прави голяма разлика. Дори 15 минути помагат!'; }
             else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавайте в същия дух — резултатите идват!'; }
             if (badge) badge.textContent = leadingCriterion || (validScores.length+' дни');
