@@ -3439,7 +3439,7 @@
                 var mealCalMap = rec.mealCalories || {};
                 var completedPlanCals = 0;
                 Object.keys(rec.meals || {}).forEach(function(mt) {
-                    if (rec.meals[mt] === true && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
+                    if (rec.meals[mt] && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
                 });
                 var totalConsumed = completedPlanCals + extraCalSum;
                 var planned = rec.plannedCalories || null;
