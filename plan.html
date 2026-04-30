@@ -8543,20 +8543,20 @@
             if (ds.calorieBalance === 'surplus' && totalCals > 0) {
                 var surplusKcal = planCals > 0 ? Math.round(totalCals - planCals) : extraCals;
                 if (surplusKcal > 0) {
-                    calBadge = '<div class="daily-cal-balance surplus" style="font-size:0.72rem;color:#f59e0b;margin-top:3px">' +
-                        '<i class="fas fa-fire"></i> Калориен баланс: +' + surplusKcal + ' kcal над плана</div>';
+                    calBadge = '<div class="daily-cal-balance surplus" style="font-size:0.72rem;background:rgba(0,0,0,0.18);color:rgba(255,255,255,0.95);border-radius:8px;padding:2px 8px;margin-top:4px;display:inline-flex;align-items:center;gap:4px">' +
+                        '<i class="fas fa-fire" style="color:#fde68a"></i> Калориен баланс: +' + surplusKcal + ' kcal над плана</div>';
                 }
             } else if (ds.calorieBalance === 'deficit' && planCals > 0 && totalCals > 0) {
                 var deficitKcal = Math.round(planCals - totalCals);
                 if (deficitKcal > 0) {
-                    calBadge = '<div class="daily-cal-balance deficit" style="font-size:0.72rem;color:#3b82f6;margin-top:3px">' +
-                        '<i class="fas fa-arrow-down"></i> Калориен баланс: −' + deficitKcal + ' kcal под плана</div>';
+                    calBadge = '<div class="daily-cal-balance deficit" style="font-size:0.72rem;background:rgba(0,0,0,0.18);color:rgba(255,255,255,0.95);border-radius:8px;padding:2px 8px;margin-top:4px;display:inline-flex;align-items:center;gap:4px">' +
+                        '<i class="fas fa-arrow-down" style="color:#bae6fd"></i> Калориен баланс: −' + deficitKcal + ' kcal под плана</div>';
                 }
             }
             // Incorrect meal badge
             var incorrectBadge = ds.incorrectMeals > 0
                 ? '<div style="font-size:0.72rem;color:#ef4444;margin-top:3px"><i class="fas fa-exclamation-circle"></i> Неправилно хранене!</div>' : '';
-            card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-chart-bar" style="color:#0D9488"></i></div>' +
+            card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-chart-bar" style="color:rgba(255,255,255,0.9)"></i></div>' +
                 '<div class="daily-score-info">' +
                     '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F' + esc(dayLabel) + '</div>' +
                     (showLabel ? '<div class="daily-score-value">' + esc(ds.label) + '</div>' : '') +
