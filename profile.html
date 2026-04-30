@@ -310,6 +310,46 @@
             }
         }
 
+        /* Android APK download button */
+        .profile-android-btn {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: #3ddc84;
+            color: #1a1a2e;
+            border: none;
+            padding: 11px 20px;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(61,220,132,0.3);
+            margin-top: 8px;
+            text-decoration: none;
+        }
+
+        .profile-android-btn i {
+            font-size: 1.1rem;
+        }
+
+        .profile-android-btn:hover {
+            background: #2ec96e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(61,220,132,0.45);
+        }
+
+        .profile-android-btn:active {
+            transform: translateY(0);
+        }
+
+        @media (min-width: 769px) {
+            .profile-android-btn {
+                font-size: 0.95rem;
+                padding: 12px 24px;
+            }
+        }
+
         /* --- FORM --- */
         .form-section {
             background: var(--card-bg);
@@ -1684,7 +1724,12 @@
                 <i class="fas fa-download"></i>
                 <span id="profileInstallBtnText">Инсталирай приложение</span>
             </button>
-            
+
+            <!-- Android APK Download Button (shown only on Android when not installed as TWA) -->
+            <a class="profile-android-btn" id="profileAndroidBtn" href="https://biocode.website/NutriPlan.apk" download="NutriPlan.apk">
+                <i class="fab fa-android"></i>
+                <span>Свали за Android (.apk)</span>
+            </a>
 
         </div>
 
@@ -3163,18 +3208,25 @@
         function updateProfileInstallButton() {
             const installBtn = document.getElementById('profileInstallBtn');
             const btnText = document.getElementById('profileInstallBtnText');
+            const androidBtn = document.getElementById('profileAndroidBtn');
             
             if (!installBtn) return;
             
             // Check if already installed (running in standalone mode)
             if (isInStandaloneMode()) {
                 installBtn.classList.add('hidden');
+                if (androidBtn) androidBtn.style.display = 'none';
                 if (PWA_DEBUG) console.log('App is installed - hiding install button');
                 return;
             }
             
             // Show install button
             installBtn.classList.remove('hidden');
+
+            // Show Android APK download button only on Android devices that are not running the TWA
+            if (androidBtn) {
+                androidBtn.style.display = isAndroid ? 'inline-flex' : 'none';
+            }
             
             // Update button text based on platform
             if (deferredPrompt) {

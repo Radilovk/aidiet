@@ -1,0 +1,54 @@
+{
+  "packageId": "com.biocode.nutriplan",
+  "host": "biocode.website",
+  "name": "NutriPlan - Интелигентна Хранителна Платформа",
+  "launcherName": "NutriPlan",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#0D9488",
+  "navigationColor": "#0D9488",
+  "navigationColorDark": "#0F766E",
+  "navigationDividerColor": "#0D9488",
+  "navigationDividerColorDark": "#0F766E",
+  "backgroundColor": "#0D9488",
+  "startUrl": "/",
+  "iconUrl": "https://biocode.website/icon-512x512.png",
+  "maskableIconUrl": "https://biocode.website/icon-512x512.png",
+  "monochromeIconUrl": "https://biocode.website/icon-192x192.png",
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./nutriplan.keystore",
+    "alias": "nutriplan"
+  },
+  "enableNotifications": true,
+  "shortcuts": [
+    {
+      "name": "Моят план",
+      "shortName": "План",
+      "url": "/plan.html",
+      "chooseIconFromWebManifest": true
+    },
+    {
+      "name": "Профил",
+      "shortName": "Профил",
+      "url": "/profile.html",
+      "chooseIconFromWebManifest": true
+    },
+    {
+      "name": "Въпросник",
+      "shortName": "Въпросник",
+      "url": "/questionnaire2.html",
+      "chooseIconFromWebManifest": true
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://biocode.website/manifest.json",
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "minSdkVersion": 19,
+  "targetSdkVersion": 35,
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}
