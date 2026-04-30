@@ -1,0 +1,114 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Prepare signing keystore
+        id: keystore
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > nutriplan.keystore
+            STORE_PASS="${KEYSTORE_PASSWORD}"
+            KEY_PASS="${KEY_PASSWORD}"
+            BUILD_MODE="production"
+          else
+            # No secrets configured — generate a debug keystore for this build
+            STORE_PASS="nutriplan-debug-pw"
+            KEY_PASS="nutriplan-debug-pw"
+            BUILD_MODE="debug"
+            keytool -genkeypair -v \
+              -keystore nutriplan.keystore \
+              -alias nutriplan \
+              -keyalg RSA -keysize 2048 \
+              -validity 10000 \
+              -storepass "$STORE_PASS" \
+              -keypass "$KEY_PASS" \
+              -dname "CN=NutriPlan, OU=NutriPlan App, O=Biocode, L=Sofia, S=Sofia, C=BG" \
+              -noprompt
+          fi
+          echo "::add-mask::$STORE_PASS"
+          echo "::add-mask::$KEY_PASS"
+          echo "TWA_STORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
+          echo "TWA_KEY_PASSWORD=$KEY_PASS"     >> "$GITHUB_ENV"
+          echo "BUILD_MODE=$BUILD_MODE"         >> "$GITHUB_ENV"
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Print signing certificate SHA-256 fingerprint
+        run: |
+          echo "=========================================================="
+          echo " SHA-256 fingerprint — paste into .well-known/assetlinks.json"
+          echo "=========================================================="
+          keytool -list -v \
+            -keystore nutriplan.keystore \
+            -alias nutriplan \
+            -storepass "$TWA_STORE_PASSWORD" 2>/dev/null | grep "SHA256:"
+
+      - name: Build APK with Bubblewrap
+        run: bubblewrap build --skipPwaValidation
+
+      - name: Locate and copy APK
+        run: |
+          APK=$(find . -name "app-release-signed.apk" | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find . -name "*.apk" | grep -v "/debug/" | head -1)
+          fi
+          if [ -z "$APK" ]; then
+            echo "ERROR: No signed APK found after build." && exit 1
+          fi
+          echo "APK found at: $APK"
+          cp "$APK" NutriPlan.apk
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NutriPlan-APK
+          path: NutriPlan.apk
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="apk-latest"
+          # Remove previous release/tag so we can replace it
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          git push origin ":refs/tags/$TAG"  2>/dev/null || true
+
+          NOTES="## NutriPlan APK — Android инсталация
+
+          Свали \`NutriPlan.apk\`, разреши **„Инсталация от неизвестни източници"** в Настройки → Сигурност, след което отвори файла и потвърди.
+
+          Билд: \`$BUILD_MODE\`  |  Дата: $(date -u '+%Y-%m-%d %H:%M UTC')"
+
+          gh release create "$TAG" \
+            NutriPlan.apk \
+            --title "NutriPlan APK — Latest" \
+            --notes "$NOTES" \
+            --latest
