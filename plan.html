@@ -2128,6 +2128,17 @@
         .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; }
         .daily-score-value { font-size: 1.2rem; font-weight: 700; }
         .daily-score-stars { font-size: 0.95rem; margin-top: 2px; }
+        .daily-cal-balance {
+            font-size: 0.72rem;
+            background: rgba(0,0,0,0.18);
+            color: rgba(255,255,255,0.95);
+            border-radius: 8px;
+            padding: 2px 8px;
+            margin-top: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
 
         /* ── Star celebration animations ──────────────────────────────────── */
         @keyframes starCelebPop {
@@ -8543,13 +8554,13 @@
             if (ds.calorieBalance === 'surplus' && totalCals > 0) {
                 var surplusKcal = planCals > 0 ? Math.round(totalCals - planCals) : extraCals;
                 if (surplusKcal > 0) {
-                    calBadge = '<div class="daily-cal-balance surplus" style="font-size:0.72rem;background:rgba(0,0,0,0.18);color:rgba(255,255,255,0.95);border-radius:8px;padding:2px 8px;margin-top:4px;display:inline-flex;align-items:center;gap:4px">' +
+                    calBadge = '<div class="daily-cal-balance surplus">' +
                         '<i class="fas fa-fire" style="color:#fde68a"></i> Калориен баланс: +' + surplusKcal + ' kcal над плана</div>';
                 }
             } else if (ds.calorieBalance === 'deficit' && planCals > 0 && totalCals > 0) {
                 var deficitKcal = Math.round(planCals - totalCals);
                 if (deficitKcal > 0) {
-                    calBadge = '<div class="daily-cal-balance deficit" style="font-size:0.72rem;background:rgba(0,0,0,0.18);color:rgba(255,255,255,0.95);border-radius:8px;padding:2px 8px;margin-top:4px;display:inline-flex;align-items:center;gap:4px">' +
+                    calBadge = '<div class="daily-cal-balance deficit">' +
                         '<i class="fas fa-arrow-down" style="color:#bae6fd"></i> Калориен баланс: −' + deficitKcal + ' kcal под плана</div>';
                 }
             }
