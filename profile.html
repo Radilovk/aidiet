@@ -2068,7 +2068,7 @@
             var chevron = document.getElementById('gameAnalyticsChevron');
             var header  = section ? section.querySelector('.game-analytics-header') : null;
             if (!section || !body) return;
-            var isOpen = body.style.display === 'none';
+            var isOpen = body.style.display !== 'block';
             body.style.display = isOpen ? 'block' : 'none';
             section.classList.toggle('open', isOpen);
             if (chevron) chevron.className = 'fas game-analytics-chevron ' + (isOpen ? 'fa-chevron-up' : 'fa-chevron-down');
@@ -2081,7 +2081,7 @@
             var chevron   = document.getElementById('analysisChevron');
             var header    = container ? container.querySelector('.analysis-header-toggle') : null;
             if (!container || !wrap) return;
-            var isOpen = wrap.style.display === 'none';
+            var isOpen = wrap.style.display !== 'block';
             wrap.style.display = isOpen ? 'block' : 'none';
             container.classList.toggle('open', isOpen);
             if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
@@ -2093,7 +2093,7 @@
             var chevron = document.getElementById('gameMetricsChevron');
             var toggle  = document.getElementById('gameMetricsToggle');
             if (!details) return;
-            var isOpen = details.style.display === 'none';
+            var isOpen = details.style.display !== 'block';
             details.style.display = isOpen ? 'block' : 'none';
             if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
             if (toggle)  toggle.setAttribute('aria-expanded', String(isOpen));
