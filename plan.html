@@ -2128,6 +2128,101 @@
         .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; }
         .daily-score-value { font-size: 1.2rem; font-weight: 700; }
         .daily-score-stars { font-size: 0.95rem; margin-top: 2px; }
+
+        /* ── Star celebration animations ──────────────────────────────────── */
+        @keyframes starCelebPop {
+            0%   { transform: scale(0.85); }
+            40%  { transform: scale(1.07); }
+            70%  { transform: scale(0.97); }
+            100% { transform: scale(1); }
+        }
+        @keyframes starCelebShake {
+            0%,100% { transform: translateX(0) scale(1); }
+            15%     { transform: translateX(-5px) scale(1.03); }
+            35%     { transform: translateX(5px) scale(1.05); }
+            55%     { transform: translateX(-4px) scale(1.04); }
+            75%     { transform: translateX(4px) scale(1.02); }
+        }
+        @keyframes starCelebBounce {
+            0%   { transform: scale(0.8) translateY(0); }
+            30%  { transform: scale(1.12) translateY(-8px); }
+            55%  { transform: scale(0.96) translateY(2px); }
+            75%  { transform: scale(1.06) translateY(-4px); }
+            100% { transform: scale(1) translateY(0); }
+        }
+        @keyframes starCelebGlow4 {
+            0%   { box-shadow: 0 6px 24px rgba(13,148,136,0.3); transform: scale(1); }
+            25%  { box-shadow: 0 0 0 12px rgba(251,191,36,0.35), 0 6px 40px rgba(251,191,36,0.5); transform: scale(1.04); }
+            60%  { box-shadow: 0 0 0 24px rgba(251,191,36,0.12), 0 8px 50px rgba(251,191,36,0.3); transform: scale(1.02); }
+            100% { box-shadow: 0 6px 24px rgba(13,148,136,0.3); transform: scale(1); }
+        }
+        @keyframes starCelebGlow5 {
+            0%   { box-shadow: 0 6px 24px rgba(13,148,136,0.3); transform: scale(1); }
+            20%  { box-shadow: 0 0 0 18px rgba(251,191,36,0.55), 0 0 60px rgba(251,191,36,0.7); transform: scale(1.07); }
+            50%  { box-shadow: 0 0 0 36px rgba(251,191,36,0.2), 0 0 100px rgba(251,191,36,0.4); transform: scale(1.04); }
+            75%  { box-shadow: 0 0 0 50px rgba(251,191,36,0.06), 0 12px 60px rgba(251,191,36,0.2); transform: scale(1.01); }
+            100% { box-shadow: 0 6px 24px rgba(13,148,136,0.3); transform: scale(1); }
+        }
+        /* star celebration overlay (floating stars burst) */
+        .star-burst-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1998;
+            overflow: hidden;
+        }
+        .star-burst-overlay .sb-star {
+            position: absolute;
+            font-size: 1.4rem;
+            line-height: 1;
+            animation: sbFly 1.1s cubic-bezier(0.22,1,0.36,1) forwards;
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+        .star-burst-overlay .sb-star.big { font-size: 2.2rem; }
+        @keyframes sbFly {
+            0%   { opacity: 0; transform: translate(0,0) scale(0.3) rotate(0deg); }
+            15%  { opacity: 1; }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); }
+        }
+        /* "Отличен ден!" flash banner */
+        .excellent-day-flash {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.3);
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1a0a00;
+            font-size: 1.5rem;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            padding: 18px 32px;
+            border-radius: 24px;
+            box-shadow: 0 20px 80px rgba(251,191,36,0.6), 0 0 120px rgba(251,191,36,0.3);
+            z-index: 2100;
+            opacity: 0;
+            pointer-events: none;
+            animation: exFlash 2.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+            text-align: center;
+        }
+        @keyframes exFlash {
+            0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.3); }
+            18%  { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
+            30%  { transform: translate(-50%,-50%) scale(1.0); }
+            60%  { opacity: 1; transform: translate(-50%,-50%) scale(1.0); }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(1.15) translateY(-30px); }
+        }
+        #dailyScoreCard.sc-anim-1 { animation: starCelebPop    0.45s ease-out; }
+        #dailyScoreCard.sc-anim-2 { animation: starCelebShake  0.55s ease-out; }
+        #dailyScoreCard.sc-anim-3 { animation: starCelebBounce 0.65s cubic-bezier(0.34,1.56,0.64,1); }
+        #dailyScoreCard.sc-anim-4 { animation: starCelebGlow4  0.9s ease-out; }
+        #dailyScoreCard.sc-anim-5 { animation: starCelebGlow5  1.1s ease-out; }
+        /* time-locked meal check button state */
+        .meal-check-btn.locked {
+            opacity: 0.35 !important;
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
         /* FAB bounce/raise states */
         @keyframes fabBounce {
             0%,100% { transform: translateY(0); }
@@ -6432,6 +6527,21 @@
 
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Haptic feedback for AI assistant messages: short vibration on arrival,
+            // then simulate per-character tap pattern (like Grok AI)
+            if (role === 'assistant' && typeof navigator !== 'undefined' && navigator.vibrate) {
+                // Initial arrival buzz
+                navigator.vibrate(120);
+                // Simulate letter-by-letter taps using a staggered pattern
+                const msgLen = Math.min(message.length, 80);
+                const pattern = [];
+                for (let _h = 0; _h < msgLen; _h++) {
+                    pattern.push(1);   // 1ms vibrate
+                    pattern.push(28);  // 28ms pause (matches ~30ms typewriter speed)
+                }
+                if (pattern.length > 0) setTimeout(function() { navigator.vibrate(pattern); }, 200);
+            }
             
             // Save to chat history if requested
             if (saveToHistory) {
@@ -8082,9 +8192,45 @@
         function isFutureDayKey(key) { return key > getTodayKey(); }
         function isPastDayKey(key)   { return key < getTodayKey(); }
 
+        // ── Meal unlock hours: check button only available after these hours ──────
+        function getMealUnlockHour(mealType) {
+            // Strip index suffix if present (e.g. "Закуска_2" → "Закуска")
+            var base = mealType.replace(/_\d+$/, '');
+            if (base === 'Закуска')  return 6;
+            if (base === 'Обяд')     return 12;
+            if (base === 'Следобедна закуска' || base === 'Следобедна' || base === 'Десерт') return 14;
+            if (base === 'Вечеря' || base === 'Свободно хранене') return 18;
+            return 6; // default: available from early morning
+        }
+
         function startPromptInterval() {
             if (_promptIntervalId) clearInterval(_promptIntervalId);
-            _promptIntervalId = setInterval(checkTimePrompts, 60000);
+            _promptIntervalId = setInterval(function() {
+                checkTimePrompts();
+                // Re-evaluate time locks on all visible check buttons every minute
+                _refreshTimeLocks();
+            }, 60000);
+        }
+
+        // Periodically re-evaluate time locks so buttons unlock at the right hour
+        function _refreshTimeLocks() {
+            if (!isGameEnabled()) return;
+            var container = document.getElementById('mealContainer');
+            if (!container) return;
+            var dayKey = getCurrentViewDayKey();
+            if (isPastDayKey(dayKey)) return; // past days are always unlocked
+            var currentHour = new Date().getHours();
+            container.querySelectorAll('.meal-check-btn.locked').forEach(function(btn) {
+                var card = btn.closest('.meal-card');
+                if (!card) return;
+                var typeEl = card.querySelector('.meal-type');
+                var mealType = typeEl ? typeEl.textContent.replace(/\(.*\)/,'').trim() : '';
+                if (getMealUnlockHour(mealType) <= currentHour) {
+                    btn.classList.remove('locked');
+                    btn.title = '';
+                    btn.setAttribute('aria-label', '\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
+                }
+            });
         }
 
         function isGameEnabled() { return localStorage.getItem(GAME_ENABLED_KEY) === 'true'; }
@@ -8116,8 +8262,19 @@
             el.textContent = '';
             el.classList.add('typing');
             var i = 0;
+            // Haptic: vibrate once at the start of the message (short buzz)
+            if (typeof navigator !== 'undefined' && navigator.vibrate) { navigator.vibrate(80); }
+            var _hapticTick = 0;
             function tick() {
-                if (i < text.length) { el.textContent += text[i++]; setTimeout(tick, speed || 30); }
+                if (i < text.length) {
+                    el.textContent += text[i++];
+                    // Light per-character haptic: vibrate every 3 chars to avoid overwhelming pattern
+                    _hapticTick++;
+                    if (_hapticTick % 3 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
+                        navigator.vibrate(1);
+                    }
+                    setTimeout(tick, speed || 30);
+                }
                 else { el.classList.remove('typing'); if (cb) cb(); }
             }
             tick();
@@ -8167,10 +8324,13 @@
             var incorrectMeals = 0;
 
             meals.forEach(function(m) {
-                var isFree = (m === 'Свободно хранене');
+                // Strip numeric suffix (e.g. "Свободно хранене_2" → "Свободно хранене")
+                var baseMealType = m.replace(/_\d+$/, '');
+                var isFree = (baseMealType === 'Свободно хранене');
                 if (isFree) {
                     // Free meal counts only if a photo was analyzed with rating >= FREE_MEAL_MIN_RATING
-                    var rating = freeMealRatings[m];
+                    // Look up rating using base type first, then full key
+                    var rating = freeMealRatings[baseMealType] != null ? freeMealRatings[baseMealType] : freeMealRatings[m];
                     if (rating != null) {
                         if (rating >= FREE_MEAL_MIN_RATING) { mealPts += 10; }
                         else             { incorrectMeals++; } // rating below threshold = incorrect meal
@@ -8238,8 +8398,9 @@
 
             // ── 5-star blocker flags ────────────────────────────────────────
             var allMealsOk    = meals.length > 0 && meals.every(function(m) {
-                if (m === 'Свободно хранене') {
-                    var r = freeMealRatings[m];
+                var baseMealType = m.replace(/_\d+$/, '');
+                if (baseMealType === 'Свободно хранене') {
+                    var r = freeMealRatings[baseMealType] != null ? freeMealRatings[baseMealType] : freeMealRatings[m];
                     return r == null || r >= FREE_MEAL_MIN_RATING; // not rated = uncertain, don't block; rated low = blocks
                 }
                 return rec.meals[m] === true;
@@ -8253,7 +8414,11 @@
 
             // ── Engagement % (kept for backward compatibility) ──────────────
             var done     = meals.filter(function(m) {
-                if (m === 'Свободно хранене') return (freeMealRatings[m] || 0) >= FREE_MEAL_MIN_RATING;
+                var baseMealType = m.replace(/_\d+$/, '');
+                if (baseMealType === 'Свободно хранене') {
+                    var r = freeMealRatings[baseMealType] != null ? freeMealRatings[baseMealType] : (freeMealRatings[m] || 0);
+                    return r >= FREE_MEAL_MIN_RATING;
+                }
                 return rec.meals[m] === true;
             }).length;
             var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
@@ -8306,13 +8471,15 @@
         function recalcAndShowScore(key) {
             key = key || getCurrentViewDayKey();
             var rec = getRecord(key);
+            // Capture previous score BEFORE recalculating to detect star gains
+            var prevScore = (rec.dailyScore && rec.dailyScore.score) ? rec.dailyScore.score : 0;
             rec.dailyScore = calcDayScore(rec);
             saveRecord(key, rec);
             var viewKey = getCurrentViewDayKey();
-            if (key === viewKey) renderDailyScoreCard(key);
+            if (key === viewKey) renderDailyScoreCard(key, prevScore);
         }
 
-        function renderDailyScoreCard(dayKey) {
+        function renderDailyScoreCard(dayKey, prevScore) {
             dayKey = dayKey || getCurrentViewDayKey();
             var card = document.getElementById('dailyScoreCard');
             if (!card) {
@@ -8395,6 +8562,91 @@
                     '<div class="daily-score-stars">' + ds.stars + '</div>' +
                     incorrectBadge + calBadge +
                 '</div>';
+
+            // ── Star celebration animation ──────────────────────────────────
+            var newScore = ds.score || 0;
+            // Trigger animation only when stars increase (prevScore is passed from recalcAndShowScore)
+            if (prevScore !== undefined && newScore > 0 && newScore > prevScore) {
+                triggerStarCelebration(card, newScore);
+            }
+        }
+
+        // ── Star celebration ──────────────────────────────────────────────────
+        function triggerStarCelebration(card, starCount) {
+            // Remove previous animation classes
+            card.classList.remove('sc-anim-1','sc-anim-2','sc-anim-3','sc-anim-4','sc-anim-5');
+            // Force reflow so animation restarts
+            void card.offsetWidth;
+            card.classList.add('sc-anim-' + starCount);
+            // Remove class after animation ends to allow re-triggering
+            setTimeout(function() { card.classList.remove('sc-anim-' + starCount); }, 1200);
+
+            // Haptic feedback: escalating pattern
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                if      (starCount === 1) navigator.vibrate(60);
+                else if (starCount === 2) navigator.vibrate([60, 40, 80]);
+                else if (starCount === 3) navigator.vibrate([80, 40, 80, 40, 120]);
+                else if (starCount === 4) navigator.vibrate([100, 50, 100, 50, 150, 50, 150]);
+                else                     navigator.vibrate([150, 60, 150, 60, 200, 60, 200, 60, 300]);
+            }
+
+            // Flying stars burst overlay
+            _triggerStarBurst(card, starCount);
+
+            // Level 5: show "Отличен ден!" flash banner
+            if (starCount === 5) {
+                setTimeout(function() {
+                    var flash = document.createElement('div');
+                    flash.className = 'excellent-day-flash';
+                    flash.innerHTML = '<div style="font-size:2rem;margin-bottom:6px">⭐⭐⭐⭐⭐</div>' +
+                        '<div>Отличен ден!</div>' +
+                        '<div style="font-size:0.85rem;font-weight:600;margin-top:6px;opacity:0.75">Браво! Перфектен резултат!</div>';
+                    document.body.appendChild(flash);
+                    setTimeout(function() { flash.remove(); }, 2500);
+                }, 150);
+            }
+        }
+
+        function _triggerStarBurst(card, starCount) {
+            var overlay = document.createElement('div');
+            overlay.className = 'star-burst-overlay';
+            document.body.appendChild(overlay);
+
+            // Determine origin point from card position
+            var rect = card.getBoundingClientRect();
+            var originX = rect.left + rect.width / 2;
+            var originY = rect.top + rect.height / 2;
+
+            // Number of flying elements and sizes scale with star count
+            var count = [0, 6, 10, 16, 24, 36][starCount] || 8;
+            var emojis = ['⭐','✨','🌟','💛','⚡'];
+            if (starCount >= 4) emojis.push('🏆','🎉','💫');
+
+            for (var i = 0; i < count; i++) {
+                (function(idx) {
+                    var el = document.createElement('div');
+                    el.className = 'sb-star' + (starCount === 5 && idx < 6 ? ' big' : '');
+                    el.textContent = emojis[idx % emojis.length];
+
+                    // Random angle and distance
+                    var angle = (Math.random() * 360) * Math.PI / 180;
+                    var dist  = 80 + Math.random() * (starCount * 40 + 60);
+                    var tx    = Math.round(Math.cos(angle) * dist);
+                    var ty    = Math.round(Math.sin(angle) * dist - dist * 0.3); // slightly upward bias
+                    var rot   = Math.round(Math.random() * 720 - 360);
+                    var delay = idx * (starCount >= 4 ? 35 : 55);
+                    var dur   = 0.9 + Math.random() * 0.5;
+
+                    el.style.cssText = 'left:' + originX + 'px;top:' + originY + 'px;' +
+                        '--tx:' + tx + 'px;--ty:' + ty + 'px;--rot:' + rot + 'deg;' +
+                        'animation-duration:' + dur + 's;animation-delay:' + delay + 'ms;';
+                    overlay.appendChild(el);
+                })(i);
+            }
+
+            // Remove overlay after all animations finish
+            var totalDuration = count * (starCount >= 4 ? 35 : 55) + 1600;
+            setTimeout(function() { overlay.remove(); }, totalDuration);
         }
 
         // ── Meal checkmarks ───────────────────────────────────────────────────
@@ -8419,8 +8671,9 @@
 
             // Compute planned calorie total from rendered meal cards (best effort)
             // Also capture per-meal calorie data for accurate completed-meal calorie tracking
+            // Only count planned meals (not added-meal-cards which lack data-meal-calories)
             var plannedCals = 0;
-            container.querySelectorAll('.meal-card').forEach(function(card) {
+            container.querySelectorAll('.meal-card:not(.added-meal-card)').forEach(function(card) {
                 var calEl = card.querySelector('[data-meal-calories]');
                 if (calEl) { plannedCals += parseFloat(calEl.getAttribute('data-meal-calories')) || 0; }
             });
@@ -8430,7 +8683,10 @@
             }
 
             var seenMealTypes = {};
-            container.querySelectorAll('.meal-card:not([data-ge])').forEach(function(card) {
+            // Skip added-meal-card elements: they represent extra food already tracked
+            // via extraMeals from logExtraFood. Including them as planned meal slots
+            // would inflate the denominator and cause double-counting issues.
+            container.querySelectorAll('.meal-card:not([data-ge]):not(.added-meal-card)').forEach(function(card) {
                 var typeEl = card.querySelector('.meal-type');
                 var mealType = typeEl ? typeEl.textContent.replace(/\(.*\)/,'').trim() : '';
                 if (!mealType) return;
@@ -8461,7 +8717,16 @@
                 var isDone = rec.meals[mealKey] === true;
                 var freeMealRating = isFreeMeal ? (rec.freeMealRatings[mealType] != null ? rec.freeMealRatings[mealType] : null) : null;
                 var checkBtn = document.createElement('button');
-                checkBtn.className = 'meal-check-btn' + (isDone ? ' done' : '');
+
+                // ── Time-based lock: meal check only available after its designated hour ──
+                var unlockHour = getMealUnlockHour(mealType);
+                var currentHour = new Date().getHours();
+                var isTimeLocked = !isPastDayKey(dayKey) && currentHour < unlockHour;
+                checkBtn.className = 'meal-check-btn' + (isDone ? ' done' : '') + (isTimeLocked ? ' locked' : '');
+                if (isTimeLocked) {
+                    checkBtn.title = 'Достъпно след ' + (unlockHour < 10 ? '0' : '') + unlockHour + ':00 ч.';
+                    checkBtn.setAttribute('aria-label', 'Отбелязването е достъпно след ' + unlockHour + ':00 ч.');
+                }
 
                 // For free meals, show the rating badge or a "photo needed" hint
                 if (isFreeMeal) {
@@ -8480,9 +8745,12 @@
                 }
 
                 checkBtn.innerHTML = '<i class="fas fa-check"></i>';
-                checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
+                if (!isTimeLocked) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
                 checkBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
+                    // Re-check time lock at click time (button could have been rendered earlier)
+                    var clickHour = new Date().getHours();
+                    if (!isPastDayKey(dayKey) && clickHour < getMealUnlockHour(mealType)) return;
                     var r = getRecord(dayKey);
                     if (!r.mealCalories) r.mealCalories = {};
                     r.meals[mealKey] = !r.meals[mealKey];
