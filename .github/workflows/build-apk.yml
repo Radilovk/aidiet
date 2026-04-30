@@ -46,36 +46,41 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
 
+      - name: Force Configure Bubblewrap
+        run: |
+          mkdir -p ~/.bubblewrap
+          # Използваме абсолютни пътища от системата
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+          echo "Bubblewrap configured with JDK: $JAVA_HOME and SDK: $ANDROID_SDK_ROOT"
+
       - name: Update Assetlinks and Sync
         if: env.IS_PROD == 'true'
         run: |
-          # 1. Вадим SHA-256
           RAW_FINGERPRINT=$(keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" | cut -d' ' -f3)
           
-          # 2. Пишем в JSON
           node -e "
             const fs = require('fs');
             const path = '.well-known/assetlinks.json';
+            if (!fs.existsSync(path)) {
+              fs.mkdirSync('.well-known', { recursive: true });
+              fs.writeFileSync(path, JSON.stringify([{
+                relation: ['delegate_permission/common.handle_all_urls'],
+                target: { namespace: 'android_app', package_name: 'com.aidiet.twa', sha256_cert_fingerprints: [] }
+              }], null, 2));
+            }
             const data = JSON.parse(fs.readFileSync(path, 'utf8'));
             data[0].target.sha256_cert_fingerprints = ['$RAW_FINGERPRINT'];
             fs.writeFileSync(path, JSON.stringify(data, null, 2));
           "
           
-          # 3. Git Магията - Почистване преди Pull
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
           git add .well-known/assetlinks.json
           git commit -m "chore: update assetlinks.json [skip ci]" || echo "No changes"
           
-          # Скриваме всичко (включително keystore файла)
           git stash -u
-          
-          # Дърпаме и качваме
           git pull --rebase origin main
           git push origin main
-          
-          # Връщаме файловете обратно за билда
           git stash pop || echo "Nothing to return"
 
       - name: Build APK
@@ -83,8 +88,11 @@ jobs:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.STORE_PASS }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ env.KEY_PASS }}
         run: |
+          # Четем версията от twa-manifest.json
           V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
           V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
+          
+          # Подаваме версията и прескачаме валидацията
           printf "$V_NAME\n$V_CODE\n" | bubblewrap update --skipPwaValidation
           bubblewrap build --skipPwaValidation
 
