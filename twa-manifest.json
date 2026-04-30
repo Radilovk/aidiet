@@ -27,19 +27,19 @@
       "name": "Моят план",
       "shortName": "План",
       "url": "/plan.html",
-      "chooseIconFromWebManifest": true
+      "chosenIconUrl": "https://biocode.website/icon-192x192.png"
     },
     {
       "name": "Профил",
       "shortName": "Профил",
       "url": "/profile.html",
-      "chooseIconFromWebManifest": true
+      "chosenIconUrl": "https://biocode.website/icon-192x192.png"
     },
     {
       "name": "Въпросник",
       "shortName": "Въпросник",
       "url": "/questionnaire2.html",
-      "chooseIconFromWebManifest": true
+      "chosenIconUrl": "https://biocode.website/icon-192x192.png"
     }
   ],
   "generatorApp": "bubblewrap-cli",
