@@ -444,6 +444,26 @@
             color: #ffffff;
         }
 
+        .analysis-header-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .analysis-toggle-chevron {
+            font-size: 0.85rem;
+            opacity: 0.85;
+            transition: transform 0.3s ease;
+        }
+
+        .analysis-container.open .analysis-toggle-chevron {
+            transform: rotate(180deg);
+        }
+
         .analysis-title {
             display: flex;
             align-items: center;
@@ -696,6 +716,28 @@
             letter-spacing: 0.07em;
             margin: 14px 0 8px;
         }
+        /* Metrics collapsible toggle */
+        .game-metrics-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 7px 4px 7px 0;
+            margin: 10px 0 4px;
+            border-top: 1px solid rgba(13,148,136,0.15);
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            border-radius: 6px;
+        }
+        .game-metrics-toggle:hover { background: rgba(13,148,136,0.05); }
+        .game-metrics-chevron {
+            font-size: 0.72rem;
+            color: var(--text-light);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+        [data-theme="dark"] .game-metrics-toggle { border-top-color: rgba(45,212,191,0.12); }
         /* Explanation modal */
         .game-explain-overlay {
             position: fixed; inset: 0;
@@ -1652,6 +1694,23 @@
 
         <div id="alertContainer"></div>
 
+        <!-- CURRENT ANALYSIS SECTION -->
+        <div class="game-analytics-section" id="gameAnalyticsSection" style="display:none;">
+            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="true" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
+                <div class="game-analytics-title">
+                    <i class="fas fa-brain"></i>
+                    <span>Текущ Анализ</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span id="gameAnalyticsBadge" class="game-analytics-badge"></span>
+                    <i class="fas fa-chevron-up game-analytics-chevron" id="gameAnalyticsChevron"></i>
+                </div>
+            </div>
+            <div class="game-analytics-body" id="gameAnalyticsBody">
+                <p style="color:var(--text-light);font-style:italic;font-size:0.85rem;">Зареждане…</p>
+            </div>
+        </div>
+
         <!-- QUESTIONNAIRE COLLAPSIBLE CONTAINER -->
         <div class="questionnaire-container" id="questionnaireContainer">
             <div class="questionnaire-header" 
@@ -1880,39 +1939,31 @@
             </div> <!-- End questionnaire-content -->
         </div> <!-- End questionnaire-container -->
 
-        <!-- SEPARATE CONTAINER: Health Analysis Section -->
+        <!-- SEPARATE CONTAINER: Health Analysis Section (collapsible, default collapsed) -->
         <div class="analysis-container" id="analysisSection" style="display: none;">
-            <div class="analysis-header">
+            <div class="analysis-header analysis-header-toggle"
+                 onclick="toggleAnalysisSection()"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleAnalysisSection();}"
+                 role="button"
+                 tabindex="0"
+                 aria-expanded="false"
+                 aria-controls="analysisBodyWrap">
                 <div class="analysis-title">
                     <i class="fas fa-chart-line"></i>
                     <span>Здравен Анализ</span>
                 </div>
+                <i class="fas fa-chevron-down analysis-toggle-chevron" id="analysisChevron"></i>
             </div>
-            <div id="analysisContent" class="analysis-body">
-                <p style="color: var(--text-light); font-style: italic;">Няма наличен анализ</p>
-            </div>
-            <div style="text-align: center; padding: 15px;">
-                <button class="btn btn-primary" onclick="viewFullAnalysis()" style="display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-chart-line"></i>
-                    Виж пълен анализ
-                </button>
-            </div>
-        </div>
-
-        <!-- CURRENT ANALYSIS SECTION -->
-        <div class="game-analytics-section" id="gameAnalyticsSection" style="display:none;">
-            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="false" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
-                <div class="game-analytics-title">
-                    <i class="fas fa-brain"></i>
-                    <span>Текущ Анализ</span>
+            <div id="analysisBodyWrap" style="display:none;">
+                <div id="analysisContent" class="analysis-body">
+                    <p style="color: var(--text-light); font-style: italic;">Няма наличен анализ</p>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <span id="gameAnalyticsBadge" class="game-analytics-badge"></span>
-                    <i class="fas fa-chevron-down game-analytics-chevron" id="gameAnalyticsChevron"></i>
+                <div style="text-align: center; padding: 15px;">
+                    <button class="btn btn-primary" onclick="viewFullAnalysis()" style="display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-chart-line"></i>
+                        Виж пълен анализ
+                    </button>
                 </div>
-            </div>
-            <div class="game-analytics-body" id="gameAnalyticsBody" style="display:none;">
-                <p style="color:var(--text-light);font-style:italic;font-size:0.85rem;">Зареждане…</p>
             </div>
         </div>
 
@@ -2017,11 +2068,35 @@
             var chevron = document.getElementById('gameAnalyticsChevron');
             var header  = section ? section.querySelector('.game-analytics-header') : null;
             if (!section || !body) return;
-            var isOpen = !section.classList.contains('open');
-            section.classList.toggle('open', isOpen);
+            var isOpen = body.style.display !== 'block';
             body.style.display = isOpen ? 'block' : 'none';
+            section.classList.toggle('open', isOpen);
+            if (chevron) chevron.className = 'fas game-analytics-chevron ' + (isOpen ? 'fa-chevron-up' : 'fa-chevron-down');
+            if (header)  header.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function toggleAnalysisSection() {
+            var container = document.getElementById('analysisSection');
+            var wrap      = document.getElementById('analysisBodyWrap');
+            var chevron   = document.getElementById('analysisChevron');
+            var header    = container ? container.querySelector('.analysis-header-toggle') : null;
+            if (!container || !wrap) return;
+            var isOpen = wrap.style.display !== 'block';
+            wrap.style.display = isOpen ? 'block' : 'none';
+            container.classList.toggle('open', isOpen);
             if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
             if (header)  header.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function toggleDetailedMetrics() {
+            var details = document.getElementById('gameMetricsDetails');
+            var chevron = document.getElementById('gameMetricsChevron');
+            var toggle  = document.getElementById('gameMetricsToggle');
+            if (!details) return;
+            var isOpen = details.style.display !== 'block';
+            details.style.display = isOpen ? 'block' : 'none';
+            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (toggle)  toggle.setAttribute('aria-expanded', String(isOpen));
         }
 
         function handleProfileContactKeydown(event) {
@@ -3391,6 +3466,13 @@
             var enabled = localStorage.getItem('gameEnabled') === 'true';
             if (!enabled) return;
             section.style.display = 'block';
+            // Open body by default
+            body.style.display = 'block';
+            section.classList.add('open');
+            var chevronEl = document.getElementById('gameAnalyticsChevron');
+            if (chevronEl) chevronEl.className = 'fas fa-chevron-up game-analytics-chevron';
+            var headerEl = section.querySelector('.game-analytics-header');
+            if (headerEl) headerEl.setAttribute('aria-expanded', 'true');
 
             // ── Helpers ───────────────────────────────────────────────────────
             function zp(n) { return n < 10 ? '0' + n : '' + n; }
@@ -3786,13 +3868,12 @@
                 '</div>' +
             '</div>';
 
-            // Health score rings
+            // Health score rings — "План %" removed; "Активност" in position #2; "Баланс" → "Емоции"
             html += '<div class="game-health-ring-row">' +
                 '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488') + '<div class="game-ring-label">Здраве</div></div>' +
-                '<div class="game-ring-wrap" data-explain="engagement" style="cursor:pointer">' + ringChart(engagementPct,'#06B6D4',22) + '<div class="game-ring-label">План %</div></div>' +
-                (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
-                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Баланс</div></div>' : '') +
                 (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
+                (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
+                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
             '</div>';
 
             // Trend indicator
@@ -3804,8 +3885,12 @@
                 alerts.forEach(function(a){ html += '<div class="game-alert-card">'+a+'</div>'; });
             }
 
-            // Metrics section
-            html += '<div class="game-section-title">Подробни метрики</div>';
+            // Metrics section — collapsible (default collapsed)
+            html += '<div class="game-metrics-toggle" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
+                '<div class="game-section-title" style="margin:0">Подробни метрики</div>' +
+                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
+            '</div>';
+            html += '<div id="gameMetricsDetails" style="display:none;">';
 
             html += '<div class="game-index-row" data-explain="engagement">' +
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
@@ -3876,6 +3961,8 @@
             var weeklyInfo={};
             try { weeklyInfo=JSON.parse(localStorage.getItem('gameWeeklyAI')||'{}'); } catch(e) {}
             if(weeklyInfo.nextDue){ var nd=new Date(weeklyInfo.nextDue); html += '<div class="game-weekly-info"><i class="fas fa-robot"></i> Следващ AI анализ: '+nd.toLocaleDateString('bg-BG')+'</div>'; }
+
+            html += '</div>'; // close gameMetricsDetails
 
             body.innerHTML = html;
 
