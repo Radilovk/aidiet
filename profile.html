@@ -74,6 +74,7 @@
             background-color: var(--bg-color);
             color: var(--text-dark);
             transition: background-color 0.3s ease, color 0.3s ease;
+            padding-top: calc(16px + var(--safe-area-inset-top));
             padding-bottom: calc(80px + var(--safe-area-inset-bottom));
         }
 
@@ -136,7 +137,10 @@
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-            position: relative;
+            position: fixed;
+            top: calc(16px + var(--safe-area-inset-top, 0px));
+            right: calc(16px + var(--safe-area-inset-right, 0px));
+            z-index: 900;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
         }
@@ -1664,13 +1668,9 @@
             <p>Натисни бутона <img id="ios-share-icon-img" class="ios-share-icon" alt="Share"> и избери <strong>"Add to Home Screen" (Добави към начален екран)</strong></p>
         </div>
     </div>
-    
-    <!-- Header -->
-    <header role="banner" aria-label="Главна навигация">
-        <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
-        <h1>Моят Профил</h1>
-        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
-    </header>
+
+    <!-- Theme Toggle Button (fixed top-right) -->
+    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
 
     <!-- Main Content -->
     <div class="container">
