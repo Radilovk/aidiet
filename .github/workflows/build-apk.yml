@@ -81,7 +81,9 @@ jobs:
           printf '%s\n' "$APP_VERSION" | bubblewrap update --skipPwaValidation
 
       - name: Build APK with Bubblewrap
-        run: yes | bubblewrap build --skipPwaValidation
+        run: |
+          # Подаваме последователно паролата за Keystore и паролата за Key, разделени с нов ред
+          printf "${{ secrets.KEYSTORE_PASSWORD }}\n${{ secrets.KEY_PASSWORD }}\n" | bubblewrap build --skipPwaValidation
 
       - name: Locate and copy APK
         run: |
