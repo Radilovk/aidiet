@@ -109,4 +109,5 @@ jobs:
           TAG="v-$(date +'%Y%m%d%H%M')"
           APK_FILE=$(find . -name "*release-signed.apk" | head -1)
           if [ -z "$APK_FILE" ]; then APK_FILE=$(find . -name "*.apk" | head -1); fi
-          gh release create "$TAG" "$APK_FILE" --title "NutriPlan Build $TAG" --notes "Автоматичен билд."
+          cp "$APK_FILE" NutriPlan.apk
+          gh release create "$TAG" NutriPlan.apk --title "NutriPlan Build $TAG" --notes "Автоматичен билд."
