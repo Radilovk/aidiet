@@ -8848,10 +8848,16 @@
             { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' }
         ];
         var starI = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
-        var STARS_1_3 = [
-            { label:'Слабо',   icons:starI,         value:1, stars:true },
-            { label:'Добре',   icons:starI+starI,   value:2, stars:true },
-            { label:'Отлично', icons:starI+starI+starI, value:3, stars:true }
+        // Context-specific answer arrays for 3-option questions
+        var ACTIVITY_1_3 = [
+            { label:'Ниска',   icons:starI,               value:1, stars:true },
+            { label:'Умерена', icons:starI+starI,         value:2, stars:true },
+            { label:'Висока',  icons:starI+starI+starI,   value:3, stars:true }
+        ];
+        var BALANCE_1_3 = [
+            { label:'Напрегнат',  icons:starI,               value:1, stars:true },
+            { label:'Спокоен',    icons:starI+starI,         value:2, stars:true },
+            { label:'Позитивен',  icons:starI+starI+starI,   value:3, stars:true }
         ];
 
         var _fabLowerTimer = null;
@@ -9037,11 +9043,11 @@
                 }, hdrOpts);
             }
             function q2() {
-                showBubble(prefix+'Емоционален баланс?', STARS_1_3,
+                showBubble(prefix+'Емоционален баланс?', BALANCE_1_3,
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
-                showBubble(prefix+'Ниво на активност?', STARS_1_3,
+                showBubble(prefix+'Ниво на активност?', ACTIVITY_1_3,
                     function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
             }
             q1();
@@ -9164,7 +9170,7 @@
               msg:'Изпълнихте плана 100%! Вие сте шампион. Резултатите ще дойдат!', confetti:true  },
             { min:4, iconClass:'fas fa-award',  iconColor:'#10b981', title:'Отличен резултат!',    color:'#10b981',
               msg:'Браво! Почти перфектно. Малко крачки = голям успех!', confetti:true  },
-            { min:3, iconClass:'fas fa-thumbs-up', iconColor:'#0D9488', title:'Добро представяне!',   color:'#0D9488',
+            { min:3, iconClass:'fas fa-thumbs-up', iconColor:'#0D9488', title:'Задоволителен резултат!',   color:'#0D9488',
               msg:'Справихте се добре. Утре може дори по-добре!', confetti:false },
             { min:2, iconClass:'fas fa-dumbbell', iconColor:'#f59e0b', title:'Може по-добре', color:'#f59e0b',
               msg:'Трудно е понякога, но не се отказвайте. Всеки ден е нов шанс!', confetti:false },
