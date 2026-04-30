@@ -49,7 +49,7 @@
   "webManifestUrl": "https://biocode.website/manifest.json",
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "minSdkVersion": 19,
+  "minSdkVersion": 21,
   "targetSdkVersion": 35,
   "fingerprints": [],
   "additionalTrustedOrigins": [],
