@@ -1,10 +1,14 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.biocode.nutriplan",
-      "sha256_cert_fingerprints": []
+      "sha256_cert_fingerprints": [
+        "4D:C9:E4:90:B9:8B:D2:78:9D:13:52:CF:08:B2:A2:6A:F0:BF:A2:22:3E:41:4D:62:7C:29:C6:F8:F0:CC:C2:76"
+      ]
     }
   }
 ]
