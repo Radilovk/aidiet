@@ -15,8 +15,11 @@
   "iconUrl": "https://biocode.website/icon-512x512.png",
   "maskableIconUrl": "https://biocode.website/icon-512x512.png",
   "monochromeIconUrl": "https://biocode.website/icon-192x192.png",
+  "alphaCode": "1",
   "appVersion": "1.0.0",
-  "appVersionCode": 1,
+  "versionCode": 1,
+  "splashScreenFadeOutDuration": 300,
+  "themeColor": "#FFFFFF",
   "signingKey": {
     "path": "./nutriplan.keystore",
     "alias": "nutriplan"
