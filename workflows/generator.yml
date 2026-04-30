@@ -1,0 +1,27 @@
+name: Generate Key and Base64
+on: workflow_dispatch # Стартира се само ръчно
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Keystore File
+        run: |
+          # Тук 'MY_PASSWORD' е временна парола. Смени я или я запомни.
+          keytool -genkeypair -v \
+            -keystore nutriplan.keystore \
+            -alias nutriplan \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "MY_PASSWORD" \
+            -keypass "MY_PASSWORD" \
+            -dname "CN=NutriPlan, O=Biocode, C=BG" \
+            -noprompt
+
+      - name: Output Base64 String
+        run: |
+          echo "Копирай долния низ (Base64) и го сложи в GitHub Secrets -> KEYSTORE_BASE64:"
+          echo "-----------------------------------------------------------------------"
+          base64 -w 0 nutriplan.keystore
+          echo -e "\n-----------------------------------------------------------------------"
