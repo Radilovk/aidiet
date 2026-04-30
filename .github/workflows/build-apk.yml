@@ -75,6 +75,9 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\": \"$JAVA_HOME\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
 
+      - name: Generate Android project with Bubblewrap
+        run: bubblewrap update --skipPwaValidation
+
       - name: Build APK with Bubblewrap
         run: bubblewrap build --skipPwaValidation
 
