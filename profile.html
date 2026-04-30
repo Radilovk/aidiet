@@ -609,6 +609,13 @@
             min-height: 4px;
             transition: height 0.5s ease;
         }
+        /* Bidirectional bar chart for calorie balance (surplus up / deficit down) */
+        .game-day-dots-bidir { display:flex; gap:3px; margin-top:6px; height:52px; }
+        .game-day-col-bidir  { flex:1; display:flex; flex-direction:column; align-items:center; min-width:0; }
+        .game-day-surplus-zone { height:20px; display:flex; flex-direction:column-reverse; align-items:center; width:100%; }
+        .game-day-deficit-zone { height:20px; display:flex; flex-direction:column; align-items:center; width:100%; }
+        .game-day-bar-up   { width:100%; max-width:20px; border-radius:3px 3px 0 0; }
+        .game-day-bar-down { width:100%; max-width:20px; border-radius:0 0 3px 3px; }
         /* Correlation insights */
         .game-insight-card {
             background: rgba(13,148,136,0.06);
@@ -3410,7 +3417,7 @@
 
             // ── calcDayScore ──────────────────────────────────────────────────
             function calcDayScore(rec) {
-                if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0, incorrectMeals:0, excessCalories:false, calorieBalance:'balanced', engPct:0 };
+                if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0, incorrectMeals:0, excessCalories:false, calorieBalance:'balanced', engPct:0, calorieDelta:0 };
                 var meals = Object.keys(rec.meals || {});
                 var freeMealRatings = rec.freeMealRatings || {};
                 var mealPts = 0, mealMax = meals.length * 10;
@@ -3429,16 +3436,27 @@
                     if (em.isJunk) junkCount++;
                     if (!em.isFreeMealReplacement) extraCalSum += (em.calories || 0);
                 });
+                var mealCalMap = rec.mealCalories || {};
+                var completedPlanCals = 0;
+                Object.keys(rec.meals || {}).forEach(function(mt) {
+                    if (rec.meals[mt] && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
+                });
+                var totalConsumed = completedPlanCals + extraCalSum;
                 var planned = rec.plannedCalories || null;
                 var excessCalories = false, calorieBalance = 'balanced';
-                if (extraCalSum > 0) {
-                    if (planned && planned > 0) {
-                        if (extraCalSum / planned > 0.10) { excessCalories = true; calorieBalance = 'surplus'; }
-                        else { calorieBalance = 'surplus'; }
-                    } else {
-                        if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
-                        else { calorieBalance = 'surplus'; }
+                var calorieDelta = 0; // positive = surplus kcal, negative = deficit kcal
+                if (totalConsumed > 0 && planned && planned > 0) {
+                    var excessPct = (totalConsumed - planned) / planned;
+                    calorieDelta = Math.round(totalConsumed - planned);
+                    if (excessPct > 0.10) { excessCalories = true; calorieBalance = 'surplus'; }
+                    else if (excessPct > 0) { calorieBalance = 'surplus'; }
+                    else if (excessPct < -0.10 && completedPlanCals > 0 && (rec.morningCheck || rec.eveningCheck)) {
+                        calorieBalance = 'deficit';
                     }
+                } else if (extraCalSum > 0 && (!planned || planned === 0)) {
+                    calorieDelta = extraCalSum;
+                    if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
+                    else { calorieBalance = 'surplus'; }
                 }
                 var sleepPts    = rec.morningCheck  ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
                 var waterPts    = rec.eveningCheck  ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
@@ -3488,9 +3506,10 @@
                 if (incorrectMeals>0) label+=' ⚠ '+incorrectMeals+' неправилно хранене';
                 if (junkCount>0) label+=' ('+junkCount+' вредни)';
                 if (calorieBalance==='surplus'&&excessCalories) label+=' — излишни кал.';
+                if (calorieBalance==='deficit') label+=' — кал. дефицит';
                 return { score:score, stars:stars, label:label, junkCount:junkCount,
                          incorrectMeals:incorrectMeals, excessCalories:excessCalories,
-                         calorieBalance:calorieBalance, engPct:engPct };
+                         calorieBalance:calorieBalance, engPct:engPct, calorieDelta:calorieDelta };
             }
 
             // ── Core metrics ──────────────────────────────────────────────────
@@ -3512,6 +3531,13 @@
                 },0);
             });
             var totalExtraCals = extraCalsByDay.reduce(function(s,v){return s+(v||0);},0);
+
+            // Signed calorie balance per day (positive = surplus, negative = deficit, null = no data)
+            var calBalanceByDay = days.map(function(d){
+                if (!d.rec) return null;
+                return calcDayScore(d.rec).calorieDelta;
+            });
+            var netCalBalance = calBalanceByDay.reduce(function(s,v){return s+(v||0);},0);
 
             // Incorrect meal count (free meals rated 0-3) for weekly health impact
             var incorrectMealsCount7 = 0;
@@ -3609,6 +3635,20 @@
             }
             if(currentStreak>=3) insights.push('<i class="fas fa-fire" style="color:#f59e0b"></i> Имате текуща серия от <strong>'+currentStreak+' отлични дни</strong> подред! Продължавайте!');
             else if(currentStreak===2) insights.push('<i class="fas fa-bolt" style="color:#0D9488"></i> Два отлични дни подред — вие сте в страхотен ритъм!');
+            // Calorie deficit insights
+            var deficitDays = days.filter(function(d,i){
+                return calBalanceByDay[i]!==null && calBalanceByDay[i]<-100 && d.rec && (d.rec.morningCheck||d.rec.eveningCheck);
+            });
+            if(deficitDays.length>=2){
+                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> '+deficitDays.length+' дни с калориен дефицит — следете дали приемате достатъчно хранителни вещества за постигане на целите си');
+            } else if(deficitDays.length===1){
+                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> 1 ден с калориен дефицит — следете дали приемате достатъчно хранителни вещества');
+            }
+            // Deficit vs activity correlation
+            if(deficitDays.length>=2){
+                var deficitLowAct=deficitDays.filter(function(d){ return d.rec&&d.rec.eveningCheck&&d.rec.eveningCheck.activityLevel===1; }).length;
+                if(deficitLowAct>=Math.ceil(deficitDays.length/2)) insights.push('<i class="fas fa-bolt" style="color:#3b82f6"></i> В дните с калориен дефицит активността е по-ниска — ниският калориен прием влияе на енергийните нива');
+            }
 
             // ── Scenario / Prediction ─────────────────────────────────────────
             var scenario = null;
@@ -3642,7 +3682,7 @@
                 engagement: { title:'Ангажираност към плана',
                     text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни/неправилни храни (20 т.)\n\nВсяко неправилно свободно хранене (рейтинг 0-3/5) намалява точките.\nСедмичният % е средна стойност (дни без данни = 0%).\nЦел: 80%+' },
                 calories: { title:'Калориен баланс',
-                    text:'Показва нетния калориен излишък от допълнителни хранения (незаместващи) за последните дни.\n\n0 kcal — балансиран ден\n1-200 kcal — лек излишък\n>200 kcal — значителен излишък\n\nСвободните хранения с рейтинг 0-3 се отчитат като "Неправилно хранене" и допълнително влошават здравния индекс.' },
+                    text:'Показва нетния калориен баланс спрямо плана за последните дни.\n\nЛенти НАГОРЕ (оранжево/червено) — излишък: приетите калории надвишават плана.\nЛенти НАДОЛУ (синьо) — дефицит: приетите калории са под плана.\n\n0 kcal — балансиран ден\n>0 kcal — излишък\n<0 kcal — дефицит\n\nДефицитът се регистрира само когато са отбелязани хранения И е попълнен поне един въпросник (сутрешен или вечерен).\nСвободните хранения с рейтинг 0-3 се отчитат като "Неправилно хранене" и допълнително влошават здравния индекс.' },
                 stress: { title:'Емоционален баланс',
                     text:'Изчислява се от вечерния въпрос "Емоционален баланс".\n\n• Баланс Отлично → 100%\n• Баланс Добре → 50%\n• Баланс Слабо → 0%\n\nПо-висок % = по-добре.\nЦел: 70%+\n\nВисок емоционален баланс означава нисък стрес и по-добро самочувствие.' },
                 sleep: { title:'Качество на съня',
@@ -3692,6 +3732,27 @@
                     return miniBarCol('height:'+h+'px;background:'+color, label);
                 });
                 return '<div class="game-day-dots">'+ cols.join('') +'</div>';
+            }
+            // Bidirectional bar chart: surplus bars go up, deficit bars go down
+            var BAR_BIDIR_HALF = 20; // px — max height for each direction
+            function biDirBarChart(perDayValues, maxAbsVal, surplusColor, deficitColor) {
+                var cols = perDayValues.map(function(v, idx) {
+                    var dow   = new Date(days[idx].key).getDay();
+                    var label = DAY_NAMES[(dow+6)%7];
+                    var absMax = maxAbsVal > 0 ? maxAbsVal : 1;
+                    var surplusH = (v != null && v > 0) ? Math.max(2, Math.round(Math.min(v, absMax) / absMax * BAR_BIDIR_HALF)) : 0;
+                    var deficitH = (v != null && v < 0) ? Math.max(2, Math.round(Math.min(-v, absMax) / absMax * BAR_BIDIR_HALF)) : 0;
+                    return '<div class="game-day-col-bidir">' +
+                        '<div class="game-day-surplus-zone">' +
+                            (surplusH > 0 ? '<div class="game-day-bar-up" style="height:'+surplusH+'px;background:'+surplusColor+'"></div>' : '') +
+                        '</div>' +
+                        '<span style="' + LABEL_STYLE + '">' + label + '</span>' +
+                        '<div class="game-day-deficit-zone">' +
+                            (deficitH > 0 ? '<div class="game-day-bar-down" style="height:'+deficitH+'px;background:'+deficitColor+'"></div>' : '') +
+                        '</div>' +
+                        '</div>';
+                });
+                return '<div class="game-day-dots-bidir">'+ cols.join('') +'</div>';
             }
             // SVG ring
             function ringChart(pct, color, r) {
@@ -3752,16 +3813,22 @@
                 pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
             '</div>';
 
-            var calMax = Math.max(totalExtraCals,700,1);
-            var calBalanceLabel = totalExtraCals === 0
-                ? '<i class="fas fa-check-circle" style="color:#10b981"></i> Балансиран'
-                : totalExtraCals < 700
-                    ? '<i class="fas fa-circle" style="color:#f59e0b"></i> Излишък'
+            var calAbsMax = Math.max.apply(null, calBalanceByDay.map(function(v){ return v===null?0:Math.abs(v); }).concat([700]));
+            var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });
+            var calBalanceLabel;
+            if (netCalBalance === 0 && !hasDeficit) {
+                calBalanceLabel = '<i class="fas fa-check-circle" style="color:#10b981"></i> Балансиран';
+            } else if (netCalBalance > 0) {
+                calBalanceLabel = netCalBalance < 700
+                    ? '<i class="fas fa-circle" style="color:#f59e0b"></i> Нетен излишък'
                     : '<i class="fas fa-circle" style="color:#ef4444"></i> Голям излишък';
+            } else {
+                calBalanceLabel = '<i class="fas fa-arrow-down" style="color:#3b82f6"></i> Нетен дефицит';
+            }
             html += '<div class="game-index-row" data-explain="calories">' +
-                '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(totalExtraCals>0?'+':'')+totalExtraCals+' kcal</span></div>' +
-                '<div class="game-index-hint">'+calBalanceLabel+' · Излишък от допълнителни хранения · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
-                miniBarChart(extraCalsByDay,calMax,totalExtraCals>700?'#ef4444':'#f59e0b') +
+                '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(netCalBalance>0?'+':'')+netCalBalance+' kcal</span></div>' +
+                '<div class="game-index-hint">'+calBalanceLabel+' · Нетен калориен баланс · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                biDirBarChart(calBalanceByDay, calAbsMax, netCalBalance>700?'#ef4444':'#f59e0b', '#3b82f6') +
             '</div>';
 
             if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +

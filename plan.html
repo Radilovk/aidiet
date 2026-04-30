@@ -8158,7 +8158,7 @@
         // Stars: 100%→5, 80-99%→4, 55-79%→3, 30-54%→2, 1-29%→1, 0%→null
         function calcDayScore(rec) {
             if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0,
-                                incorrectMeals:0, excessCalories:false, calorieBalance:'balanced', engPct:0 };
+                                incorrectMeals:0, excessCalories:false, calorieBalance:'balanced', engPct:0, calorieDelta:0 };
 
             // ── Meals ──────────────────────────────────────────────────────
             var meals = Object.keys(rec.meals || {});
@@ -8194,7 +8194,8 @@
             });
 
             // ── Calorie balance ────────────────────────────────────────────
-            // Only flag excess when completed planned meals + extra food exceeds the daily plan.
+            // Flag surplus when completed planned meals + extra food exceeds the daily plan.
+            // Flag deficit when completed planned meals are below plan AND user showed engagement.
             // Completed planned calories come from per-meal calorie data stored at check time.
             var mealCalMap = rec.mealCalories || {};
             var completedPlanCals = 0;
@@ -8207,16 +8208,21 @@
             var planned = rec.plannedCalories || null;
             var excessCalories = false;
             var calorieBalance = 'balanced';
+            var calorieDelta = 0; // positive = surplus kcal, negative = deficit kcal
             if (totalConsumed > 0 && planned && planned > 0) {
                 var excessPct = (totalConsumed - planned) / planned;
+                calorieDelta = Math.round(totalConsumed - planned);
                 if (excessPct > 0.10)   { excessCalories = true; calorieBalance = 'surplus'; }
                 else if (excessPct > 0) { calorieBalance = 'surplus'; }
+                else if (excessPct < -0.10 && completedPlanCals > 0 && (rec.morningCheck || rec.eveningCheck)) {
+                    calorieBalance = 'deficit';
+                }
             } else if (extraCalSum > 0 && (!planned || planned === 0)) {
                 // No target known: flag surplus if >200 kcal extra
+                calorieDelta = extraCalSum;
                 if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
                 else                   { calorieBalance = 'surplus'; }
             }
-            // Deficit: no reliable way to compute without planned meals total, skip for now
 
             // ── Wellness points ─────────────────────────────────────────────
             var sleepPts    = rec.morningCheck  ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
@@ -8287,10 +8293,11 @@
             if (incorrectMeals > 0)  label += ' ⚠ ' + incorrectMeals + ' неправилно хранене';
             if (junkCount > 0)       label += ' (' + junkCount + ' вредни)';
             if (calorieBalance === 'surplus' && excessCalories) label += ' — излишни кал.';
+            if (calorieBalance === 'deficit') label += ' — кал. дефицит';
 
             return { score:score, stars:stars, label:label, junkCount:junkCount,
                      incorrectMeals:incorrectMeals, excessCalories:excessCalories,
-                     calorieBalance:calorieBalance, engPct:engPct };
+                     calorieBalance:calorieBalance, engPct:engPct, calorieDelta:calorieDelta };
         }
 
         function recalcAndShowScore(key) {
@@ -8351,7 +8358,7 @@
             var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(s){return s;};
             // Label is shown only for past days (after midnight). For the current day show stars only.
             var showLabel = isPastDayKey(dayKey);
-            // Calorie balance badge — only show surplus when completed meals + extra food exceed plan
+            // Calorie balance badge — show surplus or deficit vs plan
             var calBadge = '';
             var extraCals = (rec.extraMeals || []).reduce(function(s,em) {
                 return em.isFreeMealReplacement ? s : s + (em.calories || 0);
@@ -8367,6 +8374,12 @@
                 if (surplusKcal > 0) {
                     calBadge = '<div class="daily-cal-balance surplus" style="font-size:0.72rem;color:#f59e0b;margin-top:3px">' +
                         '<i class="fas fa-fire"></i> Калориен баланс: +' + surplusKcal + ' kcal над плана</div>';
+                }
+            } else if (ds.calorieBalance === 'deficit' && planCals > 0 && totalCals > 0) {
+                var deficitKcal = Math.round(planCals - totalCals);
+                if (deficitKcal > 0) {
+                    calBadge = '<div class="daily-cal-balance deficit" style="font-size:0.72rem;color:#3b82f6;margin-top:3px">' +
+                        '<i class="fas fa-arrow-down"></i> Калориен баланс: −' + deficitKcal + ' kcal под плана</div>';
                 }
             }
             // Incorrect meal badge
