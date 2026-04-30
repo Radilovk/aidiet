@@ -1,17 +1,17 @@
-name: Get My Base64 Key
-on: workflow_dispatch # Позволява ти да го пуснеш ръчно с бутон
-
-jobs:
-  generate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create Key and Show Base64
+- name: Create Key and Show Base64
         run: |
-          # 1. Генерираме самия файл (паролата е '123456')
-          keytool -genkeypair -v -keystore my.keystore -alias nutriplan -keyalg RSA -keysize 2048 -validity 10000 -storepass "123456" -keypass "123456" -dname "CN=NutriPlan" -noprompt
+          # Използвайте вашата парола 'MY_PASSWORD' тук
+          keytool -genkeypair -v \
+            -keystore nutriplan.keystore \
+            -alias nutriplan \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "MY_PASSWORD" \
+            -keypass "MY_PASSWORD" \
+            -dname "CN=NutriPlan" \
+            -noprompt
           
-          # 2. Превръщаме го в Base64 текст и го принтираме в лога
-          echo "КОПИРАЙ ВСИЧКО ПОД ТОЗИ РЕД:"
           echo "------------------------------------------------"
-          base64 -w 0 my.keystore
+          base64 -w 0 nutriplan.keystore
           echo -e "\n------------------------------------------------"
