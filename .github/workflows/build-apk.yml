@@ -76,10 +76,46 @@ jobs:
           # Вече ползваме директни променливи за паролите
           bubblewrap build --skipPwaValidation
 
-      - name: Print signing certificate SHA-256
+      - name: Update assetlinks.json with signing certificate SHA-256
         run: |
-          echo "SHA-256 Fingerprint:"
-          keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" || echo "Warning: SHA256 not found"
+          FINGERPRINT=$(keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" | sed 's/.*SHA256: //' | tr -d '[:space:]')
+          echo "SHA-256 Fingerprint: $FINGERPRINT"
+          if [ -z "$FINGERPRINT" ]; then
+            echo "ERROR: Could not extract SHA-256 fingerprint"
+            exit 1
+          fi
+          # Validate format: 32 hex pairs separated by colons (e.g. AA:BB:CC:...)
+          if ! echo "$FINGERPRINT" | grep -qE '^([0-9A-F]{2}:){31}[0-9A-F]{2}$'; then
+            echo "ERROR: Extracted fingerprint does not match expected SHA-256 format: $FINGERPRINT"
+            exit 1
+          fi
+          node -e "
+            const fs = require('fs');
+            const data = [{
+              relation: ['delegate_permission/common.handle_all_urls'],
+              target: {
+                namespace: 'android_app',
+                package_name: 'com.biocode.nutriplan',
+                sha256_cert_fingerprints: [process.argv[1]]
+              }
+            }];
+            fs.writeFileSync('.well-known/assetlinks.json', JSON.stringify(data, null, 2) + '\n');
+          " "$FINGERPRINT"
+          echo "Updated assetlinks.json:"
+          cat .well-known/assetlinks.json
+
+      - name: Commit updated assetlinks.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .well-known/assetlinks.json
+          if git diff --cached --quiet; then
+            echo "assetlinks.json unchanged, skipping commit"
+          else
+            git commit -m "chore: update assetlinks.json with signing certificate fingerprint [skip ci]"
+            git pull --rebase origin "${{ github.ref_name }}"
+            git push
+          fi
 
       - name: Locate and copy APK
         run: |
