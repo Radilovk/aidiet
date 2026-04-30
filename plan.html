@@ -6539,20 +6539,12 @@
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Haptic feedback for AI assistant messages: short vibration on arrival,
-            // then simulate per-character tap pattern (like Grok AI)
-            if (role === 'assistant' && typeof navigator !== 'undefined' && navigator.vibrate) {
-                // Initial arrival buzz
-                navigator.vibrate(120);
-                // Simulate letter-by-letter taps: cap at 30 characters to avoid overwhelming the motor.
-                // Use 12ms vibrate (reliable on most Android devices) + 38ms pause ≈ 50ms per char.
-                const msgLen = Math.min(message.length, 30);
-                const pattern = [];
-                for (let _h = 0; _h < msgLen; _h++) {
-                    pattern.push(12);  // 12ms vibrate — minimum reliably felt on most devices
-                    pattern.push(38);  // 38ms pause
-                }
-                if (pattern.length > 0) setTimeout(function() { navigator.vibrate(pattern); }, 250);
+            // Haptic feedback only for NEW assistant messages (not history loads).
+            // saveToHistory is false when restoring from history — no haptic in that case.
+            if (role === 'assistant' && saveToHistory && typeof navigator !== 'undefined' && navigator.vibrate) {
+                // Two-tap "new message received" pattern: short buzz · pause · medium buzz.
+                // Fires immediately when the message appears — in sync with the UI.
+                navigator.vibrate([20, 55, 50]);
             }
             
             // Save to chat history if requested
@@ -8274,16 +8266,13 @@
             el.textContent = '';
             el.classList.add('typing');
             var i = 0;
-            // Haptic: vibrate once at the start of the message (short buzz)
-            if (typeof navigator !== 'undefined' && navigator.vibrate) { navigator.vibrate(80); }
-            var _hapticTick = 0;
             function tick() {
                 if (i < text.length) {
                     el.textContent += text[i++];
-                    // Light per-character haptic: vibrate every 3 chars to avoid overwhelming pattern
-                    _hapticTick++;
-                    if (_hapticTick % 3 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
-                        navigator.vibrate(10);
+                    // Haptic: light 8ms buzz per character — truly in sync with each letter appearing.
+                    // Distinct from chat haptic (which is a double-tap on message arrival).
+                    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                        navigator.vibrate(8);
                     }
                     setTimeout(tick, speed || 30);
                 }
