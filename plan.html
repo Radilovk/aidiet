@@ -6533,14 +6533,15 @@
             if (role === 'assistant' && typeof navigator !== 'undefined' && navigator.vibrate) {
                 // Initial arrival buzz
                 navigator.vibrate(120);
-                // Simulate letter-by-letter taps using a staggered pattern
-                const msgLen = Math.min(message.length, 80);
+                // Simulate letter-by-letter taps: cap at 30 characters to avoid overwhelming the motor.
+                // Use 12ms vibrate (reliable on most Android devices) + 38ms pause ≈ 50ms per char.
+                const msgLen = Math.min(message.length, 30);
                 const pattern = [];
                 for (let _h = 0; _h < msgLen; _h++) {
-                    pattern.push(1);   // 1ms vibrate
-                    pattern.push(28);  // 28ms pause (matches ~30ms typewriter speed)
+                    pattern.push(12);  // 12ms vibrate — minimum reliably felt on most devices
+                    pattern.push(38);  // 38ms pause
                 }
-                if (pattern.length > 0) setTimeout(function() { navigator.vibrate(pattern); }, 200);
+                if (pattern.length > 0) setTimeout(function() { navigator.vibrate(pattern); }, 250);
             }
             
             // Save to chat history if requested
@@ -8271,7 +8272,7 @@
                     // Light per-character haptic: vibrate every 3 chars to avoid overwhelming pattern
                     _hapticTick++;
                     if (_hapticTick % 3 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
-                        navigator.vibrate(1);
+                        navigator.vibrate(10);
                     }
                     setTimeout(tick, speed || 30);
                 }
