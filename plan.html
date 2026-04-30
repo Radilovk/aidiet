@@ -8486,7 +8486,7 @@
             var label = '';
             if (score === null) {
                 label = meals.length ? 'Без отбелязана активност' : 'Без данни';
-            } else if (score === 5)  { label = 'Отличен ден!'; }
+            } else if (score === 5)  { label = 'Отличен резултат!'; }
             else if (score === 4)    { label = 'Много добре!'; }
             else if (score === 3)    { label = 'Добре'; }
             else if (score === 2)    { label = 'Може по-добре'; }
@@ -8626,13 +8626,13 @@
             // Flying stars burst overlay
             _triggerStarBurst(card, starCount);
 
-            // Level 5: show "Отличен ден!" flash banner
+            // Level 5: show flash banner
             if (starCount === 5) {
                 setTimeout(function() {
                     var flash = document.createElement('div');
                     flash.className = 'excellent-day-flash';
                     flash.innerHTML = '<div style="font-size:2rem;margin-bottom:6px">⭐⭐⭐⭐⭐</div>' +
-                        '<div>Отличен ден!</div>' +
+                        '<div>Отличен резултат!</div>' +
                         '<div style="font-size:0.85rem;font-weight:600;margin-top:6px;opacity:0.75">Браво! Перфектен резултат!</div>';
                     document.body.appendChild(flash);
                     setTimeout(function() { flash.remove(); }, 2500);
@@ -9160,11 +9160,11 @@
 
         // ── Day-end modal ─────────────────────────────────────────────────────
         var DAY_LEVELS = [
-            { min:5, iconClass:'fas fa-trophy', iconColor:'#fbbf24', title:'Перфектен ден!',  color:'#fbbf24',
+            { min:5, iconClass:'fas fa-trophy', iconColor:'#fbbf24', title:'Перфектен резултат!',  color:'#fbbf24',
               msg:'Изпълнихте плана 100%! Вие сте шампион. Резултатите ще дойдат!', confetti:true  },
-            { min:4, iconClass:'fas fa-award',  iconColor:'#10b981', title:'Отличен ден!',    color:'#10b981',
+            { min:4, iconClass:'fas fa-award',  iconColor:'#10b981', title:'Отличен резултат!',    color:'#10b981',
               msg:'Браво! Почти перфектно. Малко крачки = голям успех!', confetti:true  },
-            { min:3, iconClass:'fas fa-thumbs-up', iconColor:'#0D9488', title:'Добър ден!',   color:'#0D9488',
+            { min:3, iconClass:'fas fa-thumbs-up', iconColor:'#0D9488', title:'Добро представяне!',   color:'#0D9488',
               msg:'Справихте се добре. Утре може дори по-добре!', confetti:false },
             { min:2, iconClass:'fas fa-dumbbell', iconColor:'#f59e0b', title:'Може по-добре', color:'#f59e0b',
               msg:'Трудно е понякога, но не се отказвайте. Всеки ден е нов шанс!', confetti:false },
@@ -9267,7 +9267,7 @@
                 msg='Изключително представяне! Вие сте на правилния път. Продължавайте!'; }
             else if (avg>=3.5){ iconClass='fas fa-bullseye'; iconColor='#10b981'; title='Много добра седмица!'; color='#10b981';
                 msg='Отлично! Малко повече внимание ще ви доведе до перфекцията.'; }
-            else if (avg>=2.5){ iconClass='fas fa-chart-line'; iconColor='#0D9488'; title='Добра седмица!'; color='#0D9488';
+            else if (avg>=2.5){ iconClass='fas fa-chart-line'; iconColor='#0D9488'; title='Добри резултати!'; color='#0D9488';
                 msg='Напредвате стабилно. Наберете кой аспект да подобрите следващата седмица.'; }
             else               { iconClass='fas fa-seedling'; iconColor='#6366f1'; title='Нова седмица, нов шанс!'; color='#6366f1';
                 msg='Всяка седмица е нов старт. Малките промени правят трайни резултати!'; }
