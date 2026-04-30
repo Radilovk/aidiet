@@ -8215,7 +8215,10 @@
                 if (excessPct > 0.10)   { excessCalories = true; calorieBalance = 'surplus'; }
                 else if (excessPct > 0) { calorieBalance = 'surplus'; }
                 else if (excessPct < -0.10 && completedPlanCals > 0 && (rec.morningCheck || rec.eveningCheck)) {
-                    calorieBalance = 'deficit';
+                    // Deficit is only valid for completed days: past days, or today after 20:00
+                    var recDate = rec.date || getTodayKey();
+                    var dayIsDone = recDate < getTodayKey() || new Date().getHours() >= 20;
+                    if (dayIsDone) calorieBalance = 'deficit';
                 }
             } else if (extraCalSum > 0 && (!planned || planned === 0)) {
                 // No target known: flag surplus if >200 kcal extra
@@ -8426,6 +8429,7 @@
                 mealsInitialized = true;
             }
 
+            var seenMealTypes = {};
             container.querySelectorAll('.meal-card:not([data-ge])').forEach(function(card) {
                 var typeEl = card.querySelector('.meal-type');
                 var mealType = typeEl ? typeEl.textContent.replace(/\(.*\)/,'').trim() : '';
@@ -8433,22 +8437,28 @@
                 card.setAttribute('data-ge','1');
                 var isFreeMeal = card.classList.contains('free-day');
 
+                // Generate a unique storage key per card to avoid collisions when multiple
+                // cards share the same meal type label (e.g. two "Вечеря" entries).
+                // The first occurrence keeps the plain type name for backward-compatibility.
+                seenMealTypes[mealType] = (seenMealTypes[mealType] || 0) + 1;
+                var mealKey = seenMealTypes[mealType] === 1 ? mealType : mealType + '_' + seenMealTypes[mealType];
+
                 // Store per-meal calories for calorie-balance calculation
                 var calAttr = card.getAttribute('data-meal-calories');
                 if (calAttr) {
                     var calVal = Math.round(parseFloat(calAttr) || 0);
-                    if (calVal > 0 && !rec.mealCalories[mealType]) {
-                        rec.mealCalories[mealType] = calVal;
+                    if (calVal > 0 && !rec.mealCalories[mealKey]) {
+                        rec.mealCalories[mealKey] = calVal;
                         mealsInitialized = true;
                     }
                 }
 
                 // Ensure all planned meals are present in the record so calcDayScore knows the total
-                if (!(mealType in rec.meals)) {
-                    rec.meals[mealType] = false;
+                if (!(mealKey in rec.meals)) {
+                    rec.meals[mealKey] = false;
                     mealsInitialized = true;
                 }
-                var isDone = rec.meals[mealType] === true;
+                var isDone = rec.meals[mealKey] === true;
                 var freeMealRating = isFreeMeal ? (rec.freeMealRatings[mealType] != null ? rec.freeMealRatings[mealType] : null) : null;
                 var checkBtn = document.createElement('button');
                 checkBtn.className = 'meal-check-btn' + (isDone ? ' done' : '');
@@ -8475,15 +8485,15 @@
                     e.stopPropagation();
                     var r = getRecord(dayKey);
                     if (!r.mealCalories) r.mealCalories = {};
-                    r.meals[mealType] = !r.meals[mealType];
+                    r.meals[mealKey] = !r.meals[mealKey];
                     // Sync per-meal calories from DOM at check time
                     var cAttr = card.getAttribute('data-meal-calories');
                     if (cAttr) {
                         var cVal = Math.round(parseFloat(cAttr) || 0);
-                        if (cVal > 0) r.mealCalories[mealType] = cVal;
+                        if (cVal > 0) r.mealCalories[mealKey] = cVal;
                     }
                     saveRecord(dayKey, r);
-                    checkBtn.classList.toggle('done', r.meals[mealType]);
+                    checkBtn.classList.toggle('done', r.meals[mealKey]);
                     recalcAndShowScore(dayKey);
                 });
                 card.appendChild(checkBtn);
