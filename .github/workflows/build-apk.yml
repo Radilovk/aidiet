@@ -71,7 +71,7 @@ jobs:
             -storepass "$TWA_STORE_PASSWORD" 2>/dev/null | grep "SHA256:"
 
       - name: Build APK with Bubblewrap
-        run: bubblewrap build --skipPwaValidation
+        run: yes | bubblewrap build --skipPwaValidation
 
       - name: Locate and copy APK
         run: |
