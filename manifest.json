@@ -11,6 +11,13 @@
   "theme_color": "#0D9488",
   "orientation": "portrait",
   "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.biocode.nutriplan",
+      "id": "com.biocode.nutriplan"
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192x192.svg",
@@ -35,6 +42,45 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Моят план",
+      "short_name": "План",
+      "description": "Виж своя персонализиран хранителен план",
+      "url": "/plan.html",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Профил",
+      "short_name": "Профил",
+      "description": "Управлявай своя профил и настройки",
+      "url": "/profile.html",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Въпросник",
+      "short_name": "Въпросник",
+      "description": "Попълни здравния въпросник",
+      "url": "/questionnaire2.html",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "NutriPlan — Начален екран (мобилен)"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "NutriPlan — Начален екран (таблет/десктоп)"
     }
   ],
   "categories": ["health", "lifestyle", "food"],

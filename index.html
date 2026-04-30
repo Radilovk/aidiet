@@ -1539,6 +1539,129 @@
             vertical-align: middle;
         }
 
+        /* Android Install Section */
+        .android-install-section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #e0e0e0;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .android-install-section .section-title h2 {
+            color: #3ddc84;
+        }
+
+        .android-install-section .section-title p {
+            color: #b0bec5;
+        }
+
+        .android-install-cards {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 900px;
+            margin: 30px auto 0;
+        }
+
+        .android-install-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(61,220,132,0.2);
+            border-radius: 20px;
+            padding: 28px 24px;
+            flex: 1 1 260px;
+            max-width: 300px;
+            text-align: center;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .android-install-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(61,220,132,0.5);
+        }
+
+        .android-install-card .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 14px;
+            color: #3ddc84;
+        }
+
+        .android-install-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .android-install-card p {
+            font-size: 0.88rem;
+            color: #9ab;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        .android-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #3ddc84;
+            color: #1a1a2e;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .android-btn:hover {
+            background: #2ec96e;
+            transform: translateY(-1px);
+        }
+
+        .android-btn.secondary {
+            background: transparent;
+            color: #3ddc84;
+            border: 2px solid #3ddc84;
+        }
+
+        .android-btn.secondary:hover {
+            background: rgba(61,220,132,0.1);
+        }
+
+        .android-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+            margin-bottom: 18px;
+        }
+
+        .android-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #b0bec5;
+        }
+
+        .android-step-num {
+            background: #3ddc84;
+            color: #1a1a2e;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -1973,6 +2096,62 @@
                         <i class="fas fa-paper-plane"></i> Изпрати Съобщение
                     </button>
                 </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Android / TWA Install Section -->
+    <section class="android-install-section reveal" id="android-install">
+        <div class="section-title">
+            <h2><i class="fab fa-android" style="margin-right:10px;"></i>Инсталирай за Android</h2>
+            <p>Получи NutriPlan като нативно приложение на Android устройство — безплатно, без App Store.</p>
+        </div>
+
+        <div class="android-install-cards">
+            <!-- Option 1: PWA (instant, recommended) -->
+            <div class="android-install-card">
+                <div class="card-icon"><i class="fas fa-bolt"></i></div>
+                <h3>Бърза инсталация (PWA)</h3>
+                <p>Инсталирай директно от Chrome без да сваляш файл. Работи моментално.</p>
+                <div class="android-steps">
+                    <div class="android-step"><span class="android-step-num">1</span><span>Отвори <strong>biocode.website</strong> в Chrome</span></div>
+                    <div class="android-step"><span class="android-step-num">2</span><span>Натисни менюто (<strong>⋮</strong>) горе вдясно</span></div>
+                    <div class="android-step"><span class="android-step-num">3</span><span>Избери <strong>„Инсталирай приложение"</strong></span></div>
+                    <div class="android-step"><span class="android-step-num">4</span><span>Потвърди с <strong>„Инсталирай"</strong></span></div>
+                </div>
+                <button class="android-btn" onclick="triggerInstallPrompt()">
+                    <i class="fas fa-download"></i> Инсталирай сега
+                </button>
+            </div>
+
+            <!-- Option 2: APK direct download -->
+            <div class="android-install-card">
+                <div class="card-icon"><i class="fab fa-android"></i></div>
+                <h3>Свали APK файл</h3>
+                <p>Свали пакета директно и го инсталирай ръчно. Препоръчително за напредели потребители.</p>
+                <div class="android-steps">
+                    <div class="android-step"><span class="android-step-num">1</span><span>Свали <strong>NutriPlan.apk</strong> по-долу</span></div>
+                    <div class="android-step"><span class="android-step-num">2</span><span>В настройките разреши <strong>„Инсталация от неизвестни източници"</strong></span></div>
+                    <div class="android-step"><span class="android-step-num">3</span><span>Отвори сваления APK файл и потвърди</span></div>
+                </div>
+                <a class="android-btn" href="https://biocode.website/NutriPlan.apk" download="NutriPlan.apk">
+                    <i class="fab fa-android"></i> Свали APK
+                </a>
+            </div>
+
+            <!-- Option 3: Google Play (future) -->
+            <div class="android-install-card">
+                <div class="card-icon"><i class="fab fa-google-play"></i></div>
+                <h3>Google Play Store</h3>
+                <p>Скоро ще можеш да намериш NutriPlan директно в Google Play Store.</p>
+                <div class="android-steps">
+                    <div class="android-step"><span class="android-step-num">✦</span><span>Автоматични обновявания</span></div>
+                    <div class="android-step"><span class="android-step-num">✦</span><span>Верифицирана инсталация</span></div>
+                    <div class="android-step"><span class="android-step-num">✦</span><span>Push известия с по-добра интеграция</span></div>
+                </div>
+                <a class="android-btn secondary" href="https://play.google.com/store/apps/details?id=com.biocode.nutriplan" target="_blank" rel="noopener">
+                    <i class="fab fa-google-play"></i> Скоро в Play Store
+                </a>
             </div>
         </div>
     </section>
