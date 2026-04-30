@@ -1,17 +1,22 @@
-- name: Create Key and Show Base64
+name: Key Generator
+on: workflow_dispatch
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Keystore
         run: |
-          # Използвайте вашата парола 'MY_PASSWORD' тук
           keytool -genkeypair -v \
             -keystore nutriplan.keystore \
             -alias nutriplan \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass "MY_PASSWORD" \
-            -keypass "MY_PASSWORD" \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
             -dname "CN=NutriPlan" \
             -noprompt
-          
-          echo "------------------------------------------------"
+          echo "--- COPY START ---"
           base64 -w 0 nutriplan.keystore
-          echo -e "\n------------------------------------------------"
+          echo -e "\n--- COPY END ---"
