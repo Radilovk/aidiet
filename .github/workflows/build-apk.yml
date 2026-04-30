@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -34,111 +36,69 @@ jobs:
             echo "$KEYSTORE_B64" | base64 --decode > nutriplan.keystore
             echo "STORE_PASS=${{ secrets.KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
             echo "KEY_PASS=${{ secrets.KEY_PASSWORD }}" >> "$GITHUB_ENV"
-            echo "BUILD_MODE=production" >> "$GITHUB_ENV"
+            echo "IS_PROD=true" >> "$GITHUB_ENV"
           else
-            echo "BUILD_MODE=debug" >> "$GITHUB_ENV"
+            echo "IS_PROD=false" >> "$GITHUB_ENV"
             echo "STORE_PASS=nutriplan-debug-pw" >> "$GITHUB_ENV"
             echo "KEY_PASS=nutriplan-debug-pw" >> "$GITHUB_ENV"
-            keytool -genkeypair -v \
-              -keystore nutriplan.keystore \
-              -alias nutriplan \
-              -keyalg RSA -keysize 2048 \
-              -validity 10000 \
-              -storepass "nutriplan-debug-pw" \
-              -keypass "nutriplan-debug-pw" \
-              -dname "CN=NutriPlan, O=Biocode, C=BG" \
-              -noprompt
+            keytool -genkeypair -v -keystore nutriplan.keystore -alias nutriplan -keyalg RSA -keysize 2048 -validity 10000 -storepass "nutriplan-debug-pw" -keypass "nutriplan-debug-pw" -dname "CN=NutriPlan" -noprompt
           fi
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
 
-      - name: Configure Bubblewrap paths
+      - name: Update Assetlinks and Sync
+        if: env.IS_PROD == 'true'
         run: |
-          mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\": \"$JAVA_HOME\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
-
-      - name: Update Bubblewrap Project (Non-Interactive)
-        run: |
-          # Извличаме versionName и versionCode от манифеста
-          V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
-          V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
+          # 1. Вадим SHA-256
+          RAW_FINGERPRINT=$(keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" | cut -d' ' -f3)
           
-          echo "Updating to Version Name: $V_NAME, Code: $V_CODE"
+          # 2. Пишем в JSON
+          node -e "
+            const fs = require('fs');
+            const path = '.well-known/assetlinks.json';
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            data[0].target.sha256_cert_fingerprints = ['$RAW_FINGERPRINT'];
+            fs.writeFileSync(path, JSON.stringify(data, null, 2));
+          "
           
-          # Подаваме ги автоматично, за да не спира процеса
-          printf "$V_NAME\n$V_CODE\n" | bubblewrap update --skipPwaValidation
+          # 3. Git Магията - Почистване преди Pull
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .well-known/assetlinks.json
+          git commit -m "chore: update assetlinks.json [skip ci]" || echo "No changes"
+          
+          # Скриваме всичко (включително keystore файла)
+          git stash -u
+          
+          # Дърпаме и качваме
+          git pull --rebase origin main
+          git push origin main
+          
+          # Връщаме файловете обратно за билда
+          git stash pop || echo "Nothing to return"
 
-      - name: Build APK with Bubblewrap
+      - name: Build APK
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.STORE_PASS }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ env.KEY_PASS }}
         run: |
-          # Вече ползваме директни променливи за паролите
+          V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
+          V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
+          printf "$V_NAME\n$V_CODE\n" | bubblewrap update --skipPwaValidation
           bubblewrap build --skipPwaValidation
 
-      - name: Update assetlinks.json with signing certificate SHA-256
-        run: |
-          FINGERPRINT=$(keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" | sed 's/.*SHA256: //' | tr -d '[:space:]')
-          echo "SHA-256 Fingerprint: $FINGERPRINT"
-          if [ -z "$FINGERPRINT" ]; then
-            echo "ERROR: Could not extract SHA-256 fingerprint"
-            exit 1
-          fi
-          # Validate format: 32 hex pairs separated by colons (e.g. AA:BB:CC:...)
-          if ! echo "$FINGERPRINT" | grep -qE '^([0-9A-F]{2}:){31}[0-9A-F]{2}$'; then
-            echo "ERROR: Extracted fingerprint does not match expected SHA-256 format: $FINGERPRINT"
-            exit 1
-          fi
-          node -e "
-            const fs = require('fs');
-            const data = [{
-              relation: ['delegate_permission/common.handle_all_urls'],
-              target: {
-                namespace: 'android_app',
-                package_name: 'com.biocode.nutriplan',
-                sha256_cert_fingerprints: [process.argv[1]]
-              }
-            }];
-            fs.writeFileSync('.well-known/assetlinks.json', JSON.stringify(data, null, 2) + '\n');
-          " "$FINGERPRINT"
-          echo "Updated assetlinks.json:"
-          cat .well-known/assetlinks.json
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NutriPlan-APK
+          path: "*.apk"
 
-      - name: Commit updated assetlinks.json
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .well-known/assetlinks.json
-          if git diff --cached --quiet; then
-            echo "assetlinks.json unchanged, skipping commit"
-          else
-            git commit -m "chore: update assetlinks.json with signing certificate fingerprint [skip ci]"
-            git pull --rebase origin "${{ github.ref_name }}"
-            git push
-          fi
-
-      - name: Locate and copy APK
-        run: |
-          APK=$(find . -name "*release-signed.apk" | head -1)
-          if [ -z "$APK" ]; then
-            APK=$(find . -name "*.apk" | grep -v "/debug/" | head -1)
-          fi
-          cp "$APK" NutriPlan.apk
-
-      - name: Publish GitHub Release
+      - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="apk-latest"
-          gh release delete "$TAG" --yes 2>/dev/null || true
-          
-          NOTES="## NutriPlan APK Build
-          **Mode:** \`$BUILD_MODE\`
-          **Build Date:** $(date -u '+%Y-%m-%d %H:%M UTC')
-          
-          Свалете файла и инсталирайте ръчно."
-
-          gh release create "$TAG" NutriPlan.apk \
-            --title "NutriPlan APK — Latest" \
-            --notes "$NOTES" \
-            --latest
+          TAG="v-$(date +'%Y%m%d%H%M')"
+          APK_FILE=$(find . -name "*release-signed.apk" | head -1)
+          if [ -z "$APK_FILE" ]; then APK_FILE=$(find . -name "*.apk" | head -1); fi
+          gh release create "$TAG" "$APK_FILE" --title "NutriPlan Build $TAG" --notes "Автоматичен билд."
