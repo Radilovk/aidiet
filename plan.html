@@ -9062,7 +9062,9 @@
                     }
                     saveRecord(dayKey, r);
                     checkBtn.classList.toggle('done', r.meals[mealKey]);
-                    _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey]);
+                    if (!calcDayScore(r).excessCalories) {
+                        _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey]);
+                    }
                     recalcAndShowScore(dayKey);
                 });
                 card.appendChild(checkBtn);
@@ -9150,7 +9152,6 @@
                             arr[cardIdx].consumed = (arr[cardIdx].consumed === false);
                             localStorage.setItem('addedMeals_' + addedDateKey, JSON.stringify(arr));
                             btn.classList.toggle('done', arr[cardIdx].consumed !== false);
-                            _triggerMealCheckBurst(btn, btn.closest('.meal-card') || btn.parentElement, arr[cardIdx].consumed !== false);
 
                             // Sync the consumed state to the extraMeals game record.
                             var updMeal = arr[cardIdx];
@@ -9184,6 +9185,9 @@
                                 });
                             }
                             saveRecord(addedDateKey, dRec);
+                            if (!calcDayScore(dRec).excessCalories) {
+                                _triggerMealCheckBurst(btn, btn.closest('.meal-card') || btn.parentElement, arr[cardIdx].consumed !== false);
+                            }
                             recalcAndShowScore(addedDateKey);
                         }
                     });
