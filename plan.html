@@ -8892,7 +8892,8 @@
                     setTimeout(function() { glow.remove(); }, 2000);
                     var flash = document.createElement('div');
                     flash.className = 'excellent-day-flash';
-                    flash.innerHTML = '<div style="font-size:1.4rem;margin-bottom:4px;letter-spacing:2px"><i class="fas fa-star" style="color:#fbbf24"></i><i class="fas fa-star" style="color:#fbbf24"></i><i class="fas fa-star" style="color:#fbbf24"></i><i class="fas fa-star" style="color:#fbbf24"></i><i class="fas fa-star" style="color:#fbbf24"></i></div>' +
+                    var fiveStars = Array(5).fill('<i class="fas fa-star" style="color:#fbbf24"></i>').join('');
+                    flash.innerHTML = '<div style="font-size:1.4rem;margin-bottom:4px;letter-spacing:2px">' + fiveStars + '</div>' +
                         '<div>Отличен резултат!</div>' +
                         '<div style="font-size:0.8rem;font-weight:500;margin-top:4px;opacity:0.7">Всичко изпълнено перфектно \u2713</div>';
                     document.body.appendChild(flash);
