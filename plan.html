@@ -8917,23 +8917,52 @@
                 try { syncList = JSON.parse(localStorage.getItem('addedMeals_' + addedDateKey) || '[]'); } catch(e) {}
                 if (!syncList.length) return;
                 var syncRec = getRecord(addedDateKey);
-                if (!syncRec.extraMeals || !syncRec.extraMeals.length) return;
+                if (!syncRec.extraMeals) syncRec.extraMeals = [];
                 // Build a planId → extraMeals index map for O(1) lookup.
                 var emByPlanId = {};
                 syncRec.extraMeals.forEach(function(em, i) {
                     if (em.planId) emByPlanId[em.planId] = i;
                 });
                 var changed = false;
+                var addedMealsChanged = false;
                 syncList.forEach(function(am) {
-                    if (!am.planId) return;
-                    var emIdx = emByPlanId[am.planId];
-                    if (emIdx === undefined) return;
                     var shouldCount = (am.consumed !== false);
-                    if (syncRec.extraMeals[emIdx].countCalories !== shouldCount) {
-                        syncRec.extraMeals[emIdx].countCalories = shouldCount;
-                        changed = true;
+                    if (am.planId) {
+                        // Primary: match by planId
+                        var emIdx = emByPlanId[am.planId];
+                        if (emIdx !== undefined) {
+                            var em = syncRec.extraMeals[emIdx];
+                            if (!em.isAddedToPlan) { em.isAddedToPlan = true; changed = true; }
+                            if (em.countCalories !== shouldCount) {
+                                em.countCalories = shouldCount;
+                                changed = true;
+                            }
+                            return;
+                        }
+                    }
+                    // Fallback: match unlinked extraMeals entry by name+calories for backward
+                    // compatibility with entries created before the planId feature existed.
+                    var amCals = Math.round(am.calories || 0);
+                    var amName = am.name || '';
+                    for (var k = syncRec.extraMeals.length - 1; k >= 0; k--) {
+                        var em = syncRec.extraMeals[k];
+                        if (em.planId || em.isFreeMealReplacement) continue;
+                        if (em.name === amName && Math.round(em.calories || 0) === amCals) {
+                            // Backfill planId on both sides to make future syncs use the fast path.
+                            var newId = String(Date.now()) + '_' + k + '_' + Math.random().toString(36).substr(2, 6);
+                            if (!am.planId) { am.planId = newId; addedMealsChanged = true; }
+                            em.planId = am.planId;
+                            em.isAddedToPlan = true;
+                            if (em.countCalories !== shouldCount) em.countCalories = shouldCount;
+                            emByPlanId[em.planId] = k;
+                            changed = true;
+                            break;
+                        }
                     }
                 });
+                if (addedMealsChanged) {
+                    localStorage.setItem('addedMeals_' + addedDateKey, JSON.stringify(syncList));
+                }
                 if (changed) {
                     saveRecord(addedDateKey, syncRec);
                     recalcAndShowScore(addedDateKey);
@@ -8984,34 +9013,58 @@
                             // Sync the consumed state to the linked game record extraMeals entry so
                             // calorie calculations reflect the actual check state.
                             var updMeal = arr[cardIdx];
-                            if (updMeal.planId) {
-                                var dRec = getRecord(addedDateKey);
-                                if (!dRec.extraMeals) dRec.extraMeals = [];
-                                var matchFound = false;
-                                dRec.extraMeals.forEach(function(em) {
-                                    if (em.planId === updMeal.planId) {
-                                        em.countCalories = (updMeal.consumed !== false);
-                                        matchFound = true;
-                                    }
-                                });
-                                if (!matchFound && (updMeal.calories || 0) > 0) {
-                                    // No linked extraMeals entry exists (e.g. game was disabled
-                                    // when the photo was analysed). Create one so the check state
-                                    // affects the calorie calculation going forward.
-                                    dRec.extraMeals.push({
-                                        name: updMeal.name || 'Добавено хранене',
-                                        calories: Math.round(updMeal.calories || 0),
-                                        isJunk: false,
-                                        isFreeMealReplacement: false,
-                                        isAddedToPlan: true,
-                                        planId: updMeal.planId,
-                                        countCalories: (updMeal.consumed !== false),
-                                        mealContext: updMeal.type || '',
-                                        ts: updMeal.ts || new Date().toISOString()
-                                    });
-                                }
-                                saveRecord(addedDateKey, dRec);
+                            var countVal = (updMeal.consumed !== false);
+                            // Ensure a planId exists on the addedMeals entry (backfill for old data).
+                            if (!updMeal.planId) {
+                                updMeal.planId = String(Date.now()) + '_' + Math.random().toString(36).substr(2, 9);
+                                arr[cardIdx].planId = updMeal.planId;
+                                localStorage.setItem('addedMeals_' + addedDateKey, JSON.stringify(arr));
                             }
+                            var dRec = getRecord(addedDateKey);
+                            if (!dRec.extraMeals) dRec.extraMeals = [];
+                            var matchFound = false;
+                            // Primary: match by planId
+                            dRec.extraMeals.forEach(function(em) {
+                                if (em.planId === updMeal.planId) {
+                                    em.isAddedToPlan = true;
+                                    em.countCalories = countVal;
+                                    matchFound = true;
+                                }
+                            });
+                            // Fallback: match unlinked extraMeals entry by name+calories for backward
+                            // compatibility with entries created before the planId feature existed.
+                            if (!matchFound) {
+                                var amCals = Math.round(updMeal.calories || 0);
+                                var amName = updMeal.name || '';
+                                for (var k = dRec.extraMeals.length - 1; k >= 0; k--) {
+                                    var em = dRec.extraMeals[k];
+                                    if (em.planId || em.isFreeMealReplacement) continue;
+                                    if (em.name === amName && Math.round(em.calories || 0) === amCals) {
+                                        em.planId = updMeal.planId;
+                                        em.isAddedToPlan = true;
+                                        em.countCalories = countVal;
+                                        matchFound = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!matchFound && (updMeal.calories || 0) > 0) {
+                                // No linked extraMeals entry exists (e.g. game was disabled
+                                // when the photo was analysed). Create one so the check state
+                                // affects the calorie calculation going forward.
+                                dRec.extraMeals.push({
+                                    name: updMeal.name || 'Добавено хранене',
+                                    calories: Math.round(updMeal.calories || 0),
+                                    isJunk: false,
+                                    isFreeMealReplacement: false,
+                                    isAddedToPlan: true,
+                                    planId: updMeal.planId,
+                                    countCalories: countVal,
+                                    mealContext: updMeal.type || '',
+                                    ts: updMeal.ts || new Date().toISOString()
+                                });
+                            }
+                            saveRecord(addedDateKey, dRec);
                             recalcAndShowScore(addedDateKey);
                         }
                     });
