@@ -2005,7 +2005,7 @@
         }
         .game-bubble-header {
             background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
-            padding: 10px 38px 10px 14px;
+            padding: 10px 14px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -9096,13 +9096,13 @@
         ];
 
         var _fabLowerTimer = null;
+        var _queueDepth    = 0; // incremented for each active runQueue; FAB stays raised while > 0
         // Delay must exceed the longest inter-question pause (350–400 ms) so that
         // a chained showBubble call (in the queue) fires before the timer and can
         // cancel the lower animation — keeping the FAB raised throughout the queue.
         var FAB_LOWER_DELAY = 500;
-        function removeBubble() {
-            var o=document.getElementById('gameBubble'); if(o) o.remove();
-            // Schedule FAB lowering — cancelled if a new showBubble fires immediately
+
+        function _scheduleFabLower() {
             var fab = document.querySelector('.fab-chat');
             if (fab) {
                 if (_fabLowerTimer) clearTimeout(_fabLowerTimer);
@@ -9111,6 +9111,13 @@
                     _fabLowerTimer = null;
                 }, FAB_LOWER_DELAY);
             }
+        }
+
+        function removeBubble() {
+            var o=document.getElementById('gameBubble'); if(o) o.remove();
+            // Keep FAB raised while a question queue is still running
+            if (_queueDepth > 0) return;
+            _scheduleFabLower();
         }
 
         function showBubble(question, answers, onAnswer, opts) {
@@ -9201,17 +9208,7 @@
                 gr.textContent = opts.greeting ? opts.greeting :
                                  (opts.showName && name) ? 'Здравейте, '+name+'!' :
                                  'AI Асистент';
-                var closeBtn = document.createElement('button');
-                closeBtn.className = 'game-bubble-close';
-                closeBtn.innerHTML = '\u2715';
-                closeBtn.setAttribute('aria-label','\u0417\u0430\u0442\u0432\u043E\u0440\u0438');
-                closeBtn.onclick = function() {
-                    if (opts.dismissKey) {
-                        try { localStorage.setItem(opts.dismissKey, '1'); } catch(e) {}
-                    }
-                    removeBubble();
-                };
-                hdr.appendChild(av); hdr.appendChild(gr); hdr.appendChild(closeBtn);
+                hdr.appendChild(av); hdr.appendChild(gr);
 
                 // Body
                 var body = document.createElement('div');
@@ -9253,8 +9250,7 @@
                     if (doneCb) { setTimeout(doneCb, 350); }
                     else { setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400); }
                 },
-                { greeting: isYesterday ? 'Въвеждане за вчера' : undefined, showName: !isYesterday,
-                  dismissKey: 'gameMorningDismissed_' + recordKey }
+                { greeting: isYesterday ? 'Въвеждане за вчера' : undefined, showName: !isYesterday }
             );
         }
 
@@ -9264,8 +9260,7 @@
             if (!force && rec.eveningCheck) { if (doneCb) doneCb(); return; }
             var isYesterday = recordKey !== getTodayKey();
             var prefix = isYesterday ? '[Вчера] ' : '';
-            var hdrOpts = { greeting: isYesterday ? 'Въвеждане за вчера' : 'Добър вечер!',
-                            dismissKey: 'gameEveningDismissed_' + recordKey };
+            var hdrOpts = { greeting: isYesterday ? 'Въвеждане за вчера' : 'Добър вечер!' };
             var eveData = {};
             function q3() {
                 showBubble(prefix+'Изпихте ли поне 2 л вода?', NO_YES, function(v) {
@@ -9315,13 +9310,21 @@
         }
 
         function runQueue(queue, onDone) {
+            if (!queue.length) { if (onDone) onDone(); return; }
+            _queueDepth++;
             var idx = 0;
             function next() {
-                if (idx < queue.length) { queue[idx++](next); }
-                else { recalcAndShowScore(); if (onDone) onDone(); }
+                if (idx < queue.length) {
+                    queue[idx++](next);
+                } else {
+                    _queueDepth = Math.max(0, _queueDepth - 1);
+                    recalcAndShowScore();
+                    if (onDone) onDone();
+                    // Now that the queue is done, schedule FAB lowering
+                    if (_queueDepth === 0) _scheduleFabLower();
+                }
             }
-            if (queue.length) next();
-            else if (onDone) onDone();
+            next();
         }
 
         // ── On-open prompts ───────────────────────────────────────────────────
@@ -9617,20 +9620,18 @@
             if (!isGameEnabled()) return;
             var h = new Date().getHours(), today = getTodayKey();
             var rec = getTodayRecord();
-            // Morning: show each hour from 5–9 while unanswered and not dismissed
+            // Morning: show once per hour from 5–9 while unanswered
             if (h >= 5 && h <= 9 && !rec.morningCheck) {
                 var smKey = 'gameMorningShownH_' + today + '_' + h;
-                var mDismissKey = 'gameMorningDismissed_' + today;
-                if (!localStorage.getItem(smKey) && !localStorage.getItem(mDismissKey)) {
+                if (!localStorage.getItem(smKey)) {
                     localStorage.setItem(smKey, '1');
                     showMorningQuestion(false, today, null);
                 }
             }
-            // Evening: show each hour from 20–23 while unanswered and not dismissed
+            // Evening: show once per hour from 20–23 while unanswered
             if (h >= 20 && h <= 23 && !rec.eveningCheck) {
                 var seKey = 'gameEveningShownH_' + today + '_' + h;
-                var eDismissKey = 'gameEveningDismissed_' + today;
-                if (!localStorage.getItem(seKey) && !localStorage.getItem(eDismissKey)) {
+                if (!localStorage.getItem(seKey)) {
                     localStorage.setItem(seKey, '1');
                     showEveningFlow(false, today, null);
                 }
