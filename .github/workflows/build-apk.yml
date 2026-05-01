@@ -122,7 +122,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v-$(date +'%Y%m%d%H%M')"
+          TAG="v-$(date +'%Y%m%d%H%M')-$(git rev-parse --short HEAD)"
           APK_FILE=$(find . -name "*release-signed.apk" | head -1)
           if [ -z "$APK_FILE" ]; then APK_FILE=$(find . -name "*.apk" | head -1); fi
           cp "$APK_FILE" NutriPlan.apk
