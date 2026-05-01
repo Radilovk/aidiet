@@ -29,7 +29,7 @@
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0A1A1A':'#F0FDFA');})();</script>
     <style>
         :root {
             /* Playful child-friendly color palette */
@@ -1764,6 +1764,11 @@
         // ═══════════════════════════════════════
         // THEME
         // ═══════════════════════════════════════
+
+        function setThemeColor(theme) {
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', theme === 'dark' ? '#0A1A1A' : '#F0FDFA');
+        }
         function toggleTheme() {
             const html = document.documentElement;
             const current = html.getAttribute('data-theme');
@@ -1771,6 +1776,7 @@
             html.setAttribute('data-theme', next);
             localStorage.setItem('theme', next);
             updateThemeIcon(next);
+            setThemeColor(next);
         }
 
         function updateThemeIcon(theme) {

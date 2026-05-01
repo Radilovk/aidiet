@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Въпросник 2.0 - Попълнете детайлен въпросник за персонален здравен план. Информацията ще бъде обработена от нашия екип.">
-    <meta name="theme-color" content="#0D9488">
+    <meta name="theme-color" content="#F0FDFA">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,7 +35,7 @@
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0A1A1A':'#F0FDFA');})();</script>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -1251,11 +1251,17 @@
         // Initialize theme on load
         initializeTheme();
 
+
+        function setThemeColor(theme) {
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', theme === 'dark' ? '#0A1A1A' : '#F0FDFA');
+        }
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme') || 'light';
             const next = current === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', next);
             localStorage.setItem('theme', next);
+            setThemeColor(next);
             const icon = document.getElementById('q2ThemeIcon');
             if (icon) icon.className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         }
