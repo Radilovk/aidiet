@@ -8333,6 +8333,14 @@
         }
         function isFutureDayKey(key) { return key > getTodayKey(); }
         function isPastDayKey(key)   { return key < getTodayKey(); }
+        // Returns true when the day is more than 2 days in the past (edits are not allowed).
+        function isAgeLocked(key) {
+            var today = getTodayKey();
+            if (key >= today) return false;
+            var d = new Date(today + 'T00:00:00');
+            d.setDate(d.getDate() - 2);
+            return key < dateKey(d);
+        }
 
         // ── Meal unlock hours: check button only available after these hours ──────
         function getMealUnlockHour(mealType) {
@@ -8855,8 +8863,12 @@
                 var unlockHour = getMealUnlockHour(mealType);
                 var currentHour = new Date().getHours();
                 var isTimeLocked = !isPastDayKey(dayKey) && currentHour < unlockHour;
-                checkBtn.className = 'meal-check-btn' + (isDone ? ' done' : '') + (isTimeLocked ? ' locked' : '');
-                if (isTimeLocked) {
+                var isAgeLockedDay = isAgeLocked(dayKey);
+                checkBtn.className = 'meal-check-btn' + (isDone ? ' done' : '') + ((isTimeLocked || isAgeLockedDay) ? ' locked' : '');
+                if (isAgeLockedDay) {
+                    checkBtn.title = 'Не може да се редактира ден, по-стар от 2 дни';
+                    checkBtn.setAttribute('aria-label', 'Отбелязването е заключено за дни по-стари от 2 дни');
+                } else if (isTimeLocked) {
                     checkBtn.title = 'Достъпно след ' + (unlockHour < 10 ? '0' : '') + unlockHour + ':00 ч.';
                     checkBtn.setAttribute('aria-label', 'Отбелязването е достъпно след ' + unlockHour + ':00 ч.');
                 }
@@ -8878,9 +8890,11 @@
                 }
 
                 checkBtn.innerHTML = '<i class="fas fa-check"></i>';
-                if (!isTimeLocked) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
+                if (!isTimeLocked && !isAgeLockedDay) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
                 checkBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
+                    // Block edits for days older than 2 days
+                    if (isAgeLocked(dayKey)) return;
                     // Re-check time lock at click time (button could have been rendered earlier)
                     var clickHour = new Date().getHours();
                     if (!isPastDayKey(dayKey) && clickHour < getMealUnlockHour(mealType)) return;
@@ -8957,12 +8971,16 @@
                 var KNOWN_TYPES = ['Закуска','Обяд','Следобедна закуска','Следобедна','Десерт','Вечеря','Свободно хранене'];
                 var isKnownType = KNOWN_TYPES.indexOf(mealTypeAdded) >= 0;
                 var unlockHAdded = isKnownType ? getMealUnlockHour(mealTypeAdded) : -1;
-                var isLockedAdded = isKnownType && !isPastDayKey(dayKey) && new Date().getHours() < unlockHAdded;
+                var isAgeLockedAdded = isAgeLocked(dayKey);
+                var isLockedAdded = isAgeLockedAdded || (isKnownType && !isPastDayKey(dayKey) && new Date().getHours() < unlockHAdded);
 
                 var addedCheckBtn = document.createElement('button');
                 addedCheckBtn.className = 'meal-check-btn' + (isDoneAdded ? ' done' : '') + (isLockedAdded ? ' locked' : '');
                 addedCheckBtn.innerHTML = '<i class="fas fa-check"></i>';
-                if (isLockedAdded) {
+                if (isAgeLockedAdded) {
+                    addedCheckBtn.title = 'Не може да се редактира ден, по-стар от 2 дни';
+                    addedCheckBtn.setAttribute('aria-label', 'Отбелязването е заключено за дни по-стари от 2 дни');
+                } else if (isLockedAdded) {
                     addedCheckBtn.title = 'Достъпно след ' + (unlockHAdded < 10 ? '0' : '') + unlockHAdded + ':00 ч.';
                     addedCheckBtn.setAttribute('aria-label', 'Отбелязването е достъпно след ' + unlockHAdded + ':00 ч.');
                 } else {
@@ -8972,6 +8990,8 @@
                 (function(cardIdx, btn, mType, knownType) {
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
+                        // Block edits for days older than 2 days
+                        if (isAgeLocked(dayKey)) return;
                         var clickH = new Date().getHours();
                         if (!isPastDayKey(dayKey) && knownType && clickH < getMealUnlockHour(mType)) return;
                         var arr = [];
