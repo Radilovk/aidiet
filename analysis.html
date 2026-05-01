@@ -341,7 +341,6 @@
             flex-direction: column;
             gap: 24px;
             margin-bottom: 40px;
-            animation: fadeIn 0.8s ease;
         }
 
         .problem-card {
@@ -351,7 +350,6 @@
             padding-top: 28px;
             box-shadow: var(--shadow);
             transition: var(--transition);
-            animation: slideUp 0.5s ease;
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(13, 148, 136, 0.08);
@@ -1589,6 +1587,80 @@
         [data-theme="dark"] .pending-notice-inner strong { color: #fcd34d; }
         [data-theme="dark"] .pending-notice-inner p { color: #fbbf24; }
         [data-theme="dark"] .pending-notice-inner i { color: #fbbf24; }
+
+        /* ========================================
+           SCROLL-TRIGGERED ENTRANCE ANIMATIONS
+           ======================================== */
+
+        /* Problem card entrance */
+        .card-anim {
+            opacity: 0;
+            transform: translateY(32px) scale(0.97);
+            will-change: opacity, transform;
+        }
+        .card-anim.card-anim--visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                        transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Section entrance (health widget, forecast, CTA) */
+        .section-anim {
+            opacity: 0;
+            transform: translateY(24px);
+            will-change: opacity, transform;
+        }
+        .section-anim.section-anim--visible {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.65s ease,
+                        transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Forecast card slide-in from opposite sides */
+        @keyframes forecastCardInLeft {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes forecastCardInRight {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .forecast-section.forecast-animate .forecast-card.pessimistic {
+            animation: forecastCardInLeft 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+        }
+        .forecast-section.forecast-animate .forecast-card.optimistic {
+            animation: forecastCardInRight 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+        }
+        /* After the entrance animation the card is visible; hover still applies */
+        .forecast-section.forecast-animate .forecast-card {
+            opacity: 1;
+        }
+
+        /* Forecast list item staggered entrance */
+        .forecast-risks li,
+        .forecast-improvements li {
+            opacity: 0;
+            transform: translateX(-16px);
+            transition: none;
+        }
+        .forecast-section.forecast-animate .forecast-risks li,
+        .forecast-section.forecast-animate .forecast-improvements li {
+            opacity: 1;
+            transform: translateX(0);
+            transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .forecast-section.forecast-animate .forecast-risks li:nth-child(1),
+        .forecast-section.forecast-animate .forecast-improvements li:nth-child(1) { transition-delay: 0.18s; }
+        .forecast-section.forecast-animate .forecast-risks li:nth-child(2),
+        .forecast-section.forecast-animate .forecast-improvements li:nth-child(2) { transition-delay: 0.28s; }
+        .forecast-section.forecast-animate .forecast-risks li:nth-child(3),
+        .forecast-section.forecast-animate .forecast-improvements li:nth-child(3) { transition-delay: 0.38s; }
+        .forecast-section.forecast-animate .forecast-risks li:nth-child(4),
+        .forecast-section.forecast-animate .forecast-improvements li:nth-child(4) { transition-delay: 0.48s; }
+        .forecast-section.forecast-animate .forecast-risks li:nth-child(5),
+        .forecast-section.forecast-animate .forecast-improvements li:nth-child(5) { transition-delay: 0.58s; }
     </style>
 </head>
 <body>
@@ -1724,7 +1796,7 @@
             </div>
         </div>
 
-        <div class="cta-section" id="ctaSection">
+        <div class="cta-section section-anim" id="ctaSection">
             <h2 id="ctaTitle">Готови ли сте за промяна?</h2>
             <p id="ctaSubtitle">Създадохме персонализиран хранителен план, който ще ви помогне да преодолеете тези предизвикателства и да постигнете целите си.</p>
             <button class="btn-primary" onclick="goToPlan()">
@@ -1808,6 +1880,90 @@
             'Critical': 'Критично'
         };
 
+        // ── Animation helpers ─────────────────────────────────────────────────────
+
+        // Smoothly count a numeric element from `from` to `to` over `durationMs`
+        function animateCounter(el, from, to, durationMs, suffix) {
+            if (!el || isNaN(to)) return;
+            const startTime = performance.now();
+            const savedColor = el.style.color;
+            function step(now) {
+                const progress = Math.min((now - startTime) / durationMs, 1);
+                const ease = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+                el.textContent = Math.round(from + (to - from) * ease) + suffix;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    el.textContent = to + suffix;
+                    el.style.color = savedColor;
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        // Set up IntersectionObserver-driven animations after content is in the DOM
+        function initScrollAnimations() {
+            const ioOptions = { threshold: 0.12, rootMargin: '0px 0px -24px 0px' };
+
+            // 1. Problem cards – staggered slide-up entrance
+            const cards = document.querySelectorAll('.problem-card.card-anim');
+            if (cards.length) {
+                const cardObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const card = entry.target;
+                            card.classList.add('card-anim--visible');
+                            // Animate the severity meter bar inside this card
+                            setTimeout(() => {
+                                card.querySelectorAll('.meter-fill').forEach(meter => {
+                                    meter.style.width = meter.getAttribute('data-width');
+                                });
+                            }, 220);
+                            cardObserver.unobserve(card);
+                        }
+                    });
+                }, ioOptions);
+                cards.forEach(card => cardObserver.observe(card));
+            }
+
+            // 2. Section blocks (health widget, forecast, CTA)
+            // Note: section-anim class is already added before display='block' to avoid flash
+            const sectionIds = ['overallScoreSection', 'forecastSection', 'ctaSection'];
+            const sectionEls = sectionIds
+                .map(id => document.getElementById(id))
+                .filter(el => el && el.classList.contains('section-anim'));
+
+            if (sectionEls.length) {
+                const sectionObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const section = entry.target;
+                            section.classList.add('section-anim--visible');
+
+                            // Health score count-up animation
+                            if (section.id === 'overallScoreSection') {
+                                const scoreEl = document.getElementById('healthScoreValue');
+                                if (scoreEl) {
+                                    const target = parseInt(scoreEl.textContent, 10);
+                                    if (!isNaN(target)) {
+                                        animateCounter(scoreEl, 0, target, 1500, '%');
+                                    }
+                                }
+                            }
+
+                            // Forecast list items stagger
+                            if (section.id === 'forecastSection') {
+                                section.classList.add('forecast-animate');
+                            }
+
+                            sectionObserver.unobserve(section);
+                        }
+                    });
+                }, { threshold: 0.08 });
+                sectionEls.forEach(s => sectionObserver.observe(s));
+            }
+        }
+
         // Load and display analysis
         function loadAnalysis() {
             try {
@@ -1850,6 +2006,9 @@
                 // Hide loading, show content
                 document.getElementById('loadingScreen').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
+
+                // Initialize scroll-triggered animations after DOM is ready
+                setTimeout(initScrollAnimations, 60);
 
             } catch (error) {
                 console.error('Error loading analysis:', error);
@@ -1997,8 +2156,10 @@
                 bodyEmpty.setAttribute('offset', healthScore + '%');
             }
 
-            // Show the overall score section
-            document.getElementById('overallScoreSection').style.display = 'block';
+            // Show the overall score section (section-anim class applied before display)
+            const overallScoreEl = document.getElementById('overallScoreSection');
+            overallScoreEl.classList.add('section-anim');
+            overallScoreEl.style.display = 'block';
 
             // Animate circular ring after a short delay (CSS transition handles the smoothing)
             setTimeout(() => {
@@ -2058,8 +2219,10 @@
                 }
             }
 
-            // Show the forecast section
-            document.getElementById('forecastSection').style.display = 'block';
+            // Show the forecast section (section-anim class applied before display)
+            const forecastEl = document.getElementById('forecastSection');
+            forecastEl.classList.add('section-anim');
+            forecastEl.style.display = 'block';
         }
 
         function createProblemCard(problem, index) {
@@ -2067,8 +2230,8 @@
             const severity = (problem.severity || 'Normal').toLowerCase();
             const severityClass = `severity-${severity}`;
             
-            card.className = `problem-card ${severityClass}`;
-            card.style.animationDelay = `${index * 0.1}s`;
+            card.className = `problem-card ${severityClass} card-anim`;
+            card.style.transitionDelay = `${index * 0.07}s`;
 
             const categoryClass = `category-${(problem.category || 'medical').toLowerCase()}`;
             const categoryIcon = categoryIcons[problem.category] || 'fa-heartbeat';
@@ -2153,8 +2316,8 @@
         // Initialize on page load
         window.addEventListener('load', () => {
             loadAnalysis();
-            // Animate meters after a short delay
-            setTimeout(animateMeters, 500);
+            // Fallback: ensure meters are filled even if IntersectionObserver missed them
+            setTimeout(animateMeters, 1400);
 
             // Hide bottom-nav and adapt CTA when coming from questionnaire 2
             const planSource = localStorage.getItem('planSource');
