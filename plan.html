@@ -9723,6 +9723,10 @@
                 days.push({ key:key, rec:rec });
                 if (rec) {
                     var ds = rec.dailyScore || calcDayScore(rec);
+                    // A record with no activity (auto-initialized, nothing logged) is treated as no data
+                    if (ds.score === null && (ds.engPct || 0) === 0) {
+                        noDataDays++;
+                    }
                     engSum   += ds.engPct || 0;
                     scoreSum += ds.score  || 0;
                     count++;
@@ -9808,7 +9812,7 @@
                 var dot = document.createElement('div');
                 var ds2 = day.rec ? (day.rec.dailyScore||calcDayScore(day.rec)) : null;
                 var bg = '#e5e7eb';
-                if (ds2) bg = ds2.score>=4?'#10b981':ds2.score>=3?'#f59e0b':'#f87171';
+                if (ds2 && ds2.score !== null) bg = ds2.score>=4?'#10b981':ds2.score>=3?'#f59e0b':'#f87171';
                 dot.style.cssText = 'width:18px;height:18px;border-radius:50%;background:'+bg+';cursor:default;';
                 dot.title = day.key;
                 dotsWrap.appendChild(dot);
