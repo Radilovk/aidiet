@@ -3828,9 +3828,10 @@
                 if(em.isJunk && isConsumed) junkCount7++;
             }); });
 
-            // Trend: last 3 days vs first 3 (of recorded)
-            var firstHalf = weekScores.slice(0,Math.floor(weekScores.length/2)).filter(Boolean);
-            var lastHalf  = weekScores.slice(Math.ceil(weekScores.length/2)).filter(Boolean);
+            // Trend: last 3 days vs first 3 (of recorded) — exclude today (always incomplete)
+            var pastScores = weekScores.slice(0, weekScores.length - 1); // exclude today
+            var firstHalf = pastScores.slice(0,Math.floor(pastScores.length/2)).filter(function(s){ return s&&s.score!=null; });
+            var lastHalf  = pastScores.slice(Math.ceil(pastScores.length/2)).filter(function(s){ return s&&s.score!=null; });
             var trendUp   = lastHalf.length>0&&firstHalf.length>0 &&
                 (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length) >
                 (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length + 0.3);
@@ -3882,9 +3883,14 @@
             }).length);},0);
             if(lowBalanceDays.length>0&&hbJunk===0&&lbJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ви');
             else if(lowBalanceDays.length>0&&hbJunk<lbJunk) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Забелязваме повече вредни хранения в дни с по-нисък емоционален баланс');
-            // Consecutive adherence streak
+            // Consecutive adherence streak — skip today if it has no data yet (incomplete day)
             var streak=0, currentStreak=0;
-            for(var si=days.length-1;si>=0;si--){
+            var streakStart = days.length - 1;
+            if (streakStart >= 0 && days[streakStart].key === todayKey &&
+                    (!days[streakStart].rec || calcDayScore(days[streakStart].rec).score === null)) {
+                streakStart--; // today has no activity yet — don't let it break a past-days streak
+            }
+            for(var si=streakStart;si>=0;si--){
                 if(days[si].rec&&calcDayScore(days[si].rec).score>=4){ streak++; currentStreak=Math.max(currentStreak,streak); } else break;
             }
             if(currentStreak>=3) insights.push('<i class="fas fa-fire" style="color:#f59e0b"></i> Имате текуща серия от <strong>'+currentStreak+' отлични дни</strong> подред! Продължавайте!');
@@ -3916,7 +3922,12 @@
 
             // ── Alerts ────────────────────────────────────────────────────────
             var alerts = [];
-            var missedLast2 = days.slice(-2).filter(function(d){ return !d.rec||calcDayScore(d.rec).score<2; });
+            var missedLast2 = days.slice(-2).filter(function(d){
+                if (!d.rec) return true; // no record = genuinely skipped day
+                var s = calcDayScore(d.rec);
+                // null score = no activity yet (e.g. early morning) — don't count as low engagement
+                return s.score !== null && s.score < 2;
+            });
             if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имате ниска ангажираност — проверете дали имате нужда от промяна в плана.');
             if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Открихме '+junkCount7+' вредни хранения за седмицата. Опитайте да намалите до 1-2 максимум.');
             if(incorrectMealsCount7>0) alerts.push('<i class="fas fa-exclamation-circle" style="color:#ef4444"></i> '+incorrectMealsCount7+' неправилно свободно хранене за седмицата — нискокачествените замени снижават здравния ви индекс.');
@@ -3980,7 +3991,7 @@
                 var cols = perDayValues.map(function(v,idx){
                     var dow   = new Date(days[idx].key).getDay();
                     var label = DAY_NAMES[(dow+6)%7];
-                    if(v==null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label);
+                    if(v==null || v===0) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label);
                     var pct2 = maxVal>0?Math.min(100,Math.round(v/maxVal*100)):0;
                     var h    = Math.max(BAR_MIN_H, Math.round(pct2*BAR_MAX_H/100));
                     return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
@@ -4033,8 +4044,8 @@
                     '<div class="game-week-sub">Ангажираност: '+engagementPct+'% · '+validScores.length+' '+(validScores.length===1?'ден':'дни')+' данни'+(noDataDaysCount>0?' · '+noDataDaysCount+' без данни':'')+' </div>' +
                     '<div class="game-week-dots">' +
                     weekScores.map(function(s){
-                        var bg = s?(s.score>=4?'rgba(255,255,255,0.9)':s.score>=3?'rgba(251,191,36,0.85)':'rgba(248,113,113,0.8)'):'rgba(255,255,255,0.18)';
-                        return '<div class="game-week-dot" style="background:'+bg+'" title="'+(s?s.label:'Няма данни')+'"></div>';
+                        var bg = (s&&s.score!=null)?(s.score>=4?'rgba(255,255,255,0.9)':s.score>=3?'rgba(251,191,36,0.85)':'rgba(248,113,113,0.8)'):'rgba(255,255,255,0.18)';
+                        return '<div class="game-week-dot" style="background:'+bg+'" title="'+(s&&s.score!=null?s.label:'Няма данни')+'"></div>';
                     }).join('') +
                     '</div>' +
                 '</div>' +
