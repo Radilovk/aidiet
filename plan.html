@@ -4975,6 +4975,30 @@
             return (suitability.verdict || '') + (suitability.explanation ? ': ' + suitability.explanation : '');
         }
 
+        /**
+         * Return the earliest hour at which a named meal type becomes available for check-in.
+         * Returns -1 for unknown / intermediate meal types that are eaten "now".
+         */
+        function _mealUnlockHour(type) {
+            var base = (type || '').replace(/_\d+$/, '');
+            if (base === 'Закуска')  return 6;
+            if (base === 'Обяд')     return 12;
+            if (base === 'Следобедна закуска' || base === 'Следобедна' || base === 'Десерт') return 14;
+            if (base === 'Вечеря'   || base === 'Свободно хранене') return 18;
+            return -1; // unknown / intermediate — use ts-based hour
+        }
+        /**
+         * Return the display-order hour for a photo-added meal so it can be
+         * interleaved with planned meals.  For intermediate / unknown meal types
+         * the timestamp of capture is used instead of a fixed window hour.
+         */
+        function _addedMealOrderHour(type, ts) {
+            var h = _mealUnlockHour(type);
+            if (h >= 0) return h;
+            if (ts) { try { return new Date(ts).getHours(); } catch(e) {} }
+            return new Date().getHours();
+        }
+
         // --- Render Day Meals ---
         function renderDay(dayNum) {
             currentDay = dayNum;
@@ -5047,6 +5071,7 @@
                 mealCard.className = isFreeMeal ? 'meal-card free-day' : 'meal-card';
                 if (meal.calories) mealCard.setAttribute('data-meal-calories', meal.calories);
                 if (meal.type) mealCard.setAttribute('data-meal-type', meal.type);
+                mealCard.setAttribute('data-order-hour', _mealUnlockHour(meal.type));
                 
                 // Create button element separately to handle click with meal data
                 const infoBtn = document.createElement('button');
@@ -5086,7 +5111,8 @@
                 mealContainer.appendChild(mealCard);
             });
 
-            // Render photo-added meals for this day (from "Добави в плана")
+            // Render photo-added meals for this day (from "Добави в плана"),
+            // interleaved with planned meals by order hour.
             (function() {
                 var viewDateKey = planDayToDateKey(dayNum);
                 var addedMeals = [];
@@ -5094,6 +5120,9 @@
                 addedMeals.forEach(function(addedMeal, idx) {
                     var addedCard = document.createElement('div');
                     addedCard.className = 'meal-card added-meal-card';
+                    addedCard.setAttribute('data-added-idx', idx);
+                    var orderHour = _addedMealOrderHour(addedMeal.type, addedMeal.ts);
+                    addedCard.setAttribute('data-order-hour', orderHour);
 
                     var addedInfo = document.createElement('div');
                     addedInfo.className = 'meal-info';
@@ -5113,7 +5142,22 @@
 
                     addedCard.appendChild(addedInfo);
                     addedCard.appendChild(addedBtn);
-                    mealContainer.appendChild(addedCard);
+
+                    // Insert after the last planned meal whose order-hour is <= this meal's
+                    // order-hour, so photo meals group near their time-period siblings.
+                    var plannedCards = mealContainer.querySelectorAll('.meal-card:not(.added-meal-card)');
+                    var insertBefore = null;
+                    for (var i = 0; i < plannedCards.length; i++) {
+                        if (parseInt(plannedCards[i].getAttribute('data-order-hour'), 10) > orderHour) {
+                            insertBefore = plannedCards[i];
+                            break;
+                        }
+                    }
+                    if (insertBefore) {
+                        mealContainer.insertBefore(addedCard, insertBefore);
+                    } else {
+                        mealContainer.appendChild(addedCard);
+                    }
                 });
             })();
 
@@ -7507,6 +7551,13 @@
             var a = snapshot.analysis || {};
             var mealCtx = (document.getElementById('foodMealContext') || {}).value || 'Хранене';
 
+            // Determine whether this meal is already in its consumption window.
+            // consumed=false means the card will be time-locked until the designated hour.
+            var currentHour = new Date().getHours();
+            var unlockHour  = _mealUnlockHour(mealCtx);
+            // Intermediate / unknown types (unlockHour < 0) are always consumed right now.
+            var consumed = unlockHour < 0 || currentHour >= unlockHour;
+
             var mealEntry;
             if (snapshot.type === 'food') {
                 var names = (a.foods || []).map(function(f){ return f.name; }).join(', ');
@@ -7530,6 +7581,7 @@
                     },
                     suitability: a.dietSuitability || null,
                     addedFrom:   'photo',
+                    consumed:    consumed,
                     ts:          snapshot.ts
                 };
             } else {
@@ -7543,11 +7595,12 @@
                     macros:      null,
                     suitability: { verdict: (a.suitabilityScore || 0) + '/5', explanation: a.reasoning || '' },
                     addedFrom:   'photo',
+                    consumed:    consumed,
                     ts:          snapshot.ts
                 };
             }
 
-            // Save to per-day added meals for TODAY (food is always eaten now)
+            // Save to per-day added meals for TODAY
             var storageKey = 'addedMeals_' + todayDateKey();
             var added = [];
             try { added = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch(e) {}
@@ -8826,6 +8879,58 @@
             });
             if (mealsInitialized) saveRecord(dayKey, rec);
             recalcAndShowScore(dayKey);
+
+            // ── Photo-added meal check buttons ───────────────────────────────
+            // Give each added-meal-card a toggleable consumed button.
+            // These do NOT count toward the day-score denominator — they are
+            // purely for personal tracking of photographed / advance-planned meals.
+            var addedDateKey = dayKey; // same date-string format as addedMeals_DATEKEY
+            container.querySelectorAll('.added-meal-card:not([data-ge-added])').forEach(function(addedCard) {
+                addedCard.setAttribute('data-ge-added', '1');
+                var idx = parseInt(addedCard.getAttribute('data-added-idx'), 10);
+                if (isNaN(idx)) return;
+                var storedList = [];
+                try { storedList = JSON.parse(localStorage.getItem('addedMeals_' + addedDateKey) || '[]'); } catch(e) {}
+                var addedMeal = storedList[idx];
+                if (!addedMeal) return;
+
+                // Backward-compat: entries without consumed property are treated as consumed.
+                var isDoneAdded = addedMeal.consumed !== false;
+                var mealTypeAdded = addedMeal.type || '';
+
+                // Only apply time-lock for recognised meal types (not intermediate/unknown).
+                var KNOWN_TYPES = ['Закуска','Обяд','Следобедна закуска','Следобедна','Десерт','Вечеря','Свободно хранене'];
+                var isKnownType = KNOWN_TYPES.indexOf(mealTypeAdded) >= 0;
+                var unlockHAdded = isKnownType ? getMealUnlockHour(mealTypeAdded) : -1;
+                var isLockedAdded = isKnownType && !isPastDayKey(dayKey) && new Date().getHours() < unlockHAdded;
+
+                var addedCheckBtn = document.createElement('button');
+                addedCheckBtn.className = 'meal-check-btn' + (isDoneAdded ? ' done' : '') + (isLockedAdded ? ' locked' : '');
+                addedCheckBtn.innerHTML = '<i class="fas fa-check"></i>';
+                if (isLockedAdded) {
+                    addedCheckBtn.title = 'Достъпно след ' + (unlockHAdded < 10 ? '0' : '') + unlockHAdded + ':00 ч.';
+                    addedCheckBtn.setAttribute('aria-label', 'Отбелязването е достъпно след ' + unlockHAdded + ':00 ч.');
+                } else {
+                    addedCheckBtn.setAttribute('aria-label', 'Отбележи хранене');
+                }
+
+                (function(cardIdx, btn, mType, knownType) {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        var clickH = new Date().getHours();
+                        if (!isPastDayKey(dayKey) && knownType && clickH < getMealUnlockHour(mType)) return;
+                        var arr = [];
+                        try { arr = JSON.parse(localStorage.getItem('addedMeals_' + addedDateKey) || '[]'); } catch(e) {}
+                        if (arr[cardIdx]) {
+                            arr[cardIdx].consumed = (arr[cardIdx].consumed === false);
+                            localStorage.setItem('addedMeals_' + addedDateKey, JSON.stringify(arr));
+                            btn.classList.toggle('done', arr[cardIdx].consumed !== false);
+                        }
+                    });
+                })(idx, addedCheckBtn, mealTypeAdded, isKnownType);
+
+                addedCard.appendChild(addedCheckBtn);
+            });
         }
 
         // ── Extra food logging ────────────────────────────────────────────────
