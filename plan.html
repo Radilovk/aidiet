@@ -9295,6 +9295,7 @@
 
         var _fabLowerTimer = null;
         var _queueDepth    = 0; // incremented for each active runQueue; FAB stays raised while > 0
+        var _openPromptPending = false; // prevents double-scheduling of checkOpenAppPrompts
         // Delay must exceed the longest inter-question pause (350–400 ms) so that
         // a chained showBubble call (in the queue) fires before the timer and can
         // cancel the lower animation — keeping the FAB raised throughout the queue.
@@ -9526,27 +9527,29 @@
         }
 
         // ── On-open prompts ───────────────────────────────────────────────────
+        // Called every time plan.html loads.  Shows whichever wellness questions
+        // are still unanswered for today (morning from 06:00, evening from 20:00).
+        // buildDayQueue already skips questions that have been answered, so no
+        // per-day blocking flag is needed — the questions are shown on every open
+        // until they are actually answered.
         function checkOpenAppPrompts() {
             if (!isGameEnabled()) return;
+            if (_openPromptPending || _queueDepth > 0) return;
             var today = getTodayKey();
-            var shownKey = 'gameOpenShown_' + today;
-            if (localStorage.getItem(shownKey)) return;
             var queue = buildDayQueue(today);
-            // If nothing to show (e.g. too early for morning question, or both checks
-            // already answered), do NOT set the key — let the function try again on
-            // the next app open (e.g. when the evening window opens at 20:00).
-            if (!queue.length) return;
-            setTimeout(function(){ runQueue(queue, function(){
-                // Only mark today as fully prompted once both morning and evening
-                // checks have been answered.  Without this guard the flag would be
-                // set after the morning-only queue, preventing the evening questions
-                // from being shown when the user re-opens the app after 20:00.
-                var updRec = getRecord(today);
-                if (updRec.morningCheck && updRec.eveningCheck) {
-                    localStorage.setItem(shownKey, '1');
-                }
-                setTimeout(function(){ showEncouragement(buildEncouragement()); }, 600);
-            }); }, 1800);
+            if (!queue.length) return; // nothing pending (too early, or all answered)
+            _openPromptPending = true;
+            setTimeout(function(){
+                _openPromptPending = false;
+                // Re-check: answers could have come in during the 1.8 s delay, or
+                // another queue (e.g. retroactive entry) may have started.
+                if (_queueDepth > 0) return;
+                var freshQueue = buildDayQueue(today);
+                if (!freshQueue.length) return;
+                runQueue(freshQueue, function(){
+                    setTimeout(function(){ showEncouragement(buildEncouragement()); }, 600);
+                });
+            }, 1800);
         }
 
         // ── Retroactive entry (last 2 days) ─────────────────────────────────
