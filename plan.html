@@ -9359,8 +9359,8 @@
             // If nothing to show (e.g. too early for morning question), do NOT set
             // the key — let the function try again on the next app open.
             if (!queue.length) return;
-            localStorage.setItem(shownKey, '1');
             setTimeout(function(){ runQueue(queue, function(){
+                localStorage.setItem(shownKey, '1');
                 setTimeout(function(){ showEncouragement(buildEncouragement()); }, 600);
             }); }, 1800);
         }
