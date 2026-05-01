@@ -868,10 +868,6 @@
         .game-day-bar-down {
             transition: height 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         }
-        /* Health ring glow */
-        .game-ring-wrap[data-explain="health"] .game-ring-fg {
-            filter: drop-shadow(0 0 5px #0D9488);
-        }
         /* Ring wrap hover lift */
         .game-ring-wrap {
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -896,10 +892,6 @@
         .game-alert-card:hover {
             transform: translateX(4px);
             box-shadow: 0 3px 14px rgba(245, 158, 11, 0.14);
-        }
-        /* Analytics section header glint on open */
-        .game-analytics-section.open .game-analytics-header {
-            box-shadow: 0 4px 20px rgba(13, 148, 136, 0.35);
         }
         /* ── End Current Analysis ──────────────────────────────────────────────── */
 
@@ -2214,6 +2206,43 @@
             details.style.display = isOpen ? 'block' : 'none';
             if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
             if (toggle)  toggle.setAttribute('aria-expanded', String(isOpen));
+
+            if (isOpen) {
+                // Re-trigger entrance animations for cards inside the section.
+                // Setting animation to 'none' and forcing a reflow (offsetWidth read)
+                // causes the browser to reset the animation state before re-applying it.
+                details.querySelectorAll('.ga-card-enter').forEach(function(el, i) {
+                    el.style.animation = 'none';
+                    void el.offsetWidth; // force reflow to reset animation state
+                    el.style.animation = '';
+                    el.style.animationDelay = (i * 0.07) + 's';
+                });
+                // Wait two animation frames before starting bar/chart transitions:
+                // the first frame picks up the display:block change, the second
+                // ensures the browser has committed the layout so transitions play.
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        // Animate horizontal progress bars (width 0 → target %)
+                        details.querySelectorAll('[data-ga-bar]').forEach(function(el, i) {
+                            el.style.width = '0%';
+                            setTimeout(function() {
+                                el.style.width = el.getAttribute('data-ga-bar') + '%';
+                            }, 60 + i * 60);
+                        });
+                        // Animate mini bar and bidirectional bar heights (height 0 → target px)
+                        function animateBarHeight(selector, baseDelay) {
+                            details.querySelectorAll(selector).forEach(function(el, i) {
+                                el.style.height = '0px';
+                                setTimeout(function() {
+                                    el.style.height = el.getAttribute(selector.slice(1, -1));
+                                }, baseDelay + i * 25);
+                            });
+                        }
+                        animateBarHeight('[data-ga-bar-h]', 100);
+                        animateBarHeight('[data-ga-bidir-h]', 100);
+                    });
+                });
+            }
         }
 
         function handleProfileContactKeydown(event) {
