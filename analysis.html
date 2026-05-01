@@ -1484,6 +1484,7 @@
         .health-badge.critical { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
         .health-badge.risky    { color: #f97316; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.2); }
         .health-badge.borderline { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
+        .health-badge .badge-dot { font-size: 6px; }
 
         .health-score-description {
             font-size: 0.85rem;
@@ -2144,12 +2145,23 @@
                     else if (sv === 'risky') counts.risky++;
                     else if (sv === 'borderline') counts.borderline++;
                 });
-                const badgeItems = [];
-                if (counts.critical > 0) badgeItems.push(`<span class="health-badge critical"><i class="fas fa-circle" style="font-size:6px;"></i> ${counts.critical} Критично</span>`);
-                if (counts.risky > 0) badgeItems.push(`<span class="health-badge risky"><i class="fas fa-circle" style="font-size:6px;"></i> ${counts.risky} Рисково</span>`);
-                if (counts.borderline > 0) badgeItems.push(`<span class="health-badge borderline"><i class="fas fa-circle" style="font-size:6px;"></i> ${counts.borderline} Гранично</span>`);
-                if (badgeItems.length > 0) {
-                    badgesEl.innerHTML = badgeItems.join('');
+                const badgeDefs = [
+                    { cls: 'critical', count: counts.critical, label: 'Критично' },
+                    { cls: 'risky',    count: counts.risky,    label: 'Рисково'  },
+                    { cls: 'borderline', count: counts.borderline, label: 'Гранично' }
+                ];
+                badgesEl.innerHTML = '';
+                badgeDefs.forEach(({ cls, count, label }) => {
+                    if (count <= 0) return;
+                    const badge = document.createElement('span');
+                    badge.className = 'health-badge ' + cls;
+                    const dot = document.createElement('i');
+                    dot.className = 'fas fa-circle badge-dot';
+                    badge.appendChild(dot);
+                    badge.appendChild(document.createTextNode(' ' + count + ' ' + label));
+                    badgesEl.appendChild(badge);
+                });
+                if (badgesEl.children.length > 0) {
                     badgesEl.style.display = 'flex';
                 }
             }
