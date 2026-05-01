@@ -1984,7 +1984,7 @@
             width: 300px;
             max-width: calc(100vw - 32px);
             box-shadow: 0 12px 44px rgba(0,0,0,0.22), 0 4px 12px rgba(13,148,136,0.18);
-            z-index: 950;
+            z-index: 1000;
             animation: bubbleIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
             border: 1.5px solid rgba(13,148,136,0.22);
             overflow: hidden;
@@ -9502,7 +9502,7 @@
             var h = new Date().getHours();
             // Morning (sleep) question: only relevant after 6 am — asking before
             // that makes no sense (the user may not have slept yet).
-            if (!rec.morningCheck && (!isToday || h >= 6)) {
+            if (!rec.morningCheck && (!isToday || h >= 5)) {
                 queue.push(function(next){ showMorningQuestion(true, recordKey, next); });
             }
             if (!rec.eveningCheck && (!isToday || h >= 20)) {
@@ -9558,9 +9558,11 @@
         // ── Retroactive entry (last 2 days) ─────────────────────────────────
         function checkRetroEntry() {
             if (!isGameEnabled()) return;
+            var allData = getGameData();
             for (var offset = 1; offset <= 2; offset++) {
                 var pastDate = new Date(); pastDate.setDate(pastDate.getDate() - offset);
                 var pKey = dateKey(pastDate);
+                if (!allData[pKey]) continue; // no real data for this day — skip (e.g. game was just activated)
                 var rec  = getRecord(pKey);
                 if (rec.missing) continue;
                 if (rec.morningCheck && rec.eveningCheck) continue;
@@ -9573,6 +9575,8 @@
                         ? 'Вчерашните въпроси не са попълнени. Искате ли да ги попълните сега?'
                         : 'Данните от ' + daysAgo + ' дни назад не са попълнени. Искате ли да ги въведете сега?';
                     setTimeout(function(){
+                        // Do not interrupt a question queue that is already in progress
+                        if (_queueDepth > 0) return;
                         showBubble(
                             msg,
                             YES_NO,
