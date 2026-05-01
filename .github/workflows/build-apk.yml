@@ -56,32 +56,48 @@ jobs:
       - name: Update Assetlinks and Sync
         if: env.IS_PROD == 'true'
         run: |
-          RAW_FINGERPRINT=$(keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" | cut -d' ' -f3)
-          
+          # Use sed for reliable extraction regardless of leading whitespace/tab variations
+          RAW_FINGERPRINT=$(keytool -list -v -keystore nutriplan.keystore -alias nutriplan -storepass "${{ env.STORE_PASS }}" | grep "SHA256:" | sed 's/.*SHA256: //' | tr -d '[:space:]')
+          echo "Extracted SHA-256 fingerprint: $RAW_FINGERPRINT"
+
+          # Validate: must be 32 uppercase hex pairs separated by colons
+          if [ -z "$RAW_FINGERPRINT" ]; then
+            echo "ERROR: Could not extract SHA-256 fingerprint from keystore" >&2
+            exit 1
+          fi
+          if ! echo "$RAW_FINGERPRINT" | grep -qE '^([0-9A-F]{2}:){31}[0-9A-F]{2}$'; then
+            echo "ERROR: Fingerprint does not match expected SHA-256 format: $RAW_FINGERPRINT" >&2
+            exit 1
+          fi
+
           node -e "
             const fs = require('fs');
-            const path = '.well-known/assetlinks.json';
-            if (!fs.existsSync(path)) {
-              fs.mkdirSync('.well-known', { recursive: true });
-              fs.writeFileSync(path, JSON.stringify([{
-                relation: ['delegate_permission/common.handle_all_urls'],
-                target: { namespace: 'android_app', package_name: 'com.aidiet.twa', sha256_cert_fingerprints: [] }
-              }], null, 2));
-            }
-            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
-            data[0].target.sha256_cert_fingerprints = ['$RAW_FINGERPRINT'];
-            fs.writeFileSync(path, JSON.stringify(data, null, 2));
-          "
-          
+            const filePath = '.well-known/assetlinks.json';
+            const data = [{
+              relation: ['delegate_permission/common.handle_all_urls'],
+              target: {
+                namespace: 'android_app',
+                package_name: 'com.biocode.nutriplan',
+                sha256_cert_fingerprints: [process.argv[1]]
+              }
+            }];
+            fs.mkdirSync('.well-known', { recursive: true });
+            fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
+          " "$RAW_FINGERPRINT"
+
+          echo "Updated assetlinks.json:"
+          cat .well-known/assetlinks.json
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .well-known/assetlinks.json
-          git commit -m "chore: update assetlinks.json [skip ci]" || echo "No changes"
-          
-          git stash -u
-          git pull --rebase origin main
-          git push origin main
-          git stash pop || echo "Nothing to return"
+          if git diff --cached --quiet; then
+            echo "assetlinks.json unchanged, skipping commit"
+          else
+            git commit -m "chore: update assetlinks.json with signing certificate fingerprint [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi
 
       - name: Build APK
         env:
