@@ -4032,7 +4032,6 @@
             }
             // Calorie target bar chart: bars grow upward, horizontal line = daily target
             function calTargetBarChart(perDayConsumed, perDayPlanned, surplusColor, deficitColor) {
-                var SCALE_PADDING_FACTOR = 1.05;  // 5% headroom above the highest consumed bar
                 var DEFAULT_SURPLUS_THRESHOLD = 200; // kcal: fallback threshold when no plan target exists
                 // LABEL_AREA: approx px occupied by the day-label + gap underneath each bar column.
                 // Update this if `.game-day-dots-cal` label font-size or gap changes.
@@ -4041,10 +4040,10 @@
                 var avgPlanned = planVals.length > 0
                     ? Math.round(planVals.reduce(function(a,b){return a+b;},0) / planVals.length)
                     : 2000;
-                var maxConsumed = Math.max.apply(null, perDayConsumed.map(function(v){return v||0;}).concat([0]));
-                // Scale so the target sits at exactly 50% bar height; expand if a day exceeds 2× target
-                var maxScale = Math.max(avgPlanned * 2, maxConsumed * SCALE_PADDING_FACTOR, 1);
-                var targetBarPx = Math.round(avgPlanned / maxScale * BAR_MAX_H);
+                // Fixed scale: avgPlanned maps to exactly 50% bar height.
+                // Deficit days stay below the line, surplus days rise above it.
+                var maxScale = Math.max(avgPlanned * 2, 1);
+                var targetBarPx = Math.round(BAR_MAX_H / 2);  // always exactly the midpoint
                 var targetLineBottom = LABEL_AREA + targetBarPx;
                 var cols = perDayConsumed.map(function(v, idx) {
                     var dow   = new Date(days[idx].key).getDay();
