@@ -2386,7 +2386,7 @@
         @keyframes gmConfall { to { transform: translateY(110vh) rotate(720deg); opacity:0; } }
         /* ── Meal check micro-burst ──────────────────────────────────────────── */
         .meal-check-ripple {
-            position: absolute;
+            position: fixed;
             width: 34px; height: 34px;
             border-radius: 50%;
             background: rgba(16,185,129,0.45);
@@ -8893,13 +8893,11 @@
         function _triggerMealCheckBurst(btn, card, isDone) {
             if (!isDone) return; // only on check, not uncheck
             var btnRect = btn.getBoundingClientRect();
-            var parentEl = card || btn.parentElement;
-            if (getComputedStyle(parentEl).position === 'static') parentEl.style.position = 'relative';
-            var cardRect = parentEl.getBoundingClientRect();
+            // Use fixed positioning to avoid touching the card's position style
             var ripple = document.createElement('div');
             ripple.className = 'meal-check-ripple';
-            ripple.style.cssText = 'left:' + (btnRect.left - cardRect.left) + 'px;top:' + (btnRect.top - cardRect.top) + 'px;';
-            parentEl.appendChild(ripple);
+            ripple.style.cssText = 'left:' + Math.round(btnRect.left) + 'px;top:' + Math.round(btnRect.top) + 'px;';
+            document.body.appendChild(ripple);
             setTimeout(function() { ripple.remove(); }, 600);
             // Floating "+10 т" label
             var fl = document.createElement('div');
@@ -8910,12 +8908,11 @@
             setTimeout(function() { fl.remove(); }, 1300);
         }
 
-        // ── Streak: consecutive days with ≥3 stars ────────────────────────────
+        // ── Streak: consecutive days with ≥3 stars (includes today if scored) ─
         function calcStreak() {
             var allData = getGameData();
             var streak = 0;
             var d = new Date();
-            d.setDate(d.getDate() - 1);
             for (var i = 0; i < 30; i++) {
                 var k = dateKey(d);
                 var r = allData[k];
