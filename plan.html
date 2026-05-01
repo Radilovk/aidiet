@@ -9532,11 +9532,19 @@
             var shownKey = 'gameOpenShown_' + today;
             if (localStorage.getItem(shownKey)) return;
             var queue = buildDayQueue(today);
-            // If nothing to show (e.g. too early for morning question), do NOT set
-            // the key — let the function try again on the next app open.
+            // If nothing to show (e.g. too early for morning question, or both checks
+            // already answered), do NOT set the key — let the function try again on
+            // the next app open (e.g. when the evening window opens at 20:00).
             if (!queue.length) return;
             setTimeout(function(){ runQueue(queue, function(){
-                localStorage.setItem(shownKey, '1');
+                // Only mark today as fully prompted once both morning and evening
+                // checks have been answered.  Without this guard the flag would be
+                // set after the morning-only queue, preventing the evening questions
+                // from being shown when the user re-opens the app after 20:00.
+                var updRec = getRecord(today);
+                if (updRec.morningCheck && updRec.eveningCheck) {
+                    localStorage.setItem(shownKey, '1');
+                }
                 setTimeout(function(){ showEncouragement(buildEncouragement()); }, 600);
             }); }, 1800);
         }
@@ -9818,6 +9826,9 @@
         // ── Time-based prompts ────────────────────────────────────────────────
         function checkTimePrompts() {
             if (!isGameEnabled()) return;
+            // Do not interrupt a queue that is already in progress (e.g. the
+            // on-open queue started by checkOpenAppPrompts).
+            if (_queueDepth > 0) return;
             var h = new Date().getHours(), today = getTodayKey();
             var rec = getTodayRecord();
             // Morning: show once per hour from 5–9 while unanswered
