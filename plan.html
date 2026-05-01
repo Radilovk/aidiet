@@ -8385,11 +8385,18 @@
         function isGameEnabled() { return localStorage.getItem(GAME_ENABLED_KEY) === 'true'; }
         function enableGame()    { localStorage.setItem(GAME_ENABLED_KEY, 'true'); }
 
+        var _gameDataCache = null; // in-memory cache to avoid repeated JSON.parse
         function getGameData() {
-            try { return JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}'); }
-            catch(e) { return {}; }
+            if (_gameDataCache) return _gameDataCache;
+            try { _gameDataCache = JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}'); }
+            catch(e) { _gameDataCache = {}; }
+            return _gameDataCache;
         }
-        function saveGameData(d) { localStorage.setItem(GAME_DATA_KEY, JSON.stringify(d)); }
+        function saveGameData(d) { _gameDataCache = d; localStorage.setItem(GAME_DATA_KEY, JSON.stringify(d)); }
+        // Invalidate cache when another tab or external code modifies the same key
+        window.addEventListener('storage', function(e) {
+            if (e.key === GAME_DATA_KEY) _gameDataCache = null;
+        });
 
         function emptyRecord(key) {
             return { date: key, meals: {}, extraMeals: [], freeMealRatings: {},
@@ -8412,11 +8419,13 @@
             el.classList.add('typing');
             var i = 0;
             function tick() {
+                // Guard against the element being removed from the DOM mid-animation
+                if (!document.contains(el)) { if (cb) cb(); return; }
                 if (i < text.length) {
                     el.textContent += text[i++];
-                    // Haptic: light 8ms buzz per character — truly in sync with each letter appearing.
-                    // Distinct from chat haptic (which is a double-tap on message arrival).
-                    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    // Haptic: light buzz every 3rd character to reduce battery drain and
+                    // avoid overwhelming the vibration motor on older Android devices.
+                    if (i % 3 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
                         navigator.vibrate(8);
                     }
                     setTimeout(tick, speed || 30);
@@ -8455,9 +8464,10 @@
         //   Water:        waterIntake = true → 10 pts
         //   Activity:     1→0, 2→5, 3→10 pts
         //   Balance:      1→0, 2→5, 3→10 pts
-        //   Cals:         no excess → 10 pts; excess ≤10% → 5 pts; >10% → 0 pts
+        //   Calories:     used only as a 5★ blocker (no separate pts awarded)
         //
-        // Denominator = (mealCount × 10) + 50 (the 5 wellness pts)
+        // Denominator = (mealCount × 10) + wellnessMax
+        //   wellnessMax = 40 for past days; grows progressively today (10 after morning check, +30 after evening check)
         // Stars: 100%→5, 80-99%→4, 55-79%→3, 30-54%→2, 1-29%→1, 0%→null
         function calcDayScore(rec) {
             if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0,
@@ -8475,8 +8485,8 @@
                 var isFree = (baseMealType === 'Свободно хранене');
                 if (isFree) {
                     // Free meal counts only if a photo was analyzed with rating >= FREE_MEAL_MIN_RATING
-                    // Look up rating using base type first, then full key
-                    var rating = freeMealRatings[baseMealType] != null ? freeMealRatings[baseMealType] : freeMealRatings[m];
+                    // Check the full key first (e.g. "Свободно хранене_2"), then fall back to base type
+                    var rating = freeMealRatings[m] != null ? freeMealRatings[m] : freeMealRatings[baseMealType];
                     if (rating != null) {
                         if (rating >= FREE_MEAL_MIN_RATING) { mealPts += 10; }
                         else             { incorrectMeals++; } // rating below threshold = incorrect meal
@@ -8533,10 +8543,10 @@
                     if (dayIsDone) calorieBalance = 'deficit';
                 }
             } else if (extraCalSum > 0 && (!planned || planned === 0)) {
-                // No target known: flag surplus if >200 kcal extra
+                // No target known: show surplus only when extra intake is meaningful (>50 kcal)
                 calorieDelta = extraCalSum;
                 if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
-                else                   { calorieBalance = 'surplus'; }
+                else if (extraCalSum > 50) { calorieBalance = 'surplus'; }
             }
 
             // ── Wellness points ─────────────────────────────────────────────
@@ -8546,13 +8556,20 @@
             var balancePts  = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
 
             var wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
-            var wellnessMax    = 40; // 4 × 10 pts (always in denominator once questionnaires exist)
+            // For past days use the full 40-pt denominator (missing wellness data lowers the score).
+            // For today, grow the denominator only as questionnaires are answered so the
+            // in-progress score fairly reflects completed activities.
+            var recDate = rec.date || getTodayKey();
+            var wellnessMax = isPastDayKey(recDate)
+                ? 40
+                : (rec.morningCheck !== null ? 10 : 0) + (rec.eveningCheck !== null ? 30 : 0);
 
             // ── 5-star blocker flags ────────────────────────────────────────
             var allMealsOk    = meals.length > 0 && meals.every(function(m) {
                 var baseMealType = m.replace(/_\d+$/, '');
                 if (baseMealType === 'Свободно хранене') {
-                    var r = freeMealRatings[baseMealType] != null ? freeMealRatings[baseMealType] : freeMealRatings[m];
+                    // Full key first, then fall back to base type
+                    var r = freeMealRatings[m] != null ? freeMealRatings[m] : freeMealRatings[baseMealType];
                     return r == null || r >= FREE_MEAL_MIN_RATING; // not rated = uncertain, don't block; rated low = blocks
                 }
                 return rec.meals[m] === true;
@@ -8568,7 +8585,8 @@
             var done     = meals.filter(function(m) {
                 var baseMealType = m.replace(/_\d+$/, '');
                 if (baseMealType === 'Свободно хранене') {
-                    var r = freeMealRatings[baseMealType] != null ? freeMealRatings[baseMealType] : (freeMealRatings[m] || 0);
+                    // Full key first, then fall back to base type
+                    var r = freeMealRatings[m] != null ? freeMealRatings[m] : (freeMealRatings[baseMealType] || 0);
                     return r >= FREE_MEAL_MIN_RATING;
                 }
                 return rec.meals[m] === true;
@@ -8752,6 +8770,8 @@
         }
 
         function _triggerStarBurst(card, starCount) {
+            // Remove any lingering overlays from rapid star gains before adding a new one
+            document.querySelectorAll('.star-burst-overlay').forEach(function(el) { el.remove(); });
             var overlay = document.createElement('div');
             overlay.className = 'star-burst-overlay';
             document.body.appendChild(overlay);
@@ -8821,7 +8841,7 @@
                 var calEl = card.querySelector('[data-meal-calories]');
                 if (calEl) { plannedCals += parseFloat(calEl.getAttribute('data-meal-calories')) || 0; }
             });
-            if (plannedCals > 0 && !rec.plannedCalories) {
+            if (plannedCals > 0 && (!rec.plannedCalories || (rec.plannedCalories > 0 && Math.abs(rec.plannedCalories - plannedCals) > rec.plannedCalories * 0.05))) {
                 rec.plannedCalories = Math.round(plannedCals);
                 mealsInitialized = true;
             }
@@ -8844,10 +8864,11 @@
                 var mealKey = seenMealTypes[mealType] === 1 ? mealType : mealType + '_' + seenMealTypes[mealType];
 
                 // Store per-meal calories for calorie-balance calculation
+                // Update only when the value changes to reflect plan regeneration
                 var calAttr = card.getAttribute('data-meal-calories');
                 if (calAttr) {
                     var calVal = Math.round(parseFloat(calAttr) || 0);
-                    if (calVal > 0 && !rec.mealCalories[mealKey]) {
+                    if (calVal > 0 && rec.mealCalories[mealKey] !== calVal) {
                         rec.mealCalories[mealKey] = calVal;
                         mealsInitialized = true;
                     }
@@ -9046,13 +9067,14 @@
         function logExtraFood(name, calories, suitabilityScore, mealContext) {
             if (!isGameEnabled()) return;
             var rec = getTodayRecord();
-            var isFreeMealReplacement = (mealContext === 'Свободно хранене');
+            // Recognize "Свободно хранене", "Свободно хранене_2", etc. as free meal slots
+            var isFreeMealReplacement = mealContext.replace(/_\d+$/, '') === 'Свободно хранене';
             var isJunk = (suitabilityScore != null && suitabilityScore <= 2);
             // Ensure freeMealRatings object exists
             if (!rec.freeMealRatings) rec.freeMealRatings = {};
 
             if (isFreeMealReplacement) {
-                // Store the suitability rating for the free meal slot
+                // Store the suitability rating for the exact free meal slot key
                 // Keep the best rating if multiple photos taken for the same slot
                 var newRating = suitabilityScore != null ? Math.round(suitabilityScore) : null;
                 if (newRating != null) {
@@ -9507,7 +9529,7 @@
                     engSum   += ds.engPct || 0;
                     scoreSum += ds.score  || 0;
                     count++;
-                } else if (key <= dateKey(today)) {
+                } else {
                     // Past or today with no data counts as 0% engagement
                     noDataDays++;
                     count++;
