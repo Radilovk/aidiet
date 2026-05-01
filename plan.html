@@ -2384,6 +2384,60 @@
             animation: gmConfall linear both;
         }
         @keyframes gmConfall { to { transform: translateY(110vh) rotate(720deg); opacity:0; } }
+        /* ── Meal check micro-burst ──────────────────────────────────────────── */
+        .meal-check-ripple {
+            position: fixed;
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: rgba(16,185,129,0.45);
+            pointer-events: none;
+            animation: mealRipple 0.55s ease-out forwards;
+            z-index: 10;
+        }
+        @keyframes mealRipple {
+            0%   { transform: scale(1);   opacity: 1; }
+            100% { transform: scale(2.8); opacity: 0; }
+        }
+        /* Floating +pts label after meal check */
+        .score-pts-float {
+            position: fixed;
+            font-weight: 800;
+            font-size: 0.88rem;
+            color: #10b981;
+            pointer-events: none;
+            z-index: 2010;
+            animation: ptsFloat 1.2s cubic-bezier(0.22,1,0.36,1) forwards;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.18);
+            white-space: nowrap;
+        }
+        @keyframes ptsFloat {
+            0%   { opacity: 0;  transform: translateY(0)    scale(0.7); }
+            18%  { opacity: 1;  transform: translateY(-6px)  scale(1.15); }
+            100% { opacity: 0;  transform: translateY(-54px) scale(0.9); }
+        }
+        /* Progress bar in daily score card */
+        .daily-score-progress { width:100%; height:4px; background:rgba(255,255,255,0.22); border-radius:99px; margin-top:8px; overflow:hidden; }
+        .daily-score-progress-fill { height:100%; background:linear-gradient(90deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.55) 100%); border-radius:99px; transition:width 0.9s cubic-bezier(0.34,1.56,0.64,1); }
+        /* Streak badge */
+        .daily-streak-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(251,191,36,0.18); border: 1.5px solid rgba(251,191,36,0.4);
+            border-radius: 99px; padding: 2px 10px;
+            font-size: 0.75rem; font-weight: 700; color: #fbbf24; margin-top: 5px;
+            animation: streakPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes streakPop { from { transform:scale(0.5); opacity:0; } to { transform:scale(1); opacity:1; } }
+        /* Encourage toast accent variants */
+        .game-encourage-toast.enc-perfect { border-left: 4px solid #fbbf24; }
+        .game-encourage-toast.enc-good    { border-left: 4px solid #10b981; }
+        .game-encourage-toast.enc-warn    { border-left: 4px solid #6366f1; }
+        /* Screen-edge glow for 5★ */
+        .star5-screen-glow {
+            position: fixed; inset: 0; pointer-events: none; z-index: 1990;
+            background: radial-gradient(ellipse at center, rgba(251,191,36,0.18) 0%, transparent 70%);
+            animation: screenGlow5 1.9s ease-out forwards;
+        }
+        @keyframes screenGlow5 { 0%{opacity:0} 18%{opacity:1} 100%{opacity:0} }
         /* ── End Gamification UI ────────────────────────────────────────────── */
 
         /* Skip link styling */
@@ -8454,16 +8508,21 @@
 
         // ── Confetti ──────────────────────────────────────────────────────────
         function makeConfetti(container, count) {
-            var colors = ['#0D9488','#fbbf24','#f87171','#818cf8','#34d399','#fb923c'];
+            var colors = ['#0D9488','#fbbf24','#f87171','#818cf8','#34d399','#fb923c','#ec4899','#06b6d4','#a3e635'];
             for (var i = 0; i < count; i++) {
                 var s = document.createElement('span');
                 var c = colors[Math.floor(Math.random()*colors.length)];
-                var sz = (5 + Math.random()*7);
+                var sz = (5 + Math.random()*9);
+                var shapeRoll = Math.random();
+                var borderRadius = shapeRoll > 0.66 ? '50%' : shapeRoll > 0.33 ? '2px' : '0 50% 50% 50%';
+                var rotate = Math.round(Math.random() * 360);
                 s.style.cssText = 'left:' + (Math.random()*100) + '%;background:' + c +
-                    ';width:' + sz + 'px;height:' + sz + 'px' +
-                    ';border-radius:' + (Math.random()>0.5?'50%':'2px') +
-                    ';animation-duration:' + (1.4+Math.random()*2.2) + 's' +
-                    ';animation-delay:' + (Math.random()*0.9) + 's';
+                    ';width:' + sz + 'px;height:' + Math.round(sz * (0.5 + Math.random())) + 'px' +
+                    ';border-radius:' + borderRadius +
+                    ';transform:rotate(' + rotate + 'deg)' +
+                    ';animation-duration:' + (1.2+Math.random()*2.4) + 's' +
+                    ';animation-delay:' + (Math.random()*0.8) + 's' +
+                    ';opacity:' + (0.75 + Math.random()*0.25);
                 container.appendChild(s);
             }
         }
@@ -8734,12 +8793,26 @@
             var warningsBadge = warningsList.length > 0
                 ? '<div class="daily-warnings">' + warningsList.map(function(w) { return '<div class="daily-warning-item">' + w + '</div>'; }).join('') + '</div>'
                 : '';
+            var progPct = Math.max(0, Math.min(100, ds.engPct || 0));
+            var streak = (dayKey === getTodayKey()) ? calcStreak() : 0;
+            var streakBadge = streak >= 2 ? '<div class="daily-streak-badge">\uD83D\uDD25 ' + streak + ' \u0434\u043D\u0438 \u043F\u043E\u0440\u0435\u0434</div>' : '';
             card.innerHTML = '<div class="daily-score-info">' +
                     '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
                     (showLabel ? '<div class="daily-score-value">' + esc(ds.label) + '</div>' : '') +
                     '<div class="daily-score-stars">' + ds.stars + '</div>' +
                     warningsBadge +
+                    '<div class="daily-score-progress"><div class="daily-score-progress-fill" style="width:0%"></div></div>' +
+                    streakBadge +
                 '</div>';
+            // Animate progress bar after render
+            (function(pct) {
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        var fill = card.querySelector('.daily-score-progress-fill');
+                        if (fill) fill.style.width = pct + '%';
+                    });
+                });
+            })(progPct);
 
             // ── Star celebration animation ──────────────────────────────────
             var newScore = ds.score || 0;
@@ -8771,9 +8844,13 @@
             // Flying stars burst overlay
             _triggerStarBurst(card, starCount);
 
-            // Level 5: show flash banner
+            // Level 5: show screen glow + flash banner
             if (starCount === 5) {
                 setTimeout(function() {
+                    var glow = document.createElement('div');
+                    glow.className = 'star5-screen-glow';
+                    document.body.appendChild(glow);
+                    setTimeout(function() { glow.remove(); }, 2000);
                     var flash = document.createElement('div');
                     flash.className = 'excellent-day-flash';
                     flash.innerHTML = '<div style="font-size:2rem;margin-bottom:6px">⭐⭐⭐⭐⭐</div>' +
@@ -8799,8 +8876,10 @@
 
             // Number of flying elements and sizes scale with star count
             var count = [0, 6, 10, 16, 24, 36][starCount] || 8;
-            var emojis = ['⭐','✨','🌟','💛','⚡'];
-            if (starCount >= 4) emojis.push('🏆','🎉','💫');
+            var emojis = ['⭐','✨','🌟','💛','⚡','🎯'];
+            if (starCount >= 3) emojis.push('🎊','💪');
+            if (starCount >= 4) emojis.push('🏆','🎉','💫','🔥');
+            if (starCount === 5) emojis.push('❤️','🌈','👑','🥇');
 
             for (var i = 0; i < count; i++) {
                 (function(idx) {
@@ -8827,6 +8906,40 @@
             // Remove overlay after all animations finish
             var totalDuration = count * (starCount >= 4 ? 35 : 55) + 1600;
             setTimeout(function() { overlay.remove(); }, totalDuration);
+        }
+
+        // ── Meal check micro-burst (ripple + floating pts) ────────────────────
+        function _triggerMealCheckBurst(btn, card, isDone) {
+            if (!isDone) return; // only on check, not uncheck
+            var btnRect = btn.getBoundingClientRect();
+            // Use fixed positioning to avoid touching the card's position style
+            var ripple = document.createElement('div');
+            ripple.className = 'meal-check-ripple';
+            ripple.style.cssText = 'left:' + Math.round(btnRect.left) + 'px;top:' + Math.round(btnRect.top) + 'px;';
+            document.body.appendChild(ripple);
+            setTimeout(function() { ripple.remove(); }, 600);
+            // Floating "+10 т" label
+            var fl = document.createElement('div');
+            fl.className = 'score-pts-float';
+            fl.textContent = '+10 т';
+            fl.style.cssText = 'left:' + Math.round(btnRect.left + btnRect.width / 2 - 20) + 'px;top:' + Math.round(btnRect.top - 2) + 'px;';
+            document.body.appendChild(fl);
+            setTimeout(function() { fl.remove(); }, 1300);
+        }
+
+        // ── Streak: consecutive days with ≥3 stars (includes today if scored) ─
+        function calcStreak() {
+            var allData = getGameData();
+            var streak = 0;
+            var d = new Date();
+            for (var i = 0; i < 30; i++) {
+                var k = dateKey(d);
+                var r = allData[k];
+                if (!r || !r.dailyScore || (r.dailyScore.score || 0) < 3) break;
+                streak++;
+                d.setDate(d.getDate() - 1);
+            }
+            return streak;
         }
 
         // ── Meal checkmarks ───────────────────────────────────────────────────
@@ -8949,6 +9062,7 @@
                     }
                     saveRecord(dayKey, r);
                     checkBtn.classList.toggle('done', r.meals[mealKey]);
+                    _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey]);
                     recalcAndShowScore(dayKey);
                 });
                 card.appendChild(checkBtn);
@@ -9036,6 +9150,7 @@
                             arr[cardIdx].consumed = (arr[cardIdx].consumed === false);
                             localStorage.setItem('addedMeals_' + addedDateKey, JSON.stringify(arr));
                             btn.classList.toggle('done', arr[cardIdx].consumed !== false);
+                            _triggerMealCheckBurst(btn, btn.closest('.meal-card') || btn.parentElement, arr[cardIdx].consumed !== false);
 
                             // Sync the consumed state to the extraMeals game record.
                             var updMeal = arr[cardIdx];
@@ -9431,22 +9546,24 @@
         function buildEncouragement(recordKey) {
             var rec = getRecord(recordKey || getTodayKey());
             var ds  = rec.dailyScore || calcDayScore(rec);
-            if (ds.junkCount > 0) return ENC.junk;
-            if (rec.morningCheck && !rec.morningCheck.sleptWell) return ENC.sleep;
-            if (rec.eveningCheck && !rec.eveningCheck.waterIntake) return ENC.water;
-            if (rec.eveningCheck && rec.eveningCheck.activityLevel === 1) return ENC.activity;
-            if (ds.score === 5 && !ds.junkCount) return ENC.perfect;
-            if (ds.score >= 4) return ENC.good;
-            return ENC.def;
+            if (ds.junkCount > 0) return { text: ENC.junk, type: 'warn' };
+            if (rec.morningCheck && !rec.morningCheck.sleptWell) return { text: ENC.sleep, type: 'warn' };
+            if (rec.eveningCheck && !rec.eveningCheck.waterIntake) return { text: ENC.water, type: 'warn' };
+            if (rec.eveningCheck && rec.eveningCheck.activityLevel === 1) return { text: ENC.activity, type: 'warn' };
+            if (ds.score === 5 && !ds.junkCount) return { text: ENC.perfect, type: 'perfect' };
+            if (ds.score >= 4) return { text: ENC.good, type: 'good' };
+            return { text: ENC.def, type: 'good' };
         }
-        function showEncouragement(text) {
+        function showEncouragement(textOrObj) {
+            var text = (textOrObj && typeof textOrObj === 'object') ? textOrObj.text : textOrObj;
+            var type = (textOrObj && typeof textOrObj === 'object') ? (textOrObj.type || '') : '';
             var t = document.getElementById('gameEncourageToast');
             if (!t) {
                 t = document.createElement('div');
                 t.id = 'gameEncourageToast';
-                t.className = 'game-encourage-toast';
                 document.body.appendChild(t);
             }
+            t.className = 'game-encourage-toast' + (type ? ' enc-' + type : '');
             t.innerHTML = text;
             requestAnimationFrame(function(){
                 requestAnimationFrame(function(){
