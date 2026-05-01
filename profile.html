@@ -673,13 +673,17 @@
             min-height: 4px;
             transition: height 0.5s ease;
         }
-        /* Bidirectional bar chart for calorie balance (surplus up / deficit down) */
-        .game-day-dots-bidir { display:flex; gap:3px; margin-top:6px; height:52px; }
-        .game-day-col-bidir  { flex:1; display:flex; flex-direction:column; align-items:center; min-width:0; }
-        .game-day-surplus-zone { height:20px; display:flex; flex-direction:column-reverse; align-items:center; width:100%; }
-        .game-day-deficit-zone { height:20px; display:flex; flex-direction:column; align-items:center; width:100%; }
-        .game-day-bar-up   { width:100%; max-width:20px; border-radius:3px 3px 0 0; }
-        .game-day-bar-down { width:100%; max-width:20px; border-radius:0 0 3px 3px; }
+        /* Calorie target bar chart — bars grow upward, horizontal line = daily target */
+        .game-day-dots-cal {
+            display:flex; gap:3px; margin-top:6px; height:52px;
+            position:relative; align-items:flex-end;
+        }
+        .game-cal-target-line {
+            position:absolute; left:0; right:0; height:2px;
+            background:rgba(107,114,128,0.5);
+            border-radius:999px; pointer-events:none; z-index:1;
+        }
+        [data-theme="dark"] .game-cal-target-line { background:rgba(200,200,200,0.28); }
         /* Correlation insights */
         .game-insight-card {
             background: rgba(13,148,136,0.06);
@@ -861,11 +865,6 @@
         }
         /* Mini bar height animation */
         .game-day-dot {
-            transition: height 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-        }
-        /* Bidirectional bar height animation */
-        .game-day-bar-up,
-        .game-day-bar-down {
             transition: height 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         }
         /* Ring wrap hover lift */
@@ -2229,7 +2228,7 @@
                                 el.style.width = el.getAttribute('data-ga-bar') + '%';
                             }, 60 + i * 60);
                         });
-                        // Animate mini bar and bidirectional bar heights (height 0 → target px)
+                        // Animate mini bar heights (height 0 → target px)
                         function animateBarHeight(selector, baseDelay) {
                             details.querySelectorAll(selector).forEach(function(el, i) {
                                 el.style.height = '0px';
@@ -2239,7 +2238,6 @@
                             });
                         }
                         animateBarHeight('[data-ga-bar-h]', 100);
-                        animateBarHeight('[data-ga-bidir-h]', 100);
                     });
                 });
             }
@@ -3784,6 +3782,19 @@
             });
             var netCalBalance = calBalanceByDay.reduce(function(s,v){return s+(v||0);},0);
 
+            // Actual consumed calories per day (for target bar chart)
+            var calConsumedByDay = days.map(function(d){
+                if (!d.rec) return null;
+                var ds = calcDayScore(d.rec);
+                var planned = d.rec.plannedCalories || 0;
+                if (planned > 0) return Math.max(0, planned + ds.calorieDelta);
+                return ds.calorieDelta > 0 ? ds.calorieDelta : null;
+            });
+            // Planned (target) calories per day
+            var calPlannedByDay = days.map(function(d){
+                return d.rec ? (d.rec.plannedCalories || null) : null;
+            });
+
             // Incorrect meal count (free meals rated 0-3) for weekly health impact
             var incorrectMealsCount7 = 0;
             days.forEach(function(d){
@@ -3947,7 +3958,7 @@
                 engagement: { title:'Ангажираност към плана',
                     text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни/неправилни храни (20 т.)\n\nВсяко неправилно свободно хранене (рейтинг 0-3/5) намалява точките.\nСедмичният % е средна стойност (дни без данни = 0%).\nЦел: 80%+' },
                 calories: { title:'Калориен баланс',
-                    text:'Показва нетния калориен баланс спрямо плана за последните дни.\n\nЛенти НАГОРЕ (оранжево/червено) — излишък: приетите калории надвишават плана.\nЛенти НАДОЛУ (синьо) — дефицит: приетите калории са под плана.\n\n0 kcal — балансиран ден\n>0 kcal — излишък\n<0 kcal — дефицит\n\nДефицитът се регистрира само когато са отбелязани хранения И е попълнен поне един въпросник (сутрешен или вечерен).\nСвободните хранения с рейтинг 0-3 се отчитат като "Неправилно хранене" и допълнително влошават здравния индекс.' },
+                    text:'Показва приетите калории спрямо дневния ви таргет за последните дни.\n\nВизуализация:\n• Хоризонталната линия = заложен калориен таргет\n• Лента достигаща линията = балансиран ден\n• Лента НАД линията (оранжево/червено) = излишък от калории\n• Лента ПОД линията (синьо) = калориен дефицит\n\nДефицитът се регистрира само когато са отбелязани хранения И е попълнен поне един въпросник (сутрешен или вечерен).\nСвободните хранения с рейтинг 0-3 се отчитат като "Неправилно хранене" и допълнително влошават здравния индекс.' },
                 stress: { title:'Емоционален баланс',
                     text:'Изчислява се от вечерния въпрос "Емоционален баланс".\n\n• Баланс Отлично → 100%\n• Баланс Добре → 50%\n• Баланс Слабо → 0%\n\nПо-висок % = по-добре.\nЦел: 70%+\n\nВисок емоционален баланс означава нисък стрес и по-добро самочувствие.' },
                 sleep: { title:'Качество на съня',
@@ -4019,6 +4030,39 @@
                 });
                 return '<div class="game-day-dots-bidir">'+ cols.join('') +'</div>';
             }
+            // Calorie target bar chart: bars grow upward, horizontal line = daily target
+            function calTargetBarChart(perDayConsumed, perDayPlanned, surplusColor, deficitColor) {
+                var SCALE_PADDING_FACTOR = 1.05;  // 5% headroom above the highest consumed bar
+                var DEFAULT_SURPLUS_THRESHOLD = 200; // kcal: fallback threshold when no plan target exists
+                // LABEL_AREA: approx px occupied by the day-label + gap underneath each bar column.
+                // Update this if `.game-day-dots-cal` label font-size or gap changes.
+                var LABEL_AREA = 11;
+                var planVals = perDayPlanned.filter(function(v){ return v != null && v > 0; });
+                var avgPlanned = planVals.length > 0
+                    ? Math.round(planVals.reduce(function(a,b){return a+b;},0) / planVals.length)
+                    : 2000;
+                var maxConsumed = Math.max.apply(null, perDayConsumed.map(function(v){return v||0;}).concat([0]));
+                // Scale so the target sits at exactly 50% bar height; expand if a day exceeds 2× target
+                var maxScale = Math.max(avgPlanned * 2, maxConsumed * SCALE_PADDING_FACTOR, 1);
+                var targetBarPx = Math.round(avgPlanned / maxScale * BAR_MAX_H);
+                var targetLineBottom = LABEL_AREA + targetBarPx;
+                var cols = perDayConsumed.map(function(v, idx) {
+                    var dow   = new Date(days[idx].key).getDay();
+                    var label = DAY_NAMES[(dow+6)%7];
+                    if (v == null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.2)', label);
+                    var consumed = v;
+                    var dayPlanned = perDayPlanned[idx] || avgPlanned;
+                    var isSurplus = dayPlanned > 0 ? consumed >= dayPlanned : consumed > DEFAULT_SURPLUS_THRESHOLD;
+                    var color = isSurplus ? surplusColor : deficitColor;
+                    var pct2 = maxScale > 0 ? Math.min(100, consumed / maxScale * 100) : 0;
+                    var h = consumed > 0 ? Math.max(BAR_MIN_H, Math.round(pct2 * BAR_MAX_H / 100)) : BAR_MIN_H;
+                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
+                });
+                return '<div class="game-day-dots-cal">' +
+                    '<div class="game-cal-target-line" style="bottom:'+targetLineBottom+'px"></div>' +
+                    cols.join('') +
+                '</div>';
+            }
             // SVG ring
             function ringChart(pct, color, r) {
                 r = r||26; var circ=2*Math.PI*r;
@@ -4081,7 +4125,6 @@
                 pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
             '</div>';
 
-            var calAbsMax = Math.max.apply(null, calBalanceByDay.map(function(v){ return v===null?0:Math.abs(v); }).concat([700]));
             var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });
             var calBalanceLabel;
             if (netCalBalance === 0 && !hasDeficit) {
@@ -4096,7 +4139,7 @@
             html += '<div class="game-index-row" data-explain="calories">' +
                 '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(netCalBalance>0?'+':'')+netCalBalance+' kcal</span></div>' +
                 '<div class="game-index-hint">'+calBalanceLabel+' · Нетен калориен баланс · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
-                biDirBarChart(calBalanceByDay, calAbsMax, netCalBalance>700?'#ef4444':'#f59e0b', '#3b82f6') +
+                calTargetBarChart(calConsumedByDay, calPlannedByDay, netCalBalance>700?'#ef4444':'#f59e0b', '#3b82f6') +
             '</div>';
 
             if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +
