@@ -2153,19 +2153,19 @@
             display: none;
             background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
             border-radius: 18px;
-            padding: 14px 18px;
+            padding: 16px 20px;
             margin-bottom: 14px;
             color: white;
+            flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 4px;
             box-shadow: 0 6px 24px rgba(13,148,136,0.3);
             cursor: pointer;
         }
-        .daily-score-icon { font-size: 2rem; line-height: 1; }
-        .daily-score-info { flex: 1; }
-        .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; }
-        .daily-score-value { font-size: 1.2rem; font-weight: 700; text-align: center; }
-        .daily-score-stars { font-size: 0.95rem; margin-top: 2px; display: flex; justify-content: center; }
+        .daily-score-info { width: 100%; text-align: center; }
+        .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; text-align: center; letter-spacing: 0.03em; }
+        .daily-score-value { font-size: 1.35rem; font-weight: 700; text-align: center; margin-top: 4px; }
+        .daily-score-stars { font-size: 1.05rem; margin-top: 4px; display: flex; justify-content: center; }
         .daily-warnings { margin-top: 5px; display: flex; flex-direction: column; gap: 3px; }
         .daily-warning-item {
             font-size: 0.72rem;
@@ -8567,8 +8567,7 @@
                 card.style.display = 'flex';
                 card.style.background = 'linear-gradient(135deg, rgba(107,114,128,0.18) 0%, rgba(75,85,99,0.22) 100%)';
                 card.style.boxShadow = 'none';
-                card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-calendar-xmark" style="color:#9ca3af"></i></div>' +
-                    '<div class="daily-score-info">' +
+                card.innerHTML = '<div class="daily-score-info">' +
                         '<div class="daily-score-label" style="opacity:0.7">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
                         '<div class="daily-score-value" style="color:var(--text-gray)">\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u0434\u0430\u043D\u043D\u0438</div>' +
                         '<div class="daily-score-stars" style="font-size:0.75rem;color:var(--text-gray);opacity:0.72">\u041D\u0435 \u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442</div>' +
@@ -8613,8 +8612,7 @@
             var warningsBadge = warningsList.length > 0
                 ? '<div class="daily-warnings">' + warningsList.map(function(w) { return '<div class="daily-warning-item">' + w + '</div>'; }).join('') + '</div>'
                 : '';
-            card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-chart-bar" style="color:rgba(255,255,255,0.9)"></i></div>' +
-                '<div class="daily-score-info">' +
+            card.innerHTML = '<div class="daily-score-info">' +
                     '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
                     (showLabel ? '<div class="daily-score-value">' + esc(ds.label) + '</div>' : '') +
                     '<div class="daily-score-stars">' + ds.stars + '</div>' +
