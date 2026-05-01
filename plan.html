@@ -8876,10 +8876,7 @@
 
             // Number of flying elements and sizes scale with star count
             var count = [0, 6, 10, 16, 24, 36][starCount] || 8;
-            var emojis = ['⭐','✨','🌟','💛','⚡','🎯'];
-            if (starCount >= 3) emojis.push('🎊','💪');
-            if (starCount >= 4) emojis.push('🏆','🎉','💫','🔥');
-            if (starCount === 5) emojis.push('❤️','🌈','👑','🥇');
+            var emojis = ['⭐','✨','🌟','💛','💫'];
 
             for (var i = 0; i < count; i++) {
                 (function(idx) {
@@ -9825,7 +9822,6 @@
             enableGame();
             setTimeout(function(){
                 enhanceMealCards();
-                recalcAndShowScore();
                 checkOpenAppPrompts();
                 showEncouragement(buildEncouragement());
                 startPromptInterval();
@@ -9838,7 +9834,6 @@
             if (!isGameEnabled()) return;
             setTimeout(function(){
                 enhanceMealCards();
-                recalcAndShowScore();
                 checkOpenAppPrompts();
                 checkRetroEntry();
                 startPromptInterval();
