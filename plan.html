@@ -2164,7 +2164,7 @@
         .daily-score-icon { font-size: 2rem; line-height: 1; }
         .daily-score-info { flex: 1; }
         .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; }
-        .daily-score-value { font-size: 1.2rem; font-weight: 700; }
+        .daily-score-value { font-size: 1.2rem; font-weight: 700; text-align: center; }
         .daily-score-stars { font-size: 0.95rem; margin-top: 2px; display: flex; justify-content: center; }
         .daily-warnings { margin-top: 5px; display: flex; flex-direction: column; gap: 3px; }
         .daily-warning-item {
@@ -5140,6 +5140,14 @@
             }
             if (typeof window._gameEnhanceMealCards === 'function') {
                 setTimeout(window._gameEnhanceMealCards, 0);
+            }
+            // Auto-show unanswered questions when navigating to a past day (up to 2 days back)
+            if (typeof window._gameCheckPastDayQuestions === 'function') {
+                var viewDateKey = typeof window.gameModule !== 'undefined' && typeof window.gameModule.getCurrentViewDayKey === 'function'
+                    ? window.gameModule.getCurrentViewDayKey() : null;
+                if (viewDateKey) {
+                    window._gameCheckPastDayQuestions(viewDateKey);
+                }
             }
 
             // breakfast-note is only shown when the client skips breakfast (already appended above)
@@ -8575,8 +8583,11 @@
             card.style.background = '';
             card.style.boxShadow = '';
             var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(s){return s;};
-            // Show score label whenever a score has been calculated
-            var showLabel = ds.score !== null;
+            // Show score label only after the day is complete:
+            // — past day: always show
+            // — today: only after the evening check is answered (or after midnight the score becomes final)
+            var isViewingToday = (dayKey === getTodayKey());
+            var showLabel = ds.score !== null && (!isViewingToday || rec.eveningCheck !== null);
             // Build warnings list
             var extraCals = (rec.extraMeals || []).reduce(function(s,em) {
                 return em.isFreeMealReplacement ? s : s + (em.calories || 0);
@@ -9112,10 +9123,10 @@
             }); }, 1800);
         }
 
-        // ── Retroactive entry (last 3 days) ─────────────────────────────────
+        // ── Retroactive entry (last 2 days) ─────────────────────────────────
         function checkRetroEntry() {
             if (!isGameEnabled()) return;
-            for (var offset = 1; offset <= 3; offset++) {
+            for (var offset = 1; offset <= 2; offset++) {
                 var pastDate = new Date(); pastDate.setDate(pastDate.getDate() - offset);
                 var pKey = dateKey(pastDate);
                 var rec  = getRecord(pKey);
@@ -9389,13 +9400,21 @@
             if (!isGameEnabled()) return;
             var h = new Date().getHours(), today = getTodayKey();
             var rec = getTodayRecord();
-            if (h === 5 && !rec.morningCheck) {
-                var sm = localStorage.getItem('gameMorningShown_'+today);
-                if (!sm) { localStorage.setItem('gameMorningShown_'+today,'1'); showMorningQuestion(false,today,null); }
+            // Morning: show each hour from 5–9 while unanswered
+            if (h >= 5 && h <= 9 && !rec.morningCheck) {
+                var smKey = 'gameMorningShownH_' + today + '_' + h;
+                if (!localStorage.getItem(smKey)) {
+                    localStorage.setItem(smKey, '1');
+                    showMorningQuestion(false, today, null);
+                }
             }
-            if (h === 20 && !rec.eveningCheck) {
-                var se = localStorage.getItem('gameEveningShown_'+today);
-                if (!se) { localStorage.setItem('gameEveningShown_'+today,'1'); showEveningFlow(false,today,null); }
+            // Evening: show each hour from 20–23 while unanswered
+            if (h >= 20 && h <= 23 && !rec.eveningCheck) {
+                var seKey = 'gameEveningShownH_' + today + '_' + h;
+                if (!localStorage.getItem(seKey)) {
+                    localStorage.setItem(seKey, '1');
+                    showEveningFlow(false, today, null);
+                }
             }
         }
 
@@ -9462,6 +9481,23 @@
         window._gameEnhanceMealCards = enhanceMealCards;
         window._gameShowMorning = function(f){ showMorningQuestion(f, getTodayKey(), null); };
         window._gameShowEvening = function(f){ showEveningFlow(f, getTodayKey(), null); };
+
+        // Called by renderDay when user navigates to a past day (up to 2 days back).
+        // Automatically asks any unanswered gamification questions for that day.
+        window._gameCheckPastDayQuestions = function(dayKey) {
+            if (!isGameEnabled()) return;
+            var today = getTodayKey();
+            if (!dayKey || dayKey >= today) return; // only past days
+            // Limit to 2 days back
+            var todayDate = new Date(today + 'T00:00:00');
+            var limit = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - 2);
+            var viewDate = new Date(dayKey + 'T00:00:00');
+            if (viewDate < limit) return;
+            var q = buildDayQueue(dayKey);
+            if (q.length) {
+                setTimeout(function() { runQueue(q); }, 800);
+            }
+        };
     })();
     // ═══════════════════════════════════════════════════════════════════════════
     // END GAMIFICATION MODULE
