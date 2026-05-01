@@ -8918,18 +8918,21 @@
                 if (!syncList.length) return;
                 var syncRec = getRecord(addedDateKey);
                 if (!syncRec.extraMeals || !syncRec.extraMeals.length) return;
+                // Build a planId → extraMeals index map for O(1) lookup.
+                var emByPlanId = {};
+                syncRec.extraMeals.forEach(function(em, i) {
+                    if (em.planId) emByPlanId[em.planId] = i;
+                });
                 var changed = false;
                 syncList.forEach(function(am) {
                     if (!am.planId) return;
-                    syncRec.extraMeals.forEach(function(em) {
-                        if (em.planId === am.planId) {
-                            var shouldCount = (am.consumed !== false);
-                            if (em.countCalories !== shouldCount) {
-                                em.countCalories = shouldCount;
-                                changed = true;
-                            }
-                        }
-                    });
+                    var emIdx = emByPlanId[am.planId];
+                    if (emIdx === undefined) return;
+                    var shouldCount = (am.consumed !== false);
+                    if (syncRec.extraMeals[emIdx].countCalories !== shouldCount) {
+                        syncRec.extraMeals[emIdx].countCalories = shouldCount;
+                        changed = true;
+                    }
                 });
                 if (changed) {
                     saveRecord(addedDateKey, syncRec);
