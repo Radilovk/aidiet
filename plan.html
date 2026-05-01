@@ -8911,7 +8911,7 @@
                         var arr = [];
                         try { arr = JSON.parse(localStorage.getItem('addedMeals_' + addedDateKey) || '[]'); } catch(e) {}
                         if (arr[cardIdx]) {
-                            arr[cardIdx].consumed = arr[cardIdx].consumed === false ? true : false;
+                            arr[cardIdx].consumed = (arr[cardIdx].consumed === false);
                             localStorage.setItem('addedMeals_' + addedDateKey, JSON.stringify(arr));
                             btn.classList.toggle('done', arr[cardIdx].consumed !== false);
                         }
