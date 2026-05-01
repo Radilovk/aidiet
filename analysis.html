@@ -1485,6 +1485,15 @@
         .health-badge.risky    { color: #f97316; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.2); }
         .health-badge.borderline { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
 
+        .health-score-description {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.5;
+            text-align: center;
+            max-width: 260px;
+            margin-top: 10px;
+        }
+
         /* --- BOTTOM NAVIGATION --- */
         .bottom-nav {
             position: fixed;
@@ -1668,7 +1677,7 @@
     <header class="analysis-header">
         <a href="plan.html" class="back-btn" aria-label="Назад"><i class="fas fa-arrow-left"></i></a>
         <h1>Здравен Анализ</h1>
-        <div class="header-spacer" aria-hidden="true"></div>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
     </header>
 
     <!-- Loading Screen -->
@@ -1702,7 +1711,7 @@
                             </div>
                         </div>
                         <div class="score-card-title">Здравен Статус</div>
-                        <div class="score-card-subtitle">Текущо състояние</div>
+                        <div class="score-card-subtitle">С 10% занижение за по-консервативна оценка</div>
                     </div>
                     <div class="single-score-container">
                         <!-- Circular Health Widget with Silhouette -->
@@ -1742,6 +1751,10 @@
                         <!-- Score display -->
                         <div id="healthScoreValue" class="gauge-score-value" style="color: #0D9488;">--</div>
                         <div id="healthScoreLabel" class="gauge-score-label" style="color: #0D9488;"></div>
+                        <!-- AI-provided description (shown when available) -->
+                        <p id="healthScoreDescription" class="health-score-description" style="display:none;"></p>
+                        <!-- Problem severity count badges -->
+                        <div id="healthStatusBadges" class="health-status-badges" style="display:none;"></div>
                     </div>
                 </div>
             </div>
@@ -2113,6 +2126,33 @@
             document.getElementById('healthScoreLabel').style.color = gaugeColor;
             document.getElementById('healthGaugeTitle').textContent = 'Здравен статус: ' + healthScore + '%';
             document.getElementById('healthGaugeSvg').setAttribute('aria-label', 'Здравен статус: ' + healthScore + '% - ' + healthLabel);
+
+            // Show AI-provided description if available
+            const descEl = document.getElementById('healthScoreDescription');
+            if (descEl && analysis && analysis.currentHealthStatus && analysis.currentHealthStatus.description) {
+                descEl.textContent = analysis.currentHealthStatus.description;
+                descEl.style.display = 'block';
+            }
+
+            // Build problem severity count badges
+            const badgesEl = document.getElementById('healthStatusBadges');
+            if (badgesEl && problems && problems.length > 0) {
+                const counts = { critical: 0, risky: 0, borderline: 0 };
+                problems.forEach(p => {
+                    const sv = (p.severity || '').toLowerCase();
+                    if (sv === 'critical') counts.critical++;
+                    else if (sv === 'risky') counts.risky++;
+                    else if (sv === 'borderline') counts.borderline++;
+                });
+                const badgeItems = [];
+                if (counts.critical > 0) badgeItems.push(`<span class="health-badge critical"><i class="fas fa-circle" style="font-size:6px;"></i> ${counts.critical} Критично</span>`);
+                if (counts.risky > 0) badgeItems.push(`<span class="health-badge risky"><i class="fas fa-circle" style="font-size:6px;"></i> ${counts.risky} Рисково</span>`);
+                if (counts.borderline > 0) badgeItems.push(`<span class="health-badge borderline"><i class="fas fa-circle" style="font-size:6px;"></i> ${counts.borderline} Гранично</span>`);
+                if (badgeItems.length > 0) {
+                    badgesEl.innerHTML = badgeItems.join('');
+                    badgesEl.style.display = 'flex';
+                }
+            }
 
             // Update score-icon health background to match health status color
             const scoreIconHealth = document.querySelector('.score-icon.health');
