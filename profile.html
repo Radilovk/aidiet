@@ -3557,7 +3557,13 @@
                 var extraCalSum = 0;
                 (rec.extraMeals || []).forEach(function(em) {
                     if (em.isJunk) junkCount++;
-                    if (!em.isFreeMealReplacement) extraCalSum += (em.calories || 0);
+                    if (em.isFreeMealReplacement) {
+                        // rated free meal replacement tracked separately
+                    } else if (em.isAddedToPlan && !em.countCalories) {
+                        // meal added to plan but unchecked — do not count calories
+                    } else {
+                        extraCalSum += (em.calories || 0);
+                    }
                 });
                 var mealCalMap = rec.mealCalories || {};
                 var completedPlanCals = 0;
@@ -3648,9 +3654,11 @@
 
             var extraCalsByDay = days.map(function(d){
                 if(!d.rec||!d.rec.extraMeals) return null;
-                // Only count extra (non-replacement) meals for calorie balance
+                // Only count extra (non-replacement) meals that are not unchecked added meals
                 return d.rec.extraMeals.reduce(function(s,em){
-                    return em.isFreeMealReplacement ? s : s+(em.calories||0);
+                    if (em.isFreeMealReplacement) return s;
+                    if (em.isAddedToPlan && !em.countCalories) return s;
+                    return s+(em.calories||0);
                 },0);
             });
             var totalExtraCals = extraCalsByDay.reduce(function(s,v){return s+(v||0);},0);
