@@ -4,7 +4,7 @@ const BASE_PATH = '';
 
 // GLOBAL NOTIFICATION KILL SWITCH - set to true to disable ALL notifications
 const NOTIFICATIONS_DISABLED = true;
-const CACHE_NAME = 'nutriplan-v5';
+const CACHE_NAME = 'nutriplan-v6';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -122,26 +122,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache first for other resources (CSS, JS, images)
+  // Stale-while-revalidate for other resources (CSS, JS, images):
+  // serve from cache immediately if available, always refresh cache in the background.
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(request).then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type === 'error') {
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(request).then((cachedResponse) => {
+        const networkFetch = fetch(request).then((response) => {
+          if (response && response.status === 200 && response.type !== 'error') {
+            cache.put(request, response.clone());
+          }
           return response;
+        }).catch(() => cachedResponse || new Response('Not found', { status: 404 }));
+
+        if (cachedResponse) {
+          event.waitUntil(networkFetch.catch(() => {}));
+          return cachedResponse;
         }
-
-        // Clone and cache the response
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseClone);
-        });
-
-        return response;
+        return networkFetch;
       });
     })
   );
