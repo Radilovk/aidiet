@@ -4108,21 +4108,28 @@
             body.innerHTML = html;
 
             // ── Trigger entrance animations after DOM is painted ─────────────
+            var GA_RING_START   = 120;  // ms delay before first ring animates
+            var GA_RING_STAGGER = 130;  // ms between each ring
+            var GA_RING_COUNTER = 900;  // ms counter count-up duration
+            var GA_BAR_START    = 350;  // ms delay before first progress bar animates
+            var GA_BAR_STAGGER  = 60;   // ms between each bar
+            var GA_CHART_START  = 400;  // ms delay before mini/bidir bar charts animate
+            var GA_CHART_STAGGER= 25;   // ms between each chart column
             requestAnimationFrame(function() {
                 requestAnimationFrame(function() {
                     // 1. Animate SVG ring arcs (fill from empty to target)
                     body.querySelectorAll('[data-ga-ring-offset]').forEach(function(el, i) {
                         setTimeout(function() {
                             el.style.strokeDashoffset = el.getAttribute('data-ga-ring-offset');
-                        }, 120 + i * 130);
+                        }, GA_RING_START + i * GA_RING_STAGGER);
                     });
 
                     // 2. Animate ring counter text 0→value
                     body.querySelectorAll('[data-ga-ring-target]').forEach(function(el, i) {
                         var target = parseInt(el.getAttribute('data-ga-ring-target'), 10);
                         if (isNaN(target)) { el.textContent = '?'; return; }
-                        var start = 120 + i * 130;
-                        var duration = 900;
+                        var start = GA_RING_START + i * GA_RING_STAGGER;
+                        var duration = GA_RING_COUNTER;
                         var startTime = null;
                         function step(ts) {
                             if (!startTime) startTime = ts;
@@ -4140,21 +4147,21 @@
                     body.querySelectorAll('[data-ga-bar]').forEach(function(el, i) {
                         setTimeout(function() {
                             el.style.width = el.getAttribute('data-ga-bar') + '%';
-                        }, 350 + i * 60);
+                        }, GA_BAR_START + i * GA_BAR_STAGGER);
                     });
 
                     // 4. Animate mini bar heights
                     body.querySelectorAll('[data-ga-bar-h]').forEach(function(el, i) {
                         setTimeout(function() {
                             el.style.height = el.getAttribute('data-ga-bar-h');
-                        }, 400 + i * 25);
+                        }, GA_CHART_START + i * GA_CHART_STAGGER);
                     });
 
                     // 5. Animate bidirectional bar heights
                     body.querySelectorAll('[data-ga-bidir-h]').forEach(function(el, i) {
                         setTimeout(function() {
                             el.style.height = el.getAttribute('data-ga-bidir-h');
-                        }, 400 + i * 25);
+                        }, GA_CHART_START + i * GA_CHART_STAGGER);
                     });
                 });
             });
