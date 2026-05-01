@@ -2043,6 +2043,11 @@
             animation: gblink 0.75s step-end infinite;
         }
         @keyframes gblink { 0%,100%{opacity:1} 50%{opacity:0} }
+        /* Blinking cursor while chat assistant is typing */
+        .message-bubble.chat-typing::after {
+            content: '▌';
+            animation: gblink 0.75s step-end infinite;
+        }
         .game-bubble-answers {
             display: flex;
             gap: 8px;
@@ -6560,25 +6565,50 @@
                 word-wrap: break-word;
                 white-space: pre-wrap;
             `;
-            
+
             // Format message to preserve line breaks and structure
             const formattedMessage = formatChatMessage(message);
-            bubble.innerHTML = formattedMessage;
 
-            messageDiv.appendChild(bubble);
-            chatMessages.appendChild(messageDiv);
+            // Typewriter effect for new assistant messages only (not history loads)
+            if (role === 'assistant' && saveToHistory) {
+                bubble.textContent = '';
+                bubble.classList.add('chat-typing');
+                messageDiv.appendChild(bubble);
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+                // Haptic feedback fires as the first character appears
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate([20, 55, 50]);
+                }
 
-            // Haptic feedback only for NEW assistant messages (not history loads).
-            // saveToHistory is false when restoring from history — no haptic in that case.
-            if (role === 'assistant' && saveToHistory && typeof navigator !== 'undefined' && navigator.vibrate) {
-                // Two-tap "new message received" pattern: short buzz · pause · medium buzz.
-                // Fires immediately when the message appears — in sync with the UI.
-                navigator.vibrate([20, 55, 50]);
+                let i = 0;
+                const speed = 18; // ms per character — ~55 chars/sec
+                function tick() {
+                    if (i < message.length) {
+                        bubble.textContent += message[i++];
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        setTimeout(tick, speed);
+                    } else {
+                        // Typing done — swap plain text to formatted HTML
+                        bubble.classList.remove('chat-typing');
+                        bubble.innerHTML = formattedMessage;
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                }
+                tick();
+            } else {
+                bubble.innerHTML = formattedMessage;
+                messageDiv.appendChild(bubble);
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // Haptic feedback for new assistant messages (non-typewriter path: system msgs loaded from history are excluded)
+                if (role === 'assistant' && saveToHistory && typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate([20, 55, 50]);
+                }
             }
-            
+
             // Save to chat history if requested
             if (saveToHistory) {
                 chatHistory.push({ text: message, role: role, timestamp: Date.now() });
