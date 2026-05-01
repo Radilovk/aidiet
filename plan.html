@@ -2165,15 +2165,15 @@
         .daily-score-info { flex: 1; }
         .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; }
         .daily-score-value { font-size: 1.2rem; font-weight: 700; }
-        .daily-score-stars { font-size: 0.95rem; margin-top: 2px; }
-        .daily-cal-balance {
+        .daily-score-stars { font-size: 0.95rem; margin-top: 2px; display: flex; justify-content: center; }
+        .daily-warnings { margin-top: 5px; display: flex; flex-direction: column; gap: 3px; }
+        .daily-warning-item {
             font-size: 0.72rem;
             background: rgba(0,0,0,0.18);
             color: rgba(255,255,255,0.95);
             border-radius: 8px;
             padding: 2px 8px;
-            margin-top: 4px;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 4px;
         }
@@ -8517,10 +8517,6 @@
             else if (score === 3)    { label = 'Добре'; }
             else if (score === 2)    { label = 'Може по-добре'; }
             else                     { label = 'Подобри се утре'; }
-            if (incorrectMeals > 0)  label += ' ⚠ ' + incorrectMeals + ' неправилно хранене';
-            if (junkCount > 0)       label += ' (' + junkCount + ' вредни)';
-            if (calorieBalance === 'surplus' && excessCalories) label += ' — излишни кал.';
-            if (calorieBalance === 'deficit') label += ' — кал. дефицит';
 
             return { score:score, stars:stars, label:label, junkCount:junkCount,
                      incorrectMeals:incorrectMeals, excessCalories:excessCalories,
@@ -8565,7 +8561,7 @@
                 card.style.boxShadow = 'none';
                 card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-calendar-xmark" style="color:#9ca3af"></i></div>' +
                     '<div class="daily-score-info">' +
-                        '<div class="daily-score-label" style="opacity:0.7">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u2014 ' + dayNames2[dMissing.getDay()] + '</div>' +
+                        '<div class="daily-score-label" style="opacity:0.7">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
                         '<div class="daily-score-value" style="color:var(--text-gray)">\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u0434\u0430\u043D\u043D\u0438</div>' +
                         '<div class="daily-score-stars" style="font-size:0.75rem;color:var(--text-gray);opacity:0.72">\u041D\u0435 \u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442</div>' +
                     '</div>';
@@ -8578,17 +8574,10 @@
             card.style.display = 'flex';
             card.style.background = '';
             card.style.boxShadow = '';
-            var dayLabel = '';
-            if (isPastDayKey(dayKey)) {
-                var dayNames = ['\u041D\u0434','\u041F\u043D','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041F\u0442','\u0421\u0431'];
-                var dPast = new Date(dayKey + 'T00:00:00');
-                dayLabel = ' \u2014 ' + dayNames[dPast.getDay()];
-            }
             var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(s){return s;};
-            // Label is shown only for past days (after midnight). For the current day show stars only.
-            var showLabel = isPastDayKey(dayKey);
-            // Calorie balance badge — show surplus or deficit vs plan
-            var calBadge = '';
+            // Show score label whenever a score has been calculated
+            var showLabel = ds.score !== null;
+            // Build warnings list
             var extraCals = (rec.extraMeals || []).reduce(function(s,em) {
                 return em.isFreeMealReplacement ? s : s + (em.calories || 0);
             }, 0);
@@ -8598,28 +8587,27 @@
             }, 0);
             var planCals = rec.plannedCalories || 0;
             var totalCals = completedCals + extraCals;
+            var warningsList = [];
             if (ds.calorieBalance === 'surplus' && totalCals > 0) {
                 var surplusKcal = planCals > 0 ? Math.round(totalCals - planCals) : extraCals;
-                if (surplusKcal > 0) {
-                    calBadge = '<div class="daily-cal-balance surplus">' +
-                        '<i class="fas fa-fire" style="color:#fde68a"></i> Калориен баланс: +' + surplusKcal + ' kcal над плана</div>';
-                }
+                if (surplusKcal > 0) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> \u0417\u0430\u0432\u0438\u0448\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043D\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438: +' + surplusKcal + ' kcal \u043D\u0430\u0434 \u043F\u043B\u0430\u043D\u0430');
             } else if (ds.calorieBalance === 'deficit' && planCals > 0 && totalCals > 0) {
                 var deficitKcal = Math.round(planCals - totalCals);
-                if (deficitKcal > 0) {
-                    calBadge = '<div class="daily-cal-balance deficit">' +
-                        '<i class="fas fa-arrow-down" style="color:#bae6fd"></i> Калориен баланс: −' + deficitKcal + ' kcal под плана</div>';
-                }
+                if (deficitKcal > 0) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> \u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043D\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438: \u2212' + deficitKcal + ' kcal \u043F\u043E\u0434 \u043F\u043B\u0430\u043D\u0430');
             }
-            // Incorrect meal badge
-            var incorrectBadge = ds.incorrectMeals > 0
-                ? '<div style="font-size:0.72rem;color:#ef4444;margin-top:3px"><i class="fas fa-exclamation-circle"></i> Неправилно хранене!</div>' : '';
+            if (ds.incorrectMeals > 0) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> ' + ds.incorrectMeals + ' \u043D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
+            if (ds.junkCount > 0) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> ' + ds.junkCount + ' \u0432\u0440\u0435\u0434\u043D\u0438 \u0445\u0440\u0430\u043D\u0438');
+            if (rec.morningCheck && rec.morningCheck.sleptWell === false) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> \u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0441\u044A\u043D');
+            if (rec.eveningCheck && rec.eveningCheck.waterIntake === false) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> \u041B\u043E\u0448\u0430 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F');
+            var warningsBadge = warningsList.length > 0
+                ? '<div class="daily-warnings">' + warningsList.map(function(w) { return '<div class="daily-warning-item">' + w + '</div>'; }).join('') + '</div>'
+                : '';
             card.innerHTML = '<div class="daily-score-icon"><i class="fas fa-chart-bar" style="color:rgba(255,255,255,0.9)"></i></div>' +
                 '<div class="daily-score-info">' +
-                    '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F' + esc(dayLabel) + '</div>' +
+                    '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
                     (showLabel ? '<div class="daily-score-value">' + esc(ds.label) + '</div>' : '') +
                     '<div class="daily-score-stars">' + ds.stars + '</div>' +
-                    incorrectBadge + calBadge +
+                    warningsBadge +
                 '</div>';
 
             // ── Star celebration animation ──────────────────────────────────
