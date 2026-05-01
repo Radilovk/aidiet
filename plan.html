@@ -8491,7 +8491,10 @@
             var junkCount = 0;
             var extraCalSum = 0;
             (rec.extraMeals || []).forEach(function(em) {
-                if (em.isJunk) junkCount++;
+                // A meal is considered consumed when it has no toggle button (not added to plan)
+                // or when its check button is checked (countCalories !== false).
+                var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
+                if (em.isJunk && isConsumed) junkCount++;
                 if (em.isFreeMealReplacement) {
                     // rated free meal replacement tracked separately, already counted above
                 } else if (em.isAddedToPlan && !em.countCalories) {

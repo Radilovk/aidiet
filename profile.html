@@ -3556,7 +3556,10 @@
                 var junkCount = 0;
                 var extraCalSum = 0;
                 (rec.extraMeals || []).forEach(function(em) {
-                    if (em.isJunk) junkCount++;
+                    // A meal is considered consumed when it has no toggle button (not added to plan)
+                    // or when its check button is checked (countCalories !== false).
+                    var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
+                    if (em.isJunk && isConsumed) junkCount++;
                     if (em.isFreeMealReplacement) {
                         // rated free meal replacement tracked separately
                     } else if (em.isAddedToPlan && !em.countCalories) {
@@ -3709,7 +3712,10 @@
 
             // Junk count 7 days
             var junkCount7=0;
-            days.forEach(function(d){ ((d.rec&&d.rec.extraMeals)||[]).forEach(function(em){if(em.isJunk)junkCount7++;}); });
+            days.forEach(function(d){ ((d.rec&&d.rec.extraMeals)||[]).forEach(function(em){
+                var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
+                if(em.isJunk && isConsumed) junkCount7++;
+            }); });
 
             // Trend: last 3 days vs first 3 (of recorded)
             var firstHalf = weekScores.slice(0,Math.floor(weekScores.length/2)).filter(Boolean);
@@ -3755,8 +3761,14 @@
             // Balance → Junk correlation (low emotional balance = high stress = more junk)
             var lowBalanceDays  = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]<=40; });
             var highBalanceDays = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]>=60; });
-            var lbJunk = lowBalanceDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){return e.isJunk;}).length);},0);
-            var hbJunk = highBalanceDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){return e.isJunk;}).length);},0);
+            var lbJunk = lowBalanceDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){
+                var isConsumed = !e.isAddedToPlan || e.countCalories !== false;
+                return e.isJunk && isConsumed;
+            }).length);},0);
+            var hbJunk = highBalanceDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){
+                var isConsumed = !e.isAddedToPlan || e.countCalories !== false;
+                return e.isJunk && isConsumed;
+            }).length);},0);
             if(lowBalanceDays.length>0&&hbJunk===0&&lbJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ви');
             else if(lowBalanceDays.length>0&&hbJunk<lbJunk) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Забелязваме повече вредни хранения в дни с по-нисък емоционален баланс');
             // Consecutive adherence streak
