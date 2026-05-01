@@ -3782,13 +3782,23 @@
             });
             var netCalBalance = calBalanceByDay.reduce(function(s,v){return s+(v||0);},0);
 
-            // Actual consumed calories per day (for target bar chart)
+            // Actual consumed calories per day (for target bar chart).
+            // Computed directly from the record to avoid the calorieDelta=0 ambiguity:
+            // when no meals are logged calorieDelta stays 0, which would wrongly return
+            // `planned` (showing a false "at-target" bar for a day with no data).
             var calConsumedByDay = days.map(function(d){
                 if (!d.rec) return null;
-                var ds = calcDayScore(d.rec);
-                var planned = d.rec.plannedCalories || 0;
-                if (planned > 0) return Math.max(0, planned + ds.calorieDelta);
-                return ds.calorieDelta > 0 ? ds.calorieDelta : null;
+                var mealCalMap = d.rec.mealCalories || {};
+                var completedCals = Object.keys(d.rec.meals || {}).reduce(function(sum, mt){
+                    return sum + (d.rec.meals[mt] && mealCalMap[mt] ? mealCalMap[mt] : 0);
+                }, 0);
+                var extraCals = (d.rec.extraMeals || []).reduce(function(sum, em){
+                    if (em.isFreeMealReplacement) return sum;          // tracked via plan meals
+                    if (em.isAddedToPlan && !em.countCalories) return sum; // added to plan but unchecked
+                    return sum + (em.calories || 0);
+                }, 0);
+                var total = completedCals + extraCals;
+                return total > 0 ? total : null;
             });
             // Planned (target) calories per day
             var calPlannedByDay = days.map(function(d){
