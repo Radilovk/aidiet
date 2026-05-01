@@ -8920,7 +8920,8 @@
                 if (!syncRec.extraMeals) syncRec.extraMeals = [];
                 // Build two index maps for O(1) lookup:
                 //   emByPlanId   : planId  → extraMeals index (primary link)
-                //   emByNameCals : "name::cals" → extraMeals index (fallback for old data)
+                //   emByNameCals : "name::cals" → extraMeals index (fallback for old data
+                //                  without planId; first unlinked match per key is used)
                 var emByPlanId = {};
                 var emByNameCals = {};
                 syncRec.extraMeals.forEach(function(em, i) {
@@ -8955,7 +8956,7 @@
                     if (fbIdx !== undefined) {
                         var em = syncRec.extraMeals[fbIdx];
                         // Backfill planId on both sides to make future syncs use the fast path.
-                        var newId = String(Date.now()) + '_' + fbIdx + '_' + Math.random().toString(36).substr(2, 6);
+                        var newId = String(Date.now()) + '_' + Math.random().toString(36).substr(2, 9);
                         if (!am.planId) { am.planId = newId; addedMealsChanged = true; }
                         em.planId = am.planId;
                         em.isAddedToPlan = true;
@@ -9031,6 +9032,7 @@
                             if (!dRec.extraMeals) dRec.extraMeals = [];
                             var matchFound = false;
                             // Primary: match by planId; also build a name+cals index for the fallback.
+                            // emByNameCals maps "name::cals" → first unlinked extraMeals index.
                             var emByNameCals = {};
                             dRec.extraMeals.forEach(function(em, i) {
                                 if (em.planId === updMeal.planId) {
@@ -9044,6 +9046,7 @@
                             });
                             // Fallback: match unlinked extraMeals entry by name+calories for backward
                             // compatibility with entries created before the planId feature existed.
+                            // If multiple unlinked entries share the same key, the first is used.
                             if (!matchFound) {
                                 var fbKey = (updMeal.name || '') + '::' + Math.round(updMeal.calories || 0);
                                 var fbIdx = emByNameCals[fbKey];
