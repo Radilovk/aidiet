@@ -8466,8 +8466,8 @@
         //   Balance:      1→0, 2→5, 3→10 pts
         //   Calories:     used only as a 5★ blocker (no separate pts awarded)
         //
-        // Denominator = (mealCount × 10) + wellnessMax
-        //   wellnessMax = 40 for past days; grows progressively today (10 after morning check, +30 after evening check)
+        // Denominator = (mealCount × 10) + 40 (wellness always contributes full 40 to denominator)
+        //   Unanswered wellness questions contribute 0 earned pts but the denominator stays at 40.
         // Stars: 100%→5, 80-99%→4, 55-79%→3, 30-54%→2, 1-29%→1, 0%→null
         function calcDayScore(rec) {
             if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0,
@@ -8556,13 +8556,10 @@
             var balancePts  = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
 
             var wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
-            // For past days use the full 40-pt denominator (missing wellness data lowers the score).
-            // For today, grow the denominator only as questionnaires are answered so the
-            // in-progress score fairly reflects completed activities.
-            var recDate = rec.date || getTodayKey();
-            var wellnessMax = isPastDayKey(recDate)
-                ? 40
-                : (rec.morningCheck !== null ? 10 : 0) + (rec.eveningCheck !== null ? 30 : 0);
+            // Always use the full 40-pt wellness denominator.
+            // Wellness questions that have not been answered contribute 0 earned points but
+            // the denominator stays at 40, preventing meals alone from inflating the score to 5★.
+            var wellnessMax = 40;
 
             // ── 5-star blocker flags ────────────────────────────────────────
             var allMealsOk    = meals.length > 0 && meals.every(function(m) {
