@@ -2165,7 +2165,16 @@
         .daily-score-info { width: 100%; text-align: center; }
         .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; text-align: center; letter-spacing: 0.03em; }
         .daily-score-value { font-size: 1.35rem; font-weight: 700; text-align: center; margin-top: 4px; }
-        .daily-score-stars { font-size: 1.05rem; margin-top: 4px; display: flex; justify-content: center; }
+        .daily-score-stars { font-size: 1.05rem; margin-top: 4px; display: flex; justify-content: center; gap: 2px; }
+        .daily-score-stars .ds-star-item {
+            display: inline-block;
+            animation: starItemPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        @keyframes starItemPop {
+            0%   { transform: scale(0) rotate(-30deg); opacity: 0; }
+            60%  { transform: scale(1.35) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
         .daily-warnings { margin-top: 5px; display: flex; flex-direction: column; gap: 3px; }
         .daily-warning-item {
             font-size: 0.72rem;
@@ -2186,18 +2195,18 @@
             100% { transform: scale(1); }
         }
         @keyframes starCelebShake {
-            0%,100% { transform: translateX(0) scale(1); }
-            15%     { transform: translateX(-5px) scale(1.03); }
-            35%     { transform: translateX(5px) scale(1.05); }
-            55%     { transform: translateX(-4px) scale(1.04); }
-            75%     { transform: translateX(4px) scale(1.02); }
+            0%,100% { transform: translateX(0) scale(1);           box-shadow: 0 6px 24px rgba(13,148,136,0.3); }
+            15%     { transform: translateX(-5px) scale(1.03);      box-shadow: 0 0 0 8px  rgba(99,102,241,0.28); }
+            35%     { transform: translateX(5px)  scale(1.05);      box-shadow: 0 0 0 14px rgba(99,102,241,0.32), 0 6px 36px rgba(99,102,241,0.4); }
+            55%     { transform: translateX(-4px) scale(1.04);      box-shadow: 0 0 0 8px  rgba(99,102,241,0.18); }
+            75%     { transform: translateX(4px)  scale(1.02);      box-shadow: 0 0 0 4px  rgba(99,102,241,0.08); }
         }
         @keyframes starCelebBounce {
-            0%   { transform: scale(0.8) translateY(0); }
-            30%  { transform: scale(1.12) translateY(-8px); }
-            55%  { transform: scale(0.96) translateY(2px); }
-            75%  { transform: scale(1.06) translateY(-4px); }
-            100% { transform: scale(1) translateY(0); }
+            0%   { transform: scale(0.8)  translateY(0);   box-shadow: 0 6px 24px rgba(13,148,136,0.3); }
+            30%  { transform: scale(1.12) translateY(-8px); box-shadow: 0 0 0 14px rgba(16,185,129,0.32), 0 8px 44px rgba(16,185,129,0.45); }
+            55%  { transform: scale(0.96) translateY(2px);  box-shadow: 0 0 0 22px rgba(16,185,129,0.14); }
+            75%  { transform: scale(1.06) translateY(-4px); box-shadow: 0 0 0 10px rgba(16,185,129,0.07); }
+            100% { transform: scale(1)   translateY(0);    box-shadow: 0 6px 24px rgba(13,148,136,0.3); }
         }
         @keyframes starCelebGlow4 {
             0%   { box-shadow: 0 6px 24px rgba(13,148,136,0.3); transform: scale(1); }
@@ -2234,7 +2243,7 @@
             15%  { opacity: 1; }
             100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); }
         }
-        /* "Отличен ден!" flash banner */
+        /* "Отличен резултат!" flash banner */
         .excellent-day-flash {
             position: fixed;
             top: 50%;
@@ -2424,8 +2433,8 @@
             background: rgba(251,191,36,0.18); border: 1.5px solid rgba(251,191,36,0.4);
             border-radius: 99px; padding: 2px 10px;
             font-size: 0.75rem; font-weight: 700; color: #fbbf24; margin-top: 5px;
-            animation: streakPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
         }
+        .daily-streak-badge.streak-badge-new { animation: streakPop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
         @keyframes streakPop { from { transform:scale(0.5); opacity:0; } to { transform:scale(1); opacity:1; } }
         /* Encourage toast accent variants */
         .game-encourage-toast.enc-perfect { border-left: 4px solid #fbbf24; }
@@ -8794,28 +8803,55 @@
                 ? '<div class="daily-warnings">' + warningsList.map(function(w) { return '<div class="daily-warning-item">' + w + '</div>'; }).join('') + '</div>'
                 : '';
             var progPct = Math.max(0, Math.min(100, ds.engPct || 0));
+            // Read previously rendered pct so we can avoid animating from 0 on re-renders
+            var NO_PREV_PCT = -1;
+            var prevProgPct = parseFloat(card.getAttribute('data-prog-pct') || NO_PREV_PCT);
+            card.setAttribute('data-prog-pct', progPct);
             var streak = (dayKey === getTodayKey()) ? calcStreak() : 0;
-            var streakBadge = streak >= 2 ? '<div class="daily-streak-badge">\uD83D\uDD25 ' + streak + ' \u0434\u043D\u0438 \u043F\u043E\u0440\u0435\u0434</div>' : '';
+            // Animate streak badge only when the streak value increases
+            var prevStreak = parseInt(card.getAttribute('data-prev-streak') || '0', 10);
+            var streakIsNew = streak > prevStreak;
+            card.setAttribute('data-prev-streak', streak >= 2 ? streak : '0');
+            var streakBadge = streak >= 2
+                ? '<div class="daily-streak-badge' + (streakIsNew ? ' streak-badge-new' : '') + '">\uD83D\uDD25 ' + streak + ' \u0434\u043D\u0438 \u043F\u043E\u0440\u0435\u0434</div>'
+                : '';
+            // Build stars: stagger-pop each icon when a new tier is reached
+            var STAR_STAGGER_DELAY_MS = 55;
+            var newScore = ds.score || 0;
+            var starsHtml;
+            if (prevScore !== undefined && newScore > 0 && newScore > prevScore) {
+                starsHtml = '';
+                for (var si = 0; si < newScore; si++) {
+                    starsHtml += '<i class="fas fa-star ds-star-item" style="color:#fbbf24;font-size:0.85em;animation-delay:' + (si * STAR_STAGGER_DELAY_MS) + 'ms"></i>';
+                }
+            } else {
+                starsHtml = ds.stars;
+            }
             card.innerHTML = '<div class="daily-score-info">' +
                     '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
                     (showLabel ? '<div class="daily-score-value">' + esc(ds.label) + '</div>' : '') +
-                    '<div class="daily-score-stars">' + ds.stars + '</div>' +
+                    '<div class="daily-score-stars">' + starsHtml + '</div>' +
                     warningsBadge +
-                    '<div class="daily-score-progress"><div class="daily-score-progress-fill" style="width:0%"></div></div>' +
+                    '<div class="daily-score-progress"><div class="daily-score-progress-fill" style="width:' + (prevProgPct >= 0 ? prevProgPct : 0) + '%"></div></div>' +
                     streakBadge +
                 '</div>';
-            // Animate progress bar after render
-            (function(pct) {
+            // Animate progress bar: skip transition if pct didn't change
+            (function(pct, changed) {
+                if (!changed) {
+                    // Already at correct width; set directly without transition to keep it crisp
+                    var fill = card.querySelector('.daily-score-progress-fill');
+                    if (fill) fill.style.width = pct + '%';
+                    return;
+                }
                 requestAnimationFrame(function() {
                     requestAnimationFrame(function() {
                         var fill = card.querySelector('.daily-score-progress-fill');
                         if (fill) fill.style.width = pct + '%';
                     });
                 });
-            })(progPct);
+            })(progPct, progPct !== prevProgPct);
 
             // ── Star celebration animation ──────────────────────────────────
-            var newScore = ds.score || 0;
             // Trigger animation only when stars increase (prevScore is passed from recalcAndShowScore)
             if (prevScore !== undefined && newScore > 0 && newScore > prevScore) {
                 triggerStarCelebration(card, newScore);
@@ -8853,9 +8889,9 @@
                     setTimeout(function() { glow.remove(); }, 2000);
                     var flash = document.createElement('div');
                     flash.className = 'excellent-day-flash';
-                    flash.innerHTML = '<div style="font-size:2rem;margin-bottom:6px">⭐⭐⭐⭐⭐</div>' +
+                    flash.innerHTML = '<div style="font-size:2rem;margin-bottom:4px">⭐⭐⭐⭐⭐</div>' +
                         '<div>Отличен резултат!</div>' +
-                        '<div style="font-size:0.85rem;font-weight:600;margin-top:6px;opacity:0.75">Браво! Перфектен резултат!</div>';
+                        '<div style="font-size:0.8rem;font-weight:500;margin-top:4px;opacity:0.7">Всичко изпълнено перфектно \u2713</div>';
                     document.body.appendChild(flash);
                     setTimeout(function() { flash.remove(); }, 2500);
                 }, 150);
@@ -8876,10 +8912,7 @@
 
             // Number of flying elements and sizes scale with star count
             var count = [0, 6, 10, 16, 24, 36][starCount] || 8;
-            var emojis = ['⭐','✨','🌟','💛','⚡','🎯'];
-            if (starCount >= 3) emojis.push('🎊','💪');
-            if (starCount >= 4) emojis.push('🏆','🎉','💫','🔥');
-            if (starCount === 5) emojis.push('❤️','🌈','👑','🥇');
+            var emojis = ['⭐','✨','🌟','💛','💫'];
 
             for (var i = 0; i < count; i++) {
                 (function(idx) {
@@ -8909,13 +8942,16 @@
         }
 
         // ── Meal check micro-burst (ripple + floating pts) ────────────────────
-        function _triggerMealCheckBurst(btn, card, isDone) {
+        function _triggerMealCheckBurst(btn, card, isDone, isJunk) {
             if (!isDone) return; // only on check, not uncheck
             var btnRect = btn.getBoundingClientRect();
             // Use fixed positioning to avoid touching the card's position style
             var ripple = document.createElement('div');
             ripple.className = 'meal-check-ripple';
-            ripple.style.cssText = 'left:' + Math.round(btnRect.left) + 'px;top:' + Math.round(btnRect.top) + 'px;';
+            var JUNK_RIPPLE_COLOR    = 'rgba(245,158,11,0.45)';
+            var SUCCESS_RIPPLE_COLOR = 'rgba(16,185,129,0.45)';
+            var rippleColor = isJunk ? JUNK_RIPPLE_COLOR : SUCCESS_RIPPLE_COLOR;
+            ripple.style.cssText = 'left:' + Math.round(btnRect.left) + 'px;top:' + Math.round(btnRect.top) + 'px;background:' + rippleColor + ';';
             document.body.appendChild(ripple);
             setTimeout(function() { ripple.remove(); }, 600);
             // Floating "+10 т" label
@@ -9063,7 +9099,8 @@
                     saveRecord(dayKey, r);
                     checkBtn.classList.toggle('done', r.meals[mealKey]);
                     if (!calcDayScore(r).excessCalories) {
-                        _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey]);
+                        var mealIsJunk = card.getAttribute('data-incorrect-meal') === '1';
+                        _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey], mealIsJunk);
                     }
                     recalcAndShowScore(dayKey);
                 });
@@ -9186,7 +9223,8 @@
                             }
                             saveRecord(addedDateKey, dRec);
                             if (!calcDayScore(dRec).excessCalories) {
-                                _triggerMealCheckBurst(btn, btn.closest('.meal-card') || btn.parentElement, arr[cardIdx].consumed !== false);
+                                var addedIsJunk = !!(updMeal.suitability && typeof updMeal.suitability.score === 'number' && updMeal.suitability.score <= JUNK_SUITABILITY_MAX);
+                                _triggerMealCheckBurst(btn, btn.closest('.meal-card') || btn.parentElement, arr[cardIdx].consumed !== false, addedIsJunk);
                             }
                             recalcAndShowScore(addedDateKey);
                         }
@@ -9825,7 +9863,6 @@
             enableGame();
             setTimeout(function(){
                 enhanceMealCards();
-                recalcAndShowScore();
                 checkOpenAppPrompts();
                 showEncouragement(buildEncouragement());
                 startPromptInterval();
@@ -9838,7 +9875,6 @@
             if (!isGameEnabled()) return;
             setTimeout(function(){
                 enhanceMealCards();
-                recalcAndShowScore();
                 checkOpenAppPrompts();
                 checkRetroEntry();
                 startPromptInterval();
