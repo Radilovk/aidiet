@@ -1906,13 +1906,19 @@
                 healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(analysis.currentHealthStatus.score)));
                 console.log('Using AI-provided currentHealthStatus.score:', healthScore);
             } else {
-                // Fallback: Calculate from problems (legacy behavior)
+                // Fallback: Calculate from problems (legacy behavior).
+                // Weight the worst problem heavily so a single critical issue is not
+                // masked by averaging; combined with the mean for breadth coverage.
                 let totalSeverity = 0;
+                let maxSeverity = 0;
                 problems.forEach(problem => {
-                    totalSeverity += (problem.severityValue || 50);
+                    const sv = problem.severityValue || 50;
+                    totalSeverity += sv;
+                    if (sv > maxSeverity) maxSeverity = sv;
                 });
                 const avgSeverity = totalSeverity / problems.length;
-                const cappedSeverity = Math.min(avgSeverity, MAX_HEALTH_SCORE);
+                const combinedSeverity = maxSeverity * 0.6 + avgSeverity * 0.4;
+                const cappedSeverity = Math.min(combinedSeverity, MAX_HEALTH_SCORE);
                 const rawHealthScore = MAX_HEALTH_SCORE - cappedSeverity;
                 healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(rawHealthScore)));
                 
@@ -2019,7 +2025,7 @@
                 // Update risks (ensure at least 5 items)
                 const risksContainer = document.getElementById('pessimisticRisks');
                 if (pessimistic.risks && Array.isArray(pessimistic.risks) && pessimistic.risks.length > 0) {
-                    const risks = padArrayToMinLength(pessimistic.risks.slice(0, 5), 5, DEFAULT_RISK_PADDING_MESSAGE);
+                    const risks = pessimistic.risks.slice(0, 5);
                     risksContainer.innerHTML = `
                         <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
                         <ul>
@@ -2038,7 +2044,7 @@
                 // Update improvements (ensure at least 5 items)
                 const improvementsContainer = document.getElementById('optimisticImprovements');
                 if (optimistic.improvements && Array.isArray(optimistic.improvements) && optimistic.improvements.length > 0) {
-                    const improvements = padArrayToMinLength(optimistic.improvements.slice(0, 5), 5, DEFAULT_IMPROVEMENT_PADDING_MESSAGE);
+                    const improvements = optimistic.improvements.slice(0, 5);
                     improvementsContainer.innerHTML = `
                         <h4><i class="fas fa-check-circle"></i> Възможни Подобрения</h4>
                         <ul>
