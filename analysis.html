@@ -1914,6 +1914,8 @@
                             const card = entry.target;
                             card.classList.add('card-anim--visible');
                             // Animate the severity meter bar inside this card
+                            // (220ms matches roughly 1/3 of the card entrance transition so the bar
+                            //  fill starts after the card is mostly visible)
                             setTimeout(() => {
                                 card.querySelectorAll('.meter-fill').forEach(meter => {
                                     meter.style.width = meter.getAttribute('data-width');
@@ -1944,7 +1946,8 @@
                             if (section.id === 'overallScoreSection') {
                                 const scoreEl = document.getElementById('healthScoreValue');
                                 if (scoreEl) {
-                                    const target = parseInt(scoreEl.textContent, 10);
+                                    // Strip any existing '%' suffix before parsing
+                                    const target = parseInt(scoreEl.textContent.replace('%', ''), 10);
                                     if (!isNaN(target)) {
                                         animateCounter(scoreEl, 0, target, 1500, '%');
                                     }
@@ -2008,6 +2011,7 @@
                 document.getElementById('mainContent').style.display = 'block';
 
                 // Initialize scroll-triggered animations after DOM is ready
+                // (60ms ensures the browser has completed layout/paint for the newly visible content)
                 setTimeout(initScrollAnimations, 60);
 
             } catch (error) {
@@ -2317,6 +2321,7 @@
         window.addEventListener('load', () => {
             loadAnalysis();
             // Fallback: ensure meters are filled even if IntersectionObserver missed them
+            // (1400ms > card entrance (600ms) + meter delay (220ms) to safely catch any stragglers)
             setTimeout(animateMeters, 1400);
 
             // Hide bottom-nav and adapt CTA when coming from questionnaire 2
