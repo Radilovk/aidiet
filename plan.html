@@ -2243,7 +2243,7 @@
             15%  { opacity: 1; }
             100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); }
         }
-        /* "Отличен ден!" flash banner */
+        /* "Отличен резултат!" flash banner */
         .excellent-day-flash {
             position: fixed;
             top: 50%;
@@ -8890,7 +8890,7 @@
                     var flash = document.createElement('div');
                     flash.className = 'excellent-day-flash';
                     flash.innerHTML = '<div style="font-size:2rem;margin-bottom:4px">⭐⭐⭐⭐⭐</div>' +
-                        '<div>Отличен ден!</div>' +
+                        '<div>Отличен резултат!</div>' +
                         '<div style="font-size:0.8rem;font-weight:500;margin-top:4px;opacity:0.7">Всичко изпълнено перфектно \u2713</div>';
                     document.body.appendChild(flash);
                     setTimeout(function() { flash.remove(); }, 2500);
