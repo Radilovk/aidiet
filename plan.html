@@ -7535,6 +7535,22 @@
             `;
             resultsDiv.appendChild(actionDiv);
 
+            // Log menu recommendation to game data (mirrors food-photo analysis logging).
+            // Menu analysis scans a restaurant menu to recommend a dish; the AI cannot reliably
+            // estimate portion weights or calorie totals from a menu listing, so calories are 0.
+            // The suitability score (isJunk flag) is still captured so that low-rated menu choices
+            // correctly affect junkCount / engPct without inflating the calorie total.
+            if (window.gameModule && window.gameModule.isEnabled()) {
+                const menuCtxEl = document.getElementById('foodMealContext');
+                const menuContext = menuCtxEl ? menuCtxEl.value : '';
+                window.gameModule.logExtraFood(
+                    analysis.recommendedDish || 'Препоръчано ястие',
+                    0,
+                    score,
+                    menuContext
+                );
+            }
+
             setTimeout(function() {
                 resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 100);
@@ -8303,6 +8319,7 @@
         var GAME_DATA_KEY          = 'gameData';
         var GAME_WEEKLY_AI_KEY     = 'gameWeeklyAI';
         var FREE_MEAL_MIN_RATING   = 4;   // Suitability rating threshold: >=4 = correct free meal
+        var JUNK_SUITABILITY_MAX   = 2;   // Suitability rating threshold: <=2 = junk/harmful food
         var JUNK_MAX_POINTS        = 20;  // Max engagement pts from junk/incorrect-meal component
         var JUNK_PENALTY_PER_MEAL  = 7;   // Engagement pts lost per junk or incorrect meal
         var _promptIntervalId      = null;
@@ -8504,7 +8521,9 @@
                 // A meal is considered consumed when it has no toggle button (not added to plan)
                 // or when its check button is checked (countCalories !== false).
                 var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
-                if (em.isJunk && isConsumed) junkCount++;
+                // Free meal replacements are already penalised via incorrectMeals (from freeMealRatings).
+                // Counting them here too would double-penalise the same meal.
+                if (em.isJunk && isConsumed && !em.isFreeMealReplacement) junkCount++;
                 if (em.isFreeMealReplacement) {
                     // rated free meal replacement tracked separately, already counted above
                 } else if (em.isAddedToPlan && !em.countCalories) {
@@ -9040,7 +9059,7 @@
                                 dRec.extraMeals.push({
                                     name: updMeal.name || 'Добавено хранене',
                                     calories: Math.round(updMeal.calories || 0),
-                                    isJunk: false,
+                                    isJunk: !!(updMeal.suitability && typeof updMeal.suitability.score === 'number' && updMeal.suitability.score <= JUNK_SUITABILITY_MAX),
                                     isFreeMealReplacement: false,
                                     isAddedToPlan: true,
                                     planId: updMeal.planId,
@@ -9066,7 +9085,7 @@
             var rec = getTodayRecord();
             // Recognize "Свободно хранене", "Свободно хранене_2", etc. as free meal slots
             var isFreeMealReplacement = mealContext.replace(/_\d+$/, '') === 'Свободно хранене';
-            var isJunk = (suitabilityScore != null && suitabilityScore <= 2);
+            var isJunk = (suitabilityScore != null && suitabilityScore <= JUNK_SUITABILITY_MAX);
             // Ensure freeMealRatings object exists
             if (!rec.freeMealRatings) rec.freeMealRatings = {};
 
