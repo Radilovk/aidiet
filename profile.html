@@ -3720,19 +3720,21 @@
                 var mealEngPct = meals.length>0 ? done/meals.length*50 : 0;
                 var mornEngPct = rec.morningCheck ? 15 : 0;
                 var eveEngPct  = rec.eveningCheck  ? 15 : 0;
-                var junkPct    = Math.max(0, JUNK_MAX_POINTS-(junkCount+incorrectMeals)*JUNK_PENALTY_PER_MEAL);
+                var hasAnyEngagement = mealEngPct > 0 || mornEngPct > 0 || eveEngPct > 0 || junkCount > 0 || incorrectMeals > 0;
+                var junkPct    = hasAnyEngagement ? Math.max(0, JUNK_MAX_POINTS-(junkCount+incorrectMeals)*JUNK_PENALTY_PER_MEAL) : 0;
                 var engPct     = Math.round(mealEngPct+mornEngPct+eveEngPct+junkPct);
                 var totalMax = mealMax + 40;
                 var totalEarned = mealPts + wellnessEarned;
                 var score = null;
                 if (totalMax > 0 && (totalEarned > 0 || meals.length > 0)) {
                     var pct = totalEarned / totalMax;
-                    if (pct>=1.00 && !has5StarBlocker) score=5;
-                    else if (pct>=0.80) score=4;
-                    else if (pct>=0.55) score=3;
-                    else if (pct>=0.30) score=2;
-                    else score=1;
-                    if (score===5 && has5StarBlocker) score=4;
+                    if      (pct >= 1.00 && !has5StarBlocker) score = 5;
+                    else if (pct >= 0.80) score = 4;
+                    else if (pct >= 0.55) score = 3;
+                    else if (pct >= 0.30) score = 2;
+                    else if (pct >  0)    score = 1;
+                    // pct === 0 → no earned points yet → score stays null
+                    if (score === 5 && has5StarBlocker) score = 4;
                 }
                 var starIcon='<i class="fas fa-star" style="color:#fbbf24;font-size:0.8em"></i>';
                 var stars='';

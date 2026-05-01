@@ -8678,7 +8678,11 @@
             var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
             var mornEngPct = rec.morningCheck ? 15 : 0;
             var eveEngPct  = rec.eveningCheck ? 15 : 0;
-            var junkPct    = Math.max(0, JUNK_MAX_POINTS - (junkCount + incorrectMeals) * JUNK_PENALTY_PER_MEAL); // engagement pts from junk/incorrect meal component
+            // junkPct is a "no-junk bonus" and only makes sense when the user has actually engaged.
+            // Without at least one checked meal, check-in, or logged junk/incorrect meal the day
+            // has zero activity and should show 0% — not a phantom 20% from the junk-avoidance bonus.
+            var hasAnyEngagement = mealEngPct > 0 || mornEngPct > 0 || eveEngPct > 0 || junkCount > 0 || incorrectMeals > 0;
+            var junkPct    = hasAnyEngagement ? Math.max(0, JUNK_MAX_POINTS - (junkCount + incorrectMeals) * JUNK_PENALTY_PER_MEAL) : 0; // engagement pts from junk/incorrect meal component
             var engPct     = Math.round(mealEngPct + mornEngPct + eveEngPct + junkPct);
 
             // ── Score calculation ───────────────────────────────────────────
