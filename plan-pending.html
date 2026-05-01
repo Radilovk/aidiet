@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Вашият персонален план се подготвя от специалист — NutriPlan">
-    <meta name="theme-color" content="#0D9488">
+    <meta name="theme-color" content="#F0FDFA">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,7 +16,7 @@
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>Вашият план се подготвя</title>
     <link rel="stylesheet" href="./design-system.css">
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0A1A1A':'#F0FDFA');})();</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -587,11 +587,17 @@
     </div>
 
     <script>
+
+        function setThemeColor(theme) {
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', theme === 'dark' ? '#0A1A1A' : '#F0FDFA');
+        }
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme') || 'light';
             const next = current === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', next);
             localStorage.setItem('theme', next);
+            setThemeColor(next);
             const icon = document.getElementById('ppThemeIcon');
             if (icon) icon.className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         }
