@@ -7216,17 +7216,21 @@
                 // Prepare compact user data and plan for context
                 const compactUserData = userData ? {
                     name: userData.name,
+                    age: userData.age,
                     goal: userData.goal,
                     weight: userData.weight,
                     height: userData.height,
                     gender: userData.gender,
                     dietPreference: userData.dietPreference,
                     medicalConditions: userData.medicalConditions,
+                    medications: userData.medications,
+                    medicationsDetails: userData.medicationsDetails,
                     dietDislike: userData.dietDislike
                 } : null;
 
                 const compactPlan = dietPlan ? {
-                    summary: dietPlan.summary
+                    summary: dietPlan.summary,
+                    forbidden: dietPlan.forbidden
                 } : null;
 
                 const response = await fetch(WORKER_URL + '/api/analyze-food-image', {
