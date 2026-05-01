@@ -8335,9 +8335,8 @@
         function isPastDayKey(key)   { return key < getTodayKey(); }
         // Returns true when the day is more than 2 days in the past (edits are not allowed).
         function isAgeLocked(key) {
-            var today = getTodayKey();
-            if (key >= today) return false;
-            var d = new Date(today + 'T00:00:00');
+            if (key >= getTodayKey()) return false;
+            var d = new Date();
             d.setDate(d.getDate() - 2);
             return key < dateKey(d);
         }
