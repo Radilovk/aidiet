@@ -7604,8 +7604,27 @@
             var storageKey = 'addedMeals_' + todayDateKey();
             var added = [];
             try { added = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch(e) {}
+            // Generate a unique ID so we can link this plan entry to the game record's extraMeals entry.
+            mealEntry.planId = String(Date.now()) + '_' + Math.random().toString(36).substr(2, 9);
             added.push(mealEntry);
             localStorage.setItem(storageKey, JSON.stringify(added));
+
+            // Link the newly-added plan entry to the most recently logged extraMeals entry in the
+            // game record. This lets the check button toggle calorie inclusion for this meal.
+            if (window.gameModule && window.gameModule.isEnabled()) {
+                var gRec = window.gameModule.getTodayRecord();
+                if (gRec && gRec.extraMeals && gRec.extraMeals.length > 0) {
+                    var gEntry = gRec.extraMeals[gRec.extraMeals.length - 1];
+                    gEntry.planId = mealEntry.planId;
+                    gEntry.isAddedToPlan = true;
+                    // `consumed` here means "meal is already within its consumption window" (past
+                    // the designated hour), so we start counting its calories immediately. Meals
+                    // scheduled for later in the day start with countCalories=false and are only
+                    // included once the user checks them.
+                    gEntry.countCalories = consumed;
+                    window.gameModule.saveTodayRecord(gRec);
+                }
+            }
 
             _lastFoodAnalysis = null;
             closeFoodAnalysis();
@@ -8468,6 +8487,9 @@
                 if (em.isJunk) junkCount++;
                 if (em.isFreeMealReplacement) {
                     // rated free meal replacement tracked separately, already counted above
+                } else if (em.isAddedToPlan && !em.countCalories) {
+                    // This meal was added to the daily plan but the check button is unchecked —
+                    // do not include its calories in the daily total.
                 } else {
                     extraCalSum += (em.calories || 0);
                 }
@@ -8642,7 +8664,9 @@
             var showLabel = ds.score !== null && (!isViewingToday || rec.eveningCheck !== null);
             // Build warnings list
             var extraCals = (rec.extraMeals || []).reduce(function(s,em) {
-                return em.isFreeMealReplacement ? s : s + (em.calories || 0);
+                if (em.isFreeMealReplacement) return s;
+                if (em.isAddedToPlan && !em.countCalories) return s;
+                return s + (em.calories || 0);
             }, 0);
             var mCalMap = rec.mealCalories || {};
             var completedCals = Object.keys(rec.meals || {}).reduce(function(s, mt) {
@@ -8923,6 +8947,22 @@
                             arr[cardIdx].consumed = (arr[cardIdx].consumed === false);
                             localStorage.setItem('addedMeals_' + addedDateKey, JSON.stringify(arr));
                             btn.classList.toggle('done', arr[cardIdx].consumed !== false);
+
+                            // Sync the consumed state to the linked game record extraMeals entry so
+                            // calorie calculations reflect the actual check state.
+                            var updMeal = arr[cardIdx];
+                            if (updMeal.planId) {
+                                var dRec = getRecord(addedDateKey);
+                                if (dRec && dRec.extraMeals) {
+                                    dRec.extraMeals.forEach(function(em) {
+                                        if (em.planId === updMeal.planId) {
+                                            em.countCalories = (updMeal.consumed !== false);
+                                        }
+                                    });
+                                    saveRecord(addedDateKey, dRec);
+                                }
+                            }
+                            recalcAndShowScore(addedDateKey);
                         }
                     });
                 })(idx, addedCheckBtn, mealTypeAdded, isKnownType);
