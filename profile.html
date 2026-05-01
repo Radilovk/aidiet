@@ -821,6 +821,86 @@
         [data-theme="dark"] .game-scenario-card     { background: rgba(99,102,241,0.1); border-color: rgba(139,92,246,0.25); }
         [data-theme="dark"] .game-alert-card        { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.5); }
         [data-theme="dark"] .game-ring-bg           { stroke: rgba(45,212,191,0.15); }
+
+        /* ── Gamification Current Analysis — Entrance & visual animations ─── */
+        @keyframes gaCardIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        }
+        .ga-card-enter {
+            animation: gaCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        /* Shimmer sweep on the weekly overview card */
+        .game-week-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .game-week-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.13) 50%, transparent 70%);
+            animation: gaWeekShimmer 3.8s ease-in-out 0.6s infinite;
+            pointer-events: none;
+        }
+        @keyframes gaWeekShimmer {
+            0%        { transform: translateX(-120%); }
+            55%, 100% { transform: translateX(120%);  }
+        }
+        /* Week dot hover scale */
+        .game-week-dot {
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+        }
+        .game-week-dot:hover {
+            transform: scale(1.35);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        /* Progress bar transition — override to start from 0 cleanly */
+        .game-index-bar {
+            transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        /* Mini bar height animation */
+        .game-day-dot {
+            transition: height 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        /* Bidirectional bar height animation */
+        .game-day-bar-up,
+        .game-day-bar-down {
+            transition: height 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        /* Health ring glow */
+        .game-ring-wrap[data-explain="health"] .game-ring-fg {
+            filter: drop-shadow(0 0 5px #0D9488);
+        }
+        /* Ring wrap hover lift */
+        .game-ring-wrap {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .game-ring-wrap:hover { transform: scale(1.06); }
+        /* Metric row subtle slide on hover */
+        .game-index-row {
+            transition: background 0.2s ease, transform 0.18s ease;
+        }
+        .game-index-row:hover { transform: translateX(4px); }
+        /* Insight / alert / scenario card micro-hover */
+        .game-insight-card,
+        .game-alert-card,
+        .game-scenario-card {
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .game-insight-card:hover,
+        .game-scenario-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 3px 14px rgba(13, 148, 136, 0.12);
+        }
+        .game-alert-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 3px 14px rgba(245, 158, 11, 0.14);
+        }
+        /* Analytics section header glint on open */
+        .game-analytics-section.open .game-analytics-header {
+            box-shadow: 0 4px 20px rgba(13, 148, 136, 0.35);
+        }
         /* ── End Current Analysis ──────────────────────────────────────────────── */
 
         /* === SEPARATE NOTES CONTAINER (removed) === */
@@ -3853,15 +3933,15 @@
             // ── Render helpers ────────────────────────────────────────────────
             function pBar(pct, color) {
                 if (pct==null) return '<span style="font-size:0.75rem;color:var(--text-light)">Няма данни</span>';
-                return '<div class="game-index-bar-wrap"><div class="game-index-bar" style="width:'+Math.min(100,Math.max(0,pct))+'%;background:'+color+'"></div></div>';
+                return '<div class="game-index-bar-wrap"><div class="game-index-bar" style="width:0%;background:'+color+'" data-ga-bar="'+Math.min(100,Math.max(0,pct))+'"></div></div>';
             }
             var DAY_NAMES = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
             var BAR_MIN_H = 4;   // px — minimum bar height (empty/zero day)
             var BAR_MAX_H = 36;  // px — maximum bar height (100%)
             var LABEL_STYLE = 'font-size:0.6rem;color:var(--text-light)';
-            function miniBarCol(barStyle, label) {
+            function miniBarCol(barStyle, label, dataAttr) {
                 return '<div class="game-day-col">' +
-                    '<div class="game-day-dot" style="' + barStyle + '"></div>' +
+                    '<div class="game-day-dot" style="' + barStyle + '"' + (dataAttr ? ' ' + dataAttr : '') + '></div>' +
                     '<span style="' + LABEL_STYLE + '">' + label + '</span>' +
                     '</div>';
             }
@@ -3872,7 +3952,7 @@
                     if(v==null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label);
                     var pct2 = maxVal>0?Math.min(100,Math.round(v/maxVal*100)):0;
                     var h    = Math.max(BAR_MIN_H, Math.round(pct2*BAR_MAX_H/100));
-                    return miniBarCol('height:'+h+'px;background:'+color, label);
+                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
                 });
                 return '<div class="game-day-dots">'+ cols.join('') +'</div>';
             }
@@ -3887,11 +3967,11 @@
                     var deficitH = (v != null && v < 0) ? Math.max(2, Math.round(Math.min(-v, absMax) / absMax * BAR_BIDIR_HALF)) : 0;
                     return '<div class="game-day-col-bidir">' +
                         '<div class="game-day-surplus-zone">' +
-                            (surplusH > 0 ? '<div class="game-day-bar-up" style="height:'+surplusH+'px;background:'+surplusColor+'"></div>' : '') +
+                            (surplusH > 0 ? '<div class="game-day-bar-up" style="height:0px;background:'+surplusColor+'" data-ga-bidir-h="'+surplusH+'px"></div>' : '') +
                         '</div>' +
                         '<span style="' + LABEL_STYLE + '">' + label + '</span>' +
                         '<div class="game-day-deficit-zone">' +
-                            (deficitH > 0 ? '<div class="game-day-bar-down" style="height:'+deficitH+'px;background:'+deficitColor+'"></div>' : '') +
+                            (deficitH > 0 ? '<div class="game-day-bar-down" style="height:0px;background:'+deficitColor+'" data-ga-bidir-h="'+deficitH+'px"></div>' : '') +
                         '</div>' +
                         '</div>';
                 });
@@ -3903,8 +3983,8 @@
                 var offset = circ - (pct||0)/100*circ;
                 return '<svg class="game-ring-svg" width="'+(r*2+8)+'" height="'+(r*2+8)+'" viewBox="0 0 '+(r*2+8)+' '+(r*2+8)+'">' +
                     '<circle class="game-ring-bg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5"/>' +
-                    '<circle class="game-ring-fg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5" stroke="'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'"/>' +
-                    '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px">'+(pct!=null?pct+'%':'?')+'</text>' +
+                    '<circle class="game-ring-fg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5" stroke="'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'" data-ga-ring-offset="'+offset.toFixed(2)+'"/>' +
+                    '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px" data-ga-ring-count="'+(pct!=null?pct:'')+'" data-ga-ring-target="'+(pct!=null?pct:'')+'" >'+(pct!=null?'0%':'?')+'</text>' +
                     '</svg>';
             }
 
@@ -3914,7 +3994,7 @@
             var weekIconColor = avgScore>=4.5?'#fde68a':avgScore>=3.5?'rgba(255,255,255,0.95)':avgScore>=2.5?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.75)';
 
             // Weekly overview card
-            html += '<div class="game-week-card">' +
+            html += '<div class="game-week-card ga-card-enter" style="animation-delay:0s">' +
                 '<div class="game-week-icon"><i class="'+weekIconClass+'" style="color:'+weekIconColor+'"></i></div>' +
                 '<div class="game-week-info">' +
                     '<div class="game-week-title">Текуща седмица</div>' +
@@ -3930,7 +4010,7 @@
             '</div>';
 
             // Health score rings — "План %" removed; "Активност" in position #2; "Баланс" → "Емоции"
-            html += '<div class="game-health-ring-row">' +
+            html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
                 '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488') + '<div class="game-ring-label">Здраве</div></div>' +
                 (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
                 (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
@@ -3938,16 +4018,16 @@
             '</div>';
 
             // Trend indicator
-            if(trendUp)   html += '<div style="text-align:center;font-size:0.78rem;color:#10b981;font-weight:600;margin-bottom:10px"><i class="fas fa-chart-line"></i> Тенденцията е нагоре — вие се подобрявате!</div>';
-            if(trendDown) html += '<div style="text-align:center;font-size:0.78rem;color:#ef4444;font-weight:600;margin-bottom:10px"><i class="fas fa-chart-line" style="transform:rotate(90deg)"></i> Леко затихване — малко повече фокус ще промени всичко</div>';
+            if(trendUp)   html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#10b981;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line"></i> Тенденцията е нагоре — вие се подобрявате!</div>';
+            if(trendDown) html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#ef4444;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line" style="transform:rotate(90deg)"></i> Леко затихване — малко повече фокус ще промени всичко</div>';
 
             // Alerts
             if(alerts.length>0){
-                alerts.forEach(function(a){ html += '<div class="game-alert-card">'+a+'</div>'; });
+                alerts.forEach(function(a, ai){ html += '<div class="game-alert-card ga-card-enter" style="animation-delay:'+(0.22+ai*0.06)+'s">'+a+'</div>'; });
             }
 
             // Metrics section — collapsible (default collapsed)
-            html += '<div class="game-metrics-toggle" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
+            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
                 '<div class="game-section-title" style="margin:0">Подробни метрики</div>' +
                 '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
             '</div>';
@@ -4006,17 +4086,17 @@
             // Correlations & insights section
             if(insights.length>0){
                 html += '<div class="game-section-title">Корелации &amp; открития</div>';
-                insights.forEach(function(ins){ html += '<div class="game-insight-card">'+ins+'</div>'; });
+                insights.forEach(function(ins, ii){ html += '<div class="game-insight-card ga-card-enter" style="animation-delay:'+(0.05+ii*0.08)+'s">'+ins+'</div>'; });
             }
 
             // Scenario / prediction
             if(scenario){
                 html += '<div class="game-section-title">Прогноза</div>';
-                html += '<div class="game-scenario-card"><div class="game-scenario-label">AI сценарий</div>'+scenario+'</div>';
+                html += '<div class="game-scenario-card ga-card-enter" style="animation-delay:0.1s"><div class="game-scenario-label">AI сценарий</div>'+scenario+'</div>';
             }
 
             // Encouragement
-            html += '<div class="game-encourage-note">'+encourageText+'</div>';
+            html += '<div class="game-encourage-note ga-card-enter" style="animation-delay:0.15s">'+encourageText+'</div>';
 
             // Weekly AI note
             var weeklyInfo={};
@@ -4026,6 +4106,59 @@
             html += '</div>'; // close gameMetricsDetails
 
             body.innerHTML = html;
+
+            // ── Trigger entrance animations after DOM is painted ─────────────
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    // 1. Animate SVG ring arcs (fill from empty to target)
+                    body.querySelectorAll('[data-ga-ring-offset]').forEach(function(el, i) {
+                        setTimeout(function() {
+                            el.style.strokeDashoffset = el.getAttribute('data-ga-ring-offset');
+                        }, 120 + i * 130);
+                    });
+
+                    // 2. Animate ring counter text 0→value
+                    body.querySelectorAll('[data-ga-ring-target]').forEach(function(el, i) {
+                        var target = parseInt(el.getAttribute('data-ga-ring-target'), 10);
+                        if (isNaN(target)) { el.textContent = '?'; return; }
+                        var start = 120 + i * 130;
+                        var duration = 900;
+                        var startTime = null;
+                        function step(ts) {
+                            if (!startTime) startTime = ts;
+                            var elapsed = ts - startTime;
+                            if (elapsed < 0) { requestAnimationFrame(step); return; }
+                            var progress = Math.min(elapsed / duration, 1);
+                            var ease = 1 - Math.pow(1 - progress, 3);
+                            el.textContent = Math.round(target * ease) + '%';
+                            if (progress < 1) requestAnimationFrame(step);
+                        }
+                        setTimeout(function() { requestAnimationFrame(step); }, start);
+                    });
+
+                    // 3. Animate progress bars 0→width
+                    body.querySelectorAll('[data-ga-bar]').forEach(function(el, i) {
+                        setTimeout(function() {
+                            el.style.width = el.getAttribute('data-ga-bar') + '%';
+                        }, 350 + i * 60);
+                    });
+
+                    // 4. Animate mini bar heights
+                    body.querySelectorAll('[data-ga-bar-h]').forEach(function(el, i) {
+                        setTimeout(function() {
+                            el.style.height = el.getAttribute('data-ga-bar-h');
+                        }, 400 + i * 25);
+                    });
+
+                    // 5. Animate bidirectional bar heights
+                    body.querySelectorAll('[data-ga-bidir-h]').forEach(function(el, i) {
+                        setTimeout(function() {
+                            el.style.height = el.getAttribute('data-ga-bidir-h');
+                        }, 400 + i * 25);
+                    });
+                });
+            });
+            // ── End entrance animations ───────────────────────────────────────
 
             // Attach explain handlers
             body.querySelectorAll('[data-explain]').forEach(function(el){
