@@ -556,13 +556,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
         }
 
         .meter-fill.normal { background: linear-gradient(90deg, var(--severity-normal), #0F766E); }
@@ -686,12 +680,6 @@
             justify-content: center;
             font-size: 1.8rem;
             position: relative;
-            animation: pulse-icon 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse-icon {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
         }
 
         .score-icon.health {
@@ -704,18 +692,6 @@
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white;
             box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-            animation: trophy-pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes trophy-pulse {
-            0%, 100% { 
-                transform: scale(1) rotate(0deg);
-                box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-            }
-            50% { 
-                transform: scale(1.08) rotate(5deg);
-                box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6);
-            }
         }
 
         .score-card-title {
@@ -835,12 +811,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: glow-text 2s ease-in-out infinite;
-        }
-
-        @keyframes glow-text {
-            0%, 100% { filter: brightness(1); }
-            50% { filter: brightness(1.2); }
         }
 
         .score-delta {
@@ -870,50 +840,13 @@
             border-radius: 8px 8px 0 0;
             position: relative;
             transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 -2px 10px rgba(13,148,136,0.3);
-            animation: shimmer-bar 3s infinite;
-            overflow: hidden;
-        }
-
-        .bar-column::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -50%;
-            width: 200%;
-            height: 100%;
-            background: linear-gradient(to bottom, 
-                rgba(255,255,255,0) 0%,
-                rgba(255,255,255,0.3) 50%,
-                rgba(255,255,255,0) 100%);
-            animation: bar-shine 2s infinite;
-        }
-
-        @keyframes shimmer-bar {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.85; }
-        }
-
-        @keyframes bar-shine {
-            0% { transform: translateY(100%); }
-            100% { transform: translateY(-100%); }
-        }
-
-        @keyframes bar-shine-down {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
+            box-shadow: 0 -2px 8px rgba(13,148,136,0.2);
         }
 
         .comparison-side.current .bar-column {
             background: linear-gradient(to top, var(--severity-critical) 0%, #dc2626 100%);
-            box-shadow: 0 -2px 10px rgba(239,68,68,0.3);
+            box-shadow: 0 -2px 8px rgba(239,68,68,0.2);
         }
-
-        .comparison-side.current .bar-column::before {
-            animation: bar-shine-down 2s infinite;
-        }
-
-
 
         .cta-section {
             background: var(--card-bg);
@@ -1112,36 +1045,30 @@
         .forecast-icon.warning {
             background: linear-gradient(135deg, rgba(249,115,22,0.15) 0%, rgba(249,115,22,0.25) 100%);
             color: var(--severity-risky);
-            box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
             animation: forecast-pulse-warning 2s ease-in-out infinite;
         }
 
         .forecast-icon.success {
             background: linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(13,148,136,0.25) 100%);
             color: var(--primary-red);
-            box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
             animation: forecast-pulse-success 2s ease-in-out infinite;
         }
 
         @keyframes forecast-pulse-warning {
             0%, 100% {
                 transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
             }
             50% {
-                transform: scale(1.08);
-                box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
+                transform: scale(1.06);
             }
         }
 
         @keyframes forecast-pulse-success {
             0%, 100% {
                 transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
             }
             50% {
-                transform: scale(1.08);
-                box-shadow: 0 0 0 10px rgba(13, 148, 136, 0);
+                transform: scale(1.06);
             }
         }
 
@@ -1956,7 +1883,7 @@
                             const section = entry.target;
                             section.classList.add('section-anim--visible');
 
-                            // Health score count-up animation
+                            // Health score count-up + ring animation (plays when visible)
                             if (section.id === 'overallScoreSection') {
                                 const scoreEl = document.getElementById('healthScoreValue');
                                 if (scoreEl) {
@@ -1966,11 +1893,24 @@
                                         animateCounter(scoreEl, 0, target, 1500, '%');
                                     }
                                 }
+                                // Animate the circular ring now that the element is visible
+                                const arc = document.getElementById('healthGaugeArc');
+                                if (arc && arc.dataset.targetDashOffset) {
+                                    requestAnimationFrame(() => {
+                                        arc.style.strokeDashoffset = arc.dataset.targetDashOffset;
+                                    });
+                                }
                             }
 
-                            // Forecast list items stagger
+                            // Forecast list items stagger — use double rAF so the browser has
+                            // rendered the initial opacity:0 / transition:none state before the
+                            // animating class is added (prevents transition being skipped).
                             if (section.id === 'forecastSection') {
-                                section.classList.add('forecast-animate');
+                                requestAnimationFrame(() => {
+                                    requestAnimationFrame(() => {
+                                        section.classList.add('forecast-animate');
+                                    });
+                                });
                             }
 
                             sectionObserver.unobserve(section);
@@ -2177,22 +2117,14 @@
                     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
                 };
                 scoreIconHealth.style.background = `linear-gradient(135deg, ${hexToRgba(gaugeColor, 0.25)} 0%, ${gaugeColor} 100%)`;
-                scoreIconHealth.style.boxShadow = `0 4px 15px ${hexToRgba(gaugeColor, 0.45)}`;
+                scoreIconHealth.style.boxShadow = `0 4px 12px ${hexToRgba(gaugeColor, 0.3)}`;
                 scoreIconHealth.style.color = 'white';
-            }
-
-            // Update analysis-header color to match health status
-            const analysisHeader = document.querySelector('.analysis-header');
-            if (analysisHeader) {
-                analysisHeader.style.borderBottomColor = gaugeColor;
-                analysisHeader.style.boxShadow = `0 4px 24px rgba(0,0,0,0.3), 0 -1px 0 ${gaugeColor}66 inset`;
             }
 
             // Circular ring (r=44, circumference ≈ 276.46)
             const circumference = 2 * Math.PI * 44;
             const arc = document.getElementById('healthGaugeArc');
             arc.setAttribute('stroke', gaugeColor);
-            arc.style.filter = 'drop-shadow(0 0 7px ' + gaugeColor + '99)';
 
             // Update ring gradient color
             const ringColor = document.getElementById('healthRingColor');
@@ -2212,16 +2144,15 @@
                 bodyEmpty.setAttribute('offset', healthScore + '%');
             }
 
+            // Store the target dashOffset for the ring so the IntersectionObserver
+            // can animate it once the section is actually visible
+            const dashOffset = circumference * (1 - healthScore / 100);
+            arc.dataset.targetDashOffset = dashOffset.toFixed(2);
+
             // Show the overall score section (section-anim class applied before display)
             const overallScoreEl = document.getElementById('overallScoreSection');
             overallScoreEl.classList.add('section-anim');
             overallScoreEl.style.display = 'block';
-
-            // Animate circular ring after a short delay (CSS transition handles the smoothing)
-            setTimeout(() => {
-                const dashOffset = circumference * (1 - healthScore / 100);
-                arc.style.strokeDashoffset = dashOffset.toFixed(2);
-            }, 300);
 
             // ===== DISPLAY 1-YEAR FORECASTS =====
             displayForecasts(analysis);
