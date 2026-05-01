@@ -6569,6 +6569,12 @@
             // Format message to preserve line breaks and structure
             const formattedMessage = formatChatMessage(message);
 
+            // Haptic feedback for new assistant messages (not history loads)
+            if (role === 'assistant' && saveToHistory && typeof navigator !== 'undefined' && navigator.vibrate) {
+                // Two-tap "new message received" pattern: short buzz · pause · medium buzz.
+                navigator.vibrate([20, 55, 50]);
+            }
+
             // Typewriter effect for new assistant messages only (not history loads)
             if (role === 'assistant' && saveToHistory) {
                 bubble.textContent = '';
@@ -6577,18 +6583,13 @@
                 chatMessages.appendChild(messageDiv);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                // Haptic feedback fires as the first character appears
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate([20, 55, 50]);
-                }
-
                 let i = 0;
-                const speed = 18; // ms per character — ~55 chars/sec
+                const charDelay = 18; // ms per character — ~55 chars/sec
                 function tick() {
                     if (i < message.length) {
                         bubble.textContent += message[i++];
                         chatMessages.scrollTop = chatMessages.scrollHeight;
-                        setTimeout(tick, speed);
+                        setTimeout(tick, charDelay);
                     } else {
                         // Typing done — swap plain text to formatted HTML
                         bubble.classList.remove('chat-typing');
@@ -6602,11 +6603,6 @@
                 messageDiv.appendChild(bubble);
                 chatMessages.appendChild(messageDiv);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
-
-                // Haptic feedback for new assistant messages (non-typewriter path: system msgs loaded from history are excluded)
-                if (role === 'assistant' && saveToHistory && typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate([20, 55, 50]);
-                }
             }
 
             // Save to chat history if requested
