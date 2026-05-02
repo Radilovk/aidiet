@@ -1413,17 +1413,50 @@ ${dietHistorySection}`;
 }
 
 /**
+ * Normalize questionnaire data from any client (web, APK, etc.).
+ *
+ * The web frontend already serialises checkbox fields correctly before sending,
+ * but the APK (and any future client) may send them in a different shape:
+ *   - `goal`                : must be a string  (first selected option)
+ *   - array checkbox fields : must each be an array
+ *
+ * Mutates `data` in-place and returns it for convenience.
+ *
+ * @param {Object} data - Raw request body parsed from JSON
+ * @returns {Object} The same object, normalised
+ */
+function normalizeQuestionnaireData(data) {
+  // goal must be a plain string – take the first element when sent as array
+  if (Array.isArray(data.goal)) {
+    data.goal = String(data.goal[0] || '');
+  }
+
+  // All other checkbox fields must be arrays
+  const arrayFields = [
+    'medicalConditions',
+    'dietPreference',
+    'eatingHabits',
+    'foodCravings',
+    'foodTriggers',
+    'compensationMethods',
+  ];
+  for (const field of arrayFields) {
+    if (data[field] != null && !Array.isArray(data[field])) {
+      // Wrap a bare string in an array; ignore any other unexpected type
+      data[field] = typeof data[field] === 'string' ? [data[field]] : [];
+    }
+  }
+
+  return data;
+}
+
+/**
  * Handle questionnaire AI validation endpoint.
  * Called before plan generation to check for issues in user data.
  */
 async function handleValidateQuestionnaire(request, env) {
   try {
-    const data = await request.json();
-
-    // Normalize goal: APK may send it as an array (checkbox type), backend expects a string
-    if (Array.isArray(data.goal)) {
-      data.goal = String(data.goal[0] || '');
-    }
+    const data = normalizeQuestionnaireData(await request.json());
     
     // Validate minimum required fields
     if (!data.name || !data.age || !data.weight || !data.height) {
@@ -3408,12 +3441,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
  */
 async function handleGeneratePlan(request, env) {
   try {
-    const data = await request.json();
-
-    // Normalize goal: APK may send it as an array (checkbox type), backend expects a string
-    if (Array.isArray(data.goal)) {
-      data.goal = String(data.goal[0] || '');
-    }
+    const data = normalizeQuestionnaireData(await request.json());
     
     // Validate required fields
     if (!data.name || !data.age || !data.weight || !data.height) {
