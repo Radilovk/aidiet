@@ -2281,6 +2281,27 @@
             cursor: not-allowed !important;
             pointer-events: none;
         }
+        /* Free meal rating badge — shown when no photo has been documented yet */
+        .free-meal-rating-badge {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            border: 2px dashed #f59e0b;
+            background: rgba(245, 158, 11, 0.08);
+            color: #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-left: 6px;
+            cursor: default;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        [data-theme="dark"] .free-meal-rating-badge {
+            border-color: #d97706;
+            background: rgba(217, 119, 6, 0.12);
+            color: #fbbf24;
+        }
         /* FAB bounce/raise states */
         @keyframes fabBounce {
             0%,100% { transform: translateY(0); }
@@ -5131,7 +5152,7 @@
             if (effectiveHasFreeMeal) {
                 const banner = document.createElement('div');
                 banner.className = 'free-day-banner';
-                banner.innerHTML = '<span class="free-day-icon"><i class="fas fa-trophy" style="color:#fbbf24"></i></span><div class="free-day-title">Свободно хранене!</div><div class="free-day-subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
+                banner.innerHTML = '<span class="free-day-icon">🍕</span><div class="free-day-title">Свободно хранене!</div><div class="free-day-subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
                 mealContainer.appendChild(banner);
             }
 
@@ -9076,49 +9097,47 @@
                     checkBtn.setAttribute('aria-label', 'Отбелязването ще се отключи по-късно');
                 }
 
-                // For free meals, show the rating badge or a "photo needed" hint
-                if (isFreeMeal) {
+                // For free meals without a photo: show rating badge in place of checkBtn.
+                // Once a photo has been documented and rated (freeMealRating != null),
+                // replace the badge with the regular meal-check-btn.
+                if (isFreeMeal && freeMealRating == null) {
                     var ratingBadge = document.createElement('span');
                     ratingBadge.className = 'free-meal-rating-badge';
-                    if (freeMealRating != null) {
-                        ratingBadge.title = freeMealRating >= FREE_MEAL_MIN_RATING ? 'Правилно хранене' : 'Неправилно хранене!';
-                        ratingBadge.innerHTML = freeMealRating >= FREE_MEAL_MIN_RATING
-                            ? '<i class="fas fa-check-circle" style="color:#10b981"></i>'
-                            : '<i class="fas fa-exclamation-circle" style="color:#ef4444" title="Неправилно хранене!"></i>';
-                        card.setAttribute('data-incorrect-meal', freeMealRating < FREE_MEAL_MIN_RATING ? '1' : '0');
-                    } else {
-                        ratingBadge.innerHTML = '<i class="fas fa-camera" style="color:#9ca3af;font-size:0.75em" title="Снимете храната за оценка"></i>';
-                    }
+                    ratingBadge.title = 'Снимете храната за оценка';
+                    ratingBadge.innerHTML = '<i class="fas fa-camera"></i>';
                     card.appendChild(ratingBadge);
+                } else {
+                    if (isFreeMeal && freeMealRating != null) {
+                        card.setAttribute('data-incorrect-meal', freeMealRating < FREE_MEAL_MIN_RATING ? '1' : '0');
+                    }
+                    checkBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    if (!isTimeLocked && !isAgeLockedDay) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
+                    checkBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        // Block edits for days older than 2 days
+                        if (isAgeLocked(dayKey)) return;
+                        // Re-check time lock at click time (button could have been rendered earlier)
+                        var clickHour = new Date().getHours();
+                        if (!isPastDayKey(dayKey) && clickHour < getMealUnlockHour(mealType)) return;
+                        var r = getRecord(dayKey);
+                        if (!r.mealCalories) r.mealCalories = {};
+                        r.meals[mealKey] = !r.meals[mealKey];
+                        // Sync per-meal calories from DOM at check time
+                        var cAttr = card.getAttribute('data-meal-calories');
+                        if (cAttr) {
+                            var cVal = Math.round(parseFloat(cAttr) || 0);
+                            if (cVal > 0) r.mealCalories[mealKey] = cVal;
+                        }
+                        saveRecord(dayKey, r);
+                        checkBtn.classList.toggle('done', r.meals[mealKey]);
+                        if (!calcDayScore(r).excessCalories) {
+                            var mealIsJunk = card.getAttribute('data-incorrect-meal') === '1';
+                            _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey], mealIsJunk);
+                        }
+                        recalcAndShowScore(dayKey);
+                    });
+                    card.appendChild(checkBtn);
                 }
-
-                checkBtn.innerHTML = '<i class="fas fa-check"></i>';
-                if (!isTimeLocked && !isAgeLockedDay) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
-                checkBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    // Block edits for days older than 2 days
-                    if (isAgeLocked(dayKey)) return;
-                    // Re-check time lock at click time (button could have been rendered earlier)
-                    var clickHour = new Date().getHours();
-                    if (!isPastDayKey(dayKey) && clickHour < getMealUnlockHour(mealType)) return;
-                    var r = getRecord(dayKey);
-                    if (!r.mealCalories) r.mealCalories = {};
-                    r.meals[mealKey] = !r.meals[mealKey];
-                    // Sync per-meal calories from DOM at check time
-                    var cAttr = card.getAttribute('data-meal-calories');
-                    if (cAttr) {
-                        var cVal = Math.round(parseFloat(cAttr) || 0);
-                        if (cVal > 0) r.mealCalories[mealKey] = cVal;
-                    }
-                    saveRecord(dayKey, r);
-                    checkBtn.classList.toggle('done', r.meals[mealKey]);
-                    if (!calcDayScore(r).excessCalories) {
-                        var mealIsJunk = card.getAttribute('data-incorrect-meal') === '1';
-                        _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey], mealIsJunk);
-                    }
-                    recalcAndShowScore(dayKey);
-                });
-                card.appendChild(checkBtn);
             });
             if (mealsInitialized) saveRecord(dayKey, rec);
             recalcAndShowScore(dayKey);

@@ -4109,13 +4109,23 @@
             var html = '';
             var weekIconClass = avgScore>=4.5?'fas fa-trophy':avgScore>=3.5?'fas fa-bullseye':avgScore>=2.5?'fas fa-chart-line':'fas fa-seedling';
             var weekIconColor = avgScore>=4.5?'#fde68a':avgScore>=3.5?'rgba(255,255,255,0.95)':avgScore>=2.5?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.75)';
+            var weekStarsHtml = (function() {
+                var s = '';
+                var full = Math.floor(avgScore);
+                var half = (avgScore - full) >= 0.5;
+                for (var si = 0; si < full; si++) s += '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
+                if (half) s += '<i class="fas fa-star-half-alt" style="color:#fbbf24;font-size:0.9em"></i>';
+                var empty = 5 - full - (half ? 1 : 0);
+                for (var si = 0; si < empty; si++) s += '<i class="far fa-star" style="color:rgba(255,255,255,0.45);font-size:0.9em"></i>';
+                return s;
+            })();
 
             // Weekly overview card
             html += '<div class="game-week-card ga-card-enter" style="animation-delay:0s">' +
                 '<div class="game-week-icon"><i class="'+weekIconClass+'" style="color:'+weekIconColor+'"></i></div>' +
                 '<div class="game-week-info">' +
                     '<div class="game-week-title">Текуща седмица</div>' +
-                    '<div class="game-week-score">'+avgScore+'/5 <i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i></div>' +
+                    '<div class="game-week-score">'+weekStarsHtml+'</div>' +
                     '<div class="game-week-sub">Ангажираност: '+engagementPct+'% · '+validScores.length+' '+(validScores.length===1?'ден':'дни')+' данни'+(noDataDaysCount>0?' · '+noDataDaysCount+' без данни':'')+' </div>' +
                     '<div class="game-week-dots">' +
                     weekScores.map(function(s){
@@ -4145,7 +4155,7 @@
 
             // Metrics section — collapsible (default collapsed)
             html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
-                '<div class="game-section-title" style="margin:0">Подробни метрики</div>' +
+                '<div class="game-section-title" style="margin:0">Подробни данни</div>' +
                 '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
             '</div>';
             html += '<div id="gameMetricsDetails" style="display:none;">';
