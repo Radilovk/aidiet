@@ -137,12 +137,10 @@
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-            position: fixed;
-            top: calc(16px + var(--safe-area-inset-top, 0px));
-            right: calc(16px + var(--safe-area-inset-right, 0px));
-            z-index: 900;
+            position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
         }
 
         .theme-toggle-btn::before {
@@ -1780,11 +1778,11 @@
         </div>
     </div>
 
-    <!-- Theme Toggle Button (fixed top-right) -->
-    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
-
     <!-- Main Content -->
     <div class="container">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
+        </div>
         <div class="profile-header">
             <div class="profile-avatar" id="profileAvatar">И</div>
             <div class="profile-name" id="profileName">Име</div>
@@ -4234,14 +4232,6 @@
             html += '</div>'; // close gameMetricsDetails
 
             body.innerHTML = html;
-
-            // ── Scroll to analytics section when opened from dailyScoreCard ──
-            if (new URLSearchParams(window.location.search).get('openAnalytics') === '1') {
-                // 350ms matches GA_CHART_START so the section is visible before animations begin
-                setTimeout(function() {
-                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 350);
-            }
 
             // ── Trigger entrance animations after DOM is painted ─────────────
             var GA_RING_START   = 120;  // ms delay before first ring animates
