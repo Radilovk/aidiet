@@ -1419,6 +1419,11 @@ ${dietHistorySection}`;
 async function handleValidateQuestionnaire(request, env) {
   try {
     const data = await request.json();
+
+    // Normalize goal: APK may send it as an array (checkbox type), backend expects a string
+    if (Array.isArray(data.goal)) {
+      data.goal = data.goal[0] || '';
+    }
     
     // Validate minimum required fields
     if (!data.name || !data.age || !data.weight || !data.height) {
@@ -3404,6 +3409,11 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
 async function handleGeneratePlan(request, env) {
   try {
     const data = await request.json();
+
+    // Normalize goal: APK may send it as an array (checkbox type), backend expects a string
+    if (Array.isArray(data.goal)) {
+      data.goal = data.goal[0] || '';
+    }
     
     // Validate required fields
     if (!data.name || !data.age || !data.weight || !data.height) {
