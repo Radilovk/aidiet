@@ -1020,33 +1020,6 @@
         [data-theme="dark"] .footer-glass {
             background: linear-gradient(to top, var(--bg-color) 40%, transparent 100%);
         }
-        .q2-theme-toggle {
-            position: fixed;
-            top: calc(12px + var(--safe-area-inset-top, 0px));
-            right: 16px;
-            z-index: 500;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            background: var(--card-bg);
-            color: var(--text-dark);
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            transition: all 0.3s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
-        [data-theme="dark"] .q2-theme-toggle {
-            background: rgba(20, 55, 55, 0.9);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-        }
 
     </style>
     <script>
@@ -1136,11 +1109,6 @@
     </script>
 </head>
 <body>
-
-    <!-- Theme toggle -->
-    <button type="button" class="q2-theme-toggle" onclick="toggleTheme()" aria-label="Смени темата" title="Смени темата">
-        <i class="fas fa-moon" id="q2ThemeIcon"></i>
-    </button>
 
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
