@@ -1422,7 +1422,7 @@ async function handleValidateQuestionnaire(request, env) {
 
     // Normalize goal: APK may send it as an array (checkbox type), backend expects a string
     if (Array.isArray(data.goal)) {
-      data.goal = data.goal[0] || '';
+      data.goal = String(data.goal[0] || '');
     }
     
     // Validate minimum required fields
@@ -3412,7 +3412,7 @@ async function handleGeneratePlan(request, env) {
 
     // Normalize goal: APK may send it as an array (checkbox type), backend expects a string
     if (Array.isArray(data.goal)) {
-      data.goal = data.goal[0] || '';
+      data.goal = String(data.goal[0] || '');
     }
     
     // Validate required fields
