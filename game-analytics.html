@@ -1226,11 +1226,11 @@
                 alerts.forEach(function(a, ai){ html += '<div class="game-alert-card ga-card-enter" style="animation-delay:'+(0.22+ai*0.06)+'s">'+a+'</div>'; });
             }
 
-            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
+            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="true" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
                 '<div class="game-section-title" style="margin:0">Подробни данни</div>' +
-                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
+                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron" style="transform:rotate(180deg)"></i>' +
             '</div>';
-            html += '<div id="gameMetricsDetails" style="display:none;">';
+            html += '<div id="gameMetricsDetails" style="display:block;">';
 
             html += '<div class="game-index-row" data-explain="engagement">' +
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
