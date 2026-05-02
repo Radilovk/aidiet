@@ -3192,8 +3192,8 @@
             display: flex;
             align-items: center;
             justify-content: space-around;
-            height: calc(68px + var(--safe-area-inset-bottom));
-            padding: 4px 8px var(--safe-area-inset-bottom);
+            height: calc(60px + var(--safe-area-inset-bottom));
+            padding: 0 8px var(--safe-area-inset-bottom);
             background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -9098,47 +9098,36 @@
                     checkBtn.setAttribute('aria-label', 'Отбелязването ще се отключи по-късно');
                 }
 
-                // For free meals without a photo: show rating badge in place of checkBtn.
-                // Once a photo has been documented and rated (freeMealRating !== null),
-                // checkBtn is appended; otherwise only the rating badge is appended.
-                if (isFreeMeal && freeMealRating === null) {
-                    var ratingBadge = document.createElement('span');
-                    ratingBadge.className = 'free-meal-rating-badge';
-                    ratingBadge.title = 'Снимете храната за оценка';
-                    ratingBadge.innerHTML = '<i class="fas fa-camera"></i>';
-                    card.appendChild(ratingBadge);
-                } else {
-                    if (isFreeMeal && freeMealRating !== null) {
-                        card.setAttribute('data-incorrect-meal', freeMealRating < FREE_MEAL_MIN_RATING ? '1' : '0');
-                    }
-                    checkBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    if (!isTimeLocked && !isAgeLockedDay) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
-                    checkBtn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        // Block edits for days older than 2 days
-                        if (isAgeLocked(dayKey)) return;
-                        // Re-check time lock at click time (button could have been rendered earlier)
-                        var clickHour = new Date().getHours();
-                        if (!isPastDayKey(dayKey) && clickHour < getMealUnlockHour(mealType)) return;
-                        var r = getRecord(dayKey);
-                        if (!r.mealCalories) r.mealCalories = {};
-                        r.meals[mealKey] = !r.meals[mealKey];
-                        // Sync per-meal calories from DOM at check time
-                        var cAttr = card.getAttribute('data-meal-calories');
-                        if (cAttr) {
-                            var cVal = Math.round(parseFloat(cAttr) || 0);
-                            if (cVal > 0) r.mealCalories[mealKey] = cVal;
-                        }
-                        saveRecord(dayKey, r);
-                        checkBtn.classList.toggle('done', r.meals[mealKey]);
-                        if (!calcDayScore(r).excessCalories) {
-                            var mealIsJunk = card.getAttribute('data-incorrect-meal') === '1';
-                            _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey], mealIsJunk);
-                        }
-                        recalcAndShowScore(dayKey);
-                    });
-                    card.appendChild(checkBtn);
+                if (isFreeMeal && freeMealRating !== null) {
+                    card.setAttribute('data-incorrect-meal', freeMealRating < FREE_MEAL_MIN_RATING ? '1' : '0');
                 }
+                checkBtn.innerHTML = '<i class="fas fa-check"></i>';
+                if (!isTimeLocked && !isAgeLockedDay) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
+                checkBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    // Block edits for days older than 2 days
+                    if (isAgeLocked(dayKey)) return;
+                    // Re-check time lock at click time (button could have been rendered earlier)
+                    var clickHour = new Date().getHours();
+                    if (!isPastDayKey(dayKey) && clickHour < getMealUnlockHour(mealType)) return;
+                    var r = getRecord(dayKey);
+                    if (!r.mealCalories) r.mealCalories = {};
+                    r.meals[mealKey] = !r.meals[mealKey];
+                    // Sync per-meal calories from DOM at check time
+                    var cAttr = card.getAttribute('data-meal-calories');
+                    if (cAttr) {
+                        var cVal = Math.round(parseFloat(cAttr) || 0);
+                        if (cVal > 0) r.mealCalories[mealKey] = cVal;
+                    }
+                    saveRecord(dayKey, r);
+                    checkBtn.classList.toggle('done', r.meals[mealKey]);
+                    if (!calcDayScore(r).excessCalories) {
+                        var mealIsJunk = card.getAttribute('data-incorrect-meal') === '1';
+                        _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey], mealIsJunk);
+                    }
+                    recalcAndShowScore(dayKey);
+                });
+                card.appendChild(checkBtn);
             });
             if (mealsInitialized) saveRecord(dayKey, rec);
             recalcAndShowScore(dayKey);
