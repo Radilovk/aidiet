@@ -9098,16 +9098,16 @@
                 }
 
                 // For free meals without a photo: show rating badge in place of checkBtn.
-                // Once a photo has been documented and rated (freeMealRating != null),
-                // replace the badge with the regular meal-check-btn.
-                if (isFreeMeal && freeMealRating == null) {
+                // Once a photo has been documented and rated (freeMealRating !== null),
+                // checkBtn is appended; otherwise only the rating badge is appended.
+                if (isFreeMeal && freeMealRating === null) {
                     var ratingBadge = document.createElement('span');
                     ratingBadge.className = 'free-meal-rating-badge';
                     ratingBadge.title = 'Снимете храната за оценка';
                     ratingBadge.innerHTML = '<i class="fas fa-camera"></i>';
                     card.appendChild(ratingBadge);
                 } else {
-                    if (isFreeMeal && freeMealRating != null) {
+                    if (isFreeMeal && freeMealRating !== null) {
                         card.setAttribute('data-incorrect-meal', freeMealRating < FREE_MEAL_MIN_RATING ? '1' : '0');
                     }
                     checkBtn.innerHTML = '<i class="fas fa-check"></i>';
