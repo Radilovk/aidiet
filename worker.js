@@ -1415,7 +1415,7 @@ ${dietHistorySection}`;
 /**
  * Normalize questionnaire data from any client (web, APK, etc.).
  *
- * The web frontend already serialises checkbox fields correctly before sending,
+ * The web frontend already serializes checkbox fields correctly before sending,
  * but the APK (and any future client) may send them in a different shape:
  *   - `goal`                : must be a string  (first selected option)
  *   - array checkbox fields : must each be an array
@@ -1423,7 +1423,7 @@ ${dietHistorySection}`;
  * Mutates `data` in-place and returns it for convenience.
  *
  * @param {Object} data - Raw request body parsed from JSON
- * @returns {Object} The same object, normalised
+ * @returns {Object} The same object, normalized
  */
 function normalizeQuestionnaireData(data) {
   // goal must be a plain string – take the first element when sent as array
