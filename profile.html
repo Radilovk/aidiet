@@ -4235,8 +4235,13 @@
 
             body.innerHTML = html;
 
-            // ── Scroll to analytics section when opened from dailyScoreCard ──
+            // ── Expand & scroll to analytics section when opened from dailyScoreCard ──
             if (new URLSearchParams(window.location.search).get('openAnalytics') === '1') {
+                // Guarantee the body is expanded regardless of prior state
+                body.style.display = 'block';
+                section.classList.add('open');
+                if (chevronEl) chevronEl.className = 'fas fa-chevron-up game-analytics-chevron';
+                if (headerEl) headerEl.setAttribute('aria-expanded', 'true');
                 // 350ms matches GA_CHART_START so the section is visible before animations begin
                 setTimeout(function() {
                     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
