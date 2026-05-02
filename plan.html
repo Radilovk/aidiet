@@ -5075,7 +5075,8 @@
             if (base === 'Закуска')  return 6;
             if (base === 'Обяд')     return 12;
             if (base === 'Следобедна закуска' || base === 'Следобедна' || base === 'Десерт') return 14;
-            if (base === 'Вечеря'   || base === 'Свободно хранене') return 18;
+            if (base === 'Свободно хранене') return 12;
+            if (base === 'Вечеря') return 18;
             return -1; // unknown / intermediate — use ts-based hour
         }
         /**
@@ -8456,7 +8457,8 @@
             if (base === 'Закуска')  return 6;
             if (base === 'Обяд')     return 12;
             if (base === 'Следобедна закуска' || base === 'Следобедна' || base === 'Десерт') return 14;
-            if (base === 'Вечеря' || base === 'Свободно хранене') return 18;
+            if (base === 'Свободно хранене') return 12;
+            if (base === 'Вечеря') return 18;
             return 6; // default: available from early morning
         }
 
@@ -8613,6 +8615,7 @@
             // ── Extra meals ────────────────────────────────────────────────
             var junkCount = 0;
             var extraCalSum = 0;
+            var freeMealCalSum = 0; // calories from free meal replacements (treated as normal allowed)
             (rec.extraMeals || []).forEach(function(em) {
                 // A meal is considered consumed when it has no toggle button (not added to plan)
                 // or when its check button is checked (countCalories !== false).
@@ -8621,7 +8624,9 @@
                 // Counting them here too would double-penalise the same meal.
                 if (em.isJunk && isConsumed && !em.isFreeMealReplacement) junkCount++;
                 if (em.isFreeMealReplacement) {
-                    // rated free meal replacement tracked separately, already counted above
+                    // Treat free meal calories as normal allowed (like lunch) — add to both
+                    // consumed and planned so they don't distort the calorie balance.
+                    freeMealCalSum += (em.calories || 0);
                 } else if (em.isAddedToPlan && !em.countCalories) {
                     // This meal was added to the daily plan but the check button is unchecked —
                     // do not include its calories in the daily total.
@@ -8641,8 +8646,10 @@
                     completedPlanCals += mealCalMap[mt];
                 }
             });
-            var totalConsumed = completedPlanCals + extraCalSum;
-            var planned = rec.plannedCalories || null;
+            var totalConsumed = completedPlanCals + extraCalSum + freeMealCalSum;
+            // Free meal calories are treated as normal allowed (like lunch): expand the planned
+            // target by the same amount so they don't distort the surplus/deficit balance.
+            var planned = rec.plannedCalories ? (rec.plannedCalories + freeMealCalSum) : null;
             var excessCalories = false;
             var calorieBalance = 'balanced';
             var calorieDelta = 0; // positive = surplus kcal, negative = deficit kcal
@@ -8817,12 +8824,15 @@
                 if (em.isAddedToPlan && !em.countCalories) return s;
                 return s + (em.calories || 0);
             }, 0);
+            var freeMealDisplayCals = (rec.extraMeals || []).reduce(function(s,em) {
+                return em.isFreeMealReplacement ? s + (em.calories || 0) : s;
+            }, 0);
             var mCalMap = rec.mealCalories || {};
             var completedCals = Object.keys(rec.meals || {}).reduce(function(s, mt) {
                 return (rec.meals[mt] === true && mCalMap[mt]) ? s + mCalMap[mt] : s;
             }, 0);
-            var planCals = rec.plannedCalories || 0;
-            var totalCals = completedCals + extraCals;
+            var planCals = (rec.plannedCalories || 0) + freeMealDisplayCals;
+            var totalCals = completedCals + extraCals + freeMealDisplayCals;
             var warningsList = [];
             if (ds.calorieBalance === 'surplus' && totalCals > 0) {
                 var surplusKcal = planCals > 0 ? Math.round(totalCals - planCals) : extraCals;

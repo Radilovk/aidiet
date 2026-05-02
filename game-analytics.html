@@ -801,10 +801,13 @@
                 });
                 var junkCount = 0;
                 var extraCalSum = 0;
+                var freeMealCalSum = 0; // calories from free meal replacements (treated as normal allowed)
                 (rec.extraMeals || []).forEach(function(em) {
                     var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
                     if (em.isJunk && isConsumed) junkCount++;
                     if (em.isFreeMealReplacement) {
+                        // Treat free meal calories as normal allowed (like lunch)
+                        freeMealCalSum += (em.calories || 0);
                     } else if (em.isAddedToPlan && !em.countCalories) {
                     } else {
                         extraCalSum += (em.calories || 0);
@@ -815,8 +818,9 @@
                 Object.keys(rec.meals || {}).forEach(function(mt) {
                     if (rec.meals[mt] && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
                 });
-                var totalConsumed = completedPlanCals + extraCalSum;
-                var planned = rec.plannedCalories || null;
+                var totalConsumed = completedPlanCals + extraCalSum + freeMealCalSum;
+                // Free meal calories expand the planned target equally so they don't cause surplus.
+                var planned = rec.plannedCalories ? (rec.plannedCalories + freeMealCalSum) : null;
                 var excessCalories = false, calorieBalance = 'balanced';
                 var calorieDelta = 0;
                 if (totalConsumed > 0 && planned && planned > 0) {
@@ -920,15 +924,24 @@
                     return sum + (d.rec.meals[mt] && mealCalMap[mt] ? mealCalMap[mt] : 0);
                 }, 0);
                 var extraCals = (d.rec.extraMeals || []).reduce(function(sum, em){
-                    if (em.isFreeMealReplacement) return sum;
-                    if (em.isAddedToPlan && !em.countCalories) return sum;
+                    if (em.isAddedToPlan && !em.countCalories) return sum; // added to plan but unchecked
                     return sum + (em.calories || 0);
                 }, 0);
                 var total = completedCals + extraCals;
                 return total > 0 ? total : null;
             });
+            // Planned (target) calories per day — include free meal calories so the target
+            // scales with what was actually consumed at the free meal slot.
             var calPlannedByDay = days.map(function(d){
-                return d.rec ? (d.rec.plannedCalories || null) : null;
+                if (!d.rec) return null;
+                var plan = d.rec.plannedCalories || null;
+                if (plan) {
+                    var freeCals = (d.rec.extraMeals || []).reduce(function(s,em){
+                        return em.isFreeMealReplacement ? s + (em.calories || 0) : s;
+                    }, 0);
+                    plan = plan + freeCals;
+                }
+                return plan;
             });
             var calAdherencePct = (function(){
                 var vals = [];
