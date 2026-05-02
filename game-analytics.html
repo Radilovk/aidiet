@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Текущ анализ и здравен индекс за вашия хранителен план в NutriPlan.">
+    <meta name="theme-color" content="#F0FDFA">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
+    <title>Анализ</title>
+    <link rel="stylesheet" href="./design-system.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0A1A1A':'#F0FDFA');})();</script>
+    <style>
+        :root {
+            --primary-red: #0D9488;
+            --soft-red: #CCFBF1;
+            --accent-yellow: #fbbf24;
+            --accent-blue: #06B6D4;
+            --accent-light-red: #f87171;
+            --text-dark: #0F2F2E;
+            --text-light: #6b7280;
+            --bg-color: #F0FDFA;
+            --card-bg: rgba(255, 255, 255, 0.72);
+            --shadow: 0 4px 12px rgba(13,148,136,0.08);
+            --radius: 24px;
+            --glass-blur: 20px;
+            --glass-border: rgba(13, 148, 136, 0.1);
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+        }
+
+        [data-theme="dark"] {
+            --primary-red: #2DD4BF;
+            --soft-red: #134E4A;
+            --accent-yellow: #fcd34d;
+            --accent-blue: #60a5fa;
+            --accent-light-red: #fca5a5;
+            --text-dark: #E0F5F0;
+            --text-light: #9ca3af;
+            --bg-color: #0A1A1A;
+            --card-bg: rgba(20, 55, 55, 0.78);
+            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(45,212,191,0.1);
+            --radius: 24px;
+            --glass-blur: 20px;
+            --glass-border: rgba(45, 212, 191, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding-bottom: calc(80px + var(--safe-area-inset-bottom));
+        }
+
+        /* --- PAGE HEADER --- */
+        .page-header {
+            background: var(--card-bg);
+            padding: calc(18px + var(--safe-area-inset-top)) calc(16px + var(--safe-area-inset-right)) 14px calc(16px + var(--safe-area-inset-left));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        [data-theme="dark"] .page-header {
+            background: rgba(20, 55, 55, 0.92);
+            border-bottom-color: var(--glass-border);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .back-btn:hover {
+            background: rgba(13, 148, 136, 0.08);
+            transform: translateX(-3px);
+        }
+
+        .page-header h1 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            letter-spacing: -0.3px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .theme-toggle-btn {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+        }
+
+        .theme-toggle-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.1) rotate(-8deg);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .theme-toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* --- CONTAINER --- */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 16px 15px 15px;
+        }
+
+        /* --- GAME ANALYTICS SECTION --- */
+        .game-analytics-section {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+        }
+        .game-analytics-header {
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #0D9488, #0F766E);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .game-analytics-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+        .game-analytics-badge {
+            font-size: 0.72rem;
+            background: rgba(255,255,255,0.2);
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .game-analytics-chevron {
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
+            opacity: 0.85;
+        }
+        .game-analytics-section.open .game-analytics-chevron {
+            transform: rotate(180deg);
+        }
+        .game-analytics-body {
+            padding: 14px 16px 16px;
+        }
+        /* Weekly overview card */
+        .game-week-card {
+            background: linear-gradient(135deg,#0D9488,#0F766E);
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .game-week-icon { font-size: 1.7rem; line-height: 1; display:flex; align-items:center; justify-content:center; }
+        .game-week-info { flex: 1; min-width: 0; }
+        .game-week-title { font-size: 0.78rem; opacity: 0.85; font-weight: 500; }
+        .game-week-score { font-size: 1.15rem; font-weight: 800; }
+        .game-week-sub   { font-size: 0.72rem; opacity: 0.8; margin-top: 2px; }
+        /* 7-day dot strip */
+        .game-week-dots { display:flex; gap:4px; margin-top: 7px; }
+        .game-week-dot  {
+            width:14px; height:14px; border-radius:50%;
+            background:#e5e7eb; cursor:default;
+            border: 2px solid rgba(255,255,255,0.22);
+        }
+        /* Health score ring */
+        .game-health-ring-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .game-ring-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .game-ring-svg { transform: rotate(-90deg); }
+        .game-ring-bg  { fill: none; stroke: rgba(13,148,136,0.12); }
+        .game-ring-fg  { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1); }
+        .game-ring-label { font-size: 0.68rem; font-weight: 600; color: var(--text-light); text-align: center; }
+        /* Index rows */
+        .game-index-row {
+            margin-bottom: 12px;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 8px 10px;
+            transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .game-index-row:hover { background: rgba(13,148,136,0.06); }
+        .game-index-row:active { background: rgba(13,148,136,0.1); }
+        .game-index-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 5px;
+        }
+        .game-index-hint {
+            font-size: 0.68rem;
+            color: var(--text-light, #6b7280);
+            margin-bottom: 4px;
+        }
+        .game-index-bar-wrap {
+            height: 8px;
+            background: var(--soft-red);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .game-index-bar {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+        }
+        /* Day-by-day mini bar chart */
+        .game-day-dots { display:flex; gap:3px; margin-top:6px; align-items:flex-end; height:52px; }
+        .game-day-col  { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:2px; min-width:0; }
+        .game-day-dot  {
+            width: 100%;
+            max-width: 20px;
+            border-radius: 3px 3px 0 0;
+            min-height: 4px;
+            transition: height 0.5s ease;
+        }
+        /* Calorie target bar chart */
+        .game-day-dots-cal {
+            display:flex; gap:3px; margin-top:6px; height:52px;
+            position:relative; align-items:flex-end;
+        }
+        .game-cal-target-line {
+            position:absolute; left:0; right:0; height:2px;
+            background:rgba(107,114,128,0.5);
+            border-radius:999px; pointer-events:none; z-index:1;
+        }
+        [data-theme="dark"] .game-cal-target-line { background:rgba(200,200,200,0.28); }
+        /* Correlation insights */
+        .game-insight-card {
+            background: rgba(13,148,136,0.06);
+            border-radius: 12px;
+            padding: 10px 13px;
+            margin-bottom: 10px;
+            border-left: 3px solid #0D9488;
+            font-size: 0.8rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+        .game-insight-card .game-insight-icon {
+            font-size: 1rem;
+            margin-right: 5px;
+        }
+        .game-insight-card strong { color: #0D9488; }
+        /* Scenario/prediction card */
+        .game-scenario-card {
+            background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.07));
+            border-radius: 12px;
+            padding: 11px 13px;
+            margin-bottom: 10px;
+            border: 1.5px solid rgba(99,102,241,0.2);
+            font-size: 0.8rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+        .game-scenario-card .game-scenario-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #6366f1;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        /* Alert card */
+        .game-alert-card {
+            background: rgba(245,158,11,0.08);
+            border-radius: 12px;
+            padding: 10px 13px;
+            margin-bottom: 10px;
+            border-left: 3px solid #f59e0b;
+            font-size: 0.8rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+        /* No-data days note */
+        .game-no-data-note {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            text-align: center;
+            padding: 6px 0;
+            opacity: 0.8;
+        }
+        /* Encouragement note */
+        .game-encourage-note {
+            background: rgba(13,148,136,0.07);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.82rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+            margin-top: 12px;
+            border-left: 3px solid #0D9488;
+        }
+        .game-weekly-info {
+            font-size: 0.72rem;
+            color: var(--text-light, #6b7280);
+            margin-top: 9px;
+            text-align: right;
+        }
+        /* Section divider */
+        .game-section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin: 14px 0 8px;
+        }
+        /* Metrics collapsible toggle */
+        .game-metrics-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 7px 4px 7px 0;
+            margin: 10px 0 4px;
+            border-top: 1px solid rgba(13,148,136,0.15);
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            border-radius: 6px;
+        }
+        .game-metrics-toggle:hover { background: rgba(13,148,136,0.05); }
+        .game-metrics-chevron {
+            font-size: 0.72rem;
+            color: var(--text-light);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+        [data-theme="dark"] .game-metrics-toggle { border-top-color: rgba(45,212,191,0.12); }
+        /* Explanation modal */
+        .game-explain-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(4px);
+            z-index: 3000;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+            animation: geFade 0.25s ease;
+        }
+        @keyframes geFade { from{opacity:0} to{opacity:1} }
+        .game-explain-box {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px 18px 16px;
+            max-width: 320px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            animation: gePop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes gePop {
+            from { opacity:0; transform:scale(0.8) translateY(20px); }
+            to   { opacity:1; transform:scale(1) translateY(0); }
+        }
+        .game-explain-title { font-size:0.95rem; font-weight:700; color:var(--text-dark); margin-bottom:9px; }
+        .game-explain-text  { font-size:0.82rem; color:var(--text-dark); opacity:0.8; line-height:1.6; }
+        .game-explain-close {
+            margin-top:12px; width:100%; padding:10px;
+            border:none; border-radius:12px;
+            background:linear-gradient(135deg,#0D9488,#0F766E);
+            color:white; font-weight:700; cursor:pointer; font-size:0.85rem;
+        }
+        /* Dark theme overrides */
+        [data-theme="dark"] .game-analytics-section { border-color: rgba(45,212,191,0.15); }
+        [data-theme="dark"] .game-index-bar-wrap    { background: rgba(45,212,191,0.1); }
+        [data-theme="dark"] .game-encourage-note    { background: rgba(45,212,191,0.07); border-color: rgba(45,212,191,0.4); }
+        [data-theme="dark"] .game-insight-card      { background: rgba(45,212,191,0.07); border-color: rgba(45,212,191,0.4); }
+        [data-theme="dark"] .game-scenario-card     { background: rgba(99,102,241,0.1); border-color: rgba(139,92,246,0.25); }
+        [data-theme="dark"] .game-alert-card        { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.5); }
+        [data-theme="dark"] .game-ring-bg           { stroke: rgba(45,212,191,0.15); }
+
+        /* Entrance & visual animations */
+        @keyframes gaCardIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        }
+        .ga-card-enter {
+            animation: gaCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .game-week-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .game-week-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.13) 50%, transparent 70%);
+            animation: gaWeekShimmer 3.8s ease-in-out 0.6s infinite;
+            pointer-events: none;
+        }
+        @keyframes gaWeekShimmer {
+            0%        { transform: translateX(-120%); }
+            55%, 100% { transform: translateX(120%);  }
+        }
+        .game-week-dot {
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+        }
+        .game-week-dot:hover {
+            transform: scale(1.35);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .game-index-bar {
+            transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .game-day-dot {
+            transition: height 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        .game-ring-wrap {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .game-ring-wrap:hover { transform: scale(1.06); }
+        .game-index-row {
+            transition: background 0.2s ease, transform 0.18s ease;
+        }
+        .game-index-row:hover { transform: translateX(4px); }
+        .game-insight-card,
+        .game-alert-card,
+        .game-scenario-card {
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .game-insight-card:hover,
+        .game-scenario-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 3px 14px rgba(13, 148, 136, 0.12);
+        }
+        .game-alert-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 3px 14px rgba(245, 158, 11, 0.14);
+        }
+
+        /* No-data message */
+        .ga-no-data {
+            text-align: center;
+            padding: 32px 20px;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .ga-no-data i {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            height: calc(60px + var(--safe-area-inset-bottom));
+            padding: 0 8px var(--safe-area-inset-bottom);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-top: 1px solid rgba(13, 148, 136, 0.1);
+            box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(13, 148, 136, 0.06);
+            transform: translateZ(0);
+        }
+        [data-theme="dark"] .bottom-nav {
+            background: rgba(8, 22, 22, 0.96);
+            border-top: none;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(45, 212, 191, 0.08);
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 7px 18px;
+            min-width: 64px;
+            border-radius: 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+        }
+        .bottom-nav-item i {
+            font-size: 20px;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .bottom-nav-item.active {
+            color: var(--primary-red);
+            background: rgba(13, 148, 136, 0.1);
+        }
+        [data-theme="dark"] .bottom-nav-item.active {
+            background: rgba(45, 212, 191, 0.15);
+            color: var(--primary-red);
+        }
+        .bottom-nav-item.active i { transform: scale(1.1); }
+        .bottom-nav-item:active { transform: scale(0.92); }
+        .bottom-nav-item:hover:not(.active) {
+            background: rgba(13, 148, 136, 0.05);
+        }
+    </style>
+    <script>
+        // Apply color scheme from admin settings
+        (function() {
+            const colorSchemes = {
+                'purple-pink': {
+                    light: { '--primary-red': '#0D9488', '--soft-red': '#CCFBF1' },
+                    dark:  { '--primary-red': '#2DD4BF', '--soft-red': '#134E4A' }
+                },
+                'green-blue': {
+                    light: { '--primary-red': '#4CAF50', '--soft-red': '#E8F5E9' },
+                    dark:  { '--primary-red': '#66BB6A', '--soft-red': '#1B5E20' }
+                },
+                'blue-indigo': {
+                    light: { '--primary-red': '#3B82F6', '--soft-red': '#EFF6FF' },
+                    dark:  { '--primary-red': '#60A5FA', '--soft-red': '#1E3A8A' }
+                },
+                'orange-red': {
+                    light: { '--primary-red': '#F97316', '--soft-red': '#FFF7ED' },
+                    dark:  { '--primary-red': '#FB923C', '--soft-red': '#7C2D12' }
+                }
+            };
+            function applyColorScheme() {
+                const savedScheme = localStorage.getItem('colorScheme') || 'purple-pink';
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const colors = colorSchemes[savedScheme]?.[currentTheme];
+                if (colors) {
+                    const root = document.documentElement;
+                    Object.keys(colors).forEach(key => { root.style.setProperty(key, colors[key]); });
+                }
+            }
+            applyColorScheme();
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                        applyColorScheme();
+                    }
+                });
+            });
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        })();
+    </script>
+</head>
+<body>
+    <!-- Page Header -->
+    <header class="page-header">
+        <button class="back-btn" onclick="history.back()" aria-label="Назад"><i class="fas fa-arrow-left"></i></button>
+        <h1>Текущ Анализ</h1>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="game-analytics-section open" id="gameAnalyticsSection">
+            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="true" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
+                <div class="game-analytics-title">
+                    <i class="fas fa-brain"></i>
+                    <span>Текущ Анализ</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span id="gameAnalyticsBadge" class="game-analytics-badge"></span>
+                    <i class="fas fa-chevron-up game-analytics-chevron" id="gameAnalyticsChevron"></i>
+                </div>
+            </div>
+            <div class="game-analytics-body" id="gameAnalyticsBody">
+                <p style="color:var(--text-light);font-style:italic;font-size:0.85rem;">Зареждане…</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setThemeColor(theme) {
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', theme === 'dark' ? '#0A1A1A' : '#F0FDFA');
+        }
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+            setThemeColor(newTheme);
+        }
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+        // Apply correct icon on load
+        (function() {
+            var t = document.documentElement.getAttribute('data-theme') || 'light';
+            updateThemeIcon(t);
+        })();
+
+        function toggleGameAnalytics() {
+            var section = document.getElementById('gameAnalyticsSection');
+            var body    = document.getElementById('gameAnalyticsBody');
+            var chevron = document.getElementById('gameAnalyticsChevron');
+            var header  = section ? section.querySelector('.game-analytics-header') : null;
+            if (!section || !body) return;
+            var isOpen = body.style.display !== 'block';
+            body.style.display = isOpen ? 'block' : 'none';
+            section.classList.toggle('open', isOpen);
+            if (chevron) chevron.className = 'fas game-analytics-chevron ' + (isOpen ? 'fa-chevron-up' : 'fa-chevron-down');
+            if (header)  header.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function toggleDetailedMetrics() {
+            var details = document.getElementById('gameMetricsDetails');
+            var chevron = document.getElementById('gameMetricsChevron');
+            var toggle  = document.getElementById('gameMetricsToggle');
+            if (!details) return;
+            var isOpen = details.style.display !== 'block';
+            details.style.display = isOpen ? 'block' : 'none';
+            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (toggle)  toggle.setAttribute('aria-expanded', String(isOpen));
+
+            if (isOpen) {
+                details.querySelectorAll('.ga-card-enter').forEach(function(el, i) {
+                    el.style.animation = 'none';
+                    void el.offsetWidth;
+                    el.style.animation = '';
+                    el.style.animationDelay = (i * 0.07) + 's';
+                });
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        details.querySelectorAll('[data-ga-bar]').forEach(function(el, i) {
+                            el.style.width = '0%';
+                            setTimeout(function() {
+                                el.style.width = el.getAttribute('data-ga-bar') + '%';
+                            }, 60 + i * 60);
+                        });
+                        function animateBarHeight(selector, baseDelay) {
+                            details.querySelectorAll(selector).forEach(function(el, i) {
+                                el.style.height = '0px';
+                                setTimeout(function() {
+                                    el.style.height = el.getAttribute(selector.slice(1, -1));
+                                }, baseDelay + i * 25);
+                            });
+                        }
+                        animateBarHeight('[data-ga-bar-h]', 100);
+                    });
+                });
+            }
+        }
+    </script>
+
+    <script>
+        // ── Current Analysis Loader ─────────────────────────────────────────────
+        (function loadGameAnalytics() {
+            var section = document.getElementById('gameAnalyticsSection');
+            var body    = document.getElementById('gameAnalyticsBody');
+            var badge   = document.getElementById('gameAnalyticsBadge');
+            if (!section || !body) return;
+
+            var enabled = localStorage.getItem('gameEnabled') === 'true';
+            if (!enabled) {
+                body.innerHTML = '<div class="ga-no-data"><i class="fas fa-chart-bar"></i>Анализът не е активиран.<br>Активирайте го от страницата на плана.</div>';
+                return;
+            }
+            // Section is already open/visible by default on this page
+            body.style.display = 'block';
+            section.classList.add('open');
+
+            // ── Helpers ───────────────────────────────────────────────────────
+            function zp(n) { return n < 10 ? '0' + n : '' + n; }
+            function dk(d)  { return d.getFullYear()+'-'+zp(d.getMonth()+1)+'-'+zp(d.getDate()); }
+            var todayKey = dk(new Date());
+
+            // ── Scoring constants (must match plan.html) ──────────────────────
+            var FREE_MEAL_MIN_RATING   = 4;
+            var JUNK_MAX_POINTS        = 20;
+            var JUNK_PENALTY_PER_MEAL  = 7;
+
+            var allData = {};
+            try { allData = JSON.parse(localStorage.getItem('gameData') || '{}'); } catch(e) {}
+
+            // Only past days + today (exclude future)
+            var days = [];
+            for (var i = 6; i >= 0; i--) {
+                var dd = new Date(); dd.setDate(dd.getDate() - i);
+                var key = dk(dd);
+                if (key <= todayKey) {
+                    days.push({ key: key, rec: allData[key] || null });
+                }
+            }
+
+            // ── calcDayScore ──────────────────────────────────────────────────
+            function calcDayScore(rec) {
+                if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0, incorrectMeals:0, excessCalories:false, calorieBalance:'balanced', engPct:0, calorieDelta:0 };
+                var meals = Object.keys(rec.meals || {});
+                var freeMealRatings = rec.freeMealRatings || {};
+                var mealPts = 0, mealMax = meals.length * 10;
+                var incorrectMeals = 0;
+                meals.forEach(function(m) {
+                    if (m === 'Свободно хранене') {
+                        var rating = freeMealRatings[m];
+                        if (rating != null) { if (rating >= FREE_MEAL_MIN_RATING) { mealPts += 10; } else { incorrectMeals++; } }
+                    } else {
+                        if (rec.meals[m] === true) mealPts += 10;
+                    }
+                });
+                var junkCount = 0;
+                var extraCalSum = 0;
+                (rec.extraMeals || []).forEach(function(em) {
+                    var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
+                    if (em.isJunk && isConsumed) junkCount++;
+                    if (em.isFreeMealReplacement) {
+                    } else if (em.isAddedToPlan && !em.countCalories) {
+                    } else {
+                        extraCalSum += (em.calories || 0);
+                    }
+                });
+                var mealCalMap = rec.mealCalories || {};
+                var completedPlanCals = 0;
+                Object.keys(rec.meals || {}).forEach(function(mt) {
+                    if (rec.meals[mt] && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
+                });
+                var totalConsumed = completedPlanCals + extraCalSum;
+                var planned = rec.plannedCalories || null;
+                var excessCalories = false, calorieBalance = 'balanced';
+                var calorieDelta = 0;
+                if (totalConsumed > 0 && planned && planned > 0) {
+                    var excessPct = (totalConsumed - planned) / planned;
+                    calorieDelta = Math.round(totalConsumed - planned);
+                    if (excessPct > 0.10) { excessCalories = true; calorieBalance = 'surplus'; }
+                    else if (excessPct > 0) { calorieBalance = 'surplus'; }
+                    else if (excessPct < -0.10 && completedPlanCals > 0 && (rec.morningCheck || rec.eveningCheck)) {
+                        calorieBalance = 'deficit';
+                    }
+                } else if (extraCalSum > 0 && (!planned || planned === 0)) {
+                    calorieDelta = extraCalSum;
+                    if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
+                    else { calorieBalance = 'surplus'; }
+                }
+                var sleepPts    = rec.morningCheck  ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
+                var waterPts    = rec.eveningCheck  ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
+                var activityPts = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.activityLevel] || 0) : null;
+                var balancePts  = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
+                var wellnessEarned = (sleepPts||0)+(waterPts||0)+(activityPts||0)+(balancePts||0);
+                var allMealsOk = meals.length > 0 && meals.every(function(m) {
+                    if (m === 'Свободно хранене') { var r=freeMealRatings[m]; return r==null||r>=FREE_MEAL_MIN_RATING; }
+                    return rec.meals[m] === true;
+                });
+                var badSleep = rec.morningCheck && rec.morningCheck.sleptWell === false;
+                var badWater = rec.eveningCheck && rec.eveningCheck.waterIntake === false;
+                var lowActivity = rec.eveningCheck && rec.eveningCheck.activityLevel === 1;
+                var lowBalance  = rec.eveningCheck && rec.eveningCheck.emotionalBalance === 1;
+                var has5StarBlocker = !allMealsOk || incorrectMeals>0 || excessCalories || badSleep || badWater || lowActivity || lowBalance || junkCount>0;
+                var done = meals.filter(function(m) {
+                    if (m==='Свободно хранене') return (freeMealRatings[m]||0)>=FREE_MEAL_MIN_RATING;
+                    return rec.meals[m]===true;
+                }).length;
+                var mealEngPct = meals.length>0 ? done/meals.length*50 : 0;
+                var mornEngPct = rec.morningCheck ? 15 : 0;
+                var eveEngPct  = rec.eveningCheck  ? 15 : 0;
+                var hasAnyEngagement = mealEngPct > 0 || mornEngPct > 0 || eveEngPct > 0 || junkCount > 0 || incorrectMeals > 0;
+                var junkPct    = hasAnyEngagement ? Math.max(0, JUNK_MAX_POINTS-(junkCount+incorrectMeals)*JUNK_PENALTY_PER_MEAL) : 0;
+                var engPct     = Math.round(mealEngPct+mornEngPct+eveEngPct+junkPct);
+                var totalMax = mealMax + 40;
+                var totalEarned = mealPts + wellnessEarned;
+                var score = null;
+                if (totalMax > 0 && (totalEarned > 0 || meals.length > 0)) {
+                    var pct = totalEarned / totalMax;
+                    if      (pct >= 1.00 && !has5StarBlocker) score = 5;
+                    else if (pct >= 0.80) score = 4;
+                    else if (pct >= 0.55) score = 3;
+                    else if (pct >= 0.30) score = 2;
+                    else if (pct >  0)    score = 1;
+                    if (score === 5 && has5StarBlocker) score = 4;
+                }
+                var starIcon='<i class="fas fa-star" style="color:#fbbf24;font-size:0.8em"></i>';
+                var stars='';
+                for (var _s=0;_s<(score||0);_s++) stars+=starIcon;
+                var label='';
+                if (score===null) { label=meals.length?'Без отбелязана активност':'Без данни'; }
+                else if (score===5) label='Отличен резултат!';
+                else if (score===4) label='Много добре!';
+                else if (score===3) label='Добре';
+                else if (score===2) label='Може по-добре';
+                else label='Подобри се утре';
+                if (incorrectMeals>0) label+=' ⚠ '+incorrectMeals+' неправилно хранене';
+                if (junkCount>0) label+=' ('+junkCount+' вредни)';
+                if (calorieBalance==='surplus'&&excessCalories) label+=' — излишни кал.';
+                if (calorieBalance==='deficit') label+=' — кал. дефицит';
+                return { score:score, stars:stars, label:label, junkCount:junkCount,
+                         incorrectMeals:incorrectMeals, excessCalories:excessCalories,
+                         calorieBalance:calorieBalance, engPct:engPct, calorieDelta:calorieDelta };
+            }
+
+            // ── Core metrics ──────────────────────────────────────────────────
+            var weekScores = days.map(function(d){ return d.rec ? calcDayScore(d.rec) : null; });
+            var validScores= weekScores.filter(function(s){ return s&&s.score!=null; });
+            var avgScore   = days.length>0 ? Math.round(validScores.reduce(function(a,s){return a+s.score;},0)/days.length*10)/10 : 0;
+
+            var engPcts = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : null; });
+            var noDataDaysCount = days.filter(function(d){ return !d.rec; }).length;
+            var engForAvg = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : 0; });
+            var engagementPct = Math.round(engForAvg.reduce(function(a,b){return a+b;},0)/days.length);
+
+            var extraCalsByDay = days.map(function(d){
+                if(!d.rec||!d.rec.extraMeals) return null;
+                return d.rec.extraMeals.reduce(function(s,em){
+                    if (em.isFreeMealReplacement) return s;
+                    if (em.isAddedToPlan && !em.countCalories) return s;
+                    return s+(em.calories||0);
+                },0);
+            });
+            var totalExtraCals = extraCalsByDay.reduce(function(s,v){return s+(v||0);},0);
+
+            var calBalanceByDay = days.map(function(d){
+                if (!d.rec) return null;
+                return calcDayScore(d.rec).calorieDelta;
+            });
+            var netCalBalance = calBalanceByDay.reduce(function(s,v){return s+(v||0);},0);
+
+            var calConsumedByDay = days.map(function(d){
+                if (!d.rec) return null;
+                var mealCalMap = d.rec.mealCalories || {};
+                var completedCals = Object.keys(d.rec.meals || {}).reduce(function(sum, mt){
+                    return sum + (d.rec.meals[mt] && mealCalMap[mt] ? mealCalMap[mt] : 0);
+                }, 0);
+                var extraCals = (d.rec.extraMeals || []).reduce(function(sum, em){
+                    if (em.isFreeMealReplacement) return sum;
+                    if (em.isAddedToPlan && !em.countCalories) return sum;
+                    return sum + (em.calories || 0);
+                }, 0);
+                var total = completedCals + extraCals;
+                return total > 0 ? total : null;
+            });
+            var calPlannedByDay = days.map(function(d){
+                return d.rec ? (d.rec.plannedCalories || null) : null;
+            });
+            var calAdherencePct = (function(){
+                var vals = [];
+                calConsumedByDay.forEach(function(consumed, idx){
+                    if (!consumed) return;
+                    var plan = calPlannedByDay[idx];
+                    if (!plan) return;
+                    vals.push(Math.min(100, Math.round(consumed / plan * 100)));
+                });
+                return vals.length > 0
+                    ? Math.round(vals.reduce(function(a,b){return a+b;},0) / vals.length)
+                    : null;
+            })();
+
+            var incorrectMealsCount7 = 0;
+            days.forEach(function(d){
+                if (d.rec) {
+                    var ds = calcDayScore(d.rec);
+                    incorrectMealsCount7 += ds.incorrectMeals || 0;
+                }
+            });
+
+            var balanceByDay = days.map(function(d){
+                if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.emotionalBalance==null) return null;
+                return Math.round((d.rec.eveningCheck.emotionalBalance-1)/2*100);
+            });
+            var balanceValid = balanceByDay.filter(function(v){return v!==null;});
+            var balancePct = balanceValid.length>0 ? Math.round(balanceValid.reduce(function(a,b){return a+b;},0)/balanceValid.length) : null;
+
+            var sleepByDay = days.map(function(d){
+                if(!d.rec||!d.rec.morningCheck||d.rec.morningCheck.sleptWell==null) return null;
+                return d.rec.morningCheck.sleptWell ? 100 : 0;
+            });
+            var sleepValid = sleepByDay.filter(function(v){return v!==null;});
+            var sleepPct = sleepValid.length>0 ? Math.round(sleepValid.reduce(function(a,b){return a+b;},0)/sleepValid.length) : null;
+
+            var actByDay = days.map(function(d){
+                if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.activityLevel==null) return null;
+                return Math.round((d.rec.eveningCheck.activityLevel-1)/2*100);
+            });
+            var actValid = actByDay.filter(function(v){return v!==null;});
+            var actPct = actValid.length>0 ? Math.round(actValid.reduce(function(a,b){return a+b;},0)/actValid.length) : null;
+
+            var waterByDay = days.map(function(d){
+                if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.waterIntake==null) return null;
+                return d.rec.eveningCheck.waterIntake===true ? 100 : 0;
+            });
+            var waterValid = waterByDay.filter(function(v){return v!==null;});
+            var waterPct = waterValid.length>0 ? Math.round(waterValid.reduce(function(a,b){return a+b;},0)/waterValid.length) : null;
+
+            var junkCount7=0;
+            days.forEach(function(d){ ((d.rec&&d.rec.extraMeals)||[]).forEach(function(em){
+                var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
+                if(em.isJunk && isConsumed) junkCount7++;
+            }); });
+
+            var pastScores = weekScores.slice(0, weekScores.length - 1);
+            var firstHalf = pastScores.slice(0,Math.floor(pastScores.length/2)).filter(function(s){ return s&&s.score!=null; });
+            var lastHalf  = pastScores.slice(Math.ceil(pastScores.length/2)).filter(function(s){ return s&&s.score!=null; });
+            var trendUp   = lastHalf.length>0&&firstHalf.length>0 &&
+                (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length) >
+                (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length + 0.3);
+            var trendDown = lastHalf.length>0&&firstHalf.length>0 &&
+                (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length) >
+                (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length + 0.3);
+
+            var INCORRECT_MEAL_ENG_PENALTY  = 5;
+            var INCORRECT_MEAL_CAL_PENALTY  = 10;
+            var healthScore = 0;
+            var totalWeight = 0.35;
+            var adjustedEngPct = Math.max(0, engagementPct - incorrectMealsCount7 * INCORRECT_MEAL_ENG_PENALTY);
+            healthScore += adjustedEngPct * 0.35;
+            if(sleepPct!=null){ healthScore += sleepPct * 0.25; totalWeight += 0.25; }
+            if(balancePct!=null){ healthScore += balancePct * 0.2; totalWeight += 0.2; }
+            if(actPct!=null){ healthScore += actPct * 0.2; totalWeight += 0.2; }
+            var totalCalsWeight = Math.max(0, 100 - Math.round(totalExtraCals/700*100));
+            totalCalsWeight = Math.max(0, totalCalsWeight - incorrectMealsCount7 * INCORRECT_MEAL_CAL_PENALTY);
+            healthScore += totalCalsWeight * 0.05; totalWeight += 0.05;
+            healthScore = Math.round(Math.max(0, Math.min(100, healthScore / totalWeight)));
+
+            // ── Correlation insights ──────────────────────────────────────────
+            var insights = [];
+            var sleepGoodEng=[], sleepBadEng=[];
+            days.forEach(function(d,i){
+                if(sleepByDay[i]!=null&&engPcts[i]!=null){
+                    if(sleepByDay[i]===100) sleepGoodEng.push(engPcts[i]);
+                    else sleepBadEng.push(engPcts[i]);
+                }
+            });
+            if(sleepGoodEng.length>0&&sleepBadEng.length>0){
+                var sgAvg=Math.round(sleepGoodEng.reduce(function(a,b){return a+b;},0)/sleepGoodEng.length);
+                var sbAvg=Math.round(sleepBadEng.reduce(function(a,b){return a+b;},0)/sleepBadEng.length);
+                if(sgAvg-sbAvg>15) insights.push('<i class="fas fa-bed" style="color:#6366f1"></i> В дните с добър сън ангажираността ви е <strong>'+sgAvg+'%</strong> (vs '+sbAvg+'% без добър сън)');
+            }
+            var lowBalanceDays  = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]<=40; });
+            var highBalanceDays = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]>=60; });
+            var lbJunk = lowBalanceDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){
+                var isConsumed = !e.isAddedToPlan || e.countCalories !== false;
+                return e.isJunk && isConsumed;
+            }).length);},0);
+            var hbJunk = highBalanceDays.reduce(function(s,d){return s+((d.rec&&d.rec.extraMeals||[]).filter(function(e){
+                var isConsumed = !e.isAddedToPlan || e.countCalories !== false;
+                return e.isJunk && isConsumed;
+            }).length);},0);
+            if(lowBalanceDays.length>0&&hbJunk===0&&lbJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ви');
+            else if(lowBalanceDays.length>0&&hbJunk<lbJunk) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Забелязваме повече вредни хранения в дни с по-нисък емоционален баланс');
+            var streak=0, currentStreak=0;
+            var streakStart = days.length - 1;
+            if (streakStart >= 0 && days[streakStart].key === todayKey &&
+                    (!days[streakStart].rec || calcDayScore(days[streakStart].rec).score === null)) {
+                streakStart--;
+            }
+            for(var si=streakStart;si>=0;si--){
+                if(days[si].rec&&calcDayScore(days[si].rec).score>=4){ streak++; currentStreak=Math.max(currentStreak,streak); } else break;
+            }
+            if(currentStreak>=3) insights.push('<i class="fas fa-fire" style="color:#f59e0b"></i> Имате текуща серия от <strong>'+currentStreak+' отлични дни</strong> подред! Продължавайте!');
+            else if(currentStreak===2) insights.push('<i class="fas fa-bolt" style="color:#0D9488"></i> Два отлични дни подред — вие сте в страхотен ритъм!');
+            var deficitDays = days.filter(function(d,i){
+                return calBalanceByDay[i]!==null && calBalanceByDay[i]<-100 && d.rec && (d.rec.morningCheck||d.rec.eveningCheck);
+            });
+            if(deficitDays.length>=2){
+                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> '+deficitDays.length+' дни с калориен дефицит — следете дали приемате достатъчно хранителни вещества за постигане на целите си');
+            } else if(deficitDays.length===1){
+                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> 1 ден с калориен дефицит — следете дали приемате достатъчно хранителни вещества');
+            }
+            if(deficitDays.length>=2){
+                var deficitLowAct=deficitDays.filter(function(d){ return d.rec&&d.rec.eveningCheck&&d.rec.eveningCheck.activityLevel===1; }).length;
+                if(deficitLowAct>=Math.ceil(deficitDays.length/2)) insights.push('<i class="fas fa-bolt" style="color:#3b82f6"></i> В дните с калориен дефицит активността е по-ниска — ниският калориен прием влияе на енергийните нива');
+            }
+
+            // ── Scenario / Prediction ─────────────────────────────────────────
+            var scenario = null;
+            if(validScores.length>=3){
+                var projected = Math.min(5, Math.round((avgScore + (trendUp?0.5:trendDown?-0.3:0))*10)/10);
+                if(trendUp && projected>=4) scenario = '<i class="fas fa-chart-line" style="color:#10b981"></i> Ако запазите текущата тенденция, ще достигнете средна оценка <strong>'+projected+'/5</strong> за седмицата — отлично!';
+                else if(trendDown) scenario = '<i class="fas fa-chart-line" style="color:#ef4444;transform:rotate(90deg);display:inline-block"></i> Наблюдаваме спад в последните дни. Малко повече внимание към плана ще обърне тенденцията.';
+                else if(avgScore>=4) scenario = '<i class="fas fa-star" style="color:#fbbf24"></i> Стабилна и силна седмица! Ако запазите ритъма, ще затвърдите навиците дългосрочно.';
+                else if(engagementPct<50) scenario = '<i class="fas fa-lightbulb" style="color:#0D9488"></i> Увеличете ангажираността с 20% (отбелязвайте хранения редовно) и оценката ви ще скочи значително.';
+            }
+
+            // ── Alerts ────────────────────────────────────────────────────────
+            var alerts = [];
+            var missedLast2 = days.slice(-2).filter(function(d){
+                if (!d.rec) return true;
+                var s = calcDayScore(d.rec);
+                return s.score !== null && s.score < 2;
+            });
+            if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имате ниска ангажираност — проверете дали имате нужда от промяна в плана.');
+            if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Открихме '+junkCount7+' вредни хранения за седмицата. Опитайте да намалите до 1-2 максимум.');
+            if(incorrectMealsCount7>0) alerts.push('<i class="fas fa-exclamation-circle" style="color:#ef4444"></i> '+incorrectMealsCount7+' неправилно свободно хранене за седмицата — нискокачествените замени снижават здравния ви индекс.');
+            if(sleepPct!=null&&sleepPct<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
+
+            // ── Encouragement ─────────────────────────────────────────────────
+            var leadingCriterion='', encourageText='<i class="fas fa-dumbbell" style="color:#0D9488"></i> Последователността е ключът към успеха!';
+            if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намалете вредните храни — планът работи когато го следвате!'; }
+            else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!'; }
+            else if (engagementPct<60)                 { leadingCriterion='';             encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвайте храненията по план — резултатите идват!'; }
+            else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-person-walking" style="color:#0D9488"></i> Малко движение прави голяма разлика. Дори 15 минути помагат!'; }
+            else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавайте в същия дух — резултатите идват!'; }
+            if (badge) badge.textContent = leadingCriterion || (validScores.length+' дни');
+
+            // ── Explanation modal ─────────────────────────────────────────────
+            var EXPLANATIONS = {
+                engagement: { title:'Ангажираност към плана',
+                    text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни/неправилни храни (20 т.)\n\nВсяко неправилно свободно хранене (рейтинг 0-3/5) намалява точките.\nСедмичният % е средна стойност (дни без данни = 0%).\nЦел: 80%+' },
+                calories: { title:'Калориен баланс',
+                    text:'Показва приетите калории спрямо дневния ви таргет за последните дни.\n\nВизуализация:\n• Хоризонталната линия = заложен калориен таргет\n• Лента достигаща линията = балансиран ден\n• Лента НАД линията (оранжево/червено) = излишък от калории\n• Лента ПОД линията (синьо) = калориен дефицит\n\nДефицитът се регистрира само когато са отбелязани хранения И е попълнен поне един въпросник (сутрешен или вечерен).\nСвободните хранения с рейтинг 0-3 се отчитат като "Неправилно хранене" и допълнително влошават здравния индекс.' },
+                stress: { title:'Емоционален баланс',
+                    text:'Изчислява се от вечерния въпрос "Емоционален баланс".\n\n• Баланс Отлично → 100%\n• Баланс Добре → 50%\n• Баланс Слабо → 0%\n\nПо-висок % = по-добре.\nЦел: 70%+\n\nВисок емоционален баланс означава нисък стрес и по-добро самочувствие.' },
+                sleep: { title:'Качество на съня',
+                    text:'Изчислява се от сутрешния въпрос "Спахте ли добре?".\n\nФормула: брой "Да" ÷ общо отговори × 100%\n\nПо-висок % = по-добре.\nЦел: 70%+' },
+                activity: { title:'Активност',
+                    text:'Изчислява се от вечерния въпрос "Ниво на активност".\n\n• Слабо → 0%\n• Добре → 50%\n• Отлично → 100%\n\nПо-висок % = по-добре.' },
+                health: { title:'Здравен Индекс',
+                    text:'Композитна оценка, изчислена от всички ваши данни:\n\n• Ангажираност: 35%\n• Сън: 25%\n• Активност: 20%\n• Емоционален баланс: 20%\n\nЦел: 70+' }
+            };
+            function showExplanation(key) {
+                var info = EXPLANATIONS[key]; if(!info) return;
+                var old = document.getElementById('gameExplainOverlay'); if(old) old.remove();
+                var overlay = document.createElement('div');
+                overlay.id = 'gameExplainOverlay'; overlay.className = 'game-explain-overlay';
+                overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+                var box = document.createElement('div'); box.className = 'game-explain-box';
+                var t = document.createElement('div'); t.className='game-explain-title'; t.textContent=info.title;
+                var tx= document.createElement('div'); tx.className='game-explain-text'; tx.style.whiteSpace='pre-line'; tx.textContent=info.text;
+                var cb= document.createElement('button'); cb.className='game-explain-close'; cb.textContent='Разбрах';
+                cb.onclick=function(){ overlay.remove(); };
+                box.appendChild(t); box.appendChild(tx); box.appendChild(cb);
+                overlay.appendChild(box); document.body.appendChild(overlay);
+            }
+
+            // ── Render helpers ────────────────────────────────────────────────
+            function pBar(pct, color) {
+                if (pct==null) return '<span style="font-size:0.75rem;color:var(--text-light)">Няма данни</span>';
+                return '<div class="game-index-bar-wrap"><div class="game-index-bar" style="width:0%;background:'+color+'" data-ga-bar="'+Math.min(100,Math.max(0,pct))+'"></div></div>';
+            }
+            var DAY_NAMES = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+            var BAR_MIN_H = 4;
+            var BAR_MAX_H = 36;
+            var LABEL_STYLE = 'font-size:0.6rem;color:var(--text-light)';
+            function miniBarCol(barStyle, label, dataAttr) {
+                return '<div class="game-day-col">' +
+                    '<div class="game-day-dot" style="' + barStyle + '"' + (dataAttr ? ' ' + dataAttr : '') + '></div>' +
+                    '<span style="' + LABEL_STYLE + '">' + label + '</span>' +
+                    '</div>';
+            }
+            function miniBarChart(perDayValues, maxVal, color) {
+                var cols = perDayValues.map(function(v,idx){
+                    var dow   = new Date(days[idx].key).getDay();
+                    var label = DAY_NAMES[(dow+6)%7];
+                    if(v==null || v===0) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label);
+                    var pct2 = maxVal>0?Math.min(100,Math.round(v/maxVal*100)):0;
+                    var h    = Math.max(BAR_MIN_H, Math.round(pct2*BAR_MAX_H/100));
+                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
+                });
+                return '<div class="game-day-dots">'+ cols.join('') +'</div>';
+            }
+            var BAR_BIDIR_HALF = 20;
+            function biDirBarChart(perDayValues, maxAbsVal, surplusColor, deficitColor) {
+                var cols = perDayValues.map(function(v, idx) {
+                    var dow   = new Date(days[idx].key).getDay();
+                    var label = DAY_NAMES[(dow+6)%7];
+                    var absMax = maxAbsVal > 0 ? maxAbsVal : 1;
+                    var surplusH = (v != null && v > 0) ? Math.max(2, Math.round(Math.min(v, absMax) / absMax * BAR_BIDIR_HALF)) : 0;
+                    var deficitH = (v != null && v < 0) ? Math.max(2, Math.round(Math.min(-v, absMax) / absMax * BAR_BIDIR_HALF)) : 0;
+                    return '<div class="game-day-col-bidir">' +
+                        '<div class="game-day-surplus-zone">' +
+                            (surplusH > 0 ? '<div class="game-day-bar-up" style="height:0px;background:'+surplusColor+'" data-ga-bidir-h="'+surplusH+'px"></div>' : '') +
+                        '</div>' +
+                        '<span style="' + LABEL_STYLE + '">' + label + '</span>' +
+                        '<div class="game-day-deficit-zone">' +
+                            (deficitH > 0 ? '<div class="game-day-bar-down" style="height:0px;background:'+deficitColor+'" data-ga-bidir-h="'+deficitH+'px"></div>' : '') +
+                        '</div>' +
+                        '</div>';
+                });
+                return '<div class="game-day-dots-bidir">'+ cols.join('') +'</div>';
+            }
+            function calTargetBarChart(perDayConsumed, perDayPlanned, surplusColor, deficitColor) {
+                var DEFAULT_SURPLUS_THRESHOLD = 200;
+                var LABEL_AREA = 14;
+                var planVals = perDayPlanned.filter(function(v){ return v != null && v > 0; });
+                var avgPlanned = planVals.length > 0
+                    ? Math.round(planVals.reduce(function(a,b){return a+b;},0) / planVals.length)
+                    : 2000;
+                var TARGET_BAR_PX = Math.round(BAR_MAX_H * 2 / 3);
+                var targetLineBottom = LABEL_AREA + TARGET_BAR_PX;
+                var cols = perDayConsumed.map(function(v, idx) {
+                    var dow   = new Date(days[idx].key).getDay();
+                    var label = DAY_NAMES[(dow+6)%7];
+                    if (v == null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.2)', label);
+                    var consumed = v;
+                    var dayPlanned = perDayPlanned[idx] || avgPlanned;
+                    var isOverTarget = dayPlanned > 0 ? consumed > dayPlanned : consumed > DEFAULT_SURPLUS_THRESHOLD;
+                    var color = isOverTarget ? surplusColor : deficitColor;
+                    var pct = dayPlanned > 0 ? consumed / dayPlanned : 0;
+                    var h = consumed > 0 ? Math.max(BAR_MIN_H, Math.min(BAR_MAX_H, Math.round(pct * TARGET_BAR_PX))) : BAR_MIN_H;
+                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
+                });
+                return '<div class="game-day-dots-cal">' +
+                    '<div class="game-cal-target-line" style="bottom:'+targetLineBottom+'px"></div>' +
+                    cols.join('') +
+                '</div>';
+            }
+            function ringChart(pct, color, r) {
+                r = r||26; var circ=2*Math.PI*r;
+                var offset = circ - (pct||0)/100*circ;
+                return '<svg class="game-ring-svg" width="'+(r*2+8)+'" height="'+(r*2+8)+'" viewBox="0 0 '+(r*2+8)+' '+(r*2+8)+'">' +
+                    '<circle class="game-ring-bg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5"/>' +
+                    '<circle class="game-ring-fg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5" stroke="'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'" data-ga-ring-offset="'+offset.toFixed(2)+'"/>' +
+                    '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px" data-ga-ring-count="'+(pct!=null?pct:'')+'" data-ga-ring-target="'+(pct!=null?pct:'')+'" >'+(pct!=null?'0%':'?')+'</text>' +
+                    '</svg>';
+            }
+
+            // ── Build HTML ────────────────────────────────────────────────────
+            var html = '';
+            var weekIconClass = avgScore>=4.5?'fas fa-trophy':avgScore>=3.5?'fas fa-bullseye':avgScore>=2.5?'fas fa-chart-line':'fas fa-seedling';
+            var weekIconColor = avgScore>=4.5?'#fde68a':avgScore>=3.5?'rgba(255,255,255,0.95)':avgScore>=2.5?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.75)';
+            var weekStarsHtml = (function() {
+                var s = '';
+                var full = Math.floor(avgScore);
+                var half = (avgScore - full) >= 0.5;
+                for (var si = 0; si < full; si++) s += '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
+                if (half) s += '<i class="fas fa-star-half-alt" style="color:#fbbf24;font-size:0.9em"></i>';
+                var empty = 5 - full - (half ? 1 : 0);
+                for (var si = 0; si < empty; si++) s += '<i class="far fa-star" style="color:rgba(255,255,255,0.45);font-size:0.9em"></i>';
+                return s;
+            })();
+
+            html += '<div class="game-week-card ga-card-enter" style="animation-delay:0s">' +
+                '<div class="game-week-icon"><i class="'+weekIconClass+'" style="color:'+weekIconColor+'"></i></div>' +
+                '<div class="game-week-info">' +
+                    '<div class="game-week-title">Текуща седмица</div>' +
+                    '<div class="game-week-score">'+weekStarsHtml+'</div>' +
+                    '<div class="game-week-sub">Ангажираност: '+engagementPct+'% · '+validScores.length+' '+(validScores.length===1?'ден':'дни')+' данни'+(noDataDaysCount>0?' · '+noDataDaysCount+' без данни':'')+' </div>' +
+                    '<div class="game-week-dots">' +
+                    weekScores.map(function(s){
+                        var bg = (s&&s.score!=null)?(s.score>=4?'rgba(255,255,255,0.9)':s.score>=3?'rgba(251,191,36,0.85)':'rgba(248,113,113,0.8)'):'rgba(255,255,255,0.18)';
+                        return '<div class="game-week-dot" style="background:'+bg+'" title="'+(s&&s.score!=null?s.label:'Няма данни')+'"></div>';
+                    }).join('') +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+            html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
+                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488',22) + '<div class="game-ring-label">Здраве</div></div>' +
+                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
+                (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
+                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
+            '</div>';
+
+            if(trendUp)   html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#10b981;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line"></i> Тенденцията е нагоре — вие се подобрявате!</div>';
+            if(trendDown) html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#ef4444;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line" style="transform:rotate(90deg)"></i> Леко затихване — малко повече фокус ще промени всичко</div>';
+
+            if(alerts.length>0){
+                alerts.forEach(function(a, ai){ html += '<div class="game-alert-card ga-card-enter" style="animation-delay:'+(0.22+ai*0.06)+'s">'+a+'</div>'; });
+            }
+
+            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
+                '<div class="game-section-title" style="margin:0">Подробни данни</div>' +
+                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
+            '</div>';
+            html += '<div id="gameMetricsDetails" style="display:none;">';
+
+            html += '<div class="game-index-row" data-explain="engagement">' +
+                '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
+                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' · Дневен % (хранения + чек-ини) · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
+            '</div>';
+
+            var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });
+            var calBalanceLabel;
+            if (netCalBalance === 0 && !hasDeficit) {
+                calBalanceLabel = '<i class="fas fa-check-circle" style="color:#10b981"></i> Балансиран';
+            } else if (netCalBalance > 0) {
+                calBalanceLabel = netCalBalance < 700
+                    ? '<i class="fas fa-circle" style="color:#f59e0b"></i> Нетен излишък'
+                    : '<i class="fas fa-circle" style="color:#ef4444"></i> Голям излишък';
+            } else {
+                calBalanceLabel = '<i class="fas fa-arrow-down" style="color:#3b82f6"></i> Нетен дефицит';
+            }
+            html += '<div class="game-index-row" data-explain="calories">' +
+                '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(netCalBalance>0?'+':'')+netCalBalance+' kcal</span></div>' +
+                '<div class="game-index-hint">'+calBalanceLabel+' · Нетен калориен баланс · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(calAdherencePct, netCalBalance>700?'linear-gradient(90deg,#ef4444,#f97316)':netCalBalance>0?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#3b82f6,#06B6D4)') +
+                calTargetBarChart(calConsumedByDay, calPlannedByDay, netCalBalance>700?'#ef4444':'#f59e0b', '#3b82f6') +
+            '</div>';
+
+            if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +
+                '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#10b981"></i> Емоционален баланс</span><span>'+balancePct+'%</span></div>' +
+                '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висок баланс':balancePct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък баланс')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(balancePct,'linear-gradient(90deg,#10b981,#06B6D4)') + miniBarChart(balanceByDay,100,'#10b981') +
+            '</div>';
+
+            if(sleepPct!=null) html += '<div class="game-index-row" data-explain="sleep">' +
+                '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span>'+sleepPct+'%</span></div>' +
+                '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1') +
+            '</div>';
+
+            if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
+                '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actPct+'%</span></div>' +
+                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(actPct,'linear-gradient(90deg,#f59e0b,#fbbf24)') + miniBarChart(actByDay,100,'#f59e0b') +
+            '</div>';
+
+            if(waterPct!=null) html += '<div class="game-index-row" data-explain="water">' +
+                '<div class="game-index-label"><span><i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратация</span><span>'+waterPct+'%</span></div>' +
+                '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добра':waterPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' · Дни с достатъчен прием вода · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4') +
+            '</div>';
+
+            if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (отчетени като 0%)</div>';
+
+            if(insights.length>0){
+                html += '<div class="game-section-title">Корелации &amp; открития</div>';
+                insights.forEach(function(ins, ii){ html += '<div class="game-insight-card ga-card-enter" style="animation-delay:'+(0.05+ii*0.08)+'s">'+ins+'</div>'; });
+            }
+
+            if(scenario){
+                html += '<div class="game-section-title">Прогноза</div>';
+                html += '<div class="game-scenario-card ga-card-enter" style="animation-delay:0.1s"><div class="game-scenario-label">AI сценарий</div>'+scenario+'</div>';
+            }
+
+            html += '<div class="game-encourage-note ga-card-enter" style="animation-delay:0.15s">'+encourageText+'</div>';
+
+            var weeklyInfo={};
+            try { weeklyInfo=JSON.parse(localStorage.getItem('gameWeeklyAI')||'{}'); } catch(e) {}
+            if(weeklyInfo.nextDue){ var nd=new Date(weeklyInfo.nextDue); html += '<div class="game-weekly-info"><i class="fas fa-robot"></i> Следващ AI анализ: '+nd.toLocaleDateString('bg-BG')+'</div>'; }
+
+            html += '</div>'; // close gameMetricsDetails
+
+            body.innerHTML = html;
+
+            // ── Trigger entrance animations after DOM is painted ─────────────
+            var GA_RING_START   = 120;
+            var GA_RING_STAGGER = 130;
+            var GA_RING_COUNTER = 900;
+            var GA_BAR_START    = 350;
+            var GA_BAR_STAGGER  = 60;
+            var GA_CHART_START  = 400;
+            var GA_CHART_STAGGER= 25;
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    body.querySelectorAll('[data-ga-ring-offset]').forEach(function(el, i) {
+                        setTimeout(function() {
+                            el.style.strokeDashoffset = el.getAttribute('data-ga-ring-offset');
+                        }, GA_RING_START + i * GA_RING_STAGGER);
+                    });
+
+                    body.querySelectorAll('[data-ga-ring-target]').forEach(function(el, i) {
+                        var target = parseInt(el.getAttribute('data-ga-ring-target'), 10);
+                        if (isNaN(target)) { el.textContent = '?'; return; }
+                        var start = GA_RING_START + i * GA_RING_STAGGER;
+                        var duration = GA_RING_COUNTER;
+                        var startTime = null;
+                        function step(ts) {
+                            if (!startTime) startTime = ts;
+                            var elapsed = ts - startTime;
+                            if (elapsed < 0) { requestAnimationFrame(step); return; }
+                            var progress = Math.min(elapsed / duration, 1);
+                            var ease = 1 - Math.pow(1 - progress, 3);
+                            el.textContent = Math.round(target * ease) + '%';
+                            if (progress < 1) requestAnimationFrame(step);
+                        }
+                        setTimeout(function() { requestAnimationFrame(step); }, start);
+                    });
+
+                    body.querySelectorAll('[data-ga-bar]').forEach(function(el, i) {
+                        setTimeout(function() {
+                            el.style.width = el.getAttribute('data-ga-bar') + '%';
+                        }, GA_BAR_START + i * GA_BAR_STAGGER);
+                    });
+
+                    body.querySelectorAll('[data-ga-bar-h]').forEach(function(el, i) {
+                        setTimeout(function() {
+                            el.style.height = el.getAttribute('data-ga-bar-h');
+                        }, GA_CHART_START + i * GA_CHART_STAGGER);
+                    });
+
+                    body.querySelectorAll('[data-ga-bidir-h]').forEach(function(el, i) {
+                        setTimeout(function() {
+                            el.style.height = el.getAttribute('data-ga-bidir-h');
+                        }, GA_CHART_START + i * GA_CHART_STAGGER);
+                    });
+                });
+            });
+
+            // Attach explain handlers
+            body.querySelectorAll('[data-explain]').forEach(function(el){
+                el.addEventListener('click', function(){ showExplanation(el.getAttribute('data-explain')); });
+            });
+        })();
+        // ── End Current Analysis Loader ──────────────────────────────────────
+    </script>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" aria-label="Основна навигация">
+        <a href="index.html?stay=1" class="bottom-nav-item">
+            <i class="fas fa-home"></i>
+            <span>Начало</span>
+        </a>
+        <a href="plan.html" class="bottom-nav-item">
+            <i class="fas fa-utensils"></i>
+            <span>Моят План</span>
+        </a>
+        <a href="guidelines.html" class="bottom-nav-item">
+            <i class="fas fa-compass"></i>
+            <span>Насоки</span>
+        </a>
+        <a href="profile.html" class="bottom-nav-item">
+            <i class="fas fa-user"></i>
+            <span>Профил</span>
+        </a>
+    </nav>
+</body>
+</html>
