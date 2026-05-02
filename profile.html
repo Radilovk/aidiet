@@ -4139,7 +4139,7 @@
 
             // Health score rings — "План %" removed; "Активност" in position #2; "Баланс" → "Емоции"
             html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
-                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488') + '<div class="game-ring-label">Здраве</div></div>' +
+                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488',22) + '<div class="game-ring-label">Здраве</div></div>' +
                 (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
                 (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
                 (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
