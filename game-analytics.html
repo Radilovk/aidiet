@@ -749,14 +749,17 @@
             var badge   = document.getElementById('gameAnalyticsBadge');
             if (!section || !body) return;
 
+            // Always expand the container on this page
+            body.style.display = 'block';
+            section.classList.add('open');
+            var header = section.querySelector('.game-analytics-header');
+            if (header) header.setAttribute('aria-expanded', 'true');
+
             var enabled = localStorage.getItem('gameEnabled') === 'true';
             if (!enabled) {
                 body.innerHTML = '<div class="ga-no-data"><i class="fas fa-chart-bar"></i>Анализът не е активиран.<br>Активирайте го от страницата на плана.</div>';
                 return;
             }
-            // Section is already open/visible by default on this page
-            body.style.display = 'block';
-            section.classList.add('open');
 
             // ── Helpers ───────────────────────────────────────────────────────
             function zp(n) { return n < 10 ? '0' + n : '' + n; }
