@@ -8752,6 +8752,7 @@
                 card.id = 'dailyScoreCard';
                 card.setAttribute('role','status');
                 card.setAttribute('aria-live','polite');
+                card.onclick = function() { window.location.href = 'profile.html?openAnalytics=1'; };
                 var container = document.getElementById('mealContainer');
                 if (container && container.parentNode) container.parentNode.insertBefore(card, container);
             }
