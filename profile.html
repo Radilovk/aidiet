@@ -1808,17 +1808,17 @@
 
         <!-- CURRENT ANALYSIS SECTION -->
         <div class="game-analytics-section" id="gameAnalyticsSection" style="display:none;">
-            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="true" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
+            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="false" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
                 <div class="game-analytics-title">
                     <i class="fas fa-brain"></i>
                     <span>Текущ Анализ</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span id="gameAnalyticsBadge" class="game-analytics-badge"></span>
-                    <i class="fas fa-chevron-up game-analytics-chevron" id="gameAnalyticsChevron"></i>
+                    <i class="fas fa-chevron-down game-analytics-chevron" id="gameAnalyticsChevron"></i>
                 </div>
             </div>
-            <div class="game-analytics-body" id="gameAnalyticsBody">
+            <div class="game-analytics-body" id="gameAnalyticsBody" style="display:none;">
                 <p style="color:var(--text-light);font-style:italic;font-size:0.85rem;">Зареждане…</p>
             </div>
         </div>
@@ -3621,13 +3621,13 @@
             var enabled = localStorage.getItem('gameEnabled') === 'true';
             if (!enabled) return;
             section.style.display = 'block';
-            // Open body by default
-            body.style.display = 'block';
-            section.classList.add('open');
+            // Collapsed by default; expanded automatically only when openAnalytics=1
+            body.style.display = 'none';
+            section.classList.remove('open');
             var chevronEl = document.getElementById('gameAnalyticsChevron');
-            if (chevronEl) chevronEl.className = 'fas fa-chevron-up game-analytics-chevron';
+            if (chevronEl) chevronEl.className = 'fas fa-chevron-down game-analytics-chevron';
             var headerEl = section.querySelector('.game-analytics-header');
-            if (headerEl) headerEl.setAttribute('aria-expanded', 'true');
+            if (headerEl) headerEl.setAttribute('aria-expanded', 'false');
 
             // ── Helpers ───────────────────────────────────────────────────────
             function zp(n) { return n < 10 ? '0' + n : '' + n; }
@@ -4237,15 +4237,25 @@
 
             // ── Expand & scroll to analytics section when opened from dailyScoreCard ──
             if (new URLSearchParams(window.location.search).get('openAnalytics') === '1') {
-                // Guarantee the body is expanded regardless of prior state
+                // Expand the body now that HTML is in place
                 body.style.display = 'block';
                 section.classList.add('open');
                 if (chevronEl) chevronEl.className = 'fas fa-chevron-up game-analytics-chevron';
                 if (headerEl) headerEl.setAttribute('aria-expanded', 'true');
-                // 350ms matches GA_CHART_START so the section is visible before animations begin
-                setTimeout(function() {
+                // Scroll after the page layout has fully settled (load event + rAF for safety)
+                function scrollToSection() {
                     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 350);
+                }
+                function scheduleScroll() {
+                    // Two nested rAFs: first rAF queues before paint, second fires after paint
+                    // ensuring layout is committed and the section position is correct.
+                    requestAnimationFrame(function() { requestAnimationFrame(scrollToSection); });
+                }
+                if (document.readyState === 'complete') {
+                    scheduleScroll();
+                } else {
+                    window.addEventListener('load', scheduleScroll, { once: true });
+                }
             }
 
             // ── Trigger entrance animations after DOM is painted ─────────────
