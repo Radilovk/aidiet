@@ -4072,11 +4072,10 @@
                 var avgPlanned = planVals.length > 0
                     ? Math.round(planVals.reduce(function(a,b){return a+b;},0) / planVals.length)
                     : 2000;
-                // Fixed scale: avgPlanned maps to exactly 50% bar height.
-                // Deficit days stay below the line, surplus days rise above it.
-                var maxScale = Math.max(avgPlanned * 2, 1);
-                var targetBarPx = Math.round(BAR_MAX_H / 2);  // always exactly the midpoint
-                var targetLineBottom = LABEL_AREA + targetBarPx;
+                // Per-day scale: consumed == dayPlanned → h == TARGET_BAR_PX (bar exactly at line).
+                // The top third of BAR_MAX_H is reserved for surplus bars to grow into above the line.
+                var TARGET_BAR_PX = Math.round(BAR_MAX_H * 2 / 3);
+                var targetLineBottom = LABEL_AREA + TARGET_BAR_PX;
                 var cols = perDayConsumed.map(function(v, idx) {
                     var dow   = new Date(days[idx].key).getDay();
                     var label = DAY_NAMES[(dow+6)%7];
@@ -4085,8 +4084,10 @@
                     var dayPlanned = perDayPlanned[idx] || avgPlanned;
                     var isOverTarget = dayPlanned > 0 ? consumed > dayPlanned : consumed > DEFAULT_SURPLUS_THRESHOLD;
                     var color = isOverTarget ? surplusColor : deficitColor;
-                    var pct2 = maxScale > 0 ? Math.min(100, consumed / maxScale * 100) : 0;
-                    var h = consumed > 0 ? Math.max(BAR_MIN_H, Math.round(pct2 * BAR_MAX_H / 100)) : BAR_MIN_H;
+                    // Scale each bar so consumed/dayPlanned == 1 → h == TARGET_BAR_PX exactly.
+                    // Surplus bars grow up to BAR_MAX_H (capped).
+                    var pct = dayPlanned > 0 ? consumed / dayPlanned : 0;
+                    var h = consumed > 0 ? Math.max(BAR_MIN_H, Math.min(BAR_MAX_H, Math.round(pct * TARGET_BAR_PX))) : BAR_MIN_H;
                     return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
                 });
                 return '<div class="game-day-dots-cal">' +
@@ -4223,6 +4224,14 @@
             html += '</div>'; // close gameMetricsDetails
 
             body.innerHTML = html;
+
+            // ── Scroll to analytics section when opened from dailyScoreCard ──
+            if (new URLSearchParams(window.location.search).get('openAnalytics') === '1') {
+                // 350ms matches GA_CHART_START so the section is visible before animations begin
+                setTimeout(function() {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 350);
+            }
 
             // ── Trigger entrance animations after DOM is painted ─────────────
             var GA_RING_START   = 120;  // ms delay before first ring animates
