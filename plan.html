@@ -3573,7 +3573,6 @@
                     <option value="Вечеря">🌙 Вечеря</option>
                     <option value="Междинно хранене">🥤 Междинно хранене</option>
                     <option value="Десерт">🍰 Десерт</option>
-                    <option value="Свободно хранене">🎉 Свободно хранене</option>
                 </select>
 
                 <!-- Analyze Button -->
@@ -5075,7 +5074,8 @@
             if (base === 'Закуска')  return 6;
             if (base === 'Обяд')     return 12;
             if (base === 'Следобедна закуска' || base === 'Следобедна' || base === 'Десерт') return 14;
-            if (base === 'Вечеря'   || base === 'Свободно хранене') return 18;
+            if (base === 'Свободно хранене') return 12; // free meal replaces lunch slot (kept for backward compat with stored plans)
+            if (base === 'Вечеря') return 18;
             return -1; // unknown / intermediate — use ts-based hour
         }
         /**
@@ -8456,7 +8456,8 @@
             if (base === 'Закуска')  return 6;
             if (base === 'Обяд')     return 12;
             if (base === 'Следобедна закуска' || base === 'Следобедна' || base === 'Десерт') return 14;
-            if (base === 'Вечеря' || base === 'Свободно хранене') return 18;
+            if (base === 'Свободно хранене') return 12; // free meal replaces lunch slot (kept for backward compat with stored plans)
+            if (base === 'Вечеря') return 18;
             return 6; // default: available from early morning
         }
 
@@ -8588,31 +8589,19 @@
 
             // ── Meals ──────────────────────────────────────────────────────
             var meals = Object.keys(rec.meals || {});
-            var freeMealRatings = rec.freeMealRatings || {};
             var mealPts = 0, mealMax = meals.length * 10;
             var incorrectMeals = 0;
 
             meals.forEach(function(m) {
-                // Strip numeric suffix (e.g. "Свободно хранене_2" → "Свободно хранене")
-                var baseMealType = m.replace(/_\d+$/, '');
-                var isFree = (baseMealType === 'Свободно хранене');
-                if (isFree) {
-                    // Free meal counts only if a photo was analyzed with rating >= FREE_MEAL_MIN_RATING
-                    // Check the full key first (e.g. "Свободно хранене_2"), then fall back to base type
-                    var rating = freeMealRatings[m] != null ? freeMealRatings[m] : freeMealRatings[baseMealType];
-                    if (rating != null) {
-                        if (rating >= FREE_MEAL_MIN_RATING) { mealPts += 10; }
-                        else             { incorrectMeals++; } // rating below threshold = incorrect meal
-                    }
-                    // if not rated but marked done → do not penalise, treat as uncertain (0 pts, no flag)
-                } else {
-                    if (rec.meals[m] === true) mealPts += 10;
-                }
+                // Free meals are treated the same as any other planned meal: the check button
+                // marks them done; no photo or rating is required.
+                if (rec.meals[m] === true) mealPts += 10;
             });
 
             // ── Extra meals ────────────────────────────────────────────────
             var junkCount = 0;
             var extraCalSum = 0;
+            var freeMealCalSum = 0; // calories from free meal replacements (treated as normal allowed)
             (rec.extraMeals || []).forEach(function(em) {
                 // A meal is considered consumed when it has no toggle button (not added to plan)
                 // or when its check button is checked (countCalories !== false).
@@ -8621,7 +8610,9 @@
                 // Counting them here too would double-penalise the same meal.
                 if (em.isJunk && isConsumed && !em.isFreeMealReplacement) junkCount++;
                 if (em.isFreeMealReplacement) {
-                    // rated free meal replacement tracked separately, already counted above
+                    // Treat free meal calories as normal allowed (like lunch) — add to both
+                    // consumed and planned so they don't distort the calorie balance.
+                    freeMealCalSum += (em.calories || 0);
                 } else if (em.isAddedToPlan && !em.countCalories) {
                     // This meal was added to the daily plan but the check button is unchecked —
                     // do not include its calories in the daily total.
@@ -8641,8 +8632,10 @@
                     completedPlanCals += mealCalMap[mt];
                 }
             });
-            var totalConsumed = completedPlanCals + extraCalSum;
-            var planned = rec.plannedCalories || null;
+            var totalConsumed = completedPlanCals + extraCalSum + freeMealCalSum;
+            // Free meal calories are treated as normal allowed (like lunch): expand the planned
+            // target by the same amount so they don't distort the surplus/deficit balance.
+            var planned = rec.plannedCalories ? (rec.plannedCalories + freeMealCalSum) : null;
             var excessCalories = false;
             var calorieBalance = 'balanced';
             var calorieDelta = 0; // positive = surplus kcal, negative = deficit kcal
@@ -8678,12 +8671,6 @@
 
             // ── 5-star blocker flags ────────────────────────────────────────
             var allMealsOk    = meals.length > 0 && meals.every(function(m) {
-                var baseMealType = m.replace(/_\d+$/, '');
-                if (baseMealType === 'Свободно хранене') {
-                    // Full key first, then fall back to base type
-                    var r = freeMealRatings[m] != null ? freeMealRatings[m] : freeMealRatings[baseMealType];
-                    return r == null || r >= FREE_MEAL_MIN_RATING; // not rated = uncertain, don't block; rated low = blocks
-                }
                 return rec.meals[m] === true;
             });
             var badSleep       = rec.morningCheck  && rec.morningCheck.sleptWell === false;
@@ -8695,12 +8682,6 @@
 
             // ── Engagement % (kept for backward compatibility) ──────────────
             var done     = meals.filter(function(m) {
-                var baseMealType = m.replace(/_\d+$/, '');
-                if (baseMealType === 'Свободно хранене') {
-                    // Full key first, then fall back to base type
-                    var r = freeMealRatings[m] != null ? freeMealRatings[m] : (freeMealRatings[baseMealType] || 0);
-                    return r >= FREE_MEAL_MIN_RATING;
-                }
                 return rec.meals[m] === true;
             }).length;
             var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
@@ -9030,7 +9011,7 @@
             }
 
             var rec = getRecord(dayKey);
-            if (!rec.freeMealRatings) rec.freeMealRatings = {};
+            if (!rec.freeMealRatings) rec.freeMealRatings = {}; // backward compat: preserve existing field in stored records
             if (!rec.mealCalories) rec.mealCalories = {};
             var mealsInitialized = false;
 
@@ -9081,7 +9062,6 @@
                     mealsInitialized = true;
                 }
                 var isDone = rec.meals[mealKey] === true;
-                var freeMealRating = isFreeMeal ? (rec.freeMealRatings[mealType] != null ? rec.freeMealRatings[mealType] : null) : null;
                 var checkBtn = document.createElement('button');
 
                 // ── Time-based lock: meal check only available after its designated hour ──
@@ -9098,9 +9078,6 @@
                     checkBtn.setAttribute('aria-label', 'Отбелязването ще се отключи по-късно');
                 }
 
-                if (isFreeMeal && freeMealRating !== null) {
-                    card.setAttribute('data-incorrect-meal', freeMealRating < FREE_MEAL_MIN_RATING ? '1' : '0');
-                }
                 checkBtn.innerHTML = '<i class="fas fa-check"></i>';
                 if (!isTimeLocked && !isAgeLockedDay) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
                 checkBtn.addEventListener('click', function(e) {
@@ -9259,36 +9236,20 @@
         }
 
         // ── Extra food logging ────────────────────────────────────────────────
-        // mealContext: the meal slot name (e.g. 'Свободно хранене', 'Обяд', etc.)
+        // mealContext: the meal slot name (e.g. 'Обяд', 'Вечеря', etc.)
         function logExtraFood(name, calories, suitabilityScore, mealContext) {
             if (!isGameEnabled()) return;
             var rec = getTodayRecord();
-            // Recognize "Свободно хранене", "Свободно хранене_2", etc. as free meal slots
-            var isFreeMealReplacement = mealContext.replace(/_\d+$/, '') === 'Свободно хранене';
             var isJunk = (suitabilityScore != null && suitabilityScore <= JUNK_SUITABILITY_MAX);
-            // Ensure freeMealRatings object exists
+            // Ensure freeMealRatings object exists (backward compat with stored records)
             if (!rec.freeMealRatings) rec.freeMealRatings = {};
 
-            if (isFreeMealReplacement) {
-                // Store the suitability rating for the exact free meal slot key
-                // Keep the best rating if multiple photos taken for the same slot
-                var newRating = suitabilityScore != null ? Math.round(suitabilityScore) : null;
-                if (newRating != null) {
-                    rec.freeMealRatings[mealContext] = Math.max(rec.freeMealRatings[mealContext] || 0, newRating);
-                }
-                // Also record in extraMeals for calorie tracking (flagged as free replacement)
-                rec.extraMeals.push({ name: name || 'Свободно хранене',
-                    calories: Math.round(calories || 0), isJunk: isJunk,
-                    isFreeMealReplacement: true,
-                    suitabilityScore: newRating,
-                    mealContext: mealContext, ts: new Date().toISOString() });
-            } else {
-                // Regular extra food (not a free meal replacement)
-                rec.extraMeals.push({ name: name || '\u0414\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435',
-                    calories: Math.round(calories || 0), isJunk: isJunk,
-                    isFreeMealReplacement: false,
-                    mealContext: mealContext || '', ts: new Date().toISOString() });
-            }
+            // All logged food is treated as regular extra food — free meals are now handled
+            // via the normal check button and no longer require photo analysis.
+            rec.extraMeals.push({ name: name || 'Допълнително хранене',
+                calories: Math.round(calories || 0), isJunk: isJunk,
+                isFreeMealReplacement: false,
+                mealContext: mealContext || '', ts: new Date().toISOString() });
             saveTodayRecord(rec);
             recalcAndShowScore();
         }

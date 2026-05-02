@@ -3654,26 +3654,23 @@
             function calcDayScore(rec) {
                 if (!rec) return { score:null, stars:'', label:'Без данни', junkCount:0, incorrectMeals:0, excessCalories:false, calorieBalance:'balanced', engPct:0, calorieDelta:0 };
                 var meals = Object.keys(rec.meals || {});
-                var freeMealRatings = rec.freeMealRatings || {};
                 var mealPts = 0, mealMax = meals.length * 10;
                 var incorrectMeals = 0;
                 meals.forEach(function(m) {
-                    if (m === 'Свободно хранене') {
-                        var rating = freeMealRatings[m];
-                        if (rating != null) { if (rating >= FREE_MEAL_MIN_RATING) { mealPts += 10; } else { incorrectMeals++; } }
-                    } else {
-                        if (rec.meals[m] === true) mealPts += 10;
-                    }
+                    // Free meals are treated the same as any other planned meal.
+                    if (rec.meals[m] === true) mealPts += 10;
                 });
                 var junkCount = 0;
                 var extraCalSum = 0;
+                var freeMealCalSum = 0; // calories from free meal replacements (treated as normal allowed)
                 (rec.extraMeals || []).forEach(function(em) {
                     // A meal is considered consumed when it has no toggle button (not added to plan)
                     // or when its check button is checked (countCalories !== false).
                     var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
                     if (em.isJunk && isConsumed) junkCount++;
                     if (em.isFreeMealReplacement) {
-                        // rated free meal replacement tracked separately
+                        // Treat free meal calories as normal allowed (like lunch)
+                        freeMealCalSum += (em.calories || 0);
                     } else if (em.isAddedToPlan && !em.countCalories) {
                         // meal added to plan but unchecked — do not count calories
                     } else {
@@ -3685,8 +3682,9 @@
                 Object.keys(rec.meals || {}).forEach(function(mt) {
                     if (rec.meals[mt] && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
                 });
-                var totalConsumed = completedPlanCals + extraCalSum;
-                var planned = rec.plannedCalories || null;
+                var totalConsumed = completedPlanCals + extraCalSum + freeMealCalSum;
+                // Free meal calories expand the planned target equally so they don't cause surplus.
+                var planned = rec.plannedCalories ? (rec.plannedCalories + freeMealCalSum) : null;
                 var excessCalories = false, calorieBalance = 'balanced';
                 var calorieDelta = 0; // positive = surplus kcal, negative = deficit kcal
                 if (totalConsumed > 0 && planned && planned > 0) {
@@ -3708,7 +3706,6 @@
                 var balancePts  = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
                 var wellnessEarned = (sleepPts||0)+(waterPts||0)+(activityPts||0)+(balancePts||0);
                 var allMealsOk = meals.length > 0 && meals.every(function(m) {
-                    if (m === 'Свободно хранене') { var r=freeMealRatings[m]; return r==null||r>=FREE_MEAL_MIN_RATING; }
                     return rec.meals[m] === true;
                 });
                 var badSleep = rec.morningCheck && rec.morningCheck.sleptWell === false;
@@ -3717,7 +3714,6 @@
                 var lowBalance  = rec.eveningCheck && rec.eveningCheck.emotionalBalance === 1;
                 var has5StarBlocker = !allMealsOk || incorrectMeals>0 || excessCalories || badSleep || badWater || lowActivity || lowBalance || junkCount>0;
                 var done = meals.filter(function(m) {
-                    if (m==='Свободно хранене') return (freeMealRatings[m]||0)>=FREE_MEAL_MIN_RATING;
                     return rec.meals[m]===true;
                 }).length;
                 var mealEngPct = meals.length>0 ? done/meals.length*50 : 0;
@@ -3798,14 +3794,13 @@
                     return sum + (d.rec.meals[mt] && mealCalMap[mt] ? mealCalMap[mt] : 0);
                 }, 0);
                 var extraCals = (d.rec.extraMeals || []).reduce(function(sum, em){
-                    if (em.isFreeMealReplacement) return sum;          // tracked via plan meals
+                    if (em.isFreeMealReplacement) return sum; // tracked via plan meals
                     if (em.isAddedToPlan && !em.countCalories) return sum; // added to plan but unchecked
                     return sum + (em.calories || 0);
                 }, 0);
                 var total = completedCals + extraCals;
                 return total > 0 ? total : null;
             });
-            // Planned (target) calories per day
             var calPlannedByDay = days.map(function(d){
                 return d.rec ? (d.rec.plannedCalories || null) : null;
             });
@@ -3985,7 +3980,7 @@
             // ── Explanation modal ─────────────────────────────────────────────
             var EXPLANATIONS = {
                 engagement: { title:'Ангажираност към плана',
-                    text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни/неправилни храни (20 т.)\n\nВсяко неправилно свободно хранене (рейтинг 0-3/5) намалява точките.\nСедмичният % е средна стойност (дни без данни = 0%).\nЦел: 80%+' },
+                    text:'Изчислява се всеки ден от 4 компонента:\n• Спазени хранения (50 т.)\n• Сутрешен чек-ин (15 т.)\n• Вечерен чек-ин (15 т.)\n• Без вредни храни (20 т.)\n\nСедмичният % е средна стойност (дни без данни = 0%).\nЦел: 80%+' },
                 calories: { title:'Калориен баланс',
                     text:'Показва приетите калории спрямо дневния ви таргет за последните дни.\n\nВизуализация:\n• Хоризонталната линия = заложен калориен таргет\n• Лента достигаща линията = балансиран ден\n• Лента НАД линията (оранжево/червено) = излишък от калории\n• Лента ПОД линията (синьо) = калориен дефицит\n\nДефицитът се регистрира само когато са отбелязани хранения И е попълнен поне един въпросник (сутрешен или вечерен).\nСвободните хранения с рейтинг 0-3 се отчитат като "Неправилно хранене" и допълнително влошават здравния индекс.' },
                 stress: { title:'Емоционален баланс',
