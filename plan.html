@@ -3770,9 +3770,9 @@
         }
         
         // ===================================================================
-        // CLIENT-SIDE NOTIFICATION SCHEDULER
+        // GAME NOTIFIER – gamification-based notification scheduling
         // ===================================================================
-        
+
         /**
          * Platform Detection Utility
          */
@@ -3869,827 +3869,35 @@
                 return info;
             }
         };
-        
+
         /**
-         * Notification Scheduler - Handles all client-side notification scheduling
-         * Uses browser Notification API with Service Worker for better reliability
-         * All data stored in localStorage, no backend dependency
-         */
-        const NotificationScheduler = {
-            scheduledTimers: [],
-            serviceWorkerReg: null,
-            
-            /**
-             * Initialize notification scheduler
-             * Called when plan is loaded or user changes preferences
-             */
-            async init() {
-                console.log('[Notifications] Initializing client-side notification scheduler');
-                
-                // Check platform compatibility
-                const compatInfo = PlatformDetector.getCompatibilityInfo();
-                console.log('[Notifications] Platform:', compatInfo.platform);
-                console.log('[Notifications] Support:', compatInfo.notificationsSupported ? 'Yes' : 'No');
-                
-                if (!compatInfo.notificationsSupported) {
-                    console.warn('[Notifications] Platform does not support notifications');
-                    if (compatInfo.recommendations.length > 0) {
-                        console.warn('[Notifications] Recommendations:');
-                        compatInfo.recommendations.forEach(rec => console.warn('  - ' + rec));
-                    }
-                    // Show user-facing warning
-                    this.showPlatformWarning(compatInfo);
-                    return;
-                }
-                
-                // Get service worker registration
-                if ('serviceWorker' in navigator) {
-                    try {
-                        this.serviceWorkerReg = await navigator.serviceWorker.ready;
-                        console.log('[Notifications] Service Worker ready');
-                    } catch (e) {
-                        console.error('[Notifications] Service Worker not available:', e);
-                    }
-                }
-                
-                this.clearAllScheduled();
-                
-                const prefs = this.getPreferences();
-                if (!prefs.enabled) {
-                    console.log('[Notifications] Notifications disabled by user');
-                    return;
-                }
-                
-                // Check notification permission
-                if (Notification.permission !== 'granted') {
-                    console.warn('[Notifications] Permission not granted. Current permission:', Notification.permission);
-                    console.info('[Notifications] To enable notifications:');
-                    console.info('  1. Click the notification permission prompt when it appears');
-                    console.info('  2. Or enable notifications in your browser settings');
-                    console.info('  3. Refresh the page after granting permission');
-                    return;
-                }
-                
-                console.log('[Notifications] Permission granted, scheduling notifications...');
-                
-                // Schedule all notification types
-                if (prefs.meals?.enabled && dietPlan) {
-                    this.scheduleMealNotifications(dietPlan, prefs.meals);
-                    console.log('[Notifications] Meal notifications scheduled');
-                } else {
-                    console.log('[Notifications] Meal notifications disabled or no diet plan');
-                }
-                
-                if (prefs.water?.enabled) {
-                    this.scheduleWaterNotifications(prefs.water);
-                    console.log('[Notifications] Water notifications scheduled');
-                }
-                
-                if (prefs.sleep?.enabled) {
-                    this.scheduleSleepNotifications(prefs.sleep);
-                    console.log('[Notifications] Sleep notifications scheduled');
-                }
-                
-                if (prefs.activity?.enabled) {
-                    this.scheduleActivityNotifications(prefs.activity);
-                    console.log('[Notifications] Activity notifications scheduled');
-                }
-                
-                if (prefs.supplements?.enabled) {
-                    this.scheduleSupplementNotifications(prefs.supplements);
-                    console.log('[Notifications] Supplement notifications scheduled');
-                }
-                
-                console.log(`[Notifications] Scheduled ${this.scheduledTimers.length} notifications`);
-                
-                // Sync preferences to backend for server-side cron scheduling
-                // This enables background push notifications even when app is closed
-                await this.syncPreferencesToBackend();
-            },
-            
-            /**
-             * Show platform compatibility warning to user with actionable steps
-             */
-            showPlatformWarning(compatInfo) {
-                if (compatInfo.recommendations.length === 0) return;
-                
-                // Different warning styles based on platform
-                let warningStyle, warningIcon, warningTitle, actionButtons = '';
-                
-                if (compatInfo.platform === 'iOS' && !compatInfo.notificationsSupported) {
-                    warningStyle = 'background: #d1ecf1; border: 1px solid #17a2b8; color: #0c5460;';
-                    warningIcon = '📱';
-                    warningTitle = 'iOS изисква PWA инсталация за известия';
-                    actionButtons = `
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #17a2b8;">
-                            <strong>Как да инсталирате (iOS Safari):</strong>
-                            <ol style="margin: 10px 0 0 20px; padding: 0;">
-                                <li>Натиснете бутона <strong>Share</strong> (квадратче със стрелка) долу</li>
-                                <li>Scroll down и изберете <strong>"Add to Home Screen"</strong></li>
-                                <li>Натиснете <strong>"Add"</strong></li>
-                                <li>Отворете приложението от <strong>Home Screen</strong></li>
-                                <li>Разрешете известия когато се покаже prompt</li>
-                            </ol>
-                            <p style="margin: 10px 0 0 0;"><em>Забележка: Chrome и Firefox на iOS не поддържат известия. Използвайте Safari.</em></p>
-                            <div style="margin-top: 15px;">
-                                <strong>Или използвайте алтернатива:</strong>
-                                <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                                    📅 Експортирай в Календар
-                                </button>
-                                <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Ще изтеглите .ics файл, който можете да импортирате в iOS Calendar</em></p>
-                            </div>
-                        </div>
-                    `;
-                } else if (compatInfo.platform === 'Huawei') {
-                    warningStyle = 'background: #f8d7da; border: 1px solid #dc3545; color: #721c24;';
-                    warningIcon = '❌';
-                    warningTitle = 'Huawei устройства не поддържат уеб известия';
-                    actionButtons = `
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dc3545;">
-                            <strong>Алтернативни решения:</strong>
-                            <ul style="margin: 10px 0 0 20px; padding: 0;">
-                                <li><strong>Huawei Calendar</strong> - Създайте повтарящи се събития за храна и вода</li>
-                                <li><strong>Alarm App</strong> - Задайте будилници за часовете на хранене</li>
-                                <li><strong>Reminders App</strong> - Ръчно добавяне на напомняния</li>
-                            </ul>
-                            <p style="margin: 10px 0 0 0;"><em>Уеб push известия изискват Google Play Services.</em></p>
-                            <div style="margin-top: 15px;">
-                                <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                                    📅 Експортирай в Календар (.ics)
-                                </button>
-                                <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Импортирайте файла в Huawei Calendar за автоматични напомняния</em></p>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    warningStyle = 'background: #fff3cd; border: 1px solid #ffc107; color: #856404;';
-                    warningIcon = '⚠️';
-                    warningTitle = 'Ограничена поддръжка за известия';
-                    actionButtons = `
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffc107;">
-                            <strong>Алтернативно решение:</strong>
-                            <button onclick="CalendarExporter.downloadICS()" style="margin: 10px 5px 0 0; padding: 10px 20px; background: #ffc107; color: #856404; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">
-                                📅 Експортирай в Календар
-                            </button>
-                            <p style="margin: 5px 0 0 0; font-size: 12px;"><em>Използвайте вашето календарно приложение за напомняния</em></p>
-                        </div>
-                    `;
-                }
-                
-                // Create enhanced alert div
-                const alertHtml = `
-                    <div style="${warningStyle} border-radius: 12px; padding: 20px; margin: 20px auto; max-width: 800px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <h3 style="margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.5em;">${warningIcon}</span>
-                            ${warningTitle}
-                        </h3>
-                        <p style="margin: 0 0 10px 0;"><strong>Платформа:</strong> ${compatInfo.platform} (${compatInfo.browser})</p>
-                        ${compatInfo.recommendations.length > 0 ? `
-                        <div style="margin: 10px 0;">
-                            <strong>Препоръки:</strong>
-                            <ul style="margin: 5px 0 0 20px; padding: 0;">
-                                ${compatInfo.recommendations.map(r => `<li style="margin: 5px 0;">${r}</li>`).join('')}
-                            </ul>
-                        </div>
-                        ` : ''}
-                        ${actionButtons}
-                        <button onclick="this.parentElement.remove()" style="margin-top: 15px; padding: 8px 16px; background: rgba(0,0,0,0.1); border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                            Затвори това съобщение
-                        </button>
-                    </div>
-                `;
-                
-                // Try to insert warning at the top of the page
-                const container = document.querySelector('.container') || document.body;
-                const warningDiv = document.createElement('div');
-                warningDiv.innerHTML = alertHtml;
-                warningDiv.id = 'platform-warning';
-                
-                // Remove existing warning if present
-                const existing = document.getElementById('platform-warning');
-                if (existing) existing.remove();
-                
-                container.insertBefore(warningDiv, container.firstChild);
-            },
-            
-            /**
-             * Get notification preferences from localStorage
-             */
-            getPreferences() {
-                const defaultPrefs = {
-                    enabled: true,
-                    meals: { enabled: true, advanceMinutes: 60 },
-                    water: { enabled: true },
-                    sleep: { enabled: true, time: '22:00' },
-                    activity: { enabled: true, morningTime: '07:00', dayTime: '15:00' },
-                    supplements: { enabled: true }
-                };
-                
-                const stored = localStorage.getItem('notificationPreferences');
-                return stored ? JSON.parse(stored) : defaultPrefs;
-            },
-            
-            /**
-             * Get notification templates from localStorage (cached from admin panel)
-             */
-            getTemplates() {
-                const defaultTemplates = {
-                    meals: {
-                        breakfast: { title: 'Време за закуска', body: 'Започнете деня си със здравословна закуска 🍳' },
-                        lunch: { title: 'Време за обяд', body: 'Време е за вашия здравословен обяд 🥗' },
-                        dinner: { title: 'Време за вечеря', body: 'Не забравяйте вечерята си 🍽️' },
-                        snack: { title: 'Време за междинна закуска', body: 'Време е за здравословна междинна закуска 🍎' }
-                    },
-                    water: { title: 'Време за вода', body: 'Не забравяйте да пиете вода! 💧' },
-                    sleep: { title: 'Време за сън', body: 'Подгответе се за почивка. Добър сън е важен за здравето ви! 😴' },
-                    activity: {
-                        morning: { title: 'Сутрешна активност', body: 'Започнете деня с лека физическа активност! 🏃' },
-                        day: { title: 'Време за движение', body: 'Направете кратка разходка или упражнения! 🚶' }
-                    },
-                    supplements: { title: 'Хранителни добавки', body: 'Не забравяйте да приемете вашите хранителни добавки 💊' }
-                };
-                
-                const stored = localStorage.getItem('notificationTemplates');
-                return stored ? JSON.parse(stored) : defaultTemplates;
-            },
-            
-            /**
-             * Sync notification preferences to backend for cron-based scheduling
-             * This enables background push notifications even when app is closed
-             */
-            async syncPreferencesToBackend() {
-                try {
-                    const userId = localStorage.getItem('userId');
-                    if (!userId) {
-                        console.log('[Notifications] No userId found - skipping backend sync');
-                        return;
-                    }
-                    
-                    const prefs = this.getPreferences();
-                    console.log('[Notifications] Syncing preferences to backend for user:', userId);
-                    
-                    const response = await fetch(`${WORKER_URL}/api/user/notification-preferences`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            userId: userId,
-                            preferences: prefs
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    if (data.success) {
-                        console.log('[Notifications] Preferences synced to backend successfully');
-                    } else {
-                        console.warn('[Notifications] Failed to sync preferences to backend:', data.message);
-                    }
-                } catch (error) {
-                    console.error('[Notifications] Error syncing preferences to backend:', error);
-                    // Continue silently - not critical for local notifications
-                }
-            },
-            
-            /**
-             * Schedule meal notifications based on plan and preferences
-             */
-            scheduleMealNotifications(plan, mealPrefs) {
-                const templates = this.getTemplates().meals;
-                const advanceMs = (mealPrefs.advanceMinutes || 60) * 60 * 1000;
-                
-                // Get meal times from global notification settings (admin-configured)
-                const globalSettings = this.getGlobalSettings();
-                const mealTimes = {
-                    breakfast: globalSettings?.mealReminders?.breakfast || '08:00',
-                    lunch: globalSettings?.mealReminders?.lunch || '13:00',
-                    dinner: globalSettings?.mealReminders?.dinner || '19:00'
-                };
-                
-                // Schedule daily meal notifications
-                Object.entries(mealTimes).forEach(([mealType, time]) => {
-                    this.scheduleDailyNotification(time, {
-                        title: templates[mealType]?.title || `Време за ${mealType}`,
-                        body: templates[mealType]?.body || `Време е за хранене`,
-                        tag: `meal-${mealType}`,
-                        icon: '/icon-192x192.png',
-                        advanceMs: advanceMs
-                    });
-                });
-            },
-            
-            /**
-             * Schedule water reminders
-             */
-            scheduleWaterNotifications(waterPrefs) {
-                const templates = this.getTemplates().water;
-                const globalSettings = this.getGlobalSettings();
-                const waterSettings = globalSettings?.waterReminders || {};
-                
-                const frequency = waterSettings.frequency || 2; // hours
-                const startHour = waterSettings.startHour || 8;
-                const endHour = waterSettings.endHour || 22;
-                
-                // Schedule water notifications throughout the day
-                for (let hour = startHour; hour <= endHour; hour += frequency) {
-                    const time = `${hour.toString().padStart(2, '0')}:00`;
-                    this.scheduleDailyNotification(time, {
-                        title: templates.title,
-                        body: templates.body,
-                        tag: `water-${hour}`,
-                        icon: '/icon-192x192.png'
-                    });
-                }
-            },
-            
-            /**
-             * Schedule sleep reminder
-             */
-            scheduleSleepNotifications(sleepPrefs) {
-                const templates = this.getTemplates().sleep;
-                const time = sleepPrefs.time || '22:00';
-                
-                this.scheduleDailyNotification(time, {
-                    title: templates.title,
-                    body: templates.body,
-                    tag: 'sleep',
-                    icon: '/icon-192x192.png'
-                });
-            },
-            
-            /**
-             * Schedule activity reminders
-             */
-            scheduleActivityNotifications(activityPrefs) {
-                const templates = this.getTemplates().activity;
-                
-                // Morning activity
-                this.scheduleDailyNotification(activityPrefs.morningTime || '07:00', {
-                    title: templates.morning.title,
-                    body: templates.morning.body,
-                    tag: 'activity-morning',
-                    icon: '/icon-192x192.png'
-                });
-                
-                // Day activity
-                this.scheduleDailyNotification(activityPrefs.dayTime || '15:00', {
-                    title: templates.day.title,
-                    body: templates.day.body,
-                    tag: 'activity-day',
-                    icon: '/icon-192x192.png'
-                });
-            },
-            
-            /**
-             * Schedule supplement reminders
-             */
-            scheduleSupplementNotifications(supplementPrefs) {
-                const templates = this.getTemplates().supplements;
-                const globalSettings = this.getGlobalSettings();
-                const times = globalSettings?.supplements?.times || ['09:00', '21:00'];
-                
-                times.forEach((time, index) => {
-                    this.scheduleDailyNotification(time, {
-                        title: templates.title,
-                        body: templates.body,
-                        tag: `supplements-${index}`,
-                        icon: '/icon-192x192.png'
-                    });
-                });
-            },
-            
-            /**
-             * Schedule a daily recurring notification
-             */
-            scheduleDailyNotification(time, options) {
-                const [hours, minutes] = time.split(':').map(Number);
-                const now = new Date();
-                const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
-                
-                // Apply advance time if specified
-                if (options.advanceMs) {
-                    scheduledTime.setTime(scheduledTime.getTime() - options.advanceMs);
-                }
-                
-                // If time has passed today, schedule for tomorrow
-                if (scheduledTime <= now) {
-                    scheduledTime.setDate(scheduledTime.getDate() + 1);
-                }
-                
-                const delay = scheduledTime.getTime() - now.getTime();
-                
-                // Schedule the notification
-                const timerId = setTimeout(() => {
-                    this.showNotification(options);
-                    // Reschedule for same time tomorrow (24 hours later)
-                    setTimeout(() => this.scheduleDailyNotification(time, options), 24 * 60 * 60 * 1000);
-                }, delay);
-                
-                this.scheduledTimers.push(timerId);
-                
-                console.log(`[Notifications] Scheduled "${options.title}" for ${scheduledTime.toLocaleTimeString()}`);
-            },
-            
-            /**
-             * Show notification using backend Push API for background support
-             * This ensures notifications work even when the app is closed
-             */
-            async showNotification(options) {
-                if (!('Notification' in window)) {
-                    console.warn('[Notifications] Notification API not supported');
-                    return;
-                }
-                
-                if (Notification.permission !== 'granted') {
-                    console.warn('[Notifications] Notification permission not granted');
-                    return;
-                }
-                
-                try {
-                    // Get current user ID
-                    const userId = localStorage.getItem('userId');
-                    if (!userId) {
-                        console.warn('[Notifications] No userId found - cannot send push notification');
-                        // Fallback to local notification for backwards compatibility
-                        await this.showLocalNotification(options);
-                        return;
-                    }
-                    
-                    // Send push notification through backend API
-                    // This ensures notifications work in background when app is closed
-                    const pushResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/push/send', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            userId: userId,
-                            title: options.title || 'NutriPlan',
-                            body: options.body || 'Ново напомняне от NutriPlan',
-                            url: '/plan.html',
-                            icon: options.icon || '/icon-192x192.png',
-                            notificationType: this.getNotificationTypeFromTag(options.tag)
-                        })
-                    });
-                    
-                    const pushData = await pushResponse.json();
-                    
-                    if (pushData.success) {
-                        console.log('[Notifications] Push notification sent successfully via backend');
-                    } else {
-                        console.warn('[Notifications] Backend push failed, using local notification:', pushData.message);
-                        // Fallback to local notification
-                        await this.showLocalNotification(options);
-                    }
-                } catch (e) {
-                    console.error('[Notifications] Error sending push notification:', e);
-                    // Fallback to local notification
-                    await this.showLocalNotification(options);
-                }
-            },
-            
-            /**
-             * Extract notification type from tag for backend API
-             */
-            getNotificationTypeFromTag(tag) {
-                if (!tag) return 'general';
-                if (tag.includes('meal')) return 'meal';
-                if (tag.includes('water')) return 'water';
-                if (tag.includes('sleep')) return 'sleep';
-                if (tag.includes('activity')) return 'activity';
-                if (tag.includes('supplements')) return 'supplements';
-                if (tag.includes('snack')) return 'snack';
-                if (tag.includes('chat')) return 'chat';
-                return 'general';
-            },
-            
-            /**
-             * Show local notification (fallback when push API is not available)
-             * Only works when app is in foreground
-             */
-            async showLocalNotification(options) {
-                try {
-                    if (this.serviceWorkerReg && this.serviceWorkerReg.showNotification) {
-                        // Use Service Worker notification (works better on iOS PWA)
-                        const timestamp = Date.now();
-                        await this.serviceWorkerReg.showNotification(options.title, {
-                            body: options.body,
-                            icon: options.icon || '/icon-192x192.png',
-                            badge: '/icon-192x192.png',
-                            tag: options.tag,
-                            requireInteraction: options.requireInteraction || false,
-                            silent: false,
-                            timestamp: timestamp,
-                            data: {
-                                url: '/plan.html',
-                                timestamp: timestamp
-                            },
-                            vibrate: options.vibrate || [200, 100, 200]
-                        });
-                        console.log('[Notifications] Local notification shown via Service Worker');
-                    } else {
-                        // Fallback to regular Notification API
-                        const notification = new Notification(options.title, {
-                            body: options.body,
-                            icon: options.icon || '/icon-192x192.png',
-                            tag: options.tag,
-                            requireInteraction: options.requireInteraction || false,
-                            silent: false,
-                            timestamp: Date.now()
-                        });
-                        
-                        notification.onclick = () => {
-                            window.focus();
-                            notification.close();
-                        };
-                        console.log('[Notifications] Local notification shown via Notification API');
-                    }
-                } catch (e) {
-                    console.error('[Notifications] Error showing local notification:', e);
-                }
-            },
-            
-            /**
-             * Get global notification settings (admin-configured)
-             */
-            getGlobalSettings() {
-                const stored = localStorage.getItem('globalNotificationSettings');
-                if (stored) {
-                    return JSON.parse(stored);
-                }
-                
-                // Return defaults if not found
-                const defaults = {
-                    enabled: true,
-                    waterReminders: {
-                        enabled: true,
-                        frequency: 2,  // hours
-                        startHour: 8,
-                        endHour: 22
-                    },
-                    mealReminders: {
-                        enabled: true,
-                        breakfast: '08:00',
-                        lunch: '13:00',
-                        dinner: '19:00'
-                    }
-                };
-                
-                // Save defaults to localStorage
-                localStorage.setItem('globalNotificationSettings', JSON.stringify(defaults));
-                console.log('[Notifications] Initialized default global settings');
-                
-                return defaults;
-            },
-            
-            /**
-             * Clear all scheduled timers
-             */
-            clearAllScheduled() {
-                this.scheduledTimers.forEach(timerId => clearTimeout(timerId));
-                this.scheduledTimers = [];
-            },
-            
-            /**
-             * Check for updates from backend (only when admin changes settings)
-             * This is called periodically or on page load
-             */
-            async checkForUpdates() {
-                try {
-                    // Check template version
-                    const localTemplateVersion = localStorage.getItem('notificationTemplatesVersion');
-                    const localSettingsVersion = localStorage.getItem('globalNotificationSettingsVersion');
-                    
-                    // Fetch latest versions from backend (lightweight check)
-                    const response = await fetch('https://aidiet.radilov-k.workers.dev/api/admin/notification-templates');
-                    const data = await response.json();
-                    
-                    if (data.success && data.templates) {
-                        // Check if we need to update
-                        const serverVersion = data.version || Date.now();
-                        
-                        if (!localTemplateVersion || parseInt(localTemplateVersion) < serverVersion) {
-                            console.log('[Notifications] New templates available, updating cache');
-                            localStorage.setItem('notificationTemplates', JSON.stringify(data.templates));
-                            localStorage.setItem('notificationTemplatesVersion', serverVersion.toString());
-                            
-                            // Reschedule with new templates
-                            this.init();
-                        }
-                    }
-                    
-                    // Similarly check global settings
-                    const settingsResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/admin/notification-settings');
-                    const settingsData = await settingsResponse.json();
-                    
-                    if (settingsData.success && settingsData.settings) {
-                        const serverSettingsVersion = settingsData.version || Date.now();
-                        
-                        if (!localSettingsVersion || parseInt(localSettingsVersion) < serverSettingsVersion) {
-                            console.log('[Notifications] New settings available, updating cache');
-                            localStorage.setItem('globalNotificationSettings', JSON.stringify(settingsData.settings));
-                            localStorage.setItem('globalNotificationSettingsVersion', serverSettingsVersion.toString());
-                            
-                            // Reschedule with new settings
-                            this.init();
-                        }
-                    }
-                } catch (error) {
-                    // Fail silently - offline or backend issue
-                    // Continue using cached data
-                    console.log('[Notifications] Could not check for updates, using cached data');
-                }
-            }
-        };
-        
-        /**
-         * Calendar Export Utility - Fallback for platforms without notification support
-         * Generates iCalendar (.ics) file that users can import to their calendar app
-         */
-        const CalendarExporter = {
-            /**
-             * Generate iCalendar (.ics) file with all reminders
-             */
-            generateICS() {
-                const prefs = NotificationScheduler.getPreferences();
-                const templates = NotificationScheduler.getTemplates();
-                const globalSettings = NotificationScheduler.getGlobalSettings();
-                
-                let icsContent = [
-                    'BEGIN:VCALENDAR',
-                    'VERSION:2.0',
-                    'PRODID:-//NutriPlan//Notification Reminders//EN',
-                    'CALSCALE:GREGORIAN',
-                    'METHOD:PUBLISH',
-                    'X-WR-CALNAME:NutriPlan Напомняния',
-                    'X-WR-TIMEZONE:Europe/Sofia',
-                    'X-WR-CALDESC:Напомняния за храна, вода и активности от NutriPlan'
-                ];
-                
-                const now = new Date();
-                const dateStamp = this.formatDateTimeStamp(now);
-                
-                // Add meal reminders
-                if (prefs.meals?.enabled && globalSettings?.mealReminders) {
-                    const mealTimes = globalSettings.mealReminders;
-                    Object.entries(mealTimes).forEach(([mealType, config]) => {
-                        if (config.enabled && config.time) {
-                            const template = templates.meals[mealType];
-                            if (template) {
-                                icsContent.push(...this.createRecurringEvent(
-                                    template.title,
-                                    template.body,
-                                    config.time,
-                                    'DAILY',
-                                    dateStamp
-                                ));
-                            }
-                        }
-                    });
-                }
-                
-                // Add water reminders
-                if (prefs.water?.enabled && globalSettings?.waterReminders?.enabled) {
-                    const waterConfig = globalSettings.waterReminders;
-                    const interval = waterConfig.intervalHours || 2;
-                    const startHour = parseInt(waterConfig.startTime?.split(':')[0]) || 8;
-                    const endHour = parseInt(waterConfig.endTime?.split(':')[0]) || 22;
-                    
-                    for (let hour = startHour; hour <= endHour; hour += interval) {
-                        const time = `${hour.toString().padStart(2, '0')}:00`;
-                        icsContent.push(...this.createRecurringEvent(
-                            templates.water.title,
-                            templates.water.body,
-                            time,
-                            'DAILY',
-                            dateStamp
-                        ));
-                    }
-                }
-                
-                // Add sleep reminder
-                if (prefs.sleep?.enabled) {
-                    const sleepTime = prefs.sleep.time || '22:00';
-                    icsContent.push(...this.createRecurringEvent(
-                        templates.sleep.title,
-                        templates.sleep.body,
-                        sleepTime,
-                        'DAILY',
-                        dateStamp
-                    ));
-                }
-                
-                // Add activity reminders
-                if (prefs.activity?.enabled) {
-                    const morningTime = prefs.activity.morningTime || '07:00';
-                    icsContent.push(...this.createRecurringEvent(
-                        templates.activity.morning.title,
-                        templates.activity.morning.body,
-                        morningTime,
-                        'DAILY',
-                        dateStamp
-                    ));
-                    
-                    const dayTime = prefs.activity.dayTime || '15:00';
-                    icsContent.push(...this.createRecurringEvent(
-                        templates.activity.day.title,
-                        templates.activity.day.body,
-                        dayTime,
-                        'DAILY',
-                        dateStamp
-                    ));
-                }
-                
-                icsContent.push('END:VCALENDAR');
-                return icsContent.join('\r\n');
-            },
-            
-            /**
-             * Create a recurring event in iCalendar format
-             */
-            createRecurringEvent(title, description, time, frequency, dateStamp) {
-                const uid = `nutriplan-${title.toLowerCase().replace(/\s+/g, '-')}-${time.replace(':', '')}@biocode.website`;
-                const [hours, minutes] = time.split(':');
-                
-                // Start date (today at specified time)
-                const startDate = new Date();
-                startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                
-                return [
-                    'BEGIN:VEVENT',
-                    `UID:${uid}`,
-                    `DTSTAMP:${dateStamp}`,
-                    `DTSTART:${this.formatDateTime(startDate)}`,
-                    `SUMMARY:${title}`,
-                    `DESCRIPTION:${description}`,
-                    `RRULE:FREQ=${frequency}`,
-                    'BEGIN:VALARM',
-                    'TRIGGER:-PT0M',
-                    'ACTION:DISPLAY',
-                    `DESCRIPTION:${title}`,
-                    'END:VALARM',
-                    'END:VEVENT'
-                ];
-            },
-            
-            /**
-             * Format date/time for iCalendar
-             */
-            formatDateTime(date) {
-                const year = date.getFullYear();
-                const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                const day = date.getDate().toString().padStart(2, '0');
-                const hours = date.getHours().toString().padStart(2, '0');
-                const minutes = date.getMinutes().toString().padStart(2, '0');
-                const seconds = date.getSeconds().toString().padStart(2, '0');
-                return `${year}${month}${day}T${hours}${minutes}${seconds}`;
-            },
-            
-            /**
-             * Format date/time stamp for iCalendar
-             */
-            formatDateTimeStamp(date) {
-                return this.formatDateTime(date) + 'Z';
-            },
-            
-            /**
-             * Download ICS file
-             */
-            downloadICS() {
-                const icsContent = this.generateICS();
-                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'nutriplan-reminders.ics';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                
-                console.log('[Calendar] ICS file downloaded');
-            }
-        };
-        
-        /**
-         * Global function to schedule/reschedule notifications
-         * Called when preferences change or plan is updated
+         * Schedule / reschedule game notifications via GameNotifier (local-scheduler.js).
+         * Only acts when notification permission is already granted; called again after
+         * the user grants permission inside subscribeToPushNotifications().
          */
         function scheduleNotifications() {
-            NotificationScheduler.init();
+            if (!window.GameNotifier) return;
+            if (Notification.permission !== 'granted') return;
+            window.GameNotifier.init().catch(e =>
+                console.warn('[Notifications] GameNotifier.init error:', e)
+            );
         }
-        
+
         /**
-         * Check for notification updates on page load
-         * This is the ONLY backend call for notifications (cache check)
+         * Check for notification config updates from the backend.
+         * GameNotifier.init() already calls _maybeSyncBackendConfig, so this is
+         * a lightweight no-op shim kept for backward compatibility with callers.
          */
         async function checkNotificationUpdates() {
-            await NotificationScheduler.checkForUpdates();
+            if (window.GameNotifier) {
+                await window.GameNotifier._maybeSyncBackendConfig().catch(() => {});
+            }
         }
-        
+
         // ===================================================================
-        // END CLIENT-SIDE NOTIFICATION SCHEDULER
+        // END GAME NOTIFIER
         // ===================================================================
+            
         
         // UI strings for chat modes
         const CHAT_MODE_STRINGS = {
@@ -4773,13 +3981,28 @@
             loadPlanHistory();
             // Load chat history
             loadChatHistory();
-            // Check for notification updates from backend (only call if admin changed)
+            // Check for notification config updates from backend
             checkNotificationUpdates();
-            // Auto-open chat if navigated with ?chat=1
+            // Initialise game notifications (GameNotifier in local-scheduler.js)
+            scheduleNotifications();
+            // Handle URL action params from notification taps
             const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            if (action === 'morning_check' || action === 'evening_check') {
+                // Clean URL immediately so refresh doesn't re-trigger
+                window.history.replaceState({}, '', window.location.pathname);
+                // Wait for gamification module to initialise, then fire the question
+                setTimeout(function() {
+                    if (action === 'morning_check' && typeof window._gameShowMorning === 'function') {
+                        window._gameShowMorning(true);
+                    } else if (action === 'evening_check' && typeof window._gameShowEvening === 'function') {
+                        window._gameShowEvening(true);
+                    }
+                }, 2000);
+            }
+            // Auto-open chat if navigated with ?chat=1
             if (urlParams.get('chat') === '1') {
                 setTimeout(function() { openChat(); }, 500);
-                // Clean up URL
                 window.history.replaceState({}, '', window.location.pathname);
             }
         });
@@ -8323,6 +7546,8 @@
                     console.log('🔑 Your User ID for testing:', userId);
                     console.info('ℹ️ Use this User ID when sending test notifications from the admin panel');
                     localStorage.setItem('pushSubscribed', 'true');
+                    // Permission confirmed – initialise game notification schedule
+                    scheduleNotifications();
                 } else {
                     console.error('❌ Failed to save subscription on server:', result);
                 }
@@ -9970,5 +9195,7 @@
             <span>Профил</span>
         </a>
     </nav>
+    <!-- GameNotifier: gamification-based notification scheduling -->
+    <script src="./local-scheduler.js"></script>
 </body>
 </html>
