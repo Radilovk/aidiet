@@ -1,0 +1,24 @@
+{
+  "appId": "bg.biocode.aidiet",
+  "appName": "AiDiet",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https",
+    "hostname": "aidiet.radilov-k.workers.dev"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_nutriplan",
+      "iconColor": "#FF8C00",
+      "sound": "default"
+    },
+    "Motion": {
+      "enabled": true
+    }
+  },
+  "android": {
+    "minWebViewVersion": 60,
+    "allowMixedContent": false,
+    "backgroundColor": "#ffffff"
+  }
+}

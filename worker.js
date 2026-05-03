@@ -11066,6 +11066,54 @@ async function sendWebPushNotification(subscription, payload, env) {
 }
 
 /**
+ * GET /api/notification-config
+ * Returns the GameNotifier / Capacitor notification schedule config stored in KV.
+ * Response: { config: {...}, version: <number> }
+ */
+async function handleGetNotificationConfig(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+    const raw = await env.page_content.get('notification-config');
+    const verRaw = await env.page_content.get('notification-config-version');
+    const config = raw ? JSON.parse(raw) : null;
+    const version = verRaw ? parseInt(verRaw, 10) : 0;
+    return jsonResponse({ success: true, config, version }, 200, { cacheControl: 'no-cache' });
+  } catch (error) {
+    console.error('Error getting notification config:', error);
+    return jsonResponse({ error: 'Failed to get notification config: ' + error.message }, 500);
+  }
+}
+
+/**
+ * POST /api/notification-config
+ * Body: { config: { morningTime, eveningTime, morningTitle, morningBody, eveningTitle, eveningBody, ... } }
+ * Saves the notification config to KV and increments the version so clients pick it up.
+ */
+async function handleSaveNotificationConfig(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: 'KV storage not configured' }, 500);
+    }
+    const body = await request.json();
+    if (!body || typeof body.config !== 'object') {
+      return jsonResponse({ error: 'Missing or invalid config field' }, 400);
+    }
+    // Bump version
+    const verRaw = await env.page_content.get('notification-config-version');
+    const version = (verRaw ? parseInt(verRaw, 10) : 0) + 1;
+    await env.page_content.put('notification-config', JSON.stringify(body.config));
+    await env.page_content.put('notification-config-version', String(version));
+    console.log('Notification config saved, version:', version);
+    return jsonResponse({ success: true, version });
+  } catch (error) {
+    console.error('Error saving notification config:', error);
+    return jsonResponse({ error: 'Failed to save notification config: ' + error.message }, 500);
+  }
+}
+
+/**
  * Push Notifications: Get VAPID public key
  * 
  * Returns the VAPID public key needed for push notification subscription.
@@ -12280,6 +12328,10 @@ export default {
         return await handleUploadUIImage(request, env);
       } else if (url.pathname === '/api/admin/delete-ui-image' && request.method === 'POST') {
         return await handleDeleteUIImage(request, env);
+      } else if (url.pathname === '/api/notification-config' && request.method === 'GET') {
+        return await handleGetNotificationConfig(request, env);
+      } else if (url.pathname === '/api/notification-config' && request.method === 'POST') {
+        return await handleSaveNotificationConfig(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
