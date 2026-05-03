@@ -3,8 +3,8 @@
 const BASE_PATH = '';
 
 // GLOBAL NOTIFICATION KILL SWITCH - set to true to disable ALL notifications
-const NOTIFICATIONS_DISABLED = true;
-const CACHE_NAME = 'nutriplan-v6';
+const NOTIFICATIONS_DISABLED = false;
+const CACHE_NAME = 'nutriplan-v7';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -24,6 +24,8 @@ const STATIC_CACHE = [
   `${BASE_PATH}/icon-512x512.png`,
   `${BASE_PATH}/icon-512x512.svg`,
   `${BASE_PATH}/manifest.json`,
+  `${BASE_PATH}/notification-db.js`,
+  `${BASE_PATH}/local-scheduler.js`,
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
@@ -197,6 +199,16 @@ self.addEventListener('push', (event) => {
     
     // Type-specific customizations
     switch (notificationData.notificationType) {
+      case 'morning_check':
+        vibrate = [300, 100, 300, 100, 300];
+        tag = 'gn-morning-push';
+        requireInteraction = true;
+        break;
+      case 'evening_check':
+        vibrate = [200, 100, 200, 100, 200];
+        tag = 'gn-evening-push';
+        requireInteraction = false;
+        break;
       case 'chat':
         vibrate = [100, 50, 100];
         // Unique tag for each chat message using crypto.randomUUID() for better uniqueness
@@ -458,3 +470,52 @@ async function importNotificationDB() {
     }
   };
 }
+
+// ========================================================================
+// GAME NOTIFIER – SW-side scheduled notification fallback
+// ========================================================================
+
+// In-memory store for pending scheduled items (persists across SW suspensions
+// only as long as the SW process stays alive; good enough for short-horizon
+// schedules; long-term persistence uses the Triggers API instead).
+const _scheduledGameNotifs = [];
+let   _scheduleTimers = [];
+
+self.addEventListener('message', (event) => {
+  const msg = event.data;
+  if (!msg || msg.type !== 'SCHEDULE_GAME_NOTIFICATIONS') return;
+  if (!Array.isArray(msg.schedule)) return;
+
+  console.log('[SW] Received SCHEDULE_GAME_NOTIFICATIONS with', msg.schedule.length, 'items');
+
+  // Clear previous timers
+  _scheduleTimers.forEach(id => clearTimeout(id));
+  _scheduleTimers = [];
+  _scheduledGameNotifs.length = 0;
+
+  const now = Date.now();
+  msg.schedule.forEach(item => {
+    const delay = item.ts - now;
+    if (delay < 0) return; // already past
+    _scheduledGameNotifs.push(item);
+    const tid = setTimeout(async () => {
+      try {
+        await self.registration.showNotification(item.title, {
+          body:   item.body,
+          icon:   '/icon-192x192.png',
+          badge:  '/icon-192x192.png',
+          tag:    item.tag,
+          data:   { url: item.url, type: item.type },
+          requireInteraction: item.requireInteraction || false,
+          vibrate: item.vibrate || [200, 100, 200]
+        });
+        console.log('[SW] Showed scheduled notification:', item.tag);
+      } catch (e) {
+        console.error('[SW] Failed to show scheduled notification:', e);
+      }
+    }, delay);
+    _scheduleTimers.push(tid);
+  });
+
+  console.log('[SW] Scheduled', _scheduleTimers.length, 'game notification timers');
+});
