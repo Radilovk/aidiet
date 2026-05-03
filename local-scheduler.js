@@ -183,6 +183,14 @@ const GameNotifier = {
         // Cancel previously scheduled ones
         await this.cancelAll();
 
+        // TimestampTrigger is a browser global provided by the Notification Triggers API.
+        // We only reach this method when 'showTrigger' in Notification.prototype, so the
+        // global is always present. The typeof guard is an extra safety net.
+        if (typeof TimestampTrigger === 'undefined') {
+            console.warn('[GameNotifier] TimestampTrigger unexpectedly undefined; falling back to SW scheduling');
+            return this._scheduleViaSW(cfg);
+        }
+
         const [mH, mM] = cfg.morningTime.split(':').map(Number);
         const [eH, eM] = cfg.eveningTime.split(':').map(Number);
         const now = Date.now();
