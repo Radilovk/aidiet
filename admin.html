@@ -2239,7 +2239,11 @@
                 </div>
             </div>
 
-            <!-- Notification Templates Editor (legacy — hidden inputs kept for JS compat) -->
+            <!-- Notification Templates Editor (legacy hidden inputs).
+                 loadNotificationTemplates() / saveNotificationTemplates() still read/write
+                 these IDs when syncing with /api/admin/notification-templates so that
+                 existing backend data is not lost. The fields are invisible to admins
+                 because the new GameNotifier card above handles all visible config. -->
             <div style="display:none" aria-hidden="true">
                 <input id="templateMealBreakfastTitle"><input id="templateMealBreakfastBody">
                 <input id="templateMealLunchTitle"><input id="templateMealLunchBody">
