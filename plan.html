@@ -7518,12 +7518,16 @@
             });
         }
         
-        // --- Push Notifications (local scheduling only) ---
-        // Notifications are handled entirely client-side via GameNotifier
-        // (local-scheduler.js).  No VAPID / server-push subscription is needed.
-        // The browser permission flow is kept so users can enable notifications;
-        // once granted, GameNotifier schedules morning + evening reminders locally.
+        // --- Push Notifications (local + server-push) ---
+        // Local scheduling is done via GameNotifier (local-scheduler.js).
+        // Server-push subscriptions are also registered so the admin panel can
+        // send push notifications (plan reminders, AI messages) to specific users.
+
+        // Holds the SW registration so showNotificationPrompt() can use it.
+        let _swRegistration = null;
+
         async function checkNotificationPermission(registration) {
+            _swRegistration = registration;
             // Display user ID for debugging purposes
             const userId = localStorage.getItem('userId');
             if (userId) {
@@ -7535,6 +7539,7 @@
             if (Notification.permission === 'granted') {
                 console.log('📱 Notification permission already granted – scheduling locally');
                 scheduleNotifications();
+                registerServerPush(registration);
             } else if (Notification.permission !== 'denied') {
                 // Wait a bit before asking so the user isn't overwhelmed on load
                 setTimeout(() => {
@@ -7554,7 +7559,65 @@
                 if (permission === 'granted') {
                     console.log('Notification permission granted');
                     scheduleNotifications();
+                    if (_swRegistration) registerServerPush(_swRegistration);
                 }
+            }
+        }
+
+        /**
+         * Subscribe this browser to server-side Web Push and save the subscription
+         * in KV so the admin panel can target this user by their userId.
+         * Skips silently if VAPID keys are not configured or already subscribed.
+         */
+        async function registerServerPush(registration) {
+            try {
+                if (!('PushManager' in window)) return;
+
+                // Avoid re-subscribing on every page load
+                const existing = await registration.pushManager.getSubscription();
+                if (existing) {
+                    // Still ensure it's persisted on the server (idempotent)
+                    await _saveSubscriptionToServer(existing);
+                    return;
+                }
+
+                const vapidRes = await fetch(`${WORKER_URL}/api/push/vapid-public-key`);
+                if (!vapidRes.ok) return;
+                const vapidData = await vapidRes.json();
+                if (!vapidData.success || !vapidData.publicKey ||
+                    vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
+                    console.warn('[Push] VAPID key not configured – server push unavailable');
+                    return;
+                }
+
+                const base64 = vapidData.publicKey.replace(/-/g, '+').replace(/_/g, '/');
+                const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: raw
+                });
+
+                await _saveSubscriptionToServer(subscription);
+            } catch (e) {
+                console.warn('[Push] registerServerPush error:', e);
+            }
+        }
+
+        async function _saveSubscriptionToServer(subscription) {
+            try {
+                let userId = localStorage.getItem('userId');
+                if (!userId) return;
+                const res = await fetch(`${WORKER_URL}/api/push/subscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, subscription: subscription.toJSON() })
+                });
+                if (res.ok) {
+                    console.log('[Push] Server push subscription saved for', userId);
+                }
+            } catch (e) {
+                console.warn('[Push] _saveSubscriptionToServer error:', e);
             }
         }
 
