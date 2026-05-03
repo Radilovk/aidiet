@@ -1,37 +1,38 @@
 /**
- * GameNotifier – replaces the old NotificationScheduler.
+ * GameNotifier – автономна система за локални нотификации.
  *
- * Two primary notifications are scheduled daily for N days ahead:
- *   1. morning_check – "Добро утро! Спахте ли добре?" (default 07:00)
- *      Triggered earlier (after 05:00) when device motion wake detection fires.
- *   2. evening_check – "Добър вечер! Как мина денят?" (default 20:00)
+ * Поддържа три слоя за изпращане (в ред на предпочитание):
+ *   1. Capacitor LocalNotifications (APK / нативен Android)  ✅ най-надежден
+ *   2. Notification Triggers API (TimestampTrigger) – Chrome/Edge Android, TWA  ✅
+ *   3. SW postMessage → SW sets a timeout (fallback – работи само пока браузърът е жив)  ⚠️
  *
- * Scheduling strategy (best available):
- *   A. Notification Triggers API (TimestampTrigger) – Chrome/Edge Android, TWA  ✅
- *   B. Service Worker postMessage → SW sets a timeout               (fallback)  ✅
+ * Нотификации (всички конфигурируеми от admin панела):
+ *   morning_check  – събуждане след 05:00 (motion detection или фиксиран час 07:00)
+ *   evening_check  – вечерна проверка (по подразбиране 20:00)
  *
- * DeviceMotion wake detection (Android / TWA):
- *   – Between 05:00 and 09:00, listens for significant acceleration.
- *   – On first detection fires the morning notification immediately.
- *   – Stops listening after the notification is sent for that day.
+ * Wake detection (Android):
+ *   A. DeviceMotion – значително ускорение (>12 m/s²) между 05:00 и 09:00
+ *   B. Capacitor Motion plugin (ако е наличен) – по-надеждно четене на акселерометъра
+ *   → Ако нито едно не работи, нотификацията излиза в зададения час (morningTime).
  *
- * Backend admin override:
- *   – Admin can push a JSON config via /api/notification-config.
- *   – Stored in localStorage as 'gameNotifierConfig'.
- *   – Re-schedules automatically when config changes.
+ * Backend config sync:
+ *   – GET /api/notification-config (max веднъж на 24 ч, освен при force)
+ *   – Съхранява се в localStorage → 'gameNotifierConfig'
+ *   – forceSyncBackendConfig() изчиства throttle и синхронизира веднага
  */
 
 const GameNotifier = {
 
-    DAYS_AHEAD: 7,
-    MOTION_THRESHOLD: 12,  // m/s² – significant shake/lift
-    MORNING_WAKE_START: 5, // hour – start of wake-detection window
-    MORNING_WAKE_END:   9, // hour – end   of wake-detection window
-    LS_CONFIG_KEY: 'gameNotifierConfig',
+    DAYS_AHEAD:        7,
+    MOTION_THRESHOLD:  12,   // m/s² – значително ускорение/вдигане
+    MORNING_WAKE_START: 5,   // час – начало на wake-detection прозореца
+    MORNING_WAKE_END:   9,   // час – край на wake-detection прозореца
+    LS_CONFIG_KEY:      'gameNotifierConfig',
     LS_MOTION_SENT_KEY: 'gameNotifierMotionSentDate',
 
-    _swReg: null,
+    _swReg:         null,
     _motionCleanup: null,
+    _capacitor:     null,   // @capacitor/local-notifications handle
 
     /* ------------------------------------------------------------------ */
     /*  Public API                                                          */
@@ -40,24 +41,34 @@ const GameNotifier = {
     async init() {
         console.log('[GameNotifier] Initialising...');
 
-        if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-            console.warn('[GameNotifier] Notifications not supported on this platform.');
-            return;
-        }
+        // Detect Capacitor (APK context)
+        this._capacitor = this._detectCapacitor();
 
-        // Request permission
-        const perm = await this._requestPermission();
-        if (perm !== 'granted') {
-            console.warn('[GameNotifier] Permission not granted:', perm);
-            return;
-        }
-
-        // Get SW registration
-        try {
-            this._swReg = await navigator.serviceWorker.ready;
-        } catch (e) {
-            console.error('[GameNotifier] SW not ready:', e);
-            return;
+        if (this._capacitor) {
+            // Native Capacitor path
+            console.log('[GameNotifier] Running in Capacitor (APK) context');
+            const granted = await this._requestCapacitorPermission();
+            if (!granted) {
+                console.warn('[GameNotifier] Capacitor notification permission denied');
+                return;
+            }
+        } else {
+            // Web / PWA path – check for browser Notification API
+            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                console.warn('[GameNotifier] Notifications not supported on this platform.');
+                return;
+            }
+            const perm = await this._requestPermission();
+            if (perm !== 'granted') {
+                console.warn('[GameNotifier] Permission not granted:', perm);
+                return;
+            }
+            try {
+                this._swReg = await navigator.serviceWorker.ready;
+            } catch (e) {
+                console.error('[GameNotifier] SW not ready:', e);
+                return;
+            }
         }
 
         // Fetch backend config (non-blocking, silent fail)
@@ -80,20 +91,33 @@ const GameNotifier = {
         const cfg = this._getConfig();
         console.log('[GameNotifier] Scheduling with config:', cfg);
 
-        if ('showTrigger' in Notification.prototype) {
+        if (this._capacitor) {
+            await this._scheduleWithCapacitor(cfg);
+        } else if ('showTrigger' in Notification.prototype) {
             await this._scheduleWithTriggers(cfg);
         } else {
             await this._scheduleViaSW(cfg);
         }
     },
 
-    /** Cancel all pending triggers (Triggers API only). */
+    /** Cancel all pending triggers / notifications. */
     async cancelAll() {
+        if (this._capacitor) {
+            try {
+                const { LocalNotifications } = this._capacitor;
+                const pending = await LocalNotifications.getPending();
+                if (pending.notifications && pending.notifications.length > 0) {
+                    await LocalNotifications.cancel({ notifications: pending.notifications });
+                }
+            } catch (e) {
+                console.warn('[GameNotifier] Capacitor cancelAll error:', e);
+            }
+            return;
+        }
         if (!this._swReg) return;
         try {
             const pending = await this._swReg.getNotifications({ tag: 'game-notifier' });
             pending.forEach(n => n.close());
-            // Also cancel scheduled (Triggers API)
             if ('getScheduledNotifications' in this._swReg) {
                 const scheduled = await this._swReg.getScheduledNotifications();
                 scheduled
@@ -118,7 +142,34 @@ const GameNotifier = {
     },
 
     /* ------------------------------------------------------------------ */
-    /*  Permission                                                          */
+    /*  Capacitor detection                                                 */
+    /* ------------------------------------------------------------------ */
+
+    _detectCapacitor() {
+        // window.Capacitor is injected by Capacitor runtime in APK context
+        if (typeof window === 'undefined' || !window.Capacitor) return null;
+        try {
+            const { Plugins } = window.Capacitor;
+            if (Plugins && Plugins.LocalNotifications) {
+                return { LocalNotifications: Plugins.LocalNotifications };
+            }
+        } catch (_) {}
+        return null;
+    },
+
+    async _requestCapacitorPermission() {
+        try {
+            const { LocalNotifications } = this._capacitor;
+            const status = await LocalNotifications.requestPermissions();
+            return status.display === 'granted';
+        } catch (e) {
+            console.error('[GameNotifier] Capacitor permission error:', e);
+            return false;
+        }
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Permission (web/PWA)                                                */
     /* ------------------------------------------------------------------ */
 
     async _requestPermission() {
@@ -137,8 +188,8 @@ const GameNotifier = {
 
     _getConfig() {
         const defaults = {
-            morningTime: '07:00',
-            eveningTime: '20:00',
+            morningTime:  '07:00',
+            eveningTime:  '20:00',
             morningTitle: 'Добро утро! 🌅',
             morningBody:  'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
             eveningTitle: 'Добър вечер! 🌙',
@@ -157,8 +208,6 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
 
     async _maybeSyncBackendConfig() {
-        // Only sync with backend at most once every 24 hours to avoid
-        // a backend fetch on every page load.
         const LS_LAST_SYNC_KEY = 'gameNotifierConfigLastSync';
         const MIN_INTERVAL_MS  = 24 * 60 * 60 * 1000; // 24 hours
         const lastSync = parseInt(localStorage.getItem(LS_LAST_SYNC_KEY) || '0', 10);
@@ -178,15 +227,13 @@ const GameNotifier = {
                 localStorage.setItem(LS_VERSION_KEY, String(serverVersion));
                 console.log('[GameNotifier] Config updated from backend.');
             }
-            // Record sync time regardless of whether config changed
             localStorage.setItem(LS_LAST_SYNC_KEY, String(Date.now()));
         } catch (_) { /* offline / endpoint not deployed yet */ }
     },
 
     /**
-     * Force an immediate config sync from the backend (bypasses the 24-hour
-     * throttle). Intended for use by the admin panel when a config change is
-     * pushed, so the page picks it up without waiting a full day.
+     * Force an immediate config sync from the backend (bypasses the 24-hour throttle).
+     * Intended for use by the admin panel after a config change is pushed.
      */
     async forceSyncBackendConfig() {
         localStorage.removeItem('gameNotifierConfigLastSync');
@@ -194,18 +241,69 @@ const GameNotifier = {
     },
 
     /* ------------------------------------------------------------------ */
-    /*  Notification Triggers API (Chrome Android / TWA) – Method A        */
+    /*  Capacitor LocalNotifications – Method A (APK)                       */
+    /* ------------------------------------------------------------------ */
+
+    async _scheduleWithCapacitor(cfg) {
+        console.log('[GameNotifier] Using Capacitor LocalNotifications');
+        const { LocalNotifications } = this._capacitor;
+        await this.cancelAll();
+
+        const [mH, mM] = cfg.morningTime.split(':').map(Number);
+        const [eH, eM] = cfg.eveningTime.split(':').map(Number);
+        const notifications = [];
+
+        for (let day = 0; day < this.DAYS_AHEAD; day++) {
+            const morningTs = this._tsForDayOffset(day, mH, mM);
+            if (morningTs > Date.now()) {
+                notifications.push({
+                    id: 1000 + day,
+                    title: cfg.morningTitle,
+                    body:  cfg.morningBody,
+                    schedule: { at: new Date(morningTs) },
+                    extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
+                    iconColor: '#FF8C00',
+                    smallIcon: 'ic_stat_nutriplan'
+                });
+            }
+            const eveningTs = this._tsForDayOffset(day, eH, eM);
+            if (eveningTs > Date.now()) {
+                notifications.push({
+                    id: 2000 + day,
+                    title: cfg.eveningTitle,
+                    body:  cfg.eveningBody,
+                    schedule: { at: new Date(eveningTs) },
+                    extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
+                    iconColor: '#6A0DAD',
+                    smallIcon: 'ic_stat_nutriplan'
+                });
+            }
+        }
+
+        try {
+            await LocalNotifications.schedule({ notifications });
+            console.log('[GameNotifier] Capacitor: scheduled', notifications.length, 'notifications');
+        } catch (e) {
+            console.error('[GameNotifier] Capacitor schedule error:', e);
+        }
+
+        // Listen for notification action (tap) to navigate to action URL
+        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+            const extra = action.notification.extra || {};
+            if (extra.url) {
+                window.location.href = extra.url;
+            }
+        });
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Notification Triggers API (Chrome Android / TWA) – Method B        */
     /* ------------------------------------------------------------------ */
 
     async _scheduleWithTriggers(cfg) {
         console.log('[GameNotifier] Using Notification Triggers API');
-        // Cancel previously scheduled ones
         await this.cancelAll();
 
-        // TimestampTrigger is a browser global provided by the Notification Triggers API.
-        // We only reach this method when 'showTrigger' in Notification.prototype, which
-        // strongly implies the global is present. The typeof guard is a defensive safety
-        // net in case of partial API implementations.
         if (typeof TimestampTrigger === 'undefined') {
             console.warn('[GameNotifier] TimestampTrigger unexpectedly undefined; falling back to SW scheduling');
             return this._scheduleViaSW(cfg);
@@ -216,7 +314,6 @@ const GameNotifier = {
         const now = Date.now();
 
         for (let day = 0; day < this.DAYS_AHEAD; day++) {
-            // Morning
             const morning = this._tsForDayOffset(day, mH, mM);
             if (morning > now) {
                 try {
@@ -235,7 +332,6 @@ const GameNotifier = {
                 }
             }
 
-            // Evening
             const evening = this._tsForDayOffset(day, eH, eM);
             if (evening > now) {
                 try {
@@ -258,7 +354,7 @@ const GameNotifier = {
     },
 
     /* ------------------------------------------------------------------ */
-    /*  SW message fallback – Method B                                      */
+    /*  SW message fallback – Method C                                      */
     /* ------------------------------------------------------------------ */
 
     async _scheduleViaSW(cfg) {
@@ -314,7 +410,7 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
 
     _startMotionWakeDetect() {
-        // Only run on Android (TWA) – iOS requires explicit permission request
+        // Runs on Android (TWA / Capacitor) only
         if (!/Android/i.test(navigator.userAgent)) return;
 
         const h = new Date().getHours();
@@ -323,16 +419,20 @@ const GameNotifier = {
         const today = new Date().toISOString().slice(0, 10);
         if (localStorage.getItem(this.LS_MOTION_SENT_KEY) === today) return;
 
-        // Check if morning question already answered
+        // Skip if morning question already answered today
         try {
             const gameData = JSON.parse(localStorage.getItem('gameData') || '{}');
             const rec = gameData[today];
-            if (rec && rec.morningCheck) return; // already answered
+            if (rec && rec.morningCheck) return;
         } catch (_) {}
 
+        // Try Capacitor Motion plugin first
+        if (this._tryCapacitorMotion()) return;
+
+        // Fallback: Web DeviceMotion API
         if (typeof DeviceMotionEvent === 'undefined') return;
 
-        console.log('[GameNotifier] Starting motion wake detection');
+        console.log('[GameNotifier] Starting DeviceMotion wake detection');
 
         const onMotion = (e) => {
             const acc = e.acceleration || e.accelerationIncludingGravity;
@@ -344,14 +444,12 @@ const GameNotifier = {
             );
             if (mag < this.MOTION_THRESHOLD) return;
 
-            // Significant motion detected – user picked up the phone
             const nowH = new Date().getHours();
             if (nowH < this.MORNING_WAKE_START || nowH >= this.MORNING_WAKE_END) {
                 this._stopMotionDetect();
                 return;
             }
 
-            // Check daily sent flag
             const d = new Date().toISOString().slice(0, 10);
             if (localStorage.getItem(this.LS_MOTION_SENT_KEY) === d) {
                 this._stopMotionDetect();
@@ -369,6 +467,58 @@ const GameNotifier = {
         this._motionCleanup = () => window.removeEventListener('devicemotion', onMotion);
     },
 
+    /**
+     * Attempt to use Capacitor Motion plugin for wake detection.
+     * Returns true if successfully started, false otherwise.
+     */
+    _tryCapacitorMotion() {
+        if (typeof window === 'undefined' || !window.Capacitor) return false;
+        try {
+            const { Motion } = window.Capacitor.Plugins || {};
+            if (!Motion) return false;
+
+            console.log('[GameNotifier] Starting Capacitor Motion wake detection');
+
+            const handler = Motion.addListener('accel', (event) => {
+                const acc = event.acceleration;
+                if (!acc) return;
+                const mag = Math.sqrt(
+                    (acc.x || 0) ** 2 +
+                    (acc.y || 0) ** 2 +
+                    (acc.z || 0) ** 2
+                );
+                if (mag < this.MOTION_THRESHOLD) return;
+
+                const nowH = new Date().getHours();
+                if (nowH < this.MORNING_WAKE_START || nowH >= this.MORNING_WAKE_END) {
+                    handler.remove();
+                    this._motionCleanup = null;
+                    return;
+                }
+
+                const d = new Date().toISOString().slice(0, 10);
+                if (localStorage.getItem(this.LS_MOTION_SENT_KEY) === d) {
+                    handler.remove();
+                    this._motionCleanup = null;
+                    return;
+                }
+
+                localStorage.setItem(this.LS_MOTION_SENT_KEY, d);
+                handler.remove();
+                this._motionCleanup = null;
+
+                console.log('[GameNotifier] Capacitor Motion wake detected – showing morning notification');
+                this._showImmediateNotification('morning_check');
+            });
+
+            this._motionCleanup = () => handler.remove();
+            return true;
+        } catch (e) {
+            console.warn('[GameNotifier] Capacitor Motion unavailable:', e);
+            return false;
+        }
+    },
+
     _stopMotionDetect() {
         if (this._motionCleanup) {
             this._motionCleanup();
@@ -377,22 +527,42 @@ const GameNotifier = {
     },
 
     async _showImmediateNotification(type) {
-        if (!this._swReg) return;
         const cfg = this._getConfig();
         const isMorning = type === 'morning_check';
+        const title = isMorning ? cfg.morningTitle : cfg.eveningTitle;
+        const body  = isMorning ? cfg.morningBody  : cfg.eveningBody;
+
+        if (this._capacitor) {
+            try {
+                const { LocalNotifications } = this._capacitor;
+                await LocalNotifications.schedule({
+                    notifications: [{
+                        id: isMorning ? 9001 : 9002,
+                        title,
+                        body,
+                        schedule: { at: new Date(Date.now() + 500) },
+                        extra: { url: `/plan.html?action=${type}`, type },
+                        iconColor: isMorning ? '#FF8C00' : '#6A0DAD',
+                        smallIcon: 'ic_stat_nutriplan'
+                    }]
+                });
+            } catch (e) {
+                console.error('[GameNotifier] Capacitor immediate notification failed:', e);
+            }
+            return;
+        }
+
+        if (!this._swReg) return;
         try {
-            await this._swReg.showNotification(
-                isMorning ? cfg.morningTitle : cfg.eveningTitle,
-                {
-                    body:   isMorning ? cfg.morningBody : cfg.eveningBody,
-                    icon:   '/icon-192x192.png',
-                    badge:  '/icon-192x192.png',
-                    tag:    `gn-${type}-immediate`,
-                    data:   { url: `/plan.html?action=${type}`, type },
-                    requireInteraction: isMorning,
-                    vibrate: isMorning ? [300, 100, 300, 100, 300] : [200, 100, 200, 100, 200]
-                }
-            );
+            await this._swReg.showNotification(title, {
+                body,
+                icon:   '/icon-192x192.png',
+                badge:  '/icon-192x192.png',
+                tag:    `gn-${type}-immediate`,
+                data:   { url: `/plan.html?action=${type}`, type },
+                requireInteraction: isMorning,
+                vibrate: isMorning ? [300, 100, 300, 100, 300] : [200, 100, 200, 100, 200]
+            });
         } catch (e) {
             console.error('[GameNotifier] Immediate notification failed:', e);
         }
