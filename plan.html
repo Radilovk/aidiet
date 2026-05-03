@@ -3872,8 +3872,7 @@
 
         /**
          * Schedule / reschedule game notifications via GameNotifier (local-scheduler.js).
-         * Only acts when notification permission is already granted; called again after
-         * the user grants permission inside subscribeToPushNotifications().
+         * Only acts when notification permission is already granted.
          */
         function scheduleNotifications() {
             if (!window.GameNotifier) return;
@@ -3881,17 +3880,6 @@
             window.GameNotifier.init().catch(e =>
                 console.warn('[Notifications] GameNotifier.init error:', e)
             );
-        }
-
-        /**
-         * Check for notification config updates from the backend.
-         * GameNotifier.init() already calls _maybeSyncBackendConfig, so this is
-         * a lightweight no-op shim kept for backward compatibility with callers.
-         */
-        async function checkNotificationUpdates() {
-            if (window.GameNotifier) {
-                await window.GameNotifier._maybeSyncBackendConfig().catch(() => {});
-            }
         }
 
         // ===================================================================
@@ -3981,9 +3969,8 @@
             loadPlanHistory();
             // Load chat history
             loadChatHistory();
-            // Check for notification config updates from backend
-            checkNotificationUpdates();
-            // Initialise game notifications (GameNotifier in local-scheduler.js)
+            // Initialise game notifications (GameNotifier in local-scheduler.js).
+            // GameNotifier.init() handles config sync internally (max once per 24 h).
             scheduleNotifications();
             // Handle URL action params from notification taps
             const urlParams = new URLSearchParams(window.location.search);
@@ -7531,44 +7518,32 @@
             });
         }
         
-        // --- Push Notifications ---
+        // --- Push Notifications (local scheduling only) ---
+        // Notifications are handled entirely client-side via GameNotifier
+        // (local-scheduler.js).  No VAPID / server-push subscription is needed.
+        // The browser permission flow is kept so users can enable notifications;
+        // once granted, GameNotifier schedules morning + evening reminders locally.
         async function checkNotificationPermission(registration) {
-            // Display user ID for debugging/testing purposes
+            // Display user ID for debugging purposes
             const userId = localStorage.getItem('userId');
             if (userId) {
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                console.log('🔑 Your User ID for testing notifications:');
-                console.log('%c' + userId, 'font-size: 14px; font-weight: bold; color: #06B6D4');
-                console.log('ℹ️  Use this ID in the Admin Panel to send test notifications');
+                console.log('🔑 Your User ID (debug):', userId);
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             }
-            
-            // Check actual subscription status from service worker
-            try {
-                const existingSubscription = await registration.pushManager.getSubscription();
-                if (existingSubscription) {
-                    console.log('✅ Already subscribed to push notifications');
-                    localStorage.setItem('pushSubscribed', 'true');
-                    return;
-                }
-            } catch (error) {
-                console.error('❌ Error checking subscription:', error);
-            }
-            
-            // Check if already granted
+
             if (Notification.permission === 'granted') {
-                console.log('📱 Notification permission already granted');
-                await subscribeToPushNotifications(registration);
+                console.log('📱 Notification permission already granted – scheduling locally');
+                scheduleNotifications();
             } else if (Notification.permission !== 'denied') {
-                // Wait a bit before asking for permission to avoid overwhelming the user
+                // Wait a bit before asking so the user isn't overwhelmed on load
                 setTimeout(() => {
-                    showNotificationPrompt(registration);
-                }, 5000); // Wait 5 seconds after page load
+                    showNotificationPrompt();
+                }, 5000);
             }
         }
         
-        async function showNotificationPrompt(registration) {
-            // Show a custom prompt before requesting browser permission
+        async function showNotificationPrompt() {
             const shouldAsk = confirm(
                 '🔔 Искате ли да получавате напомняния за храна, вода и съобщения от вашия AI консултант?\n\n' +
                 'Това ще ви помогне да следвате плана си по-лесно.'
@@ -7578,107 +7553,7 @@
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     console.log('Notification permission granted');
-                    await subscribeToPushNotifications(registration);
-                }
-            }
-        }
-        
-        async function subscribeToPushNotifications(registration) {
-            try {
-                // Get VAPID public key from server
-                const vapidResponse = await fetch(`${WORKER_URL}/api/push/vapid-public-key`);
-                const vapidData = await vapidResponse.json();
-                
-                if (!vapidData.success || vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
-                    console.warn('❌ VAPID keys not configured on server');
-                    console.info('ℹ️ To enable push notifications, the administrator needs to:');
-                    console.info('1. Generate VAPID keys using: npm install -g web-push && web-push generate-vapid-keys');
-                    console.info('2. Configure VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in Cloudflare Worker environment variables');
-                    console.info('3. See PUSH_NOTIFICATIONS_SETUP.md for detailed instructions');
-                    return;
-                }
-                
-                // Validate VAPID key format (should be base64url, typically 87-88 characters)
-                if (!vapidData.publicKey || vapidData.publicKey.length < 80) {
-                    console.error('❌ Invalid VAPID public key format received from server');
-                    console.error('Received key:', vapidData.publicKey);
-                    console.info('ℹ️ The VAPID public key should be a base64url string of 87-88 characters');
-                    console.info('Example: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBrYhQzj_0sS5kVwfg3A');
-                    return;
-                }
-                
-                // Convert VAPID key from base64url to Uint8Array
-                const urlBase64ToUint8Array = (base64String) => {
-                    try {
-                        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                        const base64 = (base64String + padding)
-                            .replace(/\-/g, '+')
-                            .replace(/_/g, '/');
-                        const rawData = window.atob(base64);
-                        const outputArray = new Uint8Array(rawData.length);
-                        for (let i = 0; i < rawData.length; ++i) {
-                            outputArray[i] = rawData.charCodeAt(i);
-                        }
-                        return outputArray;
-                    } catch (e) {
-                        throw new Error('Failed to decode VAPID key: ' + e.message);
-                    }
-                };
-                
-                // Get or generate user ID before subscribing
-                let userId = localStorage.getItem('userId');
-                if (!userId) {
-                    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
-                    localStorage.setItem('userId', userId);
-                }
-                
-                console.log('📱 Subscribing to push notifications...');
-                console.log('Your User ID:', userId);
-                
-                // Subscribe to push notifications
-                const subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
-                });
-                
-                console.log('✅ Push subscription created successfully');
-                
-                // Send subscription to server
-                const response = await fetch(`${WORKER_URL}/api/push/subscribe`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        userId: userId,
-                        subscription: subscription.toJSON()
-                    })
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    console.log('✅ Successfully subscribed to push notifications');
-                    console.log('🔑 Your User ID for testing:', userId);
-                    console.info('ℹ️ Use this User ID when sending test notifications from the admin panel');
-                    localStorage.setItem('pushSubscribed', 'true');
-                    // Permission confirmed – initialise game notification schedule
                     scheduleNotifications();
-                } else {
-                    console.error('❌ Failed to save subscription on server:', result);
-                }
-            } catch (error) {
-                console.error('❌ Error subscribing to push notifications:', error);
-                
-                // Provide specific error guidance
-                if (error.name === 'InvalidAccessError' || error.message.includes('applicationServerKey')) {
-                    console.error('🔧 The VAPID public key configured on the server is invalid or malformed');
-                    console.info('ℹ️ Administrator: Please verify that:');
-                    console.info('1. VAPID_PUBLIC_KEY is set correctly in Cloudflare Worker environment');
-                    console.info('2. The key is a valid base64url string (typically 87-88 characters)');
-                    console.info('3. The key was generated using web-push or a compatible tool');
-                    console.info('4. See PUSH_NOTIFICATIONS_SETUP.md for instructions');
-                } else {
-                    console.info('ℹ️ Check browser console for details');
                 }
             }
         }
