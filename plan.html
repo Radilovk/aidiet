@@ -7524,10 +7524,10 @@
         // send push notifications (plan reminders, AI messages) to specific users.
 
         // Holds the SW registration so showNotificationPrompt() can use it.
-        let _swRegistration = null;
+        let swRegistration = null;
 
         async function checkNotificationPermission(registration) {
-            _swRegistration = registration;
+            swRegistration = registration;
             // Display user ID for debugging purposes
             const userId = localStorage.getItem('userId');
             if (userId) {
@@ -7559,7 +7559,7 @@
                 if (permission === 'granted') {
                     console.log('Notification permission granted');
                     scheduleNotifications();
-                    if (_swRegistration) registerServerPush(_swRegistration);
+                    if (swRegistration) registerServerPush(swRegistration);
                 }
             }
         }
@@ -7590,6 +7590,8 @@
                     return;
                 }
 
+                // Convert base64url-encoded VAPID public key to standard base64, then
+                // to a Uint8Array, as required by the Web Push / pushManager API.
                 const base64 = vapidData.publicKey.replace(/-/g, '+').replace(/_/g, '/');
                 const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 
@@ -7606,7 +7608,7 @@
 
         async function _saveSubscriptionToServer(subscription) {
             try {
-                let userId = localStorage.getItem('userId');
+                const userId = localStorage.getItem('userId');
                 if (!userId) return;
                 const res = await fetch(`${WORKER_URL}/api/push/subscribe`, {
                     method: 'POST',
