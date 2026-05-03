@@ -27,6 +27,7 @@
 3а. clinicalAdjustmentPercent [-15% до +5%]
   Само по: medicalConditions, medications (additionalNotes само ако е пряко клинично)
   Пример: хипотиреоидизъм → -8%, диабет Тип 2 → -5%, без диагноза → 0
+  ⚠️ ЛАКТАЦИЯ (postpartum_lactation): clinicalAdjustmentPercent = +round(350/tdee×100)% — БЕЗ горна граница +5%, тъй като кърменето изисква реален калориен излишък (+330–400 kcal).
 
 3б. metabolicAdjustmentPercent [-10% до +5%]
   По: sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил (Стъпка 2), темперамент (Стъпка 1), additionalNotes
@@ -35,6 +36,7 @@
 3в. goalAdjustmentPercent [-20% до +15%]
   По: goal, lossKg, bmi, dietHistory, психопрофил, метаболитна реактивност (Стъпки 1–2), additionalNotes
   Клинична преценка: аргументирано спрямо целта и реалния потенциал на клиента.
+  ⚠️ ЛАКТАЦИЯ + ОТСЛАБВАНЕ: При postpartum_lactation и цел отслабване → goalAdjustmentPercent максимум -5% (безопасен темп ≤0.5 кг/седмица при кърмене).
 
 ⚠️ Ако сборът е по-отрицателен от -25% (напр. -27%): ограничи goalAdjustmentPercent така, че total = точно -25%.
 → correctedMetabolism.clinicalAdjustmentPercent, metabolicAdjustmentPercent, goalAdjustmentPercent
