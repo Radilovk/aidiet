@@ -157,6 +157,13 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
 
     async _maybeSyncBackendConfig() {
+        // Only sync with backend at most once every 24 hours to avoid
+        // a backend fetch on every page load.
+        const LS_LAST_SYNC_KEY = 'gameNotifierConfigLastSync';
+        const MIN_INTERVAL_MS  = 24 * 60 * 60 * 1000; // 24 hours
+        const lastSync = parseInt(localStorage.getItem(LS_LAST_SYNC_KEY) || '0', 10);
+        if (Date.now() - lastSync < MIN_INTERVAL_MS) return;
+
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const LS_VERSION_KEY = 'gameNotifierConfigVersion';
         try {
@@ -171,7 +178,19 @@ const GameNotifier = {
                 localStorage.setItem(LS_VERSION_KEY, String(serverVersion));
                 console.log('[GameNotifier] Config updated from backend.');
             }
+            // Record sync time regardless of whether config changed
+            localStorage.setItem(LS_LAST_SYNC_KEY, String(Date.now()));
         } catch (_) { /* offline / endpoint not deployed yet */ }
+    },
+
+    /**
+     * Force an immediate config sync from the backend (bypasses the 24-hour
+     * throttle). Intended for use by the admin panel when a config change is
+     * pushed, so the page picks it up without waiting a full day.
+     */
+    async forceSyncBackendConfig() {
+        localStorage.removeItem('gameNotifierConfigLastSync');
+        await this._maybeSyncBackendConfig();
     },
 
     /* ------------------------------------------------------------------ */
