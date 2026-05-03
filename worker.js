@@ -2003,7 +2003,7 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
   if (freeDayNumber == null) return '';
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
-  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nХранене 1 и Хранене 4 за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: сумирай САМО от хранения с calories (без свободното хранене).`;
+  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nХранене 1 и Хранене 4 за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: включвай планираните калории за Хранене 2 слот (от strategy mealBreakdown) за свободното хранене, плюс калориите от всички останали хранения.`;
 }
 
 /**
@@ -2810,7 +2810,7 @@ ${dynamicWhitelistSection}${dynamicBlacklistSection}
 === ИЗИСКВАНИЯ ===
 1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
-3. Калории: protein×4 + carbs×4 + fats×9
+3. Калории: protein×4 + carbs×4 + fats×9. Провери и коригирай meal.calories за всяко ястие преди финализиране — разлика над 10% е грешка.
 4. Целеви дневни калории (от стъпка 2):
 ${(() => {
   const lines = [];
@@ -2821,7 +2821,7 @@ ${(() => {
     const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
     const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
       ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
-    const freeDayNote = (freeDayNumInCalories !== null && !isNaN(freeDayNumInCalories) && d === freeDayNumInCalories) ? ' ← ДЕН С СВОБОДНО ХРАНЕНЕ (dailyTotals само от хранения с calories)' : '';
+    const freeDayNote = (freeDayNumInCalories !== null && !isNaN(freeDayNumInCalories) && d === freeDayNumInCalories) ? ' ← ДЕН С СВОБОДНО ХРАНЕНЕ (dailyTotals включва планираните калории за Хранене 2 от mealBreakdown)' : '';
     lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)${freeDayNote}`);
     if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
       dayTarget.mealBreakdown.forEach(m => {
@@ -6235,6 +6235,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
   Базирай само на: medicalConditions, medications (additionalNotes само ако е пряко клинично/медицинско)
   Пример: хипотиреоидизъм → -8%, диабет Тип 2 → -5%, без диагноза → 0
   Диапазон: -15% до +5%
+  ⚠️ ЛАКТАЦИЯ (postpartum_lactation): clinicalAdjustmentPercent = +round(350/tdee×100)% — БЕЗ горна граница +5%, тъй като кърменето изисква реален калориен излишък (+330–400 kcal).
 
 3б. metabolicAdjustmentPercent — метаболитна корекция
   Базирай на: sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил (Стъпка 2), темперамент (Стъпка 1), additionalNotes
@@ -6245,6 +6246,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
   Вземи предвид: goal, lossKg, bmi (от анализа), dietHistory, психопрофил и метаболитна реактивност (Стъпки 1–2), additionalNotes
   Използвай собствената си клинична преценка, за да определиш процента, аргументирано съобразен с желаната цел и реалния индивидуален потенциал на клиента.
   Диапазон: -20% до +15%
+  ⚠️ ЛАКТАЦИЯ + ОТСЛАБВАНЕ: При postpartum_lactation и цел отслабване → goalAdjustmentPercent максимум -5% (безопасен темп ≤0.5 кг/седмица при кърмене).
 
 ⚠️ ЗАДЪЛЖИТЕЛНО: Сумата от трите корекции НЕ трябва да надвишава -25% (безопасен максимален дефицит).
 Ако сборът е под -25%, ограничи goalAdjustmentPercent така, че total = клинично + метаболитно + цел ≥ -25%.
@@ -6792,7 +6794,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
 
 ПРАВИЛА ЗА ПОПЪЛВАНЕ:
 - freeDayNumber: 6 (Събота) или 7 (Неделя) — НИКОГА делник; null ако не е подходящо
-- СВОБОДЕН ДЕН: В mealBreakdown за деня с freeDayNumber, обядът ТРЯБВА да е {"type": "Свободно хранене"} БЕЗ calories/macros; останалите хранения имат нормални калории/макроси; dailyTotals включва само хранения с calories
+- СВОБОДЕН ДЕН: В mealBreakdown за деня с freeDayNumber, обядът ТРЯБВА да е {"type": "Свободно хранене"} БЕЗ calories/macros; останалите хранения имат нормални калории/макроси; dailyTotals включва планираните калории за Хранене 2 слот плюс останалите хранения
 - includeDessert: при "Сладко" в желанията → true (десертът е КЪМ обяда, не отделно хранене); при диабет, инсулинова резистентност или строга калорийна цел → false
 
 Създай персонализирана стратегия за ${data.name} базирана на техния уникален профил.`;

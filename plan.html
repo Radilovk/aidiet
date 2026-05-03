@@ -4874,6 +4874,7 @@
 
                 dietPlan = JSON.parse(planData);
                 migrateMealTypes(dietPlan);
+                correctPlanCalories(dietPlan);
                 userData = userDataStr ? JSON.parse(userDataStr) : {};
                 
                 // Validate plan structure
@@ -5035,6 +5036,68 @@
                     window.location.href = 'questionnaire.html';
                 }, 3000);
             }
+        }
+
+        // --- Calorie corrector: fixes per-meal calorie inconsistencies and sets free-meal planned calories ---
+        // If a meal's declared calories differ from protein×4+carbs×4+fats×9 by more than 10%,
+        // the calculated value is used. "Свободно хранене" gets its planned calories from the
+        // strategy weeklyScheme Хранене 2 mealBreakdown entry so it is counted in dailyTotals.
+        const PLAN_DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        function correctPlanCalories(plan) {
+            if (!plan || !plan.weekPlan) return;
+            Object.keys(plan.weekPlan).forEach(function(dayKey) {
+                var dayData = plan.weekPlan[dayKey];
+                if (!dayData || !Array.isArray(dayData.meals)) return;
+                var dayNum = parseInt(dayKey.replace('day', ''), 10);
+                var weekdayKey = (dayNum >= 1 && dayNum <= 7) ? PLAN_DAY_NUMBER_TO_KEY[dayNum - 1] : null;
+                var totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0;
+                dayData.meals.forEach(function(meal) {
+                    if (meal.type === 'Свободно хранене') {
+                        // Estimate planned calories for the free meal from strategy mealBreakdown
+                        var freeCal = 0;
+                        if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
+                            var ds = plan.strategy.weeklyScheme[weekdayKey];
+                            if (ds && Array.isArray(ds.mealBreakdown)) {
+                                var lunchEntry = ds.mealBreakdown.find(function(m) {
+                                    return m.type === 'Хранене 2' || m.type === 'Свободно хранене';
+                                });
+                                if (lunchEntry && lunchEntry.calories) freeCal = parseInt(lunchEntry.calories) || 0;
+                            }
+                            // Fallback: evenly distribute day calories across meals
+                            if (!freeCal && plan.strategy.weeklyScheme[weekdayKey]) {
+                                var ds2 = plan.strategy.weeklyScheme[weekdayKey];
+                                if (ds2.calories && ds2.meals) freeCal = Math.round(ds2.calories / ds2.meals);
+                            }
+                        }
+                        if (freeCal > 0) meal._plannedCalories = freeCal;
+                        totalCal += freeCal;
+                        return;
+                    }
+                    if (meal.macros) {
+                        var p = parseFloat(meal.macros.protein) || 0;
+                        var c = parseFloat(meal.macros.carbs) || 0;
+                        var f = parseFloat(meal.macros.fats) || 0;
+                        var calcCal = Math.round(p * 4 + c * 4 + f * 9);
+                        if (calcCal > 0) {
+                            var declared = parseInt(meal.calories) || 0;
+                            if (declared > 0 && Math.abs(declared - calcCal) / declared > 0.10) {
+                                meal.calories = calcCal;
+                            } else if (!declared) {
+                                meal.calories = calcCal;
+                            }
+                        }
+                        totalProtein += p;
+                        totalCarbs += c;
+                        totalFats += f;
+                    }
+                    totalCal += parseInt(meal.calories) || 0;
+                });
+                if (!dayData.dailyTotals) dayData.dailyTotals = {};
+                dayData.dailyTotals.calories = totalCal;
+                if (totalProtein > 0) dayData.dailyTotals.protein = Math.round(totalProtein);
+                if (totalCarbs > 0) dayData.dailyTotals.carbs = Math.round(totalCarbs);
+                if (totalFats > 0) dayData.dailyTotals.fats = Math.round(totalFats);
+            });
         }
 
         // Helper function to escape HTML and preserve newlines as <br>
@@ -5211,6 +5274,7 @@
                 const mealCard = document.createElement('div');
                 mealCard.className = isFreeMeal ? 'meal-card free-day' : 'meal-card';
                 if (meal.calories) mealCard.setAttribute('data-meal-calories', meal.calories);
+                else if (meal._plannedCalories) mealCard.setAttribute('data-meal-calories', meal._plannedCalories);
                 if (meal.type) mealCard.setAttribute('data-meal-type', meal.type);
                 mealCard.setAttribute('data-order-hour', _mealUnlockHour(meal.type));
                 
@@ -5306,7 +5370,7 @@
             // (window._gameCurrentPlanDay already set at the top of renderDay)
             // Store planned calories in game record for this day (used for calorie balance computation)
             if (typeof window.gameModule !== 'undefined' && window.gameModule.isEnabled()) {
-                var planCalTotal = effectiveMeals.reduce(function(s, m) { return s + (m.calories || 0); }, 0);
+                var planCalTotal = effectiveMeals.reduce(function(s, m) { return s + (m.calories || m._plannedCalories || 0); }, 0);
                 if (planCalTotal > 0) {
                     (function(cal) {
                         setTimeout(function() {

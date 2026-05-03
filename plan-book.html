@@ -1999,6 +1999,63 @@
 
         // ===== HELPERS =====
 
+        // Calorie corrector: fixes per-meal calorie inconsistencies and sets free-meal planned calories
+        var BOOK_DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        function correctPlanCalories(plan) {
+            if (!plan || !plan.weekPlan) return;
+            Object.keys(plan.weekPlan).forEach(function(dayKey) {
+                var dayData = plan.weekPlan[dayKey];
+                if (!dayData || !Array.isArray(dayData.meals)) return;
+                var dayNum = parseInt(dayKey.replace('day', ''), 10);
+                var weekdayKey = (dayNum >= 1 && dayNum <= 7) ? BOOK_DAY_NUMBER_TO_KEY[dayNum - 1] : null;
+                var totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0;
+                dayData.meals.forEach(function(meal) {
+                    if (meal.type === 'Свободно хранене') {
+                        var freeCal = 0;
+                        if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
+                            var ds = plan.strategy.weeklyScheme[weekdayKey];
+                            if (ds && Array.isArray(ds.mealBreakdown)) {
+                                var lunchEntry = ds.mealBreakdown.find(function(m) {
+                                    return m.type === 'Хранене 2' || m.type === 'Свободно хранене';
+                                });
+                                if (lunchEntry && lunchEntry.calories) freeCal = parseInt(lunchEntry.calories) || 0;
+                            }
+                            if (!freeCal && plan.strategy.weeklyScheme[weekdayKey]) {
+                                var ds2 = plan.strategy.weeklyScheme[weekdayKey];
+                                if (ds2.calories && ds2.meals) freeCal = Math.round(ds2.calories / ds2.meals);
+                            }
+                        }
+                        if (freeCal > 0) meal._plannedCalories = freeCal;
+                        totalCal += freeCal;
+                        return;
+                    }
+                    if (meal.macros) {
+                        var p = parseFloat(meal.macros.protein) || 0;
+                        var c = parseFloat(meal.macros.carbs) || 0;
+                        var f = parseFloat(meal.macros.fats) || 0;
+                        var calcCal = Math.round(p * 4 + c * 4 + f * 9);
+                        if (calcCal > 0) {
+                            var declared = parseInt(meal.calories) || 0;
+                            if (declared > 0 && Math.abs(declared - calcCal) / declared > 0.10) {
+                                meal.calories = calcCal;
+                            } else if (!declared) {
+                                meal.calories = calcCal;
+                            }
+                        }
+                        totalProtein += p;
+                        totalCarbs += c;
+                        totalFats += f;
+                    }
+                    totalCal += parseInt(meal.calories) || 0;
+                });
+                if (!dayData.dailyTotals) dayData.dailyTotals = {};
+                dayData.dailyTotals.calories = totalCal;
+                if (totalProtein > 0) dayData.dailyTotals.protein = Math.round(totalProtein);
+                if (totalCarbs > 0) dayData.dailyTotals.carbs = Math.round(totalCarbs);
+                if (totalFats > 0) dayData.dailyTotals.fats = Math.round(totalFats);
+            });
+        }
+
         function esc(text) {
             if (!text) return '';
             return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -2115,6 +2172,8 @@
                 var dietPlan = JSON.parse(planData);
                 var userData = userDataStr ? JSON.parse(userDataStr) : {};
                 var qaData = qaStr ? JSON.parse(qaStr) : {};
+
+                correctPlanCalories(dietPlan);
 
                 // Validate
                 if (!dietPlan.weekPlan || typeof dietPlan.weekPlan !== 'object') {
@@ -2365,9 +2424,9 @@
                 }
                 var effectiveHasFree = hasFreeMeal || isFreeDayByStrategy;
 
-                // Calculate total calories for the day
+                // Calculate total calories for the day (including planned estimate for free meal)
                 var totalCal = 0;
-                meals.forEach(function(m) { totalCal += (m.calories || 0); });
+                meals.forEach(function(m) { totalCal += (m.calories || m._plannedCalories || 0); });
 
                 // Build page HTML
                 var html = '<div class="page">';
@@ -2414,7 +2473,8 @@
                         html += '</div>';
                     }
                     if (isFreeMeal) {
-                        html += '<div class="meal-meta"><div class="meal-cal" style="color:var(--amber-500);">🏆</div><div class="meal-weight-text">Любима храна</div></div>';
+                        var freePlanned = meal._plannedCalories || 0;
+                        html += '<div class="meal-meta"><div class="meal-cal" style="color:var(--amber-500);">🏆</div><div class="meal-weight-text">Любима храна' + (freePlanned > 0 ? ' (~' + Math.round(freePlanned) + ' kcal)' : '') + '</div></div>';
                     }
 
                     html += '</div>'; // /header
