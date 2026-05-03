@@ -5080,9 +5080,8 @@
                         var calcCal = Math.round(p * 4 + c * 4 + f * 9);
                         if (calcCal > 0) {
                             var declared = parseInt(meal.calories) || 0;
-                            if (declared > 0 && Math.abs(declared - calcCal) / declared > 0.10) {
-                                meal.calories = calcCal;
-                            } else if (!declared) {
+                            // Replace declared calories when missing or diverging >10% from macro formula
+                            if (declared <= 0 || Math.abs(declared - calcCal) / calcCal > 0.10) {
                                 meal.calories = calcCal;
                             }
                         }
