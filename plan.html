@@ -3873,12 +3873,13 @@
 
         /**
          * Schedule / reschedule game notifications via GameNotifier (local-scheduler.js).
-         * Permission checks are handled inside GameNotifier for web and APK contexts.
+         * Only acts when notification permission is already granted.
          */
         function scheduleNotifications() {
             if (!window.GameNotifier) return;
+            if (Notification.permission !== 'granted') return;
             window.GameNotifier.init().catch(e =>
-                console.warn('[Notifications] GameNotifier.init error: notifications will not be scheduled:', e)
+                console.warn('[Notifications] GameNotifier.init error:', e)
             );
         }
 
@@ -7500,26 +7501,23 @@
             });
         }
 
-        // --- Notification bootstrap (web SW + APK Capacitor) ---
-        window.addEventListener('load', () => {
-            const isNativeApp = isNativeNotificationApp();
-
-            if (isNativeApp) {
-                checkNotificationPermission(null);
-                return;
-            }
-
-            if (!('serviceWorker' in navigator)) return;
-
-            navigator.serviceWorker.register('./sw.js')
-                .then(registration => {
-                    console.log('Service Worker registered:', registration);
-                    checkNotificationPermission(registration);
-                })
-                .catch(error => {
-                    console.error('Service Worker registration failed:', error);
-                });
-        });
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+                        
+                        // Check if push notifications are supported and request permission
+                        if ('PushManager' in window && 'Notification' in window) {
+                            checkNotificationPermission(registration);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
         
         // --- Push Notifications (local + server-push) ---
         // Local scheduling is done via GameNotifier (local-scheduler.js).
@@ -7528,32 +7526,6 @@
 
         // Holds the SW registration so showNotificationPrompt() can use it.
         let swRegistration = null;
-
-        function isNativeNotificationApp() {
-            return !!(window.GameNotifier && window.GameNotifier.isNativePlatform && window.GameNotifier.isNativePlatform());
-        }
-
-        async function getNotificationPermissionState() {
-            if (window.GameNotifier && typeof window.GameNotifier.getPermissionState === 'function') {
-                return await window.GameNotifier.getPermissionState();
-            }
-            if ('Notification' in window) return Notification.permission;
-            return 'unsupported';
-        }
-
-        async function requestNotificationPermission() {
-            if (window.GameNotifier && typeof window.GameNotifier.requestPermission === 'function') {
-                return await window.GameNotifier.requestPermission();
-            }
-            if ('Notification' in window && Notification.requestPermission) {
-                return await Notification.requestPermission();
-            }
-            return 'unsupported';
-        }
-
-        function canRegisterServerPush() {
-            return !isNativeNotificationApp() && !!swRegistration && 'PushManager' in window;
-        }
 
         async function checkNotificationPermission(registration) {
             swRegistration = registration;
@@ -7565,15 +7537,11 @@
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             }
 
-            const permissionState = await getNotificationPermissionState();
-
-            if (permissionState === 'granted') {
+            if (Notification.permission === 'granted') {
                 console.log('📱 Notification permission already granted');
                 scheduleNotifications();
-                if (canRegisterServerPush()) {
-                    registerServerPush(swRegistration);
-                }
-            } else if (permissionState !== 'denied' && permissionState !== 'unsupported') {
+                registerServerPush(registration);
+            } else if (Notification.permission !== 'denied') {
                 // Wait a bit before showing the banner so the user isn't overwhelmed on load
                 setTimeout(() => {
                     showNotificationBanner();
@@ -7592,11 +7560,11 @@
             btn.style.cssText = 'background:#fff;color:#0D9488;border:none;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap;';
             btn.onclick = async () => {
                 banner.remove();
-                const permission = await requestNotificationPermission();
+                const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     console.log('Notification permission granted');
                     scheduleNotifications();
-                    if (canRegisterServerPush()) registerServerPush(swRegistration);
+                    if (swRegistration) registerServerPush(swRegistration);
                 }
             };
             const close = document.createElement('button');
@@ -7615,7 +7583,7 @@
          */
         async function registerServerPush(registration) {
             try {
-                if (!registration || !canRegisterServerPush()) return;
+                if (!('PushManager' in window)) return;
 
                 // Avoid re-subscribing on every page load
                 const existing = await registration.pushManager.getSubscription();
@@ -9305,9 +9273,7 @@
             <span>Профил</span>
         </a>
     </nav>
-    <!-- GameNotifier: gamification-based notification scheduling.
-         Inside the APK, the Capacitor bridge (window.Capacitor) is injected automatically
-         by the native WebView layer – no CDN script is needed or wanted. -->
+    <!-- GameNotifier: gamification-based notification scheduling -->
     <script src="./local-scheduler.js"></script>
 </body>
 </html>

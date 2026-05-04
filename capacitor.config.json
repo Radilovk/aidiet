@@ -1,13 +1,10 @@
 {
-  "appId": "com.biocode.nutriplan",
-  "appName": "NutriPlan",
-  "webDir": "capacitor-shell",
+  "appId": "bg.biocode.aidiet",
+  "appName": "AiDiet",
+  "webDir": ".",
   "server": {
-    "url": "https://aidiet.radilov-k.workers.dev",
-    "cleartext": false,
-    "allowNavigation": [
-      "aidiet.radilov-k.workers.dev"
-    ]
+    "androidScheme": "https",
+    "hostname": "aidiet.radilov-k.workers.dev"
   },
   "plugins": {
     "LocalNotifications": {

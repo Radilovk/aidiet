@@ -4,13 +4,10 @@
   "description": "AI-powered personalized nutrition planning application",
   "main": "worker.js",
   "scripts": {
-    "android:add": "npx cap add android",
-    "android:sync": "npx cap sync android",
-    "android:build:debug": "cd android && ./gradlew assembleDebug",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "serve": "python -m http.server 8000",
-    "test": "echo \"Open notifications-test.html in browser to test notifications\""
+    "test": "echo \"Open test.html in browser to test the application\""
   },
   "keywords": [
     "ai",
@@ -23,7 +20,6 @@
   "author": "Radilov-K",
   "license": "MIT",
   "devDependencies": {
-    "@capacitor/cli": "^7.6.2",
     "@cloudflare/workers-types": "^4.20260217.0",
     "typescript": "^5.9.3",
     "wrangler": "^3.0.0"
@@ -31,10 +27,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Radilovk/aidiet.git"
-  },
-  "dependencies": {
-    "@capacitor/android": "^7.6.2",
-    "@capacitor/core": "^7.6.2",
-    "@capacitor/local-notifications": "^7.0.6"
   }
 }

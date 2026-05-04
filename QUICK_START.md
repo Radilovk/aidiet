@@ -22,7 +22,7 @@
 - `index.html` - Начална страница с модерен дизайн
 - `questionnaire.html` - Интерактивен въпросник (30+ въпроса)
 - `plan.html` - Показва диета + AI чат асистент
-- `notifications-test.html` - Диагностика и тестове за известия
+- `test.html` - Тестова страница за валидация
 
 #### ⚙️ Backend
 - `worker.js` - Cloudflare Worker с 3 API endpoints
@@ -46,7 +46,7 @@
 
 ### Вариант А: Локално Тестване (БЕЗ deployment)
 
-1. **Отворете notifications-test.html в браузър**
+1. **Отворете test.html в браузър**
    ```bash
    # В директорията на проекта
    python -m http.server 8000
@@ -54,7 +54,7 @@
    npx http-server -p 8000
    ```
 
-2. **Отворете http://localhost:8000/notifications-test.html**
+2. **Отворете http://localhost:8000/test.html**
 
 3. **Тествайте:**
    - Кликнете "Test Generate Plan" (ще използва mock данни)
@@ -146,7 +146,7 @@ Published aidiet-worker
 
 ## 🧪 Тестване
 
-### Test Page (notifications-test.html)
+### Test Page (test.html)
 
 Най-лесният начин да тествате всичко:
 
@@ -155,14 +155,15 @@ Published aidiet-worker
 python -m http.server 8000
 
 # Отворете в браузър
-open http://localhost:8000/notifications-test.html
+open http://localhost:8000/test.html
 ```
 
-**Функции на notifications-test.html:**
-- ✅ Проверява Notification / Push / Service Worker / Capacitor поддръжката
-- ✅ Инициализира и препланира GameNotifier
-- ✅ Пуска незабавни и забавени тестови известия
-- ✅ Показва локалната notification конфигурация и sync състоянието
+**Функции на test.html:**
+- ✅ Тества API endpoints
+- ✅ Инспектира localStorage
+- ✅ Показва навигационни линкове
+- ✅ Deployment инструкции
+- ✅ Mock data support
 
 ### Пълен User Flow
 

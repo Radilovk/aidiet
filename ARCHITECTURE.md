@@ -339,7 +339,7 @@ Admin settings cached in worker memory for 5 minutes to reduce KV reads
 Local Development
     ├─ Edit code
     ├─ Test with mock data
-    └─ Use notifications-test.html for validation
+    └─ Use test.html for validation
          ↓
     wrangler dev (local testing)
          ↓
