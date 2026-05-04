@@ -2694,6 +2694,31 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     data.medicalConditions_other ? `Друго медицинско: ${data.medicalConditions_other}` : ''
   ].filter(Boolean).join('\n');
 
+  // Build explicit per-day/per-meal calorie+macro targets (used in both default and custom prompts)
+  const freeDayNumForText = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
+  const weeklySchemeByDayText = (() => {
+    const lines = [];
+    for (let d = startDay; d <= endDay; d++) {
+      const key = DAY_NUMBER_TO_KEY[d - 1];
+      const dayTarget = strategy.weeklyScheme && strategy.weeklyScheme[key];
+      const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
+      const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
+        ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
+      const freeDayNote = (freeDayNumForText !== null && !isNaN(freeDayNumForText) && d === freeDayNumForText) ? ' ← ДЕН С СВОБОДНО ХРАНЕНЕ (dailyTotals включва планираните калории за Хранене 2 от mealBreakdown)' : '';
+      lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)${freeDayNote}`);
+      if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
+        dayTarget.mealBreakdown.forEach(m => {
+          if (m.type === 'Свободно хранене') {
+            lines.push(`     → ${m.type}: без фиксирана калорийна цел (свободен избор — без calories/macros в JSON)`);
+          } else {
+            lines.push(`     → ${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`);
+          }
+        });
+      }
+    }
+    return lines.join('\n');
+  })();
+
   let defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
 
 === ПРОФИЛ ===
@@ -2808,33 +2833,11 @@ ${dynamicWhitelistSection}${dynamicBlacklistSection}
 • В едно хранене ако има едно от следните, другите отпадат: ориз, картофи, хляб
 
 === ИЗИСКВАНИЯ ===
-1. Разпределение на калории: Използвай "Разпределение на калории" от стъпка 2 за правилно разпределение на калориите по хранения
+1. Разпределение на калории: Използвай mealBreakdown от Стъпка 2 за всяко хранене — то задава ТОЧНИТЕ целеви калории и макроси за всяко хранене от деня
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
 3. Калории: protein×4 + carbs×4 + fats×9. Провери и коригирай meal.calories за всяко ястие преди финализиране — разлика над 10% е грешка.
-4. Целеви дневни калории (от стъпка 2):
-${(() => {
-  const lines = [];
-  const freeDayNumInCalories = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
-  for (let d = startDay; d <= endDay; d++) {
-    const key = DAY_NUMBER_TO_KEY[d - 1];
-    const dayTarget = strategy.weeklyScheme && strategy.weeklyScheme[key];
-    const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
-    const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
-      ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
-    const freeDayNote = (freeDayNumInCalories !== null && !isNaN(freeDayNumInCalories) && d === freeDayNumInCalories) ? ' ← ДЕН С СВОБОДНО ХРАНЕНЕ (dailyTotals включва планираните калории за Хранене 2 от mealBreakdown)' : '';
-    lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)${freeDayNote}`);
-    if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
-      dayTarget.mealBreakdown.forEach(m => {
-        if (m.type === 'Свободно хранене') {
-          lines.push(`     → ${m.type}: без фиксирана калорийна цел (свободен избор — без calories/macros в JSON)`);
-        } else {
-          lines.push(`     → ${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`);
-        }
-      });
-    }
-  }
-  return lines.join('\n');
-})()}
+4. Целеви калории и макроси по дни и хранения (от mealBreakdown в Стъпка 2):
+${weeklySchemeByDayText}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
 6. Ред: Хранене 1 → Хранене 2 (или Свободно хранене в деня с freeDayNumber — НЕ и двете!) → (Хранене 3) → Хранене 4 → (Хранене 5 само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
    СВОБОДЕН ДЕН: Свободно хранене ЗАМЕСТВА Хранене 2 — НЕ е допълнително хранене! Типът е "Свободно хранене", НЕ "Хранене 2".
@@ -2898,6 +2901,7 @@ ${jsonExample.join(',\n')}
       strategyData: strategy,
       analysisCompact,
       strategyCompact,
+      weeklySchemeByDayText,
       bmr,
       recommendedCalories,
       startDay,
