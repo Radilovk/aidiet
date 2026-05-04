@@ -231,12 +231,8 @@
             се зареждат правилно.
         </p>
         <div class="btn-group">
-            <a href="/plan.html?action=morning_check" target="_blank">
-                <button class="btn-green">🌅 plan.html?action=morning_check</button>
-            </a>
-            <a href="/plan.html?action=evening_check" target="_blank">
-                <button class="btn-orange">🌙 plan.html?action=evening_check</button>
-            </a>
+            <button class="btn-green" onclick="window.open('/plan.html?action=morning_check', '_blank')">🌅 plan.html?action=morning_check</button>
+            <button class="btn-orange" onclick="window.open('/plan.html?action=evening_check', '_blank')">🌙 plan.html?action=evening_check</button>
         </div>
     </div>
 
@@ -261,7 +257,7 @@ const logEl = document.getElementById('log');
 function log(msg, level = 'info') {
     const line = document.createElement('span');
     line.className = level;
-    line.textContent = '[' + new Date().toLocaleTimeString('bg-BG') + '] ' + msg + '\n';
+    line.textContent = `[${new Date().toLocaleTimeString('bg-BG')}] ${msg}\n`;
     logEl.appendChild(line);
     logEl.scrollTop = logEl.scrollHeight;
     console.log('[NotifTest]', msg);
@@ -431,7 +427,7 @@ function refreshConfig() {
     const lastSync = parseInt(localStorage.getItem('gameNotifierConfigLastSync') || '0', 10);
     if (lastSync) {
         const ago = Math.round((Date.now() - lastSync) / 60000);
-        document.getElementById('cfgLastSync').textContent = new Date(lastSync).toLocaleString('bg-BG') + ' (' + ago + ' мин. назад)';
+        document.getElementById('cfgLastSync').textContent = `${new Date(lastSync).toLocaleString('bg-BG')} (${ago} мин. назад)`;
     } else {
         document.getElementById('cfgLastSync').innerHTML = '<span class="muted">никога</span>';
     }
