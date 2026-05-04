@@ -11945,8 +11945,8 @@ async function handleScheduledNotifications(env) {
   const nowUtc = new Date();
   const utcHour = nowUtc.getUTCHours();
 
-  // Bulgaria is UTC+2 (winter) / UTC+3 (summer). Use a fixed UTC+2 offset
-  // (05:00 UTC = 07:00 BG winter, 04:00 UTC = 07:00 BG summer).
+  // Bulgaria is UTC+2 (winter) / UTC+3 (summer).
+  // 05:00 UTC = 07:00 BG (winter, UTC+2); 04:00 UTC = 07:00 BG (summer, UTC+3).
   // We fire at both UTC hours so coverage works year-round regardless of DST.
   const MORNING_UTC_HOURS = [4, 5];   // 07:00 BG (summer/winter)
   const EVENING_UTC_HOURS = [17, 18]; // 20:00 BG (summer/winter)

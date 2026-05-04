@@ -7603,7 +7603,8 @@
                 }
 
                 // Convert base64url-encoded VAPID public key to Uint8Array.
-                // Padding must be added before atob() to avoid InvalidCharacterError.
+                // Padding ensures the string length is a multiple of 4, required by atob().
+                // (e.g. length 43 → add 1 '='; length 42 → add 2 '=='; divisible by 4 → add 0)
                 const rawKey = vapidData.publicKey;
                 const padding = '='.repeat((4 - rawKey.length % 4) % 4);
                 const b64 = (rawKey + padding).replace(/-/g, '+').replace(/_/g, '/');
