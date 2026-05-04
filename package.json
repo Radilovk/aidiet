@@ -7,7 +7,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "serve": "python -m http.server 8000",
-    "test": "echo \"Open test.html in browser to test the application\""
+    "test": "echo \"Open notifications-test.html in browser to test notifications\""
   },
   "keywords": [
     "ai",
