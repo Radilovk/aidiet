@@ -56,6 +56,25 @@ jobs:
           echo "AIDIET_ANDROID_VERSION_NAME=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_ENV"
           echo "AIDIET_ANDROID_VERSION_CODE=${{ github.run_number }}" >> "$GITHUB_ENV"
 
+      - name: Bundle frontend files into Capacitor web directory
+        run: |
+          # Copy all frontend assets into capacitor-shell/ so the APK serves them locally.
+          # This avoids cross-origin fetch issues that occur when using server.url pointing
+          # to a remote host in the Android WebView (Capacitor).
+          # worker.js is the Cloudflare API worker and must NOT be included.
+          cp *.html design-system.css manifest.json capacitor-shell/
+          for f in *.png *.svg; do
+            [ -f "$f" ] && cp "$f" capacitor-shell/ && echo "Copied $f" || echo "Warning: $f not found, skipping"
+          done
+          for f in local-scheduler.js sw.js notification-db.js admin-sw.js xbody-sw.js; do
+            if [ -f "$f" ]; then
+              cp "$f" capacitor-shell/
+              echo "Copied $f"
+            else
+              echo "Warning: $f not found, skipping"
+            fi
+          done
+
       - name: Generate Android project
         run: |
           if [ ! -d android ]; then
