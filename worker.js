@@ -4857,7 +4857,24 @@ function validatePlan(plan, userData, substitutions = []) {
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
         }
-        
+
+        // Auto-normalize meal types BEFORE any type-dependent checks so that the macro
+        // and calorie checks below always see the canonical type values.
+        // Priority 1: if meal name is "Свободно хранене" but type is wrong, fix the type.
+        // Priority 2: apply standard MEAL_TYPE_ALIASES for old/AI-generated alias names.
+        day.meals.forEach((meal, idx) => {
+          const normalizedMealName = (meal.name || '').toLowerCase().trim();
+          if (normalizedMealName === 'свободно хранене' && meal.type !== 'Свободно хранене') {
+            const original = meal.type;
+            meal.type = 'Свободно хранене';
+            warnings.push(`Ден ${i}, хранене ${idx + 1}: автокорекция на тип за свободно хранене "${original}" → "Свободно хранене"`);
+          } else if (!ALLOWED_MEAL_TYPES.includes(meal.type) && MEAL_TYPE_ALIASES[meal.type]) {
+            const original = meal.type;
+            meal.type = MEAL_TYPE_ALIASES[original];
+            warnings.push(`Ден ${i}, хранене ${idx + 1}: автокорекция на тип хранене "${original}" → "${meal.type}"`);
+          }
+        });
+
         // Validate that meals have macros
         let mealsWithoutMacros = 0;
         day.meals.forEach((meal, mealIndex) => {
@@ -4905,17 +4922,6 @@ function validatePlan(plan, userData, substitutions = []) {
           stepErrors.step3_mealplan.push(error);
         }
         
-        // Auto-normalize known meal type aliases before any type-based checks.
-        // NOTE: This mutates meal.type in place so all subsequent checks (mealTypes
-        // snapshot, chronological order, invalid-type check) see the canonical value.
-        day.meals.forEach((meal, idx) => {
-          if (!ALLOWED_MEAL_TYPES.includes(meal.type) && MEAL_TYPE_ALIASES[meal.type]) {
-            const original = meal.type;
-            meal.type = MEAL_TYPE_ALIASES[original];
-            warnings.push(`Ден ${i}, хранене ${idx + 1}: автокорекция на тип хранене "${original}" → "${meal.type}"`);
-          }
-        });
-
         // Validate meal ordering (UPDATED: allow meals after dinner when justified by strategy)
         const mealTypes = day.meals.map(meal => meal.type);
         const dinnerIndex = mealTypes.findIndex(type => type === 'Хранене 4');
