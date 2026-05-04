@@ -349,45 +349,6 @@
 }
 
 /* ===========================
-   DARK THEME via prefers-color-scheme (CSS fallback before JS runs)
-   Only applied when no explicit [data-theme] attribute is set
-   =========================== */
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --ds-bg-primary: #0F2B2B;
-        --ds-bg-secondary: #133838;
-        --ds-bg-tertiary: #184040;
-        --ds-bg-card: rgba(20, 55, 55, 0.78);
-        --ds-bg-card-rgb: 20, 55, 55;
-        --ds-bg-elevated: rgba(25, 65, 65, 0.88);
-        --ds-bg-overlay: rgba(0, 0, 0, 0.55);
-        --ds-bg-glass: rgba(20, 55, 55, 0.75);
-        --ds-bg-glass-strong: rgba(20, 55, 55, 0.92);
-
-        --ds-text-primary: #E0F5F0;
-        --ds-text-secondary: var(--ds-gray-300);
-        --ds-text-tertiary: var(--ds-gray-400);
-        --ds-text-muted: var(--ds-gray-500);
-        --ds-text-inverse: #0F2B2B;
-
-        --ds-border-primary: rgba(45, 212, 191, 0.18);
-        --ds-border-secondary: rgba(45, 212, 191, 0.10);
-        --ds-border-focus: var(--ds-primary-400);
-        --ds-border-accent: rgba(45, 212, 191, 0.28);
-
-        --ds-glass-bg: rgba(20, 55, 55, 0.75);
-        --ds-glass-border: rgba(45, 212, 191, 0.15);
-        --ds-glass-border-light: rgba(255, 255, 255, 0.08);
-
-        --ds-mesh-1: rgba(45, 212, 191, 0.06);
-        --ds-mesh-2: rgba(34, 211, 238, 0.05);
-        --ds-mesh-3: rgba(103, 232, 249, 0.04);
-
-        color-scheme: dark;
-    }
-}
-
-/* ===========================
    BASE RESET & DEFAULTS
    =========================== */
 *,
