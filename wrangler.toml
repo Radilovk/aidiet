@@ -7,9 +7,10 @@ compatibility_date = "2024-01-01"
 binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"
 
-# Cron trigger: run every hour to send scheduled push notifications (morning/evening checks)
-[triggers]
-crons = ["0 * * * *"]
+# Cron triggers are disabled – notifications are scheduled locally via Capacitor / SW.
+# Backend is only queried when the admin changes notification config.
+# [triggers]
+# crons = ["0 * * * *"]
 
 # Environment variables for API keys (configure via wrangler secret)
 # Run: wrangler secret put OPENAI_API_KEY
@@ -23,5 +24,5 @@ route = "aidiet.radilov-k.workers.dev/*"
 binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"
 
-[env.production.triggers]
-crons = ["0 * * * *"]
+# [env.production.triggers]
+# crons = ["0 * * * *"]

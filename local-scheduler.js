@@ -1,13 +1,18 @@
 /**
- * GameNotifier – минималистична система за локални нотификации.
+ * GameNotifier – система за локални нотификации.
  *
- * Изпраща сутрешна/вечерна нотификация чрез SW postMessage (fallback, докато
- * браузърът е отворен). Основните нотификации се изпращат от сървъра чрез
- * Web Push (cron job в worker.js), така че тук се обработва само fallback.
+ * Поддържа два слоя за изпращане (в ред на предпочитание):
+ *   1. Capacitor LocalNotifications (APK / нативен Android)  ✅ най-надежден
+ *   2. SW postMessage → SW sets a timeout (PWA fallback – работи само докато браузърът е жив)  ⚠️
+ *
+ * Нотификации:
+ *   morning_check  – сутрешна проверка (по подразбиране 07:00)
+ *   evening_check  – вечерна проверка (по подразбиране 20:00)
  *
  * Backend config sync:
- *   – GET /api/notification-config (max веднъж на 24 ч)
- *   – Съхранява се в localStorage → 'gameNotifierConfig'
+ *   – GET /api/notification-config (max веднъж на 24 ч, освен при force)
+ *   – Конфигурацията се кешира в localStorage → 'gameNotifierConfig'
+ *   – Backend се извиква само ако версията от сървъра е по-нова
  */
 
 const GameNotifier = {
@@ -15,45 +20,122 @@ const GameNotifier = {
     DAYS_AHEAD:     7,
     LS_CONFIG_KEY:  'gameNotifierConfig',
 
-    _swReg: null,
+    _swReg:     null,
+    _capacitor: null,   // @capacitor/local-notifications handle
 
     /* ------------------------------------------------------------------ */
     /*  Public API                                                          */
     /* ------------------------------------------------------------------ */
 
     async init() {
-        if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-            console.warn('[GameNotifier] Notifications not supported.');
-            return;
-        }
-        if (Notification.permission !== 'granted') {
-            console.warn('[GameNotifier] Permission not granted:', Notification.permission);
-            return;
-        }
-        try {
-            this._swReg = await navigator.serviceWorker.ready;
-        } catch (e) {
-            console.error('[GameNotifier] SW not ready:', e);
-            return;
+        console.log('[GameNotifier] Initialising...');
+
+        // Detect Capacitor (APK context)
+        this._capacitor = this._detectCapacitor();
+
+        if (this._capacitor) {
+            console.log('[GameNotifier] Running in Capacitor (APK) context');
+            const granted = await this._requestCapacitorPermission();
+            if (!granted) {
+                console.warn('[GameNotifier] Capacitor notification permission denied');
+                return;
+            }
+        } else {
+            // Web / PWA path
+            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                console.warn('[GameNotifier] Notifications not supported on this platform.');
+                return;
+            }
+            if (Notification.permission !== 'granted') {
+                console.warn('[GameNotifier] Permission not granted:', Notification.permission);
+                return;
+            }
+            try {
+                this._swReg = await navigator.serviceWorker.ready;
+            } catch (e) {
+                console.error('[GameNotifier] SW not ready:', e);
+                return;
+            }
         }
 
+        // Sync backend config (at most once per 24 h, no-op if unchanged)
         await this._maybeSyncBackendConfig();
+
+        // Schedule 7-day block with hardcoded defaults (or admin-overridden times)
         await this.scheduleNotifications();
-        console.log('[GameNotifier] Ready (SW postMessage fallback).');
+
+        console.log('[GameNotifier] Ready.');
     },
 
     async scheduleNotifications() {
-        await this._scheduleViaSW(this._getConfig());
+        const cfg = this._getConfig();
+        console.log('[GameNotifier] Scheduling with config:', cfg);
+
+        if (this._capacitor) {
+            await this._scheduleWithCapacitor(cfg);
+        } else {
+            await this._scheduleViaSW(cfg);
+        }
+    },
+
+    async cancelAll() {
+        if (this._capacitor) {
+            try {
+                const { LocalNotifications } = this._capacitor;
+                const pending = await LocalNotifications.getPending();
+                if (pending.notifications && pending.notifications.length > 0) {
+                    await LocalNotifications.cancel({ notifications: pending.notifications });
+                }
+            } catch (e) {
+                console.warn('[GameNotifier] Capacitor cancelAll error:', e);
+            }
+            return;
+        }
+        if (!this._swReg) return;
+        try {
+            const pending = await this._swReg.getNotifications({ tag: 'gn-' });
+            pending.forEach(n => n.close());
+        } catch (e) {
+            console.warn('[GameNotifier] cancelAll error:', e);
+        }
     },
 
     async applyConfig(cfg) {
         const merged = Object.assign(this._getConfig(), cfg);
         localStorage.setItem(this.LS_CONFIG_KEY, JSON.stringify(merged));
+        console.log('[GameNotifier] Config updated:', merged);
+        await this.cancelAll();
         await this.scheduleNotifications();
     },
 
     /* ------------------------------------------------------------------ */
-    /*  Configuration                                                       */
+    /*  Capacitor detection                                                 */
+    /* ------------------------------------------------------------------ */
+
+    _detectCapacitor() {
+        if (typeof window === 'undefined' || !window.Capacitor) return null;
+        try {
+            const { Plugins } = window.Capacitor;
+            if (Plugins && Plugins.LocalNotifications) {
+                return { LocalNotifications: Plugins.LocalNotifications };
+            }
+        } catch (_) {}
+        return null;
+    },
+
+    async _requestCapacitorPermission() {
+        try {
+            const { LocalNotifications } = this._capacitor;
+            const status = await LocalNotifications.requestPermissions();
+            return status.display === 'granted';
+        } catch (e) {
+            console.error('[GameNotifier] Capacitor permission error:', e);
+            return false;
+        }
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Configuration (hardcoded defaults, overridden by admin backend)     */
     /* ------------------------------------------------------------------ */
 
     _getConfig() {
@@ -74,12 +156,12 @@ const GameNotifier = {
     },
 
     /* ------------------------------------------------------------------ */
-    /*  Backend config sync                                                 */
+    /*  Backend config sync (only when admin changes config)               */
     /* ------------------------------------------------------------------ */
 
     async _maybeSyncBackendConfig() {
         const LS_LAST_SYNC_KEY = 'gameNotifierConfigLastSync';
-        const MIN_INTERVAL_MS  = 24 * 60 * 60 * 1000;
+        const MIN_INTERVAL_MS  = 24 * 60 * 60 * 1000; // 24 h throttle
         const lastSync = parseInt(localStorage.getItem(LS_LAST_SYNC_KEY) || '0', 10);
         if (Date.now() - lastSync < MIN_INTERVAL_MS) return;
 
@@ -95,24 +177,85 @@ const GameNotifier = {
             if (serverVersion > localVersion) {
                 localStorage.setItem(this.LS_CONFIG_KEY, JSON.stringify(data.config));
                 localStorage.setItem(LS_VERSION_KEY, String(serverVersion));
-                console.log('[GameNotifier] Config updated from backend.');
+                console.log('[GameNotifier] Config updated from backend (version', serverVersion, ').');
             }
             localStorage.setItem(LS_LAST_SYNC_KEY, String(Date.now()));
-        } catch (_) {}
+        } catch (_) { /* offline / endpoint not deployed yet */ }
     },
 
+    /**
+     * Force an immediate config sync (bypasses the 24 h throttle).
+     * Called by the admin panel after a config change is saved.
+     */
     async forceSyncBackendConfig() {
         localStorage.removeItem('gameNotifierConfigLastSync');
         await this._maybeSyncBackendConfig();
     },
 
     /* ------------------------------------------------------------------ */
-    /*  SW postMessage fallback                                             */
+    /*  Capacitor LocalNotifications – APK path                            */
+    /* ------------------------------------------------------------------ */
+
+    async _scheduleWithCapacitor(cfg) {
+        console.log('[GameNotifier] Using Capacitor LocalNotifications');
+        const { LocalNotifications } = this._capacitor;
+        await this.cancelAll();
+
+        const [mH, mM] = cfg.morningTime.split(':').map(Number);
+        const [eH, eM] = cfg.eveningTime.split(':').map(Number);
+        const notifications = [];
+
+        for (let day = 0; day < this.DAYS_AHEAD; day++) {
+            const morningTs = this._tsForDayOffset(day, mH, mM);
+            if (morningTs > Date.now()) {
+                notifications.push({
+                    id: 1000 + day,
+                    title: cfg.morningTitle,
+                    body:  cfg.morningBody,
+                    schedule: { at: new Date(morningTs) },
+                    extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
+                    iconColor: '#FF8C00',
+                    smallIcon: 'ic_stat_nutriplan'
+                });
+            }
+            const eveningTs = this._tsForDayOffset(day, eH, eM);
+            if (eveningTs > Date.now()) {
+                notifications.push({
+                    id: 2000 + day,
+                    title: cfg.eveningTitle,
+                    body:  cfg.eveningBody,
+                    schedule: { at: new Date(eveningTs) },
+                    extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
+                    iconColor: '#6A0DAD',
+                    smallIcon: 'ic_stat_nutriplan'
+                });
+            }
+        }
+
+        try {
+            await LocalNotifications.schedule({ notifications });
+            console.log('[GameNotifier] Capacitor: scheduled', notifications.length, 'notifications');
+        } catch (e) {
+            console.error('[GameNotifier] Capacitor schedule error:', e);
+        }
+
+        // Navigate to action URL on notification tap
+        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+            const extra = action.notification.extra || {};
+            if (extra.url) {
+                window.location.href = extra.url;
+            }
+        });
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  SW postMessage – PWA fallback (active while browser is open)       */
     /* ------------------------------------------------------------------ */
 
     async _scheduleViaSW(cfg) {
+        console.log('[GameNotifier] Using SW postMessage scheduling');
         if (!this._swReg || !navigator.serviceWorker.controller) {
-            console.warn('[GameNotifier] No active SW controller');
+            console.warn('[GameNotifier] No active SW controller for message scheduling');
             return;
         }
 
@@ -156,6 +299,10 @@ const GameNotifier = {
         });
         console.log('[GameNotifier] Sent', schedule.length, 'items to SW for scheduling');
     },
+
+    /* ------------------------------------------------------------------ */
+    /*  Helper                                                              */
+    /* ------------------------------------------------------------------ */
 
     _tsForDayOffset(dayOffset, hours, minutes) {
         const d = new Date();

@@ -11937,54 +11937,13 @@ async function handleTestSendEmail(request, env) {
 }
 
 /**
- * Scheduled event handler for cron-triggered push notifications
- * Runs every hour to check and send scheduled notifications
+ /**
+ * Scheduled event handler – intentionally a no-op.
+ * Notifications are scheduled locally via Capacitor (APK) or SW postMessage (PWA).
+ * The backend is only called by the admin panel when notification config changes.
  */
 async function handleScheduledNotifications(env) {
-  // Get current UTC hour to decide which notifications to send
-  const nowUtc = new Date();
-  const utcHour = nowUtc.getUTCHours();
-
-  // Bulgaria is UTC+2 (winter) / UTC+3 (summer).
-  // 05:00 UTC = 07:00 BG (winter, UTC+2); 04:00 UTC = 07:00 BG (summer, UTC+3).
-  // We fire at both UTC hours so coverage works year-round regardless of DST.
-  const MORNING_UTC_HOURS = [4, 5];   // 07:00 BG (summer/winter)
-  const EVENING_UTC_HOURS = [17, 18]; // 20:00 BG (summer/winter)
-
-  const isMorning = MORNING_UTC_HOURS.includes(utcHour);
-  const isEvening = EVENING_UTC_HOURS.includes(utcHour);
-
-  if (!isMorning && !isEvening) {
-    console.log(`[Cron] UTC hour ${utcHour} – no notifications to send`);
-    return;
-  }
-
-  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
-    console.warn('[Cron] VAPID keys not configured – skipping push notifications');
-    return;
-  }
-
-  // Load list of subscribed users
-  const listData = await env.page_content.get('push_subscriptions_list');
-  const userIds = listData ? JSON.parse(listData) : [];
-
-  if (userIds.length === 0) {
-    console.log('[Cron] No subscribed users');
-    return;
-  }
-
-  console.log(`[Cron] Sending ${isMorning ? 'morning' : 'evening'} push to ${userIds.length} users`);
-
-  const payload = isMorning
-    ? { title: 'Добро утро! 🌅', body: 'Как спахте тази нощ? Отговорете на сутрешния въпрос.', url: '/plan.html?action=morning_check', notificationType: 'morning_check' }
-    : { title: 'Добър вечер! 🌙', body: 'Как мина денят? Отговорете на вечерните въпроси.', url: '/plan.html?action=evening_check', notificationType: 'evening_check' };
-
-  const results = await Promise.allSettled(
-    userIds.map(userId => sendPushNotificationToUser(userId, payload, env))
-  );
-
-  const sent = results.filter(r => r.status === 'fulfilled').length;
-  console.log(`[Cron] Done – ${sent}/${userIds.length} push notifications sent`);
+  // No-op: local scheduling is handled client-side (local-scheduler.js).
 }
 
 /**
