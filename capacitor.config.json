@@ -2,6 +2,14 @@
   "appId": "com.biocode.nutriplan",
   "appName": "NutriPlan",
   "webDir": "capacitor-shell",
+  "server": {
+    "url": "https://biocode.website",
+    "cleartext": false,
+    "allowNavigation": [
+      "biocode.website",
+      "aidiet.radilov-k.workers.dev"
+    ]
+  },
   "plugins": {
     "LocalNotifications": {
       "smallIcon": "ic_stat_nutriplan",
