@@ -134,6 +134,7 @@
         <div class="row"><span class="label">PWA / Standalone режим</span><span class="val" id="diPWA">…</span></div>
         <div class="row"><span class="label">Notification API</span><span class="val" id="diNotifAPI">…</span></div>
         <div class="row"><span class="label">Push API (PushManager)</span><span class="val" id="diPushAPI">…</span></div>
+        <div class="row"><span class="label">Notification Triggers</span><span class="val" id="diTriggers">…</span></div>
         <div class="row"><span class="label">Service Worker API</span><span class="val" id="diSWAPI">…</span></div>
         <div class="row"><span class="label">Capacitor (APK)</span><span class="val" id="diCapacitor">…</span></div>
         <div class="row"><span class="label">Permission статус</span><span class="val" id="diPerm">…</span></div>
@@ -296,8 +297,11 @@ function hasTriggers() {
 // Detect which scheduling method GameNotifier would use
 // ─────────────────────────────────────────────
 function detectMethod() {
-    if (window.GameNotifier && typeof window.GameNotifier.isNativePlatform === 'function' && window.GameNotifier.isNativePlatform()) {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
         return { label: 'Capacitor LocalNotifications (APK)', badge: 'badge-blue', best: true };
+    }
+    if (hasTriggers()) {
+        return { label: 'Notification Triggers API (Chrome/TWA)', badge: 'badge-blue', best: true };
     }
     if ('serviceWorker' in navigator) {
         return { label: 'SW postMessage fallback ⚠️', badge: 'badge-orange', best: false };
@@ -308,17 +312,14 @@ function detectMethod() {
 // ─────────────────────────────────────────────
 // Update diagnostic panel
 // ─────────────────────────────────────────────
-async function updateDiagnostics() {
+function updateDiagnostics() {
     const os = getOS();
     const browser = getBrowser();
     const pwa = isPWA();
     const hasNA = 'Notification' in window;
     const hasSW = 'serviceWorker' in navigator;
     const hasPush = 'PushManager' in window;
-    const hasCap = !!(window.GameNotifier && typeof window.GameNotifier.isNativePlatform === 'function' && window.GameNotifier.isNativePlatform());
-    const perm = window.GameNotifier && typeof window.GameNotifier.getPermissionState === 'function'
-        ? await window.GameNotifier.getPermissionState()
-        : (hasNA ? Notification.permission : 'unsupported');
+    const hasCap = !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications);
 
     // helpers
     const ok  = s => `<span class="ok">${s}</span>`;
@@ -330,17 +331,17 @@ async function updateDiagnostics() {
     document.getElementById('diPWA').innerHTML     = pwa ? ok('✅ Да (Standalone)') : warn('⚠️ Не (обикновен браузър)');
     document.getElementById('diNotifAPI').innerHTML = hasNA ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
     document.getElementById('diPushAPI').innerHTML  = hasPush ? ok('✅ Поддържа се') : warn('⚠️ Не се поддържа');
+    document.getElementById('diTriggers').innerHTML = hasTriggers() ? ok('✅ Да (Chrome ≥ 80 Android)') : warn('⚠️ Не (ще се използва SW fallback)');
     document.getElementById('diSWAPI').innerHTML    = hasSW ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
     document.getElementById('diCapacitor').innerHTML = hasCap ? ok('✅ Да (APK)') : '<span class="muted">Не (уеб контекст)</span>';
 
-    if (perm === 'granted') {
-        document.getElementById('diPerm').innerHTML = ok('✅ Разрешено');
-    } else if (perm === 'denied') {
-        document.getElementById('diPerm').innerHTML = bad('❌ Отказано – трябва ръчно нулиране от системата/браузъра');
+    if (hasNA) {
+        const perm = Notification.permission;
+        if (perm === 'granted') document.getElementById('diPerm').innerHTML = ok('✅ Разрешено');
+        else if (perm === 'denied') document.getElementById('diPerm').innerHTML = bad('❌ Отказано – трябва ръчно reset от браузъра');
+        else document.getElementById('diPerm').innerHTML = warn('⏸️ Не е поискано');
     } else {
-        document.getElementById('diPerm').innerHTML = perm === 'unsupported'
-            ? bad('N/A')
-            : warn('⏸️ Не е поискано');
+        document.getElementById('diPerm').innerHTML = bad('N/A');
     }
 
     const method = detectMethod();
@@ -348,7 +349,7 @@ async function updateDiagnostics() {
         `${method.label} <span class="badge ${method.badge}">${method.best ? 'надеждно' : 'fallback'}</span>`;
 
     // Enable buttons if permission granted
-    const granted = perm === 'granted';
+    const granted = hasNA && Notification.permission === 'granted';
     ['btnMorningNow','btnEveningNow','btnRawNotif','btnSWNotif',
      'btnDelayed','btnInit','btnSchedule','btnCancelAll'].forEach(id => {
         const el = document.getElementById(id);
@@ -460,14 +461,12 @@ function clearMotionFlag() {
 // Permission
 // ─────────────────────────────────────────────
 async function requestPermission() {
-    if (!window.GameNotifier && !('Notification' in window)) { log('Notification API не се поддържа', 'err'); return; }
+    if (!('Notification' in window)) { log('Notification API не се поддържа', 'err'); return; }
     log('Искане на разрешение…');
     try {
-        const perm = window.GameNotifier && typeof window.GameNotifier.requestPermission === 'function'
-            ? await window.GameNotifier.requestPermission()
-            : await Notification.requestPermission();
+        const perm = await Notification.requestPermission();
         log('Резултат: ' + perm, perm === 'granted' ? 'info' : 'warn');
-        await updateDiagnostics();
+        updateDiagnostics();
     } catch(e) {
         log('Грешка: ' + e.message, 'err');
     }
@@ -599,7 +598,7 @@ async function scheduleDelayed() {
 // Init
 // ─────────────────────────────────────────────
 (async () => {
-    await updateDiagnostics();
+    updateDiagnostics();
     await registerSW();
     await checkSW();
     log('Диагностиката е заредена. ' +
