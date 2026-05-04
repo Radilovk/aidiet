@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Вашият персонализиран хранителен план — анализ, стратегия, менюта и насоки.">
+    <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,8 +17,7 @@
     <title>Хранителен План</title>
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- plan-book always uses light theme -->
-    <script>document.documentElement.setAttribute('data-theme','light');</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0A1A1A':'#F0FDFA');})();</script>
     <style>
         /* ===== CSS VARIABLES ===== */
         :root {
@@ -124,6 +124,21 @@
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
             border-color: rgba(45, 212, 191, 0.12);
+        }
+
+        [data-theme="dark"] .page {
+            background: var(--card-bg);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] .cover-welcome {
+            background: var(--card-bg);
+            border-color: rgba(45, 212, 191, 0.15);
+        }
+
+        [data-theme="dark"] .screen-controls {
+            background: rgba(15, 26, 26, 0.95);
+            border-bottom-color: rgba(45, 212, 191, 0.12);
         }
 
         /* ===== RESET & BASE ===== */
