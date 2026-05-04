@@ -7538,31 +7538,42 @@
             }
 
             if (Notification.permission === 'granted') {
-                console.log('📱 Notification permission already granted – scheduling locally');
+                console.log('📱 Notification permission already granted');
                 scheduleNotifications();
                 registerServerPush(registration);
             } else if (Notification.permission !== 'denied') {
-                // Wait a bit before asking so the user isn't overwhelmed on load
+                // Wait a bit before showing the banner so the user isn't overwhelmed on load
                 setTimeout(() => {
-                    showNotificationPrompt();
+                    showNotificationBanner();
                 }, 5000);
             }
         }
-        
-        async function showNotificationPrompt() {
-            const shouldAsk = confirm(
-                '🔔 Искате ли да получавате напомняния за храна, вода и съобщения от вашия AI консултант?\n\n' +
-                'Това ще ви помогне да следвате плана си по-лесно.'
-            );
-            
-            if (shouldAsk) {
+
+        function showNotificationBanner() {
+            if (document.getElementById('notif-banner')) return;
+            const banner = document.createElement('div');
+            banner.id = 'notif-banner';
+            banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
+            banner.innerHTML = '<span>🔔 Разрешете известия за напомняния за храна и съобщения</span>';
+            const btn = document.createElement('button');
+            btn.textContent = 'Разреши';
+            btn.style.cssText = 'background:#fff;color:#0D9488;border:none;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap;';
+            btn.onclick = async () => {
+                banner.remove();
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     console.log('Notification permission granted');
                     scheduleNotifications();
                     if (swRegistration) registerServerPush(swRegistration);
                 }
-            }
+            };
+            const close = document.createElement('button');
+            close.textContent = '✕';
+            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px;';
+            close.onclick = () => banner.remove();
+            banner.appendChild(btn);
+            banner.appendChild(close);
+            document.body.appendChild(banner);
         }
 
         /**
@@ -7591,10 +7602,12 @@
                     return;
                 }
 
-                // Convert base64url-encoded VAPID public key to standard base64, then
-                // to a Uint8Array, as required by the Web Push / pushManager API.
-                const base64 = vapidData.publicKey.replace(/-/g, '+').replace(/_/g, '/');
-                const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+                // Convert base64url-encoded VAPID public key to Uint8Array.
+                // Padding must be added before atob() to avoid InvalidCharacterError.
+                const rawKey = vapidData.publicKey;
+                const padding = '='.repeat((4 - rawKey.length % 4) % 4);
+                const b64 = (rawKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+                const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
 
                 const subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,

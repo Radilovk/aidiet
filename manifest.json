@@ -85,5 +85,6 @@
   ],
   "categories": ["health", "lifestyle", "food"],
   "lang": "bg-BG",
-  "dir": "ltr"
+  "dir": "ltr",
+  "gcm_sender_id": "103953800507"
 }

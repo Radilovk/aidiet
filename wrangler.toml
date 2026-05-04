@@ -7,11 +7,9 @@ compatibility_date = "2024-01-01"
 binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"
 
-# Cron triggers for scheduled push notifications are disabled.
-# Push notifications are handled client-side via local-scheduler.js.
-# Re-enable by uncommenting the section below when server-side push is needed.
-# [triggers]
-# crons = ["0 * * * *"]
+# Cron trigger: run every hour to send scheduled push notifications (morning/evening checks)
+[triggers]
+crons = ["0 * * * *"]
 
 # Environment variables for API keys (configure via wrangler secret)
 # Run: wrangler secret put OPENAI_API_KEY
@@ -26,4 +24,4 @@ binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"
 
 [env.production.triggers]
-# crons = ["0 * * * *"]  # Disabled – notifications handled client-side
+crons = ["0 * * * *"]

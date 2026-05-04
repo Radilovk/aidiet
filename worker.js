@@ -11941,7 +11941,50 @@ async function handleTestSendEmail(request, env) {
  * Runs every hour to check and send scheduled notifications
  */
 async function handleScheduledNotifications(env) {
-  console.log('[Cron] Notifications are globally disabled. Skipping scheduled notifications check.');
+  // Get current UTC hour to decide which notifications to send
+  const nowUtc = new Date();
+  const utcHour = nowUtc.getUTCHours();
+
+  // Bulgaria is UTC+2 (winter) / UTC+3 (summer). Use a fixed UTC+2 offset
+  // (05:00 UTC = 07:00 BG winter, 04:00 UTC = 07:00 BG summer).
+  // We fire at both UTC hours so coverage works year-round regardless of DST.
+  const MORNING_UTC_HOURS = [4, 5];   // 07:00 BG (summer/winter)
+  const EVENING_UTC_HOURS = [17, 18]; // 20:00 BG (summer/winter)
+
+  const isMorning = MORNING_UTC_HOURS.includes(utcHour);
+  const isEvening = EVENING_UTC_HOURS.includes(utcHour);
+
+  if (!isMorning && !isEvening) {
+    console.log(`[Cron] UTC hour ${utcHour} – no notifications to send`);
+    return;
+  }
+
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
+    console.warn('[Cron] VAPID keys not configured – skipping push notifications');
+    return;
+  }
+
+  // Load list of subscribed users
+  const listData = await env.page_content.get('push_subscriptions_list');
+  const userIds = listData ? JSON.parse(listData) : [];
+
+  if (userIds.length === 0) {
+    console.log('[Cron] No subscribed users');
+    return;
+  }
+
+  console.log(`[Cron] Sending ${isMorning ? 'morning' : 'evening'} push to ${userIds.length} users`);
+
+  const payload = isMorning
+    ? { title: 'Добро утро! 🌅', body: 'Как спахте тази нощ? Отговорете на сутрешния въпрос.', url: '/plan.html?action=morning_check', notificationType: 'morning_check' }
+    : { title: 'Добър вечер! 🌙', body: 'Как мина денят? Отговорете на вечерните въпроси.', url: '/plan.html?action=evening_check', notificationType: 'evening_check' };
+
+  const results = await Promise.allSettled(
+    userIds.map(userId => sendPushNotificationToUser(userId, payload, env))
+  );
+
+  const sent = results.filter(r => r.status === 'fulfilled').length;
+  console.log(`[Cron] Done – ${sent}/${userIds.length} push notifications sent`);
 }
 
 /**
