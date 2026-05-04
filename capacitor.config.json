@@ -3,9 +3,10 @@
   "appName": "NutriPlan",
   "webDir": "capacitor-shell",
   "server": {
-    "url": "https://aidiet.radilov-k.workers.dev",
+    "url": "https://biocode.website",
     "cleartext": false,
     "allowNavigation": [
+      "biocode.website",
       "aidiet.radilov-k.workers.dev"
     ]
   },
