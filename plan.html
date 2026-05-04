@@ -9305,8 +9305,9 @@
             <span>Профил</span>
         </a>
     </nav>
-    <!-- GameNotifier: gamification-based notification scheduling -->
-    <script src="https://cdn.jsdelivr.net/npm/@capacitor/core@7.6.2/dist/capacitor.js"></script>
+    <!-- GameNotifier: gamification-based notification scheduling.
+         Inside the APK, the Capacitor bridge (window.Capacitor) is injected automatically
+         by the native WebView layer – no CDN script is needed or wanted. -->
     <script src="./local-scheduler.js"></script>
 </body>
 </html>

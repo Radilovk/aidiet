@@ -65,33 +65,17 @@ jobs:
 
       - name: Patch Android manifest and Gradle config
         run: |
-          python <<'PY'
-          from pathlib import Path
+          # 1. Add SCHEDULE_EXACT_ALARM permission to the manifest if not already present.
+          if ! grep -q 'SCHEDULE_EXACT_ALARM' android/app/src/main/AndroidManifest.xml; then
+            sed -i 's|<uses-permission android:name="android.permission.INTERNET" />|<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />|' android/app/src/main/AndroidManifest.xml
+          fi
 
-          manifest_path = Path('android/app/src/main/AndroidManifest.xml')
-          manifest = manifest_path.read_text()
-          exact_alarm_permission = '    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n'
-          if 'android.permission.SCHEDULE_EXACT_ALARM' not in manifest:
-              manifest = manifest.replace('    <!-- Permissions -->\n\n', f'    <!-- Permissions -->\n\n{exact_alarm_permission}', 1)
-          manifest_path.write_text(manifest)
+          # 2. Apply version metadata and signing config via a committed override script.
+          #    Gradle merges multiple android{} blocks, so appending a separate file is safe
+          #    regardless of Capacitor template changes.
+          echo "apply from: '../../android-res/build-overrides.gradle'" >> android/app/build.gradle
 
-          build_gradle_path = Path('android/app/build.gradle')
-          build_gradle = build_gradle_path.read_text()
-          build_gradle = build_gradle.replace(
-              '        versionCode 1',
-              '        versionCode Integer.parseInt(System.getenv("AIDIET_ANDROID_VERSION_CODE") ?: "1")'
-          )
-          build_gradle = build_gradle.replace(
-              '        versionName "1.0"',
-              '        versionName System.getenv("AIDIET_ANDROID_VERSION_NAME") ?: "1.0.0"'
-          )
-          old_block = """    buildTypes {\n        release {\n            minifyEnabled false\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'\n        }\n    }\n"""
-          new_block = """    signingConfigs {\n        release {\n            storeFile file(System.getenv(\"AIDIET_KEYSTORE_PATH\"))\n            storePassword System.getenv(\"AIDIET_STORE_PASS\")\n            keyAlias System.getenv(\"AIDIET_KEY_ALIAS\") ?: \"nutriplan\"\n            keyPassword System.getenv(\"AIDIET_KEY_PASS\")\n        }\n    }\n    buildTypes {\n        debug {\n            signingConfig signingConfigs.release\n        }\n        release {\n            signingConfig signingConfigs.release\n            minifyEnabled false\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'\n        }\n    }\n"""
-          if old_block not in build_gradle:
-              raise SystemExit('Unexpected android/app/build.gradle template; signing block was not patched.')
-          build_gradle = build_gradle.replace(old_block, new_block, 1)
-          build_gradle_path.write_text(build_gradle)
-          PY
+          # 3. Copy the notification small icon drawable into the generated project.
           cp android-res/ic_stat_nutriplan.xml android/app/src/main/res/drawable/ic_stat_nutriplan.xml
 
       - name: Build APK
