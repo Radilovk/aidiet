@@ -204,7 +204,17 @@ let   _scheduleTimers = [];
 
 self.addEventListener('message', (event) => {
   const msg = event.data;
-  if (!msg || msg.type !== 'SCHEDULE_GAME_NOTIFICATIONS') return;
+  if (!msg) return;
+
+  if (msg.type === 'CLEAR_GAME_NOTIFICATIONS') {
+    _scheduleTimers.forEach(id => clearTimeout(id));
+    _scheduleTimers = [];
+    _scheduledGameNotifs.length = 0;
+    console.log('[SW] Cleared scheduled game notifications');
+    return;
+  }
+
+  if (msg.type !== 'SCHEDULE_GAME_NOTIFICATIONS') return;
   if (!Array.isArray(msg.schedule)) return;
 
   console.log('[SW] Received SCHEDULE_GAME_NOTIFICATIONS with', msg.schedule.length, 'items');

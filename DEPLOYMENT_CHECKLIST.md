@@ -97,7 +97,7 @@ Choose ONE of the following options:
 
 ### 2. Test Frontend
 
-- [ ] Open test.html in browser
+- [ ] Open notifications-test.html in browser
 - [ ] Click "Test Generate Plan"
 - [ ] Verify plan is generated
 - [ ] Click "Test Chat"
