@@ -5,390 +5,606 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тест на Известия - NutriPlan</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 16px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        h1 { color: #fff; margin-bottom: 16px; font-size: 26px; text-align: center; }
+        h2 { font-size: 16px; margin-bottom: 10px; color: #333; }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .row {
             display: flex;
             align-items: center;
-            justify-content: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
         }
-        
-        .container {
-            max-width: 600px;
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 28px;
-        }
-        
-        .status-box {
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid;
-        }
-        
-        .status-box.success {
-            background: #d4edda;
-            border-color: #28a745;
-            color: #155724;
-        }
-        
-        .status-box.warning {
-            background: #fff3cd;
-            border-color: #ffc107;
-            color: #856404;
-        }
-        
-        .status-box.error {
-            background: #f8d7da;
-            border-color: #dc3545;
-            color: #721c24;
-        }
-        
-        .status-box.info {
-            background: #d1ecf1;
-            border-color: #17a2b8;
-            color: #0c5460;
-        }
-        
-        .info-item {
-            padding: 10px;
-            margin: 10px 0;
-            background: #f8f9fa;
-            border-radius: 6px;
-        }
-        
-        .info-item strong {
-            display: inline-block;
-            width: 180px;
-            color: #666;
-        }
-        
+        .row:last-child { border-bottom: none; }
+        .row .label { width: 200px; color: #666; flex-shrink: 0; }
+        .row .val  { flex: 1; font-weight: 500; }
+
+        .ok   { color: #28a745; }
+        .warn { color: #e67e00; }
+        .bad  { color: #dc3545; }
+        .muted { color: #999; font-style: italic; }
+
+        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
         button {
             background: #667eea;
-            color: white;
+            color: #fff;
             border: none;
-            padding: 12px 24px;
+            padding: 9px 16px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
-            margin: 10px 5px;
-            transition: background 0.3s;
+            transition: background 0.2s, opacity 0.2s;
         }
-        
-        button:hover {
-            background: #5568d3;
+        button:hover:not(:disabled) { background: #5568d3; }
+        button:disabled { opacity: 0.45; cursor: not-allowed; }
+        button.btn-green  { background: #28a745; }
+        button.btn-green:hover:not(:disabled)  { background: #218838; }
+        button.btn-orange { background: #e67e00; }
+        button.btn-orange:hover:not(:disabled) { background: #c96e00; }
+        button.btn-red    { background: #dc3545; }
+        button.btn-red:hover:not(:disabled)    { background: #b02a37; }
+        button.btn-gray   { background: #6c757d; }
+        button.btn-gray:hover:not(:disabled)   { background: #5a6268; }
+
+        #log {
+            background: #1a1a2e;
+            color: #a8ff78;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 260px;
+            overflow-y: auto;
+            margin-top: 6px;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
-        
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .test-results {
-            margin-top: 20px;
-        }
-        
-        ul {
-            margin: 10px 0 10px 20px;
-        }
-        
-        li {
-            margin: 5px 0;
-        }
-        
-        .back-link {
+        #log .err { color: #ff6b6b; }
+        #log .warn { color: #ffd166; }
+        #log .info { color: #a8ff78; }
+
+        .badge {
             display: inline-block;
-            margin-top: 20px;
-            color: #667eea;
-            text-decoration: none;
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            font-weight: 600;
         }
-        
-        .back-link:hover {
-            text-decoration: underline;
+        .badge-blue   { background: #e3f0ff; color: #1565c0; }
+        .badge-orange { background: #fff3cd; color: #b07000; }
+        .badge-red    { background: #ffe0e0; color: #c62828; }
+
+        a.back-link {
+            display: inline-block;
+            color: #fff;
+            margin-top: 8px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        a.back-link:hover { text-decoration: underline; }
+
+        details > summary { cursor: pointer; font-weight: 600; font-size: 14px; color: #444; }
+        details pre {
+            font-size: 11px;
+            background: #f4f4f4;
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 6px;
+            overflow-x: auto;
+            max-height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔔 Тест на Известия</h1>
-        
-        <div id="platformInfo" class="status-box info">
-            <h3>Информация за Платформа</h3>
-            <div class="info-item">
-                <strong>Операционна Система:</strong>
-                <span id="osInfo">Зареждане...</span>
-            </div>
-            <div class="info-item">
-                <strong>Браузър:</strong>
-                <span id="browserInfo">Зареждане...</span>
-            </div>
-            <div class="info-item">
-                <strong>PWA Режим:</strong>
-                <span id="pwaInfo">Зареждане...</span>
-            </div>
-            <div class="info-item">
-                <strong>Notification API:</strong>
-                <span id="notifApiInfo">Зареждане...</span>
-            </div>
-            <div class="info-item">
-                <strong>Service Worker:</strong>
-                <span id="swInfo">Зареждане...</span>
-            </div>
-            <div class="info-item">
-                <strong>Permission Status:</strong>
-                <span id="permissionInfo">Зареждане...</span>
-            </div>
-        </div>
-        
-        <div id="compatibilityStatus"></div>
-        
-        <div style="margin: 20px 0;">
-            <button id="requestPermBtn" onclick="requestPermission()">
-                🔔 Поискай Permission
-            </button>
-            <button id="testNotifBtn" onclick="sendTestNotification()" disabled>
-                ✉️ Тествай Известие
-            </button>
-            <button id="testSWNotifBtn" onclick="sendServiceWorkerNotification()" disabled>
-                📱 Тествай SW Известие
-            </button>
-        </div>
-        
-        <div id="testResults" class="test-results"></div>
-        
-        <a href="/" class="back-link">← Назад към Начало</a>
+<div class="container">
+    <h1>🔔 Диагностика на Известия</h1>
+
+    <!-- ── Платформа ── -->
+    <div class="card">
+        <h2>📱 Платформа и поддръжка</h2>
+        <div class="row"><span class="label">Операционна система</span><span class="val" id="diOS">…</span></div>
+        <div class="row"><span class="label">Браузър</span><span class="val" id="diBrowser">…</span></div>
+        <div class="row"><span class="label">PWA / Standalone режим</span><span class="val" id="diPWA">…</span></div>
+        <div class="row"><span class="label">Notification API</span><span class="val" id="diNotifAPI">…</span></div>
+        <div class="row"><span class="label">Push API (PushManager)</span><span class="val" id="diPushAPI">…</span></div>
+        <div class="row"><span class="label">Notification Triggers</span><span class="val" id="diTriggers">…</span></div>
+        <div class="row"><span class="label">Service Worker API</span><span class="val" id="diSWAPI">…</span></div>
+        <div class="row"><span class="label">Capacitor (APK)</span><span class="val" id="diCapacitor">…</span></div>
+        <div class="row"><span class="label">Permission статус</span><span class="val" id="diPerm">…</span></div>
+        <div class="row"><span class="label">Метод за планиране</span><span class="val" id="diMethod">…</span></div>
     </div>
-    
-    <script>
-        // Platform Detection
-        const Platform = {
-            isIOS: () => /iPhone|iPad|iPod/i.test(navigator.userAgent),
-            isAndroid: () => /Android/i.test(navigator.userAgent),
-            isHuawei: () => /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent),
-            isSafari: () => /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent),
-            isChrome: () => /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent),
-            isFirefox: () => /Firefox/i.test(navigator.userAgent),
-            isPWA: () => window.matchMedia('(display-mode: standalone)').matches || 
-                        window.navigator.standalone === true
-        };
-        
-        // Update platform info
-        function updatePlatformInfo() {
-            // OS
-            let os = 'Unknown';
-            if (Platform.isIOS()) os = 'iOS';
-            else if (Platform.isAndroid()) os = 'Android';
-            else if (Platform.isHuawei()) os = 'Huawei/HarmonyOS';
-            else if (navigator.userAgent.includes('Win')) os = 'Windows';
-            else if (navigator.userAgent.includes('Mac')) os = 'macOS';
-            else if (navigator.userAgent.includes('Linux')) os = 'Linux';
-            document.getElementById('osInfo').textContent = os;
-            
-            // Browser
-            let browser = 'Unknown';
-            if (Platform.isChrome()) browser = 'Chrome';
-            else if (Platform.isFirefox()) browser = 'Firefox';
-            else if (Platform.isSafari()) browser = 'Safari';
-            else if (navigator.userAgent.includes('Edg')) browser = 'Edge';
-            document.getElementById('browserInfo').textContent = browser;
-            
-            // PWA
-            const isPWA = Platform.isPWA();
-            document.getElementById('pwaInfo').textContent = isPWA ? '✅ Да (Инсталирано)' : '❌ Не (Browser)';
-            
-            // Notification API
-            const hasNotifAPI = 'Notification' in window;
-            document.getElementById('notifApiInfo').textContent = hasNotifAPI ? '✅ Поддържа се' : '❌ Не се поддържа';
-            
-            // Service Worker
-            const hasSW = 'serviceWorker' in navigator;
-            document.getElementById('swInfo').textContent = hasSW ? '✅ Поддържа се' : '❌ Не се поддържа';
-            
-            // Permission
-            if (hasNotifAPI) {
-                const perm = Notification.permission;
-                let permText = '';
-                if (perm === 'granted') permText = '✅ Разрешено';
-                else if (perm === 'denied') permText = '❌ Отказано';
-                else permText = '⏸️ Не е поискано';
-                document.getElementById('permissionInfo').textContent = permText;
-                
-                // Update buttons
-                if (perm === 'granted') {
-                    document.getElementById('testNotifBtn').disabled = false;
-                    document.getElementById('testSWNotifBtn').disabled = false;
-                    document.getElementById('requestPermBtn').disabled = true;
-                }
-            } else {
-                document.getElementById('permissionInfo').textContent = 'N/A';
-            }
-            
-            // Show compatibility status
-            showCompatibilityStatus(os, browser, isPWA, hasNotifAPI);
+
+    <!-- ── Service Worker ── -->
+    <div class="card">
+        <h2>⚙️ Service Worker статус</h2>
+        <div class="row"><span class="label">Регистриран</span><span class="val" id="swRegistered">…</span></div>
+        <div class="row"><span class="label">Активен (active)</span><span class="val" id="swActive">…</span></div>
+        <div class="row"><span class="label">Controller</span><span class="val" id="swController">…</span></div>
+        <div class="row"><span class="label">Scope</span><span class="val" id="swScope">…</span></div>
+        <div class="btn-group" style="margin-top:10px;">
+            <button onclick="registerSW()">🔄 Регистрирай / опресни SW</button>
+            <button class="btn-gray" onclick="checkSW()">🔍 Провери SW статус</button>
+        </div>
+    </div>
+
+    <!-- ── GameNotifier конфигурация ── -->
+    <div class="card">
+        <h2>🎮 GameNotifier конфигурация (localStorage)</h2>
+        <div class="row"><span class="label">Конфигурация</span><span class="val" id="cfgSummary">…</span></div>
+        <div class="row"><span class="label">Последна синхронизация</span><span class="val" id="cfgLastSync">…</span></div>
+        <div class="row"><span class="label">Версия (backend)</span><span class="val" id="cfgVersion">…</span></div>
+        <div class="row"><span class="label">Motion изпратено на</span><span class="val" id="cfgMotion">…</span></div>
+        <details style="margin-top:8px;">
+            <summary>Виж пълна конфигурация (JSON)</summary>
+            <pre id="cfgJSON">…</pre>
+        </details>
+        <div class="btn-group" style="margin-top:10px;">
+            <button class="btn-orange" onclick="forceSyncConfig()">🔃 Принудителна синхронизация с backend</button>
+            <button class="btn-gray" onclick="clearMotionFlag()">🗑️ Изчисти motion флаг</button>
+            <button class="btn-gray" onclick="refreshConfig()">♻️ Обнови</button>
+        </div>
+    </div>
+
+    <!-- ── Стъпка 1: Разрешение ── -->
+    <div class="card">
+        <h2>1️⃣ Разрешение за известия</h2>
+        <div class="btn-group">
+            <button id="btnPerm" onclick="requestPermission()">🔔 Поискай разрешение</button>
+        </div>
+    </div>
+
+    <!-- ── Стъпка 2: Инициализация ── -->
+    <div class="card">
+        <h2>2️⃣ GameNotifier – инициализация и планиране</h2>
+        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+            Инициализира GameNotifier, зарежда конфигурацията от backend и
+            планира сутрешни/вечерни известия за следващите 7 дни.
+        </p>
+        <div class="btn-group">
+            <button id="btnInit" onclick="initGameNotifier()" disabled>🚀 Инициализирай GameNotifier</button>
+            <button id="btnSchedule" onclick="reschedule()" disabled>📅 Препланирай известия</button>
+            <button id="btnCancelAll" onclick="cancelAll()" disabled>🗑️ Отмени всички</button>
+        </div>
+    </div>
+
+    <!-- ── Стъпка 3: Незабавни тестове ── -->
+    <div class="card">
+        <h2>3️⃣ Незабавни тестови известия</h2>
+        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+            Показват известие <strong>веднага</strong> – не се изчаква планирано време.
+            Нуждае се от разрешено permission.
+        </p>
+        <div class="btn-group">
+            <button id="btnMorningNow" onclick="showMorningNow()" disabled class="btn-green">🌅 Сутрешно известие (сега)</button>
+            <button id="btnEveningNow" onclick="showEveningNow()" disabled class="btn-orange">🌙 Вечерно известие (сега)</button>
+            <button id="btnRawNotif"   onclick="sendRawNotification()" disabled>✉️ Raw Notification API</button>
+            <button id="btnSWNotif"    onclick="sendSWNotification()" disabled>📱 SW showNotification</button>
+        </div>
+    </div>
+
+    <!-- ── Стъпка 4: Забавено тестово известие ── -->
+    <div class="card">
+        <h2>4️⃣ Забавено тестово известие (SW таймер)</h2>
+        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+            Изпраща <code>SCHEDULE_GAME_NOTIFICATIONS</code> до Service Worker с
+            едно тестово известие, което ще се покаже след <strong>7 секунди</strong>.
+            Тества пълния SW scheduling path.
+        </p>
+        <div class="btn-group">
+            <button id="btnDelayed" onclick="scheduleDelayed()" disabled class="btn-green">⏱️ Изпрати тест след 7 сек</button>
+        </div>
+    </div>
+
+    <!-- ── Стъпка 5: Симулация на action URL ── -->
+    <div class="card">
+        <h2>5️⃣ Симулация на action URL (gamification)</h2>
+        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+            Отваря <code>plan.html</code> с параметър <code>?action=…</code>, точно
+            както прави известието при клик. Тества дали gamification въпросите
+            се зареждат правилно.
+        </p>
+        <div class="btn-group">
+            <button class="btn-green" onclick="window.open('/plan.html?action=morning_check', '_blank')">🌅 plan.html?action=morning_check</button>
+            <button class="btn-orange" onclick="window.open('/plan.html?action=evening_check', '_blank')">🌙 plan.html?action=evening_check</button>
+        </div>
+    </div>
+
+    <!-- ── Лог ── -->
+    <div class="card">
+        <h2>📋 Лог</h2>
+        <div id="log"></div>
+        <div class="btn-group" style="margin-top:8px;">
+            <button class="btn-gray" onclick="clearLog()">🗑️ Изчисти лог</button>
+        </div>
+    </div>
+
+    <a href="/" class="back-link">← Назад към Начало</a>
+</div>
+
+<script src="./local-scheduler.js"></script>
+<script>
+// ─────────────────────────────────────────────
+// Logging helper
+// ─────────────────────────────────────────────
+const logEl = document.getElementById('log');
+function log(msg, level = 'info') {
+    const line = document.createElement('span');
+    line.className = level;
+    line.textContent = `[${new Date().toLocaleTimeString('bg-BG')}] ${msg}\n`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+    console.log('[NotifTest]', msg);
+}
+function clearLog() { logEl.innerHTML = ''; }
+
+// ─────────────────────────────────────────────
+// Platform helpers
+// ─────────────────────────────────────────────
+function getOS() {
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+    if (/Android/i.test(ua)) return 'Android';
+    if (/huawei|harmony/i.test(ua)) return 'Huawei/HarmonyOS';
+    if (ua.includes('Win'))   return 'Windows';
+    if (ua.includes('Mac'))   return 'macOS';
+    if (ua.includes('Linux')) return 'Linux';
+    return 'Unknown';
+}
+function getBrowser() {
+    const ua = navigator.userAgent;
+    if (/Edg\//i.test(ua))                              return 'Edge';
+    if (/Chrome/i.test(ua) && !/Edg/i.test(ua))        return 'Chrome';
+    if (/Firefox/i.test(ua))                            return 'Firefox';
+    if (/Safari/i.test(ua) && !/Chrome/i.test(ua))     return 'Safari';
+    return 'Unknown';
+}
+function isPWA() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true;
+}
+function hasTriggers() {
+    try { return 'showTrigger' in Notification.prototype; } catch(_) { return false; }
+}
+
+// ─────────────────────────────────────────────
+// Detect which scheduling method GameNotifier would use
+// ─────────────────────────────────────────────
+function detectMethod() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+        return { label: 'Capacitor LocalNotifications (APK)', badge: 'badge-blue', best: true };
+    }
+    if (hasTriggers()) {
+        return { label: 'Notification Triggers API (Chrome/TWA)', badge: 'badge-blue', best: true };
+    }
+    if ('serviceWorker' in navigator) {
+        return { label: 'SW postMessage fallback ⚠️', badge: 'badge-orange', best: false };
+    }
+    return { label: '❌ Не се поддържа', badge: 'badge-red', best: false };
+}
+
+// ─────────────────────────────────────────────
+// Update diagnostic panel
+// ─────────────────────────────────────────────
+function updateDiagnostics() {
+    const os = getOS();
+    const browser = getBrowser();
+    const pwa = isPWA();
+    const hasNA = 'Notification' in window;
+    const hasSW = 'serviceWorker' in navigator;
+    const hasPush = 'PushManager' in window;
+    const hasCap = !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications);
+
+    // helpers
+    const ok  = s => `<span class="ok">${s}</span>`;
+    const bad = s => `<span class="bad">${s}</span>`;
+    const warn = s => `<span class="warn">${s}</span>`;
+
+    document.getElementById('diOS').innerHTML      = os;
+    document.getElementById('diBrowser').innerHTML = browser;
+    document.getElementById('diPWA').innerHTML     = pwa ? ok('✅ Да (Standalone)') : warn('⚠️ Не (обикновен браузър)');
+    document.getElementById('diNotifAPI').innerHTML = hasNA ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
+    document.getElementById('diPushAPI').innerHTML  = hasPush ? ok('✅ Поддържа се') : warn('⚠️ Не се поддържа');
+    document.getElementById('diTriggers').innerHTML = hasTriggers() ? ok('✅ Да (Chrome ≥ 80 Android)') : warn('⚠️ Не (ще се използва SW fallback)');
+    document.getElementById('diSWAPI').innerHTML    = hasSW ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
+    document.getElementById('diCapacitor').innerHTML = hasCap ? ok('✅ Да (APK)') : '<span class="muted">Не (уеб контекст)</span>';
+
+    if (hasNA) {
+        const perm = Notification.permission;
+        if (perm === 'granted') document.getElementById('diPerm').innerHTML = ok('✅ Разрешено');
+        else if (perm === 'denied') document.getElementById('diPerm').innerHTML = bad('❌ Отказано – трябва ръчно reset от браузъра');
+        else document.getElementById('diPerm').innerHTML = warn('⏸️ Не е поискано');
+    } else {
+        document.getElementById('diPerm').innerHTML = bad('N/A');
+    }
+
+    const method = detectMethod();
+    document.getElementById('diMethod').innerHTML =
+        `${method.label} <span class="badge ${method.badge}">${method.best ? 'надеждно' : 'fallback'}</span>`;
+
+    // Enable buttons if permission granted
+    const granted = hasNA && Notification.permission === 'granted';
+    ['btnMorningNow','btnEveningNow','btnRawNotif','btnSWNotif',
+     'btnDelayed','btnInit','btnSchedule','btnCancelAll'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !granted;
+    });
+    if (!granted) {
+        document.getElementById('btnPerm').disabled = false;
+    } else {
+        document.getElementById('btnPerm').disabled = true;
+    }
+
+    refreshConfig();
+}
+
+// ─────────────────────────────────────────────
+// Service Worker
+// ─────────────────────────────────────────────
+let swReg = null;
+
+async function registerSW() {
+    if (!('serviceWorker' in navigator)) { log('SW не се поддържа', 'err'); return; }
+    try {
+        swReg = await navigator.serviceWorker.register('./sw.js');
+        log('SW регистриран: ' + swReg.scope);
+        checkSW();
+    } catch (e) {
+        log('SW регистрация неуспешна: ' + e.message, 'err');
+    }
+}
+
+async function checkSW() {
+    if (!('serviceWorker' in navigator)) { return; }
+    try {
+        const reg = await navigator.serviceWorker.getRegistration('./');
+        const ok = s => `<span class="ok">${s}</span>`;
+        const bad = s => `<span class="bad">${s}</span>`;
+        const warn = s => `<span class="warn">${s}</span>`;
+        if (reg) {
+            swReg = reg;
+            document.getElementById('swRegistered').innerHTML = ok('✅ Да');
+            document.getElementById('swActive').innerHTML = reg.active ? ok('✅ ' + reg.active.state) : warn('⚠️ Не е активен');
+            document.getElementById('swController').innerHTML = navigator.serviceWorker.controller ? ok('✅ Да') : warn('⚠️ Не (зареди страницата отново)');
+            document.getElementById('swScope').textContent = reg.scope;
+            log('SW статус: active=' + (reg.active ? reg.active.state : 'none') + ', controller=' + !!navigator.serviceWorker.controller);
+        } else {
+            document.getElementById('swRegistered').innerHTML = bad('❌ Не е регистриран');
+            document.getElementById('swActive').innerHTML     = bad('❌');
+            document.getElementById('swController').innerHTML = bad('❌');
+            document.getElementById('swScope').textContent   = '—';
+            log('SW не е регистриран', 'warn');
         }
-        
-        function showCompatibilityStatus(os, browser, isPWA, hasNotifAPI) {
-            const container = document.getElementById('compatibilityStatus');
-            let html = '';
-            let cssClass = 'success';
-            
-            if (os === 'iOS' && !isPWA) {
-                cssClass = 'warning';
-                html = `
-                    <h3>⚠️ iOS Ограничена Поддръжка</h3>
-                    <p>Известията работят САМО когато приложението е инсталирано като PWA.</p>
-                    <p><strong>Как да инсталирате:</strong></p>
-                    <ol>
-                        <li>Отворете в Safari (не Chrome/Firefox)</li>
-                        <li>Натиснете Share бутона (квадратче със стрелка)</li>
-                        <li>Изберете "Add to Home Screen"</li>
-                        <li>Отворете от Home Screen</li>
-                        <li>Разрешете известия</li>
-                    </ol>
-                `;
-            } else if (os === 'Huawei/HarmonyOS') {
-                cssClass = 'error';
-                html = `
-                    <h3>❌ Huawei Не Се Поддържа</h3>
-                    <p>Уеб известия не работят на Huawei устройства без Google Services.</p>
-                    <p><strong>Алтернативи:</strong></p>
-                    <ul>
-                        <li>Използвайте Huawei Calendar за напомняния</li>
-                        <li>Задайте alarms в Clock app</li>
-                        <li>Използвайте Reminders app</li>
-                    </ul>
-                `;
-            } else if (!hasNotifAPI) {
-                cssClass = 'error';
-                html = `
-                    <h3>❌ Браузърът Не Поддържа Известия</h3>
-                    <p>Моля, използвайте по-нова версия на браузъра.</p>
-                `;
-            } else if (os === 'Android' || os === 'Windows' || os === 'macOS' || os === 'Linux') {
-                cssClass = 'success';
-                html = `
-                    <h3>✅ Пълна Поддръжка</h3>
-                    <p>Вашата платформа напълно поддържа известия!</p>
-                    <p>Кликнете "Поискай Permission" за да разрешите известия.</p>
-                `;
-            }
-            
-            container.className = 'status-box ' + cssClass;
-            container.innerHTML = html;
+    } catch (e) {
+        log('checkSW грешка: ' + e.message, 'err');
+    }
+}
+
+// ─────────────────────────────────────────────
+// Config helpers
+// ─────────────────────────────────────────────
+function refreshConfig() {
+    try {
+        const raw = localStorage.getItem('gameNotifierConfig');
+        const cfg = raw ? JSON.parse(raw) : null;
+        document.getElementById('cfgJSON').textContent = JSON.stringify(cfg, null, 2) || '(няма)';
+        if (cfg) {
+            document.getElementById('cfgSummary').textContent =
+                `сутрин ${cfg.morningTime || '07:00'} / вечер ${cfg.eveningTime || '20:00'}`;
+        } else {
+            document.getElementById('cfgSummary').innerHTML = '<span class="muted">по подразбиране (07:00 / 20:00)</span>';
         }
-        
-        async function requestPermission() {
-            if (!('Notification' in window)) {
-                showResult('❌ Notification API не се поддържа', 'error');
-                return;
-            }
-            
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    showResult('✅ Permission разрешено успешно!', 'success');
-                    updatePlatformInfo();
-                } else if (permission === 'denied') {
-                    showResult('❌ Permission отказано. Проверете browser settings.', 'error');
-                } else {
-                    showResult('⏸️ Permission не е дадено.', 'warning');
-                }
-            } catch (e) {
-                showResult('❌ Грешка: ' + e.message, 'error');
-            }
-        }
-        
-        async function sendTestNotification() {
-            if (Notification.permission !== 'granted') {
-                showResult('❌ Permission не е дадено. Натиснете "Поискай Permission" първо.', 'error');
-                return;
-            }
-            
-            try {
-                const notification = new Notification('🎉 Тестово Известие', {
-                    body: 'Ако виждате това, известията работят на вашето устройство!',
-                    icon: '/icon-192x192.png',
-                    tag: 'test-notification',
-                    requireInteraction: false
-                });
-                
-                notification.onclick = () => {
-                    window.focus();
-                    notification.close();
-                };
-                
-                showResult('✅ Тестово известие изпратено (Notification API)', 'success');
-            } catch (e) {
-                showResult('❌ Грешка при изпращане: ' + e.message, 'error');
-            }
-        }
-        
-        async function sendServiceWorkerNotification() {
-            if (Notification.permission !== 'granted') {
-                showResult('❌ Permission не е дадено.', 'error');
-                return;
-            }
-            
-            try {
-                const registration = await navigator.serviceWorker.ready;
-                await registration.showNotification('🚀 SW Тестово Известие', {
-                    body: 'Това известие идва от Service Worker (по-добра iOS поддръжка). Кликнете за отваряне на план.html',
-                    icon: '/icon-192x192.png',
-                    badge: '/icon-192x192.png',
-                    tag: 'sw-test-notification',
-                    requireInteraction: false,
-                    vibrate: [200, 100, 200],
-                    data: {
-                        url: '/plan.html',
-                        timestamp: Date.now()
-                    }
-                });
-                
-                showResult('✅ Service Worker известие изпратено успешно! Кликнете го за тест на URL.', 'success');
-            } catch (e) {
-                showResult('❌ Service Worker грешка: ' + e.message, 'error');
-            }
-        }
-        
-        function showResult(message, type) {
-            const container = document.getElementById('testResults');
-            const div = document.createElement('div');
-            div.className = 'status-box ' + type;
-            div.textContent = message;
-            container.appendChild(div);
-            
-            // Auto-remove after 10 seconds
-            setTimeout(() => {
-                div.style.opacity = '0';
-                setTimeout(() => div.remove(), 300);
-            }, 10000);
-        }
-        
-        // Initialize on page load
-        updatePlatformInfo();
-        
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker registered'))
-                .catch(err => console.error('Service Worker registration failed:', err));
-        }
-    </script>
+    } catch(e) {
+        document.getElementById('cfgSummary').textContent = 'грешка при четене';
+    }
+
+    const lastSync = parseInt(localStorage.getItem('gameNotifierConfigLastSync') || '0', 10);
+    if (lastSync) {
+        const ago = Math.round((Date.now() - lastSync) / 60000);
+        document.getElementById('cfgLastSync').textContent = `${new Date(lastSync).toLocaleString('bg-BG')} (${ago} мин. назад)`;
+    } else {
+        document.getElementById('cfgLastSync').innerHTML = '<span class="muted">никога</span>';
+    }
+
+    const ver = localStorage.getItem('gameNotifierConfigVersion');
+    document.getElementById('cfgVersion').textContent = ver || '—';
+
+    const motionDate = localStorage.getItem('gameNotifierMotionSentDate');
+    document.getElementById('cfgMotion').textContent = motionDate || '—';
+}
+
+async function forceSyncConfig() {
+    if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
+    log('Принудителна синхронизация на конфигурацията…');
+    try {
+        await window.GameNotifier.forceSyncBackendConfig();
+        log('Синхронизацията завърши.');
+        refreshConfig();
+    } catch(e) {
+        log('Грешка при синхронизация: ' + e.message, 'err');
+    }
+}
+
+function clearMotionFlag() {
+    localStorage.removeItem('gameNotifierMotionSentDate');
+    log('Motion флагът е изчистен.');
+    refreshConfig();
+}
+
+// ─────────────────────────────────────────────
+// Permission
+// ─────────────────────────────────────────────
+async function requestPermission() {
+    if (!('Notification' in window)) { log('Notification API не се поддържа', 'err'); return; }
+    log('Искане на разрешение…');
+    try {
+        const perm = await Notification.requestPermission();
+        log('Резултат: ' + perm, perm === 'granted' ? 'info' : 'warn');
+        updateDiagnostics();
+    } catch(e) {
+        log('Грешка: ' + e.message, 'err');
+    }
+}
+
+// ─────────────────────────────────────────────
+// GameNotifier
+// ─────────────────────────────────────────────
+async function initGameNotifier() {
+    if (!window.GameNotifier) { log('GameNotifier не е зареден – зарежда ли се local-scheduler.js?', 'err'); return; }
+    log('GameNotifier.init()…');
+    try {
+        await window.GameNotifier.init();
+        log('GameNotifier.init() завърши успешно.');
+        refreshConfig();
+    } catch(e) {
+        log('GameNotifier.init() грешка: ' + e.message, 'err');
+    }
+}
+
+async function reschedule() {
+    if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
+    log('GameNotifier.scheduleNotifications()…');
+    try {
+        await window.GameNotifier.scheduleNotifications();
+        log('Препланирането завърши.');
+    } catch(e) {
+        log('Грешка: ' + e.message, 'err');
+    }
+}
+
+async function cancelAll() {
+    if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
+    log('GameNotifier.cancelAll()…');
+    try {
+        await window.GameNotifier.cancelAll();
+        log('Всички известия са отменени.');
+    } catch(e) {
+        log('Грешка: ' + e.message, 'err');
+    }
+}
+
+// ─────────────────────────────────────────────
+// Immediate notifications
+// ─────────────────────────────────────────────
+async function showMorningNow() {
+    if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
+    log('Показване на сутрешно известие веднага…');
+    try {
+        await window.GameNotifier._showImmediateNotification('morning_check');
+        log('Сутрешното известие е изпратено.');
+    } catch(e) {
+        log('Грешка: ' + e.message, 'err');
+    }
+}
+
+async function showEveningNow() {
+    if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
+    log('Показване на вечерно известие веднага…');
+    try {
+        await window.GameNotifier._showImmediateNotification('evening_check');
+        log('Вечерното известие е изпратено.');
+    } catch(e) {
+        log('Грешка: ' + e.message, 'err');
+    }
+}
+
+async function sendRawNotification() {
+    if (Notification.permission !== 'granted') { log('Няма разрешение', 'warn'); return; }
+    try {
+        const n = new Notification('🎉 Raw тест', {
+            body: 'Raw Notification API работи!',
+            icon: '/icon-192x192.png',
+            tag: 'raw-test'
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+        log('Raw Notification API – изпратено.');
+    } catch(e) {
+        log('Raw Notification грешка: ' + e.message, 'err');
+    }
+}
+
+async function sendSWNotification() {
+    if (Notification.permission !== 'granted') { log('Няма разрешение', 'warn'); return; }
+    try {
+        const reg = swReg || await navigator.serviceWorker.ready;
+        await reg.showNotification('🚀 SW тест', {
+            body: 'Service Worker showNotification работи! Кликнете за plan.html.',
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            tag: 'sw-direct-test',
+            vibrate: [200, 100, 200],
+            data: { url: '/plan.html' }
+        });
+        log('SW showNotification – изпратено.');
+    } catch(e) {
+        log('SW showNotification грешка: ' + e.message, 'err');
+    }
+}
+
+// ─────────────────────────────────────────────
+// Delayed scheduled notification via SW message
+// ─────────────────────────────────────────────
+async function scheduleDelayed() {
+    if (Notification.permission !== 'granted') { log('Няма разрешение', 'warn'); return; }
+    const ctrl = navigator.serviceWorker.controller;
+    if (!ctrl) {
+        log('SW Controller не е наличен – зареди страницата отново след регистрация на SW', 'warn');
+        return;
+    }
+    const ts = Date.now() + 7000;
+    ctrl.postMessage({
+        type: 'SCHEDULE_GAME_NOTIFICATIONS',
+        schedule: [{
+            ts,
+            title: '⏱️ SW Тестово Известие',
+            body:  'Това известие беше насрочено от notifications-test.html и изпратено от SW след 7 сек!',
+            tag:   'gn-test-delayed-' + ts,
+            type:  'morning_check',
+            url:   '/plan.html?action=morning_check',
+            vibrate: [300, 100, 300],
+            requireInteraction: true
+        }]
+    });
+    log('SW schedule съобщение изпратено – известието ще се появи след ~7 сек.');
+}
+
+// ─────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────
+(async () => {
+    updateDiagnostics();
+    await registerSW();
+    await checkSW();
+    log('Диагностиката е заредена. ' +
+        (window.GameNotifier ? 'GameNotifier е наличен.' : '⚠️ GameNotifier НЕ е наличен.'),
+        window.GameNotifier ? 'info' : 'warn');
+})();
+</script>
 </body>
 </html>
