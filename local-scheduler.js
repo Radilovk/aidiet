@@ -19,6 +19,7 @@ const GameNotifier = {
 
     DAYS_AHEAD:     30, // Rolling 30-day window is more reliable on Android than only queuing 7 days.
     LS_CONFIG_KEY:  'gameNotifierConfig',
+    DEFAULT_ANDROID_SMALL_ICON: 'ic_stat_nutriplan',
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
@@ -302,7 +303,7 @@ const GameNotifier = {
                     schedule: { at: new Date(morningTs), allowWhileIdle: true },
                     extra: def.extra,
                     iconColor: def.iconColor,
-                    smallIcon: 'ic_stat_nutriplan'
+                    smallIcon: this.DEFAULT_ANDROID_SMALL_ICON
                 });
             }
             const eveningTs = this._tsForDayOffset(day, eH, eM);
@@ -315,7 +316,7 @@ const GameNotifier = {
                     schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: def.extra,
                     iconColor: def.iconColor,
-                    smallIcon: 'ic_stat_nutriplan'
+                    smallIcon: this.DEFAULT_ANDROID_SMALL_ICON
                 });
             }
         }
@@ -417,7 +418,7 @@ const GameNotifier = {
                     schedule: { at: new Date(Date.now() + 1000), allowWhileIdle: true },
                     extra: def.extra,
                     iconColor: def.iconColor,
-                    smallIcon: 'ic_stat_nutriplan'
+                    smallIcon: this.DEFAULT_ANDROID_SMALL_ICON
                 }]
             });
             return;
