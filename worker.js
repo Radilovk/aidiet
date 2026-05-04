@@ -11937,11 +11937,13 @@ async function handleTestSendEmail(request, env) {
 }
 
 /**
- * Scheduled event handler for cron-triggered push notifications
- * Runs every hour to check and send scheduled notifications
+ /**
+ * Scheduled event handler – intentionally a no-op.
+ * Notifications are scheduled locally via Capacitor (APK) or SW postMessage (PWA).
+ * The backend is only called by the admin panel when notification config changes.
  */
 async function handleScheduledNotifications(env) {
-  console.log('[Cron] Notifications are globally disabled. Skipping scheduled notifications check.');
+  // No-op: local scheduling is handled client-side (local-scheduler.js).
 }
 
 /**
