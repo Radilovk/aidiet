@@ -2220,19 +2220,47 @@
                         <i class="fas fa-cog"></i> Запази Общи Настройки
                     </button>
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-                    <button class="btn" onclick="sendTestNotification('morning_check')" style="background: #fd7e14;">
-                        <i class="fas fa-sun"></i> Тест: Сутрешна нотификация
-                    </button>
-                    <button class="btn" onclick="sendTestNotification('evening_check')" style="background: #6610f2;">
-                        <i class="fas fa-moon"></i> Тест: Вечерна нотификация
-                    </button>
-                    <button class="btn" onclick="sendTestNotification()" style="background: var(--accent-yellow); color: var(--text-dark);">
-                        <i class="fas fa-paper-plane"></i> Тест: Обща нотификация
-                    </button>
-                    <button class="btn" id="adminSubscribeBtn" onclick="subscribeAdminPush()" style="background: #6f42c1;">
-                        <i class="fas fa-bell"></i> Абонирай Себе Си
-                    </button>
+
+                <!-- ── Test Notifications ─────────────────────────────── -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-vial"></i> Тест на известия
+                    </h3>
+                    <div class="info-box" style="background: #e8f4fd; border-left: 4px solid #2196f3; margin-bottom: 14px; font-size: 0.9rem;">
+                        <strong>Как да тествате:</strong>
+                        <ol style="margin: 6px 0 0 20px; padding: 0; line-height: 1.8;">
+                            <li>Кликнете <strong>„Абонирай Себе Си"</strong> — браузърът ви ще поиска разрешение за известия и ще запише абонамент с ID <code>admin</code>.</li>
+                            <li>Изберете <code>admin</code> от падащото меню вдясно (или въведете ръчно).</li>
+                            <li>Кликнете един от бутоните за тест — ще получите известие в браузъра.</li>
+                        </ol>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                        <label style="font-size: 0.9rem; font-weight: 600; white-space: nowrap;">Целеви User ID:</label>
+                        <select id="testNotifUserSelect" style="padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; min-width: 220px;"
+                                onchange="document.getElementById('testNotifUserInput').value = this.value">
+                            <option value="">— изберете абониран потребител —</option>
+                        </select>
+                        <input type="text" id="testNotifUserInput" placeholder="или въведете User ID ръчно"
+                               style="padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; flex: 1; min-width: 180px;">
+                        <button class="btn" onclick="loadSubscribedUsers()" style="background: #6c757d; padding: 7px 12px; font-size: 0.85rem;">
+                            <i class="fas fa-sync-alt"></i> Опресни
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn" onclick="sendTestNotification('morning_check')" style="background: #fd7e14;">
+                            <i class="fas fa-sun"></i> Тест: Сутрешна
+                        </button>
+                        <button class="btn" onclick="sendTestNotification('evening_check')" style="background: #6610f2;">
+                            <i class="fas fa-moon"></i> Тест: Вечерна
+                        </button>
+                        <button class="btn" onclick="sendTestNotification()" style="background: var(--accent-yellow); color: var(--text-dark);">
+                            <i class="fas fa-paper-plane"></i> Тест: Обща
+                        </button>
+                        <button class="btn" id="adminSubscribeBtn" onclick="subscribeAdminPush()" style="background: #6f42c1;">
+                            <i class="fas fa-bell"></i> Абонирай Себе Си
+                        </button>
+                    </div>
+                    <div id="subscribedUsersList" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-gray);"></div>
                 </div>
             </div>
 
@@ -6015,13 +6043,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
          */
         async function sendTestNotification(type) {
             try {
-                const userId = prompt(
-                    'Въведете User ID на потребител с активен push subscription:\n\n' +
-                    'Намерете User ID в browser console: localStorage.getItem("userId")\n' +
-                    'Или използвайте "admin-test" за тест.',
-                    'admin-test'
-                );
-                if (!userId) return;
+                const inputEl = document.getElementById('testNotifUserInput');
+                let userId = inputEl ? inputEl.value.trim() : '';
+                if (!userId) {
+                    showError('Моля, изберете абониран потребител от падащото меню или въведете User ID ръчно.');
+                    return;
+                }
 
                 const typeLabels = {
                     morning_check: { title: 'Тест: Добро утро! 🌅', body: 'Как спахте тази нощ?', url: '/plan.html?action=morning_check' },
@@ -6110,12 +6137,44 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (result.success) {
                     if (btn) { btn.textContent = '✓ Абониран'; btn.style.background = '#28a745'; }
                     showSuccess('Успешно абониран за admin известия! Ще получавате известия при нови планове за преглед.');
+                    // Pre-fill the test input with 'admin' and refresh the subscribed-users list
+                    const inp = document.getElementById('testNotifUserInput');
+                    if (inp) inp.value = 'admin';
+                    loadSubscribedUsers();
                 } else {
                     throw new Error(result.error || 'Failed to save subscription');
                 }
             } catch (error) {
                 console.error('Error subscribing admin:', error);
                 showError('Грешка при абониране: ' + error.message);
+            }
+        }
+
+        // Load list of subscribed users from backend and populate the dropdown
+        async function loadSubscribedUsers() {
+            try {
+                const res = await fetch(WORKER_URL + '/api/admin/subscriptions');
+                if (!res.ok) return;
+                const data = await res.json();
+                const userIds = data.userIds || [];
+                const select = document.getElementById('testNotifUserSelect');
+                const listEl = document.getElementById('subscribedUsersList');
+                if (select) {
+                    select.innerHTML = '<option value="">— изберете абониран потребител —</option>';
+                    userIds.forEach(id => {
+                        const opt = document.createElement('option');
+                        opt.value = id;
+                        opt.textContent = id;
+                        select.appendChild(opt);
+                    });
+                }
+                if (listEl) {
+                    listEl.textContent = userIds.length
+                        ? `Абонирани потребители (${userIds.length}): ${userIds.join(', ')}`
+                        : 'Няма абонирани потребители. Кликнете „Абонирай Себе Си" по-горе.';
+                }
+            } catch (e) {
+                console.warn('[Admin] loadSubscribedUsers error:', e);
             }
         }
 
@@ -8667,6 +8726,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         loadNotificationTemplates();
         loadEmailTemplate();
         checkVapidKeyStatus();
+        loadSubscribedUsers();
 
         // --- PWA Install Banner Functionality ---
         let deferredPrompt;

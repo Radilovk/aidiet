@@ -11515,14 +11515,13 @@ async function handleGetSubscriptions(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    // In Cloudflare KV, we can't easily list all keys with a prefix
-    // So we'll return a simple response for now
-    // In production, you might want to maintain a separate list of subscribed users
-    
+    const listData = await env.page_content.get('push_subscriptions_list');
+    const userIds = listData ? JSON.parse(listData) : [];
+
     return jsonResponse({ 
       success: true,
-      message: 'За получаване на пълен списък с абонирани потребители, използвайте Cloudflare KV dashboard',
-      note: 'Subscriptions are stored with prefix: push_subscription_'
+      userIds,
+      count: userIds.length
     });
   } catch (error) {
     console.error('Error getting subscriptions:', error);
