@@ -3878,7 +3878,7 @@
         function scheduleNotifications() {
             if (!window.GameNotifier) return;
             window.GameNotifier.init().catch(e =>
-                console.warn('[Notifications] GameNotifier.init error:', e)
+                console.warn('[Notifications] GameNotifier.init error: notifications will not be scheduled:', e)
             );
         }
 
@@ -7502,7 +7502,7 @@
 
         // --- Notification bootstrap (web SW + APK Capacitor) ---
         window.addEventListener('load', () => {
-            const isNativeApp = !!(window.GameNotifier && window.GameNotifier.isNativePlatform && window.GameNotifier.isNativePlatform());
+            const isNativeApp = isNativeNotificationApp();
 
             if (isNativeApp) {
                 checkNotificationPermission(null);
@@ -7529,6 +7529,10 @@
         // Holds the SW registration so showNotificationPrompt() can use it.
         let swRegistration = null;
 
+        function isNativeNotificationApp() {
+            return !!(window.GameNotifier && window.GameNotifier.isNativePlatform && window.GameNotifier.isNativePlatform());
+        }
+
         async function getNotificationPermissionState() {
             if (window.GameNotifier && typeof window.GameNotifier.getPermissionState === 'function') {
                 return await window.GameNotifier.getPermissionState();
@@ -7548,8 +7552,7 @@
         }
 
         function canRegisterServerPush() {
-            const isNativeApp = !!(window.GameNotifier && window.GameNotifier.isNativePlatform && window.GameNotifier.isNativePlatform());
-            return !isNativeApp && !!swRegistration && 'PushManager' in window;
+            return !isNativeNotificationApp() && !!swRegistration && 'PushManager' in window;
         }
 
         async function checkNotificationPermission(registration) {

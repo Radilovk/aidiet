@@ -17,12 +17,13 @@
 
 const GameNotifier = {
 
-    DAYS_AHEAD:     30,
+    DAYS_AHEAD:     30, // Rolling 30-day window is more reliable on Android than only queuing 7 days.
     LS_CONFIG_KEY:  'gameNotifierConfig',
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
     _actionListenerAttached: false,
+    _nextImmediateId: 900000000,
 
     /* ------------------------------------------------------------------ */
     /*  Public API                                                          */
@@ -71,6 +72,8 @@ const GameNotifier = {
     },
 
     async scheduleNotifications() {
+        // Re-detect here because diagnostics/test pages may call scheduleNotifications() directly
+        // without a preceding init() call.
         this._capacitor = this._detectCapacitor();
         const cfg = this._getConfig();
         console.log('[GameNotifier] Scheduling with config:', cfg);
@@ -405,7 +408,7 @@ const GameNotifier = {
 
         if (this._capacitor) {
             const { LocalNotifications } = this._capacitor;
-            const immediateId = Number(String(Date.now()).slice(-9));
+            const immediateId = this._getNextImmediateId();
             await LocalNotifications.schedule({
                 notifications: [{
                     id: immediateId,
@@ -468,6 +471,14 @@ const GameNotifier = {
             };
         }
         return null;
+    },
+
+    _getNextImmediateId() {
+        this._nextImmediateId += 1;
+        if (this._nextImmediateId >= 999999999) {
+            this._nextImmediateId = 900000000;
+        }
+        return this._nextImmediateId;
     },
 
     _tsForDayOffset(dayOffset, hours, minutes) {

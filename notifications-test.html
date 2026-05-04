@@ -134,7 +134,6 @@
         <div class="row"><span class="label">PWA / Standalone режим</span><span class="val" id="diPWA">…</span></div>
         <div class="row"><span class="label">Notification API</span><span class="val" id="diNotifAPI">…</span></div>
         <div class="row"><span class="label">Push API (PushManager)</span><span class="val" id="diPushAPI">…</span></div>
-        <div class="row"><span class="label">Notification Triggers</span><span class="val" id="diTriggers">…</span></div>
         <div class="row"><span class="label">Service Worker API</span><span class="val" id="diSWAPI">…</span></div>
         <div class="row"><span class="label">Capacitor (APK)</span><span class="val" id="diCapacitor">…</span></div>
         <div class="row"><span class="label">Permission статус</span><span class="val" id="diPerm">…</span></div>
@@ -331,14 +330,13 @@ async function updateDiagnostics() {
     document.getElementById('diPWA').innerHTML     = pwa ? ok('✅ Да (Standalone)') : warn('⚠️ Не (обикновен браузър)');
     document.getElementById('diNotifAPI').innerHTML = hasNA ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
     document.getElementById('diPushAPI').innerHTML  = hasPush ? ok('✅ Поддържа се') : warn('⚠️ Не се поддържа');
-    document.getElementById('diTriggers').innerHTML = '<span class="muted">Не се използва в текущата архитектура</span>';
     document.getElementById('diSWAPI').innerHTML    = hasSW ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
     document.getElementById('diCapacitor').innerHTML = hasCap ? ok('✅ Да (APK)') : '<span class="muted">Не (уеб контекст)</span>';
 
     if (perm === 'granted') {
         document.getElementById('diPerm').innerHTML = ok('✅ Разрешено');
     } else if (perm === 'denied') {
-        document.getElementById('diPerm').innerHTML = bad('❌ Отказано – трябва ръчно reset от системата/браузъра');
+        document.getElementById('diPerm').innerHTML = bad('❌ Отказано – трябва ръчно нулиране от системата/браузъра');
     } else {
         document.getElementById('diPerm').innerHTML = perm === 'unsupported'
             ? bad('N/A')
