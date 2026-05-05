@@ -212,10 +212,13 @@ const GameNotifier = {
             morningBody:  'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
             eveningTitle: 'Добър вечер! 🌙',
             eveningBody:  'Как мина денят? Отговорете на вечерните въпроси.',
+            extraNotifications: [],
         };
         try {
             const stored = localStorage.getItem(this.LS_CONFIG_KEY);
-            return stored ? Object.assign({}, defaults, JSON.parse(stored)) : defaults;
+            const merged = stored ? Object.assign({}, defaults, JSON.parse(stored)) : defaults;
+            if (!Array.isArray(merged.extraNotifications)) merged.extraNotifications = [];
+            return merged;
         } catch (e) {
             return defaults;
         }
@@ -298,6 +301,28 @@ const GameNotifier = {
             }
         }
 
+        // Extra custom notifications (admin-defined arbitrary slots)
+        const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
+        extras.forEach((extra, idx) => {
+            if (!extra || !extra.time) return;
+            const [xH, xM] = String(extra.time).split(':').map(Number);
+            if (isNaN(xH) || isNaN(xM)) return;
+            for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
+                const xTs = this._tsForDayOffset(day, xH, xM);
+                if (xTs > Date.now()) {
+                    notifications.push({
+                        id: 3000 + idx * 100 + day,
+                        channelId: this.CHANNEL_ID,
+                        title: extra.title || 'NutriPlan',
+                        body:  extra.body  || '',
+                        schedule: { at: new Date(xTs) },
+                        extra: { url: extra.url || '/plan.html', type: 'extra_' + idx },
+                        iconColor: this.BRAND_TEAL
+                    });
+                }
+            }
+        });
+
         try {
             await LocalNotifications.schedule({ notifications });
             console.log('[GameNotifier] Capacitor: scheduled', notifications.length, 'notifications');
@@ -359,11 +384,81 @@ const GameNotifier = {
             }
         }
 
+        // Extra custom notifications (admin-defined arbitrary slots)
+        const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
+        extras.forEach((extra, idx) => {
+            if (!extra || !extra.time) return;
+            const [xH, xM] = String(extra.time).split(':').map(Number);
+            if (isNaN(xH) || isNaN(xM)) return;
+            for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
+                const xTs = this._tsForDayOffset(day, xH, xM);
+                if (xTs > now) {
+                    schedule.push({
+                        ts: xTs,
+                        title: extra.title || 'NutriPlan',
+                        body:  extra.body  || '',
+                        tag:   `gn-extra-${idx}-${xTs}`,
+                        type:  'extra_' + idx,
+                        url:   extra.url || '/plan.html',
+                        vibrate: [200, 100, 200],
+                        requireInteraction: false
+                    });
+                }
+            }
+        });
+
         navigator.serviceWorker.controller.postMessage({
             type: 'SCHEDULE_GAME_NOTIFICATIONS',
             schedule
         });
         console.log('[GameNotifier] Sent', schedule.length, 'items to SW for scheduling');
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Immediate notification helper (for test pages)                      */
+    /* ------------------------------------------------------------------ */
+
+    async _showImmediateNotification(type) {
+        const cfg = this._getConfig();
+        let title, body, url;
+        if (type === 'morning_check') {
+            title = cfg.morningTitle;
+            body  = cfg.morningBody;
+            url   = '/plan.html?action=morning_check';
+        } else if (type === 'evening_check') {
+            title = cfg.eveningTitle;
+            body  = cfg.eveningBody;
+            url   = '/plan.html?action=evening_check';
+        } else {
+            title = 'NutriPlan тест';
+            body  = 'Тестово известие от GameNotifier.';
+            url   = '/plan.html';
+        }
+
+        if (this._capacitor) {
+            const { LocalNotifications } = this._capacitor;
+            await LocalNotifications.schedule({ notifications: [{
+                id: 9999,
+                channelId: this.CHANNEL_ID,
+                title,
+                body,
+                schedule: { at: new Date(Date.now() + 500) },
+                extra: { url, type },
+                iconColor: this.BRAND_TEAL
+            }]});
+            return;
+        }
+
+        // Web / PWA path
+        if (this._swReg) {
+            await this._swReg.showNotification(title, {
+                body,
+                icon: '/icon-192x192.png',
+                badge: '/icon-192x192.png',
+                tag: 'gn-immediate-' + Date.now(),
+                data: { url }
+            });
+        }
     },
 
     /* ------------------------------------------------------------------ */
