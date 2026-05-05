@@ -5999,33 +5999,44 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         function addExtraNotification(data) {
             const list = document.getElementById('gnExtraList');
             if (!list) return;
-            const idx = list.children.length;
             const d = data || {};
+
             const row = document.createElement('div');
             row.className = 'gn-extra-row';
             row.style.cssText = 'display:grid; grid-template-columns:110px 1fr 1fr auto; gap:8px; align-items:center; background:#f8f9fa; padding:10px; border-radius:6px; border:1px solid #e0e0e0;';
-            row.innerHTML = `
-                <div>
-                    <label style="font-size:0.8rem;color:#666;display:block;margin-bottom:3px;">Час</label>
-                    <input type="time" class="gn-extra-time" value="${d.time || '12:00'}"
-                           style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;">
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#666;display:block;margin-bottom:3px;">Заглавие</label>
-                    <input type="text" class="gn-extra-title" value="${(d.title || '').replace(/"/g,'&quot;')}" placeholder="Заглавие на нотификацията"
-                           style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;">
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#666;display:block;margin-bottom:3px;">Текст</label>
-                    <input type="text" class="gn-extra-body" value="${(d.body || '').replace(/"/g,'&quot;')}" placeholder="Текст на нотификацията"
-                           style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;">
-                </div>
-                <div style="padding-top:18px;">
-                    <button type="button" onclick="this.closest('.gn-extra-row').remove()"
-                            style="background:#dc3545;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;" title="Изтрий">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>`;
+
+            // Helper to create a labeled input field
+            function makeField(labelText, inputClass, inputType, placeholderText, inputValue) {
+                const wrapper = document.createElement('div');
+                const lbl = document.createElement('label');
+                lbl.textContent = labelText;
+                lbl.style.cssText = 'font-size:0.8rem;color:#666;display:block;margin-bottom:3px;';
+                const inp = document.createElement('input');
+                inp.type = inputType;
+                inp.className = inputClass;
+                inp.placeholder = placeholderText;
+                inp.value = inputValue;
+                inp.style.cssText = 'width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;';
+                wrapper.appendChild(lbl);
+                wrapper.appendChild(inp);
+                return wrapper;
+            }
+
+            row.appendChild(makeField('Час',     'gn-extra-time',  'time', '',                      d.time  || '12:00'));
+            row.appendChild(makeField('Заглавие','gn-extra-title', 'text', 'Заглавие на нотификацията', d.title || ''));
+            row.appendChild(makeField('Текст',   'gn-extra-body',  'text', 'Текст на нотификацията', d.body  || ''));
+
+            const delWrapper = document.createElement('div');
+            delWrapper.style.paddingTop = '18px';
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.title = 'Изтрий';
+            delBtn.style.cssText = 'background:#dc3545;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.addEventListener('click', () => row.remove());
+            delWrapper.appendChild(delBtn);
+            row.appendChild(delWrapper);
+
             list.appendChild(row);
         }
 
@@ -6039,7 +6050,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const title = (row.querySelector('.gn-extra-title') || {}).value || '';
                 const body  = (row.querySelector('.gn-extra-body')  || {}).value || '';
                 if (time) {
-                    extraNotifications.push({ id: 'custom_' + idx, time, title, body });
+                    extraNotifications.push({ time, title, body });
                 }
             });
 
