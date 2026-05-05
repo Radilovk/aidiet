@@ -97,7 +97,7 @@
         body {
             background: var(--bg-color);
             color: var(--text-dark);
-            padding-top: calc(16px + var(--safe-area-inset-top));
+            padding-top: 0; /* day-banner at top handles the safe-area inset */
             padding-bottom: calc(140px + var(--safe-area-inset-bottom)); /* Space for bottom nav + chat FAB */
             -webkit-overflow-scrolling: touch;
             transition: background-color 0.3s ease, color 0.3s ease;
@@ -259,7 +259,12 @@
             justify-content: space-between;
             background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
             padding: 0;
-            position: relative;
+            /* Extend banner colour behind the status bar; items remain centered
+               below the safe area because flex centers within the content box */
+            padding-top: var(--safe-area-inset-top);
+            position: sticky;
+            top: 0;
+            z-index: 100;
             overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
@@ -3562,7 +3567,7 @@
                 <div class="food-capture-area" id="foodCaptureArea" onclick="triggerFoodCapture()">
                     <div id="foodCaptureContent">
                         <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
-                        <div class="food-capture-text">
+                        <div class="food-capture-text" id="foodCaptureHint">
                             Натиснете за да направите снимка<br>или изберете от галерията
                         </div>
                     </div>
@@ -6316,9 +6321,10 @@
         let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
 
         function resetFoodCaptureUI(mode) {
+            const isNative = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
             const hint = mode === 'menu'
-                ? 'Натиснете за да снимате менюто<br>или изберете от галерията'
-                : 'Натиснете за да направите снимка<br>или изберете от галерията';
+                ? (isNative ? 'Натиснете за да снимате менюто' : 'Натиснете за да снимате менюто<br>или изберете от галерията')
+                : (isNative ? 'Натиснете за да направите снимка' : 'Натиснете за да направите снимка<br>или изберете от галерията');
             const captureArea = document.getElementById('foodCaptureArea');
             if (captureArea) captureArea.classList.remove('has-image');
             const captureContent = document.getElementById('foodCaptureContent');
@@ -6414,6 +6420,52 @@
 
         function triggerFoodCapture() {
             if (foodAnalysisInProgress) return;
+            // On native Android APK use the Capacitor Camera plugin to open the
+            // camera directly instead of the file-picker/gallery.
+            const cap = window.Capacitor;
+            if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) {
+                const Camera = (cap.Plugins && cap.Plugins.Camera) ||
+                               (typeof cap.registerPlugin === 'function' ? cap.registerPlugin('Camera') : null);
+                if (Camera && typeof Camera.getPhoto === 'function') {
+                    Camera.getPhoto({
+                        quality: 85,
+                        allowEditing: false,
+                        resultType: 'base64',
+                        source: 'CAMERA'
+                    }).then(function(photo) {
+                        if (!photo || !photo.base64String) return;
+                        const dataUrl = 'data:image/jpeg;base64,' + photo.base64String;
+                        foodAnalysisImageMime = 'image/jpeg';
+                        const analyzeBtn = document.getElementById('foodAnalyzeBtn');
+                        if (analyzeBtn) {
+                            analyzeBtn.disabled = true;
+                            analyzeBtn.innerHTML = '<div class="food-spinner"></div> Обработка на изображението...';
+                        }
+                        compressImageFromUrl(dataUrl, function(compressedBase64) {
+                            foodAnalysisImageData = compressedBase64;
+                            const captureArea = document.getElementById('foodCaptureArea');
+                            const captureContent = document.getElementById('foodCaptureContent');
+                            if (captureArea && captureContent) {
+                                captureArea.classList.add('has-image');
+                                captureContent.innerHTML = `
+                                    <img src="${compressedBase64}" class="food-preview-img" alt="${foodAnalysisMode === 'menu' ? 'Снимка на меню' : 'Снимка на храна'}">
+                                    <div style="margin-top:8px;font-size:0.8rem;color:var(--text-light);">
+                                        <i class="fas fa-redo"></i> Натиснете за нова снимка
+                                    </div>
+                                `;
+                            }
+                            if (analyzeBtn) {
+                                analyzeBtn.disabled = false;
+                                analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за анализ';
+                            }
+                        });
+                    }).catch(function() {
+                        // User cancelled or permission denied – do nothing
+                    });
+                    return;
+                }
+            }
+            // Web / PWA fallback – use the hidden file input
             const input = document.getElementById('foodImageInput');
             if (input) {
                 input.value = '';
@@ -6426,6 +6478,13 @@
             const fileInput = document.getElementById('foodImageInput');
             if (fileInput) {
                 fileInput.addEventListener('change', handleFoodImageSelected);
+            }
+
+            // On native APK hide the "or choose from gallery" hint since camera is used directly
+            const isNative = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+            const hintEl = document.getElementById('foodCaptureHint');
+            if (isNative && hintEl) {
+                hintEl.innerHTML = 'Натиснете за да направите снимка';
             }
 
             // Close modal on overlay click
@@ -6552,6 +6611,34 @@
                 alert('Неуспешно четене на файла. Моля, опитайте отново.');
             };
             reader.readAsDataURL(file);
+        }
+
+        // Compress from a data-URL string (used when image comes from native camera)
+        function compressImageFromUrl(dataUrl, callback) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_DIM = 1600;
+                let width = img.width;
+                let height = img.height;
+                if (width > MAX_DIM || height > MAX_DIM) {
+                    if (width > height) {
+                        height = Math.round(height * MAX_DIM / width);
+                        width = MAX_DIM;
+                    } else {
+                        width = Math.round(width * MAX_DIM / height);
+                        height = MAX_DIM;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.onerror = function() {
+                alert('Неуспешно зареждане на изображението. Моля, опитайте с друго.');
+            };
+            img.src = dataUrl;
         }
 
         async function analyzeFoodImage() {

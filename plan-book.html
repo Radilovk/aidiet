@@ -1800,7 +1800,7 @@
     <!-- Screen-only toolbar -->
     <div class="screen-controls" id="screenControls">
         <a href="plan.html" class="back-link"><i class="fas fa-arrow-left"></i> Към Плана</a>
-        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Отпечатай</button>
+        <button class="btn-print" onclick="handlePrint()"><i class="fas fa-print"></i> Отпечатай</button>
     </div>
 
     <!-- Loading screen -->
@@ -2806,6 +2806,27 @@
         }
 
     })();
+
+    // Print handler: use window.print() on desktop/PWA; on native Android APK fall back
+    // to navigator.share() because WebView does not support the print dialog.
+    function handlePrint() {
+        var cap = window.Capacitor;
+        var isNative = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
+        if (isNative) {
+            // Try navigator.share first (available on modern Android WebView)
+            if (navigator.share) {
+                navigator.share({
+                    title: 'NutriPlan – Моят хранителен план',
+                    text: 'Вижте моя персонализиран хранителен план от NutriPlan.',
+                    url: window.location.href
+                }).catch(function() {});
+            } else {
+                alert('За да отпечатате плана, отворете го в браузър и използвайте функцията за печат.');
+            }
+        } else {
+            window.print();
+        }
+    }
     </script>
 
 </body>

@@ -1495,6 +1495,11 @@
         function getUIProfile() {
             var isParent = selectedRole === 'parent';
             var age = selectedAge;
+            // On native APK the camera opens directly – hide the "or choose from gallery" text
+            var isNative = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+            function ct(text) {
+                return isNative ? text.replace(/ или изберете от галерията/g, '').replace(/ або изберете от галерията/g, '').replace(/ или избери от галерията/g, '') : text;
+            }
 
             if (isParent) {
                 // Parent mode — informative, professional tone
@@ -1504,7 +1509,7 @@
                             heroEmoji: '👶',
                             heroTitle: 'Безопасна ли е храната за бебето?',
                             heroDesc: 'Снимайте храната и AI ще анализира дали е подходяща и безопасна за Вашето бебе (0–1 г.)',
-                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            captureText: ct('<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията'),
                             analyzeText: 'Анализирай за бебе (0–1 г.)',
                             ageSectionText: 'Възраст на бебето/детето',
                             settingsEmoji: '⚙️'
@@ -1514,7 +1519,7 @@
                             heroEmoji: '🥄',
                             heroTitle: 'Подходяща ли е храната за малчугана?',
                             heroDesc: 'Снимайте храната и AI ще анализира дали е безопасна за Вашето дете (1–3 г.)',
-                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            captureText: ct('<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията'),
                             analyzeText: 'Провери за дете (1–3 г.)',
                             ageSectionText: 'Възраст на детето',
                             settingsEmoji: '⚙️'
@@ -1524,7 +1529,7 @@
                             heroEmoji: '🍽️',
                             heroTitle: 'Подходяща ли е тази храна за детето?',
                             heroDesc: 'Снимайте храната и нашият AI ще анализира дали е безопасна и здравословна за Вашето дете',
-                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            captureText: ct('<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията'),
                             analyzeText: 'Провери дали е OK за дете',
                             ageSectionText: 'Възраст на детето',
                             settingsEmoji: '⚙️'
@@ -1534,7 +1539,7 @@
                             heroEmoji: '📚',
                             heroTitle: 'Подходяща ли е храната за ученика?',
                             heroDesc: 'Проверете дали храната е здравословна и балансирана за Вашето дете в училищна възраст',
-                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            captureText: ct('<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията'),
                             analyzeText: 'Анализирай за ученик (7–12 г.)',
                             ageSectionText: 'Възраст на детето',
                             settingsEmoji: '⚙️'
@@ -1544,7 +1549,7 @@
                             heroEmoji: '🏃',
                             heroTitle: 'Здравословна ли е храната за тийнейджъра?',
                             heroDesc: 'Анализирайте храната с фокус върху хранителните нужди на подрастващите (12–16 г.)',
-                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            captureText: ct('<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията'),
                             analyzeText: 'Анализирай за тийнейджър',
                             ageSectionText: 'Възраст на детето',
                             settingsEmoji: '⚙️'
@@ -1554,7 +1559,7 @@
                             heroEmoji: '🎓',
                             heroTitle: 'Подходяща ли е храната за младежа?',
                             heroDesc: 'Проверете хранителната стойност и безопасността на храната за Вашия тийнейджър (16–18 г.)',
-                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            captureText: ct('<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията'),
                             analyzeText: 'Анализирай за младеж (16–18 г.)',
                             ageSectionText: 'Възраст на детето',
                             settingsEmoji: '⚙️'
@@ -1564,7 +1569,7 @@
                             heroEmoji: '🍽️',
                             heroTitle: 'Подходяща ли е тази храна за детето?',
                             heroDesc: 'Снимайте храната и нашият AI ще анализира дали е безопасна и здравословна за Вашето дете',
-                            captureText: '<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията',
+                            captureText: ct('<strong>Снимайте храната</strong> Натиснете тук за снимка или изберете от галерията'),
                             analyzeText: 'Провери дали е OK за дете',
                             ageSectionText: 'Възраст на детето',
                             settingsEmoji: '⚙️'
@@ -1580,7 +1585,7 @@
                             heroEmoji: '🧸',
                             heroTitle: 'Хайде да проверим храничката! 🎉',
                             heroDesc: 'Снимай какво ще ядеш и ще разбереш дали е вкусно И полезно!',
-                            captureText: '<strong>📸 Снимай храничката!</strong> Натисни тук!',
+                            captureText: ct('<strong>📸 Снимай храничката!</strong> Натисни тук!'),
                             analyzeText: '🔍 Провери!',
                             ageSectionText: 'На колко годинки си?',
                             settingsEmoji: '🎮'
@@ -1590,7 +1595,7 @@
                             heroEmoji: '🦸',
                             heroTitle: 'Супер! Хайде да проверим храната! 🎉',
                             heroDesc: 'Снимай какво ще ядеш и ще разбереш дали е здравословно за теб!',
-                            captureText: '<strong>📸 Снимай храната!</strong> Натисни тук за снимка!',
+                            captureText: ct('<strong>📸 Снимай храната!</strong> Натисни тук за снимка!'),
                             analyzeText: '🔍 Добра ли е за мен?',
                             ageSectionText: 'На колко години си?',
                             settingsEmoji: '🎮'
@@ -1600,7 +1605,7 @@
                             heroEmoji: '🕵️',
                             heroTitle: 'Хей, детектив на храната! 🔍',
                             heroDesc: 'Снимай храната и разбери дали е здравословна. Бъди умен избор!',
-                            captureText: '<strong>📸 Снимай храната!</strong> Натисни тук за снимка или избери от галерията',
+                            captureText: ct('<strong>📸 Снимай храната!</strong> Натисни тук за снимка или избери от галерията'),
                             analyzeText: '🔍 Анализирай!',
                             ageSectionText: 'На колко години си?',
                             settingsEmoji: '🎮'
@@ -1610,7 +1615,7 @@
                             heroEmoji: '💪',
                             heroTitle: 'Провери храната си! 🍕',
                             heroDesc: 'Снимай какво ядеш и разбери дали ти дава нужната енергия и хранителни вещества',
-                            captureText: '<strong>Снимай храната</strong> Натисни тук за снимка или избери от галерията',
+                            captureText: ct('<strong>Снимай храната</strong> Натисни тук за снимка или избери от галерията'),
                             analyzeText: '🔍 Провери',
                             ageSectionText: 'Твоята възраст',
                             settingsEmoji: '⚙️'
@@ -1620,7 +1625,7 @@
                             heroEmoji: '🎯',
                             heroTitle: 'Анализирай храната си',
                             heroDesc: 'Снимай и разбери дали храната ти е балансирана и здравословна',
-                            captureText: '<strong>Снимай храната</strong> Натисни тук за снимка или избери от галерията',
+                            captureText: ct('<strong>Снимай храната</strong> Натисни тук за снимка или избери от галерията'),
                             analyzeText: '🔍 Анализирай',
                             ageSectionText: 'Твоята възраст',
                             settingsEmoji: '⚙️'
@@ -1630,7 +1635,7 @@
                             heroEmoji: '🦸',
                             heroTitle: 'Хайде да проверим храната! 🎉',
                             heroDesc: 'Снимай какво ще ядеш и ще разбереш дали е здравословно!',
-                            captureText: '<strong>📸 Снимай храната!</strong> Натисни тук!',
+                            captureText: ct('<strong>📸 Снимай храната!</strong> Натисни тук!'),
                             analyzeText: '🔍 Провери!',
                             ageSectionText: 'На колко години си?',
                             settingsEmoji: '🎮'
@@ -1861,6 +1866,50 @@
         // ═══════════════════════════════════════
         function triggerCapture() {
             if (analysisInProgress) return;
+            // On native Android APK use the Capacitor Camera plugin to open the
+            // camera directly instead of the file-picker/gallery.
+            var cap = window.Capacitor;
+            if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) {
+                var Camera = (cap.Plugins && cap.Plugins.Camera) ||
+                             (typeof cap.registerPlugin === 'function' ? cap.registerPlugin('Camera') : null);
+                if (Camera && typeof Camera.getPhoto === 'function') {
+                    Camera.getPhoto({
+                        quality: 85,
+                        allowEditing: false,
+                        resultType: 'base64',
+                        source: 'CAMERA'
+                    }).then(function(photo) {
+                        if (!photo || !photo.base64String) return;
+                        var dataUrl = 'data:image/jpeg;base64,' + photo.base64String;
+                        kidsImageMime = 'image/jpeg';
+                        var btn = document.getElementById('analyzeBtn');
+                        if (btn) {
+                            btn.disabled = true;
+                            btn.innerHTML = '<div class="kids-spinner"></div> Обработка...';
+                        }
+                        compressImageFromUrl(dataUrl, function(compressedBase64) {
+                            kidsImageData = compressedBase64;
+                            var captureArea = document.getElementById('captureArea');
+                            var captureContent = document.getElementById('captureContent');
+                            if (captureArea && captureContent) {
+                                captureArea.classList.add('has-image');
+                                captureContent.innerHTML =
+                                    '<img src="' + compressedBase64 + '" class="preview-img" alt="Снимка на храна">' +
+                                    '<div class="retake-hint"><i class="fas fa-redo"></i> Натисни за нова снимка</div>';
+                            }
+                            var profile = getUIProfile();
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-magic"></i> ' + profile.analyzeText;
+                            }
+                        });
+                    }).catch(function() {
+                        // User cancelled or permission denied – do nothing
+                    });
+                    return;
+                }
+            }
+            // Web / PWA fallback – use the hidden file input
             var input = document.getElementById('foodImageInput');
             if (input) {
                 input.value = '';
@@ -1973,6 +2022,33 @@
                 alert('Неуспешно четене на файла. Опитайте отново.');
             };
             reader.readAsDataURL(file);
+        }
+
+        // Compress from a data-URL string (used when image comes from native camera)
+        function compressImageFromUrl(dataUrl, callback) {
+            var img = new Image();
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                var width = img.width;
+                var height = img.height;
+                if (width > IMAGE_MAX_DIM || height > IMAGE_MAX_DIM) {
+                    if (width > height) {
+                        height = Math.round(height * IMAGE_MAX_DIM / width);
+                        width = IMAGE_MAX_DIM;
+                    } else {
+                        width = Math.round(width * IMAGE_MAX_DIM / height);
+                        height = IMAGE_MAX_DIM;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL(IMAGE_OUTPUT_FORMAT, IMAGE_QUALITY));
+            };
+            img.onerror = function() {
+                alert('Неуспешно зареждане на изображението. Опитайте с друго.');
+            };
+            img.src = dataUrl;
         }
 
         // ═══════════════════════════════════════
