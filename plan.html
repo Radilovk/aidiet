@@ -3878,7 +3878,14 @@
          */
         function scheduleNotifications() {
             if (!window.GameNotifier) return;
-            if (Notification.permission !== 'granted') return;
+            const isCapacitorApp = !!(
+                window.Capacitor &&
+                window.Capacitor.Plugins &&
+                window.Capacitor.Plugins.LocalNotifications
+            );
+            if (!isCapacitorApp) {
+                if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            }
             window.GameNotifier.init().catch(e =>
                 console.warn('[Notifications] GameNotifier.init error:', e)
             );
@@ -7503,7 +7510,13 @@
         }
 
         // --- PWA Service Worker Registration ---
-        if ('serviceWorker' in navigator) {
+        const isCapacitorNativeApp = !!(
+            window.Capacitor &&
+            typeof window.Capacitor.isNativePlatform === 'function' &&
+            window.Capacitor.isNativePlatform()
+        );
+
+        if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {

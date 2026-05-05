@@ -1,0 +1,29 @@
+def aidietVersionCode = project.findProperty('aidietVersionCode')
+def aidietVersionName = project.findProperty('aidietVersionName')
+
+android {
+    if (aidietVersionCode != null) {
+        defaultConfig.versionCode aidietVersionCode.toInteger()
+    }
+
+    if (aidietVersionName != null) {
+        defaultConfig.versionName aidietVersionName.toString()
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('ANDROID_KEYSTORE_PATH'))
+            storePassword System.getenv('STORE_PASS')
+            keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'nutriplan'
+            keyPassword System.getenv('KEY_PASS')
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+}

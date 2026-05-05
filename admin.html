@@ -2073,8 +2073,7 @@
                         <li><strong>Слоеве за планиране</strong> (в ред на предпочитание):
                             <ol style="margin: 4px 0 0 16px;">
                                 <li>🟢 <strong>Capacitor LocalNotifications</strong> (APK) — нативни Android нотификации, работят и при затворено приложение</li>
-                                <li>🟡 <strong>Notification Triggers API</strong> (Chrome Android / TWA) — OS-ниво, за 7 дни напред</li>
-                                <li>🟠 <strong>SW postMessage fallback</strong> — работи само докато браузърът е отворен</li>
+                                <li>🟡 <strong>SW postMessage fallback</strong> — уеб fallback, работи само докато браузърът е отворен</li>
                             </ol>
                         </li>
                         <li><strong>Конфигурацията</strong> се съхранява в Cloudflare KV под ключ <code>notification-config</code> и се изтегля при всяко отваряне на plan.html (max 1×/24 ч).</li>
@@ -2086,11 +2085,11 @@
                     <strong>📱 Capacitor APK — Как да се изгради:</strong>
                     <ol style="margin: 10px 0 0 20px; padding: 0; line-height: 1.9;">
                         <li>Инсталирай зависимостите: <code>npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/local-notifications @capacitor/motion</code></li>
-                        <li>Инициализирай: <code>npx cap init</code> (конфиг файлът <code>capacitor.config.json</code> вече е готов)</li>
+                        <li>Конфиг файлът <code>capacitor.config.json</code> вече е готов и CI билдът генерира Android shell автоматично</li>
                         <li>Добави Android платформа: <code>npx cap add android</code></li>
                         <li>Синхронизирай: <code>npx cap sync android</code></li>
                         <li>Отвори в Android Studio: <code>npx cap open android</code> и build APK</li>
-                        <li>В APK-то GameNotifier автоматично ще ползва нативните Capacitor LocalNotifications вместо Web Push</li>
+                        <li>В APK-то GameNotifier автоматично ползва нативните Capacitor LocalNotifications, така че известията са с името на приложението, а не на Chrome</li>
                     </ol>
                     <p style="margin-top: 8px; font-size: 0.9rem; color: #555;">
                         ⚡ Wake detection в APK: Capacitor Motion plugin (по-надеждно от Web DeviceMotion) + fallback към Web API

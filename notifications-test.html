@@ -134,7 +134,7 @@
         <div class="row"><span class="label">PWA / Standalone режим</span><span class="val" id="diPWA">…</span></div>
         <div class="row"><span class="label">Notification API</span><span class="val" id="diNotifAPI">…</span></div>
         <div class="row"><span class="label">Push API (PushManager)</span><span class="val" id="diPushAPI">…</span></div>
-        <div class="row"><span class="label">Notification Triggers</span><span class="val" id="diTriggers">…</span></div>
+        <div class="row"><span class="label">Уеб fallback</span><span class="val" id="diWebFallback">…</span></div>
         <div class="row"><span class="label">Service Worker API</span><span class="val" id="diSWAPI">…</span></div>
         <div class="row"><span class="label">Capacitor (APK)</span><span class="val" id="diCapacitor">…</span></div>
         <div class="row"><span class="label">Permission статус</span><span class="val" id="diPerm">…</span></div>
@@ -300,9 +300,6 @@ function detectMethod() {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
         return { label: 'Capacitor LocalNotifications (APK)', badge: 'badge-blue', best: true };
     }
-    if (hasTriggers()) {
-        return { label: 'Notification Triggers API (Chrome/TWA)', badge: 'badge-blue', best: true };
-    }
     if ('serviceWorker' in navigator) {
         return { label: 'SW postMessage fallback ⚠️', badge: 'badge-orange', best: false };
     }
@@ -331,7 +328,7 @@ function updateDiagnostics() {
     document.getElementById('diPWA').innerHTML     = pwa ? ok('✅ Да (Standalone)') : warn('⚠️ Не (обикновен браузър)');
     document.getElementById('diNotifAPI').innerHTML = hasNA ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
     document.getElementById('diPushAPI').innerHTML  = hasPush ? ok('✅ Поддържа се') : warn('⚠️ Не се поддържа');
-    document.getElementById('diTriggers').innerHTML = hasTriggers() ? ok('✅ Да (Chrome ≥ 80 Android)') : warn('⚠️ Не (ще се използва SW fallback)');
+    document.getElementById('diWebFallback').innerHTML = hasSW ? warn('⚠️ Service Worker fallback') : bad('❌ Не е наличен');
     document.getElementById('diSWAPI').innerHTML    = hasSW ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
     document.getElementById('diCapacitor').innerHTML = hasCap ? ok('✅ Да (APK)') : '<span class="muted">Не (уеб контекст)</span>';
 
