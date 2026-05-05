@@ -109,8 +109,8 @@ jobs:
         run: |
           V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
           V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
-          ICON_SRC="icon-512.png"
-          if [ ! -f "$ICON_SRC" ]; then ICON_SRC="icon-512x512.png"; fi
+          ICON_SRC="icon-512x512.png"
+          if [ ! -f "$ICON_SRC" ]; then ICON_SRC="icon-512.png"; fi
 
           npx cap add android
 
@@ -118,17 +118,13 @@ jobs:
           if ! command -v convert &>/dev/null; then
             echo "ImageMagick 'convert' not found – installing…" && sudo apt-get install -y imagemagick
           fi
-          # Legacy launcher icons: icon composed on dark brand background (matches PWA icon appearance)
+          # Legacy launcher icons: resize PWA icon directly (maskable icon already has background)
           for entry in "48 mdpi" "72 hdpi" "96 xhdpi" "144 xxhdpi" "192 xxxhdpi"; do
             SIZE=${entry%% *}
             DPI=${entry##* }
             ICON_DIR="android/app/src/main/res/mipmap-${DPI}"
-            convert -size "${SIZE}x${SIZE}" xc:"#042F2E" \
-              \( "$ICON_SRC" -resize "${SIZE}x${SIZE}" \) \
-              -gravity center -composite "${ICON_DIR}/ic_launcher.png"
-            convert -size "${SIZE}x${SIZE}" xc:"#042F2E" \
-              \( "$ICON_SRC" -resize "${SIZE}x${SIZE}" \) \
-              -gravity center -composite "${ICON_DIR}/ic_launcher_round.png"
+            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher.png"
+            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_round.png"
           done
           # Adaptive icon foreground (108dp base) — icon centered within safe zone (66% of canvas)
           for entry in "108 mdpi" "162 hdpi" "216 xhdpi" "324 xxhdpi" "432 xxxhdpi"; do
@@ -258,8 +254,15 @@ jobs:
                       content = content[:idx] + new_launch_style + '\n</resources>'
                   else:
                       content += '\n' + new_launch_style + '\n'
+              # Add navigation bar color to AppTheme.NoActionBar (light mode = white with dark icons)
+              if 'AppTheme.NoActionBar' in content and 'navigationBarColor' not in content:
+                  content = re.sub(
+                      r'(<style\s+name="AppTheme\.NoActionBar"[^>]*>)',
+                      r'\1\n        <item name="android:navigationBarColor">@android:color/white</item>\n        <item name="android:windowLightNavigationBar">true</item>',
+                      content, flags=re.DOTALL
+                  )
               styles_file.write_text(content)
-              print("styles.xml updated with Theme.SplashScreen configuration")
+              print("styles.xml updated with Theme.SplashScreen configuration and navigation bar color")
           else:
               print("WARNING: styles.xml not found — creating minimal version")
               styles_file.parent.mkdir(parents=True, exist_ok=True)
@@ -269,6 +272,8 @@ jobs:
                   '    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">\n'
                   '        <item name="windowActionBar">false</item>\n'
                   '        <item name="windowNoTitle">true</item>\n'
+                  '        <item name="android:navigationBarColor">@android:color/white</item>\n'
+                  '        <item name="android:windowLightNavigationBar">true</item>\n'
                   '    </style>\n'
                   '    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">\n'
                   '        <item name="windowSplashScreenBackground">@color/backgroundColor</item>\n'
@@ -277,6 +282,18 @@ jobs:
                   '    </style>\n'
                   '</resources>\n'
               )
+          # Create night-mode styles: dark navigation bar matching brand dark teal
+          night_dir = Path("android/app/src/main/res/values-night")
+          night_dir.mkdir(parents=True, exist_ok=True)
+          (night_dir / "styles.xml").write_text(
+              '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
+              '    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">\n'
+              '        <item name="android:navigationBarColor">#042F2E</item>\n'
+              '        <item name="android:windowLightNavigationBar">false</item>\n'
+              '    </style>\n'
+              '</resources>\n'
+          )
+          print("values-night/styles.xml created with dark navigation bar")
           PY_STYLES
 
           cd android
