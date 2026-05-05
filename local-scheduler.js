@@ -24,6 +24,8 @@ const GameNotifier = {
     LS_CONFIG_KEY:  'gameNotifierConfig',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins',
+    BRAND_TEAL:     '#009A9E',
+    BRAND_TEAL_DARK: '#0F766E',
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
@@ -191,7 +193,7 @@ const GameNotifier = {
                 sound: 'default',
                 vibration: true,
                 lights: true,
-                lightColor: '#009A9E'
+                lightColor: this.BRAND_TEAL
             });
         } catch (e) {
             console.warn('[GameNotifier] Android channel setup warning:', e);
@@ -279,7 +281,7 @@ const GameNotifier = {
                     body:  cfg.morningBody,
                     schedule: { at: new Date(morningTs) },
                     extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
-                    iconColor: '#009A9E'
+                    iconColor: this.BRAND_TEAL
                 });
             }
             const eveningTs = this._tsForDayOffset(day, eH, eM);
@@ -291,7 +293,7 @@ const GameNotifier = {
                     body:  cfg.eveningBody,
                     schedule: { at: new Date(eveningTs) },
                     extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
-                    iconColor: '#0F766E'
+                    iconColor: this.BRAND_TEAL_DARK
                 });
             }
         }
