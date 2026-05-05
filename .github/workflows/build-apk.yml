@@ -254,13 +254,25 @@ jobs:
                       content = content[:idx] + new_launch_style + '\n</resources>'
                   else:
                       content += '\n' + new_launch_style + '\n'
-              # Add navigation bar color to AppTheme.NoActionBar (light mode = white with dark icons)
-              if 'AppTheme.NoActionBar' in content and 'navigationBarColor' not in content:
-                  content = re.sub(
-                      r'(<style\s+name="AppTheme\.NoActionBar"[^>]*>)',
-                      r'\1\n        <item name="android:navigationBarColor">@android:color/white</item>\n        <item name="android:windowLightNavigationBar">true</item>',
-                      content, flags=re.DOTALL
-                  )
+              # Add or update navigation bar color in AppTheme.NoActionBar (light mode = app background #F0FDFA)
+              if 'AppTheme.NoActionBar' in content:
+                  if 'navigationBarColor' not in content:
+                      content = re.sub(
+                          r'(<style\s+name="AppTheme\.NoActionBar"[^>]*>)',
+                          r'\1\n        <item name="android:navigationBarColor">#F0FDFA</item>\n        <item name="android:windowLightNavigationBar">true</item>',
+                          content, flags=re.DOTALL
+                      )
+                  else:
+                      content = re.sub(
+                          r'<item name="android:navigationBarColor">[^<]+</item>',
+                          '<item name="android:navigationBarColor">#F0FDFA</item>',
+                          content
+                      )
+                      content = re.sub(
+                          r'<item name="android:windowLightNavigationBar">[^<]+</item>',
+                          '<item name="android:windowLightNavigationBar">true</item>',
+                          content
+                      )
               styles_file.write_text(content)
               print("styles.xml updated with Theme.SplashScreen configuration and navigation bar color")
           else:
@@ -272,7 +284,7 @@ jobs:
                   '    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">\n'
                   '        <item name="windowActionBar">false</item>\n'
                   '        <item name="windowNoTitle">true</item>\n'
-                  '        <item name="android:navigationBarColor">@android:color/white</item>\n'
+                  '        <item name="android:navigationBarColor">#F0FDFA</item>\n'
                   '        <item name="android:windowLightNavigationBar">true</item>\n'
                   '    </style>\n'
                   '    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">\n'
@@ -282,13 +294,13 @@ jobs:
                   '    </style>\n'
                   '</resources>\n'
               )
-          # Create night-mode styles: dark navigation bar matching brand dark teal
+          # Create night-mode styles: dark navigation bar matching app dark background
           night_dir = Path("android/app/src/main/res/values-night")
           night_dir.mkdir(parents=True, exist_ok=True)
           (night_dir / "styles.xml").write_text(
               '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
               '    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">\n'
-              '        <item name="android:navigationBarColor">#042F2E</item>\n'
+              '        <item name="android:navigationBarColor">#0A1A1A</item>\n'
               '        <item name="android:windowLightNavigationBar">false</item>\n'
               '    </style>\n'
               '</resources>\n'
