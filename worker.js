@@ -11135,7 +11135,7 @@ async function handleSaveNotificationConfig(request, env) {
  * instead of creating duplicates.
  */
 async function handleGetCalendarIcs(request, env) {
-  const WORKER_BASE = 'https://aidiet.radilov-k.workers.dev';
+  const WORKER_BASE = new URL(request.url).origin;
   const DAYS = 60;
 
   // Read global notification config from KV (same data store as /api/notification-config)
@@ -11163,9 +11163,13 @@ async function handleGetCalendarIcs(request, env) {
     return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T` +
            `${pad(d.getHours())}${pad(d.getMinutes())}00`;
   }
-  // Escape iCal text fields
+  // Escape iCal text fields (RFC 5545 §3.3.11)
   function esc(s) {
-    return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    return String(s)
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\r\n?|\n/g, '\\n');
   }
 
   const dtstamp = fmtDt(new Date());
