@@ -29,6 +29,7 @@ Thumbs.db
 
 # Build artifacts
 *.log
+android/
 capacitor-shell/*
 !capacitor-shell/.gitkeep
 
