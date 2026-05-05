@@ -8,7 +8,8 @@
   },
   "plugins": {
     "LocalNotifications": {
-      "iconColor": "#FF8C00",
+      "smallIcon": "ic_stat_nutriplan",
+      "iconColor": "#009A9E",
       "sound": "default"
     },
     "Motion": {
@@ -18,6 +19,6 @@
   "android": {
     "minWebViewVersion": 60,
     "allowMixedContent": false,
-    "backgroundColor": "#F0FDFA"
+    "backgroundColor": "#042F2E"
   }
 }

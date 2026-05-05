@@ -1,9 +1,10 @@
 /**
  * GameNotifier – система за локални нотификации.
  *
- * Поддържа два слоя за изпращане (в ред на предпочитание):
+ * Поддържа три слоя за изпращане (в ред на предпочитание):
  *   1. Capacitor LocalNotifications (APK / нативен Android)  ✅ най-надежден
- *   2. SW postMessage → SW sets a timeout (PWA fallback – работи само докато браузърът е жив)  ⚠️
+ *   2. Calendar feed fallback (Huawei/без Google services) ✅ системен календар
+ *   3. SW postMessage → SW sets a timeout (PWA fallback – работи само докато браузърът е жив)  ⚠️
  *
  * Нотификации:
  *   morning_check  – сутрешна проверка (по подразбиране 07:00)
@@ -17,9 +18,14 @@
 
 const GameNotifier = {
 
-    DAYS_AHEAD:     7,
+    // Keep a rolling monthly buffer so OEM battery restrictions or missed app opens
+    // do not leave users without reminders after the first week.
+    SCHEDULE_WINDOW_DAYS: 30,
     LS_CONFIG_KEY:  'gameNotifierConfig',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
+    CHANNEL_ID:     'nutriplan_daily_checkins',
+    BRAND_TEAL:     '#009A9E',
+    BRAND_TEAL_DARK: '#0F766E',
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
@@ -158,11 +164,39 @@ const GameNotifier = {
     async _requestCapacitorPermission() {
         try {
             const { LocalNotifications } = this._capacitor;
-            const status = await LocalNotifications.requestPermissions();
-            return status.display === 'granted';
+            const current = typeof LocalNotifications.checkPermissions === 'function'
+                ? await LocalNotifications.checkPermissions()
+                : {};
+            const status = current.display === 'granted'
+                ? current
+                : await LocalNotifications.requestPermissions();
+            if (status.display !== 'granted') return false;
+
+            await this._ensureAndroidChannel();
+            return true;
         } catch (e) {
             console.error('[GameNotifier] Capacitor permission error:', e);
             return false;
+        }
+    },
+
+    async _ensureAndroidChannel() {
+        try {
+            const { LocalNotifications } = this._capacitor;
+            if (typeof LocalNotifications.createChannel !== 'function') return;
+            await LocalNotifications.createChannel({
+                id: this.CHANNEL_ID,
+                name: 'NutriPlan дневни проверки',
+                description: 'Сутрешни и вечерни напомняния за проследяване на хранене, сън и настроение.',
+                importance: 5,
+                visibility: 1,
+                sound: 'default',
+                vibration: true,
+                lights: true,
+                lightColor: this.BRAND_TEAL
+            });
+        } catch (e) {
+            console.warn('[GameNotifier] Android channel setup warning:', e);
         }
     },
 
@@ -237,27 +271,29 @@ const GameNotifier = {
         const [eH, eM] = cfg.eveningTime.split(':').map(Number);
         const notifications = [];
 
-        for (let day = 0; day < this.DAYS_AHEAD; day++) {
+        for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morningTs = this._tsForDayOffset(day, mH, mM);
             if (morningTs > Date.now()) {
                 notifications.push({
                     id: 1000 + day,
+                    channelId: this.CHANNEL_ID,
                     title: cfg.morningTitle,
                     body:  cfg.morningBody,
                     schedule: { at: new Date(morningTs) },
                     extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
-                    iconColor: '#FF8C00'
+                    iconColor: this.BRAND_TEAL
                 });
             }
             const eveningTs = this._tsForDayOffset(day, eH, eM);
             if (eveningTs > Date.now()) {
                 notifications.push({
                     id: 2000 + day,
+                    channelId: this.CHANNEL_ID,
                     title: cfg.eveningTitle,
                     body:  cfg.eveningBody,
                     schedule: { at: new Date(eveningTs) },
                     extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
-                    iconColor: '#6A0DAD'
+                    iconColor: this.BRAND_TEAL_DARK
                 });
             }
         }
@@ -294,7 +330,7 @@ const GameNotifier = {
         const now = Date.now();
         const schedule = [];
 
-        for (let day = 0; day < this.DAYS_AHEAD; day++) {
+        for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morning = this._tsForDayOffset(day, mH, mM);
             if (morning > now) {
                 schedule.push({

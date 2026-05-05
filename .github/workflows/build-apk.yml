@@ -45,9 +45,6 @@ jobs:
             echo "IS_PROD=true" >> "$GITHUB_ENV"
           else
             echo "IS_PROD=false" >> "$GITHUB_ENV"
-            echo "STORE_PASS=nutriplan-debug-pw" >> "$GITHUB_ENV"
-            echo "KEY_PASS=nutriplan-debug-pw" >> "$GITHUB_ENV"
-            keytool -genkeypair -v -keystore nutriplan.keystore -alias nutriplan -keyalg RSA -keysize 2048 -validity 10000 -storepass "nutriplan-debug-pw" -keypass "nutriplan-debug-pw" -dname "CN=NutriPlan" -noprompt
           fi
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -119,47 +116,128 @@ jobs:
           done
 
           npx cap sync android
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+          permissions = [
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+              '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />',
+              '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
+              '<uses-permission android:name="android.permission.WAKE_LOCK" />',
+          ]
+          for permission in permissions:
+              if permission not in text:
+                  text = text.replace("<application", f"    {permission}\n\n    <application", 1)
+          manifest.write_text(text)
+          PY
           # Remove any PNG splash added by cap sync to avoid duplicate resource with splash.xml below
           rm -f android/app/src/main/res/drawable/splash.png
-          mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/values android/app/src/main/res/drawable android/app/src/main/res/drawable-night android/app/src/main/res/drawable-nodpi
+          convert "$ICON_SRC" -resize 256x256 /tmp/nutriplan_splash_icon.png
+          convert -size 432x432 xc:none \
+            -fill 'rgba(255,255,255,0.88)' -draw 'circle 216,216 216,42' \
+            -fill 'rgba(0,154,158,0.10)' -draw 'circle 216,216 216,68' \
+            /tmp/nutriplan_splash_icon.png -gravity center -composite \
+            android/app/src/main/res/drawable-nodpi/nutriplan_splash_logo.png
+          convert "$ICON_SRC" -resize 96x96 -alpha extract -threshold 1% android/app/src/main/res/drawable/ic_stat_nutriplan.png
+          for entry in "24 mdpi" "36 hdpi" "48 xhdpi" "72 xxhdpi" "96 xxxhdpi"; do
+            SIZE=${entry%% *}
+            DPI=${entry##* }
+            DRAWABLE_DIR="android/app/src/main/res/drawable-${DPI}"
+            mkdir -p "$DRAWABLE_DIR"
+            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" -alpha extract -threshold 1% "$DRAWABLE_DIR/ic_stat_nutriplan.png"
+          done
           cat > android/app/src/main/res/values/nutriplan_splash_colors.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="backgroundColor">#042F2E</color>
           </resources>
           EOF
-          mkdir -p android/app/src/main/res/drawable-night
           cat > android/app/src/main/res/drawable/splash.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item android:drawable="@color/backgroundColor" />
+              <item>
+                  <shape android:shape="rectangle">
+                      <gradient
+                          android:angle="135"
+                          android:startColor="#F0FDFA"
+                          android:centerColor="#CCFBF1"
+                          android:endColor="#009A9E" />
+                  </shape>
+              </item>
+              <item android:top="96dp" android:bottom="96dp" android:left="48dp" android:right="48dp">
+                  <shape android:shape="rectangle">
+                      <corners android:radius="36dp" />
+                      <solid android:color="#33FFFFFF" />
+                      <stroke android:width="1dp" android:color="#66FFFFFF" />
+                  </shape>
+              </item>
               <item>
                   <bitmap
                       android:gravity="center"
-                      android:src="@mipmap/ic_launcher" />
+                      android:src="@drawable/nutriplan_splash_logo" />
               </item>
           </layer-list>
           EOF
-          cp android/app/src/main/res/drawable/splash.xml android/app/src/main/res/drawable-night/splash.xml
+          cat > android/app/src/main/res/drawable-night/splash.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+              <item>
+                  <shape android:shape="rectangle">
+                      <gradient
+                          android:angle="135"
+                          android:startColor="#021615"
+                          android:centerColor="#042F2E"
+                          android:endColor="#009A9E" />
+                  </shape>
+              </item>
+              <item android:top="96dp" android:bottom="96dp" android:left="48dp" android:right="48dp">
+                  <shape android:shape="rectangle">
+                      <corners android:radius="36dp" />
+                      <solid android:color="#2214B8A6" />
+                      <stroke android:width="1dp" android:color="#552DD4BF" />
+                  </shape>
+              </item>
+              <item>
+                  <bitmap
+                      android:gravity="center"
+                      android:src="@drawable/nutriplan_splash_logo" />
+              </item>
+          </layer-list>
+          EOF
           grep -q "android-res/build-overrides.gradle" android/app/build.gradle || \
             printf "\napply from: '../../android-res/build-overrides.gradle'\n" >> android/app/build.gradle
 
           cd android
-          ./gradlew --no-daemon assembleRelease \
-            -PaidietVersionName="$V_NAME" \
-            -PaidietVersionCode="$V_CODE"
+          if [ "$IS_PROD" = "true" ]; then
+            ./gradlew --no-daemon assembleRelease \
+              -PaidietVersionName="$V_NAME" \
+              -PaidietVersionCode="$V_CODE"
+          else
+            ./gradlew --no-daemon assembleDebug \
+              -PaidietVersionName="$V_NAME" \
+              -PaidietVersionCode="$V_CODE"
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: NutriPlan-APK
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v-$(date +'%Y%m%d%H%M')-$(git rev-parse --short HEAD)"
-          APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
+          if [ "$IS_PROD" = "true" ]; then
+            APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
+          else
+            APK_FILE="android/app/build/outputs/apk/debug/app-debug.apk"
+          fi
           cp "$APK_FILE" NutriPlan.apk
           gh release create "$TAG" NutriPlan.apk --title "NutriPlan Build $TAG" --notes "Автоматичен билд."

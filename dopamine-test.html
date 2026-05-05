@@ -1,11 +1,15 @@
 <!DOCTYPE html>
-<html lang="bg" data-theme="dark">
+<html lang="bg">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
   <title>NutriPlan — Предизвикателство</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -20,10 +24,23 @@
       --border:         rgba(45, 212, 191, 0.15);
       --text:           #E0F5F0;
       --text-muted:     #A8C5C0;
+      --brand-bg:       rgba(10, 26, 26, 0.88);
       --shadow-primary: 0 20px 60px rgba(13, 148, 136, 0.3);
       --glow-primary:   0 0 40px rgba(20, 184, 166, 0.4), 0 0 80px rgba(20, 184, 166, 0.15);
       --glow-cyan:      0 0 30px rgba(34, 211, 238, 0.5), 0 0 60px rgba(34, 211, 238, 0.15);
       --ease-bounce:    cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    [data-theme="light"] {
+      --bg:             #F0FDFA;
+      --bg-card:        rgba(255, 255, 255, 0.86);
+      --border:         rgba(13, 148, 136, 0.16);
+      --text:           #0F2F2E;
+      --text-muted:     #4b5563;
+      --brand-bg:       rgba(255, 255, 255, 0.88);
+      --shadow-primary: 0 20px 60px rgba(13, 148, 136, 0.16);
+      --glow-primary:   0 0 34px rgba(20, 184, 166, 0.22);
+      --glow-cyan:      0 0 30px rgba(34, 211, 238, 0.20);
     }
 
     body {
@@ -34,7 +51,7 @@
       background:
         radial-gradient(ellipse 80% 60% at 20% 20%, rgba(20, 184, 166, 0.06) 0%, transparent 60%),
         radial-gradient(ellipse 60% 50% at 80% 80%, rgba(34, 211, 238, 0.04) 0%, transparent 60%),
-        #0A1A1A;
+        var(--bg);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       overflow: hidden;
       color: var(--text);
@@ -49,7 +66,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(10, 26, 26, 0.88);
+      background: var(--brand-bg);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       border-bottom: 1px solid var(--border);
