@@ -20,12 +20,19 @@
   "author": "Radilov-K",
   "license": "MIT",
   "devDependencies": {
+    "@capacitor/cli": "^8.3.1",
     "@cloudflare/workers-types": "^4.20260217.0",
     "typescript": "^5.9.3",
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.86.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/Radilovk/aidiet.git"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/local-notifications": "^8.0.2",
+    "@capacitor/motion": "^8.0.0"
   }
 }

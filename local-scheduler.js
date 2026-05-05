@@ -214,8 +214,7 @@ const GameNotifier = {
                     body:  cfg.morningBody,
                     schedule: { at: new Date(morningTs) },
                     extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
-                    iconColor: '#FF8C00',
-                    smallIcon: 'ic_stat_nutriplan'
+                    iconColor: '#FF8C00'
                 });
             }
             const eveningTs = this._tsForDayOffset(day, eH, eM);
@@ -226,8 +225,7 @@ const GameNotifier = {
                     body:  cfg.eveningBody,
                     schedule: { at: new Date(eveningTs) },
                     extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
-                    iconColor: '#6A0DAD',
-                    smallIcon: 'ic_stat_nutriplan'
+                    iconColor: '#6A0DAD'
                 });
             }
         }
