@@ -247,12 +247,17 @@ jobs:
               )
               if 'AppTheme.NoActionBarLaunch' in content:
                   content = re.sub(
-                      r'[ \t]*<style name="AppTheme\.NoActionBarLaunch"[^>]*>.*?</style>',
+                      r'<style name="AppTheme\.NoActionBarLaunch"[^>]*>.*?</style>',
                       new_launch_style,
                       content, flags=re.DOTALL
                   )
               else:
-                  content = content.replace('</resources>', new_launch_style + '\n</resources>')
+                  # Insert before the last </resources> tag
+                  idx = content.rfind('</resources>')
+                  if idx != -1:
+                      content = content[:idx] + new_launch_style + '\n</resources>'
+                  else:
+                      content += '\n' + new_launch_style + '\n'
               styles_file.write_text(content)
               print("styles.xml updated with Theme.SplashScreen configuration")
           else:
