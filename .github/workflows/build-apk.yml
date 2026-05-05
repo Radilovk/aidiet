@@ -3,6 +3,18 @@ name: Build Android APK
 on:
   push:
     branches: [main]
+    paths:
+      - '**.html'
+      - '**.css'
+      - '**.js'
+      - '!worker.js'
+      - '**.png'
+      - '**.svg'
+      - '**.webp'
+      - '**.ico'
+      - 'twa-manifest.json'
+      - 'capacitor.config.json'
+      - 'android-res/**'
   workflow_dispatch:
 
 jobs:

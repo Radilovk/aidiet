@@ -2841,7 +2841,8 @@ ${weeklySchemeByDayText}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
 6. Ред: Хранене 1 → Хранене 2 (или Свободно хранене в деня с freeDayNumber — НЕ и двете!) → (Хранене 3) → Хранене 4 → (Хранене 5 само ако: >4ч между вечеря и сън + обосновано: диабет, интензивни тренировки)
    СВОБОДЕН ДЕН: Свободно хранене ЗАМЕСТВА Хранене 2 — НЕ е допълнително хранене! Типът е "Свободно хранене", НЕ "Хранене 2".
-   Хранене 5 САМО с low GI: кисело мляко, ядки, ягоди/боровинки, авокадо, семена (макс ${MAX_LATE_SNACK_CALORIES} kcal)
+   Хранене 3 (следобедна закуска) САМО с: плодове, сурови ядки, скир, кисело мляко — НЕ сложно/тежко ястие!
+   Хранене 5 САМО с мазнини и белтъчини: скир, сурови ядки, кисело мляко (макс ${MAX_LATE_SNACK_CALORIES} kcal) — без плодове, зеленчуци или въглехидрати
 7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - пропусни САМО типа "Хранене 1" (сутрешното хранене). "Хранене 3" и "Хранене 5" са напълно различни категории хранения и се включват нормално при нужда!' : '\n8. ВАЖНО: Клиентът ЗАКУСВА - ЗАДЪЛЖИТЕЛНО включи {"type": "Хранене 1", ...} като ПЪРВОТО хранене за всеки ден! Никога не пропускай Хранене 1.'}${sweetsCravingRule}${buildFreeMealInstruction(strategy, startDay, endDay)}
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
@@ -4657,12 +4658,11 @@ function userHasSweetsCraving(foodCravings) {
   return typeof foodCravings === 'string' && foodCravings.includes('Сладко');
 }
 
-// Low glycemic index foods allowed in late-night snacks (GI < 55)
+// Foods allowed in late-night snacks (Хранене 5): fats + proteins only
 const LOW_GI_FOODS = [
-  'кисело мляко', 'кефир', 'ядки', 'бадеми', 'орехи', 'кашу', 'лешници',
-  'ябълка', 'круша', 'ягоди', 'боровинки', 'малини', 'черници',
-  'авокадо', 'краставица', 'домат', 'зелени листни зеленчуци',
-  'хумус', 'тахан', 'семена', 'чиа', 'ленено семе', 'тиквени семки'
+  'кисело мляко', 'скир', 'кефир',
+  'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'шамфъстък', 'пекани', 'макадамия',
+  'сурови ядки'
 ];
 
 // ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
@@ -4950,16 +4950,16 @@ function validatePlan(plan, userData, substitutions = []) {
               errors.push(error);
               stepErrors.step2_strategy.push(error); // This is a strategy issue
             } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Хранене 5') {
-              // Validate that late-night snack contains low GI foods
+              // Validate that late-night snack contains only fats+proteins (skyr, raw nuts, yogurt)
               const lateSnack = mealsAfterDinner[0];
               const snackDescription = (lateSnack.description || '').toLowerCase();
               const snackName = (lateSnack.name || '').toLowerCase();
               const snackText = snackDescription + ' ' + snackName;
               
-              const hasLowGIFood = LOW_GI_FOODS.some(food => snackText.includes(food));
+              const hasAllowedFood = LOW_GI_FOODS.some(food => snackText.includes(food));
               
-              if (!hasLowGIFood) {
-                const error = `Ден ${i}: Хранене 5 трябва да съдържа храни с нисък гликемичен индекс (${LOW_GI_FOODS.slice(0, 5).join(', ')}, и др.) или да има ясна обосновка в strategy.afterDinnerMealJustification`;
+              if (!hasAllowedFood) {
+                const error = `Ден ${i}: Хранене 5 трябва да съдържа само мазнини и белтъчини (скир, сурови ядки, кисело мляко) или да има ясна обосновка в strategy.afterDinnerMealJustification`;
                 errors.push(error);
                 stepErrors.step3_mealplan.push(error);
               }
@@ -5004,7 +5004,24 @@ function validatePlan(plan, userData, substitutions = []) {
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
         }
-        
+
+        // Validate Хранене 3 content: must be a simple snack (fruits, raw nuts, skyr, yogurt)
+        const MEAL3_ALLOWED_FOODS = [
+          'плод', 'ябълка', 'круша', 'портокал', 'мандарина', 'банан', 'ягод', 'боровинк', 'малин', 'праскова', 'кайсия', 'грозде', 'пъпеш', 'диня', 'слив', 'киви', 'нектарин', 'манго',
+          'ядки', 'бадем', 'орех', 'кашу', 'лешник', 'шамфъстък', 'пекан', 'макадамия', 'сурови ядки',
+          'скир', 'кисело мляко', 'кефир'
+        ];
+        const meal3 = day.meals.find(m => m.type === 'Хранене 3');
+        if (meal3) {
+          const meal3Text = ((meal3.name || '') + ' ' + (meal3.description || '')).toLowerCase();
+          const hasMeal3AllowedFood = MEAL3_ALLOWED_FOODS.some(food => meal3Text.includes(food));
+          if (!hasMeal3AllowedFood) {
+            const error = `Ден ${i}: Хранене 3 трябва да е лека закуска — само плодове, сурови ядки, скир или кисело мляко. Намерено: "${meal3.name}"`;
+            errors.push(error);
+            stepErrors.step3_mealplan.push(error);
+          }
+        }
+
         // Check for multiple late-night snacks
         const lateNightSnackCount = mealTypes.filter(type => type === 'Хранене 5').length;
         if (lateNightSnackCount > 1) {
@@ -6700,8 +6717,8 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
 б) БРОЙ ХРАНЕНИЯ (1–5) — РЕШИ НА БАЗА ПРОФИЛА, НЕ ХАРДКОДИРАЙ 3:
       • 2 хранения: само при строг IF протокол (OMAD/23:1) или категорична клинична индикация
       • 3 хранения (Хранене 1 + 2 + 4): стандарт при умерена активност, без специални нужди, кратък период до сън след вечеря
-      • 4 хранения (добавя Хранене 3 между Хранене 2 и 4): ЗАДЪЛЖИТЕЛНО при ≥1 от: висока активност/спорт, >3ч пропаст между обяд и вечеря, честа следобедна глад/triggers, диабет/инсулинова резистентност, калорийна цел >1800 kcal, мускулна цел, кетогенна диета
-      • 5 хранения (добавя и Хранене 5 след Хранене 4): ЗАДЪЛЖИТЕЛНО при ≥1 от: диабет с вечерен инсулин, >4ч между Хранене 4 и сън, вечерни тренировки, калорийна цел >2200 kcal, активно качване на мускулна маса
+      • 4 хранения (добавя Хранене 3 между Хранене 2 и 4): САМО при медицинска ситуация (диабет, инсулинова резистентност) ИЛИ калорийна цел >2000 kcal — иначе е прекалено и НЕ се добавя. Хранене 3 е ЛЕКА ЗАКУСКА: плодове, сурови ядки, скир или кисело мляко — НЕ сложно основно ястие!
+      • 5 хранения (добавя и Хранене 5 след Хранене 4): САМО при медицинска ситуация (диабет с вечерен инсулин) ИЛИ >4ч между Хранене 4 и сън. Хранене 5 е САМО мазнини и белтъчини: скир, сурови ядки, кисело мляко — без плодове, зеленчуци или въглехидрати.
       ВАЖНО: Броят на елементите в mealBreakdown ТРЯБВА да съвпада с полето "meals" за деня.
    
    c) СВОБОДНО ХРАНЕНЕ/ЛЮБИМА ХРАНА:
