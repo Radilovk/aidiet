@@ -28,6 +28,9 @@ const NativeBackup = (function () {
         'gameNotifierConfig',
     ];
 
+    // Префикс на динамичните ключове за добавени храни по дати
+    const ADDED_MEALS_PREFIX = 'addedMeals_';
+
     // Оригиналните методи – запазени преди евентуален hooking
     const _origSet = localStorage.setItem.bind(localStorage);
     const _origRemove = localStorage.removeItem.bind(localStorage);
@@ -49,16 +52,19 @@ const NativeBackup = (function () {
         if (!_isNative()) return null;
         try {
             const cap = window.Capacitor;
-            _prefs =
-                (cap.Plugins && cap.Plugins.Preferences) ||
-                (typeof cap.registerPlugin === 'function' && cap.registerPlugin('Preferences')) ||
-                null;
+            const fromPlugins = cap.Plugins && cap.Plugins.Preferences;
+            if (fromPlugins) {
+                _prefs = fromPlugins;
+            } else if (typeof cap.registerPlugin === 'function') {
+                const registered = cap.registerPlugin('Preferences');
+                if (registered) _prefs = registered;
+            }
         } catch (_) {}
         return _prefs;
     }
 
     function _shouldBackup(key) {
-        return PLAN_KEYS.includes(key) || key.startsWith('addedMeals_');
+        return PLAN_KEYS.includes(key) || key.startsWith(ADDED_MEALS_PREFIX);
     }
 
     function _installHook() {
@@ -94,7 +100,7 @@ const NativeBackup = (function () {
             const result = await prefs.keys();
             if (result && result.keys) {
                 result.keys
-                    .filter(function (k) { return k.startsWith('addedMeals_'); })
+                    .filter(function (k) { return k.startsWith(ADDED_MEALS_PREFIX); })
                     .forEach(function (k) { if (!allKeys.includes(k)) allKeys.push(k); });
             }
         } catch (_) {}
