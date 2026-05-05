@@ -3882,8 +3882,8 @@
             if (!window.GameNotifier) return;
             const isCapacitorApp = !!(
                 window.Capacitor &&
-                window.Capacitor.Plugins &&
-                window.Capacitor.Plugins.LocalNotifications
+                typeof window.Capacitor.isNativePlatform === 'function' &&
+                window.Capacitor.isNativePlatform()
             );
             if (!isCapacitorApp) {
                 if (!('Notification' in window) || Notification.permission !== 'granted') return;

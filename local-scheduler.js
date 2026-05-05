@@ -130,9 +130,21 @@ const GameNotifier = {
     _detectCapacitor() {
         if (typeof window === 'undefined' || !window.Capacitor) return null;
         try {
-            const { Plugins } = window.Capacitor;
-            if (Plugins && Plugins.LocalNotifications) {
-                return { LocalNotifications: Plugins.LocalNotifications };
+            const cap = window.Capacitor;
+            const isNative = typeof cap.isNativePlatform === 'function'
+                ? cap.isNativePlatform()
+                : false;
+            if (!isNative) return null;
+
+            const plugins = cap.Plugins || {};
+            let localNotifications = plugins.LocalNotifications || null;
+
+            if (!localNotifications && typeof cap.registerPlugin === 'function') {
+                localNotifications = cap.registerPlugin('LocalNotifications');
+            }
+
+            if (localNotifications) {
+                return { LocalNotifications: localNotifications };
             }
         } catch (_) {}
         return null;

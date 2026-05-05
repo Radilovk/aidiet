@@ -100,6 +100,8 @@ jobs:
         run: |
           V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
           V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
+          ICON_SRC="icon-512.png"
+          if [ ! -f "$ICON_SRC" ]; then ICON_SRC="icon-512x512.png"; fi
 
           npx cap add android
 
@@ -111,12 +113,26 @@ jobs:
             SIZE=${entry%% *}
             DPI=${entry##* }
             ICON_DIR="android/app/src/main/res/mipmap-${DPI}"
-            convert icon-512x512.png -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher.png"
-            convert icon-512x512.png -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_round.png"
-            convert icon-512x512.png -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_foreground.png"
+            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher.png"
+            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_round.png"
+            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_foreground.png"
           done
 
           npx cap sync android
+          sed -i 's|<color name="backgroundColor">.*</color>|<color name="backgroundColor">#042F2E</color>|g' android/app/src/main/res/values/colors.xml || true
+          mkdir -p android/app/src/main/res/drawable-night
+          cat > android/app/src/main/res/drawable/splash.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+              <item android:drawable="@color/backgroundColor" />
+              <item>
+                  <bitmap
+                      android:gravity="center"
+                      android:src="@mipmap/ic_launcher" />
+              </item>
+          </layer-list>
+          EOF
+          cp android/app/src/main/res/drawable/splash.xml android/app/src/main/res/drawable-night/splash.xml
           grep -q "android-res/build-overrides.gradle" android/app/build.gradle || \
             printf "\napply from: '../../android-res/build-overrides.gradle'\n" >> android/app/build.gradle
 
