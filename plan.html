@@ -97,7 +97,7 @@
         body {
             background: var(--bg-color);
             color: var(--text-dark);
-            padding-top: calc(16px + var(--safe-area-inset-top));
+            padding-top: 0; /* day-banner at top handles the safe-area inset */
             padding-bottom: calc(140px + var(--safe-area-inset-bottom)); /* Space for bottom nav + chat FAB */
             -webkit-overflow-scrolling: touch;
             transition: background-color 0.3s ease, color 0.3s ease;
@@ -259,6 +259,8 @@
             justify-content: space-between;
             background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
             padding: 0;
+            /* Push content below the status-bar / Dynamic Island safe area */
+            padding-top: var(--safe-area-inset-top);
             position: relative;
             overflow: hidden;
             user-select: none;
@@ -3537,7 +3539,7 @@
         <i class="fas fa-camera" aria-hidden="true"></i>
     </button>
 
-    <!-- Hidden file input for camera/gallery -->
+    <!-- Hidden file input for camera capture -->
     <input type="file" id="foodImageInput" accept="image/*" capture="environment" style="display:none" aria-label="Избор на изображение на храна">
 
     <!-- Food Analysis Modal -->
@@ -3562,8 +3564,8 @@
                 <div class="food-capture-area" id="foodCaptureArea" onclick="triggerFoodCapture()">
                     <div id="foodCaptureContent">
                         <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
-                        <div class="food-capture-text">
-                            Натиснете за да направите снимка<br>или изберете от галерията
+                        <div class="food-capture-text" id="foodCaptureHint">
+                            Натиснете за да направите снимка
                         </div>
                     </div>
                 </div>
@@ -6314,7 +6316,8 @@
         // ═══════════════════════════════════════════════════════════
         // FOOD IMAGE ANALYSIS FEATURE
         // ═══════════════════════════════════════════════════════════
-        
+
+        // Helper: returns true when running inside the native Capacitor APK
         let foodAnalysisImageData = null;  // Base64 image data
         let foodAnalysisImageMime = null;  // MIME type
         let foodAnalysisInProgress = false;
@@ -6322,9 +6325,7 @@
         let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
 
         function resetFoodCaptureUI(mode) {
-            const hint = mode === 'menu'
-                ? 'Натиснете за да снимате менюто<br>или изберете от галерията'
-                : 'Натиснете за да направите снимка<br>или изберете от галерията';
+            const hint = mode === 'menu' ? 'Натиснете за да снимате менюто' : 'Натиснете за да направите снимка';
             const captureArea = document.getElementById('foodCaptureArea');
             if (captureArea) captureArea.classList.remove('has-image');
             const captureContent = document.getElementById('foodCaptureContent');
@@ -6421,10 +6422,7 @@
         function triggerFoodCapture() {
             if (foodAnalysisInProgress) return;
             const input = document.getElementById('foodImageInput');
-            if (input) {
-                input.value = '';
-                input.click();
-            }
+            if (input) { input.value = ''; input.click(); }
         }
 
         // Handle file selection
