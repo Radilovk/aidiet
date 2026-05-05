@@ -1,7 +1,7 @@
 {
   "appId": "com.biocode.nutriplan",
   "appName": "NutriPlan",
-  "webDir": ".",
+  "webDir": "capacitor-shell",
   "server": {
     "androidScheme": "https",
     "hostname": "aidiet.radilov-k.workers.dev"

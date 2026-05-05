@@ -52,6 +52,45 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
 
+      - name: Build Capacitor web shell
+        run: |
+          rm -rf capacitor-shell
+          mkdir -p capacitor-shell
+          rsync -a ./ capacitor-shell/ \
+            --delete \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'node_modules/' \
+            --exclude 'android/' \
+            --exclude 'android-res/' \
+            --exclude 'capacitor-shell/' \
+            --exclude 'docs/' \
+            --exclude 'workflows/' \
+            --exclude 'KV/' \
+            --exclude 'Plan1/' \
+            --exclude 'Plan2/' \
+            --exclude 'Protocols/' \
+            --exclude 'clients/' \
+            --exclude 'samples/' \
+            --exclude '*.md' \
+            --exclude '*.log' \
+            --exclude '*.csv' \
+            --exclude '*.keystore' \
+            --exclude '*.py' \
+            --exclude 'package.json' \
+            --exclude 'package-lock.json' \
+            --exclude 'twa-manifest.json' \
+            --exclude 'capacitor.config.json' \
+            --exclude 'wrangler.toml' \
+            --exclude 'worker.js' \
+            --exclude 'client_______________*.json' \
+            --exclude 'Errorlist.txt' \
+            --exclude 'ai_communication.txt' \
+            --exclude 'aicom.txt' \
+            --exclude 'dynaquest.txt' \
+            --exclude 'log1' \
+            --exclude 'workererrors'
+
       - name: Build APK
         env:
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/nutriplan.keystore
@@ -62,7 +101,8 @@ jobs:
 
           npx cap add android
           npx cap sync android
-          printf "\napply from: '../../android-res/build-overrides.gradle'\n" >> android/app/build.gradle
+          grep -q "android-res/build-overrides.gradle" android/app/build.gradle || \
+            printf "\napply from: '../../android-res/build-overrides.gradle'\n" >> android/app/build.gradle
 
           cd android
           ./gradlew --no-daemon assembleRelease \
