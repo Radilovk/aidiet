@@ -2337,6 +2337,7 @@
         // --- Theme Management ---
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            if (!localStorage.getItem('theme')) localStorage.setItem('theme', savedTheme);
             document.documentElement.setAttribute('data-theme', savedTheme);
             updateThemeIcon(savedTheme);
             setThemeColor(savedTheme);
@@ -2912,8 +2913,8 @@
             }
         }
 
-        // Capture the beforeinstallprompt event
-        window.addEventListener('beforeinstallprompt', (e) => {
+        // Capture the beforeinstallprompt event — not needed in native APK
+        if (!isCapacitorNativeApp) window.addEventListener('beforeinstallprompt', (e) => {
             if (PWA_DEBUG) console.log('beforeinstallprompt fired');
             e.preventDefault();
             deferredPrompt = e;
@@ -3193,8 +3194,8 @@
             if (PWA_DEBUG) console.log('iOS install banner dismissed');
         }
 
-        // Initialize iOS banner after a delay
-        if (isIOS && isSafari) {
+        // Initialize iOS banner after a delay — not in native APK
+        if (!isCapacitorNativeApp && isIOS && isSafari) {
             setTimeout(() => {
                 showIosInstallBanner();
             }, 3000); // Show after 3 seconds on iOS
@@ -3203,6 +3204,16 @@
         // Don't show fallback guidance - only show banner when beforeinstallprompt fires
         // This ensures automatic installation prompt instead of manual instructions
         window.addEventListener('load', () => {
+            // Hide install sections entirely when running as native APK
+            if (isCapacitorNativeApp) {
+                const androidInstall = document.getElementById('android-install');
+                if (androidInstall) androidInstall.style.display = 'none';
+                const installBanner = document.getElementById('installBanner');
+                if (installBanner) installBanner.style.display = 'none';
+                const iosBanner = document.getElementById('ios-banner');
+                if (iosBanner) iosBanner.style.display = 'none';
+                return;
+            }
             // Always show install button on Android if not installed
             if (isAndroid && !isInStandaloneMode()) {
                 setTimeout(() => {
