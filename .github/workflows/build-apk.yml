@@ -45,9 +45,6 @@ jobs:
             echo "IS_PROD=true" >> "$GITHUB_ENV"
           else
             echo "IS_PROD=false" >> "$GITHUB_ENV"
-            echo "STORE_PASS=nutriplan-debug-pw" >> "$GITHUB_ENV"
-            echo "KEY_PASS=nutriplan-debug-pw" >> "$GITHUB_ENV"
-            keytool -genkeypair -v -keystore nutriplan.keystore -alias nutriplan -keyalg RSA -keysize 2048 -validity 10000 -storepass "nutriplan-debug-pw" -keypass "nutriplan-debug-pw" -dname "CN=NutriPlan" -noprompt
           fi
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -214,21 +211,33 @@ jobs:
             printf "\napply from: '../../android-res/build-overrides.gradle'\n" >> android/app/build.gradle
 
           cd android
-          ./gradlew --no-daemon assembleRelease \
-            -PaidietVersionName="$V_NAME" \
-            -PaidietVersionCode="$V_CODE"
+          if [ "$IS_PROD" = "true" ]; then
+            ./gradlew --no-daemon assembleRelease \
+              -PaidietVersionName="$V_NAME" \
+              -PaidietVersionCode="$V_CODE"
+          else
+            ./gradlew --no-daemon assembleDebug \
+              -PaidietVersionName="$V_NAME" \
+              -PaidietVersionCode="$V_CODE"
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: NutriPlan-APK
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v-$(date +'%Y%m%d%H%M')-$(git rev-parse --short HEAD)"
-          APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
+          if [ "$IS_PROD" = "true" ]; then
+            APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
+          else
+            APK_FILE="android/app/build/outputs/apk/debug/app-debug.apk"
+          fi
           cp "$APK_FILE" NutriPlan.apk
           gh release create "$TAG" NutriPlan.apk --title "NutriPlan Build $TAG" --notes "Автоматичен билд."
