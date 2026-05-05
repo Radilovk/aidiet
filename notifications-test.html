@@ -4,14 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тест на Известия - NutriPlan</title>
+    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="./design-system.css">
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0D9488 0%, #134E4A 100%);
             min-height: 100vh;
+        }
+
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #0A1A1A 0%, #0D2828 100%);
         }
 
         .container {
@@ -22,12 +30,19 @@
         h1 { color: #fff; margin-bottom: 16px; font-size: 26px; text-align: center; }
         h2 { font-size: 16px; margin-bottom: 10px; color: #333; }
 
+        [data-theme="dark"] h2 { color: #a0bbb8; }
+
         .card {
             background: #fff;
             border-radius: 12px;
             padding: 18px;
             margin-bottom: 14px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        [data-theme="dark"] .card {
+            background: #0f2424;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
         }
 
         .row {
@@ -37,8 +52,10 @@
             border-bottom: 1px solid #f0f0f0;
             font-size: 14px;
         }
+        [data-theme="dark"] .row { border-bottom-color: rgba(255,255,255,0.06); color: #c8dede; }
         .row:last-child { border-bottom: none; }
         .row .label { width: 200px; color: #666; flex-shrink: 0; }
+        [data-theme="dark"] .row .label { color: #7eaaa8; }
         .row .val  { flex: 1; font-weight: 500; }
 
         .ok   { color: #28a745; }
@@ -49,7 +66,7 @@
         .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 
         button {
-            background: #667eea;
+            background: #0D9488;
             color: #fff;
             border: none;
             padding: 9px 16px;
@@ -58,7 +75,7 @@
             cursor: pointer;
             transition: background 0.2s, opacity 0.2s;
         }
-        button:hover:not(:disabled) { background: #5568d3; }
+        button:hover:not(:disabled) { background: #0F766E; }
         button:disabled { opacity: 0.45; cursor: not-allowed; }
         button.btn-green  { background: #28a745; }
         button.btn-green:hover:not(:disabled)  { background: #218838; }
@@ -108,6 +125,7 @@
         a.back-link:hover { text-decoration: underline; }
 
         details > summary { cursor: pointer; font-weight: 600; font-size: 14px; color: #444; }
+        [data-theme="dark"] details > summary { color: #7eaaa8; }
         details pre {
             font-size: 11px;
             background: #f4f4f4;
@@ -120,6 +138,94 @@
             white-space: pre-wrap;
             word-break: break-all;
         }
+        [data-theme="dark"] details pre { background: #0a1e1e; color: #a8d8d8; }
+
+        /* ── Schedule visualization ── */
+        .sched-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .sched-day {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: #f0fdfa;
+            border: 1px solid rgba(13,148,136,0.15);
+            font-size: 13px;
+        }
+        [data-theme="dark"] .sched-day {
+            background: rgba(13,148,136,0.06);
+            border-color: rgba(45,212,191,0.12);
+            color: #a0c8c4;
+        }
+        .sched-day.sched-today {
+            background: rgba(13,148,136,0.12);
+            border-color: rgba(13,148,136,0.4);
+            font-weight: 600;
+        }
+        [data-theme="dark"] .sched-day.sched-today {
+            background: rgba(45,212,191,0.10);
+            border-color: rgba(45,212,191,0.3);
+        }
+        .sched-day-label {
+            width: 80px;
+            flex-shrink: 0;
+            font-weight: 600;
+            color: #0D9488;
+        }
+        [data-theme="dark"] .sched-day-label { color: #2DD4BF; }
+        .sched-notifs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .sched-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .sched-pill.morning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        [data-theme="dark"] .sched-pill.morning {
+            background: rgba(251,191,36,0.12);
+            color: #FCD34D;
+        }
+        .sched-pill.evening {
+            background: #e8e0ff;
+            color: #5b21b6;
+        }
+        [data-theme="dark"] .sched-pill.evening {
+            background: rgba(139,92,246,0.12);
+            color: #A78BFA;
+        }
+        .sched-pill.past {
+            opacity: 0.45;
+            text-decoration: line-through;
+        }
+        .sched-empty {
+            font-size: 13px;
+            color: #999;
+            font-style: italic;
+            padding: 6px 0;
+        }
+        [data-theme="dark"] .sched-empty { color: #4a7070; }
+        .sched-next-label {
+            font-size: 12px;
+            color: #0D9488;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        [data-theme="dark"] .sched-next-label { color: #2DD4BF; }
     </style>
 </head>
 <body>
@@ -183,7 +289,7 @@
     <!-- ── Стъпка 2: Инициализация ── -->
     <div class="card">
         <h2>2️⃣ GameNotifier – инициализация и планиране</h2>
-        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+        <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
             Инициализира GameNotifier, зарежда конфигурацията от backend и
             планира сутрешни/вечерни известия за следващите 7 дни.
         </p>
@@ -194,10 +300,18 @@
         </div>
     </div>
 
+    <!-- ── Визуализация на планираните известия ── -->
+    <div class="card" id="scheduleCard">
+        <h2>📅 Планирани известия – визуализация</h2>
+        <div id="scheduleViz">
+            <div class="sched-empty">Инициализирайте GameNotifier, за да видите графика.</div>
+        </div>
+    </div>
+
     <!-- ── Стъпка 3: Незабавни тестове ── -->
     <div class="card">
         <h2>3️⃣ Незабавни тестови известия</h2>
-        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+        <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
             Показват известие <strong>веднага</strong> – не се изчаква планирано време.
             Нуждае се от разрешено permission.
         </p>
@@ -212,7 +326,7 @@
     <!-- ── Стъпка 4: Забавено тестово известие ── -->
     <div class="card">
         <h2>4️⃣ Забавено тестово известие (SW таймер)</h2>
-        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+        <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
             Изпраща <code>SCHEDULE_GAME_NOTIFICATIONS</code> до Service Worker с
             едно тестово известие, което ще се покаже след <strong>7 секунди</strong>.
             Тества пълния SW scheduling path.
@@ -225,7 +339,7 @@
     <!-- ── Стъпка 5: Симулация на action URL ── -->
     <div class="card">
         <h2>5️⃣ Симулация на action URL (gamification)</h2>
-        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+        <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
             Отваря <code>plan.html</code> с параметър <code>?action=…</code>, точно
             както прави известието при клик. Тества дали gamification въпросите
             се зареждат правилно.
@@ -479,6 +593,7 @@ async function initGameNotifier() {
         await window.GameNotifier.init();
         log('GameNotifier.init() завърши успешно.');
         refreshConfig();
+        renderScheduleVisualization();
     } catch(e) {
         log('GameNotifier.init() грешка: ' + e.message, 'err');
     }
@@ -490,6 +605,7 @@ async function reschedule() {
     try {
         await window.GameNotifier.scheduleNotifications();
         log('Препланирането завърши.');
+        renderScheduleVisualization();
     } catch(e) {
         log('Грешка: ' + e.message, 'err');
     }
@@ -592,10 +708,89 @@ async function scheduleDelayed() {
 }
 
 // ─────────────────────────────────────────────
+// Schedule visualization
+// ─────────────────────────────────────────────
+function renderScheduleVisualization() {
+    const container = document.getElementById('scheduleViz');
+    if (!container) return;
+
+    const defaults = { morningTime: '07:00', eveningTime: '20:00' };
+    const raw = localStorage.getItem('gameNotifierConfig');
+    const cfg = raw ? Object.assign({}, defaults, JSON.parse(raw)) : Object.assign({}, defaults);
+    const [mH, mM] = cfg.morningTime.split(':').map(Number);
+    const [eH, eM] = cfg.eveningTime.split(':').map(Number);
+    const now = Date.now();
+    const DAYS_AHEAD = 7;
+
+    function getTimestampForDay(dayOffset, h, m) {
+        const d = new Date();
+        d.setDate(d.getDate() + dayOffset);
+        d.setHours(h, m, 0, 0);
+        return d.getTime();
+    }
+
+    const DAY_NAMES = ['Нед', 'Пон', 'Вт', 'Ср', 'Чет', 'Пет', 'Съб'];
+    const MONTH_NAMES = ['яну', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
+
+    let nextTs = null;
+    let nextLabel = null;
+    const days = [];
+
+    for (let day = 0; day < DAYS_AHEAD; day++) {
+        const morningTs = getTimestampForDay(day, mH, mM);
+        const eveningTs = getTimestampForDay(day, eH, eM);
+        const d = new Date();
+        d.setDate(d.getDate() + day);
+        const isToday = day === 0;
+        const dayName = (isToday ? 'Днес' : DAY_NAMES[d.getDay()]) + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()];
+
+        const pills = [];
+        const mPast = morningTs < now;
+        const ePast = eveningTs < now;
+        pills.push({ type: 'morning', label: '🌅 ' + cfg.morningTime, past: mPast, ts: morningTs });
+        pills.push({ type: 'evening', label: '🌙 ' + cfg.eveningTime, past: ePast, ts: eveningTs });
+
+        if (!mPast && (nextTs === null || morningTs < nextTs)) {
+            nextTs = morningTs;
+            nextLabel = '🌅 Сутрешно (' + cfg.morningTime + ')';
+        }
+        if (!ePast && (nextTs === null || eveningTs < nextTs)) {
+            nextTs = eveningTs;
+            nextLabel = '🌙 Вечерно (' + cfg.eveningTime + ')';
+        }
+
+        days.push({ dayName, isToday, pills });
+    }
+
+    let html = '<div class="sched-timeline">';
+    for (const d of days) {
+        html += `<div class="sched-day${d.isToday ? ' sched-today' : ''}">`;
+        html += `<span class="sched-day-label">${d.dayName}</span>`;
+        html += '<span class="sched-notifs">';
+        for (const p of d.pills) {
+            html += `<span class="sched-pill ${p.type}${p.past ? ' past' : ''}">${p.label}</span>`;
+        }
+        html += '</span></div>';
+    }
+    html += '</div>';
+
+    if (nextTs !== null) {
+        const diffMs = nextTs - now;
+        const diffH = Math.floor(diffMs / 3600000);
+        const diffM = Math.floor((diffMs % 3600000) / 60000);
+        const countdown = diffH > 0 ? `${diffH} ч ${diffM} мин` : `${diffM} мин`;
+        html += `<div class="sched-next-label">⏳ Следващо: ${nextLabel} – след ${countdown}</div>`;
+    }
+
+    container.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────
 // Init
 // ─────────────────────────────────────────────
 (async () => {
     updateDiagnostics();
+    renderScheduleVisualization();
     await registerSW();
     await checkSW();
     log('Диагностиката е заредена. ' +

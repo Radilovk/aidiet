@@ -3845,11 +3845,13 @@
                     }
                 } else if (PlatformDetector.isHuawei()) {
                     info.platform = 'Huawei';
-                    info.notificationsSupported = false;
+                    info.notificationsSupported = true;   // calendar subscription counts
+                    info.calendarFallback = true;
+                    info.calendarUrl = 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics';
                     info.limitedSupport = true;
-                    info.recommendations.push('Huawei устройствата без Google Services нямат поддръжка за уеб известия');
-                    info.recommendations.push('Използвайте Huawei Calendar за напомняния');
-                    info.recommendations.push('Или задайте будилници в Alarm приложението');
+                    info.recommendations.push('Абонирайте се за напомняния чрез Calendar приложението');
+                    info.recommendations.push('Натиснете "Абонирай се" за автоматични напомняния');
+                    info.recommendations.push('Huawei Calendar ще се обновява автоматично при промени');
                 } else if (PlatformDetector.isAndroid()) {
                     info.platform = 'Android';
                     info.notificationsSupported = PlatformDetector.supportsNotifications();
@@ -7525,6 +7527,9 @@
                         // Check if push notifications are supported and request permission
                         if ('PushManager' in window && 'Notification' in window) {
                             checkNotificationPermission(registration);
+                        } else if (PlatformDetector.isHuawei()) {
+                            // Huawei without Notification API – fall back to calendar subscription
+                            setTimeout(() => showCalendarBanner(), 3000);
                         }
                     })
                     .catch(error => {
@@ -7551,6 +7556,13 @@
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             }
 
+            // Huawei devices: web push unreliable – use calendar subscription instead
+            if (PlatformDetector.isHuawei()) {
+                console.log('[Notifications] Huawei device – offering calendar subscription');
+                setTimeout(() => showCalendarBanner(), 3000);
+                return;
+            }
+
             if (Notification.permission === 'granted') {
                 console.log('📱 Notification permission already granted');
                 scheduleNotifications();
@@ -7561,6 +7573,29 @@
                     showNotificationBanner();
                 }, 5000);
             }
+        }
+
+        function showCalendarBanner() {
+            if (document.getElementById('notif-banner')) return;
+            const calUrl = window.GameNotifier
+                ? window.GameNotifier.getCalendarSubscribeUrl()
+                : 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics';
+            const banner = document.createElement('div');
+            banner.id = 'notif-banner';
+            banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
+            banner.innerHTML = '<span>📅 Абонирайте се за автоматични напомняния</span>';
+            const btn = document.createElement('a');
+            btn.textContent = 'Абонирай се';
+            btn.href = calUrl;
+            btn.style.cssText = 'background:#fff;color:#0D9488;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;';
+            btn.onclick = () => banner.remove();
+            const close = document.createElement('button');
+            close.textContent = '✕';
+            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px;';
+            close.onclick = () => banner.remove();
+            banner.appendChild(btn);
+            banner.appendChild(close);
+            document.body.appendChild(banner);
         }
 
         function showNotificationBanner() {

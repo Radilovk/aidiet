@@ -64,7 +64,9 @@ jobs:
             --exclude 'android/' \
             --exclude 'android-res/' \
             --exclude 'capacitor-shell/' \
-            --exclude 'docs/' \
+            --include 'docs/' \
+            --include 'docs/*.png' \
+            --exclude 'docs/**' \
             --exclude 'workflows/' \
             --exclude 'KV/' \
             --exclude 'Plan1/' \
@@ -100,6 +102,20 @@ jobs:
           V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
 
           npx cap add android
+
+          # Replace default Capacitor icons with NutriPlan icon
+          if ! command -v convert &>/dev/null; then
+            echo "ImageMagick 'convert' not found – installing…" && sudo apt-get install -y imagemagick
+          fi
+          for entry in "48 mdpi" "72 hdpi" "96 xhdpi" "144 xxhdpi" "192 xxxhdpi"; do
+            SIZE=${entry%% *}
+            DPI=${entry##* }
+            ICON_DIR="android/app/src/main/res/mipmap-${DPI}"
+            convert icon-512x512.png -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher.png"
+            convert icon-512x512.png -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_round.png"
+            convert icon-512x512.png -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_foreground.png"
+          done
+
           npx cap sync android
           grep -q "android-res/build-overrides.gradle" android/app/build.gradle || \
             printf "\napply from: '../../android-res/build-overrides.gradle'\n" >> android/app/build.gradle

@@ -19,6 +19,7 @@ const GameNotifier = {
 
     DAYS_AHEAD:     7,
     LS_CONFIG_KEY:  'gameNotifierConfig',
+    CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
@@ -26,6 +27,16 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
     /*  Public API                                                          */
     /* ------------------------------------------------------------------ */
+
+    /**
+     * Returns the webcal:// URL that calendar apps use to subscribe to the
+     * NutriPlan notification feed (works on Huawei Calendar, iOS Calendar,
+     * Google Calendar, Outlook, etc.).  Once subscribed the calendar app
+     * re-fetches the feed ~daily so admin config changes propagate automatically.
+     */
+    getCalendarSubscribeUrl() {
+        return this.CALENDAR_URL.replace('https://', 'webcal://');
+    },
 
     async init() {
         console.log('[GameNotifier] Initialising...');
@@ -43,7 +54,11 @@ const GameNotifier = {
         } else {
             // Web / PWA path
             if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                console.warn('[GameNotifier] Notifications not supported on this platform.');
+                if (this._isHuawei()) {
+                    console.log('[GameNotifier] Huawei device detected – use calendar subscription:', this.getCalendarSubscribeUrl());
+                } else {
+                    console.warn('[GameNotifier] Notifications not supported on this platform.');
+                }
                 return;
             }
             if (Notification.permission !== 'granted') {
@@ -121,6 +136,11 @@ const GameNotifier = {
             }
         } catch (_) {}
         return null;
+    },
+
+    _isHuawei() {
+        if (typeof navigator === 'undefined') return false;
+        return /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent);
     },
 
     async _requestCapacitorPermission() {
