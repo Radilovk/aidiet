@@ -231,6 +231,53 @@ jobs:
           EOF
           grep -q "android-res/build-overrides.gradle" android/app/build.gradle || \
             printf "\napply from: '../../android-res/build-overrides.gradle'\n" >> android/app/build.gradle
+          # Configure styles.xml: use Theme.SplashScreen for Android 12+ SplashScreen API
+          python3 - <<'PY_STYLES'
+          from pathlib import Path
+          import re
+          styles_file = Path("android/app/src/main/res/values/styles.xml")
+          if styles_file.exists():
+              content = styles_file.read_text()
+              new_launch_style = (
+                  '    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">\n'
+                  '        <item name="windowSplashScreenBackground">@color/backgroundColor</item>\n'
+                  '        <item name="windowSplashScreenAnimatedIcon">@drawable/nutriplan_splash_logo</item>\n'
+                  '        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>\n'
+                  '    </style>'
+              )
+              if 'AppTheme.NoActionBarLaunch' in content:
+                  content = re.sub(
+                      r'<style name="AppTheme\.NoActionBarLaunch"[^>]*>.*?</style>',
+                      new_launch_style,
+                      content, flags=re.DOTALL
+                  )
+              else:
+                  # Insert before the last </resources> tag
+                  idx = content.rfind('</resources>')
+                  if idx != -1:
+                      content = content[:idx] + new_launch_style + '\n</resources>'
+                  else:
+                      content += '\n' + new_launch_style + '\n'
+              styles_file.write_text(content)
+              print("styles.xml updated with Theme.SplashScreen configuration")
+          else:
+              print("WARNING: styles.xml not found — creating minimal version")
+              styles_file.parent.mkdir(parents=True, exist_ok=True)
+              styles_file.write_text(
+                  '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
+                  '    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar"></style>\n'
+                  '    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">\n'
+                  '        <item name="windowActionBar">false</item>\n'
+                  '        <item name="windowNoTitle">true</item>\n'
+                  '    </style>\n'
+                  '    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">\n'
+                  '        <item name="windowSplashScreenBackground">@color/backgroundColor</item>\n'
+                  '        <item name="windowSplashScreenAnimatedIcon">@drawable/nutriplan_splash_logo</item>\n'
+                  '        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>\n'
+                  '    </style>\n'
+                  '</resources>\n'
+              )
+          PY_STYLES
 
           cd android
           if [ "$IS_PROD" = "true" ]; then
