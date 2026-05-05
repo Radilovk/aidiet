@@ -1,0 +1,17 @@
+capabilities:
+  network:
+    allow:
+      # Google Maven repository and Android Gradle plugin downloads
+      - "://dl.google.com"
+      - "://maven.google.com"
+      # Gradle distribution and services
+      - "://services.gradle.org"
+      - "://plugins.gradle.org"
+      - "://api.gradle.org"
+      # Maven Central (Capacitor and other JVM dependencies)
+      - "://repo1.maven.org"
+      - "://repo.maven.apache.org"
+      # JCenter (legacy dependency resolution fallback)
+      - "://jcenter.bintray.com"
+      # npm registry (npm ci step)
+      - "://registry.npmjs.org"
