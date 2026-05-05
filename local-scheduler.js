@@ -20,7 +20,7 @@ const GameNotifier = {
 
     // Keep a rolling monthly buffer so OEM battery restrictions or missed app opens
     // do not leave users without reminders after the first week.
-    DAYS_AHEAD:     30,
+    SCHEDULE_WINDOW_DAYS: 30,
     LS_CONFIG_KEY:  'gameNotifierConfig',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins',
@@ -269,7 +269,7 @@ const GameNotifier = {
         const [eH, eM] = cfg.eveningTime.split(':').map(Number);
         const notifications = [];
 
-        for (let day = 0; day < this.DAYS_AHEAD; day++) {
+        for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morningTs = this._tsForDayOffset(day, mH, mM);
             if (morningTs > Date.now()) {
                 notifications.push({
@@ -328,7 +328,7 @@ const GameNotifier = {
         const now = Date.now();
         const schedule = [];
 
-        for (let day = 0; day < this.DAYS_AHEAD; day++) {
+        for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morning = this._tsForDayOffset(day, mH, mM);
             if (morning > now) {
                 schedule.push({
