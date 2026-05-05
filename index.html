@@ -2557,8 +2557,9 @@
                 } else if (PlatformDetector.isHuawei()) {
                     return {
                         show: true,
-                        message: 'Huawei устройствата не поддържат уеб известия. Използвайте Calendar app за напомняния.',
-                        type: 'warning'
+                        message: 'Абонирайте се за автоматични напомняния чрез Calendar приложението.',
+                        type: 'calendar',
+                        calendarUrl: 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics'
                     };
                 } else if (!PlatformDetector.supportsNotifications()) {
                     return {
@@ -2593,20 +2594,47 @@
                         if ('PushManager' in window && 'Notification' in window) {
                             // Only prompt if platform supports it
                             if (PlatformDetector.supportsNotifications() &&
-                                (!PlatformDetector.isIOS() || PlatformDetector.isPWA())) {
+                                (!PlatformDetector.isIOS() || PlatformDetector.isPWA()) &&
+                                !PlatformDetector.isHuawei()) {
                                 checkNotificationPermission(registration);
+                            } else if (compatWarning.type === 'calendar') {
+                                setTimeout(() => showCalendarBanner(compatWarning.calendarUrl), 3000);
                             } else if (compatWarning.show) {
                                 // Show compatibility warning to user
                                 setTimeout(() => {
                                     console.log('[Notifications] Platform limitation:', compatWarning.message);
                                 }, 2000);
                             }
+                        } else if (compatWarning.type === 'calendar') {
+                            // Huawei without Notification API
+                            setTimeout(() => showCalendarBanner(compatWarning.calendarUrl), 3000);
                         }
                     })
                     .catch(error => {
                         console.error('Service Worker registration failed:', error);
                     });
             });
+        }
+
+        function showCalendarBanner(calUrl) {
+            calUrl = calUrl || 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics';
+            if (document.getElementById('notif-banner')) return;
+            const banner = document.createElement('div');
+            banner.id = 'notif-banner';
+            banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
+            banner.innerHTML = '<span>📅 Абонирайте се за автоматични напомняния</span>';
+            const btn = document.createElement('a');
+            btn.textContent = 'Абонирай се';
+            btn.href = calUrl;
+            btn.style.cssText = 'background:#fff;color:#0D9488;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;';
+            btn.onclick = () => banner.remove();
+            const close = document.createElement('button');
+            close.textContent = '✕';
+            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px;';
+            close.onclick = () => banner.remove();
+            banner.appendChild(btn);
+            banner.appendChild(close);
+            document.body.appendChild(banner);
         }
 
         // --- Push Notifications ---

@@ -11124,6 +11124,110 @@ async function handleSaveNotificationConfig(request, env) {
 }
 
 /**
+ * GET /api/calendar.ics
+ * Returns a dynamic iCalendar (.ics) feed for the next 60 days with morning and
+ * evening check-in reminders sourced from the global notification-config KV key.
+ *
+ * Calendar apps (Huawei Calendar, iOS Calendar, Google Calendar, Outlook) subscribe
+ * once via a webcal:// link and re-fetch the feed ~daily, so any admin config change
+ * (times, titles) propagates automatically within 24 h without any client-side action.
+ * UIDs are deterministic (date + type) so apps update existing events on re-fetch
+ * instead of creating duplicates.
+ */
+async function handleGetCalendarIcs(request, env) {
+  const WORKER_BASE = 'https://aidiet.radilov-k.workers.dev';
+  const DAYS = 60;
+
+  // Read global notification config from KV (same data store as /api/notification-config)
+  const defaults = {
+    morningTime:  '07:00',
+    eveningTime:  '20:00',
+    morningTitle: 'Добро утро! 🌅',
+    morningBody:  'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
+    eveningTitle: 'Добър вечер! 🌙',
+    eveningBody:  'Как мина денят? Отговорете на вечерните въпроси.',
+  };
+  let cfg = Object.assign({}, defaults);
+  try {
+    if (env.page_content) {
+      const raw = await env.page_content.get('notification-config');
+      if (raw) cfg = Object.assign(cfg, JSON.parse(raw));
+    }
+  } catch (_) {}
+
+  const [mH, mM] = cfg.morningTime.split(':').map(Number);
+  const [eH, eM] = cfg.eveningTime.split(':').map(Number);
+
+  const pad = n => String(n).padStart(2, '0');
+  function fmtDt(d) {
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T` +
+           `${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  }
+  // Escape iCal text fields
+  function esc(s) {
+    return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  }
+
+  const dtstamp = fmtDt(new Date());
+
+  function makeEvent(type, day, h, m, title, body) {
+    const d = new Date(day);
+    d.setHours(h, m, 0, 0);
+    const dEnd = new Date(d.getTime() + 15 * 60 * 1000);
+    const dateStr = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+    // Deterministic UID: same event on re-fetch updates instead of duplicating
+    const uid = `nutriplan-${type}-${dateStr}@aidiet.radilov-k.workers.dev`;
+    return [
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART:${fmtDt(d)}`,
+      `DTEND:${fmtDt(dEnd)}`,
+      `SUMMARY:${esc(title)}`,
+      `DESCRIPTION:${esc(body)}`,
+      `URL:${WORKER_BASE}/plan.html`,
+      'BEGIN:VALARM',
+      'TRIGGER:-PT0M',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${esc(title)}`,
+      'END:VALARM',
+      'END:VEVENT',
+    ].join('\r\n');
+  }
+
+  const events = [];
+  const today = new Date();
+  for (let i = 0; i < DAYS; i++) {
+    const day = new Date(today);
+    day.setDate(day.getDate() + i);
+    events.push(makeEvent('morning', day, mH, mM, cfg.morningTitle, cfg.morningBody));
+    events.push(makeEvent('evening', day, eH, eM, cfg.eveningTitle, cfg.eveningBody));
+  }
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//NutriPlan//AiDiet//BG',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:NutriPlan Напомняния',
+    'X-WR-CALDESC:Сутрешни и вечерни напомняния за вашия диетичен план',
+    'REFRESH-INTERVAL;VALUE=DURATION:PT24H',
+    'X-PUBLISHED-TTL:PT24H',
+    ...events,
+    'END:VCALENDAR',
+  ].join('\r\n');
+
+  return new Response(ics, {
+    headers: {
+      'Content-Type': 'text/calendar; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="nutriplan-reminders.ics"',
+      'Cache-Control': 'no-cache',
+    },
+  });
+}
+
+/**
  * Push Notifications: Get VAPID public key
  * 
  * Returns the VAPID public key needed for push notification subscription.
@@ -12343,6 +12447,8 @@ export default {
         return await handleGetNotificationConfig(request, env);
       } else if (url.pathname === '/api/notification-config' && request.method === 'POST') {
         return await handleSaveNotificationConfig(request, env);
+      } else if (url.pathname === '/api/calendar.ics' && request.method === 'GET') {
+        return await handleGetCalendarIcs(request, env);
       } else if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
         return await handlePushSubscribe(request, env);
       } else if (url.pathname === '/api/push/send' && request.method === 'POST') {
