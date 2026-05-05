@@ -4661,8 +4661,7 @@ function userHasSweetsCraving(foodCravings) {
 // Foods allowed in late-night snacks (Хранене 5): fats + proteins only
 const LOW_GI_FOODS = [
   'кисело мляко', 'скир', 'кефир',
-  'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'шамфъстък', 'пекани', 'макадамия',
-  'сурови ядки'
+  'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'шамфъстък', 'пекани', 'макадамия'
 ];
 
 // ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
@@ -5008,7 +5007,7 @@ function validatePlan(plan, userData, substitutions = []) {
         // Validate Хранене 3 content: must be a simple snack (fruits, raw nuts, skyr, yogurt)
         const MEAL3_ALLOWED_FOODS = [
           'плод', 'ябълка', 'круша', 'портокал', 'мандарина', 'банан', 'ягод', 'боровинк', 'малин', 'праскова', 'кайсия', 'грозде', 'пъпеш', 'диня', 'слив', 'киви', 'нектарин', 'манго',
-          'ядки', 'бадем', 'орех', 'кашу', 'лешник', 'шамфъстък', 'пекан', 'макадамия', 'сурови ядки',
+          'ядки', 'бадем', 'орех', 'кашу', 'лешник', 'шамфъстък', 'пекан', 'макадамия',
           'скир', 'кисело мляко', 'кефир'
         ];
         const meal3 = day.meals.find(m => m.type === 'Хранене 3');
