@@ -118,14 +118,46 @@ jobs:
           if ! command -v convert &>/dev/null; then
             echo "ImageMagick 'convert' not found – installing…" && sudo apt-get install -y imagemagick
           fi
+          # Legacy launcher icons: icon composed on dark brand background (matches PWA icon appearance)
           for entry in "48 mdpi" "72 hdpi" "96 xhdpi" "144 xxhdpi" "192 xxxhdpi"; do
             SIZE=${entry%% *}
             DPI=${entry##* }
             ICON_DIR="android/app/src/main/res/mipmap-${DPI}"
-            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher.png"
-            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_round.png"
-            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_foreground.png"
+            convert -size "${SIZE}x${SIZE}" xc:"#042F2E" \
+              \( "$ICON_SRC" -resize "${SIZE}x${SIZE}" \) \
+              -gravity center -composite "${ICON_DIR}/ic_launcher.png"
+            convert -size "${SIZE}x${SIZE}" xc:"#042F2E" \
+              \( "$ICON_SRC" -resize "${SIZE}x${SIZE}" \) \
+              -gravity center -composite "${ICON_DIR}/ic_launcher_round.png"
           done
+          # Adaptive icon foreground (108dp base) — icon centered within safe zone (66% of canvas)
+          for entry in "108 mdpi" "162 hdpi" "216 xhdpi" "324 xxhdpi" "432 xxxhdpi"; do
+            SIZE=${entry%% *}
+            DPI=${entry##* }
+            ICON_DIR="android/app/src/main/res/mipmap-${DPI}"
+            # Safe zone = 72dp of 108dp = 66.7% — icon must not exceed this or it gets clipped by launcher shapes
+            SAFE=$((SIZE * 2 / 3))
+            convert -size "${SIZE}x${SIZE}" xc:none \
+              \( "$ICON_SRC" -resize "${SAFE}x${SAFE}" \) \
+              -gravity center -composite "${ICON_DIR}/ic_launcher_foreground.png"
+          done
+          # Set adaptive icon background color to brand dark teal
+          python3 - <<'PY_COLORS'
+          from pathlib import Path
+          import re
+          colors_file = Path("android/app/src/main/res/values/colors.xml")
+          bg_color = '#042F2E'
+          entry_line = f'    <color name="ic_launcher_background">{bg_color}</color>'
+          if colors_file.exists():
+              content = colors_file.read_text()
+              if 'ic_launcher_background' not in content:
+                  content = content.replace('</resources>', entry_line + '\n</resources>')
+              else:
+                  content = re.sub(r'<color name="ic_launcher_background">#[0-9A-Fa-f]{3,8}</color>', entry_line.strip(), content)
+              colors_file.write_text(content)
+          else:
+              colors_file.write_text(f'<?xml version="1.0" encoding="utf-8"?>\n<resources>\n{entry_line}\n</resources>\n')
+          PY_COLORS
 
           npx cap sync android
           MANIFEST="android/app/src/main/AndroidManifest.xml"
@@ -138,6 +170,7 @@ jobs:
               '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />',
               '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
               '<uses-permission android:name="android.permission.WAKE_LOCK" />',
+              '<uses-permission android:name="android.permission.VIBRATE" />',
           ]
           for permission in permissions:
               if permission not in text:
@@ -147,11 +180,8 @@ jobs:
           # Remove any PNG splash added by cap sync to avoid duplicate resource with splash.xml below
           rm -f android/app/src/main/res/drawable/splash.png
           mkdir -p android/app/src/main/res/values android/app/src/main/res/drawable android/app/src/main/res/drawable-night android/app/src/main/res/drawable-nodpi
-          convert "$ICON_SRC" -resize 256x256 /tmp/nutriplan_splash_icon.png
-          convert -size 432x432 xc:none \
-            -fill 'rgba(255,255,255,0.88)' -draw 'circle 216,216 216,42' \
-            -fill 'rgba(0,154,158,0.10)' -draw 'circle 216,216 216,68' \
-            /tmp/nutriplan_splash_icon.png -gravity center -composite \
+          # Splash logo: plain icon resized (no white-circle overlay) — matches PWA appearance
+          convert "$ICON_SRC" -resize 256x256 \
             android/app/src/main/res/drawable-nodpi/nutriplan_splash_logo.png
           convert "$ICON_SRC" -resize 96x96 -alpha extract -threshold 1% android/app/src/main/res/drawable/ic_stat_nutriplan.png
           for entry in "24 mdpi" "36 hdpi" "48 xhdpi" "72 xxhdpi" "96 xxxhdpi"; do
@@ -172,18 +202,7 @@ jobs:
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="rectangle">
-                      <gradient
-                          android:angle="135"
-                          android:startColor="#F0FDFA"
-                          android:centerColor="#CCFBF1"
-                          android:endColor="#009A9E" />
-                  </shape>
-              </item>
-              <item android:top="96dp" android:bottom="96dp" android:left="48dp" android:right="48dp">
-                  <shape android:shape="rectangle">
-                      <corners android:radius="36dp" />
-                      <solid android:color="#33FFFFFF" />
-                      <stroke android:width="1dp" android:color="#66FFFFFF" />
+                      <solid android:color="#042F2E" />
                   </shape>
               </item>
               <item>
@@ -198,18 +217,7 @@ jobs:
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="rectangle">
-                      <gradient
-                          android:angle="135"
-                          android:startColor="#021615"
-                          android:centerColor="#042F2E"
-                          android:endColor="#009A9E" />
-                  </shape>
-              </item>
-              <item android:top="96dp" android:bottom="96dp" android:left="48dp" android:right="48dp">
-                  <shape android:shape="rectangle">
-                      <corners android:radius="36dp" />
-                      <solid android:color="#2214B8A6" />
-                      <stroke android:width="1dp" android:color="#552DD4BF" />
+                      <solid android:color="#042F2E" />
                   </shape>
               </item>
               <item>
