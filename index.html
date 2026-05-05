@@ -1256,6 +1256,14 @@
             color: var(--primary-red);
         }
 
+        .notification-compat-note {
+            max-width: 720px;
+            margin: 18px auto 0;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
         /* --- INSTALL APP BANNER --- */
         .install-banner {
             position: fixed;
@@ -1954,6 +1962,9 @@
             Включи Известия
         </button>
         <div class="notification-status" id="notificationStatus"></div>
+        <p class="notification-compat-note">
+            APK версията използва Android notification channel, runtime permission за Android 13+ и локални нотификации. При Huawei/HarmonyOS или агресивна батерия включи App launch/Background running за NutriPlan; ако устройството блокира фонови известия, календарният абонамент остава надежден резервен вариант.
+        </p>
     </section>
 
     <!-- Features Section -->

@@ -1,9 +1,10 @@
 /**
  * GameNotifier – система за локални нотификации.
  *
- * Поддържа два слоя за изпращане (в ред на предпочитание):
+ * Поддържа три слоя за изпращане (в ред на предпочитание):
  *   1. Capacitor LocalNotifications (APK / нативен Android)  ✅ най-надежден
- *   2. SW postMessage → SW sets a timeout (PWA fallback – работи само докато браузърът е жив)  ⚠️
+ *   2. Calendar feed fallback (Huawei/без Google services) ✅ системен календар
+ *   3. SW postMessage → SW sets a timeout (PWA fallback – работи само докато браузърът е жив)  ⚠️
  *
  * Нотификации:
  *   morning_check  – сутрешна проверка (по подразбиране 07:00)
@@ -17,9 +18,10 @@
 
 const GameNotifier = {
 
-    DAYS_AHEAD:     7,
+    DAYS_AHEAD:     30,
     LS_CONFIG_KEY:  'gameNotifierConfig',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
+    CHANNEL_ID:     'nutriplan_daily_checkins',
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
@@ -158,11 +160,39 @@ const GameNotifier = {
     async _requestCapacitorPermission() {
         try {
             const { LocalNotifications } = this._capacitor;
-            const status = await LocalNotifications.requestPermissions();
-            return status.display === 'granted';
+            const current = typeof LocalNotifications.checkPermissions === 'function'
+                ? await LocalNotifications.checkPermissions()
+                : {};
+            const status = current.display === 'granted'
+                ? current
+                : await LocalNotifications.requestPermissions();
+            if (status.display !== 'granted') return false;
+
+            await this._ensureAndroidChannel();
+            return true;
         } catch (e) {
             console.error('[GameNotifier] Capacitor permission error:', e);
             return false;
+        }
+    },
+
+    async _ensureAndroidChannel() {
+        try {
+            const { LocalNotifications } = this._capacitor;
+            if (typeof LocalNotifications.createChannel !== 'function') return;
+            await LocalNotifications.createChannel({
+                id: this.CHANNEL_ID,
+                name: 'NutriPlan дневни проверки',
+                description: 'Сутрешни и вечерни напомняния за проследяване на хранене, сън и настроение.',
+                importance: 5,
+                visibility: 1,
+                sound: 'default',
+                vibration: true,
+                lights: true,
+                lightColor: '#009A9E'
+            });
+        } catch (e) {
+            console.warn('[GameNotifier] Android channel setup warning:', e);
         }
     },
 
@@ -242,22 +272,24 @@ const GameNotifier = {
             if (morningTs > Date.now()) {
                 notifications.push({
                     id: 1000 + day,
+                    channelId: this.CHANNEL_ID,
                     title: cfg.morningTitle,
                     body:  cfg.morningBody,
                     schedule: { at: new Date(morningTs) },
                     extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
-                    iconColor: '#FF8C00'
+                    iconColor: '#009A9E'
                 });
             }
             const eveningTs = this._tsForDayOffset(day, eH, eM);
             if (eveningTs > Date.now()) {
                 notifications.push({
                     id: 2000 + day,
+                    channelId: this.CHANNEL_ID,
                     title: cfg.eveningTitle,
                     body:  cfg.eveningBody,
                     schedule: { at: new Date(eveningTs) },
                     extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
-                    iconColor: '#6A0DAD'
+                    iconColor: '#0F766E'
                 });
             }
         }

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Вашият персонализиран хранителен план — анализ, стратегия, менюта и насоки.">
+    <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
@@ -17,8 +18,7 @@
     <title>Хранителен План</title>
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- plan-book always uses light theme -->
-    <script>document.documentElement.setAttribute('data-theme','light');</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         /* ===== CSS VARIABLES ===== */
         :root {
