@@ -18,6 +18,8 @@
 
 const GameNotifier = {
 
+    // Keep a rolling monthly buffer so OEM battery restrictions or missed app opens
+    // do not leave users without reminders after the first week.
     DAYS_AHEAD:     30,
     LS_CONFIG_KEY:  'gameNotifierConfig',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
