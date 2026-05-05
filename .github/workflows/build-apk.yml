@@ -104,6 +104,9 @@ jobs:
           npx cap add android
 
           # Replace default Capacitor icons with NutriPlan icon
+          if ! command -v convert &>/dev/null; then
+            echo "ImageMagick 'convert' not found – installing…" && sudo apt-get install -y imagemagick
+          fi
           for entry in "48 mdpi" "72 hdpi" "96 xhdpi" "144 xxhdpi" "192 xxxhdpi"; do
             SIZE=${entry%% *}
             DPI=${entry##* }

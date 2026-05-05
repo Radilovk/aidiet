@@ -714,14 +714,15 @@ function renderScheduleVisualization() {
     const container = document.getElementById('scheduleViz');
     if (!container) return;
 
+    const defaults = { morningTime: '07:00', eveningTime: '20:00' };
     const raw = localStorage.getItem('gameNotifierConfig');
-    const cfg = raw ? Object.assign({ morningTime: '07:00', eveningTime: '20:00' }, JSON.parse(raw)) : { morningTime: '07:00', eveningTime: '20:00' };
+    const cfg = raw ? Object.assign({}, defaults, JSON.parse(raw)) : Object.assign({}, defaults);
     const [mH, mM] = cfg.morningTime.split(':').map(Number);
     const [eH, eM] = cfg.eveningTime.split(':').map(Number);
     const now = Date.now();
     const DAYS_AHEAD = 7;
 
-    function tsFor(dayOffset, h, m) {
+    function getTimestampForDay(dayOffset, h, m) {
         const d = new Date();
         d.setDate(d.getDate() + dayOffset);
         d.setHours(h, m, 0, 0);
@@ -736,8 +737,8 @@ function renderScheduleVisualization() {
     const days = [];
 
     for (let day = 0; day < DAYS_AHEAD; day++) {
-        const morningTs = tsFor(day, mH, mM);
-        const eveningTs = tsFor(day, eH, eM);
+        const morningTs = getTimestampForDay(day, mH, mM);
+        const eveningTs = getTimestampForDay(day, eH, eM);
         const d = new Date();
         d.setDate(d.getDate() + day);
         const isToday = day === 0;
@@ -749,8 +750,14 @@ function renderScheduleVisualization() {
         pills.push({ type: 'morning', label: '🌅 ' + cfg.morningTime, past: mPast, ts: morningTs });
         pills.push({ type: 'evening', label: '🌙 ' + cfg.eveningTime, past: ePast, ts: eveningTs });
 
-        if (!mPast && (nextTs === null || morningTs < nextTs)) { nextTs = morningTs; nextLabel = '🌅 Сутрешно (' + cfg.morningTime + ')'; }
-        if (!ePast && (nextTs === null || eveningTs < nextTs)) { nextTs = eveningTs; nextLabel = '🌙 Вечерно (' + cfg.eveningTime + ')'; }
+        if (!mPast && (nextTs === null || morningTs < nextTs)) {
+            nextTs = morningTs;
+            nextLabel = '🌅 Сутрешно (' + cfg.morningTime + ')';
+        }
+        if (!ePast && (nextTs === null || eveningTs < nextTs)) {
+            nextTs = eveningTs;
+            nextLabel = '🌙 Вечерно (' + cfg.eveningTime + ')';
+        }
 
         days.push({ dayName, isToday, pills });
     }
