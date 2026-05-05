@@ -2206,6 +2206,21 @@
                     </div>
                 </div>
 
+                <!-- ── Extra / Custom notifications ──────────────────── -->
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 5px; color: var(--text-dark);">
+                        <i class="fas fa-plus-circle"></i> Допълнителни нотификации
+                    </h3>
+                    <p style="font-size: 0.85rem; color: var(--text-gray); margin: 0 0 12px;">
+                        Произволни нотификации в допълнение към сутрешната и вечерната. Всяка се изпълнява ежедневно в зададения час. Huawei APK ги получава чрез Capacitor LocalNotifications при следващо отваряне на приложението.
+                    </p>
+                    <div id="gnExtraList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;"></div>
+                    <button type="button" onclick="addExtraNotification()"
+                            style="background: #17a2b8; color: #fff; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+                        <i class="fas fa-plus"></i> Добави нотификация
+                    </button>
+                </div>
+
                 <!-- ── Action Buttons ─────────────────────────────────── -->
                 <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
                     <button class="btn" onclick="saveGameNotifierConfig()">
@@ -5960,6 +5975,14 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 document.getElementById('gnEveningTitle').value = cfg.eveningTitle || 'Добър вечер! 🌙';
                 document.getElementById('gnEveningBody').value  = cfg.eveningBody  || 'Как мина денят? Отговорете на вечерните въпроси.';
 
+                // Render extra notifications
+                const list = document.getElementById('gnExtraList');
+                if (list) {
+                    list.innerHTML = '';
+                    const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
+                    extras.forEach(extra => addExtraNotification(extra));
+                }
+
                 if (statusEl) {
                     statusEl.textContent = data.version ? '✓ v' + data.version : '✓ Заредено';
                     statusEl.style.color = '#28a745';
@@ -5972,15 +5995,73 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
+        /** Add an extra notification row to the UI */
+        function addExtraNotification(data) {
+            const list = document.getElementById('gnExtraList');
+            if (!list) return;
+            const d = data || {};
+
+            const row = document.createElement('div');
+            row.className = 'gn-extra-row';
+            row.style.cssText = 'display:grid; grid-template-columns:110px 1fr 1fr auto; gap:8px; align-items:center; background:#f8f9fa; padding:10px; border-radius:6px; border:1px solid #e0e0e0;';
+
+            // Helper to create a labeled input field
+            function makeField(labelText, inputClass, inputType, placeholderText, inputValue) {
+                const wrapper = document.createElement('div');
+                const lbl = document.createElement('label');
+                lbl.textContent = labelText;
+                lbl.style.cssText = 'font-size:0.8rem;color:#666;display:block;margin-bottom:3px;';
+                const inp = document.createElement('input');
+                inp.type = inputType;
+                inp.className = inputClass;
+                inp.placeholder = placeholderText;
+                inp.value = inputValue;
+                inp.style.cssText = 'width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;';
+                wrapper.appendChild(lbl);
+                wrapper.appendChild(inp);
+                return wrapper;
+            }
+
+            row.appendChild(makeField('Час',     'gn-extra-time',  'time', '',                      d.time  || '12:00'));
+            row.appendChild(makeField('Заглавие','gn-extra-title', 'text', 'Заглавие на нотификацията', d.title || ''));
+            row.appendChild(makeField('Текст',   'gn-extra-body',  'text', 'Текст на нотификацията', d.body  || ''));
+
+            const delWrapper = document.createElement('div');
+            delWrapper.style.paddingTop = '18px';
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.title = 'Изтрий';
+            delBtn.style.cssText = 'background:#dc3545;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.addEventListener('click', () => row.remove());
+            delWrapper.appendChild(delBtn);
+            row.appendChild(delWrapper);
+
+            list.appendChild(row);
+        }
+
         /** Save GameNotifier config to backend KV (/api/notification-config) */
         async function saveGameNotifierConfig() {
+            // Collect extra notifications from UI rows
+            const extraRows = document.querySelectorAll('#gnExtraList .gn-extra-row');
+            const extraNotifications = [];
+            extraRows.forEach((row, idx) => {
+                const time  = (row.querySelector('.gn-extra-time')  || {}).value || '';
+                const title = (row.querySelector('.gn-extra-title') || {}).value || '';
+                const body  = (row.querySelector('.gn-extra-body')  || {}).value || '';
+                if (time) {
+                    extraNotifications.push({ time, title, body });
+                }
+            });
+
             const cfg = {
                 morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
                 eveningTime:  document.getElementById('gnEveningTime').value  || '20:00',
                 morningTitle: document.getElementById('gnMorningTitle').value || 'Добро утро! 🌅',
                 morningBody:  document.getElementById('gnMorningBody').value  || 'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
                 eveningTitle: document.getElementById('gnEveningTitle').value || 'Добър вечер! 🌙',
-                eveningBody:  document.getElementById('gnEveningBody').value  || 'Как мина денят? Отговорете на вечерните въпроси.'
+                eveningBody:  document.getElementById('gnEveningBody').value  || 'Как мина денят? Отговорете на вечерните въпроси.',
+                extraNotifications
             };
             try {
                 const response = await fetch(WORKER_URL + '/api/notification-config', {
