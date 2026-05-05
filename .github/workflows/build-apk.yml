@@ -160,6 +160,8 @@ jobs:
           PY_COLORS
 
           npx cap sync android
+          # Remove Capacitor-generated ic_launcher_background.xml to avoid duplicate with colors.xml
+          rm -f android/app/src/main/res/values/ic_launcher_background.xml
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           python3 - <<'PY'
           from pathlib import Path
