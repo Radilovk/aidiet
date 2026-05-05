@@ -2819,7 +2819,12 @@
                     title: 'NutriPlan – Моят хранителен план',
                     text: 'Вижте моя персонализиран хранителен план от NutriPlan.',
                     url: window.location.href
-                }).catch(function() {});
+                }).catch(function(err) {
+                    // User cancelled sharing (AbortError) – no action needed; other errors show hint
+                    if (err && err.name !== 'AbortError') {
+                        alert('За да отпечатате плана, отворете го в браузър и използвайте функцията за печат.');
+                    }
+                });
             } else {
                 alert('За да отпечатате плана, отворете го в браузър и използвайте функцията за печат.');
             }

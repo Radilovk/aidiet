@@ -259,12 +259,9 @@
             justify-content: space-between;
             background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
             padding: 0;
-            /* Extend banner colour behind the status bar; items remain centered
-               below the safe area because flex centers within the content box */
+            /* Push content below the status-bar / Dynamic Island safe area */
             padding-top: var(--safe-area-inset-top);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            position: relative;
             overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
@@ -6313,6 +6310,12 @@
         // ═══════════════════════════════════════════════════════════
         // FOOD IMAGE ANALYSIS FEATURE
         // ═══════════════════════════════════════════════════════════
+
+        // Helper: returns true when running inside the native Capacitor APK
+        function isNativeAPK() {
+            var cap = window.Capacitor;
+            return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+        }
         
         let foodAnalysisImageData = null;  // Base64 image data
         let foodAnalysisImageMime = null;  // MIME type
@@ -6321,7 +6324,7 @@
         let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
 
         function resetFoodCaptureUI(mode) {
-            const isNative = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+            const isNative = isNativeAPK();
             const hint = mode === 'menu'
                 ? (isNative ? 'Натиснете за да снимате менюто' : 'Натиснете за да снимате менюто<br>или изберете от галерията')
                 : (isNative ? 'Натиснете за да направите снимка' : 'Натиснете за да направите снимка<br>или изберете от галерията');
@@ -6422,8 +6425,8 @@
             if (foodAnalysisInProgress) return;
             // On native Android APK use the Capacitor Camera plugin to open the
             // camera directly instead of the file-picker/gallery.
-            const cap = window.Capacitor;
-            if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) {
+            if (isNativeAPK()) {
+                const cap = window.Capacitor;
                 const Camera = (cap.Plugins && cap.Plugins.Camera) ||
                                (typeof cap.registerPlugin === 'function' ? cap.registerPlugin('Camera') : null);
                 if (Camera && typeof Camera.getPhoto === 'function') {
@@ -6481,9 +6484,8 @@
             }
 
             // On native APK hide the "or choose from gallery" hint since camera is used directly
-            const isNative = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
             const hintEl = document.getElementById('foodCaptureHint');
-            if (isNative && hintEl) {
+            if (isNativeAPK() && hintEl) {
                 hintEl.innerHTML = 'Натиснете за да направите снимка';
             }
 
