@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Въпросник 2.0 - Попълнете детайлен въпросник за персонален здравен план. Информацията ще бъде обработена от нашия екип.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA">
+    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -36,7 +37,7 @@
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0A1A1A':'#F0FDFA');})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -1222,8 +1223,8 @@
 
 
         function setThemeColor(theme) {
-            var m = document.querySelector('meta[name="theme-color"]');
-            if (m) m.setAttribute('content', theme === 'dark' ? '#0A1A1A' : '#F0FDFA');
+            var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.setAttribute('content', c); });
         }
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme') || 'light';
@@ -3422,9 +3423,9 @@
             // Show loading state with progress bar (same pattern as questionnaire.html)
             container.innerHTML = `
                 <div style="text-align:center; animation: fadeIn 0.5s; max-width: 500px; margin: 0 auto;">
-                    <!-- Animated Icon with Pulse -->
-                    <div class="section-icon" style="background:#e8f8f5; color:var(--primary-red); margin-bottom: 30px; animation: pulse 2s ease-in-out infinite;">
-                        <i class="fas fa-brain"></i>
+                    <!-- Hexagonal AI Loader -->
+                    <div style="margin-bottom: 30px; display: flex; justify-content: center; align-items: center; height: 80px;">
+                        <div class="ai-hex-loader"></div>
                     </div>
                     
                     <h2 class="q-text" id="loadingTitle" style="transition: all 0.3s ease;">Анализиране на данните...</h2>
@@ -3474,9 +3475,36 @@
                 </div>
                 
                 <style>
-                    @keyframes pulse {
-                        0%, 100% { transform: scale(1); opacity: 1; }
-                        50% { transform: scale(1.05); opacity: 0.9; }
+                    .ai-hex-loader {
+                        width: 64px;
+                        aspect-ratio: 1.154;
+                        color: var(--primary-red);
+                        display: grid;
+                        animation: aiHex0 6s infinite linear;
+                    }
+                    .ai-hex-loader::before,
+                    .ai-hex-loader::after {
+                        content: "";
+                        grid-area: 1/1;
+                    }
+                    .ai-hex-loader::before {
+                        clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);
+                        background: conic-gradient(from -30deg,#0000 60deg,currentColor 0);
+                    }
+                    .ai-hex-loader::after {
+                        background: conic-gradient(from -30deg,currentColor 60deg,#0000 0);
+                        animation: aiHex1 0.5s infinite alternate;
+                    }
+                    @keyframes aiHex0 {
+                        0%,16.66%     { transform: rotate(0deg) }
+                        16.67%,33.33% { transform: rotate(60deg) }
+                        33.34%,50%    { transform: rotate(120deg) }
+                        50.1%,66.66%  { transform: rotate(180deg) }
+                        66.67%,83.33% { transform: rotate(240deg) }
+                        83.34%,100%   { transform: rotate(300deg) }
+                    }
+                    @keyframes aiHex1 {
+                        100% { transform: translateY(-20px) }
                     }
                     
                     @keyframes shine {
@@ -3723,13 +3751,34 @@
                     tipsInterval = null;
                 }
                 
-                // Complete the progress bar
-                const progressBar = document.getElementById('aiProgressBar');
-                const percentageText = document.getElementById('progressPercentage');
-                if (progressBar && percentageText) {
-                    progressBar.style.width = '100%';
-                    percentageText.textContent = '100%';
-                }
+                // Update loading title to signal plan is ready, then animate bar to 100%
+                const loadingTitleEl = document.getElementById('loadingTitle');
+                const loadingSubtitleEl = document.getElementById('loadingSubtitle');
+                if (loadingTitleEl) loadingTitleEl.textContent = 'Планът е готов!';
+                if (loadingSubtitleEl) loadingSubtitleEl.textContent = 'Финализираме последните детайли...';
+                
+                // Animate progress bar smoothly to 100% before showing result
+                await new Promise(resolve => {
+                    const bar = document.getElementById('aiProgressBar');
+                    const pct = document.getElementById('progressPercentage');
+                    if (!bar || !pct) { resolve(); return; }
+                    const startWidth = parseFloat(bar.style.width) || 0;
+                    const remaining = 100 - startWidth;
+                    if (remaining <= 0) { setTimeout(resolve, 400); return; }
+                    // 1.5% step size per 30ms tick → ~2 seconds max to fill from 0 to 100%
+                    const totalSteps = Math.max(1, Math.ceil(remaining / 1.5));
+                    let step = 0;
+                    const finalizeInterval = setInterval(() => {
+                        step++;
+                        const newWidth = Math.min(100, startWidth + (step / totalSteps) * remaining);
+                        bar.style.width = Math.floor(newWidth) + '%';
+                        pct.textContent = Math.floor(newWidth) + '%';
+                        if (newWidth >= 100) {
+                            clearInterval(finalizeInterval);
+                            setTimeout(resolve, 400);
+                        }
+                    }, 30);
+                });
                 
                 if (result.success) {
                     // Check if there's a goal contradiction
