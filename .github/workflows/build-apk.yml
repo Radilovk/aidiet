@@ -119,6 +119,8 @@ jobs:
           done
 
           npx cap sync android
+          # Remove any PNG splash added by cap sync to avoid duplicate resource with splash.xml below
+          rm -f android/app/src/main/res/drawable/splash.png
           sed -i 's|<color name="backgroundColor">.*</color>|<color name="backgroundColor">#042F2E</color>|g' android/app/src/main/res/values/colors.xml || true
           mkdir -p android/app/src/main/res/drawable-night
           cat > android/app/src/main/res/drawable/splash.xml <<'EOF'
