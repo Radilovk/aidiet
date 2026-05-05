@@ -30,6 +30,7 @@
     "url": "https://github.com/Radilovk/aidiet.git"
   },
   "dependencies": {
+    "@capgo/capacitor-navigation-bar": "^8.1.5",
     "@capacitor/android": "^8.3.1",
     "@capacitor/core": "^8.3.1",
     "@capacitor/local-notifications": "^8.0.2",

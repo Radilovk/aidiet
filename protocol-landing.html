@@ -1748,8 +1748,15 @@
 
 
         function setThemeColor(theme) {
-            document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',theme==='dark'?'#0A1A1A':'#F0FDFA');});
-        }
+            var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});
+                if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+                    var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
+                    if (navBar && navBar.setNavigationBarColor) {
+                        navBar.setNavigationBarColor({ color: c });
+                    }
+                }
+            }
         function toggleTheme() {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             if (isDark) {

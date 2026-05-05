@@ -2837,8 +2837,15 @@
 
 
         function setThemeColor(theme) {
-            document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',theme==='dark'?'#0A1A1A':'#F0FDFA');});
-        }
+            var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});
+                if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+                    var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
+                    if (navBar && navBar.setNavigationBarColor) {
+                        navBar.setNavigationBarColor({ color: c });
+                    }
+                }
+            }
         function toggleTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -5941,7 +5948,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const result = await response.json();
 
                 if (result.success) {
-                    clearCacheKey('admin:notification-settings');
+                    apiCache.clear('admin:notification-settings');
                     updateNotificationStatusBadge(settings.enabled);
                     localStorage.setItem('globalNotificationSettings', JSON.stringify(settings));
                     if (result.version) {
@@ -6422,7 +6429,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const result = await response.json();
 
                 if (result.success) {
-                    clearCache('admin:notification-templates');
+                    apiCache.clear('admin:notification-templates');
                     
                     // Cache templates in localStorage for client-side use
                     localStorage.setItem('notificationTemplates', JSON.stringify(templates));
@@ -6488,7 +6495,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 });
                 const result = await response.json();
                 if (result.success) {
-                    clearCache('admin:email-template');
+                    apiCache.clear('admin:email-template');
                     showSuccess('Имейл шаблонът е запазен успешно!');
                 } else {
                     throw new Error(result.error || 'Failed to save email template');
@@ -6509,7 +6516,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 });
                 const result = await response.json();
                 if (result.success) {
-                    clearCache('admin:email-template');
+                    apiCache.clear('admin:email-template');
                     await loadEmailTemplate();
                     showSuccess('Имейл шаблонът е върнат по подразбиране!');
                 } else {
