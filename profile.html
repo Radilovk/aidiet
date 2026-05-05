@@ -2984,8 +2984,10 @@
         }
 
         // --- Initialization ---
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
+            // Restore plan data from Capacitor Preferences (survives app reinstall/update).
+            await NativeBackup.init();
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
             // Macros and strategy panels moved to guidelines.html
@@ -4365,5 +4367,5 @@
             <span>Профил</span>
         </a>
     </nav>
-</body>
-</html>
+    <script src="./native-backup.js"></script>
+</body></html>
