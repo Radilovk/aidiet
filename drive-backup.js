@@ -218,8 +218,6 @@ const DriveBackup = (function () {
 
     /**
      * Check Google Drive for an existing backup and restore it into localStorage.
-     * Also syncs data into Capacitor Preferences via NativeBackup (if available),
-     * so the plan survives future reinstalls too.
      *
      * Intended to be called on first launch when no local plan is found.
      *
@@ -239,11 +237,6 @@ const DriveBackup = (function () {
             if (!payload || !payload.data) return { success: false, error: 'invalid_data' };
 
             _applyData(payload.data);
-
-            // Mirror restored data into Capacitor Preferences (SharedPreferences)
-            if (typeof NativeBackup !== 'undefined') {
-                await NativeBackup.init();
-            }
 
             return { success: true };
         } catch (err) {
