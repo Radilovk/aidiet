@@ -116,7 +116,8 @@ const DriveBackup = (function () {
      * @returns {Promise<string|null>}  Drive file ID, or null if not found
      */
     async function _findFile(token) {
-        const q = encodeURIComponent("name='" + BACKUP_FILENAME + "'");
+        const safeName = BACKUP_FILENAME.replace(/'/g, "\\'");
+        const q = encodeURIComponent("name='" + safeName + "'");
         const url = DRIVE_FILES_URL + '?spaces=appDataFolder&fields=files(id)&q=' + q;
         try {
             const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });

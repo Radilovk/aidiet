@@ -261,7 +261,7 @@ jobs:
                   )
               print("strings.xml: server_client_id injected for Google Sign-In.")
           else:
-              print("WARNING: GOOGLE_WEB_CLIENT_ID secret not set – Google Drive backup will not work in this build.")
+              print("::warning::GOOGLE_WEB_CLIENT_ID secret not set – Google Drive backup feature will not work in this build. Set the secret in repository Settings → Secrets and variables → Actions.")
           # Ensure INTERNET permission (required for Drive REST API calls)
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           text = manifest.read_text()

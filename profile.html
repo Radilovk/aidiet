@@ -2171,7 +2171,7 @@
                 <button class="btn btn-primary" onclick="restorePlanFromCode()" style="width: 100%;">
                     <i class="fas fa-undo"></i> Възстанови плана
                 </button>
-                <div id="planBackupStatus" style="display: none; margin-top: 12px; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
+                <div id="emailBackupStatus" style="display: none; margin-top: 12px; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
             </div>
         </div>
     </div>
@@ -2230,7 +2230,7 @@
 
         async function restorePlanFromCode() {
             const code = (document.getElementById('planBackupCode').value || '').trim();
-            const statusEl = document.getElementById('planBackupStatus');
+            const statusEl = document.getElementById('emailBackupStatus');
             statusEl.style.display = 'none';
             const ok = await PlanBackup.importFromCode(code);
             if (ok) {
@@ -2273,7 +2273,7 @@
 
         async function driveSyncPlan() {
             if (typeof DriveBackup === 'undefined') {
-                _setDriveStatus('Услугата не е заредена. Опреснете страницата.', false);
+                _setDriveStatus('Грешка при зареждане на услугата. Презаредете приложението.', false);
                 return;
             }
             document.getElementById('driveSyncBtn').disabled = true;
@@ -2289,7 +2289,7 @@
 
         async function driveRestorePlan() {
             if (typeof DriveBackup === 'undefined') {
-                _setDriveStatus('Услугата не е заредена. Опреснете страницата.', false);
+                _setDriveStatus('Грешка при зареждане на услугата. Презаредете приложението.', false);
                 return;
             }
             document.getElementById('driveRestoreBtn').disabled = true;
