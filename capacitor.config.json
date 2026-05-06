@@ -11,6 +11,15 @@
       "smallIcon": "ic_stat_nutriplan",
       "iconColor": "#009A9E",
       "sound": "default"
+    },
+    "GoogleAuth": {
+      "scopes": [
+        "profile",
+        "email",
+        "https://www.googleapis.com/auth/drive.appdata"
+      ],
+      "serverClientId": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
     }
   },
   "android": {

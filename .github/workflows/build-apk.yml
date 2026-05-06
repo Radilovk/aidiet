@@ -118,6 +118,7 @@ jobs:
         env:
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/nutriplan.keystore
           ANDROID_KEY_ALIAS: nutriplan
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: |
           V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
           V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
@@ -232,6 +233,44 @@ jobs:
           manifest.write_text(text)
           print("Android Auto Backup configured: backup_rules.xml + data_extraction_rules.xml created, AndroidManifest.xml patched.")
           PY_BACKUP
+          # Configure Google Sign-In (for Drive backup): inject server_client_id into strings.xml
+          # and ensure INTERNET permission is present in AndroidManifest.xml.
+          python3 - <<'PY_GOOGLE_AUTH'
+          import os, re
+          from pathlib import Path
+          client_id = os.environ.get('GOOGLE_WEB_CLIENT_ID', '').strip()
+          strings_file = Path("android/app/src/main/res/values/strings.xml")
+          if client_id:
+              entry = f'    <string name="server_client_id">{client_id}</string>'
+              if strings_file.exists():
+                  content = strings_file.read_text()
+                  if 'server_client_id' in content:
+                      content = re.sub(
+                          r'<string name="server_client_id">[^<]*</string>',
+                          entry.strip(), content
+                      )
+                  else:
+                      content = content.replace('</resources>', entry + '\n</resources>')
+                  strings_file.write_text(content)
+              else:
+                  strings_file.parent.mkdir(parents=True, exist_ok=True)
+                  strings_file.write_text(
+                      '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
+                      '    <string name="app_name">NutriPlan</string>\n'
+                      + entry + '\n</resources>\n'
+                  )
+              print("strings.xml: server_client_id injected for Google Sign-In.")
+          else:
+              print("WARNING: GOOGLE_WEB_CLIENT_ID secret not set – Google Drive backup will not work in this build.")
+          # Ensure INTERNET permission (required for Drive REST API calls)
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+          internet_perm = '<uses-permission android:name="android.permission.INTERNET" />'
+          if internet_perm not in text:
+              text = text.replace('<application', internet_perm + '\n\n    <application', 1)
+              manifest.write_text(text)
+              print("AndroidManifest.xml: INTERNET permission added.")
+          PY_GOOGLE_AUTH
           # Remove any PNG splash added by cap sync to avoid duplicate resource with splash.xml below
           rm -f android/app/src/main/res/drawable/splash.png
           mkdir -p android/app/src/main/res/values android/app/src/main/res/drawable android/app/src/main/res/drawable-night android/app/src/main/res/drawable-nodpi

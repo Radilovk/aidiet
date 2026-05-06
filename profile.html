@@ -2139,9 +2139,28 @@
             </div>
             <div class="profile-contact-wrapper" id="planBackupWrapper">
                 <p style="color: var(--text-light); margin: 16px 0 12px; font-size: 0.95rem;">
-                    Запазете плана си, преди да деинсталирате приложението. Изпратете резервен код на имейл,
-                    а след преинсталиране го поставете в полето по-долу за автоматично възстановяване.
+                    Запазете плана си, преди да деинсталирате приложението.
+                    Можете да използвате Google Drive (автоматично) или да изпратите резервен код на имейл.
                 </p>
+
+                <!-- Google Drive backup (APK only) -->
+                <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
+                    <p style="margin: 0 0 12px; font-size: 0.88rem; color: var(--text-light);">
+                        <i class="fab fa-google-drive" style="color: #4285F4;"></i>
+                        <strong>Google Drive</strong> – автоматично запазване, без ръчни кодове
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <button class="btn btn-primary" onclick="driveSyncPlan()" id="driveSyncBtn">
+                            <i class="fas fa-cloud-upload-alt"></i> Запази в Drive
+                        </button>
+                        <button class="btn btn-primary" onclick="driveRestorePlan()" id="driveRestoreBtn">
+                            <i class="fas fa-cloud-download-alt"></i> Зареди от Drive
+                        </button>
+                    </div>
+                    <div id="driveBackupStatus" style="display: none; padding: 10px 14px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; text-align: center;"></div>
+                </div>
+
+                <!-- Email backup fallback -->
                 <button class="btn btn-primary" onclick="PlanBackup.exportToEmail()" style="width: 100%; margin-bottom: 16px;">
                     <i class="fas fa-envelope"></i> Изпрати резервно копие на имейл
                 </button>
@@ -2224,6 +2243,63 @@
                 statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
                 statusEl.style.color = '#ef4444';
                 statusEl.textContent = '✗ Неуспешно възстановяване. Проверете дали кодът е пълен и правилен.';
+            }
+        }
+
+        const _DRIVE_ERROR_MSGS = {
+            no_data:       'Няма данни за запазване.',
+            auth_failed:   'Google Sign-In неуспешен. Проверете акаунта в настройките.',
+            upload_failed: 'Качването неуспешно. Опитайте отново.',
+            no_backup:     'Не е намерено резервно копие в Google Drive.',
+            invalid_data:  'Резервното копие е повредено или непълно.',
+            not_native:    'Функцията работи само в инсталираното APK приложение.',
+        };
+
+        function _setDriveStatus(msg, isSuccess) {
+            const el = document.getElementById('driveBackupStatus');
+            el.style.display = 'block';
+            el.style.background = isSuccess ? 'rgba(0,200,140,0.15)' : 'rgba(239,68,68,0.15)';
+            el.style.color = isSuccess ? '#00c88c' : '#ef4444';
+            el.textContent = (isSuccess ? '✓ ' : '✗ ') + msg;
+        }
+
+        function _setDriveWorking(msg) {
+            const el = document.getElementById('driveBackupStatus');
+            el.style.display = 'block';
+            el.style.background = 'rgba(59,130,246,0.12)';
+            el.style.color = '#3b82f6';
+            el.textContent = '⏳ ' + msg;
+        }
+
+        async function driveSyncPlan() {
+            if (typeof DriveBackup === 'undefined') {
+                _setDriveStatus('Услугата не е заредена. Опреснете страницата.', false);
+                return;
+            }
+            document.getElementById('driveSyncBtn').disabled = true;
+            _setDriveWorking('Качване в Google Drive...');
+            const result = await DriveBackup.syncPlan();
+            document.getElementById('driveSyncBtn').disabled = false;
+            if (result.success) {
+                _setDriveStatus('Планът е запазен в Google Drive.', true);
+            } else {
+                _setDriveStatus(_DRIVE_ERROR_MSGS[result.error] || ('Грешка: ' + result.error), false);
+            }
+        }
+
+        async function driveRestorePlan() {
+            if (typeof DriveBackup === 'undefined') {
+                _setDriveStatus('Услугата не е заредена. Опреснете страницата.', false);
+                return;
+            }
+            document.getElementById('driveRestoreBtn').disabled = true;
+            _setDriveWorking('Търсене на резервно копие в Google Drive...');
+            const result = await DriveBackup.restorePlan();
+            document.getElementById('driveRestoreBtn').disabled = false;
+            if (result.success) {
+                _setDriveStatus('Планът е възстановен от Google Drive! Отидете на Моят план.', true);
+            } else {
+                _setDriveStatus(_DRIVE_ERROR_MSGS[result.error] || ('Грешка: ' + result.error), false);
             }
         }
 
@@ -4430,6 +4506,7 @@
             <span>Профил</span>
         </a>
     </nav>
+    <script src="./drive-backup.js"></script>
     <script src="./plan-export.js"></script>
     <script src="./native-backup.js"></script>
 </body>
