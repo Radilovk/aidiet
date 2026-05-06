@@ -11,10 +11,10 @@
  *   evening_check  – вечерна проверка (по подразбиране 20:00)
  *
  * Backend config sync:
- *   – GET /api/notification-config?v=<localVersion> при всяко init()
- *   – Ако версията не се е сменила → сървърът връща { upToDate: true } (1 KV четене, ~50 bytes)
- *   – Ако версията е по-нова → изтегля пълния конфиг и презарежда нотификациите
- *   – Конфигурацията се кешира в localStorage → 'gameNotifierConfig'
+ *   – Клиентът НЕ прави автоматични заявки към бекенда при отваряне на приложението.
+ *   – Конфигурацията се зарежда САМО от localStorage → 'gameNotifierConfig' (или hardcoded defaults).
+ *   – _maybeSyncBackendConfig() се извиква единствено от forceSyncBackendConfig(), което
+ *     се вика от admin панела след ръчно запазване на нова конфигурация.
  */
 
 const GameNotifier = {
@@ -81,10 +81,9 @@ const GameNotifier = {
             }
         }
 
-        // Sync backend config (version-based ETag: cheap check on every init)
-        await this._maybeSyncBackendConfig();
-
-        // Schedule 7-day block with hardcoded defaults (or admin-overridden times)
+        // Schedule 7-day block with hardcoded defaults (or admin-overridden times).
+        // No automatic backend sync here — config is fetched only when the admin
+        // explicitly saves a new notification config via the admin panel.
         await this.scheduleNotifications();
 
         console.log('[GameNotifier] Ready.');
