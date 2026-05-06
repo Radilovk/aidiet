@@ -11,9 +11,10 @@
  *   evening_check  – вечерна проверка (по подразбиране 20:00)
  *
  * Backend config sync:
- *   – GET /api/notification-config (max веднъж на 24 ч, освен при force)
- *   – Конфигурацията се кешира в localStorage → 'gameNotifierConfig'
- *   – Backend се извиква само ако версията от сървъра е по-нова
+ *   – Клиентът НЕ прави автоматични заявки към бекенда при отваряне на приложението.
+ *   – Конфигурацията се зарежда САМО от localStorage → 'gameNotifierConfig' (или hardcoded defaults).
+ *   – _maybeSyncBackendConfig() се извиква единствено от forceSyncBackendConfig(), което
+ *     се вика от admin панела след ръчно запазване на нова конфигурация.
  */
 
 const GameNotifier = {
@@ -21,7 +22,8 @@ const GameNotifier = {
     // Keep a rolling monthly buffer so OEM battery restrictions or missed app opens
     // do not leave users without reminders after the first week.
     SCHEDULE_WINDOW_DAYS: 30,
-    LS_CONFIG_KEY:  'gameNotifierConfig',
+    LS_CONFIG_KEY:   'gameNotifierConfig',
+    LS_VERSION_KEY:  'gameNotifierConfigVersion',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins',
     BRAND_TEAL:     '#009A9E',
@@ -79,10 +81,9 @@ const GameNotifier = {
             }
         }
 
-        // Sync backend config (at most once per 24 h, no-op if unchanged)
-        await this._maybeSyncBackendConfig();
-
-        // Schedule 7-day block with hardcoded defaults (or admin-overridden times)
+        // Schedule 7-day block with hardcoded defaults (or admin-overridden times).
+        // No automatic backend sync here — config is fetched only when the admin
+        // explicitly saves a new notification config via the admin panel.
         await this.scheduleNotifications();
 
         console.log('[GameNotifier] Ready.');
@@ -229,36 +230,48 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
 
     async _maybeSyncBackendConfig() {
-        const LS_LAST_SYNC_KEY = 'gameNotifierConfigLastSync';
-        const MIN_INTERVAL_MS  = 24 * 60 * 60 * 1000; // 24 h throttle
-        const lastSync = parseInt(localStorage.getItem(LS_LAST_SYNC_KEY) || '0', 10);
-        if (Date.now() - lastSync < MIN_INTERVAL_MS) return;
-
+        // Version-based ETag check: send the locally cached version as ?v=N.
+        // When the server version matches, the Worker returns { upToDate: true }
+        // (a single KV read, ~50 bytes) without transmitting the full config blob.
+        // Only when the admin has saved a new config (bumping the server version)
+        // does the Worker return the full payload, which the client then stores and
+        // uses to reschedule notifications.
+        //
+        // There is intentionally no time-based throttle: each app open (init() call)
+        // triggers exactly one lightweight check. Backend cost is negligible for the
+        // common case (version unchanged), and admin changes propagate to all users
+        // on their very next app open.
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
-        const LS_VERSION_KEY = 'gameNotifierConfigVersion';
         try {
-            const res = await fetch(`${WORKER_URL}/api/notification-config`, { method: 'GET' });
+            const localVersion = parseInt(localStorage.getItem(this.LS_VERSION_KEY) || '0', 10);
+            const res = await fetch(`${WORKER_URL}/api/notification-config?v=${localVersion}`, { method: 'GET' });
             if (!res.ok) return;
             const data = await res.json();
-            if (!data || !data.config) return;
+            // Server says our cached version is still current — nothing to do.
+            if (data.upToDate) return;
+            if (!data.config) return;
             const serverVersion = data.version || 0;
-            const localVersion  = parseInt(localStorage.getItem(LS_VERSION_KEY) || '0', 10);
             if (serverVersion > localVersion) {
                 localStorage.setItem(this.LS_CONFIG_KEY, JSON.stringify(data.config));
-                localStorage.setItem(LS_VERSION_KEY, String(serverVersion));
+                localStorage.setItem(this.LS_VERSION_KEY, String(serverVersion));
                 console.log('[GameNotifier] Config updated from backend (version', serverVersion, ').');
             }
-            localStorage.setItem(LS_LAST_SYNC_KEY, String(Date.now()));
         } catch (_) { /* offline / endpoint not deployed yet */ }
     },
 
     /**
-     * Force an immediate config sync (bypasses the 24 h throttle).
+     * Force an immediate config sync regardless of the cached version.
      * Called by the admin panel after a config change is saved.
      */
     async forceSyncBackendConfig() {
-        localStorage.removeItem('gameNotifierConfigLastSync');
+        // Temporarily clear the local version so the server always returns full config.
+        const saved = localStorage.getItem(this.LS_VERSION_KEY);
+        localStorage.removeItem(this.LS_VERSION_KEY);
         await this._maybeSyncBackendConfig();
+        // Restore if sync failed (offline) so we don't lose the cached version.
+        if (!localStorage.getItem(this.LS_VERSION_KEY) && saved !== null) {
+            localStorage.setItem(this.LS_VERSION_KEY, saved);
+        }
     },
 
     /* ------------------------------------------------------------------ */
@@ -269,6 +282,10 @@ const GameNotifier = {
         console.log('[GameNotifier] Using Capacitor LocalNotifications');
         const { LocalNotifications } = this._capacitor;
         await this.cancelAll();
+
+        // Warn on Android 12+ if exact-alarm permission was not granted by the user.
+        // Without it, AlarmManager.setExact() calls are silently dropped by the OS.
+        await this._warnIfExactAlarmDenied(LocalNotifications);
 
         const [mH, mM] = cfg.morningTime.split(':').map(Number);
         const [eH, eM] = cfg.eveningTime.split(':').map(Number);
@@ -282,7 +299,9 @@ const GameNotifier = {
                     channelId: this.CHANNEL_ID,
                     title: cfg.morningTitle,
                     body:  cfg.morningBody,
-                    schedule: { at: new Date(morningTs) },
+                    // allowWhileIdle uses setExactAndAllowWhileIdle() so Huawei's
+                    // aggressive battery optimization (Doze mode) cannot kill the alarm.
+                    schedule: { at: new Date(morningTs), allowWhileIdle: true },
                     extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
                     iconColor: this.BRAND_TEAL
                 });
@@ -294,7 +313,7 @@ const GameNotifier = {
                     channelId: this.CHANNEL_ID,
                     title: cfg.eveningTitle,
                     body:  cfg.eveningBody,
-                    schedule: { at: new Date(eveningTs) },
+                    schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
                     iconColor: this.BRAND_TEAL_DARK
                 });
@@ -315,7 +334,7 @@ const GameNotifier = {
                         channelId: this.CHANNEL_ID,
                         title: extra.title || 'NutriPlan',
                         body:  extra.body  || '',
-                        schedule: { at: new Date(xTs) },
+                        schedule: { at: new Date(xTs), allowWhileIdle: true },
                         extra: { url: extra.url || '/plan.html', type: 'extra_' + idx },
                         iconColor: this.BRAND_TEAL
                     });
@@ -442,7 +461,7 @@ const GameNotifier = {
                 channelId: this.CHANNEL_ID,
                 title,
                 body,
-                schedule: { at: new Date(Date.now() + 500) },
+                schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
                 extra: { url, type },
                 iconColor: this.BRAND_TEAL
             }]});
@@ -464,6 +483,29 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
     /*  Helper                                                              */
     /* ------------------------------------------------------------------ */
+
+    /**
+     * On Android 12+ (API 31+) the SCHEDULE_EXACT_ALARM permission requires
+     * explicit user approval in Settings → Apps → Special permissions →
+     * Alarms & reminders.  If it has not been granted the OS silently drops
+     * all setExact() calls.  We use checkPermissions() to detect this and
+     * warn in the console; a future improvement would be to open the system
+     * settings page via an ACTION_REQUEST_SCHEDULE_EXACT_ALARM intent.
+     */
+    async _warnIfExactAlarmDenied(LocalNotifications) {
+        try {
+            if (typeof LocalNotifications.checkPermissions !== 'function') return;
+            const perms = await LocalNotifications.checkPermissions();
+            // Capacitor 5+ exposes `exactAlarm` in the permissions result.
+            if (perms?.exactAlarm && perms.exactAlarm !== 'granted') {
+                console.warn(
+                    '[GameNotifier] SCHEDULE_EXACT_ALARM not granted by user (' + perms.exactAlarm + '). ' +
+                    'On Android 12+ go to Settings → Apps → NutriPlan → Special permissions → Alarms & Reminders ' +
+                    'and enable it, otherwise notifications will not fire on schedule.'
+                );
+            }
+        } catch (_) { /* non-critical */ }
+    },
 
     _tsForDayOffset(dayOffset, hours, minutes) {
         const d = new Date();

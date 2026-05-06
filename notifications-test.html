@@ -264,7 +264,6 @@
     <div class="card">
         <h2>🎮 GameNotifier конфигурация (localStorage)</h2>
         <div class="row"><span class="label">Конфигурация</span><span class="val" id="cfgSummary">…</span></div>
-        <div class="row"><span class="label">Последна синхронизация</span><span class="val" id="cfgLastSync">…</span></div>
         <div class="row"><span class="label">Версия (backend)</span><span class="val" id="cfgVersion">…</span></div>
         <div class="row"><span class="label">Motion изпратено на</span><span class="val" id="cfgMotion">…</span></div>
         <details style="margin-top:8px;">
@@ -533,14 +532,6 @@ function refreshConfig() {
         }
     } catch(e) {
         document.getElementById('cfgSummary').textContent = 'грешка при четене';
-    }
-
-    const lastSync = parseInt(localStorage.getItem('gameNotifierConfigLastSync') || '0', 10);
-    if (lastSync) {
-        const ago = Math.round((Date.now() - lastSync) / 60000);
-        document.getElementById('cfgLastSync').textContent = `${new Date(lastSync).toLocaleString('bg-BG')} (${ago} мин. назад)`;
-    } else {
-        document.getElementById('cfgLastSync').innerHTML = '<span class="muted">никога</span>';
     }
 
     const ver = localStorage.getItem('gameNotifierConfigVersion');
