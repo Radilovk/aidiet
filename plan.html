@@ -3974,8 +3974,6 @@
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
-            // Restore plan data from Capacitor Preferences (survives app reinstall/update).
-            await NativeBackup.init();
             loadDietData();
             loadChatModeConfig();
             // Enhancement #8: Load offline queue
@@ -9330,7 +9328,6 @@
         </a>
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->
-    <script src="./native-backup.js"></script>
     <script src="./local-scheduler.js"></script>
 </body>
 </html>

@@ -2480,8 +2480,16 @@
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
 
-            // Restore plan data from Capacitor Preferences (survives app reinstall/update).
-            await NativeBackup.init();
+            // Auto-restore from Google Drive on first launch after reinstall
+            // (only when running as a native APK and no plan is stored locally yet).
+            if (!localStorage.getItem('dietPlan') && typeof DriveBackup !== 'undefined') {
+                const driveResult = await DriveBackup.restorePlan();
+                if (driveResult.success) {
+                    console.info('[DriveBackup] Plan restored from Google Drive on first launch.');
+                } else if (driveResult.error && driveResult.error !== 'no_backup' && driveResult.error !== 'not_native') {
+                    console.warn('[DriveBackup] Auto-restore failed:', driveResult.error);
+                }
+            }
 
             // Restore profile when localStorage is empty (iOS PWA isolated-storage scenario).
             // Tries cookie chunks first, then falls back to the backend API.
@@ -3679,6 +3687,6 @@
             <span>Профил</span>
         </a>
     </nav>
-    <script src="./native-backup.js"></script>
+    <script src="./drive-backup.js"></script>
 </body>
 </html>
