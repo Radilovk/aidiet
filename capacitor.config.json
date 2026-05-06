@@ -11,9 +11,6 @@
       "smallIcon": "ic_stat_nutriplan",
       "iconColor": "#009A9E",
       "sound": "default"
-    },
-    "Motion": {
-      "enabled": true
     }
   },
   "android": {

@@ -102,6 +102,18 @@ jobs:
             --exclude 'log1' \
             --exclude 'workererrors'
 
+      - name: Minify HTML in Capacitor shell
+        run: |
+          find capacitor-shell -name "*.html" | while read f; do
+            npx html-minifier-terser \
+              --collapse-whitespace \
+              --remove-comments \
+              --minify-css true \
+              --minify-js true \
+              --output "$f" "$f"
+          done
+          echo "HTML minification done."
+
       - name: Build APK
         env:
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/nutriplan.keystore
