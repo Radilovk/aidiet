@@ -75,7 +75,6 @@ correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
 Ако не: carbs_g = round((Final_Calories - protein_g×4 - fats_g×9) / 4)
 
 ⚠️ fats_g ≥ {MIN_FAT_GRAMS} г. Ако по-малко: увеличи fats%, намали carbs%, преизчисли.
-Фибри: {FIBER_MIN_GRAMS}–{FIBER_MAX_GRAMS} г (коригирай по пол, възраст, медицински условия).
 → macroRatios (%), macroGrams (g)
 
 СТЪПКА 6: ДАННИ ЗА АНАЛИЗ СТРАНИЦА (за фронтенда)
@@ -105,8 +104,7 @@ correctedMetabolism.correctionPercent = "<totalAdjustmentPercent>%"
   "macroRatios": {
     "protein": число процент,
     "carbs": число процент,
-    "fats": число процент,
-    "fiber": число грамове дневно
+    "fats": число процент
   },
   "macroGrams": {
     "protein": число грамове,
