@@ -3985,7 +3985,7 @@
             // Load chat history
             loadChatHistory();
             // Initialise game notifications (GameNotifier in local-scheduler.js).
-            // GameNotifier.init() handles config sync internally (max once per 24 h).
+            // GameNotifier.init() does a version-based ETag check on every init.
             scheduleNotifications();
             // Handle URL action params from notification taps
             const urlParams = new URLSearchParams(window.location.search);

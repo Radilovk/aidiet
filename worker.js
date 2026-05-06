@@ -11090,19 +11090,35 @@ async function sendWebPushNotification(subscription, payload, env) {
 }
 
 /**
- * GET /api/notification-config
+ * GET /api/notification-config[?v=<clientVersion>]
  * Returns the GameNotifier / Capacitor notification schedule config stored in KV.
- * Response: { config: {...}, version: <number> }
+ *
+ * If the caller supplies the query param `?v=N` (the version it already has cached),
+ * the handler reads ONLY the version key from KV. When the versions match it returns
+ * { upToDate: true, version: N } without fetching or transmitting the full config
+ * blob — one KV read, near-zero response bytes. This lets clients check for updates
+ * on every app open without imposing meaningful backend cost.
+ *
+ * Response (version match):   { upToDate: true, version: <number> }
+ * Response (version mismatch / no v param):  { success: true, config: {...}, version: <number> }
  */
 async function handleGetNotificationConfig(request, env) {
   try {
     if (!env.page_content) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
-    const raw = await env.page_content.get('notification-config');
+    const url = new URL(request.url);
+    const clientVersionParam = url.searchParams.get('v');
     const verRaw = await env.page_content.get('notification-config-version');
-    const config = raw ? JSON.parse(raw) : null;
     const version = verRaw ? parseInt(verRaw, 10) : 0;
+
+    // Cheap path: client already has the current version — skip config KV read entirely.
+    if (clientVersionParam !== null && parseInt(clientVersionParam, 10) === version) {
+      return jsonResponse({ upToDate: true, version }, 200, { cacheControl: 'no-cache' });
+    }
+
+    const raw = await env.page_content.get('notification-config');
+    const config = raw ? JSON.parse(raw) : null;
     return jsonResponse({ success: true, config, version }, 200, { cacheControl: 'no-cache' });
   } catch (error) {
     console.error('Error getting notification config:', error);

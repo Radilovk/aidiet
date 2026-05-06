@@ -11,9 +11,10 @@
  *   evening_check  – вечерна проверка (по подразбиране 20:00)
  *
  * Backend config sync:
- *   – GET /api/notification-config (max веднъж на 24 ч, освен при force)
+ *   – GET /api/notification-config?v=<localVersion> при всяко init()
+ *   – Ако версията не се е сменила → сървърът връща { upToDate: true } (1 KV четене, ~50 bytes)
+ *   – Ако версията е по-нова → изтегля пълния конфиг и презарежда нотификациите
  *   – Конфигурацията се кешира в localStorage → 'gameNotifierConfig'
- *   – Backend се извиква само ако версията от сървъра е по-нова
  */
 
 const GameNotifier = {
@@ -21,7 +22,8 @@ const GameNotifier = {
     // Keep a rolling monthly buffer so OEM battery restrictions or missed app opens
     // do not leave users without reminders after the first week.
     SCHEDULE_WINDOW_DAYS: 30,
-    LS_CONFIG_KEY:  'gameNotifierConfig',
+    LS_CONFIG_KEY:   'gameNotifierConfig',
+    LS_VERSION_KEY:  'gameNotifierConfigVersion',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins',
     BRAND_TEAL:     '#009A9E',
@@ -79,7 +81,7 @@ const GameNotifier = {
             }
         }
 
-        // Sync backend config (at most once per 24 h, no-op if unchanged)
+        // Sync backend config (version-based ETag: cheap check on every init)
         await this._maybeSyncBackendConfig();
 
         // Schedule 7-day block with hardcoded defaults (or admin-overridden times)
@@ -229,39 +231,48 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
 
     async _maybeSyncBackendConfig() {
-        // Throttle network requests to at most once per 15 minutes so frequent
-        // app opens don't spam the backend, while still propagating admin config
-        // changes quickly (≤15 min instead of the previous 24 h delay).
-        const LS_LAST_SYNC_KEY = 'gameNotifierConfigLastSync';
-        const MIN_INTERVAL_MS  = 15 * 60 * 1000; // 15 min throttle
-        const lastSync = parseInt(localStorage.getItem(LS_LAST_SYNC_KEY) || '0', 10);
-        if (Date.now() - lastSync < MIN_INTERVAL_MS) return;
-
+        // Version-based ETag check: send the locally cached version as ?v=N.
+        // When the server version matches, the Worker returns { upToDate: true }
+        // (a single KV read, ~50 bytes) without transmitting the full config blob.
+        // Only when the admin has saved a new config (bumping the server version)
+        // does the Worker return the full payload, which the client then stores and
+        // uses to reschedule notifications.
+        //
+        // There is intentionally no time-based throttle: each app open (init() call)
+        // triggers exactly one lightweight check. Backend cost is negligible for the
+        // common case (version unchanged), and admin changes propagate to all users
+        // on their very next app open.
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
-        const LS_VERSION_KEY = 'gameNotifierConfigVersion';
         try {
-            const res = await fetch(`${WORKER_URL}/api/notification-config`, { method: 'GET' });
+            const localVersion = parseInt(localStorage.getItem(this.LS_VERSION_KEY) || '0', 10);
+            const res = await fetch(`${WORKER_URL}/api/notification-config?v=${localVersion}`, { method: 'GET' });
             if (!res.ok) return;
             const data = await res.json();
-            if (!data || !data.config) return;
+            // Server says our cached version is still current — nothing to do.
+            if (data.upToDate) return;
+            if (!data.config) return;
             const serverVersion = data.version || 0;
-            const localVersion  = parseInt(localStorage.getItem(LS_VERSION_KEY) || '0', 10);
             if (serverVersion > localVersion) {
                 localStorage.setItem(this.LS_CONFIG_KEY, JSON.stringify(data.config));
-                localStorage.setItem(LS_VERSION_KEY, String(serverVersion));
+                localStorage.setItem(this.LS_VERSION_KEY, String(serverVersion));
                 console.log('[GameNotifier] Config updated from backend (version', serverVersion, ').');
             }
-            localStorage.setItem(LS_LAST_SYNC_KEY, String(Date.now()));
         } catch (_) { /* offline / endpoint not deployed yet */ }
     },
 
     /**
-     * Force an immediate config sync (bypasses the 15 min throttle).
+     * Force an immediate config sync regardless of the cached version.
      * Called by the admin panel after a config change is saved.
      */
     async forceSyncBackendConfig() {
-        localStorage.removeItem('gameNotifierConfigLastSync');
+        // Temporarily clear the local version so the server always returns full config.
+        const saved = localStorage.getItem(this.LS_VERSION_KEY);
+        localStorage.removeItem(this.LS_VERSION_KEY);
         await this._maybeSyncBackendConfig();
+        // Restore if sync failed (offline) so we don't lose the cached version.
+        if (!localStorage.getItem(this.LS_VERSION_KEY) && saved !== null) {
+            localStorage.setItem(this.LS_VERSION_KEY, saved);
+        }
     },
 
     /* ------------------------------------------------------------------ */
