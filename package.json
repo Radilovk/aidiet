@@ -29,6 +29,11 @@
     "type": "git",
     "url": "https://github.com/Radilovk/aidiet.git"
   },
+  "overrides": {
+    "@codetrix-studio/capacitor-google-auth": {
+      "@capacitor/core": "^8.3.1"
+    }
+  },
   "dependencies": {
     "@capgo/capacitor-navigation-bar": "^8.1.5",
     "@capacitor/android": "^8.3.1",
