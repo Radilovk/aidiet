@@ -2128,6 +2128,33 @@
             </form>
             </div><!-- /.profile-contact-wrapper -->
         </div>
+
+        <div class="form-section">
+            <div class="profile-contact-header" onclick="togglePlanBackup()" role="button" tabindex="0" aria-expanded="false" aria-controls="planBackupWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')togglePlanBackup()">
+                <div class="section-title">
+                    <i class="fas fa-shield-alt"></i>
+                    Резервно копие на плана
+                </div>
+                <i class="fas fa-chevron-down profile-contact-chevron" id="planBackupChevron"></i>
+            </div>
+            <div class="profile-contact-wrapper" id="planBackupWrapper">
+                <p style="color: var(--text-light); margin: 16px 0 12px; font-size: 0.95rem;">
+                    Запазете плана си, преди да деинсталирате приложението. Изпратете резервен код на имейл,
+                    а след преинсталиране го поставете в полето по-долу за автоматично възстановяване.
+                </p>
+                <button class="btn btn-primary" onclick="PlanBackup.exportToEmail()" style="width: 100%; margin-bottom: 16px;">
+                    <i class="fas fa-envelope"></i> Изпрати резервно копие на имейл
+                </button>
+                <div class="form-group">
+                    <label class="form-label">Възстанови от код</label>
+                    <textarea id="planBackupCode" class="form-textarea" rows="4" placeholder="Поставете кода от резервния имейл тук..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="restorePlanFromCode()" style="width: 100%;">
+                    <i class="fas fa-undo"></i> Възстанови плана
+                </button>
+                <div id="planBackupStatus" style="display: none; margin-top: 12px; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -2167,6 +2194,31 @@
             if (isOpen) {
                 // Small delay to let the CSS max-height transition begin before scrolling
                 setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }
+        }
+
+        function togglePlanBackup() {
+            const wrapper = document.getElementById('planBackupWrapper');
+            const chevron = document.getElementById('planBackupChevron');
+            const header = wrapper.previousElementSibling;
+            const isOpen = wrapper.classList.toggle('open');
+            chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (header) header.setAttribute('aria-expanded', String(isOpen));
+            if (isOpen) {
+                setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }
+        }
+
+        async function restorePlanFromCode() {
+            const code = (document.getElementById('planBackupCode').value || '').trim();
+            const statusEl = document.getElementById('planBackupStatus');
+            statusEl.style.display = 'none';
+            const ok = await PlanBackup.importFromCode(code);
+            if (ok) {
+                statusEl.style.display = 'block';
+                statusEl.style.background = 'rgba(0, 200, 140, 0.15)';
+                statusEl.style.color = '#00c88c';
+                statusEl.textContent = '✓ Планът е възстановен успешно! Отидете на Моят план.';
             }
         }
 
@@ -4373,6 +4425,7 @@
             <span>Профил</span>
         </a>
     </nav>
+    <script src="./plan-export.js"></script>
     <script src="./native-backup.js"></script>
 </body>
 </html>

@@ -188,6 +188,50 @@ jobs:
                   text = text.replace("<application", f"    {permission}\n\n    <application", 1)
           manifest.write_text(text)
           PY
+          # Configure Android Auto Backup so Capacitor Preferences (SharedPreferences)
+          # survive APK uninstall on devices with a Google account.
+          python3 - <<'PY_BACKUP'
+          import re
+          from pathlib import Path
+          # Create res/xml directory and backup rule files
+          xml_dir = Path("android/app/src/main/res/xml")
+          xml_dir.mkdir(parents=True, exist_ok=True)
+          # Android ≤ 11 full-backup-content rules
+          (xml_dir / "backup_rules.xml").write_text(
+              '<?xml version="1.0" encoding="utf-8"?>\n'
+              '<!-- Auto Backup rules: include all SharedPreferences (Capacitor Preferences). -->\n'
+              '<full-backup-content>\n'
+              '    <include domain="sharedpref" path="." />\n'
+              '</full-backup-content>\n'
+          )
+          # Android 12+ data-extraction-rules
+          (xml_dir / "data_extraction_rules.xml").write_text(
+              '<?xml version="1.0" encoding="utf-8"?>\n'
+              '<!-- Android 12+ backup/restore: include SharedPreferences. -->\n'
+              '<data-extraction-rules>\n'
+              '    <cloud-backup>\n'
+              '        <include domain="sharedpref" path="." />\n'
+              '    </cloud-backup>\n'
+              '    <device-transfer>\n'
+              '        <include domain="sharedpref" path="." />\n'
+              '    </device-transfer>\n'
+              '</data-extraction-rules>\n'
+          )
+          # Patch AndroidManifest.xml <application> tag
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+          # Ensure allowBackup is true (Capacitor defaults to false)
+          text = re.sub(r'android:allowBackup="false"', 'android:allowBackup="true"', text)
+          if 'android:allowBackup=' not in text:
+              text = re.sub(r'(<application\b)', r'\1\n        android:allowBackup="true"', text, count=1)
+          # Add fullBackupContent and dataExtractionRules if not present
+          if 'android:fullBackupContent=' not in text:
+              text = re.sub(r'(<application\b)', r'\1\n        android:fullBackupContent="@xml/backup_rules"', text, count=1)
+          if 'android:dataExtractionRules=' not in text:
+              text = re.sub(r'(<application\b)', r'\1\n        android:dataExtractionRules="@xml/data_extraction_rules"', text, count=1)
+          manifest.write_text(text)
+          print("Android Auto Backup configured: backup_rules.xml + data_extraction_rules.xml created, AndroidManifest.xml patched.")
+          PY_BACKUP
           # Remove any PNG splash added by cap sync to avoid duplicate resource with splash.xml below
           rm -f android/app/src/main/res/drawable/splash.png
           mkdir -p android/app/src/main/res/values android/app/src/main/res/drawable android/app/src/main/res/drawable-night android/app/src/main/res/drawable-nodpi
