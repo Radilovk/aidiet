@@ -2480,9 +2480,6 @@
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
 
-            // Restore plan data from Capacitor Preferences (survives app reinstall/update).
-            await NativeBackup.init();
-
             // Auto-restore from Google Drive on first launch after reinstall
             // (only when running as a native APK and no plan is stored locally yet).
             if (!localStorage.getItem('dietPlan') && typeof DriveBackup !== 'undefined') {
@@ -3691,6 +3688,5 @@
         </a>
     </nav>
     <script src="./drive-backup.js"></script>
-    <script src="./native-backup.js"></script>
 </body>
 </html>

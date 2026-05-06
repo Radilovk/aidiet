@@ -2139,12 +2139,12 @@
             </div>
             <div class="profile-contact-wrapper" id="planBackupWrapper">
                 <p style="color: var(--text-light); margin: 16px 0 12px; font-size: 0.95rem;">
-                    Запазете плана си, преди да деинсталирате приложението.
-                    Можете да използвате Google Drive (автоматично) или да изпратите резервен код на имейл.
+                    Запазете плана си чрез Google Drive. Данните се съхраняват в скрита папка,
+                    видима само за това приложение, и се възстановяват автоматично след преинсталиране.
                 </p>
 
                 <!-- Google Drive backup (APK only) -->
-                <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
+                <div style="margin-bottom: 8px;">
                     <p style="margin: 0 0 12px; font-size: 0.88rem; color: var(--text-light);">
                         <i class="fab fa-google-drive" style="color: #4285F4;"></i>
                         <strong>Google Drive</strong> – автоматично запазване, без ръчни кодове
@@ -2159,19 +2159,6 @@
                     </div>
                     <div id="driveBackupStatus" style="display: none; padding: 10px 14px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; text-align: center;"></div>
                 </div>
-
-                <!-- Email backup fallback -->
-                <button class="btn btn-primary" onclick="PlanBackup.exportToEmail()" style="width: 100%; margin-bottom: 16px;">
-                    <i class="fas fa-envelope"></i> Изпрати резервно копие на имейл
-                </button>
-                <div class="form-group">
-                    <label class="form-label">Възстанови от код</label>
-                    <textarea id="planBackupCode" class="form-textarea" rows="4" placeholder="Поставете кода от резервния имейл тук..."></textarea>
-                </div>
-                <button class="btn btn-primary" onclick="restorePlanFromCode()" style="width: 100%;">
-                    <i class="fas fa-undo"></i> Възстанови плана
-                </button>
-                <div id="emailBackupStatus" style="display: none; margin-top: 12px; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
             </div>
         </div>
     </div>
@@ -2225,24 +2212,6 @@
             if (header) header.setAttribute('aria-expanded', String(isOpen));
             if (isOpen) {
                 setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-            }
-        }
-
-        async function restorePlanFromCode() {
-            const code = (document.getElementById('planBackupCode').value || '').trim();
-            const statusEl = document.getElementById('emailBackupStatus');
-            statusEl.style.display = 'none';
-            const ok = await PlanBackup.importFromCode(code);
-            if (ok) {
-                statusEl.style.display = 'block';
-                statusEl.style.background = 'rgba(0, 200, 140, 0.15)';
-                statusEl.style.color = '#00c88c';
-                statusEl.textContent = '✓ Планът е възстановен успешно! Отидете на Моят план.';
-            } else {
-                statusEl.style.display = 'block';
-                statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
-                statusEl.style.color = '#ef4444';
-                statusEl.textContent = '✗ Неуспешно възстановяване. Проверете дали кодът е пълен и правилен.';
             }
         }
 
@@ -3125,8 +3094,6 @@
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
-            // Restore plan data from Capacitor Preferences (survives app reinstall/update).
-            await NativeBackup.init();
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
             // Macros and strategy panels moved to guidelines.html
@@ -4507,7 +4474,5 @@
         </a>
     </nav>
     <script src="./drive-backup.js"></script>
-    <script src="./plan-export.js"></script>
-    <script src="./native-backup.js"></script>
 </body>
 </html>
