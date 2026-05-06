@@ -2219,6 +2219,11 @@
                 statusEl.style.background = 'rgba(0, 200, 140, 0.15)';
                 statusEl.style.color = '#00c88c';
                 statusEl.textContent = '✓ Планът е възстановен успешно! Отидете на Моят план.';
+            } else {
+                statusEl.style.display = 'block';
+                statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = '✗ Неуспешно възстановяване. Проверете дали кодът е пълен и правилен.';
             }
         }
 

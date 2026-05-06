@@ -39,14 +39,19 @@ const PlanBackup = (function () {
     }
 
     function _encode(data) {
-        const payload = JSON.stringify({ v: 1, t: Date.now(), d: data });
-        // unescape/encodeURIComponent handles non-ASCII (Cyrillic) chars in btoa
-        return btoa(unescape(encodeURIComponent(payload)));
+        const payload = JSON.stringify({ version: 1, timestamp: Date.now(), data: data });
+        // Use TextEncoder for proper UTF-8 handling of Cyrillic and other non-ASCII chars
+        const bytes = new TextEncoder().encode(payload);
+        let binary = '';
+        bytes.forEach(function (b) { binary += String.fromCharCode(b); });
+        return btoa(binary);
     }
 
     function _decode(code) {
         try {
-            const json = decodeURIComponent(escape(atob(code.trim())));
+            const binary = atob(code.trim());
+            const bytes = Uint8Array.from(binary, function (c) { return c.charCodeAt(0); });
+            const json = new TextDecoder().decode(bytes);
             return JSON.parse(json);
         } catch (_) {
             return null;
@@ -88,11 +93,11 @@ const PlanBackup = (function () {
             return false;
         }
         const payload = _decode(code);
-        if (!payload || !payload.d || typeof payload.d !== 'object') {
+        if (!payload || !payload.data || typeof payload.data !== 'object') {
             alert('Невалиден код. Уверете се, че сте копирали целия код между маркерите.');
             return false;
         }
-        const data = payload.d;
+        const data = payload.data;
         const keys = Object.keys(data);
         if (!keys.length) {
             alert('Кодът не съдържа данни.');
