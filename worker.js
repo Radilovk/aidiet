@@ -141,8 +141,7 @@ const BASE_WATER_NEED_LITERS = 0.5; // Base water need in liters
 const ACTIVITY_WATER_BONUS_LITERS = 0.45; // Additional water for active individuals
 const TEMPERAMENT_CONFIDENCE_THRESHOLD = 80; // Minimum confidence % to report temperament
 const HEALTH_STATUS_UNDERESTIMATE_PERCENT = 10; // Underestimate health status by this %
-const FIBER_MIN_GRAMS = 25; // Minimum fiber recommendation
-const FIBER_MAX_GRAMS = 40; // Maximum fiber recommendation
+
 
 // Offensive Content Patterns (for data validation)
 const OFFENSIVE_PATTERNS = [
@@ -2270,13 +2269,13 @@ async function generateSimplifiedFallbackPlan(env, data) {
 
 ИЗИСКВАНИЯ (ОПРОСТЕНИ):
 - 3 хранения на ден: Хранене 1, Хранене 2, Хранене 4
-- Всяко ястие с calories и macros (protein, carbs, fats, fiber)
+- Всяко ястие с calories и macros (protein, carbs, fats)
 - Общо около ${recommendedCalories} kcal/ден
 - Балансирани макроси: 30% протеини, 40% въглехидрати, 30% мазнини
 
 ФОРМАТ (JSON):
 {
-  "day1": {"meals": [{"name": "...", "time": "...", "type": "Хранене 1", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}]},
+  "day1": {"meals": [{"name": "...", "time": "...", "type": "Хранене 1", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}]},
   "day2": {"meals": [...]},
   ...
   "day7": {"meals": [...]}
@@ -2663,15 +2662,13 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   };
   
   // Extract macro information from Step 1 (analysis)
-  // Note: fiber is in macroRatios.fiber (grams) per the system's schema design
   const analysisCompact = {
     macroRatios: analysis.macroRatios ? 
       `Protein: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Carbs: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Fats: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}` : 
       'не изчислени',
     macroGrams: analysis.macroGrams ?
       `Protein: ${analysis.macroGrams.protein != null ? analysis.macroGrams.protein + 'g' : 'N/A'}, Carbs: ${analysis.macroGrams.carbs != null ? analysis.macroGrams.carbs + 'g' : 'N/A'}, Fats: ${analysis.macroGrams.fats != null ? analysis.macroGrams.fats + 'g' : 'N/A'}` :
-      'не изчислени',
-    fiber: analysis.macroRatios?.fiber != null ? `${analysis.macroRatios.fiber}g` : 'N/A' // Fiber is stored in macroRatios but measured in grams
+      'не изчислени'
   };
   
   // Use cached food lists if provided, otherwise fetch (optimization)
@@ -2728,7 +2725,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 === ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
 Макро съотношения: ${analysisCompact.macroRatios}
 Дневни макро грамове: ${analysisCompact.macroGrams}
-Дневни фибри: ${analysisCompact.fiber}
 
 === ДАННИ ОТ СТЪПКА 2 (СТРАТЕГИЯ) ===
 Диета: ${strategyCompact.dietType} | Хранения: ${strategyCompact.mealTiming}
@@ -2738,25 +2734,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 Нежелани храни (от стъпка 2): ${strategyCompact.foodsToAvoid}
 Допълнителни нежелани храни (от потребител): ${data.dietDislike || 'няма'}
 Разпределение на калории (стъпка 2): ${strategyCompact.calorieDistribution}
-Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${strategyCompact.weeklyScheme ? `
-
-=== СЕДМИЧНА СТРУКТУРА (от стъпка 2) ===
-${Object.keys(strategyCompact.weeklyScheme).map(day => {
-  const dayData = strategyCompact.weeklyScheme[day];
-  const dayName = DAY_NAMES_BG[day] || day;
-  const calStr = dayData.calories ? ` | ${dayData.calories} kcal` : '';
-  const macroStr = (dayData.protein && dayData.carbs && dayData.fats)
-    ? ` | Б:${dayData.protein}г В:${dayData.carbs}г М:${dayData.fats}г` : '';
-  let mealBreakdownStr = '';
-  if (dayData.mealBreakdown && Array.isArray(dayData.mealBreakdown) && dayData.mealBreakdown.length > 0) {
-    mealBreakdownStr = '\n   ' + dayData.mealBreakdown.map(m =>
-      m.type === 'Свободно хранене'
-        ? 'Свободно хранене (без калории/макроси)'
-        : `${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`
-    ).join(' | ');
-  }
-  return `${dayName}: ${dayData.meals} хранения${calStr}${macroStr} - ${dayData.description}${mealBreakdownStr}`;
-}).join('\n')}` : ''}${(() => { const _n = buildCombinedAdditionalNotes(data); return _n ? `
+Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${(() => { const _n = buildCombinedAdditionalNotes(data); return _n ? `
 
 ВАЖНО - Потребителски бележки: ${_n}` : ''; })()}
 
@@ -2834,7 +2812,7 @@ ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 === ИЗИСКВАНИЯ ===
 1. Разпределение на калории: Използвай mealBreakdown от Стъпка 2 за всяко хранене — то задава ТОЧНИТЕ целеви калории и макроси за всяко хранене от деня
-2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats, fiber в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
+2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
 3. Калории: protein×4 + carbs×4 + fats×9. Провери и коригирай meal.calories за всяко ястие преди финализиране — разлика над 10% е грешка.
 4. Целеви калории и макроси по дни и хранения (от mealBreakdown в Стъпка 2):
 ${weeklySchemeByDayText}
@@ -2849,13 +2827,13 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
   // Build JSON format example with all days in the chunk
   // Note: Indentation and formatting are intentional for AI model readability
   const freeDayNumForTemplate = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
-  const mealTemplate = `{"type": "Хранене 1|Хранене 2|Хранене 3|Хранене 4|Хранене 5", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const mealTemplate = `{"type": "Хранене 1|Хранене 2|Хранене 3|Хранене 4|Хранене 5", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}}`;
   const freeMealEntry = `{"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}`;
-  const breakfastTemplate = `{"type": "Хранене 1", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
-  const dinnerTemplate = `{"type": "Хранене 3|Хранене 4", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}}`;
+  const breakfastTemplate = `{"type": "Хранене 1", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}}`;
+  const dinnerTemplate = `{"type": "Хранене 3|Хранене 4", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}}`;
   // When user craves sweets, show an explicit Хранене 2 example with the dessert sub-field
   // so the AI has a concrete JSON format to follow (dessert macros are INCLUDED in meal totals)
-  const lunchWithDessertTemplate = `{"type": "Хранене 2", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X, "fiber": X}, "dessert": true}`;
+  const lunchWithDessertTemplate = `{"type": "Хранене 2", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}, "dessert": true}`;
   const hasSweetsCraving = !!sweetsCravingRule;
   const dayTemplate = (dayNum) => {
     const isFreeDayHere = freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && dayNum === freeDayNumForTemplate;
@@ -2943,7 +2921,7 @@ ${jsonExample.join(',\n')}
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число, "fiber": число}}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
     ],
     "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
   }
@@ -3189,7 +3167,7 @@ ${dietaryModifier === 'Веган' ? '→ Без животински [PRO], и�
 За ВСЕКИ ДЕН:
 - ${strategy.mealCount || 3} хранения ПО РЕДА НА ХРАНЕНЕ (Хранене 1 първо, после Хранене 2, след това Хранене 4...)
 - Прилагай правилата за комбиниране
-- Всяко ястие с name, time, calories, macros (protein, carbs, fats, fiber)
+- Всяко ястие с name, time, calories, macros (protein, carbs, fats)
 - Седмично мислене: РАЗНООБРАЗИЕ между дните${sweetsCravingRuleLegacy}${buildFreeMealInstruction(strategy, 1, 7)}
 
 ${errorPreventionComment ? `\n=== КОРЕКЦИИ НА ГРЕШКИ ===\n${errorPreventionComment}\n` : ''}
@@ -4584,7 +4562,7 @@ const FIXED_DESSERT = {
   weight: '30г',
   description: 'Насладете се на 2 реда млечен или черен шоколад с цели лешници.',
   calories: 168,
-  macros: { protein: 2, carbs: 14, fats: 12, fiber: 1 }
+  macros: { protein: 2, carbs: 14, fats: 12 }
 };
 
 // Numeric grams value extracted from FIXED_DESSERT.weight (e.g. '30г' → 30).
@@ -4621,7 +4599,38 @@ function injectFixedDesserts(weekPlan) {
   }
 }
 
-// Instruction injected into prompts when the user craves sweets.
+/**
+ * Recalculate meal.calories from macros (protein×4 + carbs×4 + fats×9).
+ * Corrects the declared calories when they deviate from the macro formula by >10%.
+ * Also recalculates dailyTotals.calories as the sum of all meal calories.
+ * Called after each AI chunk is parsed.
+ */
+function recalculateDayCalories(weekPlan) {
+  for (const dayKey of Object.keys(weekPlan)) {
+    const day = weekPlan[dayKey];
+    if (!day || !Array.isArray(day.meals)) continue;
+    let totalCals = 0;
+    for (const meal of day.meals) {
+      if (!meal.macros || meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
+      const p = Number(meal.macros.protein) || 0;
+      const c = Number(meal.macros.carbs) || 0;
+      const f = Number(meal.macros.fats) || 0;
+      const computed = Math.round(p * 4 + c * 4 + f * 9);
+      if (computed > 0) {
+        const declared = Number(meal.calories) || 0;
+        if (declared === 0 || Math.abs(declared - computed) / computed > 0.10) {
+          meal.calories = computed;
+        }
+      }
+      totalCals += Number(meal.calories) || 0;
+    }
+    if (day.dailyTotals && totalCals > 0) {
+      day.dailyTotals.calories = totalCals;
+    }
+  }
+}
+
+
 // The AI sets "dessert": true on the lunch meal AND includes the dessert's full nutritional
 // values directly in meal.calories/meal.macros, so the daily calorie budget is correct
 // from the start without any backend adjustment.
@@ -5441,7 +5450,7 @@ ${MEAL_NAME_FORMAT_INSTRUCTIONS}
    - Спазвай: ${JSON.stringify(userData.medicalConditions || [])}
 
 6. КАЛОРИИ И МАКРОСИ:
-   - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats, fiber)
+   - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats)
    - Дневни калории минимум ${MIN_DAILY_CALORIES} kcal (може да варират между дни)
    - Прецизни изчисления: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
 
@@ -5508,6 +5517,13 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       // Filter out "Normal" severity problems
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
+      }
+      // Sync Final_Calories → realTDEE
+      if (analysis.Final_Calories && analysis.correctedMetabolism) {
+        const fc = typeof analysis.Final_Calories === 'number'
+          ? analysis.Final_Calories
+          : parseInt(String(analysis.Final_Calories).match(/\d+/)?.[0] || '0');
+        if (fc > 0) analysis.correctedMetabolism.realTDEE = fc;
       }
     } else {
       // Reuse existing analysis
@@ -5788,6 +5804,17 @@ async function generatePlanMultiStep(env, data) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
+
+      // Sync: ensure correctedMetabolism.realTDEE always equals Final_Calories.
+      // The AI prompt instructs it to set both to the same value, but models sometimes
+      // place different numbers in each field. Using Final_Calories as the single source
+      // of truth prevents Стъпка 2 and Стъпка 3 from working with diverging targets.
+      if (analysis.Final_Calories && analysis.correctedMetabolism) {
+        const fc = typeof analysis.Final_Calories === 'number'
+          ? analysis.Final_Calories
+          : parseInt(String(analysis.Final_Calories).match(/\d+/)?.[0] || '0');
+        if (fc > 0) analysis.correctedMetabolism.realTDEE = fc;
+      }
     } catch (error) {
       console.error('Analysis step failed:', error);
       throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
@@ -6053,8 +6080,6 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
       HEALTH_STATUS_UNDERESTIMATE_PERCENT,
       MIN_RECOMMENDED_CALORIES: data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE,
       MIN_FAT_GRAMS: Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG),
-      FIBER_MIN_GRAMS,
-      FIBER_MAX_GRAMS,
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
       clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
     });
@@ -6082,8 +6107,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   "macroRatios": {
     "protein": число,
     "carbs": число,
-    "fats": число,
-    "fiber": число
+    "fats": число
   },
   "macroGrams": {
     "protein": число,
@@ -6289,7 +6313,7 @@ correctedMetabolism.realBMR = bmr (базовият BMR остава непро�
 correctedMetabolism.realTDEE = Final_Calories
 → Резултат: Final_Calories, correctedMetabolism.realBMR, realTDEE, correctionPercent
 
-СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати, Фибри)
+СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати)
 Определи оптималното разпределение базирано на:
 - желана цел и желан резултат (goal, lossKg) — адаптирай разпределението съобразно индивидуалния профил и анализа от Стъпки 1–2
 - темперамент (Стъпка 1) и психопрофил (Стъпка 2)
@@ -6307,7 +6331,6 @@ correctedMetabolism.realTDEE = Final_Calories
 ⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ ${Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG)}г (${MIN_FAT_GRAMS_PER_KG}г/кг × ${data.weight}кг) за хормонална функция.
 Ако формулата дава по-малко, увеличи fats% и намали carbs%.
 
-Фибри: ${FIBER_MIN_GRAMS}-${FIBER_MAX_GRAMS}г дневно (коригирай по пол, възраст, медицински условия).
 → Резултат: macroRatios (%), macroGrams (g)
 
 СТЪПКА 6: ДАННИ ЗА СТРАНИЦАТА С АНАЛИЗ (за фронтенда — непроменени)
@@ -6354,8 +6377,7 @@ correctedMetabolism.realTDEE = Final_Calories
   "macroRatios": {
     "protein": число процент,
     "carbs": число процент,
-    "fats": число процент,
-    "fiber": число грамове дневно
+    "fats": число процент
   },
   "macroGrams": {
     "protein": число грамове,
@@ -6964,6 +6986,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       // Replace any "dessert": true markers with the fixed dessert object
       injectFixedDesserts(weekPlan);
+      // Recalculate meal.calories from macros to fix AI rounding/formula errors
+      recalculateDayCalories(weekPlan);
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
@@ -7912,15 +7936,13 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
       "calories": число_калории,
       "protein": число_грамове_протеин,
       "carbs": число_грамове_въглехидрати,
-      "fats": число_грамове_мазнини,
-      "fiber": число_грамове_фибри
+      "fats": число_грамове_мазнини
     }
   ],
   "totalCalories": общо_калории_число,
   "totalProtein": общо_протеин_число,
   "totalCarbs": общо_въглехидрати_число,
   "totalFats": общо_мазнини_число,
-  "totalFiber": общо_фибри_число,
   "totalWeight": "общ_приблизителен_грамаж",
   "dietSuitability": {
     "score": число_от_0_до_5,
@@ -8239,7 +8261,6 @@ async function handleAnalyzeKidsFoodImage(request, env) {
     "carbs": число_грамове,
     "fats": число_грамове,
     "sugar": число_грамове,
-    "fiber": число_грамове,
     "sodium": число_милиграма,
     "calcium": число_милиграма
   },

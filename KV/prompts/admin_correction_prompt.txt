@@ -52,7 +52,7 @@
    - Спазвай: {userData.medicalConditions}
 
 6. КАЛОРИИ И МАКРОСИ:
-   - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats, fiber)
+   - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats)
    - Дневни калории минимум {MIN_DAILY_CALORIES} kcal (може да варират между дни)
    - Прецизни изчисления: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
 
