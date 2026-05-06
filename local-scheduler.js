@@ -229,8 +229,11 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
 
     async _maybeSyncBackendConfig() {
+        // Throttle network requests to at most once per 15 minutes so frequent
+        // app opens don't spam the backend, while still propagating admin config
+        // changes quickly (≤15 min instead of the previous 24 h delay).
         const LS_LAST_SYNC_KEY = 'gameNotifierConfigLastSync';
-        const MIN_INTERVAL_MS  = 24 * 60 * 60 * 1000; // 24 h throttle
+        const MIN_INTERVAL_MS  = 15 * 60 * 1000; // 15 min throttle
         const lastSync = parseInt(localStorage.getItem(LS_LAST_SYNC_KEY) || '0', 10);
         if (Date.now() - lastSync < MIN_INTERVAL_MS) return;
 
@@ -253,7 +256,7 @@ const GameNotifier = {
     },
 
     /**
-     * Force an immediate config sync (bypasses the 24 h throttle).
+     * Force an immediate config sync (bypasses the 15 min throttle).
      * Called by the admin panel after a config change is saved.
      */
     async forceSyncBackendConfig() {
@@ -270,6 +273,10 @@ const GameNotifier = {
         const { LocalNotifications } = this._capacitor;
         await this.cancelAll();
 
+        // Warn on Android 12+ if exact-alarm permission was not granted by the user.
+        // Without it, AlarmManager.setExact() calls are silently dropped by the OS.
+        await this._warnIfExactAlarmDenied(LocalNotifications);
+
         const [mH, mM] = cfg.morningTime.split(':').map(Number);
         const [eH, eM] = cfg.eveningTime.split(':').map(Number);
         const notifications = [];
@@ -282,7 +289,9 @@ const GameNotifier = {
                     channelId: this.CHANNEL_ID,
                     title: cfg.morningTitle,
                     body:  cfg.morningBody,
-                    schedule: { at: new Date(morningTs) },
+                    // allowWhileIdle uses setExactAndAllowWhileIdle() so Huawei's
+                    // aggressive battery optimization (Doze mode) cannot kill the alarm.
+                    schedule: { at: new Date(morningTs), allowWhileIdle: true },
                     extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
                     iconColor: this.BRAND_TEAL
                 });
@@ -294,7 +303,7 @@ const GameNotifier = {
                     channelId: this.CHANNEL_ID,
                     title: cfg.eveningTitle,
                     body:  cfg.eveningBody,
-                    schedule: { at: new Date(eveningTs) },
+                    schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
                     iconColor: this.BRAND_TEAL_DARK
                 });
@@ -315,7 +324,7 @@ const GameNotifier = {
                         channelId: this.CHANNEL_ID,
                         title: extra.title || 'NutriPlan',
                         body:  extra.body  || '',
-                        schedule: { at: new Date(xTs) },
+                        schedule: { at: new Date(xTs), allowWhileIdle: true },
                         extra: { url: extra.url || '/plan.html', type: 'extra_' + idx },
                         iconColor: this.BRAND_TEAL
                     });
@@ -442,7 +451,7 @@ const GameNotifier = {
                 channelId: this.CHANNEL_ID,
                 title,
                 body,
-                schedule: { at: new Date(Date.now() + 500) },
+                schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
                 extra: { url, type },
                 iconColor: this.BRAND_TEAL
             }]});
@@ -464,6 +473,29 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
     /*  Helper                                                              */
     /* ------------------------------------------------------------------ */
+
+    /**
+     * On Android 12+ (API 31+) the SCHEDULE_EXACT_ALARM permission requires
+     * explicit user approval in Settings → Apps → Special permissions →
+     * Alarms & reminders.  If it has not been granted the OS silently drops
+     * all setExact() calls.  We use checkPermissions() to detect this and
+     * warn in the console; a future improvement would be to open the system
+     * settings page via an ACTION_REQUEST_SCHEDULE_EXACT_ALARM intent.
+     */
+    async _warnIfExactAlarmDenied(LocalNotifications) {
+        try {
+            if (typeof LocalNotifications.checkPermissions !== 'function') return;
+            const perms = await LocalNotifications.checkPermissions();
+            // Capacitor 5+ exposes `exactAlarm` in the permissions result.
+            if (perms?.exactAlarm && perms.exactAlarm !== 'granted') {
+                console.warn(
+                    '[GameNotifier] SCHEDULE_EXACT_ALARM not granted by user (' + perms.exactAlarm + '). ' +
+                    'On Android 12+ go to Settings → Apps → NutriPlan → Special permissions → Alarms & Reminders ' +
+                    'and enable it, otherwise notifications will not fire on schedule.'
+                );
+            }
+        } catch (_) { /* non-critical */ }
+    },
 
     _tsForDayOffset(dayOffset, hours, minutes) {
         const d = new Date();
