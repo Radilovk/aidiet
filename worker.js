@@ -4618,7 +4618,8 @@ function recalculateDayCalories(weekPlan) {
       const computed = Math.round(p * 4 + c * 4 + f * 9);
       if (computed > 0) {
         const declared = Number(meal.calories) || 0;
-        if (declared === 0 || Math.abs(declared - computed) / computed > 0.10) {
+        const deviation = declared > 0 ? Math.abs(declared - computed) / computed : 1;
+        if (deviation > 0.10) {
           meal.calories = computed;
         }
       }
@@ -4627,6 +4628,32 @@ function recalculateDayCalories(weekPlan) {
     if (day.dailyTotals && totalCals > 0) {
       day.dailyTotals.calories = totalCals;
     }
+  }
+}
+
+/**
+ * Parse a Final_Calories value (number or string) into an integer.
+ * Returns 0 if the value is missing or non-numeric.
+ */
+function parseFinalCalories(value) {
+  if (!value) return 0;
+  if (typeof value === 'number') return Math.round(value);
+  const m = String(value).match(/\d+/);
+  return m ? parseInt(m[0]) : 0;
+}
+
+/**
+ * Sync analysis.correctedMetabolism.realTDEE to Final_Calories.
+ * The prompt instructs the AI to set both to the same value, but models
+ * occasionally place different numbers in each field. Using Final_Calories
+ * as the single source of truth prevents Steps 2 and 3 from working with
+ * diverging calorie targets.
+ */
+function syncAnalysisCalories(analysis) {
+  if (!analysis) return;
+  const fc = parseFinalCalories(analysis.Final_Calories);
+  if (fc > 0 && analysis.correctedMetabolism) {
+    analysis.correctedMetabolism.realTDEE = fc;
   }
 }
 
@@ -5519,12 +5546,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
       // Sync Final_Calories → realTDEE
-      if (analysis.Final_Calories && analysis.correctedMetabolism) {
-        const fc = typeof analysis.Final_Calories === 'number'
-          ? analysis.Final_Calories
-          : parseInt(String(analysis.Final_Calories).match(/\d+/)?.[0] || '0');
-        if (fc > 0) analysis.correctedMetabolism.realTDEE = fc;
-      }
+      syncAnalysisCalories(analysis);
     } else {
       // Reuse existing analysis
       analysis = existingPlan.analysis;
@@ -5809,12 +5831,7 @@ async function generatePlanMultiStep(env, data) {
       // The AI prompt instructs it to set both to the same value, but models sometimes
       // place different numbers in each field. Using Final_Calories as the single source
       // of truth prevents Стъпка 2 and Стъпка 3 from working with diverging targets.
-      if (analysis.Final_Calories && analysis.correctedMetabolism) {
-        const fc = typeof analysis.Final_Calories === 'number'
-          ? analysis.Final_Calories
-          : parseInt(String(analysis.Final_Calories).match(/\d+/)?.[0] || '0');
-        if (fc > 0) analysis.correctedMetabolism.realTDEE = fc;
-      }
+      syncAnalysisCalories(analysis);
     } catch (error) {
       console.error('Analysis step failed:', error);
       throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
