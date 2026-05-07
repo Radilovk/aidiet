@@ -268,31 +268,27 @@
         }
 
         /* Info-box color variants used in place of inline styles */
+        .info-box-yellow,
+        .info-box-green,
+        .info-box-teal {
+            padding: 15px;
+            border-left-width: 4px;
+            border-left-style: solid;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
         .info-box-yellow {
             background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
+            border-left-color: #ffc107;
         }
-
         .info-box-green {
             background: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
+            border-left-color: #28a745;
         }
-
         .info-box-teal {
             background: #d1f2eb;
-            border-left: 4px solid #1abc9c;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
+            border-left-color: #1abc9c;
         }
 
         .success-message {
@@ -313,24 +309,26 @@
             display: none;
         }
 
-        /* Dark mode overrides for boxes and messages */
+        /* Dark mode overrides for boxes and messages.
+           !important is required to override inline style="background:..." attributes
+           that exist on many .info-box elements in the HTML. */
         [data-theme="dark"] .info-box {
             background: rgba(13, 148, 136, 0.12) !important;
             color: var(--text-dark);
         }
         [data-theme="dark"] .info-box-warning {
             background: rgba(231, 76, 60, 0.15) !important;
-            border-left-color: #f87171;
+            border-left-color: var(--accent-light-red);
             color: var(--text-dark);
         }
         [data-theme="dark"] .warning-box {
             background: rgba(255, 193, 7, 0.12) !important;
-            border-left-color: #fcd34d;
+            border-left-color: var(--accent-yellow);
             color: var(--text-dark);
         }
         [data-theme="dark"] .info-box-yellow {
             background: rgba(255, 193, 7, 0.12) !important;
-            border-left-color: #fcd34d;
+            border-left-color: var(--accent-yellow);
             color: var(--text-dark);
         }
         [data-theme="dark"] .info-box-green {
@@ -340,7 +338,7 @@
         }
         [data-theme="dark"] .info-box-teal {
             background: rgba(26, 188, 156, 0.15) !important;
-            border-left-color: #2DD4BF;
+            border-left-color: var(--primary-red);
             color: var(--text-dark);
         }
         [data-theme="dark"] .success-message {
@@ -349,7 +347,7 @@
         }
         [data-theme="dark"] .error-message {
             background: rgba(220, 53, 69, 0.18);
-            color: #fca5a5;
+            color: var(--accent-light-red);
         }
 
         /* Dark mode for form elements */
