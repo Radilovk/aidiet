@@ -1148,7 +1148,7 @@
             border-top: none;
         }
         .collapsible-section-body.open {
-            max-height: 1000px;
+            max-height: 3000px; /* large enough for any content; CSS transition still works */
             padding: 12px 15px 15px;
         }
         .collapsible-section-wrap {
@@ -1173,7 +1173,7 @@
         details.info-box > summary::after,
         details.info-box-warning > summary::after,
         details.warning-box > summary::after {
-            content: "\f078";
+            content: "\f078"; /* Font Awesome fa-chevron-down */
             font-family: "Font Awesome 5 Free";
             font-weight: 900;
             font-size: 0.75rem;
@@ -1377,11 +1377,11 @@
                 </div>
                 <!-- Thinking configuration (Gemini 2.5+ / Anthropic Claude 3.7+) -->
                 <div class="collapsible-section-wrap form-group">
-                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)">
+                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)" aria-expanded="false">
                         <span><i class="fas fa-brain"></i> Настройки за мислене (Thinking)</span>
                         <i class="fas fa-chevron-down toggle-chevron"></i>
                     </div>
-                    <div class="collapsible-section-body">
+                    <div class="collapsible-section-body" aria-hidden="true">
                         <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Приложимо за: Gemini 2.5 Flash/Pro, Claude 3.7 Sonnet+. По подразбиране мисленето е деактивирано за Gemini 2.5 Flash за предотвратяване на MAX_TOKENS грешки.</small>
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             <input type="checkbox" id="aiDisableThinking" style="width: auto; margin: 0;" onchange="toggleThinkingBudgetField('aiThinkingBudget', this.checked)">
@@ -1396,11 +1396,11 @@
                 </div>
                 <!-- Sampling parameters (temperature, top_p, top_k) -->
                 <div class="collapsible-section-wrap form-group">
-                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)">
+                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)" aria-expanded="false">
                         <span><i class="fas fa-thermometer-half"></i> Параметри за семплиране</span>
                         <i class="fas fa-chevron-down toggle-chevron"></i>
                     </div>
-                    <div class="collapsible-section-body">
+                    <div class="collapsible-section-body" aria-hidden="true">
                         <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Управляват случайността и разнообразието на AI отговорите. Важни особено за чат и генериране на план. Оставете празно за стойностите по подразбиране на модела.</small>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                             <div>
@@ -1452,11 +1452,11 @@
                 </div>
                 <!-- Thinking configuration for Chat -->
                 <div class="collapsible-section-wrap form-group">
-                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)">
+                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)" aria-expanded="false">
                         <span><i class="fas fa-brain"></i> Настройки за мислене (Чат)</span>
                         <i class="fas fa-chevron-down toggle-chevron"></i>
                     </div>
-                    <div class="collapsible-section-body">
+                    <div class="collapsible-section-body" aria-hidden="true">
                         <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Приложимо за: Gemini 2.5 Flash/Pro, Claude 3.7 Sonnet+.</small>
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             <input type="checkbox" id="chatAiDisableThinking" style="width: auto; margin: 0;" onchange="toggleThinkingBudgetField('chatAiThinkingBudget', this.checked)">
@@ -1471,11 +1471,11 @@
                 </div>
                 <!-- Sampling parameters for Chat -->
                 <div class="collapsible-section-wrap form-group">
-                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)">
+                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)" aria-expanded="false">
                         <span><i class="fas fa-thermometer-half"></i> Параметри за семплиране (Чат)</span>
                         <i class="fas fa-chevron-down toggle-chevron"></i>
                     </div>
-                    <div class="collapsible-section-body">
+                    <div class="collapsible-section-body" aria-hidden="true">
                         <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Управляват случайността на AI отговорите в чата. Оставете празно за стойностите по подразбиране.</small>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                             <div>
@@ -1524,11 +1524,11 @@
                 </div>
                 <!-- Thinking configuration for Vision -->
                 <div class="collapsible-section-wrap form-group">
-                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)">
+                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)" aria-expanded="false">
                         <span><i class="fas fa-brain"></i> Настройки за мислене (Vision)</span>
                         <i class="fas fa-chevron-down toggle-chevron"></i>
                     </div>
-                    <div class="collapsible-section-body">
+                    <div class="collapsible-section-body" aria-hidden="true">
                         <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Приложимо за моделите с vision, които поддържат мислене (Gemini 2.5+).</small>
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             <input type="checkbox" id="visionDisableThinking" style="width: auto; margin: 0;" onchange="toggleThinkingBudgetField('visionThinkingBudget', this.checked)">
@@ -2856,11 +2856,11 @@
 
                 <!-- Thinking configuration for Protocol -->
                 <div class="collapsible-section-wrap form-group">
-                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)">
+                    <div class="collapsible-section-toggle" onclick="toggleCollapsibleSection(this)" aria-expanded="false">
                         <span><i class="fas fa-brain"></i> Настройки за мислене (Protocol AI)</span>
                         <i class="fas fa-chevron-down toggle-chevron"></i>
                     </div>
-                    <div class="collapsible-section-body">
+                    <div class="collapsible-section-body" aria-hidden="true">
                         <small style="color: var(--text-gray); display: block; margin-bottom: 12px;">Приложимо за Gemini 2.5+ и Claude 3.7+ при генериране на протоколи.</small>
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             <input type="checkbox" id="protocolDisableThinking" style="width: auto; margin: 0;" onchange="toggleThinkingBudgetField('protocolThinkingBudget', this.checked)">
@@ -3475,6 +3475,8 @@
             if (!body) return;
             const isOpen = body.classList.toggle('open');
             toggleEl.classList.toggle('open', isOpen);
+            toggleEl.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            body.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
         }
 
         // --- Tab Management ---
