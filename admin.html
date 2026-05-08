@@ -137,6 +137,15 @@
             color: white;
             border: none;
             padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: var(--primary-dark);
+        }
 
         .theme-toggle {
             background: var(--bg-color);
@@ -156,18 +165,9 @@
             border-color: var(--primary-red);
             transform: scale(1.05);
         }
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: var(--primary-dark);
-        }
 
         .card {
-            background: white;
+            background: var(--white);
             padding: 30px;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
@@ -267,6 +267,30 @@
             font-size: 0.9rem;
         }
 
+        /* Info-box color variants used in place of inline styles */
+        .info-box-yellow,
+        .info-box-green,
+        .info-box-teal {
+            padding: 15px;
+            border-left-width: 4px;
+            border-left-style: solid;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .info-box-yellow {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .info-box-green {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+        .info-box-teal {
+            background: #d1f2eb;
+            border-left-color: #1abc9c;
+        }
+
         .success-message {
             background: #d4edda;
             color: #155724;
@@ -285,13 +309,72 @@
             display: none;
         }
 
+        /* Dark mode overrides for boxes and messages.
+           !important is required to override inline style="background:..." attributes
+           that exist on many .info-box elements in the HTML. */
+        [data-theme="dark"] .info-box {
+            background: rgba(13, 148, 136, 0.12) !important;
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .info-box-warning {
+            background: rgba(231, 76, 60, 0.15) !important;
+            border-left-color: var(--accent-light-red);
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .warning-box {
+            background: rgba(255, 193, 7, 0.12) !important;
+            border-left-color: var(--accent-yellow);
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .info-box-yellow {
+            background: rgba(255, 193, 7, 0.12) !important;
+            border-left-color: var(--accent-yellow);
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .info-box-green {
+            background: rgba(40, 167, 69, 0.15) !important;
+            border-left-color: #4ade80;
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .info-box-teal {
+            background: rgba(26, 188, 156, 0.15) !important;
+            border-left-color: var(--primary-red);
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .success-message {
+            background: rgba(40, 167, 69, 0.18);
+            color: #86efac;
+        }
+        [data-theme="dark"] .error-message {
+            background: rgba(220, 53, 69, 0.18);
+            color: var(--accent-light-red);
+        }
+
+        /* Dark mode for form elements */
+        [data-theme="dark"] select,
+        [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+        [data-theme="dark"] textarea {
+            background: var(--white);
+            color: var(--text-dark);
+            border-color: rgba(45, 212, 191, 0.3);
+        }
+        [data-theme="dark"] select:focus,
+        [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+        [data-theme="dark"] textarea:focus {
+            border-color: var(--primary-red);
+        }
+        [data-theme="dark"] select option {
+            background: var(--white);
+            color: var(--text-dark);
+        }
+
         .login-container {
             max-width: 400px;
             margin: 100px auto;
         }
 
         .login-card {
-            background: white;
+            background: var(--white);
             padding: 40px;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
@@ -723,12 +806,12 @@
 
         @keyframes highlightField {
             0% {
-                background-color: #fff3cd;
+                background-color: rgba(255, 193, 7, 0.25);
                 border-color: #ffc107;
             }
             100% {
-                background-color: #ffffff;
-                border-color: #ddd;
+                background-color: transparent;
+                border-color: rgba(45, 212, 191, 0.3);
             }
         }
 
@@ -2461,7 +2544,7 @@
 
                 <div class="form-group">
                     <label>Текущ Основен Списък:</label>
-                    <div id="mainlistDisplay" style="padding: 15px; background: #fffbe6; border-radius: 8px; margin-bottom: 15px; min-height: 80px; border: 1px solid #ffc107;">
+                    <div id="mainlistDisplay" style="padding: 15px; background: var(--soft-red); border-radius: 8px; margin-bottom: 15px; min-height: 80px; border: 1px solid var(--primary-red);">
                         <p style="text-align: center; color: var(--text-gray); padding: 20px;">
                             Натиснете "Опресни Списъка", за да видите основния списък.
                         </p>
@@ -2540,7 +2623,7 @@
                 </div>
                 <div class="form-group">
                     <label>Текущ Бял Списък:</label>
-                    <div id="whitelistDisplay" style="padding: 15px; background: #d4edda; border-radius: 8px; margin-bottom: 15px; min-height: 80px;">
+                    <div id="whitelistDisplay" style="padding: 15px; background: var(--soft-red); border-radius: 8px; margin-bottom: 15px; min-height: 80px;">
                         <p style="text-align: center; color: var(--text-gray); padding: 20px;">
                             Натиснете "Опресни Списъка", за да видите белия списък.
                         </p>
@@ -2583,7 +2666,7 @@
 
                 <div class="form-group">
                     <label>Текущи хакове за избраната цел:</label>
-                    <div id="goalHacksDisplay" style="padding: 15px; background: #fff8e1; border-radius: 8px; margin-bottom: 15px; min-height: 80px; border: 1px solid #ffc107;">
+                    <div id="goalHacksDisplay" style="padding: 15px; background: var(--soft-red); border-radius: 8px; margin-bottom: 15px; min-height: 80px; border: 1px solid var(--primary-red);">
                         <p style="text-align: center; color: var(--text-gray); padding: 20px;">
                             Изберете цел и натиснете "Зареди Хакове" за да видите текущите хакове.
                         </p>
@@ -4722,7 +4805,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
         // Check if logged in
         function checkAuth() {
-            const isLoggedIn = sessionStorage.getItem('adminLoggedIn');
+            const isLoggedIn = localStorage.getItem('adminLoggedIn');
             if (isLoggedIn === 'true') {
                 showDashboard();
             }
@@ -4734,7 +4817,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             const errorDiv = document.getElementById('loginError');
 
             if (password === ADMIN_PASSWORD) {
-                sessionStorage.setItem('adminLoggedIn', 'true');
+                localStorage.setItem('adminLoggedIn', 'true');
                 showDashboard();
             } else {
                 errorDiv.textContent = 'Грешна парола!';
@@ -4744,7 +4827,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
         // Logout
         function logout() {
-            sessionStorage.removeItem('adminLoggedIn');
+            localStorage.removeItem('adminLoggedIn');
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('adminDashboard').style.display = 'none';
         }
@@ -5534,8 +5617,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const data = await cachedFetch(
                     WORKER_URL + '/api/admin/get-validation-config',
                     'admin:validationConfig',
-                    CACHE_CONFIG.validationConfig,
-                    { headers: { 'X-Admin-Password': ADMIN_PASSWORD } }
+                    CACHE_CONFIG.validationConfig
                 );
                 if (data.success && data.config) {
                     applyValidationConfigToUI(data.config);
@@ -5551,7 +5633,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const config = collectValidationConfigFromUI();
                 const res = await fetch(WORKER_URL + '/api/admin/save-validation-config', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': ADMIN_PASSWORD },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ config })
                 });
                 const data = await res.json();
@@ -5816,8 +5898,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     ? `🔄 ${escapeHtml(entry.item)} → ${entry.substitute ? escapeHtml(entry.substitute) : '<em style="opacity:0.6">(липсва заместване)</em>'}`
                     : `🚫 ${escapeHtml(entry.item)}`;
                 const badgeStyle = isSub
-                    ? 'background: #fff3cd; color: #856404; border: 1px solid #ffc107;'
-                    : 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;';
+                    ? 'background: rgba(255, 193, 7, 0.2); color: var(--accent-yellow); border: 1px solid var(--accent-yellow);'
+                    : 'background: rgba(220, 53, 69, 0.15); color: var(--accent-light-red); border: 1px solid var(--accent-light-red);';
                 return `
                 <div style="display: inline-flex; align-items: center; ${badgeStyle} padding: 6px 12px; border-radius: 20px; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.9em;">
                     <span style="color: inherit;">${label}</span>
@@ -6010,7 +6092,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
             const row = document.createElement('div');
             row.className = 'gn-extra-row';
-            row.style.cssText = 'display:grid; grid-template-columns:110px 1fr 1fr auto; gap:8px; align-items:center; background:#f8f9fa; padding:10px; border-radius:6px; border:1px solid #e0e0e0;';
+            row.style.cssText = 'display:grid; grid-template-columns:110px 1fr 1fr auto; gap:8px; align-items:center; background:var(--bg-color); padding:10px; border-radius:6px; border:1px solid var(--text-gray);';
 
             // Helper to create a labeled input field
             function makeField(labelText, inputClass, inputType, placeholderText, inputValue) {
@@ -6711,7 +6793,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 return;
             }
             const itemsHTML = currentMainlist.map((item, index) => `
-                <div style="display: inline-flex; align-items: center; background: #fff3cd; color: #856404; border: 1px solid #ffc107; padding: 5px 11px; border-radius: 20px; gap: 7px; font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                <div style="display: inline-flex; align-items: center; background: rgba(255, 193, 7, 0.2); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); padding: 5px 11px; border-radius: 20px; gap: 7px; font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
                     <span>${escapeHtml(item)}</span>
                     <button onclick="removeFromMainlist(${index})" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; opacity: 0.7;" title="Премахни">
                         <i class="fas fa-times"></i>
@@ -6900,10 +6982,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 return;
             }
             container.innerHTML = presets.map(name => `
-                <div style="display: inline-flex; align-items: center; gap: 6px; background: #e8f4fd; border: 1px solid #3b82f6; border-radius: 20px; padding: 4px 10px; margin: 3px; font-size: 0.88em;">
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent-blue); border-radius: 20px; padding: 4px 10px; margin: 3px; font-size: 0.88em; color: var(--text-dark);">
                     <span>${escapeHtml(name)}</span>
-                    <button data-preset-load="${escapeHtml(name)}" style="background: none; border: none; color: #3b82f6; cursor: pointer; padding: 0;" title="Зареди шаблона"><i class="fas fa-download"></i></button>
-                    <button data-preset-delete="${escapeHtml(name)}" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0;" title="Изтрий шаблона"><i class="fas fa-times"></i></button>
+                    <button data-preset-load="${escapeHtml(name)}" style="background: none; border: none; color: var(--accent-blue); cursor: pointer; padding: 0;" title="Зареди шаблона"><i class="fas fa-download"></i></button>
+                    <button data-preset-delete="${escapeHtml(name)}" style="background: none; border: none; color: var(--accent-light-red); cursor: pointer; padding: 0;" title="Изтрий шаблона"><i class="fas fa-times"></i></button>
                 </div>`).join('');
             // Event delegation on the container
             container.onclick = (e) => {
@@ -7022,7 +7104,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
             
             const itemsHTML = hacks.map((hack, index) => `
-                <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: #fff; border: 1px solid #ffc107; border-radius: 8px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: var(--white); border: 1px solid #ffc107; border-radius: 8px; margin-bottom: 8px;">
                     <span style="flex: 1; color: var(--text-dark);">${escapeHtml(hack)}</span>
                     <button data-goal="${escapeHtml(goal)}" data-index="${index}" class="remove-hack-btn"
                             style="background: var(--accent-light-red); border: none; color: white; cursor: pointer; padding: 5px 10px; border-radius: 5px; font-size: 0.8em;" 
@@ -7322,7 +7404,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     const hasImage = !!imageUrl;
                     
                     html += `
-                        <div style="text-align: center; padding: 10px; background: white; border-radius: 12px; border: 2px solid ${hasImage ? 'var(--primary-red)' : 'transparent'}; transition: all 0.2s;" onclick="document.getElementById('protocolImageSelect').value='${protocol.id}'; loadProtocolImage();" class="protocol-image-thumb">
+                        <div style="text-align: center; padding: 10px; background: var(--white); border-radius: 12px; border: 2px solid ${hasImage ? 'var(--primary-red)' : 'transparent'}; transition: all 0.2s;" onclick="document.getElementById('protocolImageSelect').value='${protocol.id}'; loadProtocolImage();" class="protocol-image-thumb">
                             ${hasImage 
                                 ? `<img src="${imageUrl}" alt="${protocol.name}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">`
                                 : `<div style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto;">${protocol.icon}</div>`
@@ -8590,7 +8672,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 </div>
                                 
                                 ${hasResponse && log.response.error ? `
-                                    <div style="margin-top: 15px; padding: 10px; background: #ffe6e6; border-radius: 8px; color: #e74c3c;">
+                                    <div style="margin-top: 15px; padding: 10px; background: rgba(220, 53, 69, 0.15); border-radius: 8px; color: var(--accent-light-red);">
                                         <strong><i class="fas fa-exclamation-triangle"></i> Грешка:</strong> ${escapeHtml(log.response.error)}
                                     </div>
                                 ` : ''}
@@ -8601,7 +8683,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                         <summary style="cursor: pointer; font-weight: 600; color: var(--text-dark); padding: 5px;">
                                             <i class="fas fa-paper-plane"></i> Изпратен Промпт (${log.promptLength?.toLocaleString() || 0} chars)
                                         </summary>
-                                        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 10px;">
+                                        <div style="margin-top: 10px; padding: 10px; background: var(--bg-color); border-radius: 4px; margin-bottom: 10px;">
                                             <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.75rem;">
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #3498db; border-radius: 2px; margin-right: 5px;"></span><strong>Син:</strong> Системни инструкции и правила</div>
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #27ae60; border-radius: 2px; margin-right: 5px;"></span><strong>Зелен:</strong> Клиентски данни</div>
@@ -8619,7 +8701,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                         <summary style="cursor: pointer; font-weight: 600; color: var(--text-dark); padding: 5px;">
                                             <i class="fas fa-reply"></i> Получен Отговор (${log.response.responseLength?.toLocaleString() || 0} chars)
                                         </summary>
-                                        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 10px;">
+                                        <div style="margin-top: 10px; padding: 10px; background: var(--bg-color); border-radius: 4px; margin-bottom: 10px;">
                                             <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.75rem;">
                                                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #9b59b6; border-radius: 2px; margin-right: 5px;"></span><strong>Лилав:</strong> Анализирана информация от AI</div>
                                             </div>
