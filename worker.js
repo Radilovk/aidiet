@@ -3420,7 +3420,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
 /**
  * Generate nutrition plan from questionnaire data using multi-step approach
  */
-async function handleGeneratePlan(request, env) {
+async function handleGeneratePlan(request, env, ctx) {
   try {
     const data = normalizeQuestionnaireData(await request.json());
     
@@ -3587,6 +3587,12 @@ async function handleGeneratePlan(request, env) {
       };
     }
     
+    // Save AI logs, settings and plan to the GitHub repository in the background,
+    // but only when the admin has enabled AI logging in the admin panel.
+    if (ctx?.waitUntil && await isAILoggingEnabled(env)) {
+      ctx.waitUntil(saveLogsToGitHub(env, cleanPlan));
+    }
+
     return jsonResponse({ 
       success: true, 
       plan: cleanPlan,
@@ -8738,6 +8744,264 @@ async function finalizeAISessionLogs(env, sessionId) {
  * Generate user ID from data
  */
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GitHub Log Persistence
+// Saves AI communication logs, model settings and the assembled plan to the
+// repository under ai-logs/latest/ after every successful plan generation.
+// Requires GITHUB_TOKEN Cloudflare secret (a PAT with repo write access).
+// Optional: GITHUB_REPO (default: Radilovk/aidiet), GITHUB_BRANCH (default: main).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Base64-encode a UTF-8 string (handles Cyrillic / multibyte characters).
+ */
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Commit multiple files to a GitHub repository in one atomic commit.
+ * Uses the Git Data API: create blobs → create tree → create commit → update ref.
+ * @param {string} token   - GitHub PAT with repo write access
+ * @param {string} repo    - e.g. "Radilovk/aidiet"
+ * @param {string} branch  - branch name, e.g. "main"
+ * @param {Object} files   - { 'path/to/file': 'content string', ... }
+ * @param {string} message - Commit message
+ */
+async function commitFilesToGitHub(token, repo, branch, files, message) {
+  const baseUrl = `https://api.github.com/repos/${repo}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'aidiet-worker'
+  };
+
+  // 1. Get latest commit SHA for the branch
+  const refRes = await fetch(`${baseUrl}/git/ref/heads/${branch}`, { headers });
+  if (!refRes.ok) throw new Error(`GitHub: cannot get ref for ${branch} – ${refRes.status}`);
+  const refData = await refRes.json();
+  const latestCommitSha = refData.object.sha;
+
+  // 2. Get base tree SHA from that commit
+  const commitRes = await fetch(`${baseUrl}/git/commits/${latestCommitSha}`, { headers });
+  if (!commitRes.ok) throw new Error(`GitHub: cannot get commit ${latestCommitSha} – ${commitRes.status}`);
+  const commitData = await commitRes.json();
+  const baseTreeSha = commitData.tree.sha;
+
+  // 3. Create a blob for each file (parallel)
+  const blobPromises = Object.entries(files).map(async ([path, content]) => {
+    const blobRes = await fetch(`${baseUrl}/git/blobs`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ content: utf8ToBase64(content), encoding: 'base64' })
+    });
+    if (!blobRes.ok) throw new Error(`GitHub: cannot create blob for ${path} – ${blobRes.status}`);
+    const blobData = await blobRes.json();
+    return { path, mode: '100644', type: 'blob', sha: blobData.sha };
+  });
+  const treeItems = await Promise.all(blobPromises);
+
+  // 4. Create a new tree on top of the base tree
+  const treeRes = await fetch(`${baseUrl}/git/trees`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ base_tree: baseTreeSha, tree: treeItems })
+  });
+  if (!treeRes.ok) throw new Error(`GitHub: cannot create tree – ${treeRes.status}`);
+  const treeData = await treeRes.json();
+
+  // 5. Create commit
+  const newCommitRes = await fetch(`${baseUrl}/git/commits`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ message, tree: treeData.sha, parents: [latestCommitSha] })
+  });
+  if (!newCommitRes.ok) throw new Error(`GitHub: cannot create commit – ${newCommitRes.status}`);
+  const newCommitData = await newCommitRes.json();
+
+  // 6. Fast-forward the branch ref.
+  // force: false means the update fails if another commit landed between step 1 and now
+  // (race condition). For this app's usage pattern (single user, infrequent commits)
+  // this is acceptable – saveLogsToGitHub already catches and logs the error gracefully.
+  const updateRefRes = await fetch(`${baseUrl}/git/refs/heads/${branch}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ sha: newCommitData.sha, force: false })
+  });
+  if (!updateRefRes.ok) {
+    const body = await updateRefRes.text();
+    throw new Error(`GitHub: cannot update ref – ${updateRefRes.status}: ${body}`);
+  }
+}
+
+/**
+ * Save AI communication logs, model settings and assembled plan to the repo.
+ * Called as a background task (ctx.waitUntil) after successful plan generation.
+ * Personal identifiers (name, email, phone) are stripped from the user profile.
+ *
+ * Files written to ai-logs/latest/:
+ *   communication_log.txt  – full prompt/response for every AI step
+ *   ai_settings.json       – model, provider and sampling parameters
+ *   final_plan.json        – the assembled diet plan
+ *
+ * @param {object} env            - Cloudflare env bindings
+ * @param {object} structuredPlan - Final plan returned by generatePlanMultiStep
+ */
+async function saveLogsToGitHub(env, structuredPlan) {
+  try {
+    // Use GITHUB_TOKEN if set; fall back to GITHUB_TOKEN1 as a reserve.
+    const token = env.GITHUB_TOKEN || env.GITHUB_TOKEN1;
+    if (!token) {
+      console.log('[GitHub Save] Neither GITHUB_TOKEN nor GITHUB_TOKEN1 is set – skipping log save to repo');
+      return;
+    }
+
+    const repo   = env.GITHUB_REPO   || 'Radilovk/aidiet';
+    const branch = env.GITHUB_BRANCH || 'main';
+
+    // ── AI model settings ──────────────────────────────────────────────────
+    const config = await getAdminConfig(env);
+    // Timestamp marks when log collection started (not when the commit lands).
+    const timestamp = new Date().toISOString();
+
+    const settingsJson = JSON.stringify({
+      savedAt: timestamp,
+      plan: {
+        provider:      config.provider,
+        modelName:     config.modelName,
+        temperature:   config.temperature  ?? null,
+        topP:          config.topP         ?? null,
+        topK:          config.topK         ?? null,
+        thinkingBudget: config.thinkingBudget ?? null,
+        stepTokenLimits: config.stepTokenLimits
+      },
+      chat: {
+        provider:      config.chatProvider,
+        modelName:     config.chatModelName,
+        temperature:   config.chatTemperature  ?? null,
+        topP:          config.chatTopP         ?? null,
+        topK:          config.chatTopK         ?? null,
+        thinkingBudget: config.chatThinkingBudget ?? null
+      },
+      vision: {
+        provider:      config.visionProvider,
+        modelName:     config.visionModelName,
+        thinkingBudget: config.visionThinkingBudget ?? null
+      }
+    }, null, 2);
+
+    // ── Communication log ──────────────────────────────────────────────────
+    // MAX_LOG_ENTRIES = 1, so sessions[0] is always the most recent (and only) session.
+    const combinedIndex = await cacheGet('ai_log_combined_index');
+    const sessionId     = combinedIndex?.sessions?.[0];
+    const logIds        = (combinedIndex?.logs?.[sessionId]) || [];
+
+    let logText = '='.repeat(80) + '\n';
+    logText += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ – ПОСЛЕДНО ГЕНЕРИРАНЕ НА ПЛАН\n';
+    logText += '='.repeat(80) + '\n\n';
+    logText += `Дата на запис:      ${timestamp}\n`;
+    logText += `Сесия:              ${sessionId || 'N/A'}\n`;
+    logText += `Провайдър/Модел:    ${config.provider} / ${config.modelName}\n`;
+    logText += `Стъпки в лога:      ${logIds.length}\n\n`;
+
+    if (logIds.length > 0) {
+      // Use allSettled so a missing cache entry doesn't abort the whole log
+      const settled = await Promise.allSettled(
+        logIds.flatMap(id => [
+          cacheGet(`ai_communication_log:${id}`),
+          cacheGet(`ai_communication_log:${id}_response`)
+        ])
+      );
+      const rawLogs = settled.map(r => (r.status === 'fulfilled' ? r.value : null));
+
+      for (let i = 0; i < logIds.length; i++) {
+        const req = rawLogs[i * 2];
+        const legacyRes = rawLogs[i * 2 + 1];
+        const res = req?.type === 'combined' ? {
+          timestamp:              req.responseTimestamp || req.timestamp,
+          success:                req.success,
+          duration:               req.duration,
+          responseLength:         req.responseLength,
+          estimatedOutputTokens:  req.estimatedOutputTokens,
+          error:                  req.error,
+          response:               req.response
+        } : legacyRes;
+
+        if (!req) continue;
+
+        logText += '─'.repeat(80) + '\n';
+        logText += `СТЪПКА ${i + 1}: ${req.stepName || 'unknown'}\n`;
+        logText += '─'.repeat(80) + '\n\n';
+
+        logText += '[ ПАРАМЕТРИ ]\n';
+        logText += `Времева марка:             ${req.timestamp}\n`;
+        logText += `Провайдър:                 ${req.provider || 'N/A'}\n`;
+        logText += `Модел:                     ${req.modelName || 'N/A'}\n`;
+        logText += `Дължина на промпт:         ${req.promptLength || 0} символа\n`;
+        logText += `Прибл. входни токени:      ${req.estimatedInputTokens || 0}\n`;
+        logText += `Макс. изходни токени:      ${req.maxOutputTokens || 'N/A'}\n`;
+
+        if (req.userData) {
+          const safe = { ...req.userData };
+          delete safe.name;
+          delete safe.email;
+          delete safe.phone;
+          logText += '\n[ ВХОДНИ ДАННИ (потребителски профил) ]\n';
+          logText += JSON.stringify(safe, null, 2) + '\n';
+        }
+
+        if (req.calculatedData) {
+          logText += '\n[ БЕКЕНД КАЛКУЛАЦИИ ]\n';
+          logText += JSON.stringify(req.calculatedData, null, 2) + '\n';
+        }
+
+        logText += '\n[ ПРОМПТ ]\n';
+        logText += (req.prompt || '(не е запазен)') + '\n';
+
+        if (res) {
+          logText += '\n[ ОТГОВОР НА AI ]\n';
+          logText += `Времева марка:             ${res.timestamp || 'N/A'}\n`;
+          logText += `Успех:                     ${res.success ? 'Да' : 'Не'}\n`;
+          logText += `Времетраене:               ${res.duration || 0} ms\n`;
+          logText += `Дължина на отговора:       ${res.responseLength || 0} символа\n`;
+          logText += `Прибл. изходни токени:     ${res.estimatedOutputTokens || 0}\n`;
+          if (res.error) logText += `Грешка:                    ${res.error}\n`;
+          logText += '\n' + (res.response || '(не е запазен)') + '\n\n';
+        } else {
+          logText += '\n[ ОТГОВОР НА AI ]\n(не е получен)\n\n';
+        }
+      }
+    } else {
+      logText += '(Няма записани логове за тази сесия)\n\n';
+    }
+
+    logText += '='.repeat(80) + '\n';
+    logText += 'КРАЙ\n';
+    logText += '='.repeat(80) + '\n';
+
+    // ── Assembled plan ─────────────────────────────────────────────────────
+    const planJson = JSON.stringify(structuredPlan, null, 2);
+
+    // ── Commit ─────────────────────────────────────────────────────────────
+    await commitFilesToGitHub(token, repo, branch, {
+      'ai-logs/latest/communication_log.txt': logText,
+      'ai-logs/latest/ai_settings.json':      settingsJson,
+      'ai-logs/latest/final_plan.json':       planJson
+    }, `ai-logs: ${timestamp.substring(0, 19).replace('T', ' ')} UTC`);
+
+    console.log('[GitHub Save] Logs committed to repo successfully');
+  } catch (err) {
+    console.error('[GitHub Save] Failed to save logs to GitHub:', err.message);
+  }
+}
+
 /**
  * Helper function to get KV key for prompt type
  */
@@ -12399,7 +12663,7 @@ export default {
       } else if (url.pathname === '/api/generate-plan' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'GENERATE_PLAN');
         if (rlErr) return rlErr;
-        return await handleGeneratePlan(request, env);
+        return await handleGeneratePlan(request, env, ctx);
       } else if (url.pathname === '/api/clinical-protocols' && request.method === 'GET') {
         return handleGetClinicalProtocols();
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
