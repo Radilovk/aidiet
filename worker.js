@@ -3423,182 +3423,35 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
 async function handleGeneratePlan(request, env, ctx) {
   try {
     const data = normalizeQuestionnaireData(await request.json());
-    
-    // Validate required fields
     if (!data.name || !data.age || !data.weight || !data.height) {
       console.error('handleGeneratePlan: Missing required fields');
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
-    
-    // If a clinical protocol is selected, map its goal and ensure data.goal is set
-    const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
-    if (clinicalProtocol) {
-      // For postpartum_lactation, synthesize goal from postpartumGoal if available
-      if (data.clinicalProtocol === 'postpartum_lactation' && data.postpartumGoal) {
-        data.goal = Array.isArray(data.postpartumGoal)
-          ? data.postpartumGoal.join(' + ')
-          : data.postpartumGoal;
+
+    let result;
+    try {
+      result = await generatePlanCore(env, data);
+    } catch (coreError) {
+      console.error('handleGeneratePlan: generatePlanCore failed:', coreError);
+      if (coreError.validationFailed) {
+        return jsonResponse({ error: coreError.message, validationFailed: true }, 400);
       }
-      // Use protocol's goalMapping as the goal if not explicitly set
-      if (!data.goal) {
-        data.goal = clinicalProtocol.goalMapping;
+      if (coreError.validationErrors) {
+        return jsonResponse({
+          error: coreError.message,
+          validationErrors: coreError.validationErrors,
+          suggestion: "Моля, опитайте отново или свържете се с поддръжката"
+        }, 400);
       }
-      // Auto-populate medicalConditions from protocol name if the user skipped that question
-      if (!data.medicalConditions || data.medicalConditions.length === 0) {
-        data.medicalConditions = [clinicalProtocol.name];
-      }
-    }
-    
-    // Step 0: Validate data adequacy (unrealistic, offensive, inappropriate data)
-    const valConfig = await getValidationConfig(env);
-    const dataValidation = validateDataAdequacy(data, valConfig);
-    if (!dataValidation.isValid) {
-      console.error('handleGeneratePlan: Data adequacy validation failed:', dataValidation.errorMessage);
-      return jsonResponse({ 
-        error: dataValidation.errorMessage,
-        validationFailed: true 
-      }, 400);
+      return jsonResponse({ error: `${ERROR_MESSAGES.PLAN_GENERATION_FAILED}: ${coreError.message}` }, 500);
     }
 
-    // Generate unique user ID (could be email or session-based)
-    const userId = data.email || generateUserId(data);
-    
-    // Check for goal contradictions before generating plan
-    const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
-    
-    // Only block plan generation for hard-blocking contradictions (canProceed: false).
-    // Advisory contradictions (canProceed: true) proceed to plan generation so the
-    // user who clicked "Continue despite warning" actually gets their plan.
-    if (hasContradiction && !contradictionCanProceed) {
-      return jsonResponse({ 
-        success: true,
-        hasContradiction: true,
-        warningData: warningData,
-        userId: userId 
-      });
-    }
-    
-    // Use multi-step approach for better individualization
-    // No caching - client stores plan locally
-    let structuredPlan = await generatePlanMultiStep(env, data);
-    
-    // Load food substitutions from KV (already cached after generatePlanMultiStep)
-    const { dynamicSubstitutions } = await getDynamicFoodListsSections(env);
-
-    // ENHANCED: Implement step-specific correction loop
-    // Instead of correcting the whole plan, regenerate from the earliest error step
-    let validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
-    let correctionAttempts = 0;
-    
-    // Safety check: ensure MAX_CORRECTION_ATTEMPTS is valid
-    const maxAttempts = Math.max(0, MAX_CORRECTION_ATTEMPTS);
-    
-    while (!validation.isValid && correctionAttempts < maxAttempts) {
-      correctionAttempts++;
-      
-      try {
-        // Regenerate from the earliest error step with targeted error prevention
-        structuredPlan = await regenerateFromStep(
-          env, 
-          data, 
-          structuredPlan, 
-          validation.earliestErrorStep, 
-          validation.stepErrors,
-          correctionAttempts
-        );
-        
-        // Re-validate the regenerated plan
-        validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
-      } catch (error) {
-        console.error(`handleGeneratePlan: Regeneration attempt ${correctionAttempts} failed:`, error);
-        // Continue with next attempt or exit loop
-        if (correctionAttempts >= maxAttempts) {
-          break;
-        }
-      }
-    }
-    
-    // Final validation check - if still invalid after max attempts, try fallback strategy
-    if (!validation.isValid) {
-      console.error(`handleGeneratePlan: Plan validation failed after ${correctionAttempts} correction attempts:`, validation.errors);
-      
-      // Fallback strategy: Try to generate a simplified plan as last resort
-      if (correctionAttempts >= maxAttempts) {
-        try {
-          // Generate simplified plan with reduced requirements
-          const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
-          const fallbackValidation = validatePlan(simplifiedPlan, data, dynamicSubstitutions);
-          
-          if (fallbackValidation.isValid) {
-            const cleanPlan = removeInternalJustifications(simplifiedPlan);
-            // Add hardcoded goal-based hacks for fallback plan
-            if (clinicalProtocol && clinicalProtocol.hacks) {
-              cleanPlan.hacks = clinicalProtocol.hacks;
-            } else {
-              const goalHacks = await getGoalHacks(env, data.goal);
-              cleanPlan.hacks = goalHacks;
-            }
-            if (clinicalProtocol) {
-              cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
-            }
-            return jsonResponse({ 
-              success: true, 
-              plan: cleanPlan,
-              userId: userId,
-              correctionAttempts: correctionAttempts,
-              fallbackUsed: true,
-              note: "Използван опростен план поради технически проблеми с основния алгоритъм"
-            });
-          } else {
-            console.error('handleGeneratePlan: Fallback plan failed validation:', fallbackValidation.errors);
-            console.error('handleGeneratePlan: Fallback step errors:', JSON.stringify(fallbackValidation.stepErrors, null, 2));
-          }
-        } catch (fallbackError) {
-          console.error('handleGeneratePlan: Simplified fallback also failed:', fallbackError);
-          console.error('handleGeneratePlan: Fallback error stack:', fallbackError.stack);
-        }
-      }
-      
-      // If all strategies failed, return detailed error
-      return jsonResponse({ 
-        error: `Планът не премина качествен тест след ${correctionAttempts} опити за корекция: ${validation.errors.join('; ')}`,
-        validationErrors: validation.errors,
-        suggestion: "Моля, опитайте отново или свържете се с поддръжката"
-      }, 400);
-    }
-    
-    // Remove internal justification fields before returning to client
-    const cleanPlan = removeInternalJustifications(structuredPlan);
-    
-    // Add hardcoded goal-based hacks (not AI-generated)
-    // If clinical protocol is active, use protocol-specific hacks
-    if (clinicalProtocol && clinicalProtocol.hacks) {
-      cleanPlan.hacks = clinicalProtocol.hacks;
-    } else {
-      const goalHacks = await getGoalHacks(env, data.goal);
-      cleanPlan.hacks = goalHacks;
-    }
-    
-    // If clinical protocol, add protocol metadata to plan
-    if (clinicalProtocol) {
-      cleanPlan.clinicalProtocol = {
-        id: clinicalProtocol.id,
-        name: clinicalProtocol.name
-      };
-    }
-    
-    // Save AI logs, settings and plan to the GitHub repository in the background,
-    // but only when the admin has enabled AI logging in the admin panel.
-    if (ctx?.waitUntil && await isAILoggingEnabled(env)) {
-      ctx.waitUntil(saveLogsToGitHub(env, cleanPlan));
+    // Save AI logs in the background when enabled
+    if (result.plan && ctx?.waitUntil && await isAILoggingEnabled(env)) {
+      ctx.waitUntil(saveLogsToGitHub(env, result.plan));
     }
 
-    return jsonResponse({ 
-      success: true, 
-      plan: cleanPlan,
-      userId: userId,
-      correctionAttempts: correctionAttempts // Inform client how many corrections were needed
-    });
+    return jsonResponse(result);
   } catch (error) {
     console.error('Error generating plan:', error);
     return jsonResponse({ error: `${ERROR_MESSAGES.PLAN_GENERATION_FAILED}: ${error.message}` }, 500);
@@ -3612,6 +3465,180 @@ async function handleGeneratePlan(request, env, ctx) {
 function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
   const cleanedResponse = aiResponse.substring(0, regenerateIndex).trim();
   return cleanedResponse || ERROR_MESSAGE_PARSE_FAILURE;
+}
+
+// KV key prefix and TTL for async plan generation jobs
+const PLAN_JOB_PREFIX = 'plan_job:';
+const PLAN_JOB_TTL_SEC = 86400; // 24 hours
+
+/**
+ * Core plan-generation logic shared by both the synchronous and async endpoints.
+ * Returns the ready-to-send result object (same shape as the synchronous endpoint)
+ * or throws on unrecoverable error.
+ */
+async function generatePlanCore(env, data) {
+  // Resolve clinical protocol
+  const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
+  if (clinicalProtocol) {
+    if (data.clinicalProtocol === 'postpartum_lactation' && data.postpartumGoal) {
+      data.goal = Array.isArray(data.postpartumGoal)
+        ? data.postpartumGoal.join(' + ')
+        : data.postpartumGoal;
+    }
+    if (!data.goal) data.goal = clinicalProtocol.goalMapping;
+    if (!data.medicalConditions || data.medicalConditions.length === 0) {
+      data.medicalConditions = [clinicalProtocol.name];
+    }
+  }
+
+  // Validate data adequacy
+  const valConfig = await getValidationConfig(env);
+  const dataValidation = validateDataAdequacy(data, valConfig);
+  if (!dataValidation.isValid) {
+    const err = new Error(dataValidation.errorMessage);
+    err.validationFailed = true;
+    throw err;
+  }
+
+  const userId = data.email || generateUserId(data);
+
+  // Check for goal contradictions
+  const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
+  if (hasContradiction && !contradictionCanProceed) {
+    return { success: true, hasContradiction: true, warningData, userId };
+  }
+
+  // Generate plan (multi-step AI)
+  let structuredPlan = await generatePlanMultiStep(env, data);
+  const { dynamicSubstitutions } = await getDynamicFoodListsSections(env);
+
+  let validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
+  let correctionAttempts = 0;
+  const maxAttempts = Math.max(0, MAX_CORRECTION_ATTEMPTS);
+
+  while (!validation.isValid && correctionAttempts < maxAttempts) {
+    correctionAttempts++;
+    try {
+      structuredPlan = await regenerateFromStep(
+        env, data, structuredPlan,
+        validation.earliestErrorStep, validation.stepErrors, correctionAttempts
+      );
+      validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
+    } catch (e) {
+      console.error(`generatePlanCore: Regeneration attempt ${correctionAttempts} failed:`, e);
+      if (correctionAttempts >= maxAttempts) break;
+    }
+  }
+
+  if (!validation.isValid) {
+    if (correctionAttempts >= maxAttempts) {
+      try {
+        const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
+        const fallbackValidation = validatePlan(simplifiedPlan, data, dynamicSubstitutions);
+        if (fallbackValidation.isValid) {
+          const cleanPlan = removeInternalJustifications(simplifiedPlan);
+          if (clinicalProtocol && clinicalProtocol.hacks) {
+            cleanPlan.hacks = clinicalProtocol.hacks;
+          } else {
+            cleanPlan.hacks = await getGoalHacks(env, data.goal);
+          }
+          if (clinicalProtocol) cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
+          return { success: true, plan: cleanPlan, userId, correctionAttempts, fallbackUsed: true, note: 'Използван опростен план поради технически проблеми с основния алгоритъм' };
+        }
+      } catch (fallbackError) {
+        console.error('generatePlanCore: Fallback also failed:', fallbackError);
+      }
+    }
+    const err = new Error(`Планът не премина качествен тест след ${correctionAttempts} опити: ${validation.errors.join('; ')}`);
+    err.validationErrors = validation.errors;
+    throw err;
+  }
+
+  const cleanPlan = removeInternalJustifications(structuredPlan);
+  if (clinicalProtocol && clinicalProtocol.hacks) {
+    cleanPlan.hacks = clinicalProtocol.hacks;
+  } else {
+    cleanPlan.hacks = await getGoalHacks(env, data.goal);
+  }
+  if (clinicalProtocol) cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
+
+  return { success: true, plan: cleanPlan, userId, correctionAttempts };
+}
+
+/**
+ * Background task: generate the plan and persist result to KV so the client
+ * can pick it up via /api/plan-job-status even after closing the app.
+ */
+async function generatePlanBackground(env, data, jobId) {
+  try {
+    const result = await generatePlanCore(env, data);
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({ status: 'completed', completedAt: Date.now(), ...result }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    );
+  } catch (error) {
+    console.error('generatePlanBackground error:', error);
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({
+        status: 'failed',
+        failedAt: Date.now(),
+        error: error.message,
+        validationFailed: error.validationFailed || false
+      }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    ).catch(e => { console.error('generatePlanBackground: Failed to write failure status to KV:', e); });
+  }
+}
+
+/**
+ * POST /api/generate-plan-async
+ * Starts plan generation in the background and returns a jobId immediately.
+ * The client polls /api/plan-job-status?jobId=<id> for the result.
+ */
+async function handleGeneratePlanAsync(request, env, ctx) {
+  try {
+    const data = normalizeQuestionnaireData(await request.json());
+    if (!data.name || !data.age || !data.weight || !data.height) {
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+
+    const jobId = crypto.randomUUID();
+    // Write initial 'pending' marker before starting the background task.
+    // If this KV write fails the response will still contain the jobId but polling
+    // will immediately return 'not_found'; the user will then see a "session expired"
+    // error message and be prompted to retry.
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({ status: 'pending', startedAt: Date.now() }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    );
+
+    // Run generation in background – survives client disconnect
+    ctx.waitUntil(generatePlanBackground(env, data, jobId));
+
+    return jsonResponse({ success: true, jobId });
+  } catch (error) {
+    console.error('handleGeneratePlanAsync error:', error);
+    return jsonResponse({ error: ERROR_MESSAGES.PLAN_GENERATION_FAILED }, 500);
+  }
+}
+
+/**
+ * GET /api/plan-job-status?jobId=<id>
+ * Returns the current status of an async plan generation job.
+ * Possible status values: 'pending' | 'completed' | 'failed' | 'not_found'
+ */
+async function handleGetPlanJobStatus(request, env) {
+  const url = new URL(request.url);
+  const jobId = url.searchParams.get('jobId');
+  if (!jobId) return jsonResponse({ error: 'Missing jobId' }, 400);
+
+  const raw = await env.page_content.get(PLAN_JOB_PREFIX + jobId);
+  if (!raw) return jsonResponse({ status: 'not_found' });
+
+  return jsonResponse(JSON.parse(raw));
 }
 
 /**
@@ -12664,6 +12691,12 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'GENERATE_PLAN');
         if (rlErr) return rlErr;
         return await handleGeneratePlan(request, env, ctx);
+      } else if (url.pathname === '/api/generate-plan-async' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'GENERATE_PLAN');
+        if (rlErr) return rlErr;
+        return await handleGeneratePlanAsync(request, env, ctx);
+      } else if (url.pathname === '/api/plan-job-status' && request.method === 'GET') {
+        return await handleGetPlanJobStatus(request, env);
       } else if (url.pathname === '/api/clinical-protocols' && request.method === 'GET') {
         return handleGetClinicalProtocols();
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
