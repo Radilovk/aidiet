@@ -8825,7 +8825,10 @@ async function commitFilesToGitHub(token, repo, branch, files, message) {
   if (!newCommitRes.ok) throw new Error(`GitHub: cannot create commit – ${newCommitRes.status}`);
   const newCommitData = await newCommitRes.json();
 
-  // 6. Fast-forward the branch ref
+  // 6. Fast-forward the branch ref.
+  // force: false means the update fails if another commit landed between step 1 and now
+  // (race condition). For this app's usage pattern (single user, infrequent commits)
+  // this is acceptable – saveLogsToGitHub already catches and logs the error gracefully.
   const updateRefRes = await fetch(`${baseUrl}/git/refs/heads/${branch}`, {
     method: 'PATCH',
     headers,
@@ -8863,6 +8866,7 @@ async function saveLogsToGitHub(env, structuredPlan) {
 
     // ── AI model settings ──────────────────────────────────────────────────
     const config = await getAdminConfig(env);
+    // Timestamp marks when log collection started (not when the commit lands).
     const timestamp = new Date().toISOString();
 
     const settingsJson = JSON.stringify({
@@ -8892,6 +8896,7 @@ async function saveLogsToGitHub(env, structuredPlan) {
     }, null, 2);
 
     // ── Communication log ──────────────────────────────────────────────────
+    // MAX_LOG_ENTRIES = 1, so sessions[0] is always the most recent (and only) session.
     const combinedIndex = await cacheGet('ai_log_combined_index');
     const sessionId     = combinedIndex?.sessions?.[0];
     const logIds        = (combinedIndex?.logs?.[sessionId]) || [];
@@ -8905,12 +8910,14 @@ async function saveLogsToGitHub(env, structuredPlan) {
     logText += `Стъпки в лога:      ${logIds.length}\n\n`;
 
     if (logIds.length > 0) {
-      const rawLogs = await Promise.all(
+      // Use allSettled so a missing cache entry doesn't abort the whole log
+      const settled = await Promise.allSettled(
         logIds.flatMap(id => [
           cacheGet(`ai_communication_log:${id}`),
           cacheGet(`ai_communication_log:${id}_response`)
         ])
       );
+      const rawLogs = settled.map(r => (r.status === 'fulfilled' ? r.value : null));
 
       for (let i = 0; i < logIds.length; i++) {
         const req = rawLogs[i * 2];
