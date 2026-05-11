@@ -3549,7 +3549,7 @@ async function generatePlanCore(env, data) {
         console.error('generatePlanCore: Fallback also failed:', fallbackError);
       }
     }
-    const err = new Error(`Планът не премина качествен тест след ${correctionAttempts} опита: ${validation.errors.join('; ')}`);
+    const err = new Error(`Планът не премина качествен тест след ${correctionAttempts} опити: ${validation.errors.join('; ')}`);
     err.validationErrors = validation.errors;
     throw err;
   }
@@ -3588,7 +3588,7 @@ async function generatePlanBackground(env, data, jobId) {
         validationFailed: error.validationFailed || false
       }),
       { expirationTtl: PLAN_JOB_TTL_SEC }
-    ).catch(e => { console.error('generatePlanBackground: KV failure write failed:', e); });
+    ).catch(e => { console.error('generatePlanBackground: Failed to write failure status to KV:', e); });
   }
 }
 
