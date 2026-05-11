@@ -1,2 +1,0 @@
-# Ignore generated test result files but keep the folder
-test-results/*.json
