@@ -3587,8 +3587,9 @@ async function handleGeneratePlan(request, env, ctx) {
       };
     }
     
-    // Save AI logs, settings and plan to the GitHub repository in the background
-    if (ctx?.waitUntil) {
+    // Save AI logs, settings and plan to the GitHub repository in the background,
+    // but only when the admin has enabled AI logging in the admin panel.
+    if (ctx?.waitUntil && await isAILoggingEnabled(env)) {
       ctx.waitUntil(saveLogsToGitHub(env, cleanPlan));
     }
 
@@ -8855,9 +8856,10 @@ async function commitFilesToGitHub(token, repo, branch, files, message) {
  */
 async function saveLogsToGitHub(env, structuredPlan) {
   try {
-    const token = env.GITHUB_TOKEN;
+    // Use GITHUB_TOKEN if set; fall back to GITHUB_TOKEN1 as a reserve.
+    const token = env.GITHUB_TOKEN || env.GITHUB_TOKEN1;
     if (!token) {
-      console.log('[GitHub Save] GITHUB_TOKEN not set – skipping log save to repo');
+      console.log('[GitHub Save] Neither GITHUB_TOKEN nor GITHUB_TOKEN1 is set – skipping log save to repo');
       return;
     }
 
