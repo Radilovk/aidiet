@@ -1239,10 +1239,11 @@ function escapeHTML(str) {
 // Запис на резултати
 // ─────────────────────────────────────────────────────────────────────────────
 
-function saveResult(stepName, timestamp, scenarioKey, prompt, rawResponse, parsedResponse) {
+function saveResult(stepName, timestamp, scenarioKey, prompt, rawResponse, parsedResponse, modelConfig) {
   const fileName = path.join(RESULTS_DIR, `${timestamp}_${scenarioKey}_${stepName}.json`);
   fs.writeFileSync(fileName, JSON.stringify({
     step: stepName, scenarioKey, timestamp: new Date().toISOString(),
+    modelConfig: modelConfig || null,
     promptTokens: estimateTokenCount(prompt),
     responseTokens: estimateTokenCount(rawResponse),
     prompt, rawResponse, parsedResponse
@@ -1328,6 +1329,13 @@ async function runStep(stepNum, opts, userData, prevResults, timestamp, scenario
   console.log(`  🚀 Изпращам към Gemini (${opts.model})…`);
   const startTime = Date.now();
 
+  const modelConfig = {
+    model: opts.model,
+    maxOutputTokens: 8192,
+    responseMimeType: 'application/json',
+    thinkingConfig: { thinkingBudget: 0 }
+  };
+
   let rawResponse, parsed;
   try {
     rawResponse = await callGemini(apiKey, prompt, opts.model, 8192);
@@ -1356,7 +1364,7 @@ async function runStep(stepNum, opts, userData, prevResults, timestamp, scenario
     printValidation(issues);
   }
 
-  const savedFile = saveResult(stepName, timestamp, scenarioKey, prompt, rawResponse, parsed);
+  const savedFile = saveResult(stepName, timestamp, scenarioKey, prompt, rawResponse, parsed, modelConfig);
   console.log(`  💾 Запазено: ${path.relative(ROOT_DIR, savedFile)}`);
 
   return { raw: rawResponse, parsed, issues };
@@ -1404,6 +1412,27 @@ async function runScenario(scenarioKey, scenarioData, opts, timestamp, apiKey) {
     const htmlFile = path.join(RESULTS_DIR, `${timestamp}_${scenarioKey}_report.html`);
     fs.writeFileSync(htmlFile, htmlContent, 'utf8');
     console.log(`  🌐 HTML доклад: ${path.relative(ROOT_DIR, htmlFile)}`);
+  }
+
+  // Save assembled plan (all steps + userData in one file)
+  if (!opts.dryRun && Object.keys(allStepResults).length > 0) {
+    const assembledFile = path.join(RESULTS_DIR, `${timestamp}_${scenarioKey}_assembled_plan.json`);
+    fs.writeFileSync(assembledFile, JSON.stringify({
+      scenarioKey, label, timestamp: new Date().toISOString(),
+      elapsed: parseFloat(elapsed),
+      userData,
+      steps: {
+        step1_analysis:  allStepResults[1]?.parsed  || null,
+        step2_strategy:  allStepResults[2]?.parsed  || null,
+        step3_meal_plan: allStepResults[3]?.parsed  || null,
+        step4_summary:   allStepResults[4]?.parsed  || null
+      },
+      validation: Object.fromEntries(
+        Object.entries(allValidation).map(([k, v]) => [k, v])
+      ),
+      totalIssues: Object.values(allValidation).flat().length
+    }, null, 2), 'utf8');
+    console.log(`  📦 Сглобен план: ${path.relative(ROOT_DIR, assembledFile)}`);
   }
 
   return { scenarioKey, label, elapsed, issues: totalIssues, steps: allStepResults };
@@ -1460,6 +1489,26 @@ async function main() {
 
   const totalStart = Date.now();
   const summaryRows = [];
+
+  // Save run config so future readers know the exact settings used
+  if (!opts.dryRun) {
+    const runConfig = {
+      timestamp,
+      model: opts.model,
+      steps: opts.step,
+      chain: opts.chain,
+      validate: opts.validate,
+      generationConfig: {
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 }
+      },
+      scenarios: scenariosToRun.map(s => s.key)
+    };
+    const configFile = path.join(RESULTS_DIR, `${timestamp}_run_config.json`);
+    fs.writeFileSync(configFile, JSON.stringify(runConfig, null, 2), 'utf8');
+    console.log(`📋 Конфигурация: ${path.relative(ROOT_DIR, configFile)}`);
+  }
 
   for (const { key, data } of scenariosToRun) {
     const result = await runScenario(key, data, opts, timestamp, apiKey);
