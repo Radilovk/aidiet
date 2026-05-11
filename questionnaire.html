@@ -2464,11 +2464,15 @@
          * Resumes seamlessly if the user re-opens the page with a stored jobId.
          */
         async function pollForPlanResult(jobId, planPayload) {
-            const POLL_INTERVAL_MS = 10000;  // 10 seconds
-            const MAX_POLLS = 108;            // 18 minutes max
-
+            const MAX_POLLS = 72; // ~18 minutes at average backoff
             let polls = 0;
+            let networkFailures = 0;
+
             return new Promise((resolve, reject) => {
+                function nextInterval() {
+                    return Math.min(30000, 5000 * Math.pow(2, Math.min(polls - 1, 2)));
+                }
+
                 async function doPoll() {
                     polls++;
                     if (polls > MAX_POLLS) {
@@ -2480,10 +2484,18 @@
                         const resp = await fetch(
                             'https://aidiet.radilov-k.workers.dev/api/plan-job-status?jobId=' + encodeURIComponent(jobId)
                         );
+
+                        // Only retry on transient server errors (5xx / 429)
                         if (!resp.ok) {
-                            setTimeout(doPoll, POLL_INTERVAL_MS);
+                            if (resp.status === 429 || resp.status >= 500) {
+                                setTimeout(doPoll, nextInterval());
+                                return;
+                            }
+                            reject(new Error('Грешка при проверка на статуса (' + resp.status + ')'));
                             return;
                         }
+
+                        networkFailures = 0;
                         const data = await resp.json();
 
                         if (data.status === 'completed') {
@@ -2502,10 +2514,16 @@
                             localStorage.removeItem('pendingPlanPayload');
                             reject(new Error('Сесията за генериране е изтекла. Моля, попълнете въпросника отново.'));
                         } else {
-                            setTimeout(doPoll, POLL_INTERVAL_MS);
+                            setTimeout(doPoll, nextInterval());
                         }
                     } catch (fetchErr) {
-                        setTimeout(doPoll, POLL_INTERVAL_MS);
+                        networkFailures++;
+                        console.warn('Plan status poll network error #' + networkFailures + ':', fetchErr.message);
+                        if (networkFailures >= 5) {
+                            const subtitle = document.getElementById('loadingSubtitle');
+                            if (subtitle) subtitle.textContent = 'Проблем с мрежата — опитваме отново...';
+                        }
+                        setTimeout(doPoll, nextInterval());
                     }
                 }
 

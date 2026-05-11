@@ -3543,7 +3543,7 @@ async function generatePlanCore(env, data) {
             cleanPlan.hacks = await getGoalHacks(env, data.goal);
           }
           if (clinicalProtocol) cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
-          return { success: true, plan: cleanPlan, userId, correctionAttempts, fallbackUsed: true };
+          return { success: true, plan: cleanPlan, userId, correctionAttempts, fallbackUsed: true, note: 'Използван опростен план поради технически проблеми с основния алгоритъм' };
         }
       } catch (fallbackError) {
         console.error('generatePlanCore: Fallback also failed:', fallbackError);
@@ -3588,7 +3588,7 @@ async function generatePlanBackground(env, data, jobId) {
         validationFailed: error.validationFailed || false
       }),
       { expirationTtl: PLAN_JOB_TTL_SEC }
-    ).catch(() => {});
+    ).catch(e => { console.error('generatePlanBackground: KV failure write failed:', e); });
   }
 }
 
@@ -3605,6 +3605,10 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     }
 
     const jobId = crypto.randomUUID();
+    // Write initial 'pending' marker before starting the background task.
+    // If this KV write fails the response will still contain the jobId but polling
+    // will immediately return 'not_found'; the user will then see a "session expired"
+    // error message and be prompted to retry.
     await env.page_content.put(
       PLAN_JOB_PREFIX + jobId,
       JSON.stringify({ status: 'pending', startedAt: Date.now() }),
