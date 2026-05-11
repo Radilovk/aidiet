@@ -3495,7 +3495,7 @@ async function generatePlanCore(env, data) {
   const valConfig = await getValidationConfig(env);
   const dataValidation = validateDataAdequacy(data, valConfig);
   if (!dataValidation.isValid) {
-    const err = new Error(dataValidation.errorMessage);
+    const err = /** @type {any} */ (new Error(dataValidation.errorMessage));
     err.validationFailed = true;
     throw err;
   }
@@ -3549,7 +3549,7 @@ async function generatePlanCore(env, data) {
         console.error('generatePlanCore: Fallback also failed:', fallbackError);
       }
     }
-    const err = new Error(`Планът не премина качествен тест след ${correctionAttempts} опити: ${validation.errors.join('; ')}`);
+    const err = /** @type {any} */ (new Error(`Планът не премина качествен тест след ${correctionAttempts} опити: ${validation.errors.join('; ')}`));
     err.validationErrors = validation.errors;
     throw err;
   }
