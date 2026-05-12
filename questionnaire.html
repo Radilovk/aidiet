@@ -2488,37 +2488,49 @@
             let polls = 0;
             let networkFailures = 0;
             let done = false;
+            let polling = false; // guard against concurrent doPoll calls
+            let currentTimerId = null;
+            let currentVisListener = null;
 
             return new Promise((resolve, reject) => {
                 function nextInterval() {
                     return Math.min(30000, 5000 * Math.pow(2, Math.min(polls - 1, 2)));
                 }
 
+                // Remove any previously registered timer/listener before scheduling a new one.
+                function clearScheduled() {
+                    if (currentTimerId !== null) { clearTimeout(currentTimerId); currentTimerId = null; }
+                    if (currentVisListener !== null) {
+                        document.removeEventListener('visibilitychange', currentVisListener);
+                        currentVisListener = null;
+                    }
+                }
+
                 // Schedule the next poll, but allow visibilitychange to fire it
                 // early when the app comes back to the foreground.
                 function scheduleNextPoll() {
                     if (done) return;
+                    clearScheduled();
                     const delay = nextInterval();
-                    let timerId = null;
 
-                    function onVisible() {
-                        if (document.visibilityState === 'visible' && !done) {
-                            clearTimeout(timerId);
-                            document.removeEventListener('visibilitychange', onVisible);
+                    currentVisListener = function onVisible() {
+                        if (document.visibilityState === 'visible') {
+                            clearScheduled();
                             doPoll();
                         }
-                    }
+                    };
 
-                    timerId = setTimeout(function() {
-                        document.removeEventListener('visibilitychange', onVisible);
+                    currentTimerId = setTimeout(function() {
+                        clearScheduled();
                         doPoll();
                     }, delay);
 
-                    document.addEventListener('visibilitychange', onVisible);
+                    document.addEventListener('visibilitychange', currentVisListener);
                 }
 
                 async function doPoll() {
-                    if (done) return;
+                    if (done || polling) return;
+                    polling = true;
                     polls++;
                     if (polls > MAX_POLLS) {
                         done = true;
@@ -2534,6 +2546,7 @@
                         // Only retry on transient server errors (5xx / 429)
                         if (!resp.ok) {
                             if (resp.status === 429 || resp.status >= 500) {
+                                polling = false;
                                 scheduleNextPoll();
                                 return;
                             }
@@ -2565,9 +2578,11 @@
                             localStorage.removeItem('pendingPlanPayload');
                             reject(new Error('Сесията за генериране е изтекла. Моля, попълнете въпросника отново.'));
                         } else {
+                            polling = false;
                             scheduleNextPoll();
                         }
                     } catch (fetchErr) {
+                        polling = false;
                         networkFailures++;
                         console.warn('Plan status poll network error #' + networkFailures + ':', fetchErr.message);
                         if (networkFailures >= 5) {
