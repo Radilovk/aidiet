@@ -7,6 +7,21 @@ compatibility_date = "2024-01-01"
 binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"
 
+# Queue producer – handleGeneratePlanAsync enqueues plan-generation jobs here
+# so they run in a separate Worker invocation (up to 15 min) instead of inside
+# ctx.waitUntil() which is limited to ~30 s on the Bundled/Standard model.
+# Setup: wrangler queues create plan-generation
+[[queues.producers]]
+  queue = "plan-generation"
+  binding = "PLAN_QUEUE"
+
+# Queue consumer – processes one job at a time, retries up to 3 times on failure
+[[queues.consumers]]
+  queue = "plan-generation"
+  max_batch_size = 1
+  max_batch_timeout = 1
+  max_retries = 3
+
 # Cron triggers are disabled – notifications are scheduled locally via Capacitor / SW.
 # Backend is only queried when the admin changes notification config.
 # [triggers]
@@ -23,6 +38,17 @@ route = "aidiet.radilov-k.workers.dev/*"
 [[env.production.kv_namespaces]]
 binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"
+
+# Queue bindings for production environment
+[[env.production.queues.producers]]
+  queue = "plan-generation"
+  binding = "PLAN_QUEUE"
+
+[[env.production.queues.consumers]]
+  queue = "plan-generation"
+  max_batch_size = 1
+  max_batch_timeout = 1
+  max_retries = 3
 
 # [env.production.triggers]
 # crons = ["0 * * * *"]
