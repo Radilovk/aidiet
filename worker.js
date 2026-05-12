@@ -3566,10 +3566,11 @@ async function generatePlanCore(env, data) {
 }
 
 /**
- * Background task: generate the plan and persist result to KV so the client
- * can pick it up via /api/plan-job-status even after closing the app.
+ * Generates a diet plan, stores the result (or failure) in KV under jobId,
+ * and returns. Called synchronously from handleGeneratePlanAsync so that the
+ * Worker stays alive for the full duration without relying on waitUntil().
  */
-async function generatePlanBackground(env, data, jobId) {
+async function generatePlanAndSave(env, data, jobId) {
   try {
     const result = await generatePlanCore(env, data);
     await env.page_content.put(
@@ -3578,7 +3579,7 @@ async function generatePlanBackground(env, data, jobId) {
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
   } catch (error) {
-    console.error('generatePlanBackground error:', error);
+    console.error('generatePlanAndSave error:', error);
     await env.page_content.put(
       PLAN_JOB_PREFIX + jobId,
       JSON.stringify({
@@ -3588,7 +3589,7 @@ async function generatePlanBackground(env, data, jobId) {
         validationFailed: error.validationFailed || false
       }),
       { expirationTtl: PLAN_JOB_TTL_SEC }
-    ).catch(e => { console.error('generatePlanBackground: Failed to write failure status to KV:', e); });
+    ).catch(e => { console.error('generatePlanAndSave: Failed to write failure status to KV:', e); });
   }
 }
 
@@ -3608,7 +3609,8 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     }
 
     const jobId = crypto.randomUUID();
-    // Write initial 'pending' marker before starting the background task.
+    // Write initial 'pending' marker so polling can detect the job even if the
+    // client disconnects and reconnects before the plan is ready.
     // If this KV write fails the response will still contain the jobId but polling
     // will immediately return 'not_found'; the user will then see a "session expired"
     // error message and be prompted to retry.
@@ -3622,7 +3624,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     // stored in KV, so Cloudflare keeps the Worker alive for the full duration
     // even if the client disconnects. This avoids the waitUntil() time-budget
     // that is too short for multi-step AI generation (2-5 minutes).
-    await generatePlanBackground(env, data, jobId);
+    await generatePlanAndSave(env, data, jobId);
 
     return jsonResponse({ success: true, jobId });
   } catch (error) {
