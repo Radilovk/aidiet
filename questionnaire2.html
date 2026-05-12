@@ -2352,7 +2352,9 @@
                 pollForPlanResult(pendingJobId, planPayload, savedClientId).catch(err => {
                     console.error('Plan polling error on resume:', err);
                     localStorage.removeItem('planJobId');
+                    localStorage.removeItem('planJobSource');
                     localStorage.removeItem('pendingPlanPayload');
+                    localStorage.removeItem('pendingClientId');
                     let errorMessage = 'Възникна грешка при генерирането на плана. Моля, опитайте отново.';
                     if (err.message.includes('изтекла')) errorMessage = err.message;
                     container.innerHTML = `
@@ -3783,6 +3785,7 @@
                 // so the plan ends up in KV and the client can resume by reloading.
                 const jobId = crypto.randomUUID();
                 localStorage.setItem('planJobId', jobId);
+                localStorage.setItem('planJobSource', 'questionnaire2');
                 localStorage.setItem('pendingPlanPayload', JSON.stringify(planPayload));
                 if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
 
@@ -3818,6 +3821,7 @@
                 
                 // Clear job state so a stale jobId does not trigger resume on reload
                 localStorage.removeItem('planJobId');
+                localStorage.removeItem('planJobSource');
                 localStorage.removeItem('pendingPlanPayload');
                 localStorage.removeItem('pendingClientId');
 
@@ -3907,7 +3911,9 @@
                 localStorage.setItem('validationSource', 'questionnaire2');
                 localStorage.removeItem('questionnaireAnswers');
                 localStorage.removeItem('planJobId');
+                localStorage.removeItem('planJobSource');
                 localStorage.removeItem('pendingPlanPayload');
+                localStorage.removeItem('pendingClientId');
                 window.location.href = 'warning.html';
                 return;
             }
@@ -3917,6 +3923,7 @@
             localStorage.setItem('userData', JSON.stringify(planPayload));
             localStorage.setItem('planSource', 'questionnaire2');
             localStorage.removeItem('planJobId');
+            localStorage.removeItem('planJobSource');
             localStorage.removeItem('pendingPlanPayload');
 
             if (typeof saveProfileToCookies === 'function') {
@@ -4029,7 +4036,9 @@
                             reject(err);
                         } else if (data.status === 'not_found') {
                             localStorage.removeItem('planJobId');
+                            localStorage.removeItem('planJobSource');
                             localStorage.removeItem('pendingPlanPayload');
+                            localStorage.removeItem('pendingClientId');
                             reject(new Error('Сесията за генериране е изтекла. Моля, попълнете въпросника отново.'));
                         } else {
                             // still pending
