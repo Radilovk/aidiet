@@ -2485,7 +2485,8 @@
             // The server-side Cloudflare Worker keeps generating even when the app is closed,
             // so the plan will be waiting in KV — we just need to resume polling.
             if (localStorage.getItem('planJobId')) {
-                window.location.replace('questionnaire2.html');
+                const src = localStorage.getItem('planJobSource');
+                window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
                 return;
             }
 

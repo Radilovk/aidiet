@@ -1293,6 +1293,7 @@
                 pollForPlanResult(pendingJobId, planPayload).catch(err => {
                     console.error('Plan polling error on resume:', err);
                     localStorage.removeItem('planJobId');
+                    localStorage.removeItem('planJobSource');
                     localStorage.removeItem('pendingPlanPayload');
                     let errorMessage = 'Възникна грешка при генерирането на плана. Моля, опитайте отново.';
                     if (err.message.includes('изтекла')) errorMessage = err.message;
@@ -2269,8 +2270,10 @@
                     }
                 </style>
             `;
-            document.querySelector('.nav-footer').style.display = 'none';
-            document.querySelector('.progress-container').style.display = 'none';
+            const navFooterEl = document.querySelector('.nav-footer');
+            if (navFooterEl) navFooterEl.style.display = 'none';
+            const progressContainerEl = document.querySelector('.progress-container');
+            if (progressContainerEl) progressContainerEl.style.display = 'none';
 
             // Start progress animation
             simulateProgress();
@@ -2325,6 +2328,7 @@
                 // so the plan ends up in KV and the client can resume by reloading.
                 const jobId = crypto.randomUUID();
                 localStorage.setItem('planJobId', jobId);
+                localStorage.setItem('planJobSource', 'questionnaire');
                 localStorage.setItem('pendingPlanPayload', JSON.stringify(answers));
 
                 // Show "safe to close" immediately — the job is registered in localStorage
@@ -2359,6 +2363,7 @@
                 
                 // Clear job state so a stale jobId does not trigger resume on reload
                 localStorage.removeItem('planJobId');
+                localStorage.removeItem('planJobSource');
                 localStorage.removeItem('pendingPlanPayload');
 
                 // Clear any running intervals on error
@@ -2415,6 +2420,7 @@
                 localStorage.setItem('canProceedWithWarning', 'false');
                 localStorage.removeItem('questionnaireAnswers');
                 localStorage.removeItem('planJobId');
+                localStorage.removeItem('planJobSource');
                 localStorage.removeItem('pendingPlanPayload');
                 window.location.href = 'warning.html';
                 return;
@@ -2425,6 +2431,7 @@
             localStorage.setItem('userData', JSON.stringify(planPayload));
             localStorage.removeItem('np_profile_synced');
             localStorage.removeItem('planJobId');
+            localStorage.removeItem('planJobSource');
             localStorage.removeItem('pendingPlanPayload');
 
             if (typeof saveProfileToCookies === 'function') {
@@ -2513,6 +2520,7 @@
                             reject(err);
                         } else if (data.status === 'not_found') {
                             localStorage.removeItem('planJobId');
+                            localStorage.removeItem('planJobSource');
                             localStorage.removeItem('pendingPlanPayload');
                             reject(new Error('Сесията за генериране е изтекла. Моля, попълнете въпросника отново.'));
                         } else {
