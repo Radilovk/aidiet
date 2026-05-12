@@ -2323,9 +2323,9 @@
                 } // end of validation block
 
                 // Generate the jobId client-side and persist it in localStorage BEFORE
-                // sending the request. Cloudflare keeps the Worker alive even if the
-                // browser is closed mid-generation (active fetch handler, not waitUntil),
-                // so the plan ends up in KV and the client can resume by reloading.
+                // sending the request. The Worker starts generation via ctx.waitUntil() and
+                // returns immediately, so the plan continues generating even if the app is
+                // backgrounded or killed — the client polls /api/plan-job-status for the result.
                 const jobId = crypto.randomUUID();
                 localStorage.setItem('planJobId', jobId);
                 localStorage.setItem('planJobSource', 'questionnaire');
@@ -2360,11 +2360,21 @@
                 await pollForPlanResult(asyncResult.jobId, answers);
             } catch (error) {
                 console.error('Error submitting data:', error);
-                
-                // Clear job state so a stale jobId does not trigger resume on reload
-                localStorage.removeItem('planJobId');
-                localStorage.removeItem('planJobSource');
-                localStorage.removeItem('pendingPlanPayload');
+
+                // Network errors (connection drop, Android app backgrounded mid-request) must NOT
+                // clear planJobId. The Worker may have received the request and started background
+                // generation via ctx.waitUntil — keeping planJobId allows init() to resume polling
+                // on next app launch or page reload.
+                const isNetworkError = error.name === 'AbortError' ||
+                    error.message.includes('Failed to fetch') ||
+                    error.message.includes('NetworkError') ||
+                    error.message.includes('network');
+
+                if (!isNetworkError) {
+                    localStorage.removeItem('planJobId');
+                    localStorage.removeItem('planJobSource');
+                    localStorage.removeItem('pendingPlanPayload');
+                }
 
                 // Clear any running intervals on error
                 if (progressInterval) {
@@ -2378,10 +2388,8 @@
                 
                 let errorMessage;
                 const status = error.httpStatus;
-                if (error.name === 'AbortError') {
-                    errorMessage = 'Генерирането отне твърде дълго (над 6 минути). Вероятно има временно натоварване — моля, опитайте отново след малко.';
-                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    errorMessage = 'Няма връзка със сървъра. Проверете интернет връзката си и опитайте отново.';
+                if (isNetworkError) {
+                    errorMessage = 'Връзката беше прекъсната. Генерирането продължава на сървъра — моля, отворете приложението отново за да видите резултата.';
                 } else if (status === 429) {
                     errorMessage = 'Изпратихте прекалено много заявки за кратко време. Изчакайте около минута и опитайте отново.';
                 } else if (status === 503 || status === 502) {
@@ -2472,20 +2480,60 @@
         /**
          * Poll /api/plan-job-status until the job is completed or failed.
          * Resumes seamlessly if the user re-opens the page with a stored jobId.
+         * Uses visibilitychange to trigger an immediate poll when the app returns
+         * to the foreground instead of waiting for the full setTimeout delay.
          */
         async function pollForPlanResult(jobId, planPayload) {
             const MAX_POLLS = 72; // ~18 minutes at average backoff
             let polls = 0;
             let networkFailures = 0;
+            let done = false;
+            let polling = false; // guard against concurrent doPoll calls
+            let currentTimerId = null;
+            let currentVisListener = null;
 
             return new Promise((resolve, reject) => {
                 function nextInterval() {
                     return Math.min(30000, 5000 * Math.pow(2, Math.min(polls - 1, 2)));
                 }
 
+                // Remove any previously registered timer/listener before scheduling a new one.
+                function clearScheduled() {
+                    if (currentTimerId !== null) { clearTimeout(currentTimerId); currentTimerId = null; }
+                    if (currentVisListener !== null) {
+                        document.removeEventListener('visibilitychange', currentVisListener);
+                        currentVisListener = null;
+                    }
+                }
+
+                // Schedule the next poll, but allow visibilitychange to fire it
+                // early when the app comes back to the foreground.
+                function scheduleNextPoll() {
+                    if (done) return;
+                    clearScheduled();
+                    const delay = nextInterval();
+
+                    currentVisListener = function onVisible() {
+                        if (document.visibilityState === 'visible') {
+                            clearScheduled();
+                            doPoll();
+                        }
+                    };
+
+                    currentTimerId = setTimeout(function() {
+                        clearScheduled();
+                        doPoll();
+                    }, delay);
+
+                    document.addEventListener('visibilitychange', currentVisListener);
+                }
+
                 async function doPoll() {
+                    if (done || polling) return;
+                    polling = true;
                     polls++;
                     if (polls > MAX_POLLS) {
+                        done = true;
                         reject(new Error('Генерирането отне твърде дълго. Моля, опитайте отново.'));
                         return;
                     }
@@ -2498,9 +2546,11 @@
                         // Only retry on transient server errors (5xx / 429)
                         if (!resp.ok) {
                             if (resp.status === 429 || resp.status >= 500) {
-                                setTimeout(doPoll, nextInterval());
+                                polling = false;
+                                scheduleNextPoll();
                                 return;
                             }
+                            done = true;
                             reject(new Error('Грешка при проверка на статуса (' + resp.status + ')'));
                             return;
                         }
@@ -2509,6 +2559,7 @@
                         const data = await resp.json();
 
                         if (data.status === 'completed') {
+                            done = true;
                             try {
                                 await applyPlanResult(data, planPayload);
                                 resolve();
@@ -2516,25 +2567,29 @@
                                 reject(applyErr);
                             }
                         } else if (data.status === 'failed') {
+                            done = true;
                             const err = new Error(data.error || 'Генерирането на плана не успя');
                             if (data.validationFailed) err.validationFailed = true;
                             reject(err);
                         } else if (data.status === 'not_found') {
+                            done = true;
                             localStorage.removeItem('planJobId');
                             localStorage.removeItem('planJobSource');
                             localStorage.removeItem('pendingPlanPayload');
                             reject(new Error('Сесията за генериране е изтекла. Моля, попълнете въпросника отново.'));
                         } else {
-                            setTimeout(doPoll, nextInterval());
+                            polling = false;
+                            scheduleNextPoll();
                         }
                     } catch (fetchErr) {
+                        polling = false;
                         networkFailures++;
                         console.warn('Plan status poll network error #' + networkFailures + ':', fetchErr.message);
                         if (networkFailures >= 5) {
                             const subtitle = document.getElementById('loadingSubtitle');
                             if (subtitle) subtitle.textContent = 'Проблем с мрежата — опитваме отново...';
                         }
-                        setTimeout(doPoll, nextInterval());
+                        scheduleNextPoll();
                     }
                 }
 
