@@ -3594,8 +3594,11 @@ async function generatePlanBackground(env, data, jobId) {
 
 /**
  * POST /api/generate-plan-async
- * Starts plan generation in the background and returns a jobId immediately.
- * The client polls /api/plan-job-status?jobId=<id> for the result.
+ * Generates a diet plan synchronously, writes the result to KV, then returns
+ * a jobId. The client polls /api/plan-job-status?jobId=<id> for the result
+ * (which will already be complete on the first poll in the normal case).
+ * Running synchronously (not via waitUntil) keeps the Worker alive for the
+ * full generation duration even if the client closes the browser.
  */
 async function handleGeneratePlanAsync(request, env, ctx) {
   try {
@@ -3615,8 +3618,11 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
 
-    // Run generation in background – survives client disconnect
-    ctx.waitUntil(generatePlanBackground(env, data, jobId));
+    // Run generation synchronously. The response is sent only after the plan is
+    // stored in KV, so Cloudflare keeps the Worker alive for the full duration
+    // even if the client disconnects. This avoids the waitUntil() time-budget
+    // that is too short for multi-step AI generation (2-5 minutes).
+    await generatePlanBackground(env, data, jobId);
 
     return jsonResponse({ success: true, jobId });
   } catch (error) {
