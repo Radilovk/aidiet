@@ -279,6 +279,11 @@ jobs:
           EOF
           grep -q "android-res/build-overrides.gradle" android/app/build.gradle || \
             printf "\napply from: '../../android-res/build-overrides.gradle'\n" >> android/app/build.gradle
+          # Overlay our ProGuard rules (append to Capacitor-generated file, preserving its defaults)
+          if [ -f "android-res/proguard-rules.pro" ]; then
+            cat android-res/proguard-rules.pro >> android/app/proguard-rules.pro
+            echo "ProGuard rules applied from android-res/proguard-rules.pro"
+          fi
           # Configure styles.xml: use Theme.SplashScreen for Android 12+ SplashScreen API
           python3 - <<'PY_STYLES'
           from pathlib import Path
