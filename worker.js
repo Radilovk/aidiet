@@ -3568,9 +3568,9 @@ async function generatePlanCore(env, data) {
 }
 
 /**
- * Generates a diet plan, stores the result (or failure) in KV under jobId,
- * and returns. Called synchronously from handleGeneratePlanAsync so that the
- * Worker stays alive for the full duration without relying on waitUntil().
+ * Generates a diet plan, stores the result (or failure) in KV under jobId.
+ * Runs as a ctx.waitUntil() background task so the Worker stays alive even
+ * after the HTTP client disconnects (e.g. Android app backgrounded/killed).
  */
 async function generatePlanAndSave(env, data, jobId) {
   try {
@@ -3597,18 +3597,17 @@ async function generatePlanAndSave(env, data, jobId) {
 
 /**
  * POST /api/generate-plan-async
- * Generates a diet plan synchronously, writes the result to KV, then returns
- * a jobId. The client polls /api/plan-job-status?jobId=<id> for the result
- * (which will already be complete on the first poll in the normal case).
- * Running synchronously (not via waitUntil) keeps the Worker alive for the
- * full generation duration even if the client closes the browser.
+ * Starts a background diet-plan generation job and returns immediately with a jobId.
+ * The generation runs via ctx.waitUntil() so Cloudflare keeps the Worker alive even
+ * after the HTTP client disconnects (app backgrounded/killed on Android).
+ * The client polls /api/plan-job-status?jobId=<id> for the result.
  */
-async function handleGeneratePlanAsync(request, env) {
+async function handleGeneratePlanAsync(request, env, ctx) {
   try {
     const rawBody = await request.json();
     // Accept a client-generated jobId (UUID format) so the client can persist it
     // in localStorage BEFORE the request starts, enabling resume-on-reopen even
-    // if the browser is closed while the Worker is generating the plan.
+    // if the app is closed while the Worker is generating the plan.
     const jobId = (rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)))
       ? String(rawBody._jobId)
       : crypto.randomUUID();
@@ -3630,11 +3629,13 @@ async function handleGeneratePlanAsync(request, env) {
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
 
-    // Run generation synchronously. The response is sent only after the plan is
-    // stored in KV, so Cloudflare keeps the Worker alive for the full duration
-    // even if the client disconnects. This avoids the waitUntil() time-budget
-    // that is too short for multi-step AI generation (2-5 minutes).
-    await generatePlanAndSave(env, data, jobId);
+    // Run generation in the background via ctx.waitUntil() so the Worker stays alive
+    // regardless of the HTTP connection state. The response is returned immediately
+    // so the client is never blocked by the 2-5 minute generation time.
+    // ctx.waitUntil() is the correct Cloudflare mechanism for background tasks that
+    // must outlive the response — unlike synchronous execution, it guarantees the
+    // Worker keeps running even after the Android app is backgrounded or killed.
+    ctx.waitUntil(generatePlanAndSave(env, data, jobId));
 
     return jsonResponse({ success: true, jobId });
   } catch (error) {
@@ -12712,7 +12713,7 @@ export default {
       } else if (url.pathname === '/api/generate-plan-async' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'GENERATE_PLAN');
         if (rlErr) return rlErr;
-        return await handleGeneratePlanAsync(request, env);
+        return await handleGeneratePlanAsync(request, env, ctx);
       } else if (url.pathname === '/api/plan-job-status' && request.method === 'GET') {
         return await handleGetPlanJobStatus(request, env);
       } else if (url.pathname === '/api/clinical-protocols' && request.method === 'GET') {
