@@ -2480,6 +2480,15 @@
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
 
+            // If a plan generation job was started but the app was closed before it finished,
+            // redirect back to the questionnaire which has the full resume/polling logic.
+            // The server-side Cloudflare Worker keeps generating even when the app is closed,
+            // so the plan will be waiting in KV — we just need to resume polling.
+            if (localStorage.getItem('planJobId')) {
+                window.location.replace('questionnaire2.html');
+                return;
+            }
+
             // Restore profile when localStorage is empty (iOS PWA isolated-storage scenario).
             // Tries cookie chunks first, then falls back to the backend API.
             await restoreProfileFromCookies();
