@@ -3598,8 +3598,19 @@ async function generatePlanAndSave(env, data, jobId) {
 /**
  * POST /api/generate-plan-async
  * Starts a background diet-plan generation job and returns immediately with a jobId.
- * The generation runs via ctx.waitUntil() so Cloudflare keeps the Worker alive even
- * after the HTTP client disconnects (app backgrounded/killed on Android).
+ *
+ * The generation is dispatched to a Cloudflare Queue (env.PLAN_QUEUE) so it runs
+ * inside a dedicated queue-consumer Worker invocation that has up to 15 minutes of
+ * execution time.  This avoids the ~30-second ctx.waitUntil() grace-period limit of
+ * the Bundled/Standard execution model which was causing jobs to be cancelled before
+ * completion.
+ *
+ * When env.PLAN_QUEUE is not bound (local dev or queue not yet created) the code
+ * falls back to ctx.waitUntil() so the app still works without queue infrastructure.
+ *
+ * Queue setup (run once in the Cloudflare dashboard or with wrangler CLI):
+ *   wrangler queues create plan-generation
+ *
  * The client polls /api/plan-job-status?jobId=<id> for the result.
  */
 async function handleGeneratePlanAsync(request, env, ctx) {
@@ -3629,13 +3640,19 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
 
-    // Run generation in the background via ctx.waitUntil() so the Worker stays alive
-    // regardless of the HTTP connection state. The response is returned immediately
-    // so the client is never blocked by the 2-5 minute generation time.
-    // ctx.waitUntil() is the correct Cloudflare mechanism for background tasks that
-    // must outlive the response — unlike synchronous execution, it guarantees the
-    // Worker keeps running even after the Android app is backgrounded or killed.
-    ctx.waitUntil(generatePlanAndSave(env, data, jobId));
+    if (env.PLAN_QUEUE) {
+      // Preferred path: enqueue the job so it runs in a fresh Worker invocation
+      // with up to 15 minutes of execution time (see the queue handler below).
+      // The queue binding is configured in wrangler.toml; see the comment at the
+      // top of this function for the one-time setup command.
+      await env.PLAN_QUEUE.send({ jobId, data }, { contentType: 'json' });
+    } else {
+      // Fallback: ctx.waitUntil() for local dev / environments without the queue.
+      // WARNING: This path may be cancelled by Cloudflare after ~30 seconds on the
+      // Bundled/Standard execution model.
+      console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound – falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
+      ctx.waitUntil(generatePlanAndSave(env, data, jobId));
+    }
 
     return jsonResponse({ success: true, jobId });
   } catch (error) {
@@ -12907,5 +12924,34 @@ export default {
   async scheduled(event, env, ctx) {
     console.log('[Worker] Scheduled event triggered at:', new Date().toISOString());
     ctx.waitUntil(handleScheduledNotifications(env));
+  },
+
+  /**
+   * Handle Cloudflare Queue messages for plan generation.
+   *
+   * Each message contains { jobId, data } placed by handleGeneratePlanAsync().
+   * Queue consumers run in a dedicated Worker invocation with up to 15 minutes of
+   * execution time, so the full multi-step AI plan generation can always complete
+   * regardless of how long it takes.
+   *
+   * Cloudflare retries a message (up to max_retries in wrangler.toml) if the
+   * consumer throws or calls message.retry().  On permanent failure the message
+   * is written to the dead-letter queue if one is configured.
+   */
+  async queue(batch, env) {
+    for (const message of batch.messages) {
+      const { jobId, data } = message.body;
+      try {
+        await generatePlanAndSave(env, data, jobId);
+        message.ack();
+      } catch (err) {
+        // generatePlanAndSave has its own try/catch and writes a 'failed' KV entry,
+        // so reaching here means an unexpected error outside that guard.
+        // Use retry() so Cloudflare can re-attempt up to max_retries times in case
+        // the failure was transient (network blip, temporary AI API outage, etc.).
+        console.error(`Queue consumer: job ${jobId} unexpected error, scheduling retry:`, err);
+        message.retry();
+      }
+    }
   }
 };
