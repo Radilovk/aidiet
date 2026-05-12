@@ -451,12 +451,14 @@
                 } else {
                     console.error('No warning or validation data found');
                     const fallbackSource = localStorage.getItem('validationSource');
+                    localStorage.removeItem('validationSource');
                     window.location.href = fallbackSource === 'questionnaire2' ? 'questionnaire2.html' : 'questionnaire.html';
                     return;
                 }
             } catch (error) {
                 console.error('Error loading page data:', error);
                 const fallbackSource = localStorage.getItem('validationSource');
+                localStorage.removeItem('validationSource');
                 window.location.href = fallbackSource === 'questionnaire2' ? 'questionnaire2.html' : 'questionnaire.html';
             }
         }
