@@ -2319,13 +2319,23 @@
                 }
                 } // end of validation block
 
-                // Start async plan generation — returns immediately with a jobId.
-                // The Cloudflare Worker continues generating even if the user closes the app.
-                console.log('Sending request to backend (async)...');
+                // Generate the jobId client-side and persist it in localStorage BEFORE
+                // sending the request. Cloudflare keeps the Worker alive even if the
+                // browser is closed mid-generation (active fetch handler, not waitUntil),
+                // so the plan ends up in KV and the client can resume by reloading.
+                const jobId = crypto.randomUUID();
+                localStorage.setItem('planJobId', jobId);
+                localStorage.setItem('pendingPlanPayload', JSON.stringify(answers));
+
+                // Show "safe to close" immediately — the job is registered in localStorage
+                const scMsg = document.getElementById('safeCloseMsg');
+                if (scMsg) scMsg.style.opacity = '1';
+
+                console.log('Sending request to backend...');
                 const asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(answers)
+                    body: JSON.stringify({ ...answers, _jobId: jobId })
                 });
 
                 if (!asyncResponse.ok) {
@@ -2342,21 +2352,15 @@
                     throw new Error(asyncResult.error || 'Unknown error starting generation');
                 }
 
-                // Persist job info so polling can resume after the user re-opens the app
-                localStorage.setItem('planJobId', asyncResult.jobId);
-                localStorage.setItem('pendingPlanPayload', JSON.stringify(answers));
-
-                // Show "safe to close" hint after a short delay
-                setTimeout(() => {
-                    const scMsg = document.getElementById('safeCloseMsg');
-                    if (scMsg) scMsg.style.opacity = '1';
-                }, 3000);
-
-                // Poll for result
+                // Poll for result (first poll returns completed immediately in the normal case)
                 await pollForPlanResult(asyncResult.jobId, answers);
             } catch (error) {
                 console.error('Error submitting data:', error);
                 
+                // Clear job state so a stale jobId does not trigger resume on reload
+                localStorage.removeItem('planJobId');
+                localStorage.removeItem('pendingPlanPayload');
+
                 // Clear any running intervals on error
                 if (progressInterval) {
                     clearInterval(progressInterval);

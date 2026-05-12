@@ -3470,6 +3470,8 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 // KV key prefix and TTL for async plan generation jobs
 const PLAN_JOB_PREFIX = 'plan_job:';
 const PLAN_JOB_TTL_SEC = 86400; // 24 hours
+// Regex for validating client-provided jobIds (UUID v4 format)
+const JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Core plan-generation logic shared by both the synchronous and async endpoints.
@@ -3601,14 +3603,22 @@ async function generatePlanAndSave(env, data, jobId) {
  * Running synchronously (not via waitUntil) keeps the Worker alive for the
  * full generation duration even if the client closes the browser.
  */
-async function handleGeneratePlanAsync(request, env, ctx) {
+async function handleGeneratePlanAsync(request, env) {
   try {
-    const data = normalizeQuestionnaireData(await request.json());
+    const rawBody = await request.json();
+    // Accept a client-generated jobId (UUID format) so the client can persist it
+    // in localStorage BEFORE the request starts, enabling resume-on-reopen even
+    // if the browser is closed while the Worker is generating the plan.
+    const jobId = (rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)))
+      ? String(rawBody._jobId)
+      : crypto.randomUUID();
+    delete rawBody._jobId;
+
+    const data = normalizeQuestionnaireData(rawBody);
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
 
-    const jobId = crypto.randomUUID();
     // Write initial 'pending' marker so polling can detect the job even if the
     // client disconnects and reconnects before the plan is ready.
     // If this KV write fails the response will still contain the jobId but polling
@@ -12702,7 +12712,7 @@ export default {
       } else if (url.pathname === '/api/generate-plan-async' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'GENERATE_PLAN');
         if (rlErr) return rlErr;
-        return await handleGeneratePlanAsync(request, env, ctx);
+        return await handleGeneratePlanAsync(request, env);
       } else if (url.pathname === '/api/plan-job-status' && request.method === 'GET') {
         return await handleGetPlanJobStatus(request, env);
       } else if (url.pathname === '/api/clinical-protocols' && request.method === 'GET') {
