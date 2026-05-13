@@ -2936,266 +2936,6 @@ ${jsonExample.join(',\n')}
 }
 
 /**
- * Step 3: Generate prompt for detailed meal plan (LEGACY - used when progressive generation is disabled)
- * 
- * ARCHPROMPT INTEGRATION:
- * This function integrates the sophisticated dietary logic system from archprompt.txt
- * The system uses a MODIFIER (dietary profile) determined by the AI in Step 2 to:
- * - Filter food categories based on dietary restrictions
- * - Select appropriate meal templates (Шаблон A, B, C, D)
- * - Apply logical rules for food combinations
- * - Generate balanced, natural-sounding meals
- * 
- * The MODIFIER acts as a filter applied to the universal food architecture:
- * [PRO] = Protein, [ENG] = Energy/Carbs, [VOL] = Volume/Fiber, [FAT] = Fats, [CMPX] = Complex dishes
- */
-async function generateMealPlanPrompt(data, analysis, strategy, env, errorPreventionComment = null) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
-  
-  // Parse BMR from analysis (may be a number or string) or calculate from user data
-  let bmr;
-  if (analysis.bmr) {
-    // If bmr is already a number, use it directly
-    if (typeof analysis.bmr === 'number') {
-      bmr = Math.round(analysis.bmr);
-    } else {
-      // Try to extract numeric value from analysis.bmr (it may contain text like "1780 (ІНДИВІДУАЛНО изчислен)")
-      const bmrMatch = String(analysis.bmr).match(/\d+/);
-      bmr = bmrMatch ? parseInt(bmrMatch[0]) : null;
-    }
-  }
-  
-  // If no valid BMR from analysis, calculate it
-  if (!bmr) {
-    bmr = calculateBMR(data);
-  }
-  
-  // Parse recommended calories from analysis (Final_Calories preferred, recommendedCalories for backward compat)
-  let recommendedCalories;
-  const finalCaloriesSource = analysis.Final_Calories || analysis.recommendedCalories;
-  if (finalCaloriesSource) {
-    // If Final_Calories is already a number, use it directly
-    if (typeof finalCaloriesSource === 'number') {
-      recommendedCalories = Math.round(finalCaloriesSource);
-    } else {
-      // Try to extract numeric value from Final_Calories
-      const caloriesMatch = String(finalCaloriesSource).match(/\d+/);
-      recommendedCalories = caloriesMatch ? parseInt(caloriesMatch[0]) : null;
-    }
-  }
-  
-  // If no recommended calories from analysis, calculate TDEE using unified activity score
-  if (!recommendedCalories) {
-    const fallbackActivityData = calculateUnifiedActivityScore(data);
-    const tdee = calculateTDEE(bmr, fallbackActivityData.combinedScore);
-    // Adjust based on goal
-    if (data.goal === 'Отслабване') {
-      recommendedCalories = Math.round(tdee * 0.85); // 15% deficit
-    } else if (data.goal === 'Покачване на мускулна маса') {
-      recommendedCalories = Math.round(tdee * 1.1); // 10% surplus
-    } else {
-      recommendedCalories = tdee; // Maintenance
-    }
-  }
-
-  // Enforce minimum calorie floor based on gender (medical safety)
-  const calorieFloor = data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
-  if (recommendedCalories < calorieFloor) {
-    console.log(`Warning: recommendedCalories ${recommendedCalories} kcal below safe floor (${calorieFloor} kcal for ${data.gender}). Clamping to floor.`);
-    recommendedCalories = calorieFloor;
-  }
-  
-  // Build modifications section if any
-  let modificationsSection = '';
-  if (data.planModifications && data.planModifications.length > 0) {
-    const modLines = data.planModifications
-      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
-      .filter(desc => desc !== undefined); // Skip unknown modifications
-    
-    if (modLines.length > 0) {
-      modificationsSection = `
-СПЕЦИАЛНИ МОДИФИКАЦИИ НА ПЛАНА:
-${modLines.join('\n')}
-
-ВАЖНО: Спазвай СТРИКТНО тези модификации при генерирането на плана!
-`;
-    }
-  }
-  
-  // Extract dietary modifier from strategy
-  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
-
-  // Build sweets craving rule for legacy prompt
-  const sweetsCravingRuleLegacy = userHasSweetsCraving(data.foodCravings) && strategy?.includeDessert !== false ? SWEETS_CRAVING_RULE_TEXT : '';
-  
-  // Fetch dynamic whitelist, blacklist and mainlist from KV storage
-  const { dynamicWhitelistSection, dynamicBlacklistSection, dynamicMainlistSection } = await getDynamicFoodListsSections(env);
-  
-  // Create compact strategy (no full JSON)
-  const strategyCompact = {
-    dietType: strategy.dietType || 'Балансирана',
-    weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
-    mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
-    keyPrinciples: (strategy.keyPrinciples || []).slice(0, 3).join('; '),
-    foodsToInclude: (strategy.foodsToInclude || []).slice(0, 5).join(', '),
-    foodsToAvoid: (strategy.foodsToAvoid || []).slice(0, 5).join(', '),
-    hydrationStrategy: strategy.hydrationStrategy || 'препоръки за вода'
-  };
-  
-  // If custom prompt exists, use it with variable replacement
-  if (customPrompt) {
-    const _combinedNotesMeal = buildCombinedAdditionalNotes(data);
-    let prompt = replacePromptVariables(customPrompt, {
-      name: data.name,
-      age: data.age,
-      gender: data.gender,
-      goal: data.goal,
-      bmr: bmr,
-      recommendedCalories: recommendedCalories,
-      dietaryModifier: dietaryModifier,
-      modifierReasoning: strategy.modifierReasoning || '',
-      dietType: strategyCompact.dietType,
-      mealTiming: strategyCompact.mealTiming,
-      keyPrinciples: strategyCompact.keyPrinciples,
-      foodsToInclude: strategyCompact.foodsToInclude,
-      foodsToAvoid: strategyCompact.foodsToAvoid,
-      modificationsSection: modificationsSection,
-      dynamicWhitelistSection: dynamicWhitelistSection,
-      dynamicBlacklistSection: dynamicBlacklistSection,
-      dynamicMainlistSection: dynamicMainlistSection || '',
-      errorPreventionComment: errorPreventionComment || '',
-      mealCount: strategy.mealCount || 3,
-      medicalConditions: JSON.stringify(data.medicalConditions || []),
-      dietPreference: JSON.stringify(data.dietPreference || []),
-      dietDislike: data.dietDislike || 'няма',
-      dietLove: data.dietLove || 'няма',
-      sweetsCravingRule: sweetsCravingRuleLegacy,
-      additionalNotes: _combinedNotesMeal,
-      protocolSpecificAnswers: buildProtocolSpecificAnswersText(data),
-      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })()
-    });
-    
-    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
-
-═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
-
-JSON ФОРМАТ:
-{
-  "day1": {
-    "meals": [
-      {"type": "Хранене 1|Хранене 2|Хранене 3|Хранене 4|Хранене 5", "name": "...", "time": "...", "calories": число, "macros": {...}},
-      ...
-    ]
-  },
-  ...
-  "day7": {...}
-}
-
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-    }
-    return prompt;
-  }
-  
-  // Otherwise use default embedded prompt
-  return `Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
-
-=== КРИТИЧНО ВАЖНО - НИКАКВИ DEFAULT СТОЙНОСТИ ===
-- Този план е САМО и ЕДИНСТВЕНО за ${data.name}
-- ЗАБРАНЕНО е използването на универсални, общи или стандартни стойности
-- ВСИЧКИ калории, макронутриенти и препоръки са ИНДИВИДУАЛНО изчислени
-- Хранителните добавки са ПЕРСОНАЛНО подбрани според анализа и нуждите
-- Психологическите съвети са базирани на КОНКРЕТНИЯ емоционален профил на ${data.name}
-
-=== МОДИФИКАТОР (Потребителски профил) ===
-ОПРЕДЕЛЕН МОДИФИКАТОР ЗА КЛИЕНТА: "${dietaryModifier}"
-${strategy.modifierReasoning ? `ОБОСНОВКА: ${strategy.modifierReasoning}` : ''}
-
-=== КЛИЕНТ И ЦЕЛИ ===
-Име: ${data.name}, Възраст: ${data.age}, Пол: ${data.gender}
-Цел: ${data.goal}
-BMR (изчислен): ${bmr} kcal
-Препоръчан калориен прием: ${recommendedCalories} kcal/ден
-
-=== СТРАТЕГИЯ (КОМПАКТНА) ===
-Тип: ${strategyCompact.dietType}
-Хранене: ${strategyCompact.mealTiming}
-Принципи: ${strategyCompact.keyPrinciples}
-Включвай: ${strategyCompact.foodsToInclude}
-Избягвай: ${strategyCompact.foodsToAvoid}
-
-${modificationsSection}
-
-${(() => { const _n = buildCombinedAdditionalNotes(data); return _n ? `=== ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ (КРИТИЧЕН ПРИОРИТЕТ) ===
-${_n}
-` : ''; })()}
-${dynamicMainlistSection ? dynamicMainlistSection + '\n' : ''}${dynamicWhitelistSection}
-${dynamicBlacklistSection}
-
-=== ADLE v5.1 - АРХИТЕКТУРА НА ХРАНЕНЕТО ===
-УНИВЕРСАЛНА БАЗА ОТ РЕСУРСИ:
-[PRO] БЕЛТЪК: месо (пилешко, говеждо, свинско), риба, яйца, млечни (сирене, извара, кисело мляко), бобови (леща, боб, нахут), тофу
-[ENG] ЕНЕРГИЯ: зърнени (ориз, киноа, елда, овес, паста, хляб), кореноплодни (картофи, сладки картофи), плодове
-[VOL] ОБЕМ И ФИБРИ: зеленчуци без скорбяла - сурови (салати, краставици, домати) или готвени (броколи, тиквички, чушки, гъби)
-[FAT] МАЗНИНИ: зехтин, масло, авокадо, ядки, семена, тахан, маслини
-[CMPX] СЛОЖНИ ЯСТИЯ: пица, лазаня, мусака, паста със сос, бургер, дюнер/врап, ризото, паеля
-
-СТРУКТУРНИ ШАБЛОНИ:
-Шаблон A "РАЗДЕЛЕНА ЧИНИЯ": [PRO] + [ENG] + [VOL] (напр. пиле + картофи + салата) - стандартен обяд/вечеря
-Шаблон B "СМЕСЕНО ЯСТИЕ": [PRO] + [ENG] + [VOL] смесени (напр. яхния с месо и зеленчуци) - домашно готвено
-Шаблон C "ЛЕКО/САНДВИЧ": [ENG-Хляб] + [PRO] + [FAT] + [VOL] (напр. сандвич с месо) - закуска/обяд в движение  
-Шаблон D "ЕДИНЕН БЛОК": [CMPX] + [VOL задължително] (напр. лазаня + салата) - уикенд/свободно хранене
-
-ФИЛТРИРАНЕ ПО МОДИФИКАТОР "${dietaryModifier}":
-${dietaryModifier === 'Веган' ? '→ Без животински [PRO], използвай растителен' : dietaryModifier === 'Кето' || dietaryModifier === 'Нисковъглехидратно' ? '→ Минимизирай [ENG], компенсирай с [VOL] и [FAT]' : dietaryModifier === 'Без глутен' ? '→ [ENG] само безглутенови (ориз, картофи, царевица, киноа)' : dietaryModifier === 'Щадящ стомах' ? '→ [VOL] само готвени/щадящи, без сурови влакнини' : '→ Балансирано използване на всички категории'}
-
-ДЕКОНСТРУКЦИЯ НА [CMPX]: Преди Шаблон D, провери съвместимост!
-- При "Нисковъглехидратно": бургер → "Бургер без хлебче" или смени шаблона
-- При "Веган": лазаня → "Веган лазаня със зеленчуци"
-- Винаги добавяй [VOL] като баланс към сложните ястия
-
-ПРАВИЛА ЗА ИЗХОД:
-• Естествен български език - БЕЗ кодове ([PRO], [ENG])
-• Без странни комбинации - общоприети кулинарни норми
-• Шаблон D е нормална част от менюто (уикенд), винаги балансиран със салата
-
-=== ЗАДАЧА ===
-Генерирай 7-дневен хранителен план (day1-day7) като използваш модификатора за филтриране на позволени храни.
-За ВСЕКИ ДЕН:
-- ${strategy.mealCount || 3} хранения ПО РЕДА НА ХРАНЕНЕ (Хранене 1 първо, после Хранене 2, след това Хранене 4...)
-- Прилагай правилата за комбиниране
-- Всяко ястие с name, time, calories, macros (protein, carbs, fats)
-- Седмично мислене: РАЗНООБРАЗИЕ между дните${sweetsCravingRuleLegacy}${buildFreeMealInstruction(strategy, 1, 7)}
-
-${errorPreventionComment ? `\n=== КОРЕКЦИИ НА ГРЕШКИ ===\n${errorPreventionComment}\n` : ''}
-
-JSON ФОРМАТ:
-{
-  "day1": {
-    "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "...", "time": "...", "calories": число, "macros": {...}},
-      ...
-    ]
-  },
-  ...
-  "day7": {...}
-}
-
-=== ИНДИВИДУАЛНИ ИЗИСКВАНИЯ ===
-- Медицински: ${JSON.stringify(data.medicalConditions || [])}
-- Предпочитания: ${JSON.stringify(data.dietPreference || [])}
-- Избягвай: ${data.dietDislike || 'няма'}
-- Включвай: ${data.dietLove || 'няма'}
-
-ВАЖНО: Използвай strategy.planJustification, strategy.longTermStrategy, strategy.mealCountJustification и strategy.afterDinnerMealJustification за обосновка на всички нестандартни решения. "recommendations"/"forbidden"=САМО конкретни храни. Всички 7 дни (day1-day7) с 1-5 хранения В ПРАВИЛЕН ХРОНОЛОГИЧЕН РЕД. Точни калории/макроси за всяко ястие. Около ${recommendedCalories} kcal/ден като ориентир (може да варира при многодневно планиране). Седмичен подход: МИСЛИ СЕДМИЧНО/МНОГОДНЕВНО - ЦЯЛОСТНА схема като система. ВСИЧКИ 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО.
-
-Създай пълния 7-дневен план с балансирани, индивидуални ястия за ${data.name}, следвайки стратегията.`;
-}
-
-/**
  * Generate prompt for summary and recommendations (final step of progressive generation)
  */
 async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env) {
@@ -4900,14 +4640,7 @@ function applyFoodSubstitutions(meal, fixes) {
   return applied;
 }
 
-// Progressive generation: split meal plan into smaller chunks to avoid token limits
-// Progressive generation configuration:
-// - Splits 7-day plan into smaller chunks to avoid overloading single AI request
-// - Each chunk maintains full data quality and precision
-// - Smaller chunks = more requests but better load distribution
-const ENABLE_PROGRESSIVE_GENERATION = true;
-const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (optimal: 4 chunks total for 7 days)
-// Note: Can reduce to 1 day per chunk if needed for even better distribution (7 chunks total)
+const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (4 chunks: days 1-2, 3-4, 5-6, 7)
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -5662,20 +5395,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy' || earliestErrorStep === 'step3_mealplan') {
       const stepErrorComment = earliestErrorStep === 'step3_mealplan' ? errorPreventionComment : null;
       console.log(`Regenerating Step 3 (Meal Plan)${stepErrorComment ? ' with error prevention' : ''}`);
-      
-      if (ENABLE_PROGRESSIVE_GENERATION) {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
-      } else {
-        const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env, stepErrorComment);
-        const mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_regen', sessionId, data, buildCompactAnalysisForStep3(analysis));
-        mealPlan = parseAIResponse(mealPlanResponse);
-        
-        if (!mealPlan || mealPlan.error) {
-          throw new Error(`Регенерацията на хранителния план се провали: ${mealPlan?.error || 'Невалиден формат'}`);
-        }
-        // Replace any "dessert": true markers with the fixed dessert object
-        if (mealPlan.weekPlan) injectFixedDesserts(mealPlan.weekPlan);
-      }
+      mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
     } else if (earliestErrorStep === 'step4_final') {
       // Step 4: Final validation errors (summary, recommendations, forbidden, supplements, etc.)
       // Reuse weekPlan but regenerate the summary and final fields
@@ -5950,40 +5670,15 @@ async function generatePlanMultiStep(env, data) {
     
     console.log('Multi-step generation: Strategy complete (2/3)');
     
-    // Step 3: Generate detailed meal plan
-    // Use progressive generation if enabled (multiple smaller requests)
+    // Step 3: Generate detailed meal plan using progressive generation
     let mealPlan;
     
-    if (ENABLE_PROGRESSIVE_GENERATION) {
-      console.log('Multi-step generation: Using progressive meal plan generation');
-      try {
-        mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, null, sessionId);
-      } catch (error) {
-        console.error('Progressive meal plan generation failed:', error);
-        throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
-      }
-    } else {
-      // Fallback to single-request generation
-      console.log('Multi-step generation: Using single-request meal plan generation');
-      const mealPlanPrompt = await generateMealPlanPrompt(data, analysis, strategy, env);
-      let mealPlanResponse;
-      
-      try {
-        mealPlanResponse = await callAIModel(env, mealPlanPrompt, MEAL_PLAN_TOKEN_LIMIT, 'step3_meal_plan_full', sessionId, data, buildCompactAnalysisForStep3(analysis));
-        mealPlan = parseAIResponse(mealPlanResponse);
-        
-        if (!mealPlan || mealPlan.error) {
-          const errorMsg = mealPlan.error || 'Невалиден формат на отговор';
-          console.error('Meal plan parsing failed:', errorMsg);
-          console.error('AI Response preview (first 1000 chars):', mealPlanResponse?.substring(0, 1000));
-          throw new Error(`Хранителният план не можа да бъде създаден: ${errorMsg}`);
-        }
-        // Replace any "dessert": true markers with the fixed dessert object
-        if (mealPlan.weekPlan) injectFixedDesserts(mealPlan.weekPlan);
-      } catch (error) {
-        console.error('Meal plan step failed:', error);
-        throw new Error(`Стъпка 3 (Хранителен план): ${error.message}`);
-      }
+    console.log('Multi-step generation: Using progressive meal plan generation');
+    try {
+      mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, null, sessionId);
+    } catch (error) {
+      console.error('Progressive meal plan generation failed:', error);
+      throw new Error(`Стъпка 3 (Хранителен план - прогресивно): ${error.message}`);
     }
     
     console.log('Multi-step generation: Meal plan complete (3/3)');
