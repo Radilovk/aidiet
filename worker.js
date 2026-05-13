@@ -2813,13 +2813,14 @@ ${dynamicWhitelistSection}${dynamicBlacklistSection}
 === ИЗИСКВАНИЯ ===
 1. Разпределение на калории: Използвай mealBreakdown от Стъпка 2 за всяко хранене — то задава ТОЧНИТЕ целеви калории и макроси за всяко хранене от деня
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
-3. Калории: protein×4 + carbs×4 + fats×9. Провери и коригирай meal.calories за всяко ястие преди финализиране — разлика над 10% е грешка.
+3. Калории: Настрой грамажите на съставките така, че protein×4 + carbs×4 + fats×9 ≈ целевите калории на хранението от mealBreakdown (±${DAILY_CALORIE_TOLERANCE} kcal). Разлика над 10% е грешка.
 4. Целеви калории и макроси по дни и хранения (от mealBreakdown в Стъпка 2):
 ${weeklySchemeByDayText}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
 6. Ред: Хранене 1 → Хранене 2 (или Свободно хранене в деня с freeDayNumber — НЕ и двете!) → (Хранене 3: плодове/сурови ядки/скир/кисело мляко) → Хранене 4 → (Хранене 5 само при >4ч до сън+диабет/тренировки: скир/ядки/кисело мляко, макс ${MAX_LATE_SNACK_CALORIES} kcal)
    СВОБОДЕН ДЕН: Свободно хранене ЗАМЕСТВА Хранене 2 — НЕ е допълнително хранене! Типът е "Свободно хранене", НЕ "Хранене 2".
 7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - пропусни САМО типа "Хранене 1" (сутрешното хранене). "Хранене 3" и "Хранене 5" са напълно различни категории хранения и се включват нормално при нужда!' : '\n8. ВАЖНО: Клиентът ЗАКУСВА - ЗАДЪЛЖИТЕЛНО включи {"type": "Хранене 1", ...} като ПЪРВОТО хранене за всеки ден! Никога не пропускай Хранене 1.'}${sweetsCravingRule}${buildFreeMealInstruction(strategy, startDay, endDay)}
+9. description: Изброй продуктите в храненето, добавяй грамаж след всеки продукт във формат "име числоg" (напр. "пилешко месо 200g; ориз 150g; домати 100g.").
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 `;
@@ -4421,7 +4422,7 @@ function injectFixedDesserts(weekPlan) {
 /**
  * Recalculate meal.calories from macros (protein×4 + carbs×4 + fats×9).
  * Corrects the declared calories when they deviate from the macro formula by >10%.
- * Also recalculates dailyTotals.calories as the sum of all meal calories.
+ * Also recalculates dailyTotals.calories, protein, carbs and fats as the sum of all meal values.
  * Called after each AI chunk is parsed.
  */
 function recalculateDayCalories(weekPlan) {
@@ -4429,6 +4430,9 @@ function recalculateDayCalories(weekPlan) {
     const day = weekPlan[dayKey];
     if (!day || !Array.isArray(day.meals)) continue;
     let totalCals = 0;
+    let totalProtein = 0;
+    let totalCarbs = 0;
+    let totalFats = 0;
     for (const meal of day.meals) {
       if (!meal.macros || meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
       const p = Number(meal.macros.protein) || 0;
@@ -4443,9 +4447,15 @@ function recalculateDayCalories(weekPlan) {
         }
       }
       totalCals += Number(meal.calories) || 0;
+      totalProtein += p;
+      totalCarbs += c;
+      totalFats += f;
     }
     if (day.dailyTotals && totalCals > 0) {
       day.dailyTotals.calories = totalCals;
+      day.dailyTotals.protein = Math.round(totalProtein);
+      day.dailyTotals.carbs = Math.round(totalCarbs);
+      day.dailyTotals.fats = Math.round(totalFats);
     }
   }
 }
