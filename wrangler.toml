@@ -1,4 +1,4 @@
-name = "aidiet-worker"
+name = "aidiet"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
@@ -32,7 +32,7 @@ id = "81fc0991b2764918b682f9ca170abd4b"
 # Run: wrangler secret put GEMINI_API_KEY
 
 [env.production]
-name = "aidiet-worker"
+name = "aidiet"
 route = "aidiet.radilov-k.workers.dev/*"
 
 [[env.production.kv_namespaces]]
