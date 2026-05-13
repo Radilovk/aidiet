@@ -40,7 +40,7 @@ jobs:
             echo "Queue 'plan-generation' already exists – skipping creation."
             exit 0
           fi
-          if echo "$list_output" | grep -qiE "Authentication error|code: 10000"; then
+          if echo "$list_output" | grep -qiE "Authentication error|code:\s*10000"; then
             echo "::warning::CLOUDFLARE_API_TOKEN lacks Queues:Edit permission – cannot create queue automatically. Create it manually: wrangler queues create plan-generation"
             exit 0
           fi
