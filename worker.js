@@ -2803,6 +2803,46 @@ HARD BANS: лук, пуешко месо, мед, захар, кетчуп, ма
 РЯДКО (≤2x/седмица): бекон, пуешка шунка
 ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
+ХРАНИТЕЛНА СПРАВОЧНА ТАБЛИЦА (kcal | Б | В | М на 100г готов/суров продукт):
+[PRO] пилешки гърди (варени): 165 kcal | 31г Б | 0г В | 3.6г М
+[PRO] говеждо постно (варено): 215 kcal | 26г Б | 0г В | 12г М
+[PRO] свинско бон филе (варено): 212 kcal | 27г Б | 0г В | 11г М
+[PRO] сьомга: 208 kcal | 20г Б | 0г В | 13г М
+[PRO] скумрия: 205 kcal | 19г Б | 0г В | 14г М
+[PRO] тон в собствен сок: 116 kcal | 26г Б | 0г В | 1г М
+[PRO] яйца: 155 kcal | 13г Б | 1г В | 11г М  (1 яйце ≈ 60г)
+[PRO] кисело мляко 2%: 56 kcal | 3.5г Б | 5г В | 2г М
+[PRO] скир: 57 kcal | 10г Б | 4г В | 0.3г М
+[PRO] извара: 98 kcal | 11г Б | 4г В | 4г М
+[PRO] сирене краве: 264 kcal | 14г Б | 2г В | 22г М
+[PRO] кашкавал: 350 kcal | 25г Б | 0г В | 27г М
+[PRO] леща варена: 116 kcal | 9г Б | 20г В | 0.4г М
+[PRO] нахут варен: 164 kcal | 9г Б | 27г В | 2.6г М
+[ENG] ориз варен: 130 kcal | 2.7г Б | 28г В | 0.3г М
+[ENG] киноа варена: 120 kcal | 4.4г Б | 22г В | 1.9г М
+[ENG] елда варена: 92 kcal | 3.4г Б | 20г В | 0.6г М
+[ENG] овесени ядки сурови: 389 kcal | 17г Б | 66г В | 7г М
+[ENG] паста варена: 158 kcal | 5.8г Б | 31г В | 0.9г М
+[ENG] хляб пълнозърнест: 247 kcal | 9г Б | 41г В | 3.4г М
+[ENG] картофи варени: 86 kcal | 1.8г Б | 20г В | 0.1г М
+[ENG] сладки картофи варени: 86 kcal | 1.6г Б | 20г В | 0.1г М
+[ENG] банан: 89 kcal | 1.1г Б | 23г В | 0.3г М
+[ENG] ябълка: 52 kcal | 0.3г Б | 14г В | 0.2г М
+[VOL] домати: 18 kcal | 0.9г Б | 3.9г В | 0.2г М
+[VOL] краставици: 15 kcal | 0.7г Б | 3.6г В | 0.1г М
+[VOL] броколи: 34 kcal | 2.8г Б | 7г В | 0.4г М
+[VOL] тиквички: 17 kcal | 1.2г Б | 3.1г В | 0.3г М
+[VOL] чушки: 31 kcal | 1г Б | 6г В | 0.3г М
+[VOL] гъби: 22 kcal | 3.1г Б | 3.3г В | 0.3г М
+[VOL] листна салата: 15 kcal | 1.4г Б | 2.9г В | 0.2г М
+[FAT] зехтин: 884 kcal | 0г Б | 0г В | 100г М
+[FAT] масло: 717 kcal | 0.9г Б | 0г В | 81г М
+[FAT] авокадо: 160 kcal | 2г Б | 9г В | 15г М
+[FAT] бадеми: 579 kcal | 21г Б | 22г В | 50г М
+[FAT] орехи: 654 kcal | 15г Б | 14г В | 65г М
+[FAT] тахан: 595 kcal | 17г Б | 21г В | 54г М
+За продукти извън таблицата — използвай общоприети хранителни стойности.
+
 ПРАВИЛА ЗА ИЗХОД:
 • Естествен български език - БЕЗ технически кодове ([PRO], [ENG])
 • Без странни комбинации - общоприети кулинарни норми
@@ -2813,13 +2853,19 @@ ${dynamicWhitelistSection}${dynamicBlacklistSection}
 === ИЗИСКВАНИЯ ===
 1. Разпределение на калории: Използвай mealBreakdown от Стъпка 2 за всяко хранене — то задава ТОЧНИТЕ целеви калории и макроси за всяко хранене от деня
 2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
-3. Калории: protein×4 + carbs×4 + fats×9. Провери и коригирай meal.calories за всяко ястие преди финализиране — разлика над 10% е грешка.
+3. КАЛОРИЕН РАБОТЕН ПРОЦЕС (задължителен за всяко хранене):
+   а) Избери продукти за хранението по шаблона (PRO/ENG/VOL/FAT).
+   б) Определи грамаж за всеки продукт от ХРАНИТЕЛНАТА СПРАВОЧНА ТАБЛИЦА — сума (грамове/100 × kcal_на_100г) ≈ целевите калории от mealBreakdown (±${DAILY_CALORIE_TOLERANCE} kcal).
+   в) Изчисли макроси: Б=Σ(gr/100×Б_на_100г), В=Σ(gr/100×В_на_100г), М=Σ(gr/100×М_на_100г).
+   г) Провери: calories=Б×4+В×4+М×9. Ако разлика с целта >10% → увеличи/намали грамажа на основния въглехидрат или протеин.
+   д) Въведи в JSON финалните изчислени стойности за calories и macros.
 4. Целеви калории и макроси по дни и хранения (от mealBreakdown в Стъпка 2):
 ${weeklySchemeByDayText}
 5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
 6. Ред: Хранене 1 → Хранене 2 (или Свободно хранене в деня с freeDayNumber — НЕ и двете!) → (Хранене 3: плодове/сурови ядки/скир/кисело мляко) → Хранене 4 → (Хранене 5 само при >4ч до сън+диабет/тренировки: скир/ядки/кисело мляко, макс ${MAX_LATE_SNACK_CALORIES} kcal)
    СВОБОДЕН ДЕН: Свободно хранене ЗАМЕСТВА Хранене 2 — НЕ е допълнително хранене! Типът е "Свободно хранене", НЕ "Хранене 2".
 7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - пропусни САМО типа "Хранене 1" (сутрешното хранене). "Хранене 3" и "Хранене 5" са напълно различни категории хранения и се включват нормално при нужда!' : '\n8. ВАЖНО: Клиентът ЗАКУСВА - ЗАДЪЛЖИТЕЛНО включи {"type": "Хранене 1", ...} като ПЪРВОТО хранене за всеки ден! Никога не пропускай Хранене 1.'}${sweetsCravingRule}${buildFreeMealInstruction(strategy, startDay, endDay)}
+9. description: Изброй всеки продукт с грамажа от работния процес (т.3) във формат "продукт Xg" (напр. "пилешко 200g; ориз 150g; домати 100g."). Полето weight = обща сума на всички грамажи в хранението.
 
 ${MEAL_NAME_FORMAT_INSTRUCTIONS}
 `;
@@ -4421,7 +4467,7 @@ function injectFixedDesserts(weekPlan) {
 /**
  * Recalculate meal.calories from macros (protein×4 + carbs×4 + fats×9).
  * Corrects the declared calories when they deviate from the macro formula by >10%.
- * Also recalculates dailyTotals.calories as the sum of all meal calories.
+ * Also recalculates dailyTotals.calories, protein, carbs and fats as the sum of all meal values.
  * Called after each AI chunk is parsed.
  */
 function recalculateDayCalories(weekPlan) {
@@ -4429,6 +4475,9 @@ function recalculateDayCalories(weekPlan) {
     const day = weekPlan[dayKey];
     if (!day || !Array.isArray(day.meals)) continue;
     let totalCals = 0;
+    let totalProtein = 0;
+    let totalCarbs = 0;
+    let totalFats = 0;
     for (const meal of day.meals) {
       if (!meal.macros || meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
       const p = Number(meal.macros.protein) || 0;
@@ -4443,9 +4492,15 @@ function recalculateDayCalories(weekPlan) {
         }
       }
       totalCals += Number(meal.calories) || 0;
+      totalProtein += p;
+      totalCarbs += c;
+      totalFats += f;
     }
     if (day.dailyTotals && totalCals > 0) {
       day.dailyTotals.calories = totalCals;
+      day.dailyTotals.protein = Math.round(totalProtein);
+      day.dailyTotals.carbs = Math.round(totalCarbs);
+      day.dailyTotals.fats = Math.round(totalFats);
     }
   }
 }
