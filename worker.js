@@ -4640,7 +4640,7 @@ function applyFoodSubstitutions(meal, fixes) {
   return applied;
 }
 
-const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (4 chunks for 7-day plan)
+const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (4 chunks: days 1-2, 3-4, 5-6, 7)
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions

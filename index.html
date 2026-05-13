@@ -3358,9 +3358,10 @@
                 let subscription = await registration.pushManager.getSubscription();
 
                 if (!subscription) {
-                    // Get VAPID public key — cached in sessionStorage so we only fetch it once per session
+                    // Get VAPID public key — cached in sessionStorage so we only fetch it once per session.
+                    // Treat a missing or sentinel value as absent so we always re-fetch in that case.
                     let publicKey = sessionStorage.getItem('vapidPublicKey');
-                    if (!publicKey) {
+                    if (!publicKey || publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
                         const vapidResponse = await fetch(`${WORKER_URL}/api/push/vapid-public-key`);
                         if (!vapidResponse.ok) {
                             throw new Error('Failed to get VAPID public key');
