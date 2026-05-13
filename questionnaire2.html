@@ -4603,16 +4603,29 @@
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
             const WORKER = 'https://aidiet.radilov-k.workers.dev';
+            const CACHE_KEY = 'uiImages:cache';
+            const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+            function applyData(data) {
+                const img = (data.images || {})['questionnaire2_bg'];
+                if (!img) return;
+                document.body.style.backgroundImage = `url(${img})`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center';
+                document.body.style.backgroundRepeat = 'no-repeat';
+                document.body.style.backgroundAttachment = 'fixed';
+            }
+            try {
+                const cached = sessionStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const { data, expiry } = JSON.parse(cached);
+                    if (Date.now() < expiry) { applyData(data); return; }
+                }
+            } catch (_) {}
             fetch(WORKER + '/api/ui-images')
                 .then(r => r.json())
                 .then(data => {
-                    const img = (data.images || {})['questionnaire2_bg'];
-                    if (!img) return;
-                    document.body.style.backgroundImage = `url(${img})`;
-                    document.body.style.backgroundSize = 'cover';
-                    document.body.style.backgroundPosition = 'center';
-                    document.body.style.backgroundRepeat = 'no-repeat';
-                    document.body.style.backgroundAttachment = 'fixed';
+                    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, expiry: Date.now() + CACHE_TTL })); } catch (_) {}
+                    applyData(data);
                 })
                 .catch(() => {});
         })();
