@@ -3573,6 +3573,7 @@ async function generatePlanCore(env, data) {
  * after the HTTP client disconnects (e.g. Android app backgrounded/killed).
  */
 async function generatePlanAndSave(env, data, jobId) {
+  console.log(`generatePlanAndSave: starting job ${jobId}`);
   try {
     const result = await generatePlanCore(env, data);
     await env.page_content.put(
@@ -3580,18 +3581,27 @@ async function generatePlanAndSave(env, data, jobId) {
       JSON.stringify({ status: 'completed', completedAt: Date.now(), ...result }),
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
+    console.log(`generatePlanAndSave: job ${jobId} completed and saved to KV`);
   } catch (error) {
-    console.error('generatePlanAndSave error:', error);
-    await env.page_content.put(
-      PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({
-        status: 'failed',
-        failedAt: Date.now(),
-        error: error.message,
-        validationFailed: error.validationFailed || false
-      }),
-      { expirationTtl: PLAN_JOB_TTL_SEC }
-    ).catch(e => { console.error('generatePlanAndSave: Failed to write failure status to KV:', e); });
+    console.error(`generatePlanAndSave: job ${jobId} failed:`, error);
+    // Use try/catch instead of .catch() so a synchronous throw (e.g. env.page_content
+    // undefined) does not propagate and cause the queue message to be retried
+    // unnecessarily, leaving the KV entry permanently stuck as 'pending'.
+    try {
+      await env.page_content.put(
+        PLAN_JOB_PREFIX + jobId,
+        JSON.stringify({
+          status: 'failed',
+          failedAt: Date.now(),
+          error: error.message,
+          validationFailed: error.validationFailed || false
+        }),
+        { expirationTtl: PLAN_JOB_TTL_SEC }
+      );
+      console.log(`generatePlanAndSave: job ${jobId} failure status written to KV`);
+    } catch (e) {
+      console.error(`generatePlanAndSave: job ${jobId} – failed to write failure status to KV:`, e);
+    }
   }
 }
 
@@ -12941,9 +12951,11 @@ export default {
   async queue(batch, env) {
     for (const message of batch.messages) {
       const { jobId, data } = message.body;
+      console.log(`Queue consumer: received job ${jobId}`);
       try {
         await generatePlanAndSave(env, data, jobId);
         message.ack();
+        console.log(`Queue consumer: acked job ${jobId}`);
       } catch (err) {
         // generatePlanAndSave has its own try/catch and writes a 'failed' KV entry,
         // so reaching here means an unexpected error outside that guard.
