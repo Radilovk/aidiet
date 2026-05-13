@@ -2771,10 +2771,13 @@
                     throw new Error(asyncResult.error || 'Неизвестна грешка при стартиране на генерирането');
                 }
 
-                // Poll for result with exponential backoff
-                const MAX_POLLS = 72;
+                // Poll for result with exponential backoff: 5s → 10s → 20s → 30s (capped)
+                const MAX_POLLS = 72; // ~18 minutes at average backoff
+                const POLL_BASE_DELAY = 5000;
+                const POLL_MAX_DELAY = 30000;
                 let polls = 0;
                 const activeJobId = asyncResult.jobId;
+                const nextPollDelay = () => Math.min(POLL_MAX_DELAY, POLL_BASE_DELAY * Math.pow(2, Math.min(polls - 1, 2)));
 
                 const poll = async () => {
                     polls++;
@@ -2789,8 +2792,7 @@
                     );
                     if (!statusResp.ok) {
                         if (statusResp.status === 429 || statusResp.status >= 500) {
-                            const delay = Math.min(30000, 5000 * Math.pow(2, Math.min(polls - 1, 2)));
-                            await new Promise(r => setTimeout(r, delay));
+                            await new Promise(r => setTimeout(r, nextPollDelay()));
                             return poll();
                         }
                         throw new Error('Грешка при проверка на статуса (' + statusResp.status + ')');
@@ -2803,8 +2805,7 @@
                     } else if (statusData.status === 'not_found') {
                         throw new Error('Сесията за генериране е изтекла. Моля, опитайте отново.');
                     } else {
-                        const delay = Math.min(30000, 5000 * Math.pow(2, Math.min(polls - 1, 2)));
-                        await new Promise(r => setTimeout(r, delay));
+                        await new Promise(r => setTimeout(r, nextPollDelay()));
                         return poll();
                     }
                 };
