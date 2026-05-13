@@ -2501,6 +2501,23 @@
             .back-btn, .theme-toggle-btn, .user-avatar,
             .fab-food, button:not(.info-btn), nav { display: none !important; }
 
+            /* Force light theme variables regardless of user's dark/light preference */
+            html {
+                --primary-red: #0D9488 !important;
+                --primary-accent: #2DD4BF !important;
+                --secondary-accent: #06B6D4 !important;
+                --tertiary-accent: #ff7f6a !important;
+                --soft-red: #CCFBF1 !important;
+                --text-dark: #0F2F2E !important;
+                --text-light: #6b7280 !important;
+                --bg-color: #F0FDFA !important;
+                --card-bg: rgba(255,255,255,0.72) !important;
+                --shadow: 0 10px 40px rgba(13,148,136,0.1) !important;
+                --shadow-hover: 0 20px 50px rgba(13,148,136,0.15) !important;
+                --shadow-accent: 0 8px 32px rgba(6,182,212,0.2) !important;
+                --glass-border: rgba(13,148,136,0.1) !important;
+            }
+
             /* Remove backgrounds and shadows for ink economy */
             body, html { background: #fff !important; color: #000 !important; }
             .meal-card, .acc-item, .macro-bar-container { box-shadow: none !important; border: 1px solid #ddd !important; }
