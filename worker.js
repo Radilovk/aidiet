@@ -11857,6 +11857,17 @@ async function handleSaveUserNotificationPreferences(request, env) {
 // Social Authentication (Firebase ID Token)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Clock-skew tolerance when validating `iat` (issued-at) in Firebase JWTs.
+const FIREBASE_CLOCK_SKEW_TOLERANCE_SECONDS = 300; // 5 minutes
+
+// How long to cache Google's JWKS response in Cloudflare's Cache API.
+const JWKS_CACHE_TTL_SECONDS = 3600; // 1 hour – keys rotate ~daily
+
+// Prefix used when minting an internal userId from a Firebase UID for
+// the first time.  Stable prefix makes it easy to identify Firebase-sourced
+// user IDs in KV and lets existing anonymous IDs (no prefix) coexist.
+const FIREBASE_USER_ID_PREFIX = 'fb_';
+
 /**
  * Verify a Firebase ID Token using Google's public JWKS endpoint.
  *
@@ -11884,16 +11895,16 @@ async function verifyFirebaseIdToken(idToken, env) {
 
   // ── Basic claim validation ───────────────────────────────────────────────
   const now = Math.floor(Date.now() / 1000);
-  if (!payload.sub)                              throw new Error('Missing uid (sub)');
-  if (payload.exp < now)                         throw new Error('Token expired');
-  if (payload.iat > now + 300)                   throw new Error('Token issued in the future');
-  if (payload.aud !== env.FIREBASE_PROJECT_ID)   throw new Error('Invalid audience');
+  if (!payload.sub)                                                           throw new Error('Missing uid (sub)');
+  if (payload.exp < now)                                                      throw new Error('Token expired');
+  if (payload.iat > now + FIREBASE_CLOCK_SKEW_TOLERANCE_SECONDS)             throw new Error('Token issued in the future');
+  if (payload.aud !== env.FIREBASE_PROJECT_ID)                               throw new Error('Invalid audience');
   const expectedIss = `https://securetoken.google.com/${env.FIREBASE_PROJECT_ID}`;
-  if (payload.iss !== expectedIss)               throw new Error('Invalid issuer');
+  if (payload.iss !== expectedIss)                                           throw new Error('Invalid issuer');
 
   // ── Fetch Google's public JWKS (with Cache-API caching for perf) ─────────
   const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
-  const jwksRes = await fetch(JWKS_URL, { cf: { cacheTtl: 3600 } });
+  const jwksRes = await fetch(JWKS_URL, { cf: { cacheTtl: JWKS_CACHE_TTL_SECONDS } });
   if (!jwksRes.ok) throw new Error('Failed to fetch JWKS');
   const { keys } = await jwksRes.json();
 
@@ -11975,7 +11986,7 @@ async function handleSocialAuth(request, env) {
       userId = JSON.parse(stored).userId;
     } else {
       // First-time login: mint a stable internal id derived from the Firebase uid
-      userId = 'fb_' + uid;
+      userId = FIREBASE_USER_ID_PREFIX + uid;
       await env.page_content.put(kvKey, JSON.stringify({
         userId,
         uid,

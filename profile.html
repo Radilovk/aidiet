@@ -4624,9 +4624,9 @@
 
         // Guard: don't run if config hasn't been filled in
         if (firebaseConfig.apiKey === 'YOUR_API_KEY') {
-            console.warn('[Social Auth] Firebase config not yet configured. Fill in firebaseConfig in profile.html.');
+            console.warn('[Social Auth] Firebase config not yet configured. Fill in firebaseConfig in this script block.');
             // Still expose no-op stubs so onclick handlers don't throw
-            window.socialLoginWith = () => alert('Firebase не е конфигуриран. Попълни firebaseConfig в profile.html.');
+            window.socialLoginWith = () => alert('Функцията за вход все още не е конфигурирана. Моля свържете се с администратора.');
             window.socialLogout    = () => {};
         } else {
             const app  = initializeApp(firebaseConfig);
@@ -4677,7 +4677,8 @@
                         throw new Error(err.error || `HTTP ${response.status}`);
                     }
                     const data = await response.json();
-                    if (data.userId) {
+                    // Only store the userId if it matches the expected Firebase-sourced format
+                    if (data.userId && typeof data.userId === 'string' && data.userId.startsWith('fb_')) {
                         localStorage.setItem('userId', data.userId);
                         console.log('[Social Auth] userId saved:', data.userId);
                     }
