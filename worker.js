@@ -1580,9 +1580,12 @@ async function checkRateLimit(env, request, endpoint) {
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*', // TODO: Restrict to specific domains in production
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
-  'Content-Type': 'application/json'
+  'Content-Type': 'application/json',
+  // Required so that Firebase Authentication popup can post back to the opener
+  // window without being blocked by the browser's cross-origin opener policy.
+  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
 };
 
 // Cache for admin configuration to reduce KV reads
@@ -11850,6 +11853,153 @@ async function handleSaveUserNotificationPreferences(request, env) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Social Authentication (Firebase ID Token)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Clock-skew tolerance when validating `iat` (issued-at) in Firebase JWTs.
+const FIREBASE_CLOCK_SKEW_TOLERANCE_SECONDS = 300; // 5 minutes
+
+// How long to cache Google's JWKS response in Cloudflare's Cache API.
+const JWKS_CACHE_TTL_SECONDS = 3600; // 1 hour – keys rotate ~daily
+
+// Prefix used when minting an internal userId from a Firebase UID for
+// the first time.  Stable prefix makes it easy to identify Firebase-sourced
+// user IDs in KV and lets existing anonymous IDs (no prefix) coexist.
+const FIREBASE_USER_ID_PREFIX = 'fb_';
+
+/**
+ * Verify a Firebase ID Token using Google's public JWKS endpoint.
+ *
+ * Firebase issues JWTs (RS256) signed with Google's private keys; the matching
+ * public keys are published at the JWKS URL below.  We use the Web Crypto API
+ * so this works natively inside Cloudflare Workers without any npm packages.
+ *
+ * @param {string} idToken  - Firebase ID token from the frontend
+ * @param {object} env      - Worker env (needs FIREBASE_PROJECT_ID)
+ * @returns {{ uid, email, name, picture, provider }}
+ */
+async function verifyFirebaseIdToken(idToken, env) {
+  const parts = idToken.split('.');
+  if (parts.length !== 3) throw new Error('Malformed JWT');
+
+  // base64url → base64 → string
+  const b64decode = (s) => {
+    const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.padEnd(b64.length + (4 - b64.length % 4) % 4, '=');
+    return JSON.parse(atob(pad));
+  };
+
+  const header  = b64decode(parts[0]);
+  const payload = b64decode(parts[1]);
+
+  // ── Basic claim validation ───────────────────────────────────────────────
+  const now = Math.floor(Date.now() / 1000);
+  if (!payload.sub)                                                           throw new Error('Missing uid (sub)');
+  if (payload.exp < now)                                                      throw new Error('Token expired');
+  if (payload.iat > now + FIREBASE_CLOCK_SKEW_TOLERANCE_SECONDS)             throw new Error('Token issued in the future');
+  if (payload.aud !== env.FIREBASE_PROJECT_ID)                               throw new Error('Invalid audience');
+  const expectedIss = `https://securetoken.google.com/${env.FIREBASE_PROJECT_ID}`;
+  if (payload.iss !== expectedIss)                                           throw new Error('Invalid issuer');
+
+  // ── Fetch Google's public JWKS (with Cache-API caching for perf) ─────────
+  const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+  const jwksRes = await fetch(JWKS_URL, { cf: { cacheTtl: JWKS_CACHE_TTL_SECONDS } });
+  if (!jwksRes.ok) throw new Error('Failed to fetch JWKS');
+  const { keys } = await jwksRes.json();
+
+  const jwk = keys.find(k => k.kid === header.kid);
+  if (!jwk) throw new Error('No matching public key for kid=' + header.kid);
+
+  // ── Import public key and verify signature ───────────────────────────────
+  const cryptoKey = await crypto.subtle.importKey(
+    'jwk', jwk,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['verify']
+  );
+
+  const sigBytes  = Uint8Array.from(
+    atob(parts[2].replace(/-/g, '+').replace(/_/g, '/')),
+    c => c.charCodeAt(0)
+  );
+  const dataBytes = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+  const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', cryptoKey, sigBytes, dataBytes);
+  if (!valid) throw new Error('Invalid JWT signature');
+
+  return {
+    uid:      payload.sub,
+    email:    payload.email   || null,
+    name:     payload.name    || null,
+    picture:  payload.picture || null,
+    provider: (payload.firebase && payload.firebase.sign_in_provider) || null,
+  };
+}
+
+/**
+ * POST /api/auth/social
+ *
+ * Exchanges a Firebase ID Token (issued by Firebase Auth after Google Sign-In)
+ * for an internal userId stored in KV.
+ *
+ * Body:   { idToken: "<firebase-id-token>" }
+ * Returns { success, userId, uid, email, name, picture, provider }
+ */
+async function handleSocialAuth(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    if (!env.FIREBASE_PROJECT_ID) {
+      return jsonResponse({ error: 'Firebase is not configured on the server (missing FIREBASE_PROJECT_ID secret)' }, 500);
+    }
+
+    const body = await request.json();
+    const { idToken } = body || {};
+    if (!idToken || typeof idToken !== 'string') {
+      return jsonResponse({ error: 'Missing or invalid idToken' }, 400);
+    }
+
+    // Verify the token with Google's public keys
+    let firebaseUser;
+    try {
+      firebaseUser = await verifyFirebaseIdToken(idToken, env);
+    } catch (err) {
+      console.warn('Social auth – token verification failed:', err.message);
+      return jsonResponse({ error: 'Token verification failed: ' + err.message }, 401);
+    }
+
+    const { uid, email, name, picture, provider } = firebaseUser;
+
+    // ── Resolve or create internal userId ────────────────────────────────────
+    // Key is auth:{uid} – one stable userId per Google account.
+    const kvKey   = `auth:${uid}`;
+    const stored  = await env.page_content.get(kvKey);
+    let   userId;
+
+    if (stored) {
+      userId = JSON.parse(stored).userId;
+    } else {
+      // First-time login: mint a stable internal id derived from the Firebase uid
+      userId = FIREBASE_USER_ID_PREFIX + uid;
+      await env.page_content.put(kvKey, JSON.stringify({
+        userId,
+        uid,
+        email,
+        name,
+        provider,
+        createdAt: new Date().toISOString(),
+      }));
+      console.log(`Social auth – new user created: userId=${userId} provider=${provider}`);
+    }
+
+    console.log(`Social auth – login ok: userId=${userId} provider=${provider}`);
+    return jsonResponse({ success: true, userId, uid, email, name, picture, provider });
+  } catch (error) {
+    console.error('Social auth error:', error);
+    return jsonResponse({ error: 'Authentication failed: ' + error.message }, 500);
+  }
+}
+
 /**
  * User: Save user profile (plan + userData) for cross-context restoration
  *
@@ -12624,6 +12774,8 @@ export default {
         return await handleTestSendEmail(request, env);
       } else if (url.pathname === '/api/client-plan-status' && request.method === 'GET') {
         return await handleGetClientPlanStatus(request, env);
+      } else if (url.pathname === '/api/auth/social' && request.method === 'POST') {
+        return await handleSocialAuth(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }
