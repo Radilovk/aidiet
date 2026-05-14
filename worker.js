@@ -11938,12 +11938,8 @@ async function verifyFirebaseIdToken(idToken, env) {
 /**
  * POST /api/auth/social
  *
- * Exchanges a Firebase ID Token (issued by Firebase Auth after Google or
- * Facebook login) for an internal userId stored in KV.
- *
- * The mapping key is  auth:{firebaseUid}  so that "Link accounts using same
- * email" in Firebase automatically gives the same uid for both providers and
- * guarantees no duplicate profiles on the backend.
+ * Exchanges a Firebase ID Token (issued by Firebase Auth after Google Sign-In)
+ * for an internal userId stored in KV.
  *
  * Body:   { idToken: "<firebase-id-token>" }
  * Returns { success, userId, uid, email, name, picture, provider }
@@ -11975,9 +11971,7 @@ async function handleSocialAuth(request, env) {
     const { uid, email, name, picture, provider } = firebaseUser;
 
     // ── Resolve or create internal userId ────────────────────────────────────
-    // Key is auth:{uid}.  Because Firebase "Link accounts using same email"
-    // guarantees a single uid per email across providers, we never create
-    // duplicate profiles for users who sign in with Google and Facebook.
+    // Key is auth:{uid} – one stable userId per Google account.
     const kvKey   = `auth:${uid}`;
     const stored  = await env.page_content.get(kvKey);
     let   userId;

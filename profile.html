@@ -1699,11 +1699,6 @@
             background: #3c4043;
             color: #e8eaed;
         }
-        .social-btn-facebook {
-            background: #1877F2;
-            color: #fff;
-            box-shadow: 0 1px 4px rgba(24,119,242,0.35);
-        }
         .social-btn-google svg { flex-shrink: 0; }
 
         .social-login-divider {
@@ -1855,19 +1850,14 @@
             <div class="profile-name" id="profileName">Име</div>
             <div class="profile-email" id="profileEmail">email@example.com</div>
 
-            <!-- Social Login Section (shown when not signed in via Firebase) -->
-            <div class="social-login-section" id="socialLoginSection">
-                <span class="social-login-divider">Влезте с акаунт за синхронизация</span>
+            <!-- Social Login Section (hidden when not signed in via Google) -->
+            <div class="social-login-section hidden" id="socialLoginSection">
                 <button class="social-btn social-btn-google" id="googleLoginBtn" onclick="socialLoginWith('google')">
                     <!-- Google official G icon -->
                     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.6 33.5 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c11 0 20.4-8 20.4-21 0-1.3-.1-2.7-.4-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 16.2 3 9.5 7.9 6.3 14.7z"/><path fill="#FBBC05" d="M24 45c5.7 0 10.7-1.9 14.6-5l-6.8-5.6C29.8 36.4 27 37 24 37c-5.7 0-10.6-3.5-11.7-8.4l-7 5.4C8.8 40.5 15.9 45 24 45z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.8-2.3 5-4.8 6.5l6.8 5.6C42.1 37.3 45 31.1 45 24c0-1.3-.1-2.7-.4-4z"/></svg>
                     Вход с Google
                 </button>
-                <button class="social-btn social-btn-facebook" id="facebookLoginBtn" onclick="socialLoginWith('facebook')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3l-.5 3H13v6.8c4.56-.93 8-4.96 8-9.8z"/></svg>
-                    Вход с Facebook
-                </button>
-                <div id="socialLoginError" style="color:#ef4444;font-size:0.8rem;text-align:center;display:none;"></div>
+                <div id="socialLoginError" style="color:#ef4444;font-size:0.8rem;text-align:center;display:none;max-width:260px;"></div>
             </div>
 
             <!-- Logout button (shown when signed in via Firebase) -->
@@ -4593,23 +4583,12 @@
     </nav>
     <script src="./drive-backup.js"></script>
 
-    <!--
-    ════════════════════════════════════════════════════════════════════════════
-    FIREBASE SOCIAL LOGIN
-    ════════════════════════════════════════════════════════════════════════════
-    РЪЧНА СТЪПКА (преди публикуване):
-      1. Отиди на console.firebase.google.com → Project Settings → Your apps → Web
-      2. Копирай firebaseConfig обекта и замени обекта по-долу.
-      3. Запази файла и deployment ще е готов.
-    ════════════════════════════════════════════════════════════════════════════
-    -->
     <script type="module">
-        import { initializeApp }           from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, FacebookAuthProvider,
-                 signInWithPopup, signOut, onAuthStateChanged }
-                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+                from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-        // ── ⚠️  ЗАМЕНИ ТЕЗИ СТОЙНОСТИ С ТВОЯ firebaseConfig ОТ FIREBASE CONSOLE ──
+        // ⚠️  ПОПЪЛНИ ТЕЗИ 6 СТОЙНОСТИ ОТ FIREBASE CONSOLE (вж. FIREBASE_SETUP.md)
         const firebaseConfig = {
             apiKey:            "YOUR_API_KEY",
             authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
@@ -4618,35 +4597,28 @@
             messagingSenderId: "YOUR_SENDER_ID",
             appId:             "YOUR_APP_ID"
         };
-        // ── ────────────────────────────────────────────────────────────────── ──
 
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
-        // Guard: don't run if config hasn't been filled in
-        if (firebaseConfig.apiKey === 'YOUR_API_KEY') {
-            console.warn('[Social Auth] Firebase config not yet configured. Fill in firebaseConfig in this script block.');
-            // Still expose no-op stubs so onclick handlers don't throw
-            window.socialLoginWith = () => alert('Функцията за вход все още не е конфигурирана. Моля свържете се с администратора.');
+        // If not yet configured – stay invisible, no alerts, no noise for the user
+        if (firebaseConfig.apiKey === 'YOUR_API_KEY' || firebaseConfig.projectId === 'YOUR_PROJECT_ID') {
+            window.socialLoginWith = () => {};
             window.socialLogout    = () => {};
         } else {
-            const app  = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
+            const auth = getAuth(initializeApp(firebaseConfig));
 
-            // ── Helpers ─────────────────────────────────────────────────────────
-            function updateProfileUI(user) {
-                const loginSection = document.getElementById('socialLoginSection');
-                const logoutBtn    = document.getElementById('socialLogoutBtn');
-                const avatar       = document.getElementById('profileAvatar');
-                const nameEl       = document.getElementById('profileName');
-                const emailEl      = document.getElementById('profileEmail');
+            function _updateUI(user) {
+                const section   = document.getElementById('socialLoginSection');
+                const logoutBtn = document.getElementById('socialLogoutBtn');
+                const avatar    = document.getElementById('profileAvatar');
+                const nameEl    = document.getElementById('profileName');
+                const emailEl   = document.getElementById('profileEmail');
 
                 if (user) {
-                    // Hide login buttons, show logout
-                    if (loginSection) loginSection.classList.add('hidden');
-                    if (logoutBtn)    logoutBtn.classList.remove('hidden');
-                    // Update avatar / name / email
-                    if (nameEl)  nameEl.textContent  = user.displayName || 'Потребител';
-                    if (emailEl) emailEl.textContent  = user.email       || '';
+                    section?.classList.add('hidden');
+                    logoutBtn?.classList.remove('hidden');
+                    if (nameEl)  nameEl.textContent = user.displayName || 'Потребител';
+                    if (emailEl) emailEl.textContent = user.email || '';
                     if (avatar) {
                         if (user.photoURL) {
                             avatar.style.backgroundImage = `url(${user.photoURL})`;
@@ -4658,93 +4630,51 @@
                         }
                     }
                 } else {
-                    // Show login buttons, hide logout
-                    if (loginSection) loginSection.classList.remove('hidden');
-                    if (logoutBtn)    logoutBtn.classList.add('hidden');
+                    section?.classList.remove('hidden');
+                    logoutBtn?.classList.add('hidden');
                 }
             }
 
-            async function exchangeTokenWithBackend(user) {
-                try {
-                    const idToken  = await user.getIdToken();
-                    const response = await fetch(`${WORKER_URL}/api/auth/social`, {
-                        method:  'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body:    JSON.stringify({ idToken })
-                    });
-                    if (!response.ok) {
-                        const err = await response.json().catch(() => ({}));
-                        throw new Error(err.error || `HTTP ${response.status}`);
-                    }
-                    const data = await response.json();
-                    // Only store the userId if it matches the expected Firebase-sourced format
-                    if (data.userId && typeof data.userId === 'string' && data.userId.startsWith('fb_')) {
-                        localStorage.setItem('userId', data.userId);
-                        console.log('[Social Auth] userId saved:', data.userId);
-                    }
-                } catch (err) {
-                    console.error('[Social Auth] Backend exchange failed:', err);
-                }
-            }
-
-            // ── Auth state observer ──────────────────────────────────────────────
             onAuthStateChanged(auth, async (user) => {
-                updateProfileUI(user);
-                if (user) {
-                    await exchangeTokenWithBackend(user);
-                }
+                _updateUI(user);
+                if (!user) return;
+                try {
+                    const res  = await fetch(`${WORKER_URL}/api/auth/social`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken: await user.getIdToken() })
+                    });
+                    const data = await res.json();
+                    if (data.userId?.startsWith('fb_')) localStorage.setItem('userId', data.userId);
+                } catch (_) { /* silent – plan is still fully usable offline */ }
             });
 
-            // ── Public functions called by HTML buttons ───────────────────────────
-            window.socialLoginWith = async function(provider) {
+            window.socialLoginWith = async function() {
                 const errEl = document.getElementById('socialLoginError');
+                const btn   = document.getElementById('googleLoginBtn');
                 if (errEl) errEl.style.display = 'none';
-
-                const googleBtn   = document.getElementById('googleLoginBtn');
-                const facebookBtn = document.getElementById('facebookLoginBtn');
-                if (googleBtn)   googleBtn.disabled   = true;
-                if (facebookBtn) facebookBtn.disabled = true;
-
+                if (btn)   btn.disabled = true;
                 try {
-                    let authProvider;
-                    if (provider === 'google') {
-                        authProvider = new GoogleAuthProvider();
-                        authProvider.addScope('email');
-                        authProvider.addScope('profile');
-                    } else if (provider === 'facebook') {
-                        authProvider = new FacebookAuthProvider();
-                        authProvider.addScope('email');
-                    } else {
-                        throw new Error('Unknown provider: ' + provider);
-                    }
-                    await signInWithPopup(auth, authProvider);
-                    // onAuthStateChanged handles the rest
+                    const p = new GoogleAuthProvider();
+                    p.addScope('email');
+                    p.addScope('profile');
+                    await signInWithPopup(auth, p);
                 } catch (err) {
-                    console.error('[Social Auth] Login error:', err);
-                    const msg = err.code === 'auth/popup-closed-by-user'
-                        ? 'Прозорецът за вход беше затворен.'
-                        : err.code === 'auth/account-exists-with-different-credential'
-                        ? 'Вече съществува акаунт с този имейл при друг доставчик.'
-                        : 'Грешка при вход: ' + (err.message || err.code);
-                    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+                    if (err.code !== 'auth/popup-closed-by-user' && errEl) {
+                        errEl.textContent = err.code === 'auth/account-exists-with-different-credential'
+                            ? 'Вече има акаунт с този имейл.'
+                            : 'Неуспешен вход. Опитай отново.';
+                        errEl.style.display = 'block';
+                    }
                 } finally {
-                    if (googleBtn)   googleBtn.disabled   = false;
-                    if (facebookBtn) facebookBtn.disabled = false;
+                    if (btn) btn.disabled = false;
                 }
             };
 
             window.socialLogout = async function() {
-                try {
-                    await signOut(auth);
-                    // Clear Firebase userId but keep the plan in localStorage
-                    const storedUserId = localStorage.getItem('userId') || '';
-                    if (storedUserId.startsWith('fb_')) {
-                        localStorage.removeItem('userId');
-                    }
-                    updateProfileUI(null);
-                } catch (err) {
-                    console.error('[Social Auth] Logout error:', err);
-                }
+                await signOut(auth).catch(() => {});
+                if (localStorage.getItem('userId')?.startsWith('fb_')) localStorage.removeItem('userId');
+                _updateUI(null);
             };
         }
     </script>
