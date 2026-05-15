@@ -1812,6 +1812,75 @@
             });
         })();
     </script>
+    <style>
+        /* ── Login Modal ──────────────────────────────────────────────────── */
+        #loginModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 99998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #loginModal.active { display: flex; }
+        .login-modal-box {
+            background: var(--bg-color, #F0FDFA);
+            border-radius: 24px;
+            padding: 40px 32px 32px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        [data-theme="dark"] .login-modal-box {
+            background: #0D2424;
+        }
+        .login-modal-emoji { font-size: 2.5rem; margin-bottom: 14px; }
+        .login-modal-title {
+            margin: 0 0 8px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-dark, #0F2F2E);
+        }
+        .login-modal-sub {
+            margin: 0 0 24px;
+            color: var(--text-gray, #4b5563);
+            font-size: 0.93rem;
+        }
+        .login-modal-google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 13px 18px;
+            border: none;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: #fff;
+            color: #3c4043;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        [data-theme="dark"] .login-modal-google-btn {
+            background: #3c4043;
+            color: #e8eaed;
+        }
+        .login-modal-google-btn:hover  { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+        .login-modal-google-btn:active { transform: scale(0.97); }
+        .login-modal-google-btn:disabled { opacity: 0.65; pointer-events: none; }
+        .login-modal-google-btn svg { flex-shrink: 0; }
+        #loginModalError {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 12px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <!-- Skip Navigation Link (Accessibility) -->
@@ -2480,6 +2549,25 @@
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
 
+            const params = new URLSearchParams(window.location.search);
+
+            // If redirected here from a protected page that requires login:
+            // – Wait briefly for Firebase to resolve auth state.
+            // – If already logged in, redirect to target page immediately.
+            // – Otherwise, show the login modal.
+            if (params.has('login')) {
+                let alreadyLoggedIn = false;
+                if (window._indexAuthUser) {
+                    try { alreadyLoggedIn = !!(await window._indexAuthUser); } catch (_) {}
+                }
+                if (!alreadyLoggedIn) {
+                    const loginModal = document.getElementById('loginModal');
+                    if (loginModal) loginModal.classList.add('active');
+                }
+                // If already logged in, onAuthStateChanged in the module below handles the redirect.
+                return;
+            }
+
             // If a plan generation job was started but the app was closed before it finished,
             // redirect back to the questionnaire which has the full resume/polling logic.
             // The server-side Cloudflare Worker keeps generating even when the app is closed,
@@ -2494,16 +2582,34 @@
             // Tries cookie chunks first, then falls back to the backend API.
             await restoreProfileFromCookies();
 
-            let dietPlan = localStorage.getItem('dietPlan');
-            const userId = localStorage.getItem('userId');
-            const startNowBtn = document.getElementById('startNowBtn');
-            const heroCTABtn = document.getElementById('heroCTABtn');
+            // Wait for Firebase auth state before deciding on plan-redirect.
+            // _indexAuthUser is a Promise exposed by the module script at the bottom of this page.
+            let authUser = null;
+            if (window._indexAuthUser) {
+                try { authUser = await window._indexAuthUser; } catch (_) {}
+            }
+
+            const startNowBtn  = document.getElementById('startNowBtn');
+            const heroCTABtn   = document.getElementById('heroCTABtn');
             const navMyPlanLink = document.getElementById('navMyPlanLink');
+
+            if (!authUser) {
+                // Not authenticated — show the landing page as-is; the "Start" buttons
+                // will navigate to questionnaire2.html which will trigger the auth guard.
+                if (startNowBtn) startNowBtn.style.display = 'flex';
+                if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+                if (window.location.hash === '#contact') {
+                    setTimeout(toggleContactForm, 400);
+                }
+                return;
+            }
+
+            let dietPlan = localStorage.getItem('dietPlan');
 
             if (dietPlan) {
                 // User has a plan - redirect directly to plan.html (replace so back-button skips this page)
                 // Skip redirect when the user intentionally navigated here (e.g. via the home button)
-                if (!new URLSearchParams(window.location.search).has('stay')) {
+                if (!params.has('stay')) {
                     window.location.replace('plan.html');
                     return;
                 }
@@ -2521,7 +2627,7 @@
                 return;
             }
 
-            // User doesn't have a plan - show "Започни промяната" button in dropdown menu
+            // Authenticated user, no plan yet — show "Започни промяната" button
             if (startNowBtn) {
                 startNowBtn.style.display = 'flex';
             }
@@ -3522,5 +3628,102 @@
         </a>
     </nav>
     <script src="./drive-backup.js"></script>
+
+    <!-- Login Modal -->
+    <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
+        <div class="login-modal-box">
+            <div class="login-modal-emoji">🌿</div>
+            <h2 class="login-modal-title">Добре дошли в NutriPlan</h2>
+            <p class="login-modal-sub">Влезте с Google акаунт, за да продължите</p>
+            <button class="login-modal-google-btn" id="loginModalGoogleBtn"
+                    onclick="window.indexLoginWithGoogle()">
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.6 33.5 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c11 0 20.4-8 20.4-21 0-1.3-.1-2.7-.4-4z"/>
+                    <path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 16.2 3 9.5 7.9 6.3 14.7z"/>
+                    <path fill="#FBBC05" d="M24 45c5.7 0 10.7-1.9 14.6-5l-6.8-5.6C29.8 36.4 27 37 24 37c-5.7 0-10.6-3.5-11.7-8.4l-7 5.4C8.8 40.5 15.9 45 24 45z"/>
+                    <path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.8-2.3 5-4.8 6.5l6.8 5.6C42.1 37.3 45 31.1 45 24c0-1.3-.1-2.7-.4-4z"/>
+                </svg>
+                Вход с Google
+            </button>
+            <div id="loginModalError"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged }
+                                       from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey:            'AIzaSyAZvIAAzP-6CBzQlQvoJTy-Iq24fBAPrJY',
+            authDomain:        'nutriplan-c460a.firebaseapp.com',
+            projectId:         'nutriplan-c460a',
+            storageBucket:     'nutriplan-c460a.firebasestorage.app',
+            messagingSenderId: '556207268794',
+            appId:             '1:556207268794:web:4fa968491413abd4873383'
+        };
+
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+        const auth = getAuth(initializeApp(firebaseConfig));
+
+        /* Expose auth state promise so the DOMContentLoaded handler can await it */
+        window._indexAuthUser = new Promise(resolve => onAuthStateChanged(auth, resolve));
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) return;
+
+            /* Sync userId with backend */
+            try {
+                const res  = await fetch(`${WORKER_URL}/api/auth/social`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: await user.getIdToken() })
+                });
+                const data = await res.json();
+                if (data.userId?.startsWith('fb_')) localStorage.setItem('userId', data.userId);
+            } catch (_) { /* silent – works offline */ }
+
+            /* If user just logged in via the login modal, redirect to the target page */
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('login')) {
+                const next = params.get('next') || '';
+                /* Validate next: resolve against current origin and ensure it stays on the same origin.
+                 * This prevents open redirects and javascript: URIs. */
+                let safeDest;
+                try {
+                    const resolved = new URL(next, location.origin);
+                    safeDest = resolved.origin === location.origin
+                        ? resolved.pathname + resolved.search
+                        : null;
+                } catch (_) {
+                    safeDest = null;
+                }
+                window.location.replace(safeDest || (localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html'));
+            }
+        });
+
+        window.indexLoginWithGoogle = async function () {
+            const errEl = document.getElementById('loginModalError');
+            const btn   = document.getElementById('loginModalGoogleBtn');
+            if (errEl) errEl.style.display = 'none';
+            if (btn)   btn.disabled = true;
+            try {
+                const p = new GoogleAuthProvider();
+                p.addScope('email');
+                p.addScope('profile');
+                await signInWithPopup(auth, p);
+                /* onAuthStateChanged fires next and handles the redirect */
+            } catch (err) {
+                if (err.code !== 'auth/popup-closed-by-user' && errEl) {
+                    errEl.textContent = err.code === 'auth/account-exists-with-different-credential'
+                        ? 'Вече има акаунт с този имейл.'
+                        : 'Неуспешен вход. Опитай отново.';
+                    errEl.style.display = 'block';
+                }
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        };
+    </script>
 </body>
 </html>

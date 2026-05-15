@@ -1800,6 +1800,7 @@
     </script>
 </head>
 <body>
+    <script type="module" src="./auth-guard.js"></script>
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
         <div class="install-banner-icon" id="installBannerIcon">
@@ -4669,7 +4670,8 @@
             window.socialLogout = async function() {
                 await signOut(auth).catch(() => {});
                 if (localStorage.getItem('userId')?.startsWith('fb_')) localStorage.removeItem('userId');
-                _updateUI(null);
+                /* Navigate home after logout — do not show the login modal */
+                window.location.replace('index.html?stay=1');
             };
         }
     </script>
