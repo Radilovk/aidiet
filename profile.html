@@ -4588,23 +4588,18 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-        // ⚠️  ПОПЪЛНИ ТЕЗИ 6 СТОЙНОСТИ ОТ FIREBASE CONSOLE (вж. FIREBASE_SETUP.md)
         const firebaseConfig = {
-            apiKey:            "YOUR_API_KEY",
-            authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId:         "YOUR_PROJECT_ID",
-            storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId:             "YOUR_APP_ID"
+            apiKey:            "AIzaSyAZvIAAzP-6CBzQlQvoJTy-Iq24fBAPrJY",
+            authDomain:        "nutriplan-c460a.firebaseapp.com",
+            projectId:         "nutriplan-c460a",
+            storageBucket:     "nutriplan-c460a.firebasestorage.app",
+            messagingSenderId: "556207268794",
+            appId:             "1:556207268794:web:4fa968491413abd4873383"
         };
 
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
-        // If not yet configured – stay invisible, no alerts, no noise for the user
-        if (firebaseConfig.apiKey === 'YOUR_API_KEY' || firebaseConfig.projectId === 'YOUR_PROJECT_ID') {
-            window.socialLoginWith = () => {};
-            window.socialLogout    = () => {};
-        } else {
+        {
             const auth = getAuth(initializeApp(firebaseConfig));
 
             function _updateUI(user) {
