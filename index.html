@@ -3813,11 +3813,11 @@
                     localStorage.removeItem('planSyncPending');
                 } else {
                     // Mark for retry on next login
-                    localStorage.setItem('planSyncPending', fbUserId);
+                    localStorage.setItem('planSyncPending', 'true');
                 }
             } catch (_) {
                 // Network error — retry next time
-                localStorage.setItem('planSyncPending', fbUserId);
+                localStorage.setItem('planSyncPending', 'true');
             }
         }
 
@@ -3843,7 +3843,7 @@
                 // Also retry if a previous sync attempt failed (planSyncPending flag).
                 const syncNeeded =
                     (prevUserId && !prevUserId.startsWith('fb_')) ||
-                    localStorage.getItem('planSyncPending') === fbUserId;
+                    localStorage.getItem('planSyncPending') === 'true';
                 if (syncNeeded) {
                     await _syncAnonymousPlanToAccount(fbUserId);
                 }

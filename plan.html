@@ -3843,7 +3843,7 @@
                 // This happens on a new device where the user has a plan in their account.
                 // sessionStorage guard: prevents any theoretical repeated fetch in the same
                 // browser tab (e.g. Firebase re-firing the observer after a network event).
-                const _planRestoreKey = '_planRestoreAttempted';
+                const _planRestoreKey = 'pageInitialised';
                 if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
                     if (sessionStorage.getItem(_planRestoreKey)) {
                         // Restore was already attempted in this tab but failed to produce a plan
