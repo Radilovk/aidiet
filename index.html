@@ -1988,7 +1988,7 @@
             <p>Комплексна здравна платформа, която обединява персонализирано хранене, психологична подкрепа, добавки, активности, клинични протоколи и научно-базирана програма за дълголетие — всичко с помощта на 7-степенен AI анализ и 30+ индивидуални критерия.</p>
             <div class="cta-group">
                 <a href="questionnaire2.html" class="nav-btn" id="heroCTABtn">Започни промяната</a>
-                <a href="#how-it-works" class="btn-outline">Научи повече</a>
+                <button type="button" class="btn-outline" id="heroLoginBtn" onclick="document.getElementById('loginModal').classList.add('active')">Вход</button>
             </div>
         </div>
 
@@ -2642,6 +2642,7 @@
             const startNowBtn  = document.getElementById('startNowBtn');
             const heroCTABtn   = document.getElementById('heroCTABtn');
             const navMyPlanLink = document.getElementById('navMyPlanLink');
+            const heroLoginBtn  = document.getElementById('heroLoginBtn');
 
             if (!authUser) {
                 // Not authenticated — but if user has plan data, show "Моят план" nav button
@@ -2673,6 +2674,9 @@
                 }
                 return;
             }
+
+            // Authenticated — hide the login button
+            if (heroLoginBtn) heroLoginBtn.style.display = 'none';
 
             let dietPlan = localStorage.getItem('dietPlan');
 

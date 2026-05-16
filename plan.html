@@ -3515,7 +3515,7 @@
             appId:             '1:556207268794:web:4fa968491413abd4873383'
         };
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
-        const auth = getAuth(initializeApp(_cfg, 'plan-auth'));
+        const auth = getAuth(initializeApp(_cfg));
 
         const overlay  = document.getElementById('planAuthOverlay');
         const spinner  = overlay ? overlay.querySelector('.pa-spinner') : null;
