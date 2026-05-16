@@ -3784,29 +3784,41 @@
                 if (data.found && data.plan) {
                     localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
+                    if (data.planSource) localStorage.setItem('planSource', data.planSource);
                     return true;
                 }
             } catch (_) {}
             return false;
         }
 
-        /* Sync an existing anonymous plan to the user's Firebase account in KV (fire-and-forget).
-         * Called when the user logs in after already having a locally-stored plan. */
-        function _syncAnonymousPlanToAccount(fbUserId) {
+        /* Sync an existing anonymous plan to the user's Firebase account in KV.
+         * Awaited by onAuthStateChanged; sets a 'planSyncPending' flag in
+         * localStorage when the server call fails so it is retried on the next login. */
+        async function _syncAnonymousPlanToAccount(fbUserId) {
             try {
                 const planStr  = localStorage.getItem('dietPlan');
                 const userStr  = localStorage.getItem('userData');
                 if (!planStr) return;
-                fetch(WORKER_URL + '/api/user/save-profile', {
+                const resp = await fetch(WORKER_URL + '/api/user/save-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         userId:   fbUserId,
                         plan:     JSON.parse(planStr),
-                        userData: userStr ? JSON.parse(userStr) : {}
+                        userData: userStr ? JSON.parse(userStr) : {},
+                        planSource: localStorage.getItem('planSource') || ''
                     })
-                }).catch(() => {});
-            } catch (_) {}
+                });
+                if (resp.ok) {
+                    localStorage.removeItem('planSyncPending');
+                } else {
+                    // Mark for retry on next login
+                    localStorage.setItem('planSyncPending', fbUserId);
+                }
+            } catch (_) {
+                // Network error — retry next time
+                localStorage.setItem('planSyncPending', fbUserId);
+            }
         }
 
         let _loginInProgress = false;
@@ -3828,8 +3840,12 @@
                 // Plan is cached locally.
                 // If it was generated before login (anonymous userId), sync it to
                 // the Firebase account so it becomes available on other devices.
-                if (prevUserId && !prevUserId.startsWith('fb_')) {
-                    _syncAnonymousPlanToAccount(fbUserId);
+                // Also retry if a previous sync attempt failed (planSyncPending flag).
+                const syncNeeded =
+                    (prevUserId && !prevUserId.startsWith('fb_')) ||
+                    localStorage.getItem('planSyncPending') === fbUserId;
+                if (syncNeeded) {
+                    await _syncAnonymousPlanToAccount(fbUserId);
                 }
             } else if (!localStorage.getItem('planJobId')) {
                 // No local plan and no pending generation job →

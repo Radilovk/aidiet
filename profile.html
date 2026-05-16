@@ -4691,7 +4691,12 @@
                     'hasSeenPlanJustification', 'gameNotifierConfig',
                     'planJobId', 'planJobSource', 'pendingPlanPayload',
                     'pendingClientId', 'questionnaireAnswers', 'warningData',
-                    'canProceedWithWarning', 'validationSource'
+                    'canProceedWithWarning', 'validationSource',
+                    // Chat state — must be cleared so the next user doesn't see another
+                    // user's conversation history on the same device.
+                    'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
+                    // Pending sync flag
+                    'planSyncPending'
                 ];
                 PLAN_KEYS.forEach(k => localStorage.removeItem(k));
                 // Clear dynamically-named addedMeals_* keys

@@ -3942,7 +3942,7 @@
             localStorage.removeItem('pendingPlanPayload');
 
             if (typeof saveProfileToCookies === 'function') {
-                saveProfileToCookies(result.userId, result.plan, planPayload);
+                saveProfileToCookies(fbUserId || result.userId, result.plan, planPayload, 'questionnaire2');
             }
 
             // If logged in with Firebase, also save plan under the Firebase UID so it can
@@ -3951,7 +3951,7 @@
                 fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: fbUserId, plan: result.plan, userData: planPayload })
+                    body: JSON.stringify({ userId: fbUserId, plan: result.plan, userData: planPayload, planSource: 'questionnaire2' })
                 }).catch(() => {});
             }
 
@@ -4656,7 +4656,7 @@
          * Uses the CompressionStream API (iOS 16.4+) to keep cookie count low.
          * Falls back silently on older browsers.
          */
-        async function saveProfileToCookies(userId, plan, userData) {
+        async function saveProfileToCookies(userId, plan, userData, planSource) {
             const COOKIE_OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
             // Always persist the userId cookie so the PWA can look the user up
             // in the backend even when cookie chunks or CompressionStream are unavailable.
@@ -4667,7 +4667,7 @@
             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, plan, userData })
+                body: JSON.stringify({ userId, plan, userData, planSource: planSource || '' })
             }).catch(e => console.warn('[PWA] Backend profile save failed:', e));
 
             if (typeof CompressionStream === 'undefined') return;

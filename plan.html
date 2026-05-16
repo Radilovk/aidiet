@@ -3554,6 +3554,7 @@
                 if (data.found && data.plan) {
                     localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
+                    if (data.planSource) localStorage.setItem('planSource', data.planSource);
                     return true;
                 }
             } catch (_) {}
@@ -3814,7 +3815,12 @@
                 'hasSeenPlanJustification', 'gameNotifierConfig',
                 'planJobId', 'planJobSource', 'pendingPlanPayload',
                 'pendingClientId', 'questionnaireAnswers', 'warningData',
-                'canProceedWithWarning', 'validationSource'
+                'canProceedWithWarning', 'validationSource',
+                // Chat state — must be cleared so the next user doesn't see another
+                // user's conversation history on the same device.
+                'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
+                // Pending sync flag
+                'planSyncPending'
             ];
             PLAN_KEYS.forEach(k => localStorage.removeItem(k));
             // Clear dynamically-named addedMeals_* keys
@@ -3835,11 +3841,29 @@
                 syncUser(user);
                 // If no plan is cached locally, try to fetch it from the server.
                 // This happens on a new device where the user has a plan in their account.
+                // sessionStorage guard: prevents any theoretical repeated fetch in the same
+                // browser tab (e.g. Firebase re-firing the observer after a network event).
+                const _planRestoreKey = '_planRestoreAttempted';
                 if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
+                    if (sessionStorage.getItem(_planRestoreKey)) {
+                        // Restore was already attempted in this tab but failed to produce a plan
+                        // (shouldn't normally happen) — avoid a loop and go to questionnaire.
+                        sessionStorage.removeItem(_planRestoreKey);
+                        window.location.replace('questionnaire2.html');
+                        return;
+                    }
+                    sessionStorage.setItem(_planRestoreKey, '1');
                     const loaded = await _loadUserPlanFromServer('fb_' + user.uid);
+                    sessionStorage.removeItem(_planRestoreKey);
                     if (loaded) {
-                        // Plan restored — reload so the page initialises with the fetched data
-                        window.location.reload();
+                        // Plan restored into localStorage — initialise the page directly
+                        // without a full reload.  loadDietData() is idempotent when a plan
+                        // is present in localStorage and is available in the global scope
+                        // because it lives in a regular (non-module) <script> tag.
+                        if (typeof window.loadDietData === 'function') {
+                            window.loadDietData();
+                        }
+                        hideOverlay();
                         return;
                     }
                     // No plan on server either — send to questionnaire
@@ -4605,7 +4629,8 @@
                         body: JSON.stringify({
                             userId: uid,
                             plan: JSON.parse(planStr),
-                            userData: udStr ? JSON.parse(udStr) : {}
+                            userData: udStr ? JSON.parse(udStr) : {},
+                            planSource: localStorage.getItem('planSource') || ''
                         })
                     }).then(r => { if (r && r.ok) localStorage.setItem('np_profile_synced', '1'); })
                       .catch(() => {});
@@ -6236,7 +6261,12 @@
                             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId, plan: dietPlan, userData })
+                                body: JSON.stringify({
+                                    userId,
+                                    plan: dietPlan,
+                                    userData,
+                                    planSource: localStorage.getItem('planSource') || ''
+                                })
                             }).catch(e => console.warn('[PWA] Backend plan update save failed:', e));
                         }
                         
