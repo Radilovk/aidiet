@@ -1853,7 +1853,7 @@
 
             <!-- Social Login Section (hidden when not signed in via Google) -->
             <div class="social-login-section hidden" id="socialLoginSection">
-                <button class="social-btn social-btn-google" id="googleLoginBtn" onclick="socialLoginWith('google')">
+                <button class="social-btn social-btn-google" id="googleLoginBtn" onclick="socialLoginWith()">
                     <!-- Google official G icon -->
                     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.6 33.5 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c11 0 20.4-8 20.4-21 0-1.3-.1-2.7-.4-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 16.2 3 9.5 7.9 6.3 14.7z"/><path fill="#FBBC05" d="M24 45c5.7 0 10.7-1.9 14.6-5l-6.8-5.6C29.8 36.4 27 37 24 37c-5.7 0-10.6-3.5-11.7-8.4l-7 5.4C8.8 40.5 15.9 45 24 45z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.8-2.3 5-4.8 6.5l6.8 5.6C42.1 37.3 45 31.1 45 24c0-1.3-.1-2.7-.4-4z"/></svg>
                     Вход с Google
@@ -4634,6 +4634,7 @@
             onAuthStateChanged(auth, async (user) => {
                 _updateUI(user);
                 if (!user) return;
+                if (localStorage.getItem('authKvSynced')) return;
                 try {
                     const res  = await fetch(`${WORKER_URL}/api/auth/social`, {
                         method: 'POST',
@@ -4642,6 +4643,7 @@
                     });
                     const data = await res.json();
                     if (data.userId?.startsWith('fb_')) localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('authKvSynced', '1');
                 } catch (_) { /* silent – plan is still fully usable offline */ }
             });
 
@@ -4670,6 +4672,7 @@
             window.socialLogout = async function() {
                 await signOut(auth).catch(() => {});
                 if (localStorage.getItem('userId')?.startsWith('fb_')) localStorage.removeItem('userId');
+                localStorage.removeItem('authKvSynced');
                 /* Navigate home after logout — do not show the login modal */
                 window.location.replace('index.html?stay=1');
             };
