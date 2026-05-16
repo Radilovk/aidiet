@@ -3429,7 +3429,228 @@
             });
         })();
     </script>
-    <script type="module" src="./auth-guard.js"></script>
+    <!-- Auth overlay: shown while Firebase resolves auth state, or when login/create-password is needed -->
+    <style>
+        @keyframes _pa_spin { to { transform: rotate(360deg); } }
+        #planAuthOverlay {
+            position: fixed; inset: 0;
+            background: var(--bg-color, #F0FDFA);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 99999; padding: 24px;
+            transition: opacity .25s;
+        }
+        #planAuthOverlay .pa-spinner {
+            width: 40px; height: 40px;
+            border: 3px solid #0D9488; border-top-color: transparent;
+            border-radius: 50%; animation: _pa_spin .8s linear infinite;
+        }
+        #planAuthForm {
+            width: 100%; max-width: 340px; text-align: center; display: none;
+        }
+        #planAuthForm h3 { color: var(--text-dark, #0F2F2E); margin-bottom: 8px; }
+        #planAuthForm p  { color: var(--text-gray, #6b7280); font-size: 0.88rem; margin-bottom: 16px; }
+        .pa-google-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; padding: 13px 18px; border: none; border-radius: 50px;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            background: #fff; color: #3c4043;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+            transition: transform .15s, box-shadow .15s;
+        }
+        .pa-google-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+        .pa-pw-input {
+            width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0;
+            border-radius: 12px; font-size: 1rem; margin-bottom: 12px;
+            box-sizing: border-box;
+            background: var(--bg-color, #fff); color: var(--text-dark, #0F2F2E); outline: none;
+        }
+        .pa-pw-input:focus { border-color: #0D9488; }
+        .pa-primary-btn {
+            width: 100%; padding: 13px 18px; border: none; border-radius: 50px;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            background: #0D9488; color: #fff;
+            box-shadow: 0 4px 15px rgba(13,148,136,.35);
+            transition: transform .15s, box-shadow .15s;
+        }
+        .pa-primary-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(13,148,136,.45); }
+        .pa-primary-btn:disabled { opacity: 0.65; pointer-events: none; }
+        #planAuthError { color: #ef4444; font-size: 0.8rem; margin-top: 12px; display: none; }
+        /* Logout button in day-banner */
+        .day-banner-logout {
+            flex-shrink: 0;
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            color: white; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+            margin: 10px 10px 10px 4px;
+            z-index: 1;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .day-banner-logout:hover  { background: rgba(255,255,255,0.28); transform: scale(1.08); }
+        .day-banner-logout:active { transform: scale(0.92); }
+    </style>
+    <div id="planAuthOverlay">
+        <div class="pa-spinner"></div>
+        <div id="planAuthForm"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import {
+            getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
+            signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+        const _cfg = {
+            apiKey:            'AIzaSyAZvIAAzP-6CBzQlQvoJTy-Iq24fBAPrJY',
+            authDomain:        'nutriplan-c460a.firebaseapp.com',
+            projectId:         'nutriplan-c460a',
+            storageBucket:     'nutriplan-c460a.firebasestorage.app',
+            messagingSenderId: '556207268794',
+            appId:             '1:556207268794:web:4fa968491413abd4873383'
+        };
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+        const auth = getAuth(initializeApp(_cfg, 'plan-auth'));
+
+        const overlay  = document.getElementById('planAuthOverlay');
+        const spinner  = overlay ? overlay.querySelector('.pa-spinner') : null;
+        const authForm = document.getElementById('planAuthForm');
+
+        function hideOverlay() {
+            if (!overlay) return;
+            overlay.style.opacity = '0';
+            setTimeout(() => { if (overlay) overlay.remove(); }, 280);
+        }
+
+        function syncUser(user) {
+            if (!user) return;
+            localStorage.setItem('userId', 'fb_' + user.uid);
+            if (!localStorage.getItem('authKvSynced')) {
+                user.getIdToken().then(idToken => {
+                    fetch(WORKER_URL + '/api/auth/social', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken })
+                    }).then(() => localStorage.setItem('authKvSynced', '1')).catch(() => {});
+                }).catch(() => {});
+            }
+        }
+
+        function showAuthError(msg) {
+            const el = document.getElementById('planAuthError');
+            if (el) { el.textContent = msg; el.style.display = 'block'; }
+        }
+
+        function showAuthForm() {
+            /* Guard: no dietPlan → send to questionnaire */
+            if (!localStorage.getItem('dietPlan')) {
+                window.location.replace('questionnaire2.html');
+                return;
+            }
+            /* Guard: plan still pending specialist review → send to plan-pending */
+            if (localStorage.getItem('planSource') === 'questionnaire2') {
+                window.location.replace('plan-pending.html');
+                return;
+            }
+
+            /* Show auth UI */
+            if (spinner)  spinner.style.display = 'none';
+            if (authForm) authForm.style.display = 'block';
+
+            let userData = {};
+            try { userData = JSON.parse(localStorage.getItem('userData') || '{}'); } catch (_) {}
+            const email   = (userData.email || '').trim().toLowerCase();
+            const isGmail = email.endsWith('@gmail.com') || email.endsWith('@googlemail.com');
+
+            const GOOGLE_SVG = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" style="flex-shrink:0">
+                <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.6 33.5 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c11 0 20.4-8 20.4-21 0-1.3-.1-2.7-.4-4z"/>
+                <path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 16.2 3 9.5 7.9 6.3 14.7z"/>
+                <path fill="#FBBC05" d="M24 45c5.7 0 10.7-1.9 14.6-5l-6.8-5.6C29.8 36.4 27 37 24 37c-5.7 0-10.6-3.5-11.7-8.4l-7 5.4C8.8 40.5 15.9 45 24 45z"/>
+                <path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.8-2.3 5-4.8 6.5l6.8 5.6C42.1 37.3 45 31.1 45 24c0-1.3-.1-2.7-.4-4z"/>
+            </svg>`;
+
+            if (isGmail) {
+                authForm.innerHTML = `
+                    <div style="font-size:2rem;margin-bottom:12px;">🌿</div>
+                    <h3>Добре дошли в NutriPlan</h3>
+                    <p>Влезте с Google, за да достъпите плана си</p>
+                    <button id="paGoogleBtn" class="pa-google-btn">${GOOGLE_SVG} Вход с Google</button>
+                    <div id="planAuthError"></div>`;
+                document.getElementById('paGoogleBtn').addEventListener('click', async function () {
+                    this.disabled = true;
+                    try {
+                        const p = new GoogleAuthProvider();
+                        p.addScope('email'); p.addScope('profile');
+                        await signInWithPopup(auth, p);
+                        /* onAuthStateChanged → hideOverlay */
+                    } catch (err) {
+                        if (err.code !== 'auth/popup-closed-by-user')
+                            showAuthError('Неуспешен вход. Опитайте отново.');
+                    } finally { this.disabled = false; }
+                });
+            } else {
+                const emailLabel = email ? `<p style="font-size:0.85rem;margin-bottom:4px;">${email}</p>` : '';
+                authForm.innerHTML = `
+                    <div style="font-size:2rem;margin-bottom:12px;">🌿</div>
+                    <h3>Достъп до плана</h3>
+                    ${emailLabel}
+                    <p style="margin-bottom:20px;">При първо влизане задайте парола. При следващо — въведете вашата парола.</p>
+                    <input id="paPwInput" type="password" placeholder="Парола (мин. 6 знака)"
+                           autocomplete="current-password" class="pa-pw-input">
+                    <button id="paPwBtn" class="pa-primary-btn">Влез в плана</button>
+                    <div id="planAuthError"></div>`;
+                const pwIn = document.getElementById('paPwInput');
+                const pwBtn = document.getElementById('paPwBtn');
+                pwIn.addEventListener('keydown', e => { if (e.key === 'Enter') pwBtn.click(); });
+                pwBtn.addEventListener('click', async function () {
+                    const pw = pwIn.value;
+                    if (!pw || pw.length < 6) { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
+                    this.disabled = true;
+                    try {
+                        try {
+                            await signInWithEmailAndPassword(auth, email, pw);
+                        } catch (e) {
+                            /* auth/invalid-credential covers both user-not-found and wrong-password
+                               in newer Firebase SDK. Attempt registration for first-time access. */
+                            if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+                                await createUserWithEmailAndPassword(auth, email, pw);
+                            } else throw e;
+                        }
+                        /* onAuthStateChanged → hideOverlay */
+                    } catch (err) {
+                        showAuthError(
+                            err.code === 'auth/wrong-password'       ? 'Грешна парола. Опитайте отново.' :
+                            err.code === 'auth/email-already-in-use' ? 'Вече имате профил. Въведете правилната парола.' :
+                            err.code === 'auth/weak-password'        ? 'Паролата трябва да е поне 6 символа.' :
+                            'Грешка при вход. Опитайте отново.'
+                        );
+                    } finally { this.disabled = false; }
+                });
+            }
+        }
+
+        /* ── Logout — exposed globally so the button in day-banner can call it ── */
+        window.planSignOut = async function () {
+            await signOut(auth).catch(() => {});
+            if (localStorage.getItem('userId')?.startsWith('fb_')) localStorage.removeItem('userId');
+            window.location.replace('index.html?stay=1');
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                syncUser(user);
+                hideOverlay();
+            } else {
+                showAuthForm();
+            }
+        });
+    </script>
+
     <div class="install-banner" id="installBanner">
         <div class="install-banner-icon" id="installBannerIcon">
             <i class="fas fa-mobile-alt"></i>
@@ -3486,6 +3707,9 @@
         </div>
         <button class="day-banner-arrow day-banner-next" id="dayBannerNext" aria-label="Следващ ден">
             <i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="day-banner-logout" onclick="window.planSignOut()" aria-label="Изход от профила" title="Изход от профила">
+            <i class="fas fa-sign-out-alt"></i>
         </button>
     </div>
 
