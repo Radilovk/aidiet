@@ -1887,7 +1887,8 @@
         .login-modal-google-btn:active { transform: scale(0.97); }
         .login-modal-google-btn:disabled { opacity: 0.65; pointer-events: none; }
         .login-modal-google-btn svg { flex-shrink: 0; }
-        .login-modal-email-input {
+        .login-modal-email-input,
+        .login-modal-form-input {
             width: 100%;
             padding: 12px 16px;
             border: 2px solid #e0e0e0;
@@ -1900,8 +1901,10 @@
             outline: none;
             transition: border-color .15s;
         }
-        .login-modal-email-input:focus { border-color: #0D9488; }
-        [data-theme="dark"] .login-modal-email-input {
+        .login-modal-email-input:focus,
+        .login-modal-form-input:focus { border-color: #0D9488; }
+        [data-theme="dark"] .login-modal-email-input,
+        [data-theme="dark"] .login-modal-form-input {
             background: #1a2e2e;
             border-color: #2d4a4a;
             color: #e8eaed;
@@ -3768,7 +3771,7 @@
             <!-- Email / password sign-in -->
             <input id="loginEmailInput" type="email" class="login-modal-email-input"
                    placeholder="вашия@имейл.com" autocomplete="email" inputmode="email">
-            <input id="loginPasswordInput" type="password" class="login-modal-email-input"
+            <input id="loginPasswordInput" type="password" class="login-modal-email-input login-modal-form-input"
                    placeholder="Парола" autocomplete="current-password">
             <button class="login-modal-primary-btn" id="loginPasswordBtn"
                     onclick="window.indexLoginWithPassword()">Вход</button>
