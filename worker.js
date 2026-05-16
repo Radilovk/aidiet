@@ -12016,10 +12016,23 @@ async function handleSaveUserProfile(request, env) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
 
-    const { userId, plan, userData, planSource } = await request.json();
+    const { userId, plan, userData, planSource, idToken } = await request.json();
 
     if (!userId || !plan) {
       return jsonResponse({ error: 'Missing userId or plan' }, 400);
+    }
+
+    // Verify the Firebase ID token when the caller is authenticated as a Firebase user.
+    // This prevents one user from overwriting another user's profile.
+    if (userId.startsWith('fb_') && idToken) {
+      try {
+        const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+        if ('fb_' + firebaseUser.uid !== userId) {
+          return jsonResponse({ error: 'Token does not match userId' }, 403);
+        }
+      } catch (_) {
+        return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
+      }
     }
 
     const profileData = {
@@ -12067,6 +12080,23 @@ async function handleGetUserProfile(request, env) {
 
     if (!userId) {
       return jsonResponse({ error: 'Missing userId' }, 400);
+    }
+
+    // Verify the Firebase ID token when the caller is authenticated as a Firebase user.
+    // This prevents one user from reading another user's profile.
+    if (userId.startsWith('fb_')) {
+      const authHeader = request.headers.get('Authorization') || '';
+      const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      if (idToken) {
+        try {
+          const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+          if ('fb_' + firebaseUser.uid !== userId) {
+            return jsonResponse({ error: 'Token does not match userId' }, 403);
+          }
+        } catch (_) {
+          return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
+        }
+      }
     }
 
     const raw = await env.page_content.get(`user_profile:${userId}`);

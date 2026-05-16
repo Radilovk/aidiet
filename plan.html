@@ -3544,10 +3544,16 @@
 
         /* Fetch the user's plan from the server (called once on first login on this device).
          * Returns true if a plan was successfully restored. */
-        async function _loadUserPlanFromServer(fbUserId) {
+        async function _loadUserPlanFromServer(fbUserId, user) {
             try {
+                const headers = {};
+                if (user && fbUserId.startsWith('fb_')) {
+                    const idToken = await user.getIdToken().catch(() => null);
+                    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+                }
                 const resp = await fetch(
-                    WORKER_URL + '/api/user/profile?userId=' + encodeURIComponent(fbUserId)
+                    WORKER_URL + '/api/user/profile?userId=' + encodeURIComponent(fbUserId),
+                    { headers }
                 );
                 if (!resp.ok) return false;
                 const data = await resp.json();
@@ -3853,7 +3859,7 @@
                         return;
                     }
                     sessionStorage.setItem(_planRestoreKey, '1');
-                    const loaded = await _loadUserPlanFromServer('fb_' + user.uid);
+                    const loaded = await _loadUserPlanFromServer('fb_' + user.uid, user);
                     sessionStorage.removeItem(_planRestoreKey);
                     if (loaded) {
                         // Plan restored into localStorage — initialise the page directly
@@ -4613,7 +4619,7 @@
                 // data via restoreProfileFromCookies() in index.html.
                 // np_uid is always refreshed; backend save is retried until np_profile_synced
                 // is confirmed (guards against silent fetch failures on first run).
-                (function ensureProfileCookies() {
+                (async function ensureProfileCookies() {
                     const uid = localStorage.getItem('userId');
                     const planStr = localStorage.getItem('dietPlan');
                     if (!uid || !planStr) return;
@@ -4623,6 +4629,9 @@
                     // Skip backend save only when a previous attempt confirmed success
                     if (localStorage.getItem('np_profile_synced') === '1') return;
                     const udStr = localStorage.getItem('userData');
+                    const idToken = (uid.startsWith('fb_') && auth.currentUser)
+                        ? await auth.currentUser.getIdToken().catch(() => null)
+                        : null;
                     fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -4630,7 +4639,8 @@
                             userId: uid,
                             plan: JSON.parse(planStr),
                             userData: udStr ? JSON.parse(udStr) : {},
-                            planSource: localStorage.getItem('planSource') || ''
+                            planSource: localStorage.getItem('planSource') || '',
+                            ...(idToken ? { idToken } : {})
                         })
                     }).then(r => { if (r && r.ok) localStorage.setItem('np_profile_synced', '1'); })
                       .catch(() => {});
@@ -6258,6 +6268,9 @@
                         // Keep the backend profile in sync so the updated plan is
                         // available after reinstalling or on other devices/contexts.
                         if (userId) {
+                            const _idToken = (userId.startsWith('fb_') && auth.currentUser)
+                                ? await auth.currentUser.getIdToken().catch(() => null)
+                                : null;
                             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -6265,7 +6278,8 @@
                                     userId,
                                     plan: dietPlan,
                                     userData,
-                                    planSource: localStorage.getItem('planSource') || ''
+                                    planSource: localStorage.getItem('planSource') || '',
+                                    ...(_idToken ? { idToken: _idToken } : {})
                                 })
                             }).catch(e => console.warn('[PWA] Backend plan update save failed:', e));
                         }
@@ -9803,5 +9817,7 @@
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->
     <script src="./local-scheduler.js"></script>
+    <!-- NativeBackup: mirrors localStorage to Capacitor Preferences (Android SharedPreferences) -->
+    <script src="./native-backup.js"></script>
 </body>
 </html>
