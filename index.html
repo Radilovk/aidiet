@@ -1913,19 +1913,41 @@
         .login-modal-primary-btn:hover  { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(13,148,136,.45); }
         .login-modal-primary-btn:active { transform: scale(0.97); }
         .login-modal-primary-btn:disabled { opacity: 0.65; pointer-events: none; }
-        .login-modal-back-btn {
+        .login-modal-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 18px 0;
+            color: var(--text-gray, #9ca3af);
+            font-size: 0.82rem;
+        }
+        .login-modal-divider::before,
+        .login-modal-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color, #e0e0e0);
+        }
+        .login-modal-forgot {
             display: inline-block;
-            margin-top: 12px;
+            margin-top: 8px;
             background: none;
             border: none;
-            color: var(--text-gray, #4b5563);
-            font-size: 0.88rem;
+            color: var(--text-gray, #6b7280);
+            font-size: 0.82rem;
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 4px 0;
+            text-decoration: none;
         }
-        .login-modal-back-btn:hover { text-decoration: underline; }
+        .login-modal-forgot:hover { text-decoration: underline; }
         #loginModalError {
             color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 12px;
+            display: none;
+        }
+        #loginModalSuccess {
+            color: #059669;
             font-size: 0.8rem;
             margin-top: 12px;
             display: none;
@@ -3709,50 +3731,41 @@
     </nav>
     <script src="./drive-backup.js"></script>
 
-    <!-- Login Modal — 2-step: email → Gmail (Google popup) or other (email/password) -->
+    <!-- Login Modal — single step: Google OAuth or email/password with forgot password -->
     <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
         <div class="login-modal-box">
             <div class="login-modal-emoji">🌿</div>
             <h2 class="login-modal-title">Добре дошли в NutriPlan</h2>
+            <p class="login-modal-sub">Влезте, за да достъпите плана си</p>
 
-            <!-- Step 1: enter email -->
-            <div id="loginStep1">
-                <p class="login-modal-sub">Въведете имейл адреса си, за да продължите</p>
-                <input id="loginEmailInput" type="email" class="login-modal-email-input"
-                       placeholder="вашия@имейл.com" autocomplete="email" inputmode="email">
-                <button class="login-modal-primary-btn" id="loginContinueBtn"
-                        onclick="window.indexLoginContinue()">Продължи</button>
-            </div>
+            <!-- Google sign-in -->
+            <button class="login-modal-google-btn" id="loginModalGoogleBtn"
+                    onclick="window.indexLoginWithGoogle()">
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.6 33.5 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c11 0 20.4-8 20.4-21 0-1.3-.1-2.7-.4-4z"/>
+                    <path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 16.2 3 9.5 7.9 6.3 14.7z"/>
+                    <path fill="#FBBC05" d="M24 45c5.7 0 10.7-1.9 14.6-5l-6.8-5.6C29.8 36.4 27 37 24 37c-5.7 0-10.6-3.5-11.7-8.4l-7 5.4C8.8 40.5 15.9 45 24 45z"/>
+                    <path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.8-2.3 5-4.8 6.5l6.8 5.6C42.1 37.3 45 31.1 45 24c0-1.3-.1-2.7-.4-4z"/>
+                </svg>
+                Вход с Google
+            </button>
 
-            <!-- Step 2a: Gmail detected → Google sign-in -->
-            <div id="loginStep2Google" style="display:none">
-                <p class="login-modal-sub" id="loginStep2GoogleSub" style="word-break:break-all"></p>
-                <button class="login-modal-google-btn" id="loginModalGoogleBtn"
-                        onclick="window.indexLoginWithGoogle()">
-                    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-                        <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.6 33.5 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c11 0 20.4-8 20.4-21 0-1.3-.1-2.7-.4-4z"/>
-                        <path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 16.2 3 9.5 7.9 6.3 14.7z"/>
-                        <path fill="#FBBC05" d="M24 45c5.7 0 10.7-1.9 14.6-5l-6.8-5.6C29.8 36.4 27 37 24 37c-5.7 0-10.6-3.5-11.7-8.4l-7 5.4C8.8 40.5 15.9 45 24 45z"/>
-                        <path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.8-2.3 5-4.8 6.5l6.8 5.6C42.1 37.3 45 31.1 45 24c0-1.3-.1-2.7-.4-4z"/>
-                    </svg>
-                    Вход с Google
-                </button>
-                <br>
-                <button class="login-modal-back-btn" onclick="window.indexLoginBack()">← Назад</button>
-            </div>
+            <div class="login-modal-divider">или</div>
 
-            <!-- Step 2b: Non-Gmail → email/password -->
-            <div id="loginStep2Email" style="display:none">
-                <p class="login-modal-sub" id="loginStep2EmailSub" style="word-break:break-all"></p>
-                <input id="loginPasswordInput" type="password" class="login-modal-email-input"
-                       placeholder="Парола" autocomplete="current-password">
-                <button class="login-modal-primary-btn" id="loginPasswordBtn"
-                        onclick="window.indexLoginWithPassword()">Вход</button>
-                <br>
-                <button class="login-modal-back-btn" onclick="window.indexLoginBack()">← Назад</button>
-            </div>
+            <!-- Email / password sign-in -->
+            <input id="loginEmailInput" type="email" class="login-modal-email-input"
+                   placeholder="вашия@имейл.com" autocomplete="email" inputmode="email">
+            <input id="loginPasswordInput" type="password" class="login-modal-email-input"
+                   placeholder="Парола" autocomplete="current-password">
+            <button class="login-modal-primary-btn" id="loginPasswordBtn"
+                    onclick="window.indexLoginWithPassword()">Вход</button>
+
+            <br>
+            <button class="login-modal-forgot" id="loginForgotBtn"
+                    onclick="window.indexLoginForgotPassword()">Забравена парола?</button>
 
             <div id="loginModalError"></div>
+            <div id="loginModalSuccess"></div>
         </div>
     </div>
 
@@ -3760,7 +3773,7 @@
         import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
-            signInWithEmailAndPassword
+            signInWithEmailAndPassword, sendPasswordResetEmail
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const firebaseConfig = {
@@ -3824,56 +3837,38 @@
         function loginShowError(msg) {
             const el = document.getElementById('loginModalError');
             if (el) { el.textContent = msg; el.style.display = 'block'; }
+            const ok = document.getElementById('loginModalSuccess');
+            if (ok) ok.style.display = 'none';
         }
-        function loginClearError() {
-            const el = document.getElementById('loginModalError');
-            if (el) el.style.display = 'none';
+        function loginShowSuccess(msg) {
+            const el = document.getElementById('loginModalSuccess');
+            if (el) { el.textContent = msg; el.style.display = 'block'; }
+            const err = document.getElementById('loginModalError');
+            if (err) err.style.display = 'none';
+        }
+        function loginClearMessages() {
+            const err = document.getElementById('loginModalError');
+            if (err) err.style.display = 'none';
+            const ok = document.getElementById('loginModalSuccess');
+            if (ok) ok.style.display = 'none';
         }
 
-        // Enter key on the email input advances to step 2
+        // Enter key on email input focuses password; Enter on password submits
         document.addEventListener('DOMContentLoaded', () => {
             const emailIn = document.getElementById('loginEmailInput');
-            if (emailIn) emailIn.addEventListener('keydown', e => { if (e.key === 'Enter') window.indexLoginContinue(); });
+            const pwIn    = document.getElementById('loginPasswordInput');
+            if (emailIn) emailIn.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); if (pwIn) pwIn.focus(); }
+            });
+            if (pwIn) pwIn.addEventListener('keydown', e => {
+                if (e.key === 'Enter') window.indexLoginWithPassword();
+            });
         });
-
-        /* ── Step 1: Continue — detect Gmail vs other ─────────────────────────  */
-        window.indexLoginContinue = function () {
-            const email = (document.getElementById('loginEmailInput')?.value || '').trim();
-            const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-            if (!emailRe.test(email)) {
-                loginShowError('Моля, въведете валиден имейл адрес.');
-                return;
-            }
-            loginClearError();
-            document.getElementById('loginStep1').style.display = 'none';
-            const isGmail = email.toLowerCase().endsWith('@gmail.com') ||
-                            email.toLowerCase().endsWith('@googlemail.com');
-            if (isGmail) {
-                const sub = document.getElementById('loginStep2GoogleSub');
-                if (sub) sub.textContent = email;
-                document.getElementById('loginStep2Google').style.display = 'block';
-            } else {
-                const sub = document.getElementById('loginStep2EmailSub');
-                if (sub) sub.textContent = email;
-                document.getElementById('loginStep2Email').style.display = 'block';
-                // Allow Enter key in password field
-                const pw = document.getElementById('loginPasswordInput');
-                if (pw) pw.onkeydown = e => { if (e.key === 'Enter') window.indexLoginWithPassword(); };
-            }
-        };
-
-        /* ── Back to step 1 ────────────────────────────────────────────────── */
-        window.indexLoginBack = function () {
-            document.getElementById('loginStep2Google').style.display = 'none';
-            document.getElementById('loginStep2Email').style.display  = 'none';
-            document.getElementById('loginStep1').style.display       = 'block';
-            loginClearError();
-        };
 
         /* ── Google sign-in ─────────────────────────────────────────────────── */
         window.indexLoginWithGoogle = async function () {
             const btn = document.getElementById('loginModalGoogleBtn');
-            loginClearError();
+            loginClearMessages();
             if (btn) btn.disabled = true;
             try {
                 const p = new GoogleAuthProvider();
@@ -3894,30 +3889,57 @@
             }
         };
 
-        /* ── Email / password sign-in (create if first time) ───────────────── */
+        /* ── Email / password sign-in ───────────────────────────────────────── */
         window.indexLoginWithPassword = async function () {
             const email    = (document.getElementById('loginEmailInput')?.value || '').trim();
             const password = document.getElementById('loginPasswordInput')?.value || '';
             const btn      = document.getElementById('loginPasswordBtn');
+
+            const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+            if (!emailRe.test(email)) {
+                loginShowError('Моля, въведете валиден имейл адрес.');
+                return;
+            }
             if (!password || password.length < 6) {
                 loginShowError('Паролата трябва да е поне 6 символа.');
                 return;
             }
-            loginClearError();
+            loginClearMessages();
             if (btn) btn.disabled = true;
             try {
                 await signInWithEmailAndPassword(auth, email, password);
                 /* onAuthStateChanged fires next and handles the redirect */
             } catch (err) {
                 loginShowError(
-                    err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
-                        ? 'Грешна парола. Опитайте отново.' :
+                    err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
+                        ? 'Грешен имейл или парола. Опитайте отново или използвайте „Забравена парола?".' :
                     err.code === 'auth/user-not-found'
                         ? 'Нямате профил с тази поща. Моля, попълнете въпросника или използвайте правилния имейл.' :
-                    err.code === 'auth/weak-password'
-                        ? 'Паролата трябва да е поне 6 символа.' :
+                    err.code === 'auth/too-many-requests'
+                        ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
                     'Грешка при вход. Опитайте отново.'
                 );
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        };
+
+        /* ── Forgot password ────────────────────────────────────────────────── */
+        window.indexLoginForgotPassword = async function () {
+            const email = (document.getElementById('loginEmailInput')?.value || '').trim();
+            const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+            if (!emailRe.test(email)) {
+                loginShowError('Въведете имейл адреса си в полето по-горе, след което натиснете „Забравена парола?".');
+                return;
+            }
+            loginClearMessages();
+            const btn = document.getElementById('loginForgotBtn');
+            if (btn) btn.disabled = true;
+            try {
+                await sendPasswordResetEmail(auth, email);
+                loginShowSuccess('Изпратен е имейл за нулиране на паролата. Проверете входящата си поща.');
+            } catch (err) {
+                loginShowError('Грешка при изпращане. Проверете имейл адреса и опитайте отново.');
             } finally {
                 if (btn) btn.disabled = false;
             }
