@@ -4674,11 +4674,31 @@
 
             window.socialLogout = async function() {
                 await signOut(auth).catch(() => {});
-                if (localStorage.getItem('userId')?.startsWith('fb_')) localStorage.removeItem('userId');
-                localStorage.removeItem('authKvSynced');
+                _clearUserPlanData();
                 /* Navigate home after logout — do not show the login modal */
                 window.location.replace('index.html?stay=1');
             };
+
+            /* Clear all plan/session data from localStorage on logout.
+             * NativeBackup hooks localStorage.removeItem, so Capacitor Preferences
+             * are also cleared automatically when running as a native APK. */
+            function _clearUserPlanData() {
+                const PLAN_KEYS = [
+                    'dietPlan', 'userData', 'planSource', 'planHistory',
+                    'userId', 'authKvSynced', 'np_profile_synced',
+                    'planJustification', 'longTermStrategy', 'modifierReasoning',
+                    'hydrationStrategy', 'mealCountJustification',
+                    'hasSeenPlanJustification', 'gameNotifierConfig',
+                    'planJobId', 'planJobSource', 'pendingPlanPayload',
+                    'pendingClientId', 'questionnaireAnswers', 'warningData',
+                    'canProceedWithWarning', 'validationSource'
+                ];
+                PLAN_KEYS.forEach(k => localStorage.removeItem(k));
+                // Clear dynamically-named addedMeals_* keys
+                Object.keys(localStorage)
+                    .filter(k => k.startsWith('addedMeals_'))
+                    .forEach(k => localStorage.removeItem(k));
+            }
         }
     </script>
 </body>

@@ -3910,9 +3910,16 @@
         async function applyPlanResult(result, planPayload, savedClientId) {
             if (!result.success) throw new Error(result.error || 'Unknown error');
 
+            // If the user is already logged in with Firebase, their Firebase UID takes
+            // precedence as the persistent userId so the plan can be restored on any device.
+            const fbUserId = (function() {
+                const uid = localStorage.getItem('userId');
+                return (uid && uid.startsWith('fb_')) ? uid : null;
+            })();
+
             if (result.hasContradiction && result.warningData) {
                 localStorage.setItem('warningData', JSON.stringify(result.warningData));
-                localStorage.setItem('userId', result.userId);
+                localStorage.setItem('userId', fbUserId || result.userId);
                 localStorage.setItem('userData', JSON.stringify(planPayload));
                 localStorage.setItem('canProceedWithWarning', 'false');
                 localStorage.setItem('validationSource', 'questionnaire2');
@@ -3926,7 +3933,8 @@
             }
 
             localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-            localStorage.setItem('userId', result.userId);
+            // Use Firebase UID if logged in, otherwise use the backend-generated userId
+            localStorage.setItem('userId', fbUserId || result.userId);
             localStorage.setItem('userData', JSON.stringify(planPayload));
             localStorage.setItem('planSource', 'questionnaire2');
             localStorage.removeItem('planJobId');
@@ -3935,6 +3943,16 @@
 
             if (typeof saveProfileToCookies === 'function') {
                 saveProfileToCookies(result.userId, result.plan, planPayload);
+            }
+
+            // If logged in with Firebase, also save plan under the Firebase UID so it can
+            // be restored on any other device where the user logs in.
+            if (fbUserId && fbUserId !== result.userId) {
+                fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: fbUserId, plan: result.plan, userData: planPayload })
+                }).catch(() => {});
             }
 
             if (savedClientId) {

@@ -3772,11 +3772,70 @@
             }
         }
 
+        /* Fetch the user's plan from the server (called once on first login on a new device).
+         * Returns true if a plan was successfully restored. */
+        async function _loadUserPlanFromServer(fbUserId) {
+            try {
+                const resp = await fetch(
+                    WORKER_URL + '/api/user/profile?userId=' + encodeURIComponent(fbUserId)
+                );
+                if (!resp.ok) return false;
+                const data = await resp.json();
+                if (data.found && data.plan) {
+                    localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                    if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
+                    return true;
+                }
+            } catch (_) {}
+            return false;
+        }
+
+        /* Sync an existing anonymous plan to the user's Firebase account in KV (fire-and-forget).
+         * Called when the user logs in after already having a locally-stored plan. */
+        function _syncAnonymousPlanToAccount(fbUserId) {
+            try {
+                const planStr  = localStorage.getItem('dietPlan');
+                const userStr  = localStorage.getItem('userData');
+                if (!planStr) return;
+                fetch(WORKER_URL + '/api/user/save-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId:   fbUserId,
+                        plan:     JSON.parse(planStr),
+                        userData: userStr ? JSON.parse(userStr) : {}
+                    })
+                }).catch(() => {});
+            } catch (_) {}
+        }
+
         let _loginInProgress = false;
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (!user) return;
+            // Capture the userId that was set BEFORE this login event (may be anonymous).
+            const prevUserId = localStorage.getItem('userId');
             applyUser(user);
+            const fbUserId = 'fb_' + user.uid;
+
+            /* ── Plan sync / restore ───────────────────────────────────────────
+             * Rule: once the plan is in localStorage we never call the backend
+             *       again until the user logs out (cache-then-network pattern).
+             * ──────────────────────────────────────────────────────────────── */
+            const existingPlan = localStorage.getItem('dietPlan');
+
+            if (existingPlan) {
+                // Plan is cached locally.
+                // If it was generated before login (anonymous userId), sync it to
+                // the Firebase account so it becomes available on other devices.
+                if (prevUserId && !prevUserId.startsWith('fb_')) {
+                    _syncAnonymousPlanToAccount(fbUserId);
+                }
+            } else if (!localStorage.getItem('planJobId')) {
+                // No local plan and no pending generation job →
+                // try to restore plan from the server (new device / reinstall scenario).
+                await _loadUserPlanFromServer(fbUserId);
+            }
 
             /* If user just logged in via the login modal, redirect to the target page */
             const params = new URLSearchParams(window.location.search);

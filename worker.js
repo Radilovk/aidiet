@@ -12029,11 +12029,14 @@ async function handleSaveUserProfile(request, env) {
       savedAt: new Date().toISOString()
     };
 
-    // Store with 90-day TTL so the profile is available long after installation
+    // Firebase-authenticated users get a 1-year TTL; anonymous/cookie-based users get 90 days.
+    const ttl = userId.startsWith('fb_')
+      ? 365 * 24 * 60 * 60
+      :  90 * 24 * 60 * 60;
     await env.page_content.put(
       `user_profile:${userId}`,
       JSON.stringify(profileData),
-      { expirationTtl: 90 * 24 * 60 * 60 }
+      { expirationTtl: ttl }
     );
 
     console.log(`User profile saved for restore: ${userId}`);
