@@ -3,11 +3,12 @@
  * Protects every page that includes this module.
  * Unauthenticated visitors are redirected to index.html?login=1&next=<page>.
  *
- * Uses a named Firebase app instance ('auth-guard') so it does not conflict
- * with the default app initialised in profile.html.
+ * Always uses the DEFAULT Firebase app instance so that the auth state written
+ * during sign-in (also on the default instance) is visible here.
  */
 
-import { initializeApp }          from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { initializeApp, getApps, getApp }
+                                   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged }
                                    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -20,7 +21,13 @@ const _cfg = {
     appId:             '1:556207268794:web:4fa968491413abd4873383'
 };
 
-export const guardAuth = getAuth(initializeApp(_cfg, 'auth-guard'));
+/* Reuse the default app if already initialised by the host page's module script;
+ * otherwise create it as the default app.  This is critical: using a named app
+ * ('auth-guard') would create a separate IndexedDB auth-state bucket that is
+ * never written to during sign-in, causing every auth-protected page to redirect
+ * back to the login screen in an infinite loop. */
+const _app = getApps().length ? getApp() : initializeApp(_cfg);
+export const guardAuth = getAuth(_app);
 
 /* ── Loading overlay (shown while auth state is being resolved) ──────────── */
 (function () {
