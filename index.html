@@ -1833,6 +1833,19 @@
             width: 100%;
             text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        .login-modal-close {
+            position: absolute;
+            top: 12px; right: 16px;
+            background: none; border: none;
+            font-size: 1.3rem; cursor: pointer;
+            color: var(--text-gray, #6b7280);
+            padding: 4px 8px; line-height: 1;
+        }
+        .login-modal-switch {
+            display: block;
+            margin-top: 10px;
         }
         [data-theme="dark"] .login-modal-box {
             background: #0D2424;
@@ -1874,7 +1887,8 @@
         .login-modal-google-btn:active { transform: scale(0.97); }
         .login-modal-google-btn:disabled { opacity: 0.65; pointer-events: none; }
         .login-modal-google-btn svg { flex-shrink: 0; }
-        .login-modal-email-input {
+        .login-modal-email-input,
+        .login-modal-form-input {
             width: 100%;
             padding: 12px 16px;
             border: 2px solid #e0e0e0;
@@ -1887,8 +1901,10 @@
             outline: none;
             transition: border-color .15s;
         }
-        .login-modal-email-input:focus { border-color: #0D9488; }
-        [data-theme="dark"] .login-modal-email-input {
+        .login-modal-email-input:focus,
+        .login-modal-form-input:focus { border-color: #0D9488; }
+        [data-theme="dark"] .login-modal-email-input,
+        [data-theme="dark"] .login-modal-form-input {
             background: #1a2e2e;
             border-color: #2d4a4a;
             color: #e8eaed;
@@ -2010,7 +2026,7 @@
             <p>Комплексна здравна платформа, която обединява персонализирано хранене, психологична подкрепа, добавки, активности, клинични протоколи и научно-базирана програма за дълголетие — всичко с помощта на 7-степенен AI анализ и 30+ индивидуални критерия.</p>
             <div class="cta-group">
                 <a href="questionnaire2.html" class="nav-btn" id="heroCTABtn">Започни промяната</a>
-                <button type="button" class="btn-outline" id="heroLoginBtn" onclick="document.getElementById('loginModal').classList.add('active')">Вход</button>
+                <button type="button" class="btn-outline" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>
             </div>
         </div>
 
@@ -2633,8 +2649,7 @@
                     try { alreadyLoggedIn = !!(await window._indexAuthUser); } catch (_) {}
                 }
                 if (!alreadyLoggedIn) {
-                    const loginModal = document.getElementById('loginModal');
-                    if (loginModal) loginModal.classList.add('active');
+                    window.indexOpenLoginModal ? window.indexOpenLoginModal() : document.getElementById('loginModal')?.classList.add('active');
                 }
                 // If already logged in, onAuthStateChanged in the module below handles the redirect.
                 return;
@@ -3734,9 +3749,10 @@
     <!-- Login Modal — single step: Google OAuth or email/password with forgot password -->
     <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
         <div class="login-modal-box">
+            <button class="login-modal-close" onclick="window.indexCloseLoginModal()" aria-label="Затвори">✕</button>
             <div class="login-modal-emoji">🌿</div>
-            <h2 class="login-modal-title">Добре дошли в NutriPlan</h2>
-            <p class="login-modal-sub">Влезте, за да достъпите плана си</p>
+            <h2 class="login-modal-title" id="loginModalTitle">Добре дошли в NutriPlan</h2>
+            <p class="login-modal-sub" id="loginModalSub">Влезте, за да достъпите плана си</p>
 
             <!-- Google sign-in -->
             <button class="login-modal-google-btn" id="loginModalGoogleBtn"
@@ -3755,7 +3771,7 @@
             <!-- Email / password sign-in -->
             <input id="loginEmailInput" type="email" class="login-modal-email-input"
                    placeholder="вашия@имейл.com" autocomplete="email" inputmode="email">
-            <input id="loginPasswordInput" type="password" class="login-modal-email-input"
+            <input id="loginPasswordInput" type="password" class="login-modal-email-input login-modal-form-input"
                    placeholder="Парола" autocomplete="current-password">
             <button class="login-modal-primary-btn" id="loginPasswordBtn"
                     onclick="window.indexLoginWithPassword()">Вход</button>
@@ -3763,6 +3779,8 @@
             <br>
             <button class="login-modal-forgot" id="loginForgotBtn"
                     onclick="window.indexLoginForgotPassword()">Забравена парола?</button>
+            <button class="login-modal-forgot login-modal-switch" id="loginSwitchBtn"
+                    onclick="window.indexToggleLoginMode()">Нямате акаунт? Регистрирайте се</button>
 
             <div id="loginModalError"></div>
             <div id="loginModalSuccess"></div>
@@ -3773,7 +3791,7 @@
         import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
-            signInWithEmailAndPassword, sendPasswordResetEmail
+            signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const firebaseConfig = {
@@ -3863,7 +3881,56 @@
             if (pwIn) pwIn.addEventListener('keydown', e => {
                 if (e.key === 'Enter') window.indexLoginWithPassword();
             });
+            // Backdrop-click closes the modal
+            const modal = document.getElementById('loginModal');
+            if (modal) modal.addEventListener('click', e => {
+                if (e.target === modal) window.indexCloseLoginModal();
+            });
         });
+
+        /* ── Modal open / close / mode toggle ──────────────────────────────── */
+        let _loginIsRegisterMode = false;
+
+        window.indexOpenLoginModal = function() {
+            _loginIsRegisterMode = false;
+            _applyLoginMode();
+            loginClearMessages();
+            const modal = document.getElementById('loginModal');
+            if (modal) modal.classList.add('active');
+            setTimeout(() => document.getElementById('loginEmailInput')?.focus(), 50);
+        };
+
+        window.indexCloseLoginModal = function() {
+            document.getElementById('loginModal')?.classList.remove('active');
+        };
+
+        window.indexToggleLoginMode = function() {
+            _loginIsRegisterMode = !_loginIsRegisterMode;
+            _applyLoginMode();
+            loginClearMessages();
+            setTimeout(() => document.getElementById('loginEmailInput')?.focus(), 50);
+        };
+
+        function _applyLoginMode() {
+            const title     = document.getElementById('loginModalTitle');
+            const sub       = document.getElementById('loginModalSub');
+            const btn       = document.getElementById('loginPasswordBtn');
+            const switchBtn = document.getElementById('loginSwitchBtn');
+            const forgot    = document.getElementById('loginForgotBtn');
+            if (_loginIsRegisterMode) {
+                if (title)     title.textContent = 'Регистрация';
+                if (sub)       sub.textContent   = 'Създайте нов акаунт с имейл и парола';
+                if (btn)       btn.textContent   = 'Регистрирай се';
+                if (switchBtn) switchBtn.textContent = 'Вече имате акаунт? Влезте';
+                if (forgot)    forgot.style.display = 'none';
+            } else {
+                if (title)     title.textContent = 'Добре дошли в NutriPlan';
+                if (sub)       sub.textContent   = 'Влезте, за да достъпите плана си';
+                if (btn)       btn.textContent   = 'Вход';
+                if (switchBtn) switchBtn.textContent = 'Нямате акаунт? Регистрирайте се';
+                if (forgot)    forgot.style.display = '';
+            }
+        }
 
         /* ── Google sign-in ─────────────────────────────────────────────────── */
         window.indexLoginWithGoogle = async function () {
@@ -3907,14 +3974,20 @@
             loginClearMessages();
             if (btn) btn.disabled = true;
             try {
-                await signInWithEmailAndPassword(auth, email, password);
+                if (_loginIsRegisterMode) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
                 /* onAuthStateChanged fires next and handles the redirect */
             } catch (err) {
                 loginShowError(
                     err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
                         ? 'Грешен имейл или парола. Опитайте отново или използвайте „Забравена парола?".' :
                     err.code === 'auth/user-not-found'
-                        ? 'Нямате профил с тази поща. Моля, попълнете въпросника или използвайте правилния имейл.' :
+                        ? 'Нямате профил с тази поща. Натиснете „Регистрирай се" за нов акаунт.' :
+                    err.code === 'auth/email-already-in-use'
+                        ? 'Вече има акаунт с този имейл. Влезте или използвайте „Забравена парола?".' :
                     err.code === 'auth/too-many-requests'
                         ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
                     'Грешка при вход. Опитайте отново.'
