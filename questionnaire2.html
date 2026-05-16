@@ -1111,7 +1111,6 @@
     </script>
 </head>
 <body>
-
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
         <div class="install-banner-icon" id="installBannerIcon">
@@ -3980,14 +3979,19 @@
                 }, 30);
             });
 
+            // Expose email so the Firebase auth module can detect Gmail vs other
+            window._q2Email = planPayload.email || '';
+
             container.innerHTML = `
                 <div style="text-align:center; animation: fadeIn 0.5s;">
                     <video src="Success.webm" autoplay muted playsinline style="width:100px;height:100px;display:block;margin:0 auto 20px;"></video>
                     <h2 class="q-text">Успешно!</h2>
-                    <p style="color:#7f8c8d; margin-bottom:20px;">Вашият анализ е готов. Сега ще видите ключовите области за подобрение.</p>
-                    <button class="btn btn-next" onclick="window.location.href='analysis.html'" style="margin:0 auto;">Виж анализа</button>
+                    <p style="color:#7f8c8d; margin-bottom:16px;">Вашият анализ е готов.</p>
+                    <div id="q2AuthWidget" style="margin-top:4px;"></div>
                 </div>
             `;
+            // Render the auth step (defined in the Firebase module at bottom of page)
+            if (typeof window._q2RenderAuth === 'function') window._q2RenderAuth();
         }
 
         /**
@@ -4696,4 +4700,133 @@
     </script>
     <script src="./native-backup.js"></script>
     <script>NativeBackup.init().catch(function () {});</script>
+
+    <!-- Firebase Auth module: handles Google & email/password login after plan generation.
+         All auth is client-side (Firebase SDK) — no Cloudflare Worker calls.
+         Only one fire-and-forget /api/auth/social call per new device for KV registration. -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import {
+            getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
+            signInWithEmailAndPassword, createUserWithEmailAndPassword
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+        const _cfg = {
+            apiKey:            'AIzaSyAZvIAAzP-6CBzQlQvoJTy-Iq24fBAPrJY',
+            authDomain:        'nutriplan-c460a.firebaseapp.com',
+            projectId:         'nutriplan-c460a',
+            storageBucket:     'nutriplan-c460a.firebasestorage.app',
+            messagingSenderId: '556207268794',
+            appId:             '1:556207268794:web:4fa968491413abd4873383'
+        };
+        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+        const auth = getAuth(initializeApp(_cfg, 'q2auth'));
+
+        /* ── Derive userId locally + one-time KV registration (fire-and-forget) ── */
+        function syncUser(user) {
+            if (!user) return;
+            // Derive stable userId without any backend round-trip
+            const userId = 'fb_' + user.uid;
+            localStorage.setItem('userId', userId);
+            // Register in KV only once per device (admin visibility only, non-blocking)
+            if (!localStorage.getItem('authKvSynced')) {
+                user.getIdToken().then(idToken => {
+                    fetch(WORKER_URL + '/api/auth/social', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken })
+                    }).then(() => localStorage.setItem('authKvSynced', '1')).catch(() => {});
+                }).catch(() => {});
+            }
+        }
+
+        /* ── Auth state change: if widget is visible, reveal "Виж анализа" ── */
+        onAuthStateChanged(auth, user => {
+            if (!user) return;
+            syncUser(user);
+            const w = document.getElementById('q2AuthWidget');
+            if (w) showGoBtn(w);
+        });
+
+        function showGoBtn(w) {
+            w.innerHTML = '<button class="btn btn-next" onclick="window.location.href=\'analysis.html\'" style="margin:0 auto;">Виж анализа</button>';
+        }
+
+        function showAuthError(msg) {
+            const e = document.getElementById('q2AuthError');
+            if (e) { e.textContent = msg; e.style.display = 'block'; }
+        }
+
+        /* ── Called from applyPlanResult() once success screen is rendered ── */
+        window._q2RenderAuth = function () {
+            const w = document.getElementById('q2AuthWidget');
+            if (!w) return;
+            // Already logged in — nothing to do
+            if (auth.currentUser) { syncUser(auth.currentUser); showGoBtn(w); return; }
+
+            const email = (window._q2Email || '').trim().toLowerCase();
+            const isGmail = email.endsWith('@gmail.com') || email.endsWith('@googlemail.com');
+
+            const GOOGLE_SVG = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" style="flex-shrink:0">
+                <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.6 33.5 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c11 0 20.4-8 20.4-21 0-1.3-.1-2.7-.4-4z"/>
+                <path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 16.2 3 9.5 7.9 6.3 14.7z"/>
+                <path fill="#FBBC05" d="M24 45c5.7 0 10.7-1.9 14.6-5l-6.8-5.6C29.8 36.4 27 37 24 37c-5.7 0-10.6-3.5-11.7-8.4l-7 5.4C8.8 40.5 15.9 45 24 45z"/>
+                <path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.8-2.3 5-4.8 6.5l6.8 5.6C42.1 37.3 45 31.1 45 24c0-1.3-.1-2.7-.4-4z"/>
+            </svg>`;
+
+            if (isGmail) {
+                w.innerHTML = `
+                    <p style="color:#7f8c8d;font-size:0.88rem;margin-bottom:14px;">Влезте с Google, за да запазите достъп до плана</p>
+                    <button id="q2GoogleBtn" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 18px;border:none;border-radius:50px;font-size:0.95rem;font-weight:600;cursor:pointer;background:#fff;color:#3c4043;box-shadow:0 1px 4px rgba(0,0,0,0.18);transition:transform .15s,box-shadow .15s;">
+                        ${GOOGLE_SVG} Вход с Google
+                    </button>
+                    <div id="q2AuthError" style="color:#ef4444;font-size:0.8rem;margin-top:10px;display:none;"></div>`;
+
+                document.getElementById('q2GoogleBtn').addEventListener('click', async function () {
+                    this.disabled = true;
+                    try {
+                        const p = new GoogleAuthProvider();
+                        p.addScope('email'); p.addScope('profile');
+                        await signInWithPopup(auth, p);
+                        // onAuthStateChanged → showGoBtn
+                    } catch (err) {
+                        if (err.code !== 'auth/popup-closed-by-user')
+                            showAuthError('Неуспешен вход. Опитайте отново.');
+                    } finally { this.disabled = false; }
+                });
+
+            } else {
+                w.innerHTML = `
+                    <p style="color:#7f8c8d;font-size:0.88rem;margin-bottom:12px;">Задайте парола, за да запазите достъп до плана</p>
+                    <input id="q2PasswordInput" type="password" placeholder="Изберете парола (мин. 6 знака)" autocomplete="new-password"
+                        style="width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:12px;font-size:1rem;margin-bottom:12px;box-sizing:border-box;background:var(--bg-color,#fff);color:var(--text-dark,#0F2F2E);outline:none;">
+                    <button id="q2PasswordBtn" class="btn btn-next" style="margin:0 auto;">Запази и продължи</button>
+                    <div id="q2AuthError" style="color:#ef4444;font-size:0.8rem;margin-top:10px;display:none;"></div>`;
+
+                const pwInput = document.getElementById('q2PasswordInput');
+                pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('q2PasswordBtn').click(); });
+                document.getElementById('q2PasswordBtn').addEventListener('click', async function () {
+                    const password = pwInput.value;
+                    if (!password || password.length < 6) { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
+                    this.disabled = true;
+                    try {
+                        try {
+                            await createUserWithEmailAndPassword(auth, email, password);
+                        } catch (e) {
+                            if (e.code === 'auth/email-already-in-use') {
+                                await signInWithEmailAndPassword(auth, email, password);
+                            } else throw e;
+                        }
+                        // onAuthStateChanged → showGoBtn
+                    } catch (err) {
+                        showAuthError(
+                            err.code === 'auth/wrong-password'   ? 'Грешна парола. Опитайте отново.' :
+                            err.code === 'auth/weak-password'    ? 'Паролата трябва да е поне 6 символа.' :
+                            'Грешка при вход. Опитайте отново.'
+                        );
+                    } finally { this.disabled = false; }
+                });
+            }
+        };
+    </script>
 </body>
