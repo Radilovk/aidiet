@@ -1862,31 +1862,6 @@
             color: var(--text-gray, #4b5563);
             font-size: 0.93rem;
         }
-        .login-modal-google-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            padding: 13px 18px;
-            border: none;
-            border-radius: 50px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            background: #fff;
-            color: #3c4043;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-            transition: transform 0.15s, box-shadow 0.15s;
-        }
-        [data-theme="dark"] .login-modal-google-btn {
-            background: #3c4043;
-            color: #e8eaed;
-        }
-        .login-modal-google-btn:hover  { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
-        .login-modal-google-btn:active { transform: scale(0.97); }
-        .login-modal-google-btn:disabled { opacity: 0.65; pointer-events: none; }
-        .login-modal-google-btn svg { flex-shrink: 0; }
         .login-modal-email-input,
         .login-modal-form-input {
             width: 100%;
@@ -1929,21 +1904,6 @@
         .login-modal-primary-btn:hover  { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(13,148,136,.45); }
         .login-modal-primary-btn:active { transform: scale(0.97); }
         .login-modal-primary-btn:disabled { opacity: 0.65; pointer-events: none; }
-        .login-modal-divider {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 18px 0;
-            color: var(--text-gray, #9ca3af);
-            font-size: 0.82rem;
-        }
-        .login-modal-divider::before,
-        .login-modal-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border-color, #e0e0e0);
-        }
         .login-modal-forgot {
             display: inline-block;
             margin-top: 8px;
@@ -3746,27 +3706,13 @@
     </nav>
     <script src="./drive-backup.js"></script>
 
-    <!-- Login Modal — single step: Google OAuth or email/password with forgot password -->
+    <!-- Login Modal — email/password with forgot password -->
     <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
         <div class="login-modal-box">
             <button class="login-modal-close" onclick="window.indexCloseLoginModal()" aria-label="Затвори">✕</button>
             <div class="login-modal-emoji">🌿</div>
             <h2 class="login-modal-title" id="loginModalTitle">Добре дошли в NutriPlan</h2>
             <p class="login-modal-sub" id="loginModalSub">Влезте, за да достъпите плана си</p>
-
-            <!-- Google sign-in -->
-            <button class="login-modal-google-btn" id="loginModalGoogleBtn"
-                    onclick="window.indexLoginWithGoogle()">
-                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-                    <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.6 33.5 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c11 0 20.4-8 20.4-21 0-1.3-.1-2.7-.4-4z"/>
-                    <path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.3 0 6.2 1.2 8.5 3.1l6.1-6.1C34.6 5.1 29.6 3 24 3 16.2 3 9.5 7.9 6.3 14.7z"/>
-                    <path fill="#FBBC05" d="M24 45c5.7 0 10.7-1.9 14.6-5l-6.8-5.6C29.8 36.4 27 37 24 37c-5.7 0-10.6-3.5-11.7-8.4l-7 5.4C8.8 40.5 15.9 45 24 45z"/>
-                    <path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.8-2.3 5-4.8 6.5l6.8 5.6C42.1 37.3 45 31.1 45 24c0-1.3-.1-2.7-.4-4z"/>
-                </svg>
-                Вход с Google
-            </button>
-
-            <div class="login-modal-divider">или</div>
 
             <!-- Email / password sign-in -->
             <input id="loginEmailInput" type="email" class="login-modal-email-input"
@@ -3790,7 +3736,7 @@
     <script type="module">
         import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
-            getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
+            getAuth, onAuthStateChanged,
             signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -3826,6 +3772,8 @@
             }
         }
 
+        let _loginInProgress = false;
+
         onAuthStateChanged(auth, (user) => {
             if (!user) return;
             applyUser(user);
@@ -3848,6 +3796,12 @@
                 window.location.replace(safeDest || (localStorage.getItem('dietPlan')
                     ? (localStorage.getItem('planSource') === 'questionnaire2' ? 'plan-pending.html' : 'plan.html')
                     : 'questionnaire2.html'));
+            } else if (_loginInProgress) {
+                _loginInProgress = false;
+                const dest = localStorage.getItem('dietPlan')
+                    ? (localStorage.getItem('planSource') === 'questionnaire2' ? 'plan-pending.html' : 'plan.html')
+                    : 'questionnaire2.html';
+                window.location.replace(dest);
             }
         });
 
@@ -3932,30 +3886,6 @@
             }
         }
 
-        /* ── Google sign-in ─────────────────────────────────────────────────── */
-        window.indexLoginWithGoogle = async function () {
-            const btn = document.getElementById('loginModalGoogleBtn');
-            loginClearMessages();
-            if (btn) btn.disabled = true;
-            try {
-                const p = new GoogleAuthProvider();
-                p.addScope('email');
-                p.addScope('profile');
-                await signInWithPopup(auth, p);
-                /* onAuthStateChanged fires next and handles the redirect */
-            } catch (err) {
-                if (err.code !== 'auth/popup-closed-by-user') {
-                    loginShowError(
-                        err.code === 'auth/account-exists-with-different-credential'
-                            ? 'Вече има акаунт с този имейл.'
-                            : 'Неуспешен вход. Опитайте отново.'
-                    );
-                }
-            } finally {
-                if (btn) btn.disabled = false;
-            }
-        };
-
         /* ── Email / password sign-in ───────────────────────────────────────── */
         window.indexLoginWithPassword = async function () {
             const email    = (document.getElementById('loginEmailInput')?.value || '').trim();
@@ -3973,6 +3903,7 @@
             }
             loginClearMessages();
             if (btn) btn.disabled = true;
+            _loginInProgress = true;
             try {
                 if (_loginIsRegisterMode) {
                     await createUserWithEmailAndPassword(auth, email, password);
@@ -3981,6 +3912,7 @@
                 }
                 /* onAuthStateChanged fires next and handles the redirect */
             } catch (err) {
+                _loginInProgress = false;
                 loginShowError(
                     err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
                         ? 'Грешен имейл или парола. Опитайте отново или използвайте „Забравена парола?".' :
