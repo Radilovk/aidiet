@@ -2644,10 +2644,30 @@
             const navMyPlanLink = document.getElementById('navMyPlanLink');
 
             if (!authUser) {
-                // Not authenticated — show the landing page as-is; the "Start" buttons
-                // will navigate to questionnaire2.html which will trigger the auth guard.
-                if (startNowBtn) startNowBtn.style.display = 'flex';
-                if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+                // Not authenticated — but if user has plan data, show "Моят план" nav button
+                const hasPlan    = !!localStorage.getItem('dietPlan');
+                const hasData    = !!localStorage.getItem('userData');
+                const planSource = localStorage.getItem('planSource');
+
+                if (hasPlan || hasData) {
+                    // Determine destination
+                    const planTarget = (hasPlan && planSource === 'questionnaire2')
+                        ? 'plan-pending.html'
+                        : (hasPlan ? 'plan.html' : 'plan-pending.html');
+                    if (startNowBtn) startNowBtn.style.display = 'none';
+                    if (heroCTABtn) {
+                        heroCTABtn.href = planTarget;
+                        heroCTABtn.innerHTML = '<i class="fas fa-user-check" aria-hidden="true"></i> Моят план';
+                    }
+                    if (navMyPlanLink) {
+                        navMyPlanLink.href = planTarget;
+                        navMyPlanLink.style.display = 'flex';
+                    }
+                } else {
+                    // New user — show start button
+                    if (startNowBtn) startNowBtn.style.display = 'flex';
+                    if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+                }
                 if (window.location.hash === '#contact') {
                     setTimeout(toggleContactForm, 400);
                 }
@@ -2657,21 +2677,27 @@
             let dietPlan = localStorage.getItem('dietPlan');
 
             if (dietPlan) {
-                // User has a plan - redirect directly to plan.html (replace so back-button skips this page)
-                // Skip redirect when the user intentionally navigated here (e.g. via the home button)
+                // Determine the correct plan destination
+                const planSource  = localStorage.getItem('planSource');
+                const planTarget  = planSource === 'questionnaire2' ? 'plan-pending.html' : 'plan.html';
+
+                // Redirect directly unless the user intentionally navigated here
                 if (!params.has('stay')) {
-                    window.location.replace('plan.html');
+                    window.location.replace(planTarget);
                     return;
                 }
-                // User has a plan but chose to stay on index - hide the header CTA button
+                // User chose to stay on index — update nav buttons to point to the plan
                 if (startNowBtn) {
                     startNowBtn.style.display = 'none';
                 }
                 if (heroCTABtn) {
-                    heroCTABtn.href = 'plan.html';
+                    heroCTABtn.href = planTarget;
                     heroCTABtn.innerHTML = '<i class="fas fa-user-check" aria-hidden="true"></i> Моят план';
                 }
-                if (navMyPlanLink) navMyPlanLink.style.display = 'flex';
+                if (navMyPlanLink) {
+                    navMyPlanLink.href = planTarget;
+                    navMyPlanLink.style.display = 'flex';
+                }
                 const indexBottomNav = document.getElementById('indexBottomNav');
                 if (indexBottomNav) indexBottomNav.style.display = 'flex';
                 return;
@@ -3730,7 +3756,7 @@
         import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
-            signInWithEmailAndPassword, createUserWithEmailAndPassword
+            signInWithEmailAndPassword
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const firebaseConfig = {
@@ -3784,7 +3810,9 @@
                 } catch (_) {
                     safeDest = null;
                 }
-                window.location.replace(safeDest || (localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html'));
+                window.location.replace(safeDest || (localStorage.getItem('dietPlan')
+                    ? (localStorage.getItem('planSource') === 'questionnaire2' ? 'plan-pending.html' : 'plan.html')
+                    : 'questionnaire2.html'));
             }
         });
 
@@ -3874,22 +3902,16 @@
             loginClearError();
             if (btn) btn.disabled = true;
             try {
-                try {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } catch (e) {
-                    // User doesn't exist yet → register
-                    if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-                        await createUserWithEmailAndPassword(auth, email, password);
-                    } else {
-                        throw e;
-                    }
-                }
+                await signInWithEmailAndPassword(auth, email, password);
                 /* onAuthStateChanged fires next and handles the redirect */
             } catch (err) {
                 loginShowError(
-                    err.code === 'auth/wrong-password'         ? 'Грешна парола. Опитайте отново.' :
-                    err.code === 'auth/email-already-in-use'   ? 'Вече има акаунт. Въведете паролата си.' :
-                    err.code === 'auth/weak-password'          ? 'Паролата трябва да е поне 6 символа.' :
+                    err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+                        ? 'Грешна парола. Опитайте отново.' :
+                    err.code === 'auth/user-not-found'
+                        ? 'Нямате профил с тази поща. Моля, попълнете въпросника или използвайте правилния имейл.' :
+                    err.code === 'auth/weak-password'
+                        ? 'Паролата трябва да е поне 6 символа.' :
                     'Грешка при вход. Опитайте отново.'
                 );
             } finally {
