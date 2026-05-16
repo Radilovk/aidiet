@@ -3503,7 +3503,8 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
-            signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
+            signInWithEmailAndPassword, createUserWithEmailAndPassword,
+            sendPasswordResetEmail, signOut
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const _cfg = {
@@ -3594,40 +3595,112 @@
                     } finally { this.disabled = false; }
                 });
             } else {
-                const emailLabel = email ? `<p style="font-size:0.85rem;margin-bottom:4px;">${email}</p>` : '';
+                const emailLabel = email
+                    ? `<p style="font-size:0.85rem;color:var(--text-gray,#6b7280);margin-bottom:16px;">${email}</p>`
+                    : '';
                 authForm.innerHTML = `
                     <div style="font-size:2rem;margin-bottom:12px;">🌿</div>
                     <h3>Достъп до плана</h3>
                     ${emailLabel}
-                    <p style="margin-bottom:20px;">При първо влизане задайте парола. При следващо — въведете вашата парола.</p>
                     <input id="paPwInput" type="password" placeholder="Парола (мин. 6 знака)"
                            autocomplete="current-password" class="pa-pw-input">
-                    <button id="paPwBtn" class="pa-primary-btn">Влез в плана</button>
-                    <div id="planAuthError"></div>`;
-                const pwIn = document.getElementById('paPwInput');
-                const pwBtn = document.getElementById('paPwBtn');
+                    <button id="paPwBtn" class="pa-primary-btn">Вход</button>
+                    <p style="margin:12px 0 4px;font-size:0.82rem;color:var(--text-gray,#6b7280);">
+                        Нямате акаунт?
+                        <button id="paShowRegBtn" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Задайте парола (първи път)</button>
+                    </p>
+                    <button id="paForgotBtn" style="background:none;border:none;color:var(--text-gray,#6b7280);font-size:0.82rem;cursor:pointer;padding:4px 0;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Забравена парола?</button>
+                    <div id="planAuthError"></div>
+                    <div id="planAuthSuccess" style="color:#059669;font-size:0.8rem;margin-top:12px;display:none;"></div>
+
+                    <!-- Registration panel (hidden by default) -->
+                    <div id="paRegPanel" style="display:none;margin-top:16px;border-top:1px solid #e0e0e0;padding-top:16px;">
+                        <p style="font-size:0.82rem;color:var(--text-gray,#6b7280);margin-bottom:12px;">Изберете парола за нов акаунт:</p>
+                        <input id="paRegPwInput" type="password" placeholder="Нова парола (мин. 6 знака)"
+                               autocomplete="new-password" class="pa-pw-input">
+                        <input id="paRegPwConfirm" type="password" placeholder="Потвърдете паролата"
+                               autocomplete="new-password" class="pa-pw-input">
+                        <button id="paRegBtn" class="pa-primary-btn">Създай акаунт</button>
+                    </div>`;
+
+                const pwIn    = document.getElementById('paPwInput');
+                const pwBtn   = document.getElementById('paPwBtn');
+                const forgotBtn = document.getElementById('paForgotBtn');
+                const showRegBtn = document.getElementById('paShowRegBtn');
+                const regPanel  = document.getElementById('paRegPanel');
+                const regPwIn   = document.getElementById('paRegPwInput');
+                const regConfIn = document.getElementById('paRegPwConfirm');
+                const regBtn    = document.getElementById('paRegBtn');
+
+                function showPlanAuthSuccess(msg) {
+                    const el = document.getElementById('planAuthSuccess');
+                    if (el) { el.textContent = msg; el.style.display = 'block'; }
+                    const err = document.getElementById('planAuthError');
+                    if (err) err.style.display = 'none';
+                }
+
                 pwIn.addEventListener('keydown', e => { if (e.key === 'Enter') pwBtn.click(); });
+
+                /* ── Sign in ── */
                 pwBtn.addEventListener('click', async function () {
                     const pw = pwIn.value;
                     if (!pw || pw.length < 6) { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
                     this.disabled = true;
                     try {
-                        try {
-                            await signInWithEmailAndPassword(auth, email, pw);
-                        } catch (e) {
-                            /* auth/invalid-credential covers both user-not-found and wrong-password
-                               in newer Firebase SDK. Attempt registration for first-time access. */
-                            if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-                                await createUserWithEmailAndPassword(auth, email, pw);
-                            } else throw e;
-                        }
+                        await signInWithEmailAndPassword(auth, email, pw);
                         /* onAuthStateChanged → hideOverlay */
                     } catch (err) {
                         showAuthError(
-                            err.code === 'auth/wrong-password'       ? 'Грешна парола. Опитайте отново.' :
-                            err.code === 'auth/email-already-in-use' ? 'Вече имате профил. Въведете правилната парола.' :
-                            err.code === 'auth/weak-password'        ? 'Паролата трябва да е поне 6 символа.' :
+                            err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+                                ? 'Грешна парола. Използвайте „Забравена парола?" за нулиране или „Задайте парола" ако нямате акаунт.' :
+                            err.code === 'auth/user-not-found'
+                                ? 'Нямате акаунт. Използвайте „Задайте парола (първи път)".' :
+                            err.code === 'auth/too-many-requests'
+                                ? 'Твърде много опити. Изчакайте и опитайте отново.' :
                             'Грешка при вход. Опитайте отново.'
+                        );
+                    } finally { this.disabled = false; }
+                });
+
+                /* ── Forgot password ── */
+                forgotBtn.addEventListener('click', async function () {
+                    if (!email) { showAuthError('Имейл адресът не е наличен.'); return; }
+                    this.disabled = true;
+                    try {
+                        await sendPasswordResetEmail(auth, email);
+                        showPlanAuthSuccess('Изпратен е имейл за нулиране на паролата. Проверете входящата си поща.');
+                    } catch (_) {
+                        showAuthError('Грешка при изпращане. Опитайте отново.');
+                    } finally { this.disabled = false; }
+                });
+
+                /* ── Show registration panel ── */
+                showRegBtn.addEventListener('click', () => {
+                    regPanel.style.display = 'block';
+                    showRegBtn.closest('p').style.display = 'none';
+                    regPwIn.focus();
+                });
+
+                if (regPwIn)   regPwIn.addEventListener('keydown', e => { if (e.key === 'Enter') regConfIn?.focus(); });
+                if (regConfIn) regConfIn.addEventListener('keydown', e => { if (e.key === 'Enter') regBtn?.click(); });
+
+                /* ── Create new account ── */
+                regBtn.addEventListener('click', async function () {
+                    const pw  = regPwIn.value;
+                    const pw2 = regConfIn.value;
+                    if (!pw || pw.length < 6)  { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
+                    if (pw !== pw2)             { showAuthError('Паролите не съвпадат.'); return; }
+                    this.disabled = true;
+                    try {
+                        await createUserWithEmailAndPassword(auth, email, pw);
+                        /* onAuthStateChanged → hideOverlay */
+                    } catch (err) {
+                        showAuthError(
+                            err.code === 'auth/email-already-in-use'
+                                ? 'Вече имате акаунт с този имейл. Използвайте формата за вход по-горе.' :
+                            err.code === 'auth/weak-password'
+                                ? 'Паролата трябва да е поне 6 символа.' :
+                            'Грешка при регистрация. Опитайте отново.'
                         );
                     } finally { this.disabled = false; }
                 });
