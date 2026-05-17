@@ -3917,7 +3917,10 @@
                 return (uid && uid.startsWith('fb_')) ? uid : null;
             })();
             // Get Firebase ID token when logged in so the worker can verify the write.
-            const fbIdToken = fbUserId ? await (auth.currentUser ? auth.currentUser.getIdToken().catch(() => null) : Promise.resolve(null)) : null;
+            // Guard against ReferenceError: auth is defined in a <script type="module"> and
+            // may not be in scope from this regular script block when the plan result arrives.
+            const _authObj = (typeof auth !== 'undefined') ? auth : null;
+            const fbIdToken = fbUserId ? await (_authObj && _authObj.currentUser ? _authObj.currentUser.getIdToken().catch(() => null) : Promise.resolve(null)) : null;
 
             if (result.hasContradiction && result.warningData) {
                 localStorage.setItem('warningData', JSON.stringify(result.warningData));
