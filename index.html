@@ -4008,7 +4008,7 @@
 
         /* ── Email / password sign-in ───────────────────────────────────────── */
         window.indexLoginWithPassword = async function () {
-            const email    = (document.getElementById('loginEmailInput')?.value || '').trim();
+            const email    = (document.getElementById('loginEmailInput')?.value || '').trim().toLowerCase();
             const password = document.getElementById('loginPasswordInput')?.value || '';
             const btn      = document.getElementById('loginPasswordBtn');
 
@@ -4051,7 +4051,7 @@
 
         /* ── Forgot password ────────────────────────────────────────────────── */
         window.indexLoginForgotPassword = async function () {
-            const email = (document.getElementById('loginEmailInput')?.value || '').trim();
+            const email = (document.getElementById('loginEmailInput')?.value || '').trim().toLowerCase();
             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             if (!emailRe.test(email)) {
                 loginShowError('Въведете имейл адреса си в полето по-горе, след което натиснете „Забравена парола?".');
