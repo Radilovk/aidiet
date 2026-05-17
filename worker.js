@@ -10929,6 +10929,7 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
   const userAuthBytes = base64UrlToUint8Array(userAuth);
   
   // Import user's public key for ECDH
+  // Public ECDH keys must have empty keyUsages; only the private key uses deriveBits.
   const importedUserPublicKey = await crypto.subtle.importKey(
     'raw',
     userPublicKeyBytes,
@@ -10937,7 +10938,7 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
       namedCurve: 'P-256'
     },
     false,
-    ['deriveBits']
+    []
   );
   
   // Perform ECDH to get shared secret
