@@ -3476,23 +3476,7 @@
         .pa-primary-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(13,148,136,.45); }
         .pa-primary-btn:disabled { opacity: 0.65; pointer-events: none; }
         #planAuthError { color: #ef4444; font-size: 0.8rem; margin-top: 12px; display: none; }
-        /* Logout button in day-banner */
-        .day-banner-logout {
-            flex-shrink: 0;
-            width: 40px; height: 40px;
-            background: rgba(255,255,255,0.15);
-            border: 1.5px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            color: white; font-size: 0.9rem;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: background 0.2s ease, transform 0.15s ease;
-            margin: 10px 10px 10px 4px;
-            z-index: 1;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .day-banner-logout:hover  { background: rgba(255,255,255,0.28); transform: scale(1.08); }
-        .day-banner-logout:active { transform: scale(0.92); }
+
     </style>
     <div id="planAuthOverlay">
         <div class="pa-spinner"></div>
@@ -3940,9 +3924,7 @@
         <button class="day-banner-arrow day-banner-next" id="dayBannerNext" aria-label="Следващ ден">
             <i class="fas fa-chevron-right"></i>
         </button>
-        <button class="day-banner-logout" onclick="window.planSignOut()" aria-label="Изход от профила" title="Изход от профила">
-            <i class="fas fa-sign-out-alt"></i>
-        </button>
+
     </div>
 
 

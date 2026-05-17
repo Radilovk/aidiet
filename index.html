@@ -324,6 +324,24 @@
         .nav-menu .nav-menu-top-link i {
             color: rgba(255,255,255,0.9) !important;
         }
+        .nav-menu-logout {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 28px;
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .nav-menu-logout:hover { background: rgba(239,68,68,0.08); }
+        .nav-menu-logout i { width: 20px; text-align: center; color: #ef4444; font-size: 0.95rem; }
 
         /* --- BOTTOM NAVIGATION (shown only when user has an approved plan) --- */
         .bottom-nav {
@@ -1976,6 +1994,10 @@
         <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Дълголетие</a>
         <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
         <a href="kids.html" onclick="closeNavMenu()"><i class="fas fa-baby"></i> KidFood AI</a>
+        <div class="nav-menu-divider"></div>
+        <button class="nav-menu-logout" id="navLogoutBtn" onclick="window.indexSignOut()">
+            <i class="fas fa-sign-out-alt"></i> Изход
+        </button>
     </nav>
 
     <!-- Hero Section -->
@@ -2672,8 +2694,10 @@
                 return;
             }
 
-            // Authenticated — hide the login button
+            // Authenticated — hide the login button, show logout in nav-menu
             if (heroLoginBtn) heroLoginBtn.style.display = 'none';
+            const navLogoutBtn = document.getElementById('navLogoutBtn');
+            if (navLogoutBtn) navLogoutBtn.style.display = 'flex';
 
             let dietPlan = localStorage.getItem('dietPlan');
 
@@ -3736,7 +3760,7 @@
     <script type="module">
         import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
-            getAuth, onAuthStateChanged,
+            getAuth, onAuthStateChanged, signOut,
             signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -4031,6 +4055,27 @@
             } finally {
                 if (btn) btn.disabled = false;
             }
+        };
+
+        window.indexSignOut = async function() {
+            await signOut(auth).catch(() => {});
+            const PLAN_KEYS = [
+                'dietPlan', 'userData', 'planSource', 'planHistory',
+                'userId', 'authKvSynced', 'np_profile_synced',
+                'planJustification', 'longTermStrategy', 'modifierReasoning',
+                'hydrationStrategy', 'mealCountJustification',
+                'hasSeenPlanJustification', 'gameNotifierConfig',
+                'planJobId', 'planJobSource', 'pendingPlanPayload',
+                'pendingClientId', 'questionnaireAnswers', 'warningData',
+                'canProceedWithWarning', 'validationSource',
+                'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
+                'planSyncPending'
+            ];
+            PLAN_KEYS.forEach(k => localStorage.removeItem(k));
+            Object.keys(localStorage)
+                .filter(k => k.startsWith('addedMeals_'))
+                .forEach(k => localStorage.removeItem(k));
+            window.location.replace('index.html?stay=1');
         };
     </script>
 </body>

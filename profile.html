@@ -1877,18 +1877,8 @@
                 <div id="socialLoginError" style="color:#ef4444;font-size:0.8rem;text-align:center;display:none;max-width:260px;"></div>
             </div>
 
-            <!-- Logout button (shown when signed in via Firebase) -->
-            <button class="social-logout-btn hidden" id="socialLogoutBtn" onclick="socialLogout()">
-                <i class="fas fa-sign-out-alt"></i> Изход от акаунта
-            </button>
 
-            <!-- PWA Install Button -->
-            <button class="profile-install-btn hidden" id="profileInstallBtn" onclick="handleProfileInstallClick()">
-                <i class="fas fa-download"></i>
-                <span id="profileInstallBtnText">Инсталирай приложение</span>
-            </button>
 
-            <!-- Android APK Download Button (shown only on Android when not installed as TWA) -->
             <a class="profile-android-btn" id="profileAndroidBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
                 <i class="fab fa-android"></i>
                 <span>Свали за Android (.apk)</span>
@@ -4578,6 +4568,13 @@
         }, { passive: true });
     })();
     </script>
+
+    <!-- Logout button (shown when signed in via Firebase) -->
+    <div style="display:flex;justify-content:center;padding:12px 0 8px;">
+        <button class="social-logout-btn hidden" id="socialLogoutBtn" onclick="socialLogout()">
+            <i class="fas fa-sign-out-alt"></i> Изход от акаунта
+        </button>
+    </div>
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
