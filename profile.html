@@ -1850,6 +1850,22 @@
             <div class="profile-avatar" id="profileAvatar">И</div>
             <div class="profile-name" id="profileName">Име</div>
             <div class="profile-email" id="profileEmail">email@example.com</div>
+            <script>
+            /* Instantly populate profile header from localStorage before DOMContentLoaded,
+             * so there is never a flash of placeholder "Име"/"email@example.com". */
+            (function() {
+                try {
+                    var ud = JSON.parse(localStorage.getItem('userData') || 'null');
+                    if (ud && ud.name) {
+                        document.getElementById('profileName').textContent = ud.name;
+                        document.getElementById('profileAvatar').textContent = ud.name.charAt(0).toUpperCase();
+                    }
+                    if (ud && ud.email) {
+                        document.getElementById('profileEmail').textContent = ud.email;
+                    }
+                } catch (_) {}
+            })();
+            </script>
 
             <!-- Social Login Section (hidden when not signed in via Google) -->
             <div class="social-login-section hidden" id="socialLoginSection">
@@ -4618,14 +4634,20 @@
                 if (user) {
                     section?.classList.add('hidden');
                     logoutBtn?.classList.remove('hidden');
-                    if (nameEl)  nameEl.textContent = user.displayName || 'Потребител';
-                    if (emailEl) emailEl.textContent = user.email || '';
+                    // Questionnaire data takes priority over the Firebase display name.
+                    // Only fall back to Firebase values when no local questionnaire data exists.
+                    let qData = null;
+                    try { qData = JSON.parse(localStorage.getItem('userData') || 'null'); } catch (_) {}
+                    if (nameEl  && !qData?.name)  nameEl.textContent  = user.displayName || 'Потребител';
+                    if (emailEl && !qData?.email) emailEl.textContent = user.email || '';
                     if (avatar) {
                         if (user.photoURL) {
+                            // Google profile photo is always shown when available.
                             avatar.style.backgroundImage = `url(${user.photoURL})`;
                             avatar.style.backgroundSize  = 'cover';
                             avatar.textContent = '';
-                        } else {
+                        } else if (!qData?.name) {
+                            // No questionnaire name and no photo – use Firebase initial.
                             avatar.style.backgroundImage = '';
                             avatar.textContent = (user.displayName || user.email || 'П')[0].toUpperCase();
                         }
