@@ -4059,7 +4059,18 @@
                 await sendPasswordResetEmail(auth, email);
                 loginShowSuccess('Изпратен е имейл за нулиране на паролата. Проверете входящата си поща.');
             } catch (err) {
-                loginShowError('Грешка при изпращане. Проверете имейл адреса и опитайте отново.');
+                console.error('Password reset error:', err.code, err.message);
+                let msg;
+                if (err.code === 'auth/user-not-found') {
+                    msg = 'Не е намерен акаунт с този имейл адрес.';
+                } else if (err.code === 'auth/too-many-requests') {
+                    msg = 'Твърде много опити. Изчакайте малко и опитайте отново.';
+                } else if (err.code === 'auth/network-request-failed') {
+                    msg = 'Мрежова грешка. Проверете интернет връзката си.';
+                } else {
+                    msg = 'Грешка при изпращане на имейл. Моля опитайте отново.';
+                }
+                loginShowError(msg);
             } finally {
                 if (btn) btn.disabled = false;
             }
