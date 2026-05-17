@@ -12016,24 +12016,41 @@ async function handleSaveUserProfile(request, env) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
 
-    const { userId, plan, userData } = await request.json();
+    const { userId, plan, userData, planSource, idToken } = await request.json();
 
     if (!userId || !plan) {
       return jsonResponse({ error: 'Missing userId or plan' }, 400);
+    }
+
+    // Verify the Firebase ID token when the caller is authenticated as a Firebase user.
+    // This prevents one user from overwriting another user's profile.
+    if (userId.startsWith('fb_') && idToken) {
+      try {
+        const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+        if ('fb_' + firebaseUser.uid !== userId) {
+          return jsonResponse({ error: 'Token does not match userId' }, 403);
+        }
+      } catch (_) {
+        return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
+      }
     }
 
     const profileData = {
       userId,
       plan,
       userData: userData || {},
+      planSource: planSource || '',
       savedAt: new Date().toISOString()
     };
 
-    // Store with 90-day TTL so the profile is available long after installation
+    // Firebase-authenticated users get a 1-year TTL; anonymous/cookie-based users get 90 days.
+    const ttl = userId.startsWith('fb_')
+      ? 365 * 24 * 60 * 60
+      :  90 * 24 * 60 * 60;
     await env.page_content.put(
       `user_profile:${userId}`,
       JSON.stringify(profileData),
-      { expirationTtl: 90 * 24 * 60 * 60 }
+      { expirationTtl: ttl }
     );
 
     console.log(`User profile saved for restore: ${userId}`);
@@ -12065,13 +12082,30 @@ async function handleGetUserProfile(request, env) {
       return jsonResponse({ error: 'Missing userId' }, 400);
     }
 
+    // Verify the Firebase ID token when the caller is authenticated as a Firebase user.
+    // This prevents one user from reading another user's profile.
+    if (userId.startsWith('fb_')) {
+      const authHeader = request.headers.get('Authorization') || '';
+      const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      if (idToken) {
+        try {
+          const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+          if ('fb_' + firebaseUser.uid !== userId) {
+            return jsonResponse({ error: 'Token does not match userId' }, 403);
+          }
+        } catch (_) {
+          return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
+        }
+      }
+    }
+
     const raw = await env.page_content.get(`user_profile:${userId}`);
     if (!raw) {
       return jsonResponse({ found: false }, 404);
     }
 
     const profile = JSON.parse(raw);
-    return jsonResponse({ found: true, plan: profile.plan, userData: profile.userData });
+    return jsonResponse({ found: true, plan: profile.plan, userData: profile.userData, planSource: profile.planSource || '' });
   } catch (error) {
     console.error('Error getting user profile:', error);
     return jsonResponse({ error: 'Failed to get user profile: ' + error.message }, 500);

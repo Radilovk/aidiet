@@ -3910,9 +3910,18 @@
         async function applyPlanResult(result, planPayload, savedClientId) {
             if (!result.success) throw new Error(result.error || 'Unknown error');
 
+            // If the user is already logged in with Firebase, their Firebase UID takes
+            // precedence as the persistent userId so the plan can be restored on any device.
+            const fbUserId = (function() {
+                const uid = localStorage.getItem('userId');
+                return (uid && uid.startsWith('fb_')) ? uid : null;
+            })();
+            // Get Firebase ID token when logged in so the worker can verify the write.
+            const fbIdToken = fbUserId ? await (auth.currentUser ? auth.currentUser.getIdToken().catch(() => null) : Promise.resolve(null)) : null;
+
             if (result.hasContradiction && result.warningData) {
                 localStorage.setItem('warningData', JSON.stringify(result.warningData));
-                localStorage.setItem('userId', result.userId);
+                localStorage.setItem('userId', fbUserId || result.userId);
                 localStorage.setItem('userData', JSON.stringify(planPayload));
                 localStorage.setItem('canProceedWithWarning', 'false');
                 localStorage.setItem('validationSource', 'questionnaire2');
@@ -3926,7 +3935,8 @@
             }
 
             localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-            localStorage.setItem('userId', result.userId);
+            // Use Firebase UID if logged in, otherwise use the backend-generated userId
+            localStorage.setItem('userId', fbUserId || result.userId);
             localStorage.setItem('userData', JSON.stringify(planPayload));
             localStorage.setItem('planSource', 'questionnaire2');
             localStorage.removeItem('planJobId');
@@ -3934,7 +3944,17 @@
             localStorage.removeItem('pendingPlanPayload');
 
             if (typeof saveProfileToCookies === 'function') {
-                saveProfileToCookies(result.userId, result.plan, planPayload);
+                saveProfileToCookies(fbUserId || result.userId, result.plan, planPayload, 'questionnaire2', fbIdToken);
+            }
+
+            // If logged in with Firebase, also save plan under the Firebase UID so it can
+            // be restored on any other device where the user logs in.
+            if (fbUserId && fbUserId !== result.userId) {
+                fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: fbUserId, plan: result.plan, userData: planPayload, planSource: 'questionnaire2', ...(fbIdToken ? { idToken: fbIdToken } : {}) })
+                }).catch(() => {});
             }
 
             if (savedClientId) {
@@ -4638,7 +4658,7 @@
          * Uses the CompressionStream API (iOS 16.4+) to keep cookie count low.
          * Falls back silently on older browsers.
          */
-        async function saveProfileToCookies(userId, plan, userData) {
+        async function saveProfileToCookies(userId, plan, userData, planSource, idToken) {
             const COOKIE_OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
             // Always persist the userId cookie so the PWA can look the user up
             // in the backend even when cookie chunks or CompressionStream are unavailable.
@@ -4649,7 +4669,7 @@
             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, plan, userData })
+                body: JSON.stringify({ userId, plan, userData, planSource: planSource || '', ...(idToken ? { idToken } : {}) })
             }).catch(e => console.warn('[PWA] Backend profile save failed:', e));
 
             if (typeof CompressionStream === 'undefined') return;
