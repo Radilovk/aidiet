@@ -31,29 +31,41 @@ export const guardAuth = getAuth(_app);
 
 /* ── Loading overlay (shown while auth state is being resolved) ──────────── */
 (function () {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const bg     = isDark ? '#0A1A1A' : '#F0FDFA';
+    /* If the user is already known to be logged in (userId stored by the sign-in
+     * flow), skip the visual overlay entirely so tab switches feel instant.
+     * onAuthStateChanged still runs in the background: if Firebase disagrees
+     * (e.g. session revoked) the user is redirected to login. */
+    const cachedUserId = localStorage.getItem('userId') || '';
+    const likelyAuthed = cachedUserId.startsWith('fb_');
 
-    const ov = document.createElement('div');
-    ov.id    = 'auth-guard-overlay';
-    ov.innerHTML =
-        '<style>' +
-        '@keyframes _ag_spin{to{transform:rotate(360deg)}}' +
-        '#auth-guard-overlay{position:fixed;inset:0;background:' + bg + ';' +
-        'display:flex;align-items:center;justify-content:center;z-index:99999;' +
-        'transition:opacity .25s}' +
-        '#auth-guard-overlay .ag-sp{width:40px;height:40px;border:3px solid #0D9488;' +
-        'border-top-color:transparent;border-radius:50%;animation:_ag_spin .8s linear infinite}' +
-        '</style>' +
-        '<div class="ag-sp"></div>';
+    let ov = null;
+    if (!likelyAuthed) {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const bg     = isDark ? '#0A1A1A' : '#F0FDFA';
 
-    document.documentElement.appendChild(ov);
+        ov = document.createElement('div');
+        ov.id    = 'auth-guard-overlay';
+        ov.innerHTML =
+            '<style>' +
+            '@keyframes _ag_spin{to{transform:rotate(360deg)}}' +
+            '#auth-guard-overlay{position:fixed;inset:0;background:' + bg + ';' +
+            'display:flex;align-items:center;justify-content:center;z-index:99999;' +
+            'transition:opacity .25s}' +
+            '#auth-guard-overlay .ag-sp{width:40px;height:40px;border:3px solid #0D9488;' +
+            'border-top-color:transparent;border-radius:50%;animation:_ag_spin .8s linear infinite}' +
+            '</style>' +
+            '<div class="ag-sp"></div>';
+
+        document.documentElement.appendChild(ov);
+    }
 
     onAuthStateChanged(guardAuth, (user) => {
         if (user) {
-            /* Authenticated — reveal the page */
-            ov.style.opacity = '0';
-            setTimeout(() => ov.remove(), 300);
+            /* Authenticated — reveal the page (overlay may not exist) */
+            if (ov) {
+                ov.style.opacity = '0';
+                setTimeout(() => ov.remove(), 300);
+            }
         } else {
             /* Not authenticated — send to login */
             const next = encodeURIComponent(location.pathname + location.search);
