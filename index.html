@@ -2658,6 +2658,16 @@
                 try { authUser = await window._indexAuthUser; } catch (_) {}
             }
 
+            // If logged in, also wait for the plan sync/restore to complete so that
+            // dietPlan is already in localStorage when we make the redirect decision.
+            // Without this wait, _loadUserPlanFromServer (called inside onAuthStateChanged)
+            // races with this handler and the plan check below can see a null dietPlan,
+            // causing authenticated users with a server-side plan to see the landing page
+            // (with "Започни промяната" / questionnaire button) instead of their plan.
+            if (authUser && window._indexPlanReady) {
+                try { await window._indexPlanReady; } catch (_) {}
+            }
+
             const startNowBtn  = document.getElementById('startNowBtn');
             const heroCTABtn   = document.getElementById('heroCTABtn');
             const navMyPlanLink = document.getElementById('navMyPlanLink');
@@ -3779,6 +3789,12 @@
         /* Expose auth state promise so the DOMContentLoaded handler can await it */
         window._indexAuthUser = new Promise(resolve => onAuthStateChanged(auth, resolve));
 
+        /* Expose plan-ready promise: resolves after plan sync/restore is complete so
+         * the DOMContentLoaded handler doesn't check dietPlan before the server fetch
+         * has had a chance to populate localStorage (race-condition fix). */
+        let _indexPlanReadyResolve;
+        window._indexPlanReady = new Promise(resolve => { _indexPlanReadyResolve = resolve; });
+
         /* ── Derive userId locally — no backend round-trip needed ───────────── */
         function applyUser(user) {
             if (!user) return;
@@ -3856,7 +3872,11 @@
         let _loginInProgress = false;
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) return;
+            if (!user) {
+                // No authenticated user — nothing to restore; signal DOMContentLoaded.
+                if (_indexPlanReadyResolve) { _indexPlanReadyResolve(); _indexPlanReadyResolve = null; }
+                return;
+            }
             // Capture the userId that was set BEFORE this login event (may be anonymous).
             const prevUserId = localStorage.getItem('userId');
             applyUser(user);
@@ -3884,6 +3904,10 @@
                 // try to restore plan from the server (new device / reinstall scenario).
                 await _loadUserPlanFromServer(fbUserId, user);
             }
+
+            // Signal DOMContentLoaded that plan sync/restore is complete so it can
+            // make the correct redirect decision (plan.html vs questionnaire2.html).
+            if (_indexPlanReadyResolve) { _indexPlanReadyResolve(); _indexPlanReadyResolve = null; }
 
             /* If user just logged in via the login modal, redirect to the target page */
             const params = new URLSearchParams(window.location.search);
