@@ -2652,7 +2652,9 @@
             await restoreProfileFromCookies();
 
             // Wait for Firebase auth state before deciding on plan-redirect.
-            // _indexAuthUser is a Promise exposed by the module script at the bottom of this page.
+            // _indexAuthUser resolves (with the user or null) only after plan
+            // sync/restore is complete, so dietPlan is already in localStorage
+            // when we check it below.
             let authUser = null;
             if (window._indexAuthUser) {
                 try { authUser = await window._indexAuthUser; } catch (_) {}
@@ -3776,8 +3778,11 @@
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(initializeApp(firebaseConfig));
 
-        /* Expose auth state promise so the DOMContentLoaded handler can await it */
-        window._indexAuthUser = new Promise(resolve => onAuthStateChanged(auth, resolve));
+        /* Expose auth-state promise.  Resolves with the user *after* plan sync/restore
+         * is complete so the DOMContentLoaded handler sees dietPlan in localStorage
+         * before it makes the redirect decision (race-condition fix). */
+        let _indexAuthResolve;
+        window._indexAuthUser = new Promise(resolve => { _indexAuthResolve = resolve; });
 
         /* ── Derive userId locally — no backend round-trip needed ───────────── */
         function applyUser(user) {
@@ -3856,7 +3861,11 @@
         let _loginInProgress = false;
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) return;
+            if (!user) {
+                // No authenticated user — nothing to restore; signal DOMContentLoaded.
+                if (_indexAuthResolve) { _indexAuthResolve(null); _indexAuthResolve = null; }
+                return;
+            }
             // Capture the userId that was set BEFORE this login event (may be anonymous).
             const prevUserId = localStorage.getItem('userId');
             applyUser(user);
@@ -3884,6 +3893,10 @@
                 // try to restore plan from the server (new device / reinstall scenario).
                 await _loadUserPlanFromServer(fbUserId, user);
             }
+
+            // Signal DOMContentLoaded that plan sync/restore is complete so it can
+            // make the correct redirect decision (plan.html vs questionnaire2.html).
+            if (_indexAuthResolve) { _indexAuthResolve(user); _indexAuthResolve = null; }
 
             /* If user just logged in via the login modal, redirect to the target page */
             const params = new URLSearchParams(window.location.search);
@@ -3995,7 +4008,7 @@
 
         /* ── Email / password sign-in ───────────────────────────────────────── */
         window.indexLoginWithPassword = async function () {
-            const email    = (document.getElementById('loginEmailInput')?.value || '').trim();
+            const email    = (document.getElementById('loginEmailInput')?.value || '').trim().toLowerCase();
             const password = document.getElementById('loginPasswordInput')?.value || '';
             const btn      = document.getElementById('loginPasswordBtn');
 
@@ -4038,7 +4051,7 @@
 
         /* ── Forgot password ────────────────────────────────────────────────── */
         window.indexLoginForgotPassword = async function () {
-            const email = (document.getElementById('loginEmailInput')?.value || '').trim();
+            const email = (document.getElementById('loginEmailInput')?.value || '').trim().toLowerCase();
             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             if (!emailRe.test(email)) {
                 loginShowError('Въведете имейл адреса си в полето по-горе, след което натиснете „Забравена парола?".');

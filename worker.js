@@ -1532,6 +1532,7 @@ const RATE_LIMIT = {
   CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
   FOOD_ANALYSIS: { maxRequests: 10, windowSec: 60 },  // 10 food analyses/min per IP
   VALIDATE_QUESTIONNAIRE: { maxRequests: 8, windowSec: 60 },  // 8 validations/min per IP
+  SOCIAL_AUTH:   { maxRequests: 10, windowSec: 60 },  // 10 auth attempts/min per IP
 };
 
 /**
@@ -12809,6 +12810,8 @@ export default {
       } else if (url.pathname === '/api/client-plan-status' && request.method === 'GET') {
         return await handleGetClientPlanStatus(request, env);
       } else if (url.pathname === '/api/auth/social' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'SOCIAL_AUTH');
+        if (rlErr) return rlErr;
         return await handleSocialAuth(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
