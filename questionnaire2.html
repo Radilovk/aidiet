@@ -3979,7 +3979,7 @@
             const loadingTitleEl = document.getElementById('loadingTitle');
             const loadingSubtitleEl = document.getElementById('loadingSubtitle');
             if (loadingTitleEl) loadingTitleEl.textContent = 'Планът е готов!';
-            if (loadingSubtitleEl) loadingSubtitleEl.textContent = 'Финализираме последните детайли...';
+            if (loadingSubtitleEl) loadingSubtitleEl.textContent = 'Изчакване на одобрение от специалист...';
 
             await new Promise(resolve => {
                 const bar = document.getElementById('aiProgressBar');
@@ -4002,14 +4002,8 @@
                 }, 30);
             });
 
-            container.innerHTML = `
-                <div style="text-align:center; animation: fadeIn 0.5s;">
-                    <video src="Success.webm" autoplay muted playsinline style="width:100px;height:100px;display:block;margin:0 auto 20px;"></video>
-                    <h2 class="q-text">Успешно!</h2>
-                    <p style="color:#7f8c8d; margin-bottom:16px;">Вашият анализ е готов.</p>
-                    <button class="btn btn-next" onclick="window.location.href='analysis.html'" style="margin:0 auto;">Виж анализа</button>
-                </div>
-            `;
+            // Redirect to plan-pending page — the plan must be reviewed and approved by admin
+            window.location.href = 'plan-pending.html';
         }
 
         /**

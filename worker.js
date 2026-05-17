@@ -4286,19 +4286,33 @@ async function handleActivateClientPlan(request, env, ctx) {
     clientData.planActivatedAt = new Date().toISOString();
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
 
-    // Send email notification to client (fire-and-forget)
+    // Send email notification to client — try synchronously so we can report status
     const clientEmail = clientData.answers?.email;
     const clientName = clientData.answers?.name || 'Клиент';
+    let emailSent = false;
+    let emailError = null;
     if (clientEmail) {
-      const emailPromise = (async () => {
+      try {
         const tpl = await getEmailTemplate(env);
         const subject = tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject;
         await sendEmailViaSMTP(env, clientEmail, subject, buildPlanReadyEmailHtml(clientName, tpl));
-      })().catch(e => console.warn('[Email] Plan activation email failed:', e));
-      if (ctx?.waitUntil) ctx.waitUntil(emailPromise);
+        emailSent = true;
+        console.log(`[Email] Activation email sent to ${clientEmail}`);
+      } catch (e) {
+        emailError = e.message;
+        console.warn('[Email] Plan activation email failed:', e.message);
+      }
+    } else {
+      emailError = 'Няма имейл адрес за клиента';
     }
 
-    return jsonResponse({ success: true, message: 'Plan activated', activatedAt: clientData.planActivatedAt });
+    return jsonResponse({
+      success: true,
+      message: 'Plan activated',
+      activatedAt: clientData.planActivatedAt,
+      emailSent,
+      emailError: emailSent ? null : (emailError || 'Неизвестна грешка')
+    });
   } catch (error) {
     console.error('Error activating client plan:', error);
     return jsonResponse({ error: `Failed to activate plan: ${error.message}` }, 500);

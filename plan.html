@@ -3890,6 +3890,11 @@
                     const loaded = await _loadUserPlanFromServer('fb_' + user.uid, user);
                     sessionStorage.removeItem(_planRestoreKey);
                     if (loaded) {
+                        // Guard: plan submitted via questionnaire2 must wait for admin approval
+                        if (localStorage.getItem('planSource') === 'questionnaire2') {
+                            window.location.replace('plan-pending.html');
+                            return;
+                        }
                         // Plan restored into localStorage — initialise the page directly
                         // without a full reload.  loadDietData() is idempotent when a plan
                         // is present in localStorage and is available in the global scope
@@ -4563,6 +4568,12 @@
         let _loadDietDataCalled = false;
         function loadDietData() {
             try {
+                // Guard: plan submitted via questionnaire2 must wait for admin approval
+                if (localStorage.getItem('planSource') === 'questionnaire2') {
+                    window.location.replace('plan-pending.html');
+                    return;
+                }
+
                 // Load from localStorage
                 const planData = localStorage.getItem('dietPlan');
                 userId = localStorage.getItem('userId');

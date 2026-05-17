@@ -202,6 +202,7 @@
             margin-bottom: 10px;
             box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
             position: relative;
+            cursor: pointer;
         }
 
         .profile-avatar::after {
@@ -235,6 +236,7 @@
             font-weight: 700;
             margin-bottom: 5px;
             letter-spacing: -0.01em;
+            cursor: pointer;
         }
 
         .profile-email {
@@ -242,6 +244,7 @@
             font-size: 0.9rem;
             margin-bottom: 15px;
             opacity: 0.85;
+            cursor: pointer;
         }
 
         /* PWA Install Button in Profile */
@@ -1181,6 +1184,20 @@
             gap: 10px;
         }
 
+        /* Sticky alert banner — stays visible at the top while the user scrolls */
+        #alertContainer {
+            position: sticky;
+            top: calc(64px + var(--safe-area-inset-top));
+            z-index: 99;
+            margin: 0;
+            padding: 0;
+        }
+        #alertContainer .alert {
+            margin-bottom: 0;
+            border-radius: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
         .alert-info {
             background: #e8f5e9;
             color: #2e7d32;
@@ -1847,9 +1864,9 @@
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
         </div>
         <div class="profile-header">
-            <div class="profile-avatar" id="profileAvatar">И</div>
-            <div class="profile-name" id="profileName">Име</div>
-            <div class="profile-email" id="profileEmail">email@example.com</div>
+            <div class="profile-avatar" id="profileAvatar" onclick="openEditMode()" title="Кликни за редактиране на профила">И</div>
+            <div class="profile-name" id="profileName" onclick="openEditMode()" title="Кликни за редактиране на профила">Име</div>
+            <div class="profile-email" id="profileEmail" onclick="openEditMode()" title="Кликни за редактиране на профила">email@example.com</div>
             <script>
             /* Instantly populate profile header from localStorage before DOMContentLoaded,
              * so there is never a flash of placeholder "Име"/"email@example.com". */
@@ -2647,6 +2664,22 @@
         }
 
         // --- Editing Functions ---
+        function openEditMode() {
+            // Open the questionnaire if collapsed, then activate edit mode and scroll to it
+            const container = document.getElementById('questionnaireContainer');
+            if (container && !container.classList.contains('open')) {
+                const header = container.querySelector('.questionnaire-header');
+                container.classList.add('open');
+                if (header) header.setAttribute('aria-expanded', 'true');
+            }
+            enableEditing();
+            if (container) {
+                setTimeout(function() {
+                    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+
         function enableEditing() {
             isEditing = true;
 
@@ -2985,7 +3018,9 @@
         }
 
         // --- Alert Functions ---
+        let _alertDismissTimer = null;
         function showAlert(message, type) {
+            if (_alertDismissTimer) { clearTimeout(_alertDismissTimer); _alertDismissTimer = null; }
             const container = document.getElementById('alertContainer');
             container.innerHTML = `
                 <div class="alert alert-${type}">
@@ -2993,9 +3028,12 @@
                     <span>${message}</span>
                 </div>
             `;
+            // Auto-dismiss after 6 seconds
+            _alertDismissTimer = setTimeout(function() { clearAlert(); }, 6000);
         }
 
         function clearAlert() {
+            if (_alertDismissTimer) { clearTimeout(_alertDismissTimer); _alertDismissTimer = null; }
             document.getElementById('alertContainer').innerHTML = '';
         }
 
