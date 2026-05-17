@@ -12302,7 +12302,9 @@ async function handleSaveUserProfile(request, env) {
 
     // Verify the Firebase ID token when the caller is authenticated as a Firebase user.
     // This prevents one user from overwriting another user's profile.
-    if (userId.startsWith('fb_') && idToken) {
+    // Only attempt verification when FIREBASE_PROJECT_ID is configured; without it
+    // verifyFirebaseIdToken always throws "Invalid audience" causing unnecessary 401s.
+    if (userId.startsWith('fb_') && idToken && env.FIREBASE_PROJECT_ID) {
       try {
         const firebaseUser = await verifyFirebaseIdToken(idToken, env);
         if ('fb_' + firebaseUser.uid !== userId) {
@@ -12362,7 +12364,9 @@ async function handleGetUserProfile(request, env) {
 
     // Verify the Firebase ID token when the caller is authenticated as a Firebase user.
     // This prevents one user from reading another user's profile.
-    if (userId.startsWith('fb_')) {
+    // Only attempt verification when FIREBASE_PROJECT_ID is configured; without it
+    // verifyFirebaseIdToken always throws "Invalid audience" causing unnecessary 401s.
+    if (userId.startsWith('fb_') && env.FIREBASE_PROJECT_ID) {
       const authHeader = request.headers.get('Authorization') || '';
       const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
       if (idToken) {

@@ -3536,16 +3536,21 @@
         /* Fetch the user's plan from the server (called once on first login on this device).
          * Returns true if a plan was successfully restored. */
         async function _loadUserPlanFromServer(fbUserId, user) {
+            const url = WORKER_URL + '/api/user/profile?userId=' + encodeURIComponent(fbUserId);
             try {
                 const headers = {};
                 if (user && fbUserId.startsWith('fb_')) {
                     const idToken = await user.getIdToken().catch(() => null);
                     if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
                 }
-                const resp = await fetch(
-                    WORKER_URL + '/api/user/profile?userId=' + encodeURIComponent(fbUserId),
-                    { headers }
-                );
+                let resp = await fetch(url, { headers });
+                // If the server rejected our token (e.g. FIREBASE_PROJECT_ID not configured
+                // on the worker, or a transient JWKS error), retry without the Authorization
+                // header — the GET endpoint allows unauthenticated reads by design.
+                if ((resp.status === 401 || resp.status === 403) && headers['Authorization']) {
+                    console.warn('[plan-restore] Token rejected (', resp.status, '), retrying without auth');
+                    resp = await fetch(url, {});
+                }
                 if (!resp.ok) return false;
                 const data = await resp.json();
                 if (data.found && data.plan) {
@@ -3554,7 +3559,9 @@
                     if (data.planSource) localStorage.setItem('planSource', data.planSource);
                     return true;
                 }
-            } catch (_) {}
+            } catch (e) {
+                console.warn('[plan-restore] Failed to load plan from server:', e);
+            }
             return false;
         }
 
