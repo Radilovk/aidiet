@@ -3488,7 +3488,7 @@
         import {
             getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
             signInWithEmailAndPassword, createUserWithEmailAndPassword,
-            sendPasswordResetEmail, signOut
+            signOut
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const _cfg = {
@@ -3686,21 +3686,20 @@
                     if (!em) { showAuthError('Въведете имейл адреса си по-горе.'); return; }
                     this.disabled = true;
                     try {
-                        await sendPasswordResetEmail(auth, em);
-                        showPlanAuthSuccessFull('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                        const res = await fetch(WORKER_URL + '/api/auth/forgot-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: em }),
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                            showAuthError(data.error || 'Грешка при изпращане. Проверете имейл адреса.');
+                        } else {
+                            showPlanAuthSuccessFull('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                        }
                     } catch (err) {
-                        console.error('Password reset error:', err.code, err.message);
-                        showAuthError(
-                            err.code === 'auth/user-not-found'
-                                ? 'Не е намерен акаунт с този имейл адрес.' :
-                            err.code === 'auth/too-many-requests'
-                                ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
-                            err.code === 'auth/network-request-failed'
-                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
-                            err.code === 'auth/unauthorized-domain'
-                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
-                            'Грешка при изпращане. Проверете имейл адреса.'
-                        );
+                        console.error('Password reset error:', err);
+                        showAuthError('Мрежова грешка. Проверете интернет връзката си.');
                     } finally { this.disabled = false; }
                 });
             } else {
@@ -3781,21 +3780,20 @@
                     if (!email) { showAuthError('Имейл адресът не е наличен.'); return; }
                     this.disabled = true;
                     try {
-                        await sendPasswordResetEmail(auth, email);
-                        showPlanAuthSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                        const res = await fetch(WORKER_URL + '/api/auth/forgot-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email }),
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                            showAuthError(data.error || 'Грешка при изпращане. Опитайте отново.');
+                        } else {
+                            showPlanAuthSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                        }
                     } catch (err) {
-                        console.error('Password reset error:', err.code, err.message);
-                        showAuthError(
-                            err.code === 'auth/user-not-found'
-                                ? 'Не е намерен акаунт с този имейл адрес.' :
-                            err.code === 'auth/too-many-requests'
-                                ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
-                            err.code === 'auth/network-request-failed'
-                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
-                            err.code === 'auth/unauthorized-domain'
-                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
-                            'Грешка при изпращане. Опитайте отново.'
-                        );
+                        console.error('Password reset error:', err);
+                        showAuthError('Мрежова грешка. Проверете интернет връзката си.');
                     } finally { this.disabled = false; }
                 });
 

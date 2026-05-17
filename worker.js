@@ -1532,7 +1532,8 @@ const RATE_LIMIT = {
   CHAT:          { maxRequests: 20, windowSec: 60 },  // 20 messages/min per IP
   FOOD_ANALYSIS: { maxRequests: 10, windowSec: 60 },  // 10 food analyses/min per IP
   VALIDATE_QUESTIONNAIRE: { maxRequests: 8, windowSec: 60 },  // 8 validations/min per IP
-  SOCIAL_AUTH:   { maxRequests: 10, windowSec: 60 },  // 10 auth attempts/min per IP
+  SOCIAL_AUTH:    { maxRequests: 10, windowSec: 60 },   // 10 auth attempts/min per IP
+  FORGOT_PASSWORD:{ maxRequests: 5,  windowSec: 900 },  // 5 reset requests per 15 min per IP
 };
 
 /**
@@ -3815,6 +3816,260 @@ function buildPlanReadyEmailHtml(clientName, tpl) {
   </table>
 </body>
 </html>`;
+}
+
+/**
+ * Build the HTML body for the password-reset email.
+ * @param {string} oobLink     - Firebase password-reset OOB link
+ * @param {string} contactEmail
+ */
+function buildPasswordResetEmailHtml(oobLink, contactEmail = 'info@biocode.online') {
+  const safeContactEmail = escapeHtml(contactEmail);
+  const safeOobLink = oobLink; // URL – must not be HTML-escaped (breaks href)
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Нулиране на парола</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">🍽️ Nutri Plan</h1>
+              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">Нулиране на парола</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <h2 style="color:#333333;margin:0 0 20px;font-size:22px;">Заявка за нулиране на парола 🔒</h2>
+              <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 20px;">
+                Получихме заявка за нулиране на паролата за вашия акаунт в Nutri Plan.
+              </p>
+              <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">
+                Натиснете бутона по-долу, за да зададете нова парола. Линкът е валиден за <strong>1 час</strong>.
+              </p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                    <a href="${safeOobLink}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Нулирай паролата →</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="color:#777777;font-size:14px;line-height:1.6;margin:0 0 16px;">
+                Ако не сте поискали нулиране на парола, можете да игнорирате този имейл. Акаунтът ви е в безопасност.
+              </p>
+              <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
+                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:12px;margin:5px 0 0;">biocode.online</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+/**
+ * Obtain a short-lived Google OAuth2 access token using a Firebase service account.
+ *
+ * Requires env.FIREBASE_SERVICE_ACCOUNT to be set to the service account JSON
+ * (stored as a Cloudflare Worker secret).
+ * The token grants the `identitytoolkit` scope needed to call the Firebase
+ * Identity Toolkit admin endpoints (e.g. returnOobLink).
+ *
+ * @param {object} env
+ * @returns {Promise<string>} access token
+ */
+async function getFirebaseAdminToken(env) {
+  const raw = env.FIREBASE_SERVICE_ACCOUNT;
+  if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT не е конфигуриран.');
+
+  let sa;
+  try {
+    sa = JSON.parse(raw);
+  } catch {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT е невалиден JSON.');
+  }
+
+  if (!sa.private_key || !sa.client_email) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT: липсват private_key или client_email.');
+  }
+
+  // Convert PEM PKCS#8 private key → DER → CryptoKey
+  const pemContents = sa.private_key
+    .replace('-----BEGIN PRIVATE KEY-----', '')
+    .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\s/g, '');
+  const der = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+
+  const privateKey = await crypto.subtle.importKey(
+    'pkcs8',
+    der,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  // Build a JWT for the token exchange
+  const b64url = obj =>
+    btoa(JSON.stringify(obj))
+      .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+
+  const now = Math.floor(Date.now() / 1000);
+  const header  = b64url({ alg: 'RS256', typ: 'JWT' });
+  const payload = b64url({
+    iss:   sa.client_email,
+    sub:   sa.client_email,
+    aud:   'https://oauth2.googleapis.com/token',
+    iat:   now,
+    exp:   now + 3600,
+    scope: 'https://www.googleapis.com/auth/identitytoolkit',
+  });
+
+  const sigInput = new TextEncoder().encode(`${header}.${payload}`);
+  const sigBuf   = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', privateKey, sigInput);
+  const sig      = btoa(String.fromCharCode(...new Uint8Array(sigBuf)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+
+  const jwt = `${header}.${payload}.${sig}`;
+
+  // Exchange JWT for an OAuth access token
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+  });
+
+  if (!tokenRes.ok) {
+    const err = await tokenRes.text().catch(() => '');
+    throw new Error(`Google OAuth token exchange failed (${tokenRes.status}): ${err}`);
+  }
+
+  const { access_token } = await tokenRes.json();
+  if (!access_token) throw new Error('Не е получен access_token от Google OAuth.');
+  return access_token;
+}
+
+/**
+ * POST /api/auth/forgot-password
+ *
+ * Generates a Firebase password-reset link and delivers it to the user via
+ * the same Resend-based email infrastructure used for admin-activated plans.
+ *
+ * Priority:
+ *  1. Firebase Admin REST API (returnOobLink:true) → Resend branded email
+ *  2. Fallback: Firebase client REST API (server-side, bypasses domain restriction)
+ *     → Firebase sends its own email
+ *
+ * Requires Worker secrets:
+ *   FIREBASE_SERVICE_ACCOUNT  (JSON of a Firebase service account key – for option 1)
+ *   FIREBASE_WEB_API_KEY      (Firebase web API key – for option 2 fallback)
+ *   RESEND_API_KEY            (for option 1)
+ *
+ * Always returns HTTP 200 { success: true } to prevent email-enumeration attacks.
+ */
+async function handleForgotPassword(request, env) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const email = (body.email || '').trim().toLowerCase();
+
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRe.test(email)) {
+      return jsonResponse({ error: 'Невалиден имейл адрес.' }, 400);
+    }
+
+    // ── Try to get OOB link via Firebase Admin REST API ──────────────────────
+    let oobLink = null;
+    try {
+      const adminToken = await getFirebaseAdminToken(env);
+
+      const fbRes = await fetch(
+        'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ requestType: 'PASSWORD_RESET', email, returnOobLink: true }),
+        }
+      );
+
+      if (fbRes.ok) {
+        const data = await fbRes.json();
+        oobLink = data.oobLink || null;
+      } else {
+        const errText = await fbRes.text().catch(() => '');
+        if (errText.includes('EMAIL_NOT_FOUND')) {
+          // Do not reveal whether the email exists
+          return jsonResponse({ success: true });
+        }
+        console.warn(`[ForgotPassword] Firebase Admin API ${fbRes.status}: ${errText}`);
+      }
+    } catch (adminErr) {
+      console.warn('[ForgotPassword] Admin token error (will use fallback):', adminErr.message);
+    }
+
+    if (oobLink) {
+      // ── Send branded Resend email with the reset link ─────────────────────
+      const tpl = await getEmailTemplate(env);
+      const contactEmail = tpl.contactEmail || DEFAULT_EMAIL_TEMPLATE.contactEmail;
+      await sendEmailViaSMTP(
+        env,
+        email,
+        'Нулиране на парола — Nutri Plan 🔒',
+        buildPasswordResetEmailHtml(oobLink, contactEmail)
+      );
+      console.log(`[ForgotPassword] Resend email sent to ${email}`);
+    } else {
+      // ── Fallback: trigger Firebase's own email server-side ────────────────
+      // Server-side calls bypass Firebase's authorized-domain restriction.
+      const apiKey = env.FIREBASE_WEB_API_KEY;
+      if (!apiKey) {
+        console.error('[ForgotPassword] No FIREBASE_WEB_API_KEY configured for fallback.');
+        return jsonResponse({ error: 'Имейл услугата не е конфигурирана. Свържете се с администратора.' }, 500);
+      }
+
+      const fallbackRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
+        }
+      );
+
+      if (!fallbackRes.ok) {
+        const errText = await fallbackRes.text().catch(() => '');
+        if (errText.includes('EMAIL_NOT_FOUND')) {
+          return jsonResponse({ success: true });
+        }
+        console.warn(`[ForgotPassword] Firebase fallback ${fallbackRes.status}: ${errText}`);
+      } else {
+        console.log(`[ForgotPassword] Firebase fallback email triggered for ${email}`);
+      }
+    }
+
+    // Always return success – never reveal whether an account exists
+    return jsonResponse({ success: true });
+  } catch (error) {
+    console.error('[ForgotPassword] Unhandled error:', error.message);
+    return jsonResponse({ error: 'Грешка при изпращане на имейл. Моля опитайте отново.' }, 500);
+  }
 }
 
 /**
@@ -12821,6 +13076,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'SOCIAL_AUTH');
         if (rlErr) return rlErr;
         return await handleSocialAuth(request, env);
+      } else if (url.pathname === '/api/auth/forgot-password' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'FORGOT_PASSWORD');
+        if (rlErr) return rlErr;
+        return await handleForgotPassword(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }

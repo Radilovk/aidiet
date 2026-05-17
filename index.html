@@ -3760,7 +3760,7 @@
         import { initializeApp, getApps, getApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, onAuthStateChanged, signOut,
-            signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail
+            signInWithEmailAndPassword, createUserWithEmailAndPassword
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const firebaseConfig = {
@@ -4063,23 +4063,20 @@
             const btn = document.getElementById('loginForgotBtn');
             if (btn) btn.disabled = true;
             try {
-                await sendPasswordResetEmail(auth, email);
-                loginShowSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
-            } catch (err) {
-                console.error('Password reset error:', err.code, err.message);
-                let msg;
-                if (err.code === 'auth/user-not-found') {
-                    msg = 'Не е намерен акаунт с този имейл адрес.';
-                } else if (err.code === 'auth/too-many-requests') {
-                    msg = 'Твърде много опити. Изчакайте малко и опитайте отново.';
-                } else if (err.code === 'auth/network-request-failed') {
-                    msg = 'Мрежова грешка. Проверете интернет връзката си.';
-                } else if (err.code === 'auth/unauthorized-domain') {
-                    msg = 'Домейнът не е оторизиран в Firebase. Свържете се с администратора.';
+                const res = await fetch(WORKER_URL + '/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    loginShowError(data.error || 'Грешка при изпращане на имейл. Моля опитайте отново.');
                 } else {
-                    msg = 'Грешка при изпращане на имейл. Моля опитайте отново.';
+                    loginShowSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
                 }
-                loginShowError(msg);
+            } catch (err) {
+                console.error('Password reset error:', err);
+                loginShowError('Мрежова грешка. Проверете интернет връзката си.');
             } finally {
                 if (btn) btn.disabled = false;
             }
