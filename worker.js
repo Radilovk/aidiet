@@ -11877,7 +11877,7 @@ const FIREBASE_USER_ID_PREFIX = 'fb_';
  *
  * @param {string} idToken  - Firebase ID token from the frontend
  * @param {object} env      - Worker env (needs FIREBASE_PROJECT_ID)
- * @returns {{ uid, email, name, picture, provider }}
+ * @returns {Promise<{ uid: any, email: any, name: any, picture: any, provider: any }>}
  */
 async function verifyFirebaseIdToken(idToken, env) {
   const parts = idToken.split('.');
