@@ -2673,9 +2673,7 @@
 
                 if (hasPlan || hasData) {
                     // Determine destination
-                    const planTarget = (hasPlan && planSource === 'questionnaire2')
-                        ? 'plan-pending.html'
-                        : (hasPlan ? 'plan.html' : 'plan-pending.html');
+                    const planTarget = hasPlan ? 'plan.html' : 'plan-pending.html';
                     if (startNowBtn) startNowBtn.style.display = 'none';
                     if (heroCTABtn) {
                         heroCTABtn.href = planTarget;
@@ -2705,8 +2703,7 @@
 
             if (dietPlan) {
                 // Determine the correct plan destination
-                const planSource  = localStorage.getItem('planSource');
-                const planTarget  = planSource === 'questionnaire2' ? 'plan-pending.html' : 'plan.html';
+                const planTarget  = 'plan.html';
 
                 // Redirect directly unless the user intentionally navigated here
                 if (!params.has('stay')) {
@@ -3914,13 +3911,11 @@
                     safeDest = null;
                 }
                 window.location.replace(safeDest || (localStorage.getItem('dietPlan')
-                    ? (localStorage.getItem('planSource') === 'questionnaire2' ? 'plan-pending.html' : 'plan.html')
+                    ? 'plan.html'
                     : 'questionnaire2.html'));
             } else if (_loginInProgress) {
                 _loginInProgress = false;
-                const dest = localStorage.getItem('dietPlan')
-                    ? (localStorage.getItem('planSource') === 'questionnaire2' ? 'plan-pending.html' : 'plan.html')
-                    : 'questionnaire2.html';
+                const dest = localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html';
                 window.location.replace(dest);
             }
         });
