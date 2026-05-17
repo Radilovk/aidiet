@@ -2652,20 +2652,12 @@
             await restoreProfileFromCookies();
 
             // Wait for Firebase auth state before deciding on plan-redirect.
-            // _indexAuthUser is a Promise exposed by the module script at the bottom of this page.
+            // _indexAuthUser resolves (with the user or null) only after plan
+            // sync/restore is complete, so dietPlan is already in localStorage
+            // when we check it below.
             let authUser = null;
             if (window._indexAuthUser) {
                 try { authUser = await window._indexAuthUser; } catch (_) {}
-            }
-
-            // If logged in, also wait for the plan sync/restore to complete so that
-            // dietPlan is already in localStorage when we make the redirect decision.
-            // Without this wait, _loadUserPlanFromServer (called inside onAuthStateChanged)
-            // races with this handler and the plan check below can see a null dietPlan,
-            // causing authenticated users with a server-side plan to see the landing page
-            // (with "Започни промяната" / questionnaire button) instead of their plan.
-            if (authUser && window._indexPlanReady) {
-                try { await window._indexPlanReady; } catch (_) {}
             }
 
             const startNowBtn  = document.getElementById('startNowBtn');
@@ -3786,14 +3778,11 @@
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(initializeApp(firebaseConfig));
 
-        /* Expose auth state promise so the DOMContentLoaded handler can await it */
-        window._indexAuthUser = new Promise(resolve => onAuthStateChanged(auth, resolve));
-
-        /* Expose plan-ready promise: resolves after plan sync/restore is complete so
-         * the DOMContentLoaded handler doesn't check dietPlan before the server fetch
-         * has had a chance to populate localStorage (race-condition fix). */
-        let _indexPlanReadyResolve;
-        window._indexPlanReady = new Promise(resolve => { _indexPlanReadyResolve = resolve; });
+        /* Expose auth-state promise.  Resolves with the user *after* plan sync/restore
+         * is complete so the DOMContentLoaded handler sees dietPlan in localStorage
+         * before it makes the redirect decision (race-condition fix). */
+        let _indexAuthResolve;
+        window._indexAuthUser = new Promise(resolve => { _indexAuthResolve = resolve; });
 
         /* ── Derive userId locally — no backend round-trip needed ───────────── */
         function applyUser(user) {
@@ -3874,7 +3863,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 // No authenticated user — nothing to restore; signal DOMContentLoaded.
-                if (_indexPlanReadyResolve) { _indexPlanReadyResolve(); _indexPlanReadyResolve = null; }
+                if (_indexAuthResolve) { _indexAuthResolve(null); _indexAuthResolve = null; }
                 return;
             }
             // Capture the userId that was set BEFORE this login event (may be anonymous).
@@ -3907,7 +3896,7 @@
 
             // Signal DOMContentLoaded that plan sync/restore is complete so it can
             // make the correct redirect decision (plan.html vs questionnaire2.html).
-            if (_indexPlanReadyResolve) { _indexPlanReadyResolve(); _indexPlanReadyResolve = null; }
+            if (_indexAuthResolve) { _indexAuthResolve(user); _indexAuthResolve = null; }
 
             /* If user just logged in via the login modal, redirect to the target page */
             const params = new URLSearchParams(window.location.search);

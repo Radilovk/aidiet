@@ -3512,6 +3512,12 @@
             setTimeout(() => { if (overlay) overlay.remove(); }, 280);
         }
 
+        // If plan is already cached locally, reveal content immediately without
+        // waiting for Firebase to resolve auth state (~300–1000 ms on mobile).
+        // onAuthStateChanged still runs in the background to sync user state.
+        // (Same pattern auth-guard.js uses for other protected pages.)
+        if (localStorage.getItem('dietPlan')) hideOverlay();
+
         function syncUser(user) {
             if (!user) return;
             localStorage.setItem('userId', 'fb_' + user.uid);
