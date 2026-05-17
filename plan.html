@@ -3484,7 +3484,7 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
             signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -3500,7 +3500,7 @@
             appId:             '1:556207268794:web:4fa968491413abd4873383'
         };
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
-        const auth = getAuth(initializeApp(_cfg));
+        const auth = getAuth(getApps().length ? getApp() : initializeApp(_cfg));
 
         const overlay  = document.getElementById('planAuthOverlay');
         const spinner  = overlay ? overlay.querySelector('.pa-spinner') : null;
@@ -3664,6 +3664,7 @@
                     try {
                         await signInWithEmailAndPassword(auth, em, pw);
                     } catch (err) {
+                        console.error('Login error:', err.code, err.message);
                         showAuthError(
                             err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
                                 ? 'Грешен имейл или парола.' :
@@ -3671,6 +3672,10 @@
                                 ? 'Нямате акаунт с този имейл. Регистрирайте се от началната страница.' :
                             err.code === 'auth/too-many-requests'
                                 ? 'Твърде много опити. Изчакайте и опитайте отново.' :
+                            err.code === 'auth/network-request-failed'
+                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                            err.code === 'auth/unauthorized-domain'
+                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
                             'Грешка при вход. Опитайте отново.'
                         );
                     } finally { this.disabled = false; }
@@ -3682,9 +3687,20 @@
                     this.disabled = true;
                     try {
                         await sendPasswordResetEmail(auth, em);
-                        showPlanAuthSuccessFull('Изпратен е имейл за нулиране на паролата.');
-                    } catch (_) {
-                        showAuthError('Грешка при изпращане. Проверете имейл адреса.');
+                        showPlanAuthSuccessFull('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                    } catch (err) {
+                        console.error('Password reset error:', err.code, err.message);
+                        showAuthError(
+                            err.code === 'auth/user-not-found'
+                                ? 'Не е намерен акаунт с този имейл адрес.' :
+                            err.code === 'auth/too-many-requests'
+                                ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
+                            err.code === 'auth/network-request-failed'
+                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                            err.code === 'auth/unauthorized-domain'
+                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
+                            'Грешка при изпращане. Проверете имейл адреса.'
+                        );
                     } finally { this.disabled = false; }
                 });
             } else {
@@ -3743,6 +3759,7 @@
                         await signInWithEmailAndPassword(auth, email, pw);
                         /* onAuthStateChanged → hideOverlay */
                     } catch (err) {
+                        console.error('Login error:', err.code, err.message);
                         showAuthError(
                             err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
                                 ? 'Грешна парола. Използвайте „Забравена парола?" за нулиране или „Задайте парола" ако нямате акаунт.' :
@@ -3750,6 +3767,10 @@
                                 ? 'Нямате акаунт. Използвайте „Задайте парола (първи път)".' :
                             err.code === 'auth/too-many-requests'
                                 ? 'Твърде много опити. Изчакайте и опитайте отново.' :
+                            err.code === 'auth/network-request-failed'
+                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                            err.code === 'auth/unauthorized-domain'
+                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
                             'Грешка при вход. Опитайте отново.'
                         );
                     } finally { this.disabled = false; }
@@ -3761,9 +3782,20 @@
                     this.disabled = true;
                     try {
                         await sendPasswordResetEmail(auth, email);
-                        showPlanAuthSuccess('Изпратен е имейл за нулиране на паролата. Проверете входящата си поща.');
-                    } catch (_) {
-                        showAuthError('Грешка при изпращане. Опитайте отново.');
+                        showPlanAuthSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                    } catch (err) {
+                        console.error('Password reset error:', err.code, err.message);
+                        showAuthError(
+                            err.code === 'auth/user-not-found'
+                                ? 'Не е намерен акаунт с този имейл адрес.' :
+                            err.code === 'auth/too-many-requests'
+                                ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
+                            err.code === 'auth/network-request-failed'
+                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                            err.code === 'auth/unauthorized-domain'
+                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
+                            'Грешка при изпращане. Опитайте отново.'
+                        );
                     } finally { this.disabled = false; }
                 });
 
@@ -3788,11 +3820,16 @@
                         await createUserWithEmailAndPassword(auth, email, pw);
                         /* onAuthStateChanged → hideOverlay */
                     } catch (err) {
+                        console.error('Registration error:', err.code, err.message);
                         showAuthError(
                             err.code === 'auth/email-already-in-use'
                                 ? 'Вече имате акаунт с този имейл. Използвайте формата за вход по-горе.' :
                             err.code === 'auth/weak-password'
                                 ? 'Паролата трябва да е поне 6 символа.' :
+                            err.code === 'auth/network-request-failed'
+                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                            err.code === 'auth/unauthorized-domain'
+                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
                             'Грешка при регистрация. Опитайте отново.'
                         );
                     } finally { this.disabled = false; }

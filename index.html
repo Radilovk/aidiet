@@ -3757,7 +3757,7 @@
     </div>
 
     <script type="module">
-        import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { initializeApp, getApps, getApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, onAuthStateChanged, signOut,
             signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail
@@ -3773,7 +3773,7 @@
         };
 
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
-        const auth = getAuth(initializeApp(firebaseConfig));
+        const auth = getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
 
         /* Expose auth-state promise.  Resolves with the user *after* plan sync/restore
          * is complete so the DOMContentLoaded handler sees dietPlan in localStorage
@@ -4028,6 +4028,7 @@
                 /* onAuthStateChanged fires next and handles the redirect */
             } catch (err) {
                 _loginInProgress = false;
+                console.error('Login/register error:', err.code, err.message);
                 loginShowError(
                     err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
                         ? 'Грешен имейл или парола. Опитайте отново или използвайте „Забравена парола?".' :
@@ -4037,6 +4038,12 @@
                         ? 'Вече има акаунт с този имейл. Влезте или използвайте „Забравена парола?".' :
                     err.code === 'auth/too-many-requests'
                         ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
+                    err.code === 'auth/weak-password'
+                        ? 'Паролата е твърде слаба. Използвайте поне 6 символа.' :
+                    err.code === 'auth/network-request-failed'
+                        ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                    err.code === 'auth/unauthorized-domain'
+                        ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
                     'Грешка при вход. Опитайте отново.'
                 );
             } finally {
@@ -4057,7 +4064,7 @@
             if (btn) btn.disabled = true;
             try {
                 await sendPasswordResetEmail(auth, email);
-                loginShowSuccess('Изпратен е имейл за нулиране на паролата. Проверете входящата си поща.');
+                loginShowSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
             } catch (err) {
                 console.error('Password reset error:', err.code, err.message);
                 let msg;
@@ -4067,6 +4074,8 @@
                     msg = 'Твърде много опити. Изчакайте малко и опитайте отново.';
                 } else if (err.code === 'auth/network-request-failed') {
                     msg = 'Мрежова грешка. Проверете интернет връзката си.';
+                } else if (err.code === 'auth/unauthorized-domain') {
+                    msg = 'Домейнът не е оторизиран в Firebase. Свържете се с администратора.';
                 } else {
                     msg = 'Грешка при изпращане на имейл. Моля опитайте отново.';
                 }
