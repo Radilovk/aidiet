@@ -1864,9 +1864,9 @@
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
         </div>
         <div class="profile-header">
-            <div class="profile-avatar" id="profileAvatar" onclick="openEditMode()" title="Кликни за редактиране на профила">И</div>
-            <div class="profile-name" id="profileName" onclick="openEditMode()" title="Кликни за редактиране на профила">Име</div>
-            <div class="profile-email" id="profileEmail" onclick="openEditMode()" title="Кликни за редактиране на профила">email@example.com</div>
+            <div class="profile-avatar" id="profileAvatar" onclick="enableEditing()" title="Кликни за редактиране на профила">И</div>
+            <div class="profile-name" id="profileName" onclick="enableEditing()" title="Кликни за редактиране на профила">Име</div>
+            <div class="profile-email" id="profileEmail" onclick="enableEditing()" title="Кликни за редактиране на профила">email@example.com</div>
             <script>
             /* Instantly populate profile header from localStorage before DOMContentLoaded,
              * so there is never a flash of placeholder "Име"/"email@example.com". */
@@ -2664,31 +2664,18 @@
         }
 
         // --- Editing Functions ---
-        function openEditMode() {
-            // Open the questionnaire if collapsed, then activate edit mode and scroll to it
-            const container = document.getElementById('questionnaireContainer');
-            if (container && !container.classList.contains('open')) {
-                const header = container.querySelector('.questionnaire-header');
-                container.classList.add('open');
-                if (header) header.setAttribute('aria-expanded', 'true');
-            }
-            enableEditing();
-            if (container) {
-                setTimeout(function() {
-                    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
-            }
-        }
-
         function enableEditing() {
             isEditing = true;
 
-            // Open the questionnaire if it is collapsed
+            // Open the questionnaire if it is collapsed and scroll to it
             const container = document.getElementById('questionnaireContainer');
             const header = container ? container.querySelector('.questionnaire-header') : null;
             if (container && !container.classList.contains('open')) {
                 container.classList.add('open');
                 if (header) header.setAttribute('aria-expanded', 'true');
+            }
+            if (container) {
+                setTimeout(function() { container.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
             }
 
             // Enable all inputs
