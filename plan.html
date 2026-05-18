@@ -9164,6 +9164,7 @@
         var _fabLowerTimer = null;
         var _queueDepth    = 0; // incremented for each active runQueue; FAB stays raised while > 0
         var _openPromptPending = false; // prevents double-scheduling of checkOpenAppPrompts
+        var _bubbleSeq = 0; // cancels delayed bubble renders when prompts change quickly
         // Delay must exceed the longest inter-question pause (350–400 ms) so that
         // a chained showBubble call (in the queue) fires before the timer and can
         // cancel the lower animation — keeping the FAB raised throughout the queue.
@@ -9181,6 +9182,7 @@
         }
 
         function removeBubble() {
+            _bubbleSeq++;
             var o=document.getElementById('gameBubble'); if(o) o.remove();
             // Keep FAB raised while a question queue is still running
             if (_queueDepth > 0) return;
@@ -9189,6 +9191,7 @@
 
         function showBubble(question, answers, onAnswer, opts) {
             opts = opts || {};
+            var seq = ++_bubbleSeq;
             // Cancel pending lower animation — new question is coming
             if (_fabLowerTimer) { clearTimeout(_fabLowerTimer); _fabLowerTimer = null; }
 
@@ -9254,6 +9257,7 @@
             var raiseDelay = (!wasRaised && fab) ? 440 : 0;
 
             setTimeout(function() {
+                if (seq !== _bubbleSeq) return;
                 var bubble = document.createElement('div');
                 bubble.id = 'gameBubble';
                 bubble.className = 'game-bubble';
@@ -9301,13 +9305,29 @@
         }
 
         // ── Morning / Evening questions ───────────────────────────────────────
+        function getPromptDayMeta(recordKey) {
+            if (recordKey === getTodayKey()) {
+                return { prefix:'', greetingMorning:undefined, greetingEvening:'Добър вечер!', showName:true };
+            }
+            var todayDate = new Date(getTodayKey() + 'T00:00:00');
+            var recDate = new Date(recordKey + 'T00:00:00');
+            var daysAgo = Math.max(1, Math.round((todayDate - recDate) / 86400000));
+            var label = daysAgo === 1 ? 'Вчера' : 'Преди ' + daysAgo + ' дни';
+            return {
+                prefix:'[' + label + '] ',
+                greetingMorning:'Въвеждане за ' + label.toLowerCase(),
+                greetingEvening:'Въвеждане за ' + label.toLowerCase(),
+                showName:false
+            };
+        }
+
         function showMorningQuestion(force, recordKey, doneCb) {
             recordKey = recordKey || getTodayKey();
             var rec = getRecord(recordKey);
             if (!force && rec.morningCheck) { if (doneCb) doneCb(); return; }
-            var isYesterday = recordKey !== getTodayKey();
+            var meta = getPromptDayMeta(recordKey);
             showBubble(
-                (isYesterday ? '[Вчера] ' : '') + 'Спахте ли добре тази нощ?',
+                meta.prefix + 'Спахте ли добре тази нощ?',
                 YES_NO,
                 function(val) {
                     var r = getRecord(recordKey);
@@ -9317,7 +9337,7 @@
                     if (doneCb) { setTimeout(doneCb, 350); }
                     else { setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400); }
                 },
-                { greeting: isYesterday ? 'Въвеждане за вчера' : undefined, showName: !isYesterday }
+                { greeting: meta.greetingMorning, showName: meta.showName }
             );
         }
 
@@ -9325,9 +9345,9 @@
             recordKey = recordKey || getTodayKey();
             var rec = getRecord(recordKey);
             if (!force && rec.eveningCheck) { if (doneCb) doneCb(); return; }
-            var isYesterday = recordKey !== getTodayKey();
-            var prefix = isYesterday ? '[Вчера] ' : '';
-            var hdrOpts = { greeting: isYesterday ? 'Въвеждане за вчера' : 'Добър вечер!' };
+            var meta = getPromptDayMeta(recordKey);
+            var prefix = meta.prefix;
+            var hdrOpts = { greeting: meta.greetingEvening };
             var eveData = {};
             function q3() {
                 showBubble(prefix+'Изпихте ли поне 2 л вода?', NO_YES, function(v) {
@@ -9367,7 +9387,7 @@
             var h = new Date().getHours();
             // Morning (sleep) question: only relevant after 6 am — asking before
             // that makes no sense (the user may not have slept yet).
-            if (!rec.morningCheck && (!isToday || h >= 5)) {
+            if (!rec.morningCheck && (!isToday || h >= 6)) {
                 queue.push(function(next){ showMorningQuestion(true, recordKey, next); });
             }
             if (!rec.eveningCheck && (!isToday || h >= 20)) {
@@ -9707,11 +9727,11 @@
             if (!isGameEnabled()) return;
             // Do not interrupt a queue that is already in progress (e.g. the
             // on-open queue started by checkOpenAppPrompts).
-            if (_queueDepth > 0) return;
+            if (_queueDepth > 0 || _openPromptPending) return;
             var h = new Date().getHours(), today = getTodayKey();
             var rec = getTodayRecord();
-            // Morning: show once per hour from 5–9 while unanswered
-            if (h >= 5 && h <= 9 && !rec.morningCheck) {
+            // Morning: show once per hour from 6–9 while unanswered
+            if (h >= 6 && h <= 9 && !rec.morningCheck) {
                 var smKey = 'gameMorningShownH_' + today + '_' + h;
                 if (!localStorage.getItem(smKey)) {
                     localStorage.setItem(smKey, '1');
