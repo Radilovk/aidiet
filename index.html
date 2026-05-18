@@ -2692,28 +2692,13 @@
             const heroLoginBtn  = document.getElementById('heroLoginBtn');
 
             if (!authUser) {
-                // Not authenticated — but if user has plan data, show "Моят план" nav button
-                const hasPlan    = !!localStorage.getItem('dietPlan');
-                const hasData    = !!localStorage.getItem('userData');
-                const planSource = localStorage.getItem('planSource');
-
-                if (hasPlan || hasData) {
-                    // Determine destination
-                    const planTarget = getPlanTargetFromState();
-                    if (startNowBtn) startNowBtn.style.display = 'none';
-                    if (heroCTABtn) {
-                        heroCTABtn.href = planTarget;
-                        heroCTABtn.innerHTML = '<i class="fas fa-user-check" aria-hidden="true"></i> Моят план';
-                    }
-                    if (navMyPlanLink) {
-                        navMyPlanLink.href = planTarget;
-                        navMyPlanLink.style.display = 'flex';
-                    }
-                } else {
-                    // New user — show start button
-                    if (startNowBtn) startNowBtn.style.display = 'flex';
-                    if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+                // Not authenticated — always show "Започни промяната"
+                if (startNowBtn) startNowBtn.style.display = 'flex';
+                if (heroCTABtn) {
+                    heroCTABtn.href = 'questionnaire2.html';
+                    heroCTABtn.textContent = 'Започни промяната';
                 }
+                if (navMyPlanLink) navMyPlanLink.style.display = 'none';
                 if (window.location.hash === '#contact') {
                     setTimeout(toggleContactForm, 400);
                 }
