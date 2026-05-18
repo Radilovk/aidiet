@@ -2711,7 +2711,10 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
         dayTarget.mealBreakdown.forEach(m => {
           if (m.type === 'Свободно хранене') {
-            lines.push(`     → ${m.type}: без фиксирана калорийна цел (свободен избор — без calories/macros в JSON)`);
+            const freeMealTarget = m.calories
+              ? `~${m.calories} kcal | Б:${m.protein || 0}г В:${m.carbs || 0}г М:${m.fats || 0}г`
+              : 'планиран обеден слот';
+            lines.push(`     → ${m.type}: ${freeMealTarget} (самото meal поле е без calories/macros в JSON)`);
           } else {
             lines.push(`     → ${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`);
           }
@@ -2804,8 +2807,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
    • Нисковъглехидратно: [ENG] деактивиран → компенсирай с повече [VOL] и [FAT]
    • Щадящ стомах: [VOL] само готвени/щадящи (без сурови влакнини)
 
-HARD BANS: лук, пуешко месо, мед, захар, кетчуп, майонеза, гръцко кисело мляко, грах+риба
-РЯДКО (≤2x/седмица): бекон, пуешка шунка
+Не въвеждай глобални забрани извън профила: спазвай само алергии, клинични ограничения, нежелани храни и dynamic blacklist. Ограничавай ултрапреработени меса до рядка употреба.
 ${dynamicWhitelistSection}${dynamicBlacklistSection}
 
 ПРАВИЛА ЗА ИЗХОД:
@@ -6790,7 +6792,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
   "Хранене 3" = Следобедна закуска
   "Хранене 4" = Вечеря
   "Хранене 5" = Късна закуска
-  "Свободно хранене" = Замества Хранене 2 в свободния ден (без calories/macros)
+  "Свободно хранене" = Замества Хранене 2 в свободния ден (в mealBreakdown има calories/macros за дневните totals; в самото meal поле няма calories/macros)
   Забранено е да използваш имена "Закуска", "Обяд", "Следобедна закуска", "Вечеря", "Късна закуска".
 
 ═══ СПЕЦИАЛНИ ИЗИСКВАНИЯ ЗА СЕДМИЧНА СХЕМА ═══
@@ -6826,7 +6828,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
    - Сумата на mealBreakdown.carbs ТРЯБВА да е равна на дневния carbs
    - Сумата на mealBreakdown.fats ТРЯБВА да е равна на дневните fats
    - Броят обекти в mealBreakdown ТРЯБВА да е равен на meals за деня
-   - ИЗКЛЮЧЕНИЕ за свободния ден: обектът {"type": "Свободно хранене"} в mealBreakdown НЯМА calories/macros — сумирай само останалите хранения
+   - ИЗКЛЮЧЕНИЕ за свободния ден: обектът {"type": "Свободно хранене", "calories": N, "protein": N, "carbs": N, "fats": N} в mealBreakdown задава планирания обеден слот; в Стъпка 3 самото meal поле остава без calories/macros
 
 3. СПЕЦИАЛНИ СЛУЧАИ:
    a) Ако клиентът НЕ ЗАКУСВА:
@@ -6844,7 +6846,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
       - Решавай на база психопрофил — при хранителни тригери, компенсаторни навици, емоционално хранене или рестриктивна история с диети → ДА; при активен голям калориен дефицит, диабет или хранително разстройство (анорексия/булимия) → НЕ (freeDayNumber: null)
       - Свободното хранене е ЗАДЪЛЖИТЕЛНО в събота (6) или неделя (7) — НИКОГА в делник!
       - Запиши избрания ден в полето "freeDayNumber" (6 за Събота или 7 за Неделя)
-      - В mealBreakdown за деня на свободното хранене: ЗАДЪЛЖИТЕЛНО замени обяда с {"type": "Свободно хранене"} БЕЗ полета calories/macros
+      - В mealBreakdown за деня на свободното хранене: ЗАДЪЛЖИТЕЛНО замени обяда с {"type": "Свободно хранене", "calories": N, "protein": N, "carbs": N, "fats": N}; тези стойности са планираният обеден слот
       - След свободното хранене: ЛЕКА ВЕЧЕРЯ (с нормални калории и макроси)
       - Обясни стратегическата стойност на това
    
@@ -6940,7 +6942,7 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
 
 ПРАВИЛА ЗА ПОПЪЛВАНЕ:
 - freeDayNumber: 6 (Събота) или 7 (Неделя) — НИКОГА делник; null ако не е подходящо
-- СВОБОДЕН ДЕН: В mealBreakdown за деня с freeDayNumber, обядът ТРЯБВА да е {"type": "Свободно хранене"} БЕЗ calories/macros; останалите хранения имат нормални калории/макроси; dailyTotals включва планираните калории за Хранене 2 слот плюс останалите хранения
+- СВОБОДЕН ДЕН: В mealBreakdown за деня с freeDayNumber, обядът ТРЯБВА да е {"type": "Свободно хранене", "calories": N, "protein": N, "carbs": N, "fats": N}; останалите хранения имат нормални калории/макроси; dailyTotals включва планираните калории за този слот плюс останалите хранения. В Стъпка 3 самият meal обект за "Свободно хранене" остава без calories/macros.
 - includeDessert: при "Сладко" в желанията → true (десертът е КЪМ обяда, не отделно хранене); при диабет, инсулинова резистентност или строга калорийна цел → false
 
 Създай персонализирана стратегия за ${data.name} базирана на техния уникален профил.`;

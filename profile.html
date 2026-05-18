@@ -3940,7 +3940,7 @@
                     // A meal is considered consumed when it has no toggle button (not added to plan)
                     // or when its check button is checked (countCalories !== false).
                     var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
-                    if (em.isJunk && isConsumed) junkCount++;
+                    if (em.isJunk && isConsumed && !em.isFreeMealReplacement) junkCount++;
                     if (em.isFreeMealReplacement) {
                         // Treat free meal calories as normal allowed (like lunch)
                         freeMealCalSum += (em.calories || 0);
@@ -4007,6 +4007,8 @@
                     else if (pct >  0)    score = 1;
                     // pct === 0 → no earned points yet → score stays null
                     if (score === 5 && has5StarBlocker) score = 4;
+                    if (score !== null && score > 3 && (junkCount > 0 || excessCalories)) score = 3;
+                    if (score !== null && score > 2 && junkCount > 0 && excessCalories) score = 2;
                 }
                 var starIcon='<i class="fas fa-star" style="color:#fbbf24;font-size:0.8em"></i>';
                 var stars='';

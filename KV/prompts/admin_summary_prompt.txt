@@ -15,7 +15,7 @@
 {clinicalProtocolSection}
 Проблеми: {keyProblems} | Медикаменти: {medications}
 {dynamicWhitelistSection}{dynamicBlacklistSection}
-{clinicalProtocolSection}{clinicalProtocolSupplementSection}
+{clinicalProtocolSupplementSection}
 ══════════════════════════════════════════════════════════
 📋 JSON ФОРМАТ НА ОТГОВОРА
 ══════════════════════════════════════════════════════════
@@ -23,11 +23,11 @@
 JSON (ТОЧЕН ФОРМАТ):
 {
   "summary": {"bmr": {bmr}, "dailyCalories": {avgCalories}, "macros": {"protein": {avgProtein}, "carbs": {avgCarbs}, "fats": {avgFats}}},
-  "recommendations": ["храна 1", "храна 2", "храна 3", "храна 4", "храна 5"],
-  "forbidden": ["храна 1", "храна 2", "храна 3"],
+  "recommendations": ["храна 1", "храна 2", "...", "храна 10"],
+  "forbidden": ["храна 1", "храна 2", "...", "храна 10"],
   "psychology": ["съвет 1", "съвет 2", "съвет 3"],
   "waterIntake": "{hydrationStrategy}",
-  "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)"]
+  "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)", "добавка 3 (дозировка)"]
 }
 
 ЗАДЪЛЖИТЕЛНО:
