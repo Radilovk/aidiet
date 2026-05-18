@@ -1747,36 +1747,6 @@ async function kvPutJSON(env, key, data, ttl = AI_LOG_KV_TTL) {
   }
 }
 
-async function kvDeleteKey(env, key) {
-  if (!env?.page_content) return false;
-  try {
-    await env.page_content.delete(key);
-    return true;
-  } catch (error) {
-    console.error(`[KV] Failed to delete key ${key}:`, error);
-    return false;
-  }
-}
-
-async function getCombinedAILogIndex(env) {
-  const kvIndex = await kvGetJSON(env, AI_LOG_COMBINED_INDEX_KEY);
-  if (kvIndex && Array.isArray(kvIndex.sessions) && kvIndex.logs) {
-    return kvIndex;
-  }
-
-  const cacheIndex = await cacheGet(AI_LOG_COMBINED_INDEX_KEY);
-  if (cacheIndex && Array.isArray(cacheIndex.sessions) && cacheIndex.logs) {
-    return cacheIndex;
-  }
-
-  return { sessions: [], logs: {} };
-}
-
-async function getAILogEntry(env, logId) {
-  const key = `ai_communication_log:${logId}`;
-  return await kvGetJSON(env, key) || await cacheGet(key);
-}
-
 /**
  * Remove internal justification fields from plan before returning to client
  * These fields are only for the validator and should not be visible to the end user
@@ -8843,7 +8813,7 @@ async function finalizeAISessionLogs(env, sessionId) {
   if (!logIds || logIds.length === 0) return;
   
   try {
-    let combinedIndex = await getCombinedAILogIndex(env);
+    let combinedIndex = await kvGetJSON(env, AI_LOG_COMBINED_INDEX_KEY) || await cacheGet(AI_LOG_COMBINED_INDEX_KEY) || { sessions: [], logs: {} };
 
     // Add sessionId to the ordered list if not already present (most recent first)
     if (!combinedIndex.sessions.includes(sessionId)) {
@@ -9979,7 +9949,7 @@ async function handleGetAILogs(request, env) {
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
     
-    const combinedIndex = await getCombinedAILogIndex(env);
+    const combinedIndex = await kvGetJSON(env, AI_LOG_COMBINED_INDEX_KEY) || await cacheGet(AI_LOG_COMBINED_INDEX_KEY);
     
     if (combinedIndex && combinedIndex.sessions && combinedIndex.sessions.length > 0) {
       // Session-based format (current)
@@ -10003,7 +9973,9 @@ async function handleGetAILogs(request, env) {
       // Apply pagination
       const paginatedIds = allLogIds.slice(offset, offset + limit);
       
-      const primaryLogs = await Promise.all(paginatedIds.map(logId => getAILogEntry(env, logId)));
+      const primaryLogs = await Promise.all(
+        paginatedIds.map(logId => kvGetJSON(env, `ai_communication_log:${logId}`).then(log => log || cacheGet(`ai_communication_log:${logId}`)))
+      );
       
       // Combine request and response logs (backward compatible with both formats)
       const logs = [];
@@ -10072,7 +10044,7 @@ async function handleGetAILogs(request, env) {
  */
 async function handleCleanupAILogs(request, env) {
   try {
-    let combinedIndex = await getCombinedAILogIndex(env);
+    let combinedIndex = await kvGetJSON(env, AI_LOG_COMBINED_INDEX_KEY) || await cacheGet(AI_LOG_COMBINED_INDEX_KEY);
     
     if (!combinedIndex || !combinedIndex.sessions || combinedIndex.sessions.length === 0) {
       return jsonResponse({ 
@@ -10111,13 +10083,11 @@ async function handleCleanupAILogs(request, env) {
     }
     
     // Delete the combined index
-    deletePromises.push(
-      cacheDelete(AI_LOG_COMBINED_INDEX_KEY),
-      kvDeleteKey(env, AI_LOG_COMBINED_INDEX_KEY)
-    );
+    deletePromises.push(cacheDelete(AI_LOG_COMBINED_INDEX_KEY));
+    if (env?.page_content) deletePromises.push(env.page_content.delete(AI_LOG_COMBINED_INDEX_KEY));
 
     for (const logId of allLogIds) {
-      deletePromises.push(kvDeleteKey(env, `ai_communication_log:${logId}`));
+      if (env?.page_content) deletePromises.push(env.page_content.delete(`ai_communication_log:${logId}`));
     }
     
     await Promise.all(deletePromises);
@@ -10143,7 +10113,7 @@ async function handleCleanupAILogs(request, env) {
  */
 async function handleExportAILogs(request, env) {
   try {
-    let combinedIndex = await getCombinedAILogIndex(env);
+    let combinedIndex = await kvGetJSON(env, AI_LOG_COMBINED_INDEX_KEY) || await cacheGet(AI_LOG_COMBINED_INDEX_KEY);
     
     if (!combinedIndex || !combinedIndex.sessions || combinedIndex.sessions.length === 0) {
       return new Response('Няма налични логове за експорт.', {
@@ -10176,7 +10146,9 @@ async function handleExportAILogs(request, env) {
       });
     }
     
-    const requestLogs = await Promise.all(allLogIds.map(logId => getAILogEntry(env, logId)));
+    const requestLogs = await Promise.all(
+      allLogIds.map(logId => kvGetJSON(env, `ai_communication_log:${logId}`).then(log => log || cacheGet(`ai_communication_log:${logId}`)))
+    );
     
     // Build text content
     let textContent = '='.repeat(80) + '\n';

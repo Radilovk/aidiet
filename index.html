@@ -1659,12 +1659,6 @@
             background: rgba(61,220,132,0.1);
         }
 
-        .android-version-note {
-            margin-top: 10px;
-            font-size: 0.8rem;
-            color: #9ab;
-        }
-
         .android-steps {
             display: flex;
             flex-direction: column;
@@ -2295,10 +2289,9 @@
                     <div class="android-step"><span class="android-step-num">2</span><span>В настройките разреши <strong>„Инсталация от неизвестни източници"</strong></span></div>
                     <div class="android-step"><span class="android-step-num">3</span><span>Отвори сваления APK файл и потвърди</span></div>
                 </div>
-                <a class="android-btn" id="apkDownloadBtn" data-apk-download data-apk-version-target="apkReleaseLabel" href="https://github.com/Radilovk/aidiet/releases/latest">
-                    <i class="fab fa-android"></i> <span data-apk-button-label>Свали APK</span>
+                <a class="android-btn" id="apkDownloadBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
+                    <i class="fab fa-android"></i> Свали APK
                 </a>
-                <div class="android-version-note" id="apkReleaseLabel">Проверка за последния APK...</div>
             </div>
 
             <!-- Option 3: Google Play (future) -->
@@ -2316,7 +2309,7 @@
                 </a>
             </div>
         </div>
-        <div class="android-version-note" data-app-version>Версия...</div>
+        <p style="margin-top: 14px; font-size: 0.82rem; color: #9ab;" data-app-version>Версия...</p>
     </section>
 
     <!-- Footer -->
@@ -3740,7 +3733,6 @@
             <span>Профил</span>
         </a>
         </nav>
-    <script src="./app-meta.js"></script>
     <script src="./drive-backup.js"></script>
     <!-- NativeBackup: mirrors key localStorage values to Capacitor Preferences so
          plan data survives APK reinstall via Android Auto Backup. -->
@@ -4136,6 +4128,19 @@
                 .forEach(k => localStorage.removeItem(k));
             window.location.replace('index.html?stay=1');
         };
+    </script>
+
+    <script>
+    (function() {
+        fetch('./twa-manifest.json', { cache: 'no-store' })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(manifest) {
+                if (!manifest || !manifest.appVersion) return;
+                var text = 'Версия ' + manifest.appVersion + (manifest.versionCode ? ' • build ' + manifest.versionCode : '');
+                document.querySelectorAll('[data-app-version]').forEach(function(el) { el.textContent = text; });
+            })
+            .catch(function() {});
+    })();
     </script>
 </body>
 </html>

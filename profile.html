@@ -349,8 +349,7 @@
             transform: translateY(0);
         }
 
-        .profile-build-version,
-        .profile-android-note {
+        .profile-build-version {
             font-size: 0.82rem;
             color: var(--text-gray);
             margin-top: 8px;
@@ -1917,11 +1916,10 @@
                 <div id="socialLoginError" style="color:#ef4444;font-size:0.8rem;text-align:center;display:none;max-width:260px;"></div>
             </div>
 
-            <a class="profile-android-btn" id="profileAndroidBtn" data-apk-download data-apk-version-target="profileApkReleaseLabel" href="https://github.com/Radilovk/aidiet/releases/latest">
+            <a class="profile-android-btn" id="profileAndroidBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
                 <i class="fab fa-android"></i>
-                <span data-apk-button-label>Свали за Android (.apk)</span>
+                <span>Свали за Android (.apk)</span>
             </a>
-            <div class="profile-android-note" id="profileApkReleaseLabel">Проверка за последния APK...</div>
 
         </div>
 
@@ -2599,37 +2597,18 @@
             }
         }
 
-        function getProfileInitialLetter(name, email, fallback) {
-            const source = (name || email || fallback || 'П').trim();
-            return source ? source.charAt(0).toUpperCase() : 'П';
-        }
-
-        function getStoredProfileAvatarUrl(user) {
-            const uploadedAvatar = localStorage.getItem('profileAvatar');
-            if (uploadedAvatar) return uploadedAvatar;
-
-            if (user && user.photoURL) {
-                localStorage.setItem('profilePhotoURL', user.photoURL);
-                localStorage.setItem('profilePhotoUid', user.uid);
-                return user.photoURL;
-            }
-
-            const cachedPhotoUid = localStorage.getItem('profilePhotoUid');
-            const cachedPhotoUrl = localStorage.getItem('profilePhotoURL');
-            if (user && cachedPhotoUid === user.uid && cachedPhotoUrl) {
-                return cachedPhotoUrl;
-            }
-
-            return '';
-        }
-
-        function renderProfileAvatar(options) {
+        function renderProfileAvatar(name, email, user) {
             const avatar = document.getElementById('profileAvatar');
             if (!avatar) return;
 
-            const imageUrl = options && Object.prototype.hasOwnProperty.call(options, 'imageUrl')
-                ? options.imageUrl
-                : getStoredProfileAvatarUrl(options?.user || null);
+            let imageUrl = localStorage.getItem('profileAvatar') || '';
+            if (!imageUrl && user && user.photoURL) {
+                imageUrl = user.photoURL;
+                localStorage.setItem('profilePhotoURL', imageUrl);
+                localStorage.setItem('profilePhotoUid', user.uid);
+            } else if (!imageUrl && user && localStorage.getItem('profilePhotoUid') === user.uid) {
+                imageUrl = localStorage.getItem('profilePhotoURL') || '';
+            }
 
             if (imageUrl) {
                 avatar.style.backgroundImage = `url(${imageUrl})`;
@@ -2640,7 +2619,8 @@
             }
 
             avatar.style.backgroundImage = '';
-            avatar.textContent = getProfileInitialLetter(options?.name, options?.email, options?.fallback);
+            const source = (name || email || 'П').trim();
+            avatar.textContent = source ? source.charAt(0).toUpperCase() : 'П';
         }
 
         // --- Data Loading ---
@@ -2695,7 +2675,7 @@
                 if (userData.email) {
                     email.textContent = userData.email;
                 }
-                renderProfileAvatar({ name: userData.name, email: userData.email });
+                renderProfileAvatar(userData.name, userData.email, null);
 
                 // Populate all form fields
                 populateFormFields();
@@ -2865,7 +2845,7 @@
                 if (updatedData.email) {
                     document.getElementById('profileEmail').textContent = updatedData.email;
                 }
-                renderProfileAvatar({ name: updatedData.name, email: updatedData.email });
+                renderProfileAvatar(updatedData.name, updatedData.email, null);
 
                 showAlert('✓ Данните са запазени успешно!', 'info');
                 cancelEditing();
@@ -3339,7 +3319,7 @@
                             try {
                                 localStorage.setItem('profileAvatar', imageData);
                                 // Update avatar display
-                                renderProfileAvatar({ imageUrl: imageData });
+                                renderProfileAvatar(userData?.name, userData?.email, null);
                                 showAlert('Аватарът е качен успешно!', 'success');
                             } catch (err) {
                                 console.error('Failed to save avatar:', err);
@@ -4721,7 +4701,6 @@
             <span>Профил</span>
         </a>
     </nav>
-    <script src="./app-meta.js"></script>
     <script src="./drive-backup.js"></script>
     <!-- NativeBackup: mirrors localStorage to Capacitor Preferences (Android SharedPreferences) -->
     <script src="./native-backup.js"></script>
@@ -4764,12 +4743,7 @@
                     try { qData = JSON.parse(localStorage.getItem('userData') || 'null'); } catch (_) {}
                     if (nameEl  && !qData?.name)  nameEl.textContent  = user.displayName || 'Потребител';
                     if (emailEl && !qData?.email) emailEl.textContent = user.email || '';
-                    if (avatar) renderProfileAvatar({
-                        user,
-                        name: qData?.name || user.displayName,
-                        email: qData?.email || user.email,
-                        fallback: 'П'
-                    });
+                    if (avatar) renderProfileAvatar(qData?.name || user.displayName, qData?.email || user.email, user);
                 } else {
                     section?.classList.remove('hidden');
                     logoutBtn?.classList.add('hidden');
@@ -4849,6 +4823,18 @@
                     .forEach(k => localStorage.removeItem(k));
             }
         }
+    </script>
+    <script>
+    (function() {
+        fetch('./twa-manifest.json', { cache: 'no-store' })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(manifest) {
+                if (!manifest || !manifest.appVersion) return;
+                var text = 'Версия ' + manifest.appVersion + (manifest.versionCode ? ' • build ' + manifest.versionCode : '');
+                document.querySelectorAll('[data-app-version]').forEach(function(el) { el.textContent = text; });
+            })
+            .catch(function() {});
+    })();
     </script>
 </body>
 </html>
