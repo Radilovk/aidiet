@@ -2,7 +2,7 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v7';
+const CACHE_NAME = 'nutriplan-v8';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -12,6 +12,7 @@ const STATIC_CACHE = [
   `${BASE_PATH}/questionnaire.html`,
   `${BASE_PATH}/questionnaire2.html`,
   `${BASE_PATH}/plan.html`,
+  `${BASE_PATH}/quick-answer.html`,
   `${BASE_PATH}/profile.html`,
   `${BASE_PATH}/guidelines.html`,
   `${BASE_PATH}/analysis.html`,
@@ -26,6 +27,54 @@ const STATIC_CACHE = [
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
+
+function buildQuickAnswerUrl(type, params = {}) {
+  const search = new URLSearchParams({ type });
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
+  });
+  return `${BASE_PATH}/quick-answer.html?${search.toString()}`;
+}
+
+function getGameNotificationActions(type) {
+  if (type === 'morning_check') {
+    return [
+      { action: 'sleep_yes', title: 'Да 🌞' },
+      { action: 'sleep_no', title: 'Не 😴' }
+    ];
+  }
+  if (type === 'evening_check') {
+    return [
+      { action: 'open_evening', title: 'Бърз отговор ⚡' },
+      { action: 'water_yes', title: 'Пих вода 💧' }
+    ];
+  }
+  return undefined;
+}
+
+function resolveNotificationTarget(data = {}, action = '') {
+  const type = data.type || data.notificationType || '';
+  const recordKey = data.recordKey || '';
+  if (type === 'morning_check' && action === 'sleep_yes') {
+    return buildQuickAnswerUrl('morning_check', { date: recordKey, auto: 'morning_yes' });
+  }
+  if (type === 'morning_check' && action === 'sleep_no') {
+    return buildQuickAnswerUrl('morning_check', { date: recordKey, auto: 'morning_no' });
+  }
+  if (type === 'evening_check' && action === 'water_yes') {
+    return buildQuickAnswerUrl('evening_check', { date: recordKey, water: '1' });
+  }
+  if (type === 'evening_check' && action === 'open_evening') {
+    return buildQuickAnswerUrl('evening_check', { date: recordKey });
+  }
+  return data.url || `${BASE_PATH}/plan.html`;
+}
+
+function toAbsoluteAppUrl(url) {
+  if (url.startsWith('http')) return url;
+  if (BASE_PATH && url.startsWith(`${BASE_PATH}/`)) return url;
+  return `${BASE_PATH}${url}`;
+}
 
 // Install event - cache static resources
 self.addEventListener('install', (event) => {
@@ -166,7 +215,12 @@ self.addEventListener('push', (event) => {
       tag,
       vibrate:           [200, 100, 200],
       requireInteraction: data.notificationType === 'morning_check',
-      data:              { url: data.url || '/plan.html' }
+      actions:           getGameNotificationActions(data.notificationType),
+      data:              {
+        url: data.url || (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/plan.html'),
+        type: data.notificationType || '',
+        recordKey: data.recordKey || ''
+      }
     }).catch(err => {
       console.error('[SW] showNotification failed:', err);
       return self.registration.showNotification(DEFAULT_TITLE, {
@@ -179,8 +233,8 @@ self.addEventListener('push', (event) => {
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || '/plan.html';
-  const targetUrl = url.startsWith('http') ? url : `${BASE_PATH}${url}`;
+  const url = resolveNotificationTarget(event.notification.data || {}, event.action || '');
+  const targetUrl = toAbsoluteAppUrl(url);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -225,7 +279,8 @@ self.addEventListener('message', (event) => {
           icon:               '/icon-192x192.png',
           badge:              '/icon-192x192.png',
           tag:                item.tag,
-          data:               { url: item.url, type: item.type },
+          actions:            item.actions || getGameNotificationActions(item.type),
+          data:               { url: item.url, type: item.type, recordKey: item.recordKey || '' },
           requireInteraction: item.requireInteraction || false,
           vibrate:            item.vibrate || [200, 100, 200]
         });
