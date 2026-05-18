@@ -1659,6 +1659,12 @@
             background: rgba(61,220,132,0.1);
         }
 
+        .android-version-note {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #9ab;
+        }
+
         .android-steps {
             display: flex;
             flex-direction: column;
@@ -2289,9 +2295,10 @@
                     <div class="android-step"><span class="android-step-num">2</span><span>В настройките разреши <strong>„Инсталация от неизвестни източници"</strong></span></div>
                     <div class="android-step"><span class="android-step-num">3</span><span>Отвори сваления APK файл и потвърди</span></div>
                 </div>
-                <a class="android-btn" id="apkDownloadBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
-                    <i class="fab fa-android"></i> Свали APK
+                <a class="android-btn" id="apkDownloadBtn" data-apk-download data-apk-version-target="apkReleaseLabel" href="https://github.com/Radilovk/aidiet/releases/latest">
+                    <i class="fab fa-android"></i> <span data-apk-button-label>Свали APK</span>
                 </a>
+                <div class="android-version-note" id="apkReleaseLabel">Проверка за последния APK...</div>
             </div>
 
             <!-- Option 3: Google Play (future) -->
@@ -2309,6 +2316,7 @@
                 </a>
             </div>
         </div>
+        <div class="android-version-note" data-app-version>Версия...</div>
     </section>
 
     <!-- Footer -->
@@ -3731,7 +3739,8 @@
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
-    </nav>
+        </nav>
+    <script src="./app-meta.js"></script>
     <script src="./drive-backup.js"></script>
     <!-- NativeBackup: mirrors key localStorage values to Capacitor Preferences so
          plan data survives APK reinstall via Android Auto Backup. -->
@@ -4119,7 +4128,7 @@
                 'canProceedWithWarning', 'validationSource',
                 'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
                 'planSyncPending',
-                'profilePhotoURL', 'profilePhotoUid'
+                'profilePhotoURL', 'profilePhotoUid', 'profileAvatar'
             ];
             PLAN_KEYS.forEach(k => localStorage.removeItem(k));
             Object.keys(localStorage)

@@ -154,15 +154,18 @@ const OFFENSIVE_PATTERNS = [
 ];
 
 // AI Communication Logging Configuration
-// HYBRID APPROACH: Cache API for normal logs + KV for errors
+// HYBRID APPROACH: Cache API for fast local reads + KV for global persistence
 // Cache API is free and doesn't count against KV READ/WRITE quotas
 // Logs are stored temporarily in Cache with 24-hour TTL
-// Errors are permanently stored in KV for debugging
+// KV keeps the combined session index and log entries so admin can read logs
+// created inside queue-consumer invocations from any region/colo.
 // MAX_LOG_ENTRIES controls how many sessions to keep (1 = only the most recent session)
 // Increased to 10 to preserve error logs for debugging failed plan generations
 const MAX_LOG_ENTRIES = 10; // Keep last 10 sessions to ensure error logs are preserved for debugging
 const AI_LOG_CACHE_TTL = 24 * 60 * 60; // 24 hours - logs expire after 1 day
+const AI_LOG_KV_TTL = 14 * 24 * 60 * 60; // 14 days - enough history for admin debugging
 const AI_ERROR_LOG_KV_ENABLED = true; // Enable KV storage for errors (debugging capability)
+const AI_LOG_COMBINED_INDEX_KEY = 'ai_log_combined_index';
 
 // Built-in default validation prompt (used when no custom prompt is stored in KV).
 // Also returned by handleGetDefaultPrompt so the admin "Виж Текущ Промпт" button works.
@@ -1719,6 +1722,59 @@ async function cacheDelete(key) {
     console.error(`[Cache API] Failed to delete key ${key}:`, error);
     return false;
   }
+}
+
+async function kvGetJSON(env, key) {
+  if (!env?.page_content) return null;
+  try {
+    const raw = await env.page_content.get(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.error(`[KV] Failed to get key ${key}:`, error);
+    return null;
+  }
+}
+
+async function kvPutJSON(env, key, data, ttl = AI_LOG_KV_TTL) {
+  if (!env?.page_content) return false;
+  try {
+    const options = ttl ? { expirationTtl: ttl } : undefined;
+    await env.page_content.put(key, JSON.stringify(data), options);
+    return true;
+  } catch (error) {
+    console.error(`[KV] Failed to set key ${key}:`, error);
+    return false;
+  }
+}
+
+async function kvDeleteKey(env, key) {
+  if (!env?.page_content) return false;
+  try {
+    await env.page_content.delete(key);
+    return true;
+  } catch (error) {
+    console.error(`[KV] Failed to delete key ${key}:`, error);
+    return false;
+  }
+}
+
+async function getCombinedAILogIndex(env) {
+  const kvIndex = await kvGetJSON(env, AI_LOG_COMBINED_INDEX_KEY);
+  if (kvIndex && Array.isArray(kvIndex.sessions) && kvIndex.logs) {
+    return kvIndex;
+  }
+
+  const cacheIndex = await cacheGet(AI_LOG_COMBINED_INDEX_KEY);
+  if (cacheIndex && Array.isArray(cacheIndex.sessions) && cacheIndex.logs) {
+    return cacheIndex;
+  }
+
+  return { sessions: [], logs: {} };
+}
+
+async function getAILogEntry(env, logId) {
+  const key = `ai_communication_log:${logId}`;
+  return await kvGetJSON(env, key) || await cacheGet(key);
 }
 
 /**
@@ -8753,14 +8809,12 @@ async function logAIResponse(env, logId, stepName, responseData, requestData = n
 
     // Single cache.put for the combined entry (1 subrequest instead of 2)
     await cacheSet(`ai_communication_log:${logId}`, logEntry, AI_LOG_CACHE_TTL);
+    await kvPutJSON(env, `ai_communication_log:${logId}`, logEntry, AI_LOG_KV_TTL);
     
     // HYBRID: If there's an error or failure, ALSO store in KV for permanent debugging
     if ((responseData.error || !responseData.success) && AI_ERROR_LOG_KV_ENABLED && env && env.page_content) {
       try {
-        await env.page_content.put(
-          `ai_error_log:${logId}`,
-          JSON.stringify(logEntry)
-        );
+        await env.page_content.put(`ai_error_log:${logId}`, JSON.stringify(logEntry));
         console.log(`[KV] Error logged to KV for permanent storage: ${stepName} (${logId})`);
       } catch (kvError) {
         console.error('[KV] Failed to log error to KV:', kvError);
@@ -8789,8 +8843,7 @@ async function finalizeAISessionLogs(env, sessionId) {
   if (!logIds || logIds.length === 0) return;
   
   try {
-    let combinedIndex = await cacheGet('ai_log_combined_index');
-    combinedIndex = combinedIndex || { sessions: [], logs: {} };
+    let combinedIndex = await getCombinedAILogIndex(env);
 
     // Add sessionId to the ordered list if not already present (most recent first)
     if (!combinedIndex.sessions.includes(sessionId)) {
@@ -8811,7 +8864,8 @@ async function finalizeAISessionLogs(env, sessionId) {
       ...(combinedIndex.logs[sessionId] || []),
       ...logIds
     ];
-    await cacheSet('ai_log_combined_index', combinedIndex, AI_LOG_CACHE_TTL);
+    await cacheSet(AI_LOG_COMBINED_INDEX_KEY, combinedIndex, AI_LOG_CACHE_TTL);
+    await kvPutJSON(env, AI_LOG_COMBINED_INDEX_KEY, combinedIndex, AI_LOG_KV_TTL);
     
     console.log(`[Cache API] Session ${sessionId} index finalized with ${logIds.length} log entries`);
   } catch (error) {
@@ -9921,13 +9975,11 @@ async function handleSaveValidationConfig(request, env) {
  */
 async function handleGetAILogs(request, env) {
   try {
-    // AI logs are now stored in Cache API (free, no KV quota impact)
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
     
-    // Get combined index from Cache API (single entry replaces separate session index + per-session log lists)
-    let combinedIndex = await cacheGet('ai_log_combined_index');
+    const combinedIndex = await getCombinedAILogIndex(env);
     
     if (combinedIndex && combinedIndex.sessions && combinedIndex.sessions.length > 0) {
       // Session-based format (current)
@@ -9951,21 +10003,12 @@ async function handleGetAILogs(request, env) {
       // Apply pagination
       const paginatedIds = allLogIds.slice(offset, offset + limit);
       
-      // Fetch logs in parallel from Cache API
-      // New combined format: single entry per logId (type='combined')
-      // Old format: separate request + response entries (kept for backward compatibility)
-      const logPromises = paginatedIds.flatMap(logId => [
-        cacheGet(`ai_communication_log:${logId}`),
-        cacheGet(`ai_communication_log:${logId}_response`)
-      ]);
-      
-      const logData = await Promise.all(logPromises);
+      const primaryLogs = await Promise.all(paginatedIds.map(logId => getAILogEntry(env, logId)));
       
       // Combine request and response logs (backward compatible with both formats)
       const logs = [];
       for (let i = 0; i < paginatedIds.length; i++) {
-        const primaryLog = logData[i * 2];
-        const legacyResponseLog = logData[i * 2 + 1];
+        const primaryLog = primaryLogs[i];
         
         if (primaryLog) {
           if (primaryLog.type === 'combined') {
@@ -9988,7 +10031,7 @@ async function handleGetAILogs(request, env) {
               }
             });
           } else {
-            // Legacy format: merge separate request + response entries
+            const legacyResponseLog = await cacheGet(`ai_communication_log:${paginatedIds[i]}_response`);
             logs.push({
               ...primaryLog,
               response: legacyResponseLog
@@ -10004,7 +10047,7 @@ async function handleGetAILogs(request, env) {
         limit: limit,
         offset: offset,
         sessionCount: sessionIds.length,
-        storageType: 'cache' // Indicate logs are from Cache API
+        storageType: 'kv+cache'
       }, 200, {
         cacheControl: 'public, max-age=60' // Cache for 1 minute - logs are frequently updated
       });
@@ -10014,7 +10057,7 @@ async function handleGetAILogs(request, env) {
         success: true, 
         logs: [], 
         total: 0,
-        storageType: 'cache'
+        storageType: 'kv+cache'
       });
     }
   } catch (error) {
@@ -10029,18 +10072,14 @@ async function handleGetAILogs(request, env) {
  */
 async function handleCleanupAILogs(request, env) {
   try {
-    // AI logs are now in Cache API and automatically expire after 24 hours
-    // This function manually clears all logs from cache
-    
-    // Get combined index from Cache API
-    let combinedIndex = await cacheGet('ai_log_combined_index');
+    let combinedIndex = await getCombinedAILogIndex(env);
     
     if (!combinedIndex || !combinedIndex.sessions || combinedIndex.sessions.length === 0) {
       return jsonResponse({ 
         success: true, 
         message: 'No logs to cleanup', 
         deletedCount: 0,
-        storageType: 'cache'
+        storageType: 'kv+cache'
       });
     }
     
@@ -10058,7 +10097,7 @@ async function handleCleanupAILogs(request, env) {
         success: true, 
         message: 'No logs to cleanup', 
         deletedCount: 0,
-        storageType: 'cache'
+        storageType: 'kv+cache'
       });
     }
     
@@ -10072,7 +10111,14 @@ async function handleCleanupAILogs(request, env) {
     }
     
     // Delete the combined index
-    deletePromises.push(cacheDelete('ai_log_combined_index'));
+    deletePromises.push(
+      cacheDelete(AI_LOG_COMBINED_INDEX_KEY),
+      kvDeleteKey(env, AI_LOG_COMBINED_INDEX_KEY)
+    );
+
+    for (const logId of allLogIds) {
+      deletePromises.push(kvDeleteKey(env, `ai_communication_log:${logId}`));
+    }
     
     await Promise.all(deletePromises);
     
@@ -10083,7 +10129,7 @@ async function handleCleanupAILogs(request, env) {
       message: `Successfully cleaned up ${allLogIds.length} log entries from ${combinedIndex.sessions.length} sessions`,
       deletedCount: allLogIds.length,
       sessionCount: combinedIndex.sessions.length,
-      storageType: 'cache'
+      storageType: 'kv+cache'
     }, 200);
   } catch (error) {
     console.error('[Cache API] Error cleaning up AI logs:', error);
@@ -10097,9 +10143,7 @@ async function handleCleanupAILogs(request, env) {
  */
 async function handleExportAILogs(request, env) {
   try {
-    // AI logs are now in Cache API
-    // Get combined index from Cache API
-    let combinedIndex = await cacheGet('ai_log_combined_index');
+    let combinedIndex = await getCombinedAILogIndex(env);
     
     if (!combinedIndex || !combinedIndex.sessions || combinedIndex.sessions.length === 0) {
       return new Response('Няма налични логове за експорт.', {
@@ -10132,32 +10176,20 @@ async function handleExportAILogs(request, env) {
       });
     }
     
-    // Fetch all logs for the last session from Cache API
-    const logPromises = allLogIds.flatMap(logId => [
-      cacheGet(`ai_communication_log:${logId}`),
-      cacheGet(`ai_communication_log:${logId}_response`)
-    ]);
-    
-    const logData = await Promise.all(logPromises);
+    const requestLogs = await Promise.all(allLogIds.map(logId => getAILogEntry(env, logId)));
     
     // Build text content
     let textContent = '='.repeat(80) + '\n';
     textContent += 'AI КОМУНИКАЦИОННИ ЛОГОВЕ - ПОСЛЕДЕН ПЛАН\n';
-    textContent += '(Съхранени в Cache API - автоматично изтриване след 24 часа)\n';
+    textContent += '(Съхранени в KV + Cache API за глобален достъп от админ панела)\n';
     textContent += '='.repeat(80) + '\n\n';
     textContent += `Дата на експорт: ${new Date().toISOString()}\n`;
     textContent += `Сесия: ${lastSessionId}\n`;
     textContent += `Общо стъпки: ${allLogIds.length}\n`;
     textContent += '\n';
     
-    // Note: logData contains paired entries (request, response) for each log ID
-    // New combined format: single entry per logId (type='combined')
-    // Old format: separate request + response entries (kept for backward compatibility)
     for (let i = 0; i < allLogIds.length; i++) {
-      const requestLog = logData[i * 2];
-      const legacyResponseLog = logData[i * 2 + 1];
-      // For combined entries the response data is embedded in the primary log entry;
-      // fall back to the legacy separate response entry for older records.
+      const requestLog = requestLogs[i];
       const responseLog = requestLog?.type === 'combined' ? {
         timestamp: requestLog.responseTimestamp || requestLog.timestamp,
         success: requestLog.success,
@@ -10166,7 +10198,7 @@ async function handleExportAILogs(request, env) {
         estimatedOutputTokens: requestLog.estimatedOutputTokens,
         error: requestLog.error,
         response: requestLog.response
-      } : legacyResponseLog;
+      } : await cacheGet(`ai_communication_log:${allLogIds[i]}_response`);
       
       if (requestLog) {
         textContent += '='.repeat(80) + '\n';
