@@ -203,6 +203,9 @@
             box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
             position: relative;
             cursor: pointer;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
         }
 
         .profile-avatar::after {
@@ -1865,9 +1868,10 @@
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
         </div>
         <div class="profile-header">
-            <div class="profile-avatar" id="profileAvatar" onclick="enableEditing()" title="Кликни за редактиране на профила">И</div>
-            <div class="profile-name" id="profileName" onclick="enableEditing()" title="Кликни за редактиране на профила">Име</div>
-            <div class="profile-email" id="profileEmail" onclick="enableEditing()" title="Кликни за редактиране на профила">email@example.com</div>
+            <div class="profile-avatar" id="profileAvatar" title="Качете аватар">И</div>
+            <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+            <div class="profile-name" id="profileName">Име</div>
+            <div class="profile-email" id="profileEmail">email@example.com</div>
             <script>
             /* Instantly populate profile header from localStorage before DOMContentLoaded,
              * so there is never a flash of placeholder "Име"/"email@example.com". */
@@ -1880,6 +1884,14 @@
                     }
                     if (ud && ud.email) {
                         document.getElementById('profileEmail').textContent = ud.email;
+                    }
+                    
+                    // Load cached avatar if exists
+                    var cachedAvatar = localStorage.getItem('profileAvatar');
+                    if (cachedAvatar) {
+                        var avatarEl = document.getElementById('profileAvatar');
+                        avatarEl.style.backgroundImage = 'url(' + cachedAvatar + ')';
+                        avatarEl.textContent = ''; // Hide initial letter when avatar is set
                     }
                 } catch (_) {}
             })();
@@ -1934,7 +1946,7 @@
                  aria-controls="questionnaireContent">
                 <div class="questionnaire-title">
                     <i class="fas fa-clipboard-list"></i>
-                    <span>Вашият Въпросник</span>
+                    <span>Вашите данни</span>
                 </div>
                 <i class="fas fa-chevron-down questionnaire-toggle"></i>
             </div>
@@ -3255,6 +3267,38 @@
             loadUserData();
             loadAnalysis(); // REQUIREMENT 1: Load analysis
             // Macros and strategy panels moved to guidelines.html
+            
+            // Avatar upload functionality
+            const profileAvatar = document.getElementById('profileAvatar');
+            const avatarInput = document.getElementById('avatarInput');
+            
+            if (profileAvatar && avatarInput) {
+                profileAvatar.addEventListener('click', function() {
+                    avatarInput.click();
+                });
+                
+                avatarInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            const imageData = event.target.result;
+                            // Store in localStorage
+                            try {
+                                localStorage.setItem('profileAvatar', imageData);
+                                // Update avatar display
+                                profileAvatar.style.backgroundImage = 'url(' + imageData + ')';
+                                profileAvatar.textContent = ''; // Hide initial letter
+                                showAlert('Аватарът е качен успешно!', 'success');
+                            } catch (err) {
+                                console.error('Failed to save avatar:', err);
+                                showAlert('Грешка при запазване на аватара. Изображението може да е твърде голямо.', 'error');
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
         });
 
         // --- PWA Install Banner Functionality ---
