@@ -2317,40 +2317,16 @@
                 const planPayload = savedPayload ? JSON.parse(savedPayload) : {};
                 const savedClientId = localStorage.getItem('pendingClientId') || null;
 
-                // Show loading UI and resume polling
-                container.innerHTML = `
-                    <div style="text-align:center; animation: fadeIn 0.5s; max-width: 500px; margin: 0 auto;">
-                        <div style="margin-bottom: 30px; display: flex; justify-content: center; align-items: center; height: 80px;">
-                            <div class="ai-hex-loader"></div>
-                        </div>
-                        <h2 class="q-text" id="loadingTitle">Планът се генерира...</h2>
-                        <p style="color:var(--text-gray); margin-bottom:30px; font-size: 0.95rem;" id="loadingSubtitle">
-                            Продължаваме от където спряхте
-                        </p>
-                        <div id="progressPercentage" style="text-align:center;color:var(--text-dark);font-size:1.1rem;font-weight:700;margin-bottom:8px;">–</div>
-                        <div style="width:100%;height:14px;background:#e0e0e0;border-radius:20px;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,0.1);">
-                            <div id="aiProgressBar" style="height:100%;width:60%;background:linear-gradient(90deg,var(--primary-red),var(--primary-red-hover));border-radius:20px;transition:width 0.3s ease;box-shadow:0 0 10px var(--primary-red);"></div>
-                        </div>
-                        <p style="color:#0D9488;margin-top:14px;font-size:0.82rem;font-weight:600;">
-                            <i class="fas fa-shield-alt"></i> Генерирането продължи дори докато приложението беше затворено
-                        </p>
-                    </div>
-                    <style>
-                        .ai-hex-loader{width:64px;aspect-ratio:1.154;color:var(--primary-red);display:grid;animation:aiHex0 6s infinite linear;}
-                        .ai-hex-loader::before,.ai-hex-loader::after{content:"";grid-area:1/1;}
-                        .ai-hex-loader::before{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);background:conic-gradient(from -30deg,#0000 60deg,currentColor 0);}
-                        .ai-hex-loader::after{background:conic-gradient(from -30deg,currentColor 60deg,#0000 0);animation:aiHex1 0.5s infinite alternate;}
-                        @keyframes aiHex0{0%,16.66%{transform:rotate(0deg)}16.67%,33.33%{transform:rotate(60deg)}33.34%,50%{transform:rotate(120deg)}50.1%,66.66%{transform:rotate(180deg)}66.67%,83.33%{transform:rotate(240deg)}83.34%,100%{transform:rotate(300deg)}}
-                        @keyframes aiHex1{100%{transform:translateY(-20px)}}
-                    </style>
-                `;
+                renderDiagnosticLoading(true);
                 if (document.getElementById('prevBtn')) document.getElementById('prevBtn').style.display = 'none';
                 if (document.getElementById('nextBtn')) document.getElementById('nextBtn').style.display = 'none';
                 const progressContainer = document.querySelector('.progress-container');
                 if (progressContainer) progressContainer.style.display = 'none';
+                simulateProgress();
 
                 pollForPlanResult(pendingJobId, planPayload, savedClientId).catch(err => {
                     console.error('Plan polling error on resume:', err);
+                    document.body.classList.remove('diagnostic-lock');
                     localStorage.removeItem('planJobId');
                     localStorage.removeItem('planJobSource');
                     localStorage.removeItem('pendingPlanPayload');
@@ -3273,15 +3249,141 @@
         let progressInterval = null; // Store interval reference for cleanup
         let tipsInterval = null; // Store tips rotation interval reference
         
-        // Helpful tips to display during loading (constant to avoid recreation)
-        const LOADING_TIPS = [
-            '💡 Вашият план се базира на над 30 фактора от въпросника',
-            '🎯 AI анализира вашия метаболизъм и хранителни навици',
-            '🔬 Създаваме персонализирани препоръки само за вас',
-            '⏱️ Качественият анализ отнема време - но си струва!',
-            '🌟 Скоро ще получите детайлен 7-дневен план',
-            '💪 Подготвяме стратегия за постигане на вашите цели'
+        const DIAGNOSTIC_LOG_LINES = [
+            { at: 300, phase: 'cold', text: '[INIT] Инициализация на потребителски масив... OK' },
+            { at: 1800, phase: 'cold', text: '[DATA] Парсване на антропометрия и демография...' },
+            { at: 3600, phase: 'cold', text: '[CALC] Екстраполация на базов метаболитен индекс (BMR)...' },
+            { at: 5600, phase: 'cold', text: '[TARGET] Индексиран вектор: Оптимизация на телесна композиция.' },
+            { at: 7300, phase: 'amber', text: '[SCAN] Кръстосан анализ на клиничен статус и медикаментозен прием...' },
+            { at: 9300, phase: 'amber', text: '[WARN] Отчетена метаболитна флуктуация от исторически диети...', haptic: true },
+            { at: 11600, phase: 'amber', text: '[DATA] Интегриране на маркери от прикачени лабораторни анализи...' },
+            { at: 13900, phase: 'amber', text: '[OK] Патологичните филтри са приложени към базата.' },
+            { at: 15400, phase: 'critical', text: '[ANALYSIS] Калкулиране на циркаден ритъм и сънна архитектура...' },
+            { at: 17400, phase: 'critical', text: '[CRITICAL] Идентифицирани поведенчески тригъри и емоционално хранене...', haptic: true },
+            { at: 19700, phase: 'critical', text: '[BEHAVIOR] Анализ на компенсаторни механизми и високи нива на стрес...' },
+            { at: 22000, phase: 'critical', text: '[OK] Невро-хормоналният профил е изолиран и картографиран.' },
+            { at: 23400, phase: 'success', text: '[SYNTHESIS] Генериране на персонализирана макронутриентна матрица...' },
+            { at: 25400, phase: 'success', text: '[FILTER] Изключване на алергени и селекция на оптимални нутриенти...' },
+            { at: 27600, phase: 'success', text: '[CALC] Интеграция на тотален енергиен разход (TDEE + активност)...' },
+            { at: 29600, phase: 'success', text: '[SUCCESS] Алгоритъмът "Hexagon MED AI" е калибриран успешно.' }
         ];
+
+        function triggerDiagnosticHaptic() {
+            if (navigator.vibrate) {
+                navigator.vibrate([28, 18, 28]);
+            }
+        }
+
+        function renderDiagnosticLoading(isResume = false) {
+            container.innerHTML = `
+                <div class="diagnostic-loader" aria-live="polite" aria-busy="true">
+                    <div class="diagnostic-top">
+                        <div class="diagnostic-orb" id="diagnosticOrb">
+                            <div class="ai-hex-loader"></div>
+                        </div>
+                        <h2 class="q-text" id="loadingTitle">Структуриране на Био-масива...</h2>
+                        <p class="diagnostic-subtitle" id="loadingSubtitle">${isResume ? 'Продължаваме анализа от активна сесия' : 'Hexagon MED AI обработва въведените данни'}</p>
+                        <div id="progressPercentage" class="diagnostic-percent">0%</div>
+                        <div class="diagnostic-progress-track">
+                            <div id="aiProgressBar" class="diagnostic-progress-fill"></div>
+                        </div>
+                        <p id="safeCloseMsg" class="diagnostic-safe">
+                            <i class="fas fa-shield-alt"></i> Генерирането продължава защитено във фонов режим
+                        </p>
+                    </div>
+                    <div class="diagnostic-terminal-wrap">
+                        <div class="diagnostic-terminal" id="diagnosticTerminal"></div>
+                    </div>
+                </div>
+                <style>
+                    body.diagnostic-lock { overflow: hidden; touch-action: none; }
+                    .diagnostic-loader {
+                        min-height: calc(100dvh - 120px);
+                        display: grid;
+                        grid-template-rows: 40fr 60fr;
+                        gap: 14px;
+                        max-width: 560px;
+                        margin: -18px auto 0;
+                        animation: diagnosticFadeIn .35s ease-out both;
+                    }
+                    .diagnostic-top {
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        text-align: center;
+                        padding: 12px 4px;
+                    }
+                    .diagnostic-orb {
+                        width: 86px;
+                        height: 86px;
+                        margin: 0 auto 16px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: #2563eb;
+                        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.92), rgba(37,99,235,.14) 45%, rgba(37,99,235,.05));
+                        box-shadow: 0 0 0 10px rgba(37,99,235,.07), 0 0 38px rgba(37,99,235,.36);
+                        animation: diagnosticPulse 1.7s ease-in-out infinite;
+                        transition: color .45s ease, box-shadow .45s ease, background .45s ease, transform .45s ease;
+                    }
+                    .diagnostic-orb.amber { color:#d97706; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.92), rgba(245,158,11,.18) 45%, rgba(245,158,11,.06)); box-shadow:0 0 0 10px rgba(245,158,11,.08),0 0 42px rgba(245,158,11,.38); }
+                    .diagnostic-orb.critical { color:#dc2626; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.92), rgba(220,38,38,.18) 45%, rgba(220,38,38,.06)); box-shadow:0 0 0 10px rgba(220,38,38,.08),0 0 46px rgba(220,38,38,.42); }
+                    .diagnostic-orb.success { color:#0D9488; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.95), rgba(13,148,136,.2) 45%, rgba(13,148,136,.07)); box-shadow:0 0 0 12px rgba(13,148,136,.1),0 0 54px rgba(13,148,136,.48); transform:scale(1.05); }
+                    .diagnostic-subtitle { color: var(--text-gray); margin: 8px 0 18px; font-size: .95rem; line-height: 1.45; }
+                    .diagnostic-percent { color: var(--text-dark); font-size: 1.12rem; font-weight: 800; margin-bottom: 8px; }
+                    .diagnostic-progress-track { width: 100%; height: 14px; background: rgba(15,47,46,.12); border-radius: 99px; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,.12); }
+                    .diagnostic-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg,#2563eb,#60a5fa); box-shadow: 0 0 16px rgba(37,99,235,.35); transition: width .75s cubic-bezier(.22,1,.36,1), background .45s ease, box-shadow .45s ease; position: relative; overflow: hidden; }
+                    .diagnostic-progress-fill::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:diagnosticShine 1.6s infinite; }
+                    .diagnostic-progress-fill.amber { background:linear-gradient(90deg,#d97706,#fbbf24); box-shadow:0 0 18px rgba(245,158,11,.38); }
+                    .diagnostic-progress-fill.critical { background:linear-gradient(90deg,#dc2626,#fb7185); box-shadow:0 0 20px rgba(220,38,38,.42); }
+                    .diagnostic-progress-fill.success { background:linear-gradient(90deg,#0D9488,#2DD4BF); box-shadow:0 0 24px rgba(13,148,136,.46); }
+                    .diagnostic-safe { color:#0D9488; margin-top:12px; font-size:.82rem; font-weight:700; opacity:0; transition:opacity .35s ease; }
+                    .diagnostic-terminal-wrap { min-height: 0; display:flex; align-items:stretch; }
+                    .diagnostic-terminal {
+                        width:100%;
+                        height:100%;
+                        min-height: 260px;
+                        max-height: 48dvh;
+                        overflow:hidden;
+                        padding: 18px 16px;
+                        border: 1px solid rgba(13,148,136,.16);
+                        border-radius: 20px;
+                        background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(240,253,250,.82));
+                        box-shadow: var(--shadow);
+                        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+                        font-size: clamp(.78rem, 3.2vw, .94rem);
+                        line-height: 1.45;
+                        color: #0f172a;
+                        display:flex;
+                        flex-direction:column;
+                        justify-content:flex-end;
+                    }
+                    [data-theme="dark"] .diagnostic-terminal { background:linear-gradient(180deg, rgba(224,245,240,.96), rgba(204,251,241,.88)); color:#061514; }
+                    .diagnostic-log-line { opacity:0; transform:translateY(20px); padding:5px 0; white-space:normal; overflow-wrap:anywhere; transition:opacity .42s ease, transform .42s ease, filter .42s ease; }
+                    .diagnostic-log-line.visible { opacity:.72; transform:translateY(0); }
+                    .diagnostic-log-line.latest { opacity:1; font-weight:800; animation:latestPulse 1.1s ease-in-out infinite; }
+                    .diagnostic-log-line.warn, .diagnostic-log-line.critical { color:#991b1b; }
+                    .ai-hex-loader{width:54px;aspect-ratio:1.154;color:currentColor;display:grid;animation:aiHex0 6s infinite linear;}
+                    .ai-hex-loader::before,.ai-hex-loader::after{content:"";grid-area:1/1;}
+                    .ai-hex-loader::before{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);background:conic-gradient(from -30deg,#0000 60deg,currentColor 0);}
+                    .ai-hex-loader::after{background:conic-gradient(from -30deg,currentColor 60deg,#0000 0);animation:aiHex1 .5s infinite alternate;}
+                    @keyframes aiHex0{0%,16.66%{transform:rotate(0deg)}16.67%,33.33%{transform:rotate(60deg)}33.34%,50%{transform:rotate(120deg)}50.1%,66.66%{transform:rotate(180deg)}66.67%,83.33%{transform:rotate(240deg)}83.34%,100%{transform:rotate(300deg)}}
+                    @keyframes aiHex1{100%{transform:translateY(-18px)}}
+                    @keyframes diagnosticPulse{50%{transform:scale(1.06)}}
+                    @keyframes diagnosticShine{100%{transform:translateX(100%)}}
+                    @keyframes latestPulse{50%{filter:brightness(1.25); text-shadow:0 0 10px rgba(13,148,136,.28)}}
+                    @keyframes diagnosticFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+                    @keyframes diagnosticExit{to{opacity:0; transform:scale(1.04)}}
+                    @media (max-height: 680px) {
+                        .diagnostic-loader { min-height: calc(100dvh - 92px); gap: 8px; }
+                        .diagnostic-orb { width: 72px; height: 72px; margin-bottom: 10px; }
+                        .diagnostic-terminal { min-height: 210px; padding: 14px; }
+                    }
+                </style>
+            `;
+            document.body.classList.add('diagnostic-lock');
+        }
         
         function simulateProgress() {
             // Clear any existing intervals
@@ -3298,108 +3400,61 @@
             const percentageText = document.getElementById('progressPercentage');
             const title = document.getElementById('loadingTitle');
             const subtitle = document.getElementById('loadingSubtitle');
-            const stage1 = document.getElementById('stage1');
-            const stage1Text = document.getElementById('stage1Text');
-            const stage2 = document.getElementById('stage2');
-            const stage2Text = document.getElementById('stage2Text');
-            const stage3 = document.getElementById('stage3');
-            const stage3Text = document.getElementById('stage3Text');
-            const tipsElement = document.getElementById('loadingTips');
+            const orb = document.getElementById('diagnosticOrb');
+            const terminal = document.getElementById('diagnosticTerminal');
             
             // Validate all required elements exist
-            if (!progressBar || !percentageText || !title || !subtitle) {
+            if (!progressBar || !percentageText || !title || !subtitle || !terminal) {
                 console.error('Loading animation elements not found');
                 return;
             }
             
             let progress = 0;
-            let currentTipIndex = 0;
             const startTime = Date.now();
-            
-            // Rotate tips every 8 seconds
-            function rotateTips() {
-                if (tipsElement) {
-                    currentTipIndex = (currentTipIndex + 1) % LOADING_TIPS.length;
-                    tipsElement.style.opacity = '0';
-                    setTimeout(() => {
-                        tipsElement.textContent = LOADING_TIPS[currentTipIndex];
-                        tipsElement.style.opacity = '1';
-                    }, 300);
-                }
-            }
-            
-            // Start tip rotation
-            if (tipsElement) {
-                tipsElement.textContent = LOADING_TIPS[0];
-                tipsInterval = setInterval(rotateTips, 8000);
-            }
-            
-            // Define stages with more realistic timing
-            // Total expected time: ~360 seconds (6 minutes)
-            // Note: We have 3 visual stage indicators but 4 progress stages
-            // Stages 2 and 3 share the same visual indicator (stage3)
+            let currentPhase = 'cold';
+            let nextLogIndex = 0;
+            let completionArmed = false;
+
             const stages = [
-                { 
-                    percent: 25, 
-                    title: 'Анализиране на данните...', 
-                    subtitle: 'Обработваме вашия здравен профил',
-                    minTime: 0,
-                    maxTime: 60000, // 0-60 seconds (1 minute)
-                    indicatorIndex: 0 // stage1
-                },
-                { 
-                    percent: 50, 
-                    title: 'Генериране на препоръки...', 
-                    subtitle: 'AI създава персонализирани стратегии',
-                    minTime: 60000,
-                    maxTime: 150000, // 60-150 seconds (1-2.5 minutes)
-                    indicatorIndex: 1 // stage2
-                },
-                { 
-                    percent: 75, 
-                    title: 'Изграждане на плана...', 
-                    subtitle: 'Съставяме вашето 7-дневно меню',
-                    minTime: 150000,
-                    maxTime: 240000, // 150-240 seconds (2.5-4 minutes)
-                    indicatorIndex: 2 // stage3
-                },
-                { 
-                    percent: 92, 
-                    title: 'Финализиране...', 
-                    subtitle: 'Последни детайли и проверки',
-                    minTime: 240000,
-                    maxTime: 360000, // 240-360 seconds (4-6 minutes)
-                    indicatorIndex: 2 // stage3 (shares with previous stage)
-                }
+                { minTime: 0, maxTime: 7000, from: 0, to: 28, phase: 'cold', title: 'Структуриране на Био-масива...', subtitle: 'Парсираме антропометрия, демография и целеви вектор' },
+                { minTime: 7000, maxTime: 15000, from: 28, to: 52, phase: 'amber', title: 'Сканиране на здравен статус...', subtitle: 'Кръстосан анализ на клинични и метаболитни променливи' },
+                { minTime: 15000, maxTime: 23000, from: 52, to: 75, phase: 'critical', title: 'Невро-хормонален анализ...', subtitle: 'Локализираме поведенчески тригъри, сън и стрес' },
+                { minTime: 23000, maxTime: 30000, from: 75, to: 100, phase: 'success', title: 'Синтез на алгоритъма...', subtitle: 'Калибрираме макронутриентната матрица и TDEE' }
             ];
-            
-            let currentStage = -1; // Start at -1 so first stage (0) triggers activation
-            const MAX_PROGRESS_INCREMENT = 2; // Maximum progress change per update for smoothness
-            
-            // Stage UI elements mapping
-            const stageElements = [
-                { element: stage1, text: stage1Text },
-                { element: stage2, text: stage2Text },
-                { element: stage3, text: stage3Text }
-            ];
-            
-            // Helper function to activate a stage indicator if valid
-            function activateStageIfValid(stageIndex) {
-                if (stageIndex >= 0 && stageIndex < stageElements.length) {
-                    const stage = stageElements[stageIndex];
-                    if (stage.element && stage.text) {
-                        stage.element.style.background = 'var(--primary-red)';
-                        stage.element.style.boxShadow = '0 2px 8px var(--soft-red)';
-                        stage.text.style.color = 'var(--primary-red)';
-                        stage.text.style.fontWeight = '600';
-                    }
+
+            function setPhase(phase) {
+                if (phase === currentPhase) return;
+                currentPhase = phase;
+                ['amber', 'critical', 'success'].forEach(cls => {
+                    progressBar.classList.remove(cls);
+                    if (orb) orb.classList.remove(cls);
+                });
+                if (phase !== 'cold') {
+                    progressBar.classList.add(phase);
+                    if (orb) orb.classList.add(phase);
                 }
             }
-            
-            // Exponential easing function for smooth progress
-            // Progress slows down naturally as it approaches target
-            function easeOutExpo(t) {
-                return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+
+            function appendLog(line) {
+                const el = document.createElement('div');
+                el.className = 'diagnostic-log-line';
+                if (line.text.includes('[WARN]')) el.classList.add('warn');
+                if (line.text.includes('[CRITICAL]')) el.classList.add('critical');
+                el.textContent = line.text;
+
+                terminal.querySelectorAll('.latest').forEach(node => node.classList.remove('latest'));
+                terminal.appendChild(el);
+                requestAnimationFrame(() => el.classList.add('visible', 'latest'));
+
+                while (terminal.children.length > 4) {
+                    terminal.removeChild(terminal.firstElementChild);
+                }
+
+                if (line.haptic) triggerDiagnosticHaptic();
+            }
+
+            function easeOutCubic(t) {
+                return 1 - Math.pow(1 - t, 3);
             }
             
             function updateProgress() {
@@ -3411,177 +3466,57 @@
                 // Safety check
                 if (!currentProgressBar || !currentPercentageText) {
                     if (progressInterval) clearInterval(progressInterval);
-                    if (tipsInterval) clearInterval(tipsInterval);
                     return;
                 }
                 
                 const elapsed = Date.now() - startTime;
-                
-                // Find which stage we're in
-                let stageIndex = -1;
-                let newProgress = progress;
-                
-                for (let i = 0; i < stages.length; i++) {
-                    const stage = stages[i];
-                    
-                    if (elapsed >= stage.minTime && elapsed < stage.maxTime) {
-                        // We're in this stage
-                        stageIndex = i;
-                        
-                        // Check if we entered a new stage
-                        if (i !== currentStage) {
-                            currentStage = i;
-                            
-                            // Update title and subtitle
-                            if (currentTitle) currentTitle.textContent = stage.title;
-                            if (currentSubtitle) currentSubtitle.textContent = stage.subtitle;
-                            
-                            // Activate stage indicator
-                            activateStageIfValid(stage.indicatorIndex);
-                        }
-                        
-                        // Calculate progress within current stage using easing
-                        const stageProgress = (elapsed - stage.minTime) / (stage.maxTime - stage.minTime);
-                        const easedProgress = easeOutExpo(Math.min(stageProgress, 1));
-                        
-                        // Interpolate between previous and current stage
-                        const prevPercent = i > 0 ? stages[i - 1].percent : 0;
-                        newProgress = prevPercent + (stage.percent - prevPercent) * easedProgress;
-                        
+
+                while (nextLogIndex < DIAGNOSTIC_LOG_LINES.length && elapsed >= DIAGNOSTIC_LOG_LINES[nextLogIndex].at) {
+                    const line = DIAGNOSTIC_LOG_LINES[nextLogIndex];
+                    setPhase(line.phase);
+                    appendLog(line);
+                    nextLogIndex++;
+                }
+
+                let stage = stages[stages.length - 1];
+                for (const candidate of stages) {
+                    if (elapsed >= candidate.minTime && elapsed < candidate.maxTime) {
+                        stage = candidate;
                         break;
-                    } else if (elapsed >= stage.maxTime) {
-                        // We've completed this stage, ensure we're at least at its target
-                        newProgress = Math.max(newProgress, stage.percent);
-                        
-                        // Activate stage indicator if we haven't already
-                        if (i !== currentStage) {
-                            activateStageIfValid(stage.indicatorIndex);
-                            currentStage = i;
-                        }
                     }
                 }
-                
-                // Smooth out the progress - never jump more than MAX_PROGRESS_INCREMENT at a time
-                const progressDiff = newProgress - progress;
-                if (Math.abs(progressDiff) > MAX_PROGRESS_INCREMENT) {
-                    // Limit the jump
-                    progress += progressDiff > 0 ? MAX_PROGRESS_INCREMENT : -MAX_PROGRESS_INCREMENT;
-                } else {
-                    progress = newProgress;
+
+                if (currentTitle) currentTitle.textContent = stage.title;
+                if (currentSubtitle) currentSubtitle.textContent = stage.subtitle;
+                setPhase(stage.phase);
+
+                const stageElapsed = Math.min(Math.max(elapsed - stage.minTime, 0), stage.maxTime - stage.minTime);
+                const stageRatio = stageElapsed / (stage.maxTime - stage.minTime);
+                const eased = stage.phase === 'amber' ? Math.pow(stageRatio, 1.45) : easeOutCubic(stageRatio);
+                progress = stage.from + (stage.to - stage.from) * eased;
+
+                if (elapsed >= 15000 && elapsed < 16500) progress = 52;
+                if (elapsed >= 30000) {
+                    progress = 100;
+                    if (!completionArmed) {
+                        completionArmed = true;
+                        const loader = document.querySelector('.diagnostic-loader');
+                        if (loader) loader.style.animation = 'diagnosticExit .55s ease forwards';
+                    }
                 }
-                
-                // Update UI
+
                 currentProgressBar.style.width = Math.floor(progress) + '%';
                 currentPercentageText.textContent = Math.floor(progress) + '%';
             }
             
-            // Start smooth progress animation with 100ms intervals
-            // This creates 10 updates per second for smooth animation
             progressInterval = setInterval(updateProgress, 100);
-            
-            // Initial update
-            setTimeout(updateProgress, 500);
+            updateProgress();
         }
 
         async function finishQuiz() {
             console.log("Final JSON:", JSON.stringify(answers, null, 2));
             
-            // Show loading state with progress bar (same pattern as questionnaire.html)
-            container.innerHTML = `
-                <div style="text-align:center; animation: fadeIn 0.5s; max-width: 500px; margin: 0 auto;">
-                    <!-- Hexagonal AI Loader -->
-                    <div style="margin-bottom: 30px; display: flex; justify-content: center; align-items: center; height: 80px;">
-                        <div class="ai-hex-loader"></div>
-                    </div>
-                    
-                    <h2 class="q-text" id="loadingTitle" style="transition: all 0.3s ease;">Анализиране на данните...</h2>
-                    <p style="color:var(--text-gray); margin-bottom:30px; font-size: 0.95rem; transition: all 0.3s ease;" id="loadingSubtitle">
-                        Обработваме вашия здравен профил
-                    </p>
-                    
-                    <!-- Progress Percentage (centered above bar) -->
-                    <div id="progressPercentage" style="text-align: center; color: var(--text-dark); font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">0%</div>
-                    
-                    <!-- Progress Bar Container with Glow -->
-                    <div style="position: relative; margin-bottom: 15px;">
-                        <div style="width: 100%; height: 14px; background: #e0e0e0; border-radius: 20px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
-                            <div id="aiProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary-red), var(--primary-red-hover)); border-radius: 20px; transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary-red); position: relative; overflow: hidden;">
-                                <!-- Animated shine effect -->
-                                <div style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shine 2s infinite;"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Progress Stage Indicator -->
-                    <div style="display: flex; justify-content: space-between; margin-top: 30px; padding: 0 10px; margin-bottom: 30px;">
-                        <div style="flex: 1; text-align: center;">
-                            <div id="stage1" style="width: 12px; height: 12px; background: var(--primary-red); border-radius: 50%; margin: 0 auto 8px; box-shadow: 0 2px 8px var(--soft-red); transition: all 0.3s ease;"></div>
-                            <div id="stage1Text" style="font-size: 0.75rem; color: var(--primary-red); font-weight: 600; transition: all 0.3s ease;">Анализ</div>
-                        </div>
-                        <div style="flex: 1; text-align: center;">
-                            <div id="stage2" style="width: 12px; height: 12px; background: #e0e0e0; border-radius: 50%; margin: 0 auto 8px; transition: all 0.3s ease;"></div>
-                            <div id="stage2Text" style="font-size: 0.75rem; color: var(--text-gray); font-weight: 500; transition: all 0.3s ease;">Генериране</div>
-                        </div>
-                        <div style="flex: 1; text-align: center;">
-                            <div id="stage3" style="width: 12px; height: 12px; background: #e0e0e0; border-radius: 50%; margin: 0 auto 8px; transition: all 0.3s ease;"></div>
-                            <div id="stage3Text" style="font-size: 0.75rem; color: var(--text-gray); font-weight: 500; transition: all 0.3s ease;">Финализиране</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Rotating Helpful Tips -->
-                    <div style="background: var(--soft-red); padding: 16px 20px; border-radius: 12px; margin-top: 30px; min-height: 60px; display: flex; align-items: center; justify-content: center;">
-                        <p id="loadingTips" style="color: var(--text-dark); font-size: 0.9rem; font-weight: 500; margin: 0; transition: opacity 0.3s ease; text-align: center; line-height: 1.5;">
-                            💡 Вашият план се базира на над 30 фактора от въпросника
-                        </p>
-                    </div>
-                    
-                    <p style="color:var(--text-gray); margin-top:20px; font-size: 0.8rem; opacity: 0.8;">
-                        <i class="fas fa-clock"></i> Обикновено това отнема 2-5 минути
-                    </p>
-                    <p id="safeCloseMsg" style="color:#0D9488; margin-top:10px; font-size: 0.82rem; font-weight:600; opacity: 0;">
-                        <i class="fas fa-shield-alt"></i> Можете безопасно да затворите приложението — генерирането ще продължи
-                    </p>
-                </div>
-                
-                <style>
-                    .ai-hex-loader {
-                        width: 64px;
-                        aspect-ratio: 1.154;
-                        color: var(--primary-red);
-                        display: grid;
-                        animation: aiHex0 6s infinite linear;
-                    }
-                    .ai-hex-loader::before,
-                    .ai-hex-loader::after {
-                        content: "";
-                        grid-area: 1/1;
-                    }
-                    .ai-hex-loader::before {
-                        clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);
-                        background: conic-gradient(from -30deg,#0000 60deg,currentColor 0);
-                    }
-                    .ai-hex-loader::after {
-                        background: conic-gradient(from -30deg,currentColor 60deg,#0000 0);
-                        animation: aiHex1 0.5s infinite alternate;
-                    }
-                    @keyframes aiHex0 {
-                        0%,16.66%     { transform: rotate(0deg) }
-                        16.67%,33.33% { transform: rotate(60deg) }
-                        33.34%,50%    { transform: rotate(120deg) }
-                        50.1%,66.66%  { transform: rotate(180deg) }
-                        66.67%,83.33% { transform: rotate(240deg) }
-                        83.34%,100%   { transform: rotate(300deg) }
-                    }
-                    @keyframes aiHex1 {
-                        100% { transform: translateY(-20px) }
-                    }
-                    
-                    @keyframes shine {
-                        0% { left: -100%; }
-                        50%, 100% { left: 100%; }
-                    }
-                </style>
-            `;
+            renderDiagnosticLoading(false);
             document.getElementById('prevBtn').style.display = 'none';
             document.getElementById('nextBtn').style.display = 'none';
             document.querySelector('.progress-container').style.display = 'none';
@@ -3852,6 +3787,7 @@
                     clearInterval(tipsInterval);
                     tipsInterval = null;
                 }
+                document.body.classList.remove('diagnostic-lock');
                 
                 let errorMessage;
                 const status = error.httpStatus;
@@ -3911,6 +3847,54 @@
                 container.appendChild(p);
             }
             setTimeout(() => container.remove(), 8000);
+        }
+
+        /**
+         * Apply the first completed analysis and move the user to analysis.html while
+         * the full plan continues in the existing async job.
+         */
+        async function applyAnalysisResult(result, planPayload, savedClientId) {
+            if (!result.success || !result.plan || !result.plan.analysis) {
+                throw new Error(result.error || 'Анализът не е готов');
+            }
+
+            const fbUserId = (function() {
+                const uid = localStorage.getItem('userId');
+                return (uid && uid.startsWith('fb_')) ? uid : null;
+            })();
+
+            localStorage.setItem('dietPlan', JSON.stringify({ analysis: result.plan.analysis, _partial: true }));
+            localStorage.setItem('userId', fbUserId || result.userId);
+            localStorage.setItem('userData', JSON.stringify(planPayload));
+            localStorage.setItem('planSource', 'questionnaire2');
+            if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
+            localStorage.removeItem('hasSeenPlanJustification');
+            localStorage.removeItem('questionnaireAnswers');
+
+            if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+            if (tipsInterval) { clearInterval(tipsInterval); tipsInterval = null; }
+
+            const bar = document.getElementById('aiProgressBar');
+            const pct = document.getElementById('progressPercentage');
+            const title = document.getElementById('loadingTitle');
+            const subtitle = document.getElementById('loadingSubtitle');
+            const orb = document.getElementById('diagnosticOrb');
+            if (bar) {
+                bar.classList.remove('amber', 'critical');
+                bar.classList.add('success');
+                bar.style.width = '100%';
+            }
+            if (pct) pct.textContent = '100%';
+            if (orb) {
+                orb.classList.remove('amber', 'critical');
+                orb.classList.add('success');
+            }
+            if (title) title.textContent = 'Анализът е готов!';
+            if (subtitle) subtitle.textContent = 'Планът продължава да се генерира скрито във фонов режим.';
+
+            await new Promise(resolve => setTimeout(resolve, 650));
+            document.body.classList.remove('diagnostic-lock');
+            window.location.href = 'analysis.html';
         }
 
         /**
@@ -4001,8 +3985,9 @@
                 }, 30);
             });
 
-            // Redirect to plan-pending page — the plan must be reviewed and approved by admin
-            window.location.href = 'plan-pending.html';
+            document.body.classList.remove('diagnostic-lock');
+            // Show analysis first; plan-pending remains available from the analysis CTA.
+            window.location.href = 'analysis.html';
         }
 
         /**
@@ -4088,7 +4073,15 @@
                         networkFailures = 0; // reset on success
                         const data = await resp.json();
 
-                        if (data.status === 'completed') {
+                        if (data.status === 'analysis_completed') {
+                            done = true;
+                            try {
+                                await applyAnalysisResult(data, planPayload, savedClientId);
+                                resolve();
+                            } catch (applyErr) {
+                                reject(applyErr);
+                            }
+                        } else if (data.status === 'completed') {
                             done = true;
                             try {
                                 await applyPlanResult(data, planPayload, savedClientId);
