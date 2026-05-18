@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Въпросник 2.0 - Попълнете детайлен въпросник за персонален здравен план. Информацията ще бъде обработена от нашия екип.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
@@ -3296,14 +3296,22 @@
                     </div>
                 </div>
                 <style>
-                    body.diagnostic-lock { overflow: hidden; touch-action: none; }
+                    body.diagnostic-lock {
+                        overflow: hidden;
+                        overscroll-behavior: none;
+                        touch-action: none;
+                        position: fixed;
+                        inset: 0;
+                        width: 100%;
+                    }
                     .diagnostic-loader {
-                        min-height: calc(100dvh - 120px);
+                        height: calc(100dvh - 118px);
                         display: grid;
-                        grid-template-rows: 40fr 60fr;
-                        gap: 14px;
+                        grid-template-rows: minmax(220px, 42%) minmax(0, 1fr);
+                        gap: 10px;
                         max-width: 560px;
                         margin: -18px auto 0;
+                        overflow: hidden;
                         animation: diagnosticFadeIn .35s ease-out both;
                     }
                     .diagnostic-top {
@@ -3311,60 +3319,65 @@
                         flex-direction: column;
                         justify-content: center;
                         text-align: center;
-                        padding: 12px 4px;
+                        min-height: 0;
+                        padding: 8px 4px;
                     }
                     .diagnostic-orb {
-                        width: 86px;
-                        height: 86px;
-                        margin: 0 auto 16px;
+                        width: 78px;
+                        height: 78px;
+                        margin: 0 auto 12px;
                         border-radius: 50%;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        color: #2563eb;
-                        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.92), rgba(37,99,235,.14) 45%, rgba(37,99,235,.05));
-                        box-shadow: 0 0 0 10px rgba(37,99,235,.07), 0 0 38px rgba(37,99,235,.36);
+                        color: var(--primary-red);
+                        background: var(--card-bg);
+                        border: 1px solid var(--glass-border);
+                        box-shadow: 0 10px 26px rgba(13,148,136,.14);
                         animation: diagnosticPulse 1.7s ease-in-out infinite;
                         transition: color .45s ease, box-shadow .45s ease, background .45s ease, transform .45s ease;
                     }
-                    .diagnostic-orb.amber { color:#d97706; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.92), rgba(245,158,11,.18) 45%, rgba(245,158,11,.06)); box-shadow:0 0 0 10px rgba(245,158,11,.08),0 0 42px rgba(245,158,11,.38); }
-                    .diagnostic-orb.critical { color:#dc2626; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.92), rgba(220,38,38,.18) 45%, rgba(220,38,38,.06)); box-shadow:0 0 0 10px rgba(220,38,38,.08),0 0 46px rgba(220,38,38,.42); }
-                    .diagnostic-orb.success { color:#0D9488; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.95), rgba(13,148,136,.2) 45%, rgba(13,148,136,.07)); box-shadow:0 0 0 12px rgba(13,148,136,.1),0 0 54px rgba(13,148,136,.48); transform:scale(1.05); }
-                    .diagnostic-subtitle { color: var(--text-gray); margin: 8px 0 18px; font-size: .95rem; line-height: 1.45; }
-                    .diagnostic-percent { color: var(--text-dark); font-size: 1.12rem; font-weight: 800; margin-bottom: 8px; }
+                    [data-theme="dark"] .diagnostic-orb { box-shadow: 0 10px 28px rgba(0,0,0,.3); }
+                    .diagnostic-orb.amber,
+                    .diagnostic-orb.critical,
+                    .diagnostic-orb.success { color: var(--primary-red); background: var(--card-bg); box-shadow: 0 10px 26px rgba(13,148,136,.14); }
+                    [data-theme="dark"] .diagnostic-orb.amber,
+                    [data-theme="dark"] .diagnostic-orb.critical,
+                    [data-theme="dark"] .diagnostic-orb.success { box-shadow: 0 10px 28px rgba(0,0,0,.3); }
+                    .diagnostic-subtitle { color: var(--text-gray); margin: 6px 0 14px; font-size: .9rem; line-height: 1.35; }
+                    .diagnostic-percent { color: var(--text-dark); font-size: 1.06rem; font-weight: 800; margin-bottom: 7px; }
                     .diagnostic-progress-track { width: 100%; height: 14px; background: rgba(15,47,46,.12); border-radius: 99px; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,.12); }
-                    .diagnostic-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg,#2563eb,#60a5fa); box-shadow: 0 0 16px rgba(37,99,235,.35); transition: width .75s cubic-bezier(.22,1,.36,1), background .45s ease, box-shadow .45s ease; position: relative; overflow: hidden; }
+                    .diagnostic-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg,var(--primary-red),#2DD4BF); box-shadow: 0 0 16px rgba(13,148,136,.26); transition: width .75s cubic-bezier(.22,1,.36,1), background .45s ease, box-shadow .45s ease; position: relative; overflow: hidden; }
                     .diagnostic-progress-fill::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:diagnosticShine 1.6s infinite; }
-                    .diagnostic-progress-fill.amber { background:linear-gradient(90deg,#d97706,#fbbf24); box-shadow:0 0 18px rgba(245,158,11,.38); }
-                    .diagnostic-progress-fill.critical { background:linear-gradient(90deg,#dc2626,#fb7185); box-shadow:0 0 20px rgba(220,38,38,.42); }
-                    .diagnostic-progress-fill.success { background:linear-gradient(90deg,#0D9488,#2DD4BF); box-shadow:0 0 24px rgba(13,148,136,.46); }
-                    .diagnostic-safe { color:#0D9488; margin-top:12px; font-size:.82rem; font-weight:700; opacity:0; transition:opacity .35s ease; }
+                    .diagnostic-progress-fill.amber,
+                    .diagnostic-progress-fill.critical,
+                    .diagnostic-progress-fill.success { background:linear-gradient(90deg,var(--primary-red),#2DD4BF); box-shadow:0 0 18px rgba(13,148,136,.28); }
+                    .diagnostic-safe { color:var(--primary-red); margin-top:10px; font-size:.78rem; font-weight:700; opacity:0; transition:opacity .35s ease; }
                     .diagnostic-terminal-wrap { min-height: 0; display:flex; align-items:stretch; }
                     .diagnostic-terminal {
                         width:100%;
                         height:100%;
-                        min-height: 260px;
-                        max-height: 48dvh;
+                        min-height: 0;
                         overflow:hidden;
-                        padding: 18px 16px;
+                        padding: 14px 14px;
                         border: 1px solid rgba(13,148,136,.16);
                         border-radius: 20px;
-                        background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(240,253,250,.82));
+                        background: var(--card-bg);
                         box-shadow: var(--shadow);
                         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-                        font-size: clamp(.78rem, 3.2vw, .94rem);
-                        line-height: 1.45;
-                        color: #0f172a;
+                        font-size: clamp(.72rem, 3vw, .88rem);
+                        line-height: 1.36;
+                        color: var(--text-dark);
                         display:flex;
                         flex-direction:column;
                         justify-content:flex-end;
                     }
-                    [data-theme="dark"] .diagnostic-terminal { background:linear-gradient(180deg, rgba(224,245,240,.96), rgba(204,251,241,.88)); color:#061514; }
-                    .diagnostic-log-line { opacity:0; transform:translateY(20px); padding:5px 0; white-space:normal; overflow-wrap:anywhere; transition:opacity .42s ease, transform .42s ease, filter .42s ease; }
+                    [data-theme="dark"] .diagnostic-terminal { background: rgba(20,55,55,.82); color: var(--text-dark); border-color: var(--glass-border); }
+                    .diagnostic-log-line { opacity:0; transform:translateY(20px); padding:4px 0; white-space:normal; overflow-wrap:anywhere; transition:opacity .42s ease, transform .42s ease, filter .42s ease; }
                     .diagnostic-log-line.visible { opacity:.72; transform:translateY(0); }
                     .diagnostic-log-line.latest { opacity:1; font-weight:800; animation:latestPulse 1.1s ease-in-out infinite; }
-                    .diagnostic-log-line.warn, .diagnostic-log-line.critical { color:#991b1b; }
-                    .ai-hex-loader{width:54px;aspect-ratio:1.154;color:currentColor;display:grid;animation:aiHex0 6s infinite linear;}
+                    .diagnostic-log-line.warn, .diagnostic-log-line.critical { color:var(--primary-red); }
+                    .ai-hex-loader{width:48px;aspect-ratio:1.154;color:currentColor;display:grid;animation:aiHex0 6s infinite linear;}
                     .ai-hex-loader::before,.ai-hex-loader::after{content:"";grid-area:1/1;}
                     .ai-hex-loader::before{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);background:conic-gradient(from -30deg,#0000 60deg,currentColor 0);}
                     .ai-hex-loader::after{background:conic-gradient(from -30deg,currentColor 60deg,#0000 0);animation:aiHex1 .5s infinite alternate;}
@@ -3376,9 +3389,12 @@
                     @keyframes diagnosticFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
                     @keyframes diagnosticExit{to{opacity:0; transform:scale(1.04)}}
                     @media (max-height: 680px) {
-                        .diagnostic-loader { min-height: calc(100dvh - 92px); gap: 8px; }
-                        .diagnostic-orb { width: 72px; height: 72px; margin-bottom: 10px; }
-                        .diagnostic-terminal { min-height: 210px; padding: 14px; }
+                        .diagnostic-loader { height: calc(100dvh - 92px); grid-template-rows: minmax(190px, 42%) minmax(0, 1fr); gap: 6px; }
+                        .diagnostic-orb { width: 64px; height: 64px; margin-bottom: 8px; }
+                        .ai-hex-loader { width: 40px; }
+                        .diagnostic-top { padding: 4px; }
+                        .diagnostic-subtitle { margin-bottom: 10px; font-size: .82rem; }
+                        .diagnostic-terminal { padding: 12px; font-size: .72rem; line-height: 1.3; }
                     }
                 </style>
             `;

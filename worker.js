@@ -3342,6 +3342,143 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
 }
 
 /**
+ * Build a lightweight deterministic analysis that can be shown immediately while
+ * the AI generates the fully personalized plan in the background.
+ */
+function createFastInitialAnalysis(data) {
+  const weight = parseFloat(data.weight) || 70;
+  const height = parseFloat(data.height) || 170;
+  const bmr = calculateBMR(data);
+  const activityData = calculateUnifiedActivityScore(data);
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const deficitData = calculateSafeDeficit(tdee, data.goal || '');
+  const minCalories = data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
+  const finalCalories = Math.max(minCalories, Math.round(deficitData.targetCalories || tdee));
+  const macroRatios = calculateMacronutrientRatios(data, activityData.combinedScore, finalCalories);
+  const macroGrams = {
+    protein: Math.round(finalCalories * macroRatios.protein / 100 / 4),
+    carbs: Math.round(finalCalories * macroRatios.carbs / 100 / 4),
+    fats: Math.round(finalCalories * macroRatios.fats / 100 / 9)
+  };
+  const bmi = calculateBMI(data);
+  const waterNeed = weight * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS;
+  const waterIntake = parseFloat(data.waterIntake) || 0;
+  const medicalConditions = Array.isArray(data.medicalConditions) ? data.medicalConditions.filter(c => c && c !== 'Нямам') : [];
+  const eatingHabits = Array.isArray(data.eatingHabits) ? data.eatingHabits : [];
+  const foodCravings = Array.isArray(data.foodCravings) ? data.foodCravings : [];
+
+  const keyProblems = [];
+  function addProblem(title, description, severity, severityValue, category, impact) {
+    keyProblems.push({ title, description, severity, severityValue, category, impact });
+  }
+
+  if (bmi && bmi >= 30) {
+    addProblem('Повишен метаболитен риск', 'Индексът на телесна маса е над оптималния диапазон и изисква внимателен калориен контрол.', 'Risky', 72, 'Medical', 'Може да затрудни отслабването и да повиши кардио-метаболитното натоварване.');
+  } else if (bmi && bmi >= 25) {
+    addProblem('Тегло над оптималния диапазон', 'Текущите антропометрични данни показват нужда от по-прецизен енергиен баланс.', 'Borderline', 48, 'Medical', 'Ранната корекция намалява риска от плато и метаболитна адаптация.');
+  }
+
+  if (medicalConditions.length > 0) {
+    addProblem('Налични здравни особености', 'Посочените състояния изискват индивидуално съобразяване на хранителния режим.', medicalConditions.length > 1 ? 'Risky' : 'Borderline', medicalConditions.length > 1 ? 68 : 52, 'Medical', 'Планът трябва да отчете ограничения, възпалителни фактори и безопасни хранителни избори.');
+  }
+
+  if ((data.sleepHours && parseFloat(data.sleepHours) < 7) || data.sleepInterrupt === 'Да') {
+    addProblem('Сън и възстановяване', 'Недостатъчният или прекъсван сън може да повлияе апетита, инсулиновата чувствителност и мотивацията.', 'Risky', 64, 'Sleep', 'Подобряването на съня подпомага хормоналния баланс и контрола върху глада.');
+  }
+
+  if (String(data.stressLevel || '').includes('Висок')) {
+    addProblem('Високо стресово натоварване', 'Стресът е вероятен фактор за емоционално хранене, задържане на вода и колебания в енергията.', 'Risky', 66, 'Stress', 'Нужни са стабилни хранения и лесни поведенчески стратегии.');
+  } else if (String(data.stressLevel || '').includes('Сред')) {
+    addProblem('Умерен стрес', 'Има индикации за стресово натоварване, което може да влияе на последователността.', 'Borderline', 44, 'Stress', 'Подходът трябва да остане лесен за следване и без крайни ограничения.');
+  }
+
+  if (waterIntake > 0 && waterIntake < waterNeed * 0.75) {
+    addProblem('Недостатъчна хидратация', 'Приемът на вода изглежда под индивидуалната дневна потребност.', 'Borderline', 42, 'Hydration', 'По-добрата хидратация подпомага ситостта, енергията и тренировъчната поносимост.');
+  }
+
+  if (eatingHabits.length > 0 || foodCravings.length > 0) {
+    addProblem('Хранителни навици и тригери', 'Има сигнали за поведенчески фактори, които могат да затруднят спазването на режим.', 'Borderline', 50, 'Nutrition', 'Планът трябва да включва предвидими хранения и контролирани алтернативи.');
+  }
+
+  if (activityData.combinedScore <= 3) {
+    addProblem('Ниска двигателна активност', 'Дневното движение и спортната активност са ограничени.', 'Borderline', 46, 'Activity', 'Постепенното покачване на активността ще подобри TDEE и метаболитната гъвкавост.');
+  }
+
+  if (keyProblems.length === 0) {
+    addProblem('Нужда от персонална калибрация', 'Данните са в сравнително стабилен диапазон, но планът трябва да оптимизира калории, макроси и навици.', 'Borderline', 38, 'Nutrition', 'Прецизната структура намалява риска от застой и повишава устойчивостта.');
+  }
+
+  const totalSeverity = keyProblems.reduce((sum, p) => sum + p.severityValue, 0);
+  const maxSeverity = keyProblems.reduce((max, p) => Math.max(max, p.severityValue), 0);
+  const avgSeverity = totalSeverity / keyProblems.length;
+  const currentHealthScore = Math.max(15, Math.min(92, Math.round(100 - (maxSeverity * 0.55 + avgSeverity * 0.45))));
+  const bmiCategory = !bmi ? 'неизвестен' : bmi < 18.5 ? 'поднормено тегло' : bmi < 25 ? 'нормално тегло' : bmi < 30 ? 'наднормено тегло' : 'затлъстяване';
+
+  return {
+    _fastPreview: true,
+    bmi: bmi ? Math.round(bmi * 10) / 10 : null,
+    bmiCategory,
+    bmr,
+    tdee,
+    Final_Calories: finalCalories,
+    macroRatios,
+    macroGrams,
+    activityLevel: activityData.activityLevel,
+    physiologicalPhase: 'Предварителна оценка',
+    waterDeficit: {
+      dailyNeed: `${waterNeed.toFixed(1)} л`,
+      currentIntake: waterIntake ? `${waterIntake.toFixed(1)} л` : 'не е посочен',
+      deficit: waterIntake ? `${Math.max(0, waterNeed - waterIntake).toFixed(1)} л` : 'не може да се изчисли',
+      impactOnLipolysis: 'Хидратацията подпомага ситостта, енергията и метаболитната ефективност.'
+    },
+    negativeHealthFactors: keyProblems.map(p => ({ factor: p.title, severity: p.severityValue, description: p.description })),
+    hinderingFactors: keyProblems.slice(0, 4).map(p => ({ factor: p.title, severity: p.severityValue, description: p.impact })),
+    cumulativeRiskScore: `${Math.round(avgSeverity)}/100`,
+    psychoProfile: {
+      temperament: 'Ще бъде уточнен от AI анализа',
+      probability: 0,
+      reasoning: 'Пълният психологически профил се генерира във фонов режим.'
+    },
+    metabolicReactivity: {
+      speed: activityData.combinedScore >= 6 ? 'добра' : 'умерена',
+      adaptability: medicalConditions.length > 0 || String(data.stressLevel || '').includes('Висок') ? 'изисква плавна адаптация' : 'стабилна'
+    },
+    correctedMetabolism: {
+      realBMR: bmr,
+      realTDEE: finalCalories,
+      clinicalAdjustmentPercent: medicalConditions.length > 0 ? -5 : 0,
+      metabolicAdjustmentPercent: activityData.combinedScore <= 3 ? -5 : 0,
+      goalAdjustmentPercent: deficitData.deficitPercent ? -Math.round(deficitData.deficitPercent) : 0,
+      correction: 'Предварителна безопасна калкулация до завършване на пълния AI план.',
+      correctionPercent: `${deficitData.deficitPercent ? Math.round(deficitData.deficitPercent) : 0}%`
+    },
+    metabolicProfile: `Предварителен профил: ${bmiCategory}, активност ${activityData.activityLevel.toLowerCase()}, цел ${data.goal || 'персонална оптимизация'}.`,
+    healthRisks: keyProblems.slice(0, 5).map(p => p.title),
+    nutritionalNeeds: ['достатъчен протеин', 'стабилна хидратация', 'микронутриентно плътни храни', 'устойчив хранителен ритъм'],
+    psychologicalProfile: 'Първоначалната оценка показва нужда от лесен за следване режим без излишна сложност. Детайлният профил се уточнява от AI.',
+    successChance: Math.max(45, Math.min(85, currentHealthScore + 10)),
+    currentHealthStatus: {
+      score: currentHealthScore,
+      description: 'Това е бърза предварителна оценка, за да видите анализа веднага. Пълният AI план продължава да се генерира във фонов режим.',
+      keyIssues: keyProblems.slice(0, 4).map(p => p.title)
+    },
+    forecastPessimistic: {
+      timeframe: '12 месеца',
+      weight: 'Възможен застой или покачване при липса на структура.',
+      health: 'Рисковите фактори могат да се задълбочат без последователен режим.',
+      risks: keyProblems.slice(0, 5).map(p => p.impact)
+    },
+    forecastOptimistic: {
+      timeframe: '12 месеца',
+      weight: 'Постепенно подобрение при спазване на калориите и макросите.',
+      health: 'Очаква се по-добра енергия, ситост и метаболитна стабилност.',
+      improvements: ['по-добър контрол на апетита', 'по-стабилна енергия', 'подобрена хидратация', 'по-добра последователност', 'по-нисък риск от плато']
+    },
+    keyProblems
+  };
+}
+
+/**
  * Generates a diet plan, stores the result (or failure) in KV under jobId.
  * Runs as a ctx.waitUntil() background task so the Worker stays alive even
  * after the HTTP client disconnects (e.g. Android app backgrounded/killed).
@@ -3427,14 +3564,21 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
 
-    // Write initial 'pending' marker so polling can detect the job even if the
-    // client disconnects and reconnects before the plan is ready.
+    // Write an immediate lightweight analysis so analysis.html can be shown
+    // within the loading animation while the full AI plan continues in the queue.
     // If this KV write fails the response will still contain the jobId but polling
     // will immediately return 'not_found'; the user will then see a "session expired"
     // error message and be prompted to retry.
     await env.page_content.put(
       PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({ status: 'pending', startedAt: Date.now() }),
+      JSON.stringify({
+        status: 'analysis_completed',
+        startedAt: Date.now(),
+        analysisCompletedAt: Date.now(),
+        success: true,
+        userId: data.email || generateUserId(data),
+        plan: { analysis: createFastInitialAnalysis(data) }
+      }),
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
 
