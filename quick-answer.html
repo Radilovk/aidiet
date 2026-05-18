@@ -292,6 +292,15 @@
             data[key] = record;
             localStorage.setItem(GAME_DATA_KEY, JSON.stringify(data));
         }
+        function setEveningState(key, rawValue) {
+            if (key === 'activityLevel') {
+                state.activityLevel = Number(rawValue);
+            } else if (key === 'emotionalBalance') {
+                state.emotionalBalance = Number(rawValue);
+            } else if (key === 'waterIntake') {
+                state.waterIntake = rawValue === 'true';
+            }
+        }
         function vibrate(pattern) {
             try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (_) {}
         }
@@ -518,8 +527,7 @@
                         el.classList.remove('selected');
                     });
                     btn.classList.add('selected');
-                    var raw = btn.getAttribute('data-value');
-                    state[step.key] = raw === 'true' ? true : raw === 'false' ? false : Number(raw);
+                    setEveningState(step.key, btn.getAttribute('data-value'));
                     setTimeout(function() { renderEvening(stepIndex + 1); }, 160);
                 });
             });
