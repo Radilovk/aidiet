@@ -1868,7 +1868,13 @@
         [data-theme="dark"] .login-modal-box {
             background: #0D2424;
         }
-        .login-modal-emoji { font-size: 2.5rem; margin-bottom: 14px; }
+        .login-modal-icon {
+            width: 96px;
+            height: 96px;
+            display: block;
+            margin: 0 auto 14px;
+            object-fit: cover;
+        }
         .login-modal-title {
             margin: 0 0 8px;
             font-size: 1.4rem;
@@ -3742,7 +3748,7 @@
     <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
         <div class="login-modal-box">
             <button class="login-modal-close" onclick="window.indexCloseLoginModal()" aria-label="Затвори">✕</button>
-            <div class="login-modal-emoji">🌿</div>
+            <img src="./docs/9653256.png" alt="Вход" class="login-modal-icon">
             <h2 class="login-modal-title" id="loginModalTitle">Добре дошли в NutriPlan</h2>
             <p class="login-modal-sub" id="loginModalSub">Влезте, за да достъпите плана си</p>
 
@@ -3983,6 +3989,23 @@
             if (ok) ok.style.display = 'none';
         }
 
+        function setLoggedOutNavigationState() {
+            const startNowBtn   = document.getElementById('startNowBtn');
+            const heroCTABtn    = document.getElementById('heroCTABtn');
+            const navMyPlanLink = document.getElementById('navMyPlanLink');
+            const heroLoginBtn  = document.getElementById('heroLoginBtn');
+            const navLogoutBtn  = document.getElementById('navLogoutBtn');
+
+            if (startNowBtn) startNowBtn.style.display = 'flex';
+            if (heroCTABtn) {
+                heroCTABtn.href = 'questionnaire2.html';
+                heroCTABtn.textContent = 'Започни промяната';
+            }
+            if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+            if (heroLoginBtn) heroLoginBtn.style.display = '';
+            if (navLogoutBtn) navLogoutBtn.style.display = 'none';
+        }
+
         // Enter key on email input focuses password; Enter on password submits
         document.addEventListener('DOMContentLoaded', () => {
             const emailIn = document.getElementById('loginEmailInput');
@@ -4108,6 +4131,7 @@
         };
 
         window.indexSignOut = async function() {
+            setLoggedOutNavigationState();
             await signOut(auth).catch(() => {});
             const PLAN_KEYS = [
                 'dietPlan', 'userData', 'planSource', 'planHistory',
