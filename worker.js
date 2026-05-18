@@ -4474,7 +4474,7 @@ async function handleGetClientData(request, env) {
 // ─── Admin: Update client plan ───
 async function handleUpdateClientPlan(request, env, ctx) {
   try {
-    const { clientId, plan } = await request.json();
+    const { clientId, plan, userId } = await request.json();
     if (!clientId || !plan) {
       return jsonResponse({ error: 'Missing clientId or plan' }, 400);
     }
@@ -4487,6 +4487,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
     }
     const clientData = JSON.parse(raw);
     clientData.plan = plan;
+    if (userId) clientData.userId = userId;
     clientData.planUpdatedAt = new Date().toISOString();
     // Mark as pending review whenever a plan is attached or updated
     if (clientData.planStatus !== 'activated') {
@@ -4540,6 +4541,24 @@ async function handleActivateClientPlan(request, env, ctx) {
     clientData.planStatus = 'activated';
     clientData.planActivatedAt = new Date().toISOString();
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+
+    // If this questionnaire submission is linked to a user profile, immediately
+    // clear its pending marker so the next APK/PWA login opens plan.html.
+    if (clientData.userId) {
+      try {
+        const profileRaw = await env.page_content.get(`user_profile:${clientData.userId}`);
+        if (profileRaw) {
+          const profile = JSON.parse(profileRaw);
+          profile.plan = clientData.plan;
+          profile.planSource = '';
+          profile.clientId = clientId;
+          profile.savedAt = new Date().toISOString();
+          await env.page_content.put(`user_profile:${clientData.userId}`, JSON.stringify(profile));
+        }
+      } catch (e) {
+        console.warn(`Failed to update activated profile ${clientData.userId}:`, e.message);
+      }
+    }
 
     // Send email notification to client — try synchronously so we can report status
     const clientEmail = clientData.answers?.email;
@@ -12336,6 +12355,23 @@ async function handleSaveUserProfile(request, env) {
       { expirationTtl: ttl }
     );
 
+    // Link questionnaire-2 client records back to the Firebase/anonymous profile.
+    // This lets admin activation update the same profile that APK login restores.
+    if (clientId) {
+      try {
+        const clientRaw = await env.page_content.get(`client:${clientId}`);
+        if (clientRaw) {
+          const clientData = JSON.parse(clientRaw);
+          if (clientData.userId !== userId) {
+            clientData.userId = userId;
+            await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+          }
+        }
+      } catch (e) {
+        console.warn(`Failed to link client ${clientId} to profile ${userId}:`, e.message);
+      }
+    }
+
     console.log(`User profile saved for restore: ${userId}`);
     return jsonResponse({ success: true });
   } catch (error) {
@@ -12390,7 +12426,50 @@ async function handleGetUserProfile(request, env) {
     }
 
     const profile = JSON.parse(raw);
-    return jsonResponse({ found: true, plan: profile.plan, userData: profile.userData, planSource: profile.planSource || '', ...(profile.clientId ? { clientId: profile.clientId } : {}) });
+
+    // Questionnaire-2 plans are pending only until the admin activates the matching
+    // client record.  Older profile entries can remain stuck with
+    // planSource="questionnaire2"; normalize them here so fresh APK installs do
+    // not send approved users back to the questionnaire/pending flow.
+    let planSource = profile.planSource || '';
+    let clientId = profile.clientId || '';
+    if (planSource === 'questionnaire2') {
+      let activatedClient = null;
+      if (clientId) {
+        const clientRaw = await env.page_content.get(`client:${clientId}`);
+        if (clientRaw) activatedClient = JSON.parse(clientRaw);
+      }
+
+      // Backfill for profiles saved before clientId was added: match by email.
+      if (!activatedClient && profile.userData?.email) {
+        const wantedEmail = String(profile.userData.email).trim().toLowerCase();
+        const listRaw = await env.page_content.get('clients_list');
+        const clientIds = listRaw ? JSON.parse(listRaw) : [];
+        for (const id of clientIds.slice(0, 500)) {
+          const clientRaw = await env.page_content.get(`client:${id}`);
+          if (!clientRaw) continue;
+          const clientData = JSON.parse(clientRaw);
+          const clientEmail = String(clientData.answers?.email || '').trim().toLowerCase();
+          if (clientEmail === wantedEmail) {
+            activatedClient = clientData;
+            clientId = id;
+            break;
+          }
+        }
+      }
+
+      if (activatedClient?.planStatus === 'activated') {
+        if (activatedClient.plan) profile.plan = activatedClient.plan;
+        profile.planSource = '';
+        if (clientId) profile.clientId = clientId;
+        planSource = '';
+        await env.page_content.put(`user_profile:${userId}`, JSON.stringify(profile));
+      } else if (clientId) {
+        profile.clientId = clientId;
+      }
+    }
+
+    return jsonResponse({ found: true, plan: profile.plan, userData: profile.userData, planSource, ...(clientId ? { clientId } : {}) });
   } catch (error) {
     console.error('Error getting user profile:', error);
     return jsonResponse({ error: 'Failed to get user profile: ' + error.message }, 500);

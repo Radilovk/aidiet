@@ -2615,6 +2615,16 @@
             return false;
         }
 
+        function getPlanTargetFromState() {
+            if (localStorage.getItem('planSource') === 'questionnaire2' || localStorage.getItem('pendingClientId')) {
+                return 'plan-pending.html';
+            }
+            if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
+                return 'plan-pending.html';
+            }
+            return localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html';
+        }
+
         // --- Check for existing plan and show appropriate button ---
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
@@ -2681,7 +2691,7 @@
 
                 if (hasPlan || hasData) {
                     // Determine destination
-                    const planTarget = hasPlan ? 'plan.html' : 'plan-pending.html';
+                    const planTarget = getPlanTargetFromState();
                     if (startNowBtn) startNowBtn.style.display = 'none';
                     if (heroCTABtn) {
                         heroCTABtn.href = planTarget;
@@ -2711,7 +2721,7 @@
 
             if (dietPlan) {
                 // Determine the correct plan destination
-                const planTarget  = 'plan.html';
+                const planTarget  = getPlanTargetFromState();
 
                 // Redirect directly unless the user intentionally navigated here
                 if (!params.has('stay')) {
@@ -3760,7 +3770,7 @@
             <button class="login-modal-forgot" id="loginForgotBtn"
                     onclick="window.indexLoginForgotPassword()">Забравена парола?</button>
             <button class="login-modal-forgot login-modal-switch" id="loginSwitchBtn"
-                    onclick="window.indexToggleLoginMode()">Нямате акаунт? Регистрирайте се</button>
+                    onclick="window.indexToggleLoginMode()">Нямате профил? Попълнете въпросника</button>
 
             <div id="loginModalError"></div>
             <div id="loginModalSuccess"></div>
@@ -3771,7 +3781,7 @@
         import { initializeApp, getApps, getApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, onAuthStateChanged, signOut,
-            signInWithEmailAndPassword, createUserWithEmailAndPassword
+            signInWithEmailAndPassword
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const firebaseConfig = {
@@ -3834,10 +3844,13 @@
                     localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
                     if (data.planSource) localStorage.setItem('planSource', data.planSource);
+                    else localStorage.removeItem('planSource');
                     // Restore pendingClientId so plan-pending.html can check plan status
                     // on a new device where this value was not previously stored locally.
                     if (data.clientId && data.planSource === 'questionnaire2') {
                         localStorage.setItem('pendingClientId', data.clientId);
+                    } else if (data.planSource !== 'questionnaire2') {
+                        localStorage.removeItem('pendingClientId');
                     }
                     return true;
                 }
@@ -3955,13 +3968,10 @@
                 } catch (_) {
                     safeDest = null;
                 }
-                window.location.replace(safeDest || (localStorage.getItem('dietPlan')
-                    ? 'plan.html'
-                    : 'questionnaire2.html'));
+                window.location.replace(safeDest || getPlanTargetFromState());
             } else if (_loginInProgress) {
                 _loginInProgress = false;
-                const dest = localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html';
-                window.location.replace(dest);
+                window.location.replace(getPlanTargetFromState());
             }
         });
 
@@ -4002,11 +4012,8 @@
             });
         });
 
-        /* ── Modal open / close / mode toggle ──────────────────────────────── */
-        let _loginIsRegisterMode = false;
-
+        /* ── Modal open / close / questionnaire CTA ────────────────────────── */
         window.indexOpenLoginModal = function() {
-            _loginIsRegisterMode = false;
             _applyLoginMode();
             loginClearMessages();
             const modal = document.getElementById('loginModal');
@@ -4019,10 +4026,7 @@
         };
 
         window.indexToggleLoginMode = function() {
-            _loginIsRegisterMode = !_loginIsRegisterMode;
-            _applyLoginMode();
-            loginClearMessages();
-            setTimeout(() => document.getElementById('loginEmailInput')?.focus(), 50);
+            window.location.href = 'questionnaire2.html';
         };
 
         function _applyLoginMode() {
@@ -4031,19 +4035,11 @@
             const btn       = document.getElementById('loginPasswordBtn');
             const switchBtn = document.getElementById('loginSwitchBtn');
             const forgot    = document.getElementById('loginForgotBtn');
-            if (_loginIsRegisterMode) {
-                if (title)     title.textContent = 'Регистрация';
-                if (sub)       sub.textContent   = 'Създайте нов акаунт с имейл и парола';
-                if (btn)       btn.textContent   = 'Регистрирай се';
-                if (switchBtn) switchBtn.textContent = 'Вече имате акаунт? Влезте';
-                if (forgot)    forgot.style.display = 'none';
-            } else {
-                if (title)     title.textContent = 'Добре дошли в NutriPlan';
-                if (sub)       sub.textContent   = 'Влезте, за да достъпите плана си';
-                if (btn)       btn.textContent   = 'Вход';
-                if (switchBtn) switchBtn.textContent = 'Нямате акаунт? Регистрирайте се';
-                if (forgot)    forgot.style.display = '';
-            }
+            if (title)     title.textContent = 'Добре дошли в NutriPlan';
+            if (sub)       sub.textContent   = 'Влезте, за да достъпите плана си';
+            if (btn)       btn.textContent   = 'Вход';
+            if (switchBtn) switchBtn.textContent = 'Нямате профил? Попълнете въпросника';
+            if (forgot)    forgot.style.display = '';
         }
 
         /* ── Email / password sign-in ───────────────────────────────────────── */
@@ -4065,11 +4061,7 @@
             if (btn) btn.disabled = true;
             _loginInProgress = true;
             try {
-                if (_loginIsRegisterMode) {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                } else {
-                    await signInWithEmailAndPassword(auth, email, password);
-                }
+                await signInWithEmailAndPassword(auth, email, password);
                 /* onAuthStateChanged fires next and handles the redirect */
             } catch (err) {
                 _loginInProgress = false;
@@ -4134,12 +4126,13 @@
                 'userId', 'authKvSynced', 'np_profile_synced',
                 'planJustification', 'longTermStrategy', 'modifierReasoning',
                 'hydrationStrategy', 'mealCountJustification',
-                'hasSeenPlanJustification', 'gameNotifierConfig',
+                'gameNotifierConfig',
                 'planJobId', 'planJobSource', 'pendingPlanPayload',
                 'pendingClientId', 'questionnaireAnswers', 'warningData',
                 'canProceedWithWarning', 'validationSource',
                 'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
-                'planSyncPending'
+                'planSyncPending',
+                'profilePhotoURL', 'profilePhotoUid'
             ];
             PLAN_KEYS.forEach(k => localStorage.removeItem(k));
             Object.keys(localStorage)

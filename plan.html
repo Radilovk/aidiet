@@ -3487,7 +3487,7 @@
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
-            signInWithEmailAndPassword, createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
             signOut
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -3558,10 +3558,13 @@
                     localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
                     if (data.planSource) localStorage.setItem('planSource', data.planSource);
+                    else localStorage.removeItem('planSource');
                     // Restore pendingClientId so plan-pending.html can check plan status
                     // on a new device where this value was not previously stored locally.
                     if (data.clientId && data.planSource === 'questionnaire2') {
                         localStorage.setItem('pendingClientId', data.clientId);
+                    } else if (data.planSource !== 'questionnaire2') {
+                        localStorage.removeItem('pendingClientId');
                     }
                     return true;
                 }
@@ -3687,7 +3690,7 @@
                             err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
                                 ? 'Грешен имейл или парола.' :
                             err.code === 'auth/user-not-found'
-                                ? 'Нямате акаунт с този имейл. Регистрирайте се от началната страница.' :
+                                ? 'Нямате профил с този имейл. Попълнете въпросника от началната страница.' :
                             err.code === 'auth/too-many-requests'
                                 ? 'Твърде много опити. Изчакайте и опитайте отново.' :
                             err.code === 'auth/network-request-failed'
@@ -3732,31 +3735,16 @@
                            autocomplete="current-password" class="pa-pw-input">
                     <button id="paPwBtn" class="pa-primary-btn">Вход</button>
                     <p style="margin:12px 0 4px;font-size:0.82rem;color:var(--text-gray,#6b7280);">
-                        Нямате акаунт?
-                        <button id="paShowRegBtn" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Задайте парола (първи път)</button>
+                        Нямате профил?
+                        <button onclick="window.location.href='questionnaire2.html'" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълнете въпросника</button>
                     </p>
                     <button id="paForgotBtn" style="background:none;border:none;color:var(--text-gray,#6b7280);font-size:0.82rem;cursor:pointer;padding:4px 0;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Забравена парола?</button>
                     <div id="planAuthError"></div>
-                    <div id="planAuthSuccess" style="color:#059669;font-size:0.8rem;margin-top:12px;display:none;"></div>
-
-                    <!-- Registration panel (hidden by default) -->
-                    <div id="paRegPanel" style="display:none;margin-top:16px;border-top:1px solid #e0e0e0;padding-top:16px;">
-                        <p style="font-size:0.82rem;color:var(--text-gray,#6b7280);margin-bottom:12px;">Изберете парола за нов акаунт:</p>
-                        <input id="paRegPwInput" type="password" placeholder="Нова парола (мин. 6 знака)"
-                               autocomplete="new-password" class="pa-pw-input">
-                        <input id="paRegPwConfirm" type="password" placeholder="Потвърдете паролата"
-                               autocomplete="new-password" class="pa-pw-input">
-                        <button id="paRegBtn" class="pa-primary-btn">Създай акаунт</button>
-                    </div>`;
+                    <div id="planAuthSuccess" style="color:#059669;font-size:0.8rem;margin-top:12px;display:none;"></div>`;
 
                 const pwIn    = document.getElementById('paPwInput');
                 const pwBtn   = document.getElementById('paPwBtn');
                 const forgotBtn = document.getElementById('paForgotBtn');
-                const showRegBtn = document.getElementById('paShowRegBtn');
-                const regPanel  = document.getElementById('paRegPanel');
-                const regPwIn   = document.getElementById('paRegPwInput');
-                const regConfIn = document.getElementById('paRegPwConfirm');
-                const regBtn    = document.getElementById('paRegBtn');
 
                 function showPlanAuthSuccess(msg) {
                     const el = document.getElementById('planAuthSuccess');
@@ -3779,9 +3767,9 @@
                         console.error('Login error:', err.code, err.message);
                         showAuthError(
                             err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
-                                ? 'Грешна парола. Използвайте „Забравена парола?" за нулиране или „Задайте парола" ако нямате акаунт.' :
+                                ? 'Грешна парола. Използвайте „Забравена парола?" за нулиране.' :
                             err.code === 'auth/user-not-found'
-                                ? 'Нямате акаунт. Използвайте „Задайте парола (първи път)".' :
+                                ? 'Нямате профил. Попълнете въпросника от началната страница.' :
                             err.code === 'auth/too-many-requests'
                                 ? 'Твърде много опити. Изчакайте и опитайте отново.' :
                             err.code === 'auth/network-request-failed'
@@ -3815,41 +3803,6 @@
                     } finally { this.disabled = false; }
                 });
 
-                /* ── Show registration panel ── */
-                showRegBtn.addEventListener('click', () => {
-                    regPanel.style.display = 'block';
-                    showRegBtn.closest('p').style.display = 'none';
-                    regPwIn.focus();
-                });
-
-                if (regPwIn)   regPwIn.addEventListener('keydown', e => { if (e.key === 'Enter') regConfIn?.focus(); });
-                if (regConfIn) regConfIn.addEventListener('keydown', e => { if (e.key === 'Enter') regBtn?.click(); });
-
-                /* ── Create new account ── */
-                regBtn.addEventListener('click', async function () {
-                    const pw  = regPwIn.value;
-                    const pw2 = regConfIn.value;
-                    if (!pw || pw.length < 6)  { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
-                    if (pw !== pw2)             { showAuthError('Паролите не съвпадат.'); return; }
-                    this.disabled = true;
-                    try {
-                        await createUserWithEmailAndPassword(auth, email, pw);
-                        /* onAuthStateChanged → hideOverlay */
-                    } catch (err) {
-                        console.error('Registration error:', err.code, err.message);
-                        showAuthError(
-                            err.code === 'auth/email-already-in-use'
-                                ? 'Вече имате акаунт с този имейл. Използвайте формата за вход по-горе.' :
-                            err.code === 'auth/weak-password'
-                                ? 'Паролата трябва да е поне 6 символа.' :
-                            err.code === 'auth/network-request-failed'
-                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
-                            err.code === 'auth/unauthorized-domain'
-                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
-                            'Грешка при регистрация. Опитайте отново.'
-                        );
-                    } finally { this.disabled = false; }
-                });
             }
         }
 
@@ -3862,7 +3815,7 @@
                 'userId', 'authKvSynced', 'np_profile_synced',
                 'planJustification', 'longTermStrategy', 'modifierReasoning',
                 'hydrationStrategy', 'mealCountJustification',
-                'hasSeenPlanJustification', 'gameNotifierConfig',
+                'gameNotifierConfig',
                 'planJobId', 'planJobSource', 'pendingPlanPayload',
                 'pendingClientId', 'questionnaireAnswers', 'warningData',
                 'canProceedWithWarning', 'validationSource',
@@ -3870,7 +3823,9 @@
                 // user's conversation history on the same device.
                 'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
                 // Pending sync flag
-                'planSyncPending'
+                'planSyncPending',
+                // Cached Firebase avatar URL
+                'profilePhotoURL', 'profilePhotoUid'
             ];
             PLAN_KEYS.forEach(k => localStorage.removeItem(k));
             // Clear dynamically-named addedMeals_* keys

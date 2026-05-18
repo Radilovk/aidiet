@@ -633,7 +633,6 @@
                         localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     }
                     localStorage.removeItem('planSource');
-                    localStorage.removeItem('pendingClientId');
 
                     // Update the user_profile KV entry to clear planSource so that when
                     // the user logs in on a new device, they go directly to plan.html
@@ -646,7 +645,7 @@
                             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId, plan: planPayload, userData, planSource: '' })
+                                body: JSON.stringify({ userId, plan: planPayload, userData, planSource: '', clientId })
                             }).catch(() => {});
                         }
                     }
@@ -696,7 +695,7 @@
                         Защитете достъпа до плана
                     </h3>
                     <p style="font-size:0.85rem;color:var(--text-light);margin:0 0 16px;">
-                        Създайте парола, за да достъпвате плана си от всяко устройство. Можете да пропуснете тази стъпка.
+                        Създайте парола, за да достъпвате плана си от всяко устройство.
                     </p>
                     <input type="email" id="ppSetupEmail" value="${userEmail.replace(/"/g, '&quot;')}" placeholder="Вашият имейл" autocomplete="email"
                         style="width:100%;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border-light);background:var(--bg-subtle);color:var(--text-dark);font-size:0.9rem;margin-bottom:10px;box-sizing:border-box;" />
@@ -706,10 +705,6 @@
                     <button onclick="createAccountAndGoToPlan()" id="ppSetupBtn"
                         style="width:100%;padding:12px;background:var(--primary-red);color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:8px;">
                         <i class="fas fa-user-plus"></i> Създай акаунт и виж плана
-                    </button>
-                    <button onclick="window.location.href='plan.html'"
-                        style="width:100%;padding:10px;background:none;border:1.5px solid var(--border-light);color:var(--text-light);border-radius:8px;font-size:0.85rem;cursor:pointer;">
-                        Прескочи — влез без регистрация
                     </button>
                 </div>
             `;
@@ -745,8 +740,30 @@
                 };
                 const auth = getAuth(getApps().length ? getApp() : initializeApp(_cfg));
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
-                // Store Firebase userId so plan.html can associate the plan
-                localStorage.setItem('userId', 'fb_' + cred.user.uid);
+                const userId = 'fb_' + cred.user.uid;
+                localStorage.setItem('userId', userId);
+                localStorage.removeItem('planSource');
+
+                // Persist the approved plan under the Firebase UID before entering
+                // plan.html, otherwise a fresh APK/PWA login would not find it.
+                const plan = JSON.parse(localStorage.getItem('dietPlan') || 'null');
+                const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+                const clientId = localStorage.getItem('pendingClientId');
+                if (plan) {
+                    await fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId,
+                            plan,
+                            userData,
+                            planSource: '',
+                            ...(clientId ? { clientId } : {}),
+                            idToken: await cred.user.getIdToken().catch(() => null)
+                        })
+                    }).catch(() => {});
+                }
+                localStorage.removeItem('pendingClientId');
                 window.location.href = 'plan.html';
             } catch (e) {
                 const msg = e.code === 'auth/email-already-in-use'
