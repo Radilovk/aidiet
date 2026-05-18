@@ -28,9 +28,13 @@ const GameNotifier = {
     CHANNEL_ID:     'nutriplan_daily_checkins',
     BRAND_TEAL:     '#009A9E',
     BRAND_TEAL_DARK: '#0F766E',
+    QUICK_ANSWER_PATH: '/quick-answer.html',
+    MORNING_ACTION_TYPE_ID: 'nutriplan_morning_check',
+    EVENING_ACTION_TYPE_ID: 'nutriplan_evening_check',
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
+    _listenersBound: false,
 
     /* ------------------------------------------------------------------ */
     /*  Public API                                                          */
@@ -59,6 +63,8 @@ const GameNotifier = {
                 console.warn('[GameNotifier] Capacitor notification permission denied');
                 return;
             }
+            await this._registerCapacitorActionTypes();
+            this._bindCapacitorListeners();
         } else {
             // Web / PWA path
             if (!('Notification' in window) || !('serviceWorker' in navigator)) {
@@ -201,6 +207,74 @@ const GameNotifier = {
         }
     },
 
+    async _registerCapacitorActionTypes() {
+        try {
+            const { LocalNotifications } = this._capacitor;
+            if (typeof LocalNotifications.registerActionTypes !== 'function') return;
+            await LocalNotifications.registerActionTypes({
+                types: [
+                    {
+                        id: this.MORNING_ACTION_TYPE_ID,
+                        actions: [
+                            { id: 'sleep_yes', title: 'Да 🌞' },
+                            { id: 'sleep_no', title: 'Не 😴' }
+                        ]
+                    },
+                    {
+                        id: this.EVENING_ACTION_TYPE_ID,
+                        actions: [
+                            { id: 'open_evening', title: 'Бърз отговор ⚡' },
+                            { id: 'water_yes', title: 'Пих вода 💧' }
+                        ]
+                    }
+                ]
+            });
+        } catch (e) {
+            console.warn('[GameNotifier] Action type registration warning:', e);
+        }
+    },
+
+    _bindCapacitorListeners() {
+        if (!this._capacitor || this._listenersBound) return;
+        const { LocalNotifications } = this._capacitor;
+        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+            this._handleCapacitorNotificationAction(action);
+        });
+        this._listenersBound = true;
+    },
+
+    _handleCapacitorNotificationAction(action) {
+        const notification = action && action.notification ? action.notification : {};
+        const extra = notification.extra || {};
+        const type = extra.type || '';
+        const recordKey = this._normalizeRecordKey(extra.recordKey);
+        const actionId = action && typeof action.actionId === 'string' ? action.actionId : '';
+
+        if (type === 'morning_check' && (actionId === 'sleep_yes' || actionId === 'sleep_no')) {
+            const saved = this._saveQuickAnswer(recordKey, 'morning_check', {
+                sleptWell: actionId === 'sleep_yes'
+            });
+            if (saved) return;
+            window.location.href = this._buildQuickAnswerUrl('morning_check', {
+                date: recordKey,
+                auto: actionId === 'sleep_yes' ? 'morning_yes' : 'morning_no'
+            });
+            return;
+        }
+
+        if (type === 'evening_check' && actionId === 'water_yes') {
+            window.location.href = this._buildQuickAnswerUrl('evening_check', {
+                date: recordKey,
+                water: '1'
+            });
+            return;
+        }
+
+        if (extra.url) {
+            window.location.href = extra.url;
+        }
+    },
+
     /* ------------------------------------------------------------------ */
     /*  Configuration (hardcoded defaults, overridden by admin backend)     */
     /* ------------------------------------------------------------------ */
@@ -294,27 +368,39 @@ const GameNotifier = {
         for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morningTs = this._tsForDayOffset(day, mH, mM);
             if (morningTs > Date.now()) {
+                const recordKey = this._dateKeyForTimestamp(morningTs);
                 notifications.push({
                     id: 1000 + day,
                     channelId: this.CHANNEL_ID,
                     title: cfg.morningTitle,
                     body:  cfg.morningBody,
+                    actionTypeId: this.MORNING_ACTION_TYPE_ID,
                     // allowWhileIdle uses setExactAndAllowWhileIdle() so Huawei's
                     // aggressive battery optimization (Doze mode) cannot kill the alarm.
                     schedule: { at: new Date(morningTs), allowWhileIdle: true },
-                    extra: { url: '/plan.html?action=morning_check', type: 'morning_check' },
+                    extra: {
+                        url: this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
+                        type: 'morning_check',
+                        recordKey
+                    },
                     iconColor: this.BRAND_TEAL
                 });
             }
             const eveningTs = this._tsForDayOffset(day, eH, eM);
             if (eveningTs > Date.now()) {
+                const recordKey = this._dateKeyForTimestamp(eveningTs);
                 notifications.push({
                     id: 2000 + day,
                     channelId: this.CHANNEL_ID,
                     title: cfg.eveningTitle,
                     body:  cfg.eveningBody,
+                    actionTypeId: this.EVENING_ACTION_TYPE_ID,
                     schedule: { at: new Date(eveningTs), allowWhileIdle: true },
-                    extra: { url: '/plan.html?action=evening_check', type: 'evening_check' },
+                    extra: {
+                        url: this._buildQuickAnswerUrl('evening_check', { date: recordKey }),
+                        type: 'evening_check',
+                        recordKey
+                    },
                     iconColor: this.BRAND_TEAL_DARK
                 });
             }
@@ -348,14 +434,6 @@ const GameNotifier = {
         } catch (e) {
             console.error('[GameNotifier] Capacitor schedule error:', e);
         }
-
-        // Navigate to action URL on notification tap
-        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-            const extra = action.notification.extra || {};
-            if (extra.url) {
-                window.location.href = extra.url;
-            }
-        });
     },
 
     /* ------------------------------------------------------------------ */
@@ -377,26 +455,38 @@ const GameNotifier = {
         for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morning = this._tsForDayOffset(day, mH, mM);
             if (morning > now) {
+                const recordKey = this._dateKeyForTimestamp(morning);
                 schedule.push({
                     ts: morning,
                     title: cfg.morningTitle,
                     body:  cfg.morningBody,
                     tag:   `gn-morning-${morning}`,
                     type:  'morning_check',
-                    url:   '/plan.html?action=morning_check',
+                    url:   this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
+                    recordKey,
+                    actions: [
+                        { action: 'sleep_yes', title: 'Да 🌞' },
+                        { action: 'sleep_no', title: 'Не 😴' }
+                    ],
                     vibrate: [300, 100, 300, 100, 300],
                     requireInteraction: true
                 });
             }
             const evening = this._tsForDayOffset(day, eH, eM);
             if (evening > now) {
+                const recordKey = this._dateKeyForTimestamp(evening);
                 schedule.push({
                     ts: evening,
                     title: cfg.eveningTitle,
                     body:  cfg.eveningBody,
                     tag:   `gn-evening-${evening}`,
                     type:  'evening_check',
-                    url:   '/plan.html?action=evening_check',
+                    url:   this._buildQuickAnswerUrl('evening_check', { date: recordKey }),
+                    recordKey,
+                    actions: [
+                        { action: 'open_evening', title: 'Бърз отговор ⚡' },
+                        { action: 'water_yes', title: 'Пих вода 💧' }
+                    ],
                     vibrate: [200, 100, 200, 100, 200],
                     requireInteraction: false
                 });
@@ -440,14 +530,18 @@ const GameNotifier = {
     async _showImmediateNotification(type) {
         const cfg = this._getConfig();
         let title, body, url;
+        let actionTypeId;
+        let recordKey = this._dateKeyForTimestamp(Date.now());
         if (type === 'morning_check') {
             title = cfg.morningTitle;
             body  = cfg.morningBody;
-            url   = '/plan.html?action=morning_check';
+            url   = this._buildQuickAnswerUrl('morning_check', { date: recordKey });
+            actionTypeId = this.MORNING_ACTION_TYPE_ID;
         } else if (type === 'evening_check') {
             title = cfg.eveningTitle;
             body  = cfg.eveningBody;
-            url   = '/plan.html?action=evening_check';
+            url   = this._buildQuickAnswerUrl('evening_check', { date: recordKey });
+            actionTypeId = this.EVENING_ACTION_TYPE_ID;
         } else {
             title = 'NutriPlan тест';
             body  = 'Тестово известие от GameNotifier.';
@@ -461,8 +555,9 @@ const GameNotifier = {
                 channelId: this.CHANNEL_ID,
                 title,
                 body,
+                actionTypeId,
                 schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
-                extra: { url, type },
+                extra: { url, type, recordKey },
                 iconColor: this.BRAND_TEAL
             }]});
             return;
@@ -475,7 +570,12 @@ const GameNotifier = {
                 icon: '/icon-192x192.png',
                 badge: '/icon-192x192.png',
                 tag: 'gn-immediate-' + Date.now(),
-                data: { url }
+                data: { url, type, recordKey },
+                actions: type === 'morning_check'
+                    ? [{ action: 'sleep_yes', title: 'Да 🌞' }, { action: 'sleep_no', title: 'Не 😴' }]
+                    : type === 'evening_check'
+                        ? [{ action: 'open_evening', title: 'Бърз отговор ⚡' }, { action: 'water_yes', title: 'Пих вода 💧' }]
+                        : undefined
             });
         }
     },
@@ -512,6 +612,71 @@ const GameNotifier = {
         d.setDate(d.getDate() + dayOffset);
         d.setHours(hours, minutes, 0, 0);
         return d.getTime();
+    },
+
+    _normalizeRecordKey(recordKey) {
+        if (typeof recordKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(recordKey)) return recordKey;
+        return this._dateKeyForTimestamp(Date.now());
+    },
+
+    _dateKeyForTimestamp(ts) {
+        const d = new Date(ts);
+        const pad = (n) => n < 10 ? '0' + n : '' + n;
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    },
+
+    _emptyGameRecord(key) {
+        return {
+            date: key,
+            meals: {},
+            extraMeals: [],
+            freeMealRatings: {},
+            morningCheck: null,
+            eveningCheck: null,
+            plannedCalories: null,
+            mealCalories: {},
+            dailyScore: null,
+            missing: false
+        };
+    },
+
+    _saveQuickAnswer(recordKey, type, payload) {
+        try {
+            const key = this._normalizeRecordKey(recordKey);
+            const allData = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
+            const record = allData[key] || this._emptyGameRecord(key);
+            if (type === 'morning_check') {
+                record.morningCheck = {
+                    sleptWell: !!(payload && payload.sleptWell),
+                    ts: new Date().toISOString()
+                };
+            } else if (type === 'evening_check' && payload) {
+                record.eveningCheck = {
+                    activityLevel: payload.activityLevel,
+                    emotionalBalance: payload.emotionalBalance,
+                    waterIntake: !!payload.waterIntake,
+                    ts: new Date().toISOString()
+                };
+            } else {
+                return false;
+            }
+            allData[key] = record;
+            localStorage.setItem('gameData', JSON.stringify(allData));
+            return true;
+        } catch (e) {
+            console.warn('[GameNotifier] Quick answer save failed:', e);
+            return false;
+        }
+    },
+
+    _buildQuickAnswerUrl(type, params) {
+        const search = new URLSearchParams();
+        search.set('type', type);
+        Object.keys(params || {}).forEach((key) => {
+            const value = params[key];
+            if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
+        });
+        return this.QUICK_ANSWER_PATH + '?' + search.toString();
     }
 };
 

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>NutriPlan • Бърз отговор</title>
+    <meta name="theme-color" content="#0b1120">
+    <style>
+        :root {
+            --bg-1: #04111b;
+            --bg-2: #0b1f2a;
+            --card: rgba(9, 24, 36, 0.86);
+            --card-border: rgba(94, 234, 212, 0.18);
+            --text: #ecfeff;
+            --muted: #94a3b8;
+            --teal: #2dd4bf;
+            --teal-strong: #14b8a6;
+            --amber: #fbbf24;
+            --rose: #fb7185;
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+            --radius: 28px;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; min-height: 100%; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top, rgba(45,212,191,0.22), transparent 28%), linear-gradient(180deg, var(--bg-1), var(--bg-2)); color: var(--text); }
+        body { overflow: hidden; }
+        .stars, .glow, .confetti { position: fixed; inset: 0; pointer-events: none; }
+        .stars {
+            background-image:
+                radial-gradient(circle at 12% 18%, rgba(255,255,255,0.72) 0 1px, transparent 2px),
+                radial-gradient(circle at 80% 14%, rgba(255,255,255,0.5) 0 1px, transparent 2px),
+                radial-gradient(circle at 66% 34%, rgba(255,255,255,0.42) 0 1px, transparent 2px),
+                radial-gradient(circle at 22% 76%, rgba(255,255,255,0.4) 0 1px, transparent 2px),
+                radial-gradient(circle at 88% 72%, rgba(255,255,255,0.64) 0 1px, transparent 2px);
+            animation: drift 16s linear infinite;
+            opacity: 0.8;
+        }
+        .glow {
+            background:
+                radial-gradient(circle at 15% 20%, rgba(45,212,191,0.18), transparent 30%),
+                radial-gradient(circle at 85% 18%, rgba(251,191,36,0.18), transparent 28%),
+                radial-gradient(circle at 50% 85%, rgba(20,184,166,0.18), transparent 34%);
+            filter: blur(12px);
+        }
+        .shell {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+        .card {
+            width: min(100%, 430px);
+            position: relative;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            padding: 22px 18px 18px;
+            transform: translateY(14px) scale(0.98);
+            opacity: 0;
+            animation: pop-in 0.42s ease-out forwards;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(45,212,191,0.12);
+            border: 1px solid rgba(45,212,191,0.25);
+            color: #ccfbf1;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .title {
+            margin: 16px 0 8px;
+            font-size: clamp(28px, 8vw, 36px);
+            line-height: 1.06;
+            font-weight: 800;
+        }
+        .subtitle {
+            margin: 0 0 18px;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.55;
+        }
+        .progress {
+            display: flex;
+            gap: 10px;
+            margin: 0 0 18px;
+        }
+        .progress span {
+            flex: 1;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(148,163,184,0.18);
+            overflow: hidden;
+            position: relative;
+        }
+        .progress span::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, var(--teal), #5eead4);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.26s ease;
+        }
+        .progress span.active::after { transform: scaleX(1); }
+        .choices, .footer-actions, .chips {
+            display: grid;
+            gap: 12px;
+        }
+        .choice {
+            width: 100%;
+            border: 1px solid rgba(148,163,184,0.14);
+            background: rgba(15,23,42,0.7);
+            color: var(--text);
+            border-radius: 22px;
+            padding: 16px 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+        }
+        .choice strong, .choice span { display: block; }
+        .choice strong { font-size: 17px; margin-bottom: 4px; }
+        .choice span { color: #cbd5e1; font-size: 13px; }
+        .choice:hover, .choice:focus-visible {
+            transform: translateY(-2px);
+            border-color: rgba(45,212,191,0.44);
+            box-shadow: 0 16px 34px rgba(13,148,136,0.18);
+            outline: none;
+        }
+        .choice.primary {
+            background: linear-gradient(180deg, rgba(20,184,166,0.24), rgba(13,148,136,0.18));
+            border-color: rgba(45,212,191,0.34);
+        }
+        .choice.warn {
+            background: linear-gradient(180deg, rgba(251,113,133,0.18), rgba(127,29,29,0.12));
+        }
+        .choice.selected {
+            border-color: rgba(45,212,191,0.65);
+            box-shadow: 0 0 0 1px rgba(45,212,191,0.3), 0 18px 36px rgba(20,184,166,0.22);
+        }
+        .inline-note {
+            margin: 0 0 14px;
+            padding: 12px 14px;
+            border-radius: 18px;
+            background: rgba(45,212,191,0.12);
+            border: 1px solid rgba(45,212,191,0.2);
+            color: #d1fae5;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+        .chips {
+            margin: 0 0 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .chip {
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: rgba(15,23,42,0.7);
+            border: 1px solid rgba(148,163,184,0.14);
+            font-size: 13px;
+            color: #cbd5e1;
+        }
+        .chip strong { display: block; color: #f8fafc; font-size: 15px; margin-top: 3px; }
+        .success {
+            text-align: center;
+            padding: 8px 4px 4px;
+        }
+        .success-icon {
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 14px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: radial-gradient(circle at top, rgba(94,234,212,0.32), rgba(20,184,166,0.16));
+            box-shadow: 0 0 0 10px rgba(45,212,191,0.08), 0 18px 36px rgba(45,212,191,0.16);
+            font-size: 38px;
+        }
+        .success h2 { margin: 0 0 10px; font-size: 28px; }
+        .success p { margin: 0 0 18px; color: var(--muted); line-height: 1.55; }
+        .footer-actions { margin-top: 18px; }
+        .footer-actions button {
+            width: 100%;
+            border: 0;
+            border-radius: 18px;
+            padding: 15px 14px;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .footer-actions .solid {
+            color: #042f2e;
+            background: linear-gradient(180deg, #5eead4, #2dd4bf);
+            box-shadow: 0 18px 36px rgba(45,212,191,0.24);
+        }
+        .footer-actions .ghost {
+            color: var(--text);
+            background: rgba(15,23,42,0.72);
+            border: 1px solid rgba(148,163,184,0.18);
+        }
+        .confetti span {
+            position: absolute;
+            top: -8px;
+            width: 10px;
+            height: 18px;
+            border-radius: 3px;
+            animation: fall linear forwards;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+        @keyframes pop-in {
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes drift {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(12px); }
+            100% { transform: translateY(0); }
+        }
+        @keyframes fall {
+            to { transform: translate3d(var(--tx), 110vh, 0) rotate(var(--rot)); opacity: 0.15; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+    <div class="glow"></div>
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+    <main class="shell">
+        <section class="card" id="card" aria-live="polite"></section>
+    </main>
+
+    <script>
+    (function() {
+        var GAME_DATA_KEY = 'gameData';
+        var params = new URLSearchParams(window.location.search);
+        var type = params.get('type') === 'evening_check' ? 'evening_check' : 'morning_check';
+        var auto = params.get('auto') || '';
+        var prefillWater = params.get('water') === '1';
+        var recordKey = normalizeDateKey(params.get('date'));
+        var card = document.getElementById('card');
+        var confettiLayer = document.getElementById('confetti');
+        var state = { activityLevel: null, emotionalBalance: null, waterIntake: prefillWater ? true : null };
+
+        function pad(n) { return n < 10 ? '0' + n : '' + n; }
+        function todayKey() {
+            var d = new Date();
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        }
+        function normalizeDateKey(value) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : todayKey();
+        }
+        function emptyRecord(key) {
+            return {
+                date: key,
+                meals: {},
+                extraMeals: [],
+                freeMealRatings: {},
+                morningCheck: null,
+                eveningCheck: null,
+                plannedCalories: null,
+                mealCalories: {},
+                dailyScore: null,
+                missing: false
+            };
+        }
+        function getGameData() {
+            try { return JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}') || {}; }
+            catch (_) { return {}; }
+        }
+        function getRecord(key) {
+            var data = getGameData();
+            return data[key] || emptyRecord(key);
+        }
+        function saveRecord(key, record) {
+            var data = getGameData();
+            data[key] = record;
+            localStorage.setItem(GAME_DATA_KEY, JSON.stringify(data));
+        }
+        function vibrate(pattern) {
+            try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (_) {}
+        }
+        function escapeHtml(text) {
+            return String(text || '').replace(/[&<>"']/g, function(ch) {
+                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+            });
+        }
+        function dateLabel(key) {
+            if (key === todayKey()) return 'Днес';
+            try {
+                var parts = key.split('-').map(Number);
+                var d = new Date(parts[0], parts[1] - 1, parts[2]);
+                return d.toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' });
+            } catch (_) {
+                return key;
+            }
+        }
+        function makeConfetti(count) {
+            confettiLayer.innerHTML = '';
+            var colors = ['#2dd4bf', '#5eead4', '#fbbf24', '#fb7185', '#38bdf8', '#a78bfa'];
+            for (var i = 0; i < count; i++) {
+                var part = document.createElement('span');
+                var size = 6 + Math.random() * 8;
+                part.style.left = Math.random() * 100 + '%';
+                part.style.width = size + 'px';
+                part.style.height = size * (0.8 + Math.random()) + 'px';
+                part.style.background = colors[Math.floor(Math.random() * colors.length)];
+                part.style.opacity = 0.85;
+                part.style.setProperty('--tx', ((Math.random() - 0.5) * 160) + 'px');
+                part.style.setProperty('--rot', Math.round(Math.random() * 360) + 'deg');
+                part.style.animationDuration = (1.2 + Math.random() * 1.8) + 's';
+                part.style.animationDelay = (Math.random() * 0.2) + 's';
+                confettiLayer.appendChild(part);
+            }
+            setTimeout(function() { confettiLayer.innerHTML = ''; }, 2600);
+        }
+        function render(shellHtml) {
+            card.innerHTML = shellHtml;
+        }
+        function viewPlan() {
+            window.location.href = './plan.html';
+        }
+        function closeFlow() {
+            if (window.history.length > 1) window.history.back();
+            else viewPlan();
+        }
+        function saveMorning(sleptWell) {
+            var record = getRecord(recordKey);
+            record.morningCheck = { sleptWell: !!sleptWell, ts: new Date().toISOString() };
+            saveRecord(recordKey, record);
+        }
+        function saveEvening() {
+            var record = getRecord(recordKey);
+            record.eveningCheck = {
+                activityLevel: state.activityLevel,
+                emotionalBalance: state.emotionalBalance,
+                waterIntake: !!state.waterIntake,
+                ts: new Date().toISOString()
+            };
+            saveRecord(recordKey, record);
+        }
+        function renderSuccess(title, message, summary) {
+            vibrate([24, 36, 24]);
+            makeConfetti(30);
+            render(
+                '<div class="badge">✨ NutriPlan quick answer</div>' +
+                '<div class="success">' +
+                    '<div class="success-icon">✓</div>' +
+                    '<h2>' + escapeHtml(title) + '</h2>' +
+                    '<p>' + escapeHtml(message) + '</p>' +
+                    (summary ? '<div class="chips">' + summary.join('') + '</div>' : '') +
+                    '<div class="footer-actions">' +
+                        '<button class="solid" id="openPlanBtn">Виж плана</button>' +
+                        '<button class="ghost" id="closeBtn">Затвори</button>' +
+                    '</div>' +
+                '</div>'
+            );
+            document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
+            document.getElementById('closeBtn').addEventListener('click', closeFlow);
+        }
+        function renderAlreadyAnswered(title, message) {
+            render(
+                '<div class="badge">🛡️ Вече е записано</div>' +
+                '<h1 class="title">' + escapeHtml(title) + '</h1>' +
+                '<p class="subtitle">' + escapeHtml(message) + '</p>' +
+                '<div class="footer-actions">' +
+                    '<button class="solid" id="openPlanBtn">Отвори плана</button>' +
+                    '<button class="ghost" id="closeBtn">Назад</button>' +
+                '</div>'
+            );
+            document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
+            document.getElementById('closeBtn').addEventListener('click', closeFlow);
+        }
+        function chip(label, value) {
+            return '<div class="chip">' + escapeHtml(label) + '<strong>' + escapeHtml(value) + '</strong></div>';
+        }
+        function renderMorning() {
+            var existing = getRecord(recordKey).morningCheck;
+            if (existing) {
+                renderAlreadyAnswered('Сутрешният отговор е записан', 'За ' + dateLabel(recordKey) + ' вече има запазен отговор за съня.');
+                return;
+            }
+            render(
+                '<div class="badge">🌅 Сутрешен check-in • ' + escapeHtml(dateLabel(recordKey)) + '</div>' +
+                '<h1 class="title">Спахте ли добре тази нощ?</h1>' +
+                '<p class="subtitle">Отговорът се записва локално и ще влезе директно в game analyse модула при следващото зареждане.</p>' +
+                '<div class="progress"><span class="active"></span></div>' +
+                '<div class="choices">' +
+                    '<button class="choice primary" id="sleepYes">' +
+                        '<strong>Да 🌞</strong><span>Спокойна нощ и добър старт.</span>' +
+                    '</button>' +
+                    '<button class="choice warn" id="sleepNo">' +
+                        '<strong>Не 😴</strong><span>Записваме го, за да влияе реално на дневния резултат.</span>' +
+                    '</button>' +
+                '</div>' +
+                '<div class="footer-actions">' +
+                    '<button class="ghost" id="openPlanBtn">Пропусни и отвори плана</button>' +
+                '</div>'
+            );
+            document.getElementById('sleepYes').addEventListener('click', function() {
+                vibrate(16);
+                saveMorning(true);
+                renderSuccess('Готово! Данните са запазени ✨', 'Сутрешният ви отговор за ' + dateLabel(recordKey) + ' вече е локално съхранен.', [
+                    chip('Сън', 'Да'),
+                    chip('Дата', dateLabel(recordKey))
+                ]);
+            });
+            document.getElementById('sleepNo').addEventListener('click', function() {
+                vibrate(16);
+                saveMorning(false);
+                renderSuccess('Готово! Данните са запазени ✨', 'Отбелязахме, че сънят не е бил достатъчен.', [
+                    chip('Сън', 'Не'),
+                    chip('Дата', dateLabel(recordKey))
+                ]);
+            });
+            document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
+        }
+        function eveningSteps() {
+            var steps = [
+                {
+                    key: 'activityLevel',
+                    title: 'Ниво на активност?',
+                    subtitle: 'Изберете най-близкото до вашия ден.',
+                    options: [
+                        { value: 1, title: 'Ниска', hint: 'По-малко движение и енергия.' },
+                        { value: 2, title: 'Умерена', hint: 'Добър баланс и нормален ритъм.' },
+                        { value: 3, title: 'Висока', hint: 'Много движение, тренировка или активен ден.' }
+                    ]
+                },
+                {
+                    key: 'emotionalBalance',
+                    title: 'Емоционален баланс?',
+                    subtitle: 'Как се чувствахте през деня?',
+                    options: [
+                        { value: 1, title: 'Напрегнат', hint: 'Денят беше тежък и натоварващ.' },
+                        { value: 2, title: 'Спокоен', hint: 'Имахте сравнително равномерен ден.' },
+                        { value: 3, title: 'Позитивен', hint: 'Денят ви е дал добър заряд.' }
+                    ]
+                }
+            ];
+            if (!prefillWater) {
+                steps.push({
+                    key: 'waterIntake',
+                    title: 'Изпихте ли поне 2 л вода?',
+                    subtitle: 'Това е директен фактор в gamification резултата.',
+                    options: [
+                        { value: false, title: 'Не', hint: 'Ще го отразим коректно в дневния резултат.' },
+                        { value: true, title: 'Да', hint: 'Супер — хидратацията влиза веднага в game analyse.' }
+                    ]
+                });
+            }
+            return steps;
+        }
+        function renderEvening(stepIndex) {
+            var existing = getRecord(recordKey).eveningCheck;
+            if (existing) {
+                renderAlreadyAnswered('Вечерният отговор е записан', 'За ' + dateLabel(recordKey) + ' вечерният check-in вече е попълнен.');
+                return;
+            }
+            var steps = eveningSteps();
+            var step = steps[stepIndex];
+            if (!step) {
+                saveEvening();
+                renderSuccess('Готово! Данните са запазени ✨', 'Вечерният check-in за ' + dateLabel(recordKey) + ' вече е локално интегриран.', [
+                    chip('Активност', ['','Ниска','Умерена','Висока'][state.activityLevel] || '—'),
+                    chip('Баланс', ['','Напрегнат','Спокоен','Позитивен'][state.emotionalBalance] || '—'),
+                    chip('Вода', state.waterIntake ? 'Да' : 'Не'),
+                    chip('Дата', dateLabel(recordKey))
+                ]);
+                return;
+            }
+
+            var progress = steps.map(function(_, idx) {
+                return '<span class="' + (idx <= stepIndex ? 'active' : '') + '"></span>';
+            }).join('');
+            var note = prefillWater
+                ? '<div class="inline-note">💧 „Пих вода“ е предварително отбелязано. Остават още 2 бързи избора.</div>'
+                : '';
+            var optionsHtml = step.options.map(function(option, idx) {
+                var tone = step.key === 'waterIntake' && option.value === false ? ' warn' : ' primary';
+                return '<button class="choice' + (idx === 0 ? tone : '') + '" data-value="' + escapeHtml(option.value) + '">' +
+                    '<strong>' + escapeHtml(option.title) + '</strong>' +
+                    '<span>' + escapeHtml(option.hint) + '</span>' +
+                '</button>';
+            }).join('');
+
+            render(
+                '<div class="badge">🌙 Вечерен check-in • ' + escapeHtml(dateLabel(recordKey)) + '</div>' +
+                '<h1 class="title">' + escapeHtml(step.title) + '</h1>' +
+                '<p class="subtitle">' + escapeHtml(step.subtitle) + '</p>' +
+                note +
+                '<div class="progress">' + progress + '</div>' +
+                '<div class="choices" id="choices">' + optionsHtml + '</div>' +
+                '<div class="footer-actions">' +
+                    '<button class="ghost" id="openPlanBtn">Отвори пълния план</button>' +
+                '</div>'
+            );
+
+            Array.prototype.forEach.call(document.querySelectorAll('#choices .choice'), function(btn) {
+                btn.addEventListener('click', function() {
+                    vibrate(14);
+                    Array.prototype.forEach.call(document.querySelectorAll('#choices .choice'), function(el) {
+                        el.classList.remove('selected');
+                    });
+                    btn.classList.add('selected');
+                    var raw = btn.getAttribute('data-value');
+                    state[step.key] = raw === 'true' ? true : raw === 'false' ? false : Number(raw);
+                    setTimeout(function() { renderEvening(stepIndex + 1); }, 160);
+                });
+            });
+            document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
+        }
+        function runAutoAction() {
+            if (auto === 'morning_yes' || auto === 'morning_no') {
+                if (!getRecord(recordKey).morningCheck) {
+                    saveMorning(auto === 'morning_yes');
+                }
+                renderSuccess('Готово! Данните са запазени ✨', 'Сутрешният отговор за ' + dateLabel(recordKey) + ' е записан директно от нотификацията.', [
+                    chip('Сън', auto === 'morning_yes' ? 'Да' : 'Не'),
+                    chip('Дата', dateLabel(recordKey))
+                ]);
+                return true;
+            }
+            return false;
+        }
+
+        if (!runAutoAction()) {
+            if (type === 'morning_check') renderMorning();
+            else renderEvening(0);
+        }
+    })();
+    </script>
+</body>
+</html>
