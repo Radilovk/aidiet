@@ -349,6 +349,12 @@
             transform: translateY(0);
         }
 
+        .profile-build-version {
+            font-size: 0.82rem;
+            color: var(--text-gray);
+            margin-top: 8px;
+        }
+
         @media (min-width: 769px) {
             .profile-android-btn {
                 font-size: 0.95rem;
@@ -1872,22 +1878,25 @@
             <input type="file" id="avatarInput" accept="image/*" style="display: none;">
             <div class="profile-name" id="profileName">Име</div>
             <div class="profile-email" id="profileEmail">email@example.com</div>
+            <div class="profile-build-version" data-app-version>Версия...</div>
             <script>
             /* Instantly populate profile header from localStorage before DOMContentLoaded,
              * so there is never a flash of placeholder "Име"/"email@example.com". */
             (function() {
                 try {
                     var ud = JSON.parse(localStorage.getItem('userData') || 'null');
+                    var cachedAvatar = localStorage.getItem('profileAvatar');
                     if (ud && ud.name) {
                         document.getElementById('profileName').textContent = ud.name;
-                        document.getElementById('profileAvatar').textContent = ud.name.charAt(0).toUpperCase();
+                        if (!cachedAvatar) {
+                            document.getElementById('profileAvatar').textContent = ud.name.charAt(0).toUpperCase();
+                        }
                     }
                     if (ud && ud.email) {
                         document.getElementById('profileEmail').textContent = ud.email;
                     }
                     
                     // Load cached avatar if exists
-                    var cachedAvatar = localStorage.getItem('profileAvatar');
                     if (cachedAvatar) {
                         var avatarEl = document.getElementById('profileAvatar');
                         avatarEl.style.backgroundImage = 'url(' + cachedAvatar + ')';
@@ -1906,8 +1915,6 @@
                 </button>
                 <div id="socialLoginError" style="color:#ef4444;font-size:0.8rem;text-align:center;display:none;max-width:260px;"></div>
             </div>
-
-
 
             <a class="profile-android-btn" id="profileAndroidBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
                 <i class="fab fa-android"></i>
@@ -2590,6 +2597,32 @@
             }
         }
 
+        function renderProfileAvatar(name, email, user) {
+            const avatar = document.getElementById('profileAvatar');
+            if (!avatar) return;
+
+            let imageUrl = localStorage.getItem('profileAvatar') || '';
+            if (!imageUrl && user && user.photoURL) {
+                imageUrl = user.photoURL;
+                localStorage.setItem('profilePhotoURL', imageUrl);
+                localStorage.setItem('profilePhotoUid', user.uid);
+            } else if (!imageUrl && user && localStorage.getItem('profilePhotoUid') === user.uid) {
+                imageUrl = localStorage.getItem('profilePhotoURL') || '';
+            }
+
+            if (imageUrl) {
+                avatar.style.backgroundImage = `url(${imageUrl})`;
+                avatar.style.backgroundSize = 'cover';
+                avatar.style.backgroundPosition = 'center';
+                avatar.textContent = '';
+                return;
+            }
+
+            avatar.style.backgroundImage = '';
+            const source = (name || email || 'П').trim();
+            avatar.textContent = source ? source.charAt(0).toUpperCase() : 'П';
+        }
+
         // --- Data Loading ---
         function loadUserData() {
             try {
@@ -2633,17 +2666,16 @@
                 originalData = JSON.parse(userDataStr); // Keep original for comparison
                 
                 // Update header
-                const avatar = document.getElementById('profileAvatar');
                 const name = document.getElementById('profileName');
                 const email = document.getElementById('profileEmail');
                 
                 if (userData.name) {
-                    avatar.textContent = userData.name.charAt(0).toUpperCase();
                     name.textContent = userData.name;
                 }
                 if (userData.email) {
                     email.textContent = userData.email;
                 }
+                renderProfileAvatar(userData.name, userData.email, null);
 
                 // Populate all form fields
                 populateFormFields();
@@ -2808,12 +2840,12 @@
 
                 // Update UI
                 if (updatedData.name) {
-                    document.getElementById('profileAvatar').textContent = updatedData.name.charAt(0).toUpperCase();
                     document.getElementById('profileName').textContent = updatedData.name;
                 }
                 if (updatedData.email) {
                     document.getElementById('profileEmail').textContent = updatedData.email;
                 }
+                renderProfileAvatar(updatedData.name, updatedData.email, null);
 
                 showAlert('✓ Данните са запазени успешно!', 'info');
                 cancelEditing();
@@ -3287,8 +3319,7 @@
                             try {
                                 localStorage.setItem('profileAvatar', imageData);
                                 // Update avatar display
-                                profileAvatar.style.backgroundImage = 'url(' + imageData + ')';
-                                profileAvatar.textContent = ''; // Hide initial letter
+                                renderProfileAvatar(userData?.name, userData?.email, null);
                                 showAlert('Аватарът е качен успешно!', 'success');
                             } catch (err) {
                                 console.error('Failed to save avatar:', err);
@@ -4712,24 +4743,7 @@
                     try { qData = JSON.parse(localStorage.getItem('userData') || 'null'); } catch (_) {}
                     if (nameEl  && !qData?.name)  nameEl.textContent  = user.displayName || 'Потребител';
                     if (emailEl && !qData?.email) emailEl.textContent = user.email || '';
-                    if (avatar) {
-                        const cachedPhotoUid = localStorage.getItem('profilePhotoUid');
-                        let cachedPhotoUrl = cachedPhotoUid === user.uid ? localStorage.getItem('profilePhotoURL') : '';
-                        if (!cachedPhotoUrl && user.photoURL) {
-                            cachedPhotoUrl = user.photoURL;
-                            localStorage.setItem('profilePhotoURL', cachedPhotoUrl);
-                            localStorage.setItem('profilePhotoUid', user.uid);
-                        }
-                        if (cachedPhotoUrl) {
-                            avatar.style.backgroundImage = `url(${cachedPhotoUrl})`;
-                            avatar.style.backgroundSize  = 'cover';
-                            avatar.textContent = '';
-                        } else if (!qData?.name) {
-                            // No questionnaire name and no photo – use Firebase initial.
-                            avatar.style.backgroundImage = '';
-                            avatar.textContent = (user.displayName || user.email || 'П')[0].toUpperCase();
-                        }
-                    }
+                    if (avatar) renderProfileAvatar(qData?.name || user.displayName, qData?.email || user.email, user);
                 } else {
                     section?.classList.remove('hidden');
                     logoutBtn?.classList.add('hidden');
@@ -4800,7 +4814,7 @@
                     // Pending sync flag
                     'planSyncPending',
                     // Cached Firebase avatar URL (cleared on logout/new login)
-                    'profilePhotoURL', 'profilePhotoUid'
+                    'profilePhotoURL', 'profilePhotoUid', 'profileAvatar'
                 ];
                 PLAN_KEYS.forEach(k => localStorage.removeItem(k));
                 // Clear dynamically-named addedMeals_* keys
@@ -4809,6 +4823,18 @@
                     .forEach(k => localStorage.removeItem(k));
             }
         }
+    </script>
+    <script>
+    (function() {
+        fetch('./twa-manifest.json', { cache: 'no-store' })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(manifest) {
+                if (!manifest || !manifest.appVersion) return;
+                var text = 'Версия ' + manifest.appVersion + (manifest.versionCode ? ' • build ' + manifest.versionCode : '');
+                document.querySelectorAll('[data-app-version]').forEach(function(el) { el.textContent = text; });
+            })
+            .catch(function() {});
+    })();
     </script>
 </body>
 </html>

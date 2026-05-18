@@ -2309,6 +2309,7 @@
                 </a>
             </div>
         </div>
+        <p style="margin-top: 14px; font-size: 0.82rem; color: #9ab;" data-app-version>Версия...</p>
     </section>
 
     <!-- Footer -->
@@ -3731,7 +3732,7 @@
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
-    </nav>
+        </nav>
     <script src="./drive-backup.js"></script>
     <!-- NativeBackup: mirrors key localStorage values to Capacitor Preferences so
          plan data survives APK reinstall via Android Auto Backup. -->
@@ -4119,7 +4120,7 @@
                 'canProceedWithWarning', 'validationSource',
                 'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
                 'planSyncPending',
-                'profilePhotoURL', 'profilePhotoUid'
+                'profilePhotoURL', 'profilePhotoUid', 'profileAvatar'
             ];
             PLAN_KEYS.forEach(k => localStorage.removeItem(k));
             Object.keys(localStorage)
@@ -4127,6 +4128,19 @@
                 .forEach(k => localStorage.removeItem(k));
             window.location.replace('index.html?stay=1');
         };
+    </script>
+
+    <script>
+    (function() {
+        fetch('./twa-manifest.json', { cache: 'no-store' })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(manifest) {
+                if (!manifest || !manifest.appVersion) return;
+                var text = 'Версия ' + manifest.appVersion + (manifest.versionCode ? ' • build ' + manifest.versionCode : '');
+                document.querySelectorAll('[data-app-version]').forEach(function(el) { el.textContent = text; });
+            })
+            .catch(function() {});
+    })();
     </script>
 </body>
 </html>

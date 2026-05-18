@@ -398,5 +398,7 @@ jobs:
             APK_FILE="android/app/build/outputs/apk/debug/app-debug.apk"
           fi
           APK_NAME="NutriPlan-v${V_NAME}.apk"
+          APK_LATEST="NutriPlan.apk"
           cp "$APK_FILE" "$APK_NAME"
-          gh release create "$TAG" "$APK_NAME" --title "NutriPlan v${V_NAME} ($TAG)" --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."
+          cp "$APK_FILE" "$APK_LATEST"
+          gh release create "$TAG" "$APK_NAME" "$APK_LATEST" --title "NutriPlan v${V_NAME} ($TAG)" --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."
