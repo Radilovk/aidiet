@@ -635,6 +635,22 @@
                     localStorage.removeItem('planSource');
                     localStorage.removeItem('pendingClientId');
 
+                    // Update the user_profile KV entry to clear planSource so that when
+                    // the user logs in on a new device, they go directly to plan.html
+                    // instead of being stuck in plan-pending.html without a clientId.
+                    const userId = localStorage.getItem('userId');
+                    if (userId) {
+                        const planPayload = data.plan || JSON.parse(localStorage.getItem('dietPlan') || 'null');
+                        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+                        if (planPayload) {
+                            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId, plan: planPayload, userData, planSource: '' })
+                            }).catch(() => {});
+                        }
+                    }
+
                     document.querySelector('.pp-title h1').textContent = 'Вашият план е готов!';
                     document.querySelector('.pp-title p').textContent = 'Специалистът прегледа вашите данни и одобри персонализирания ви хранителен пакет.';
                     document.querySelector('.hero-badge i').className = 'fas fa-check-double';

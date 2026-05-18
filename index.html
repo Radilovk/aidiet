@@ -2619,6 +2619,14 @@
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
 
+            // On Capacitor APK: restore plan data from Android SharedPreferences into
+            // localStorage *before* any plan checks.  This ensures that data backed up
+            // by Android Auto Backup (or by previous NativeBackup writes) is visible to
+            // the auth handler and plan-redirect logic even after a reinstall.
+            if (typeof NativeBackup !== 'undefined') {
+                await NativeBackup.init().catch(() => {});
+            }
+
             const params = new URLSearchParams(window.location.search);
 
             // If redirected here from a protected page that requires login:
@@ -3728,6 +3736,9 @@
         </a>
     </nav>
     <script src="./drive-backup.js"></script>
+    <!-- NativeBackup: mirrors key localStorage values to Capacitor Preferences so
+         plan data survives APK reinstall via Android Auto Backup. -->
+    <script src="./native-backup.js"></script>
 
     <!-- Login Modal — email/password with forgot password -->
     <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
@@ -3800,7 +3811,8 @@
 
         /* Fetch the user's plan from the server (called once on first login on a new device).
          * Returns true if a plan was successfully restored. */
-        async function _loadUserPlanFromServer(fbUserId, user) {
+        async function _loadUserPlanFromServer(fbUserId, user, _retries) {
+            if (_retries === undefined) _retries = 2;
             const url = WORKER_URL + '/api/user/profile?userId=' + encodeURIComponent(fbUserId);
             try {
                 const headers = {};
@@ -3822,10 +3834,20 @@
                     localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
                     if (data.planSource) localStorage.setItem('planSource', data.planSource);
+                    // Restore pendingClientId so plan-pending.html can check plan status
+                    // on a new device where this value was not previously stored locally.
+                    if (data.clientId && data.planSource === 'questionnaire2') {
+                        localStorage.setItem('pendingClientId', data.clientId);
+                    }
                     return true;
                 }
             } catch (e) {
                 console.warn('[plan-restore] Failed to load plan from server:', e);
+                // Retry on network errors (transient failures common in Capacitor WebView).
+                if (_retries > 0) {
+                    await new Promise(function(r) { setTimeout(r, 1500); });
+                    return _loadUserPlanFromServer(fbUserId, user, _retries - 1);
+                }
             }
             return false;
         }

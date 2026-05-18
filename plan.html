@@ -3535,7 +3535,8 @@
 
         /* Fetch the user's plan from the server (called once on first login on this device).
          * Returns true if a plan was successfully restored. */
-        async function _loadUserPlanFromServer(fbUserId, user) {
+        async function _loadUserPlanFromServer(fbUserId, user, _retries) {
+            if (_retries === undefined) _retries = 2;
             const url = WORKER_URL + '/api/user/profile?userId=' + encodeURIComponent(fbUserId);
             try {
                 const headers = {};
@@ -3557,10 +3558,20 @@
                     localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
                     if (data.planSource) localStorage.setItem('planSource', data.planSource);
+                    // Restore pendingClientId so plan-pending.html can check plan status
+                    // on a new device where this value was not previously stored locally.
+                    if (data.clientId && data.planSource === 'questionnaire2') {
+                        localStorage.setItem('pendingClientId', data.clientId);
+                    }
                     return true;
                 }
             } catch (e) {
                 console.warn('[plan-restore] Failed to load plan from server:', e);
+                // Retry on network errors (transient failures common in Capacitor WebView).
+                if (_retries > 0) {
+                    await new Promise(function(r) { setTimeout(r, 1500); });
+                    return _loadUserPlanFromServer(fbUserId, user, _retries - 1);
+                }
             }
             return false;
         }
@@ -4479,6 +4490,11 @@
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
+            // On Capacitor APK: restore plan data from Android SharedPreferences into
+            // localStorage before checking for plan data (handles APK reinstall scenario).
+            if (typeof NativeBackup !== 'undefined') {
+                await NativeBackup.init().catch(() => {});
+            }
             loadDietData();
             loadChatModeConfig();
             // Enhancement #8: Load offline queue

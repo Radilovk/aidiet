@@ -12294,7 +12294,7 @@ async function handleSaveUserProfile(request, env) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
 
-    const { userId, plan, userData, planSource, idToken } = await request.json();
+    const { userId, plan, userData, planSource, idToken, clientId } = await request.json();
 
     if (!userId || !plan) {
       return jsonResponse({ error: 'Missing userId or plan' }, 400);
@@ -12320,6 +12320,9 @@ async function handleSaveUserProfile(request, env) {
       plan,
       userData: userData || {},
       planSource: planSource || '',
+      // clientId links a questionnaire-2 submission to its client record so that
+      // plan-pending.html can check plan status when the user logs in on a new device.
+      ...(clientId ? { clientId } : {}),
       savedAt: new Date().toISOString()
     };
 
@@ -12387,7 +12390,7 @@ async function handleGetUserProfile(request, env) {
     }
 
     const profile = JSON.parse(raw);
-    return jsonResponse({ found: true, plan: profile.plan, userData: profile.userData, planSource: profile.planSource || '' });
+    return jsonResponse({ found: true, plan: profile.plan, userData: profile.userData, planSource: profile.planSource || '', ...(profile.clientId ? { clientId: profile.clientId } : {}) });
   } catch (error) {
     console.error('Error getting user profile:', error);
     return jsonResponse({ error: 'Failed to get user profile: ' + error.message }, 500);

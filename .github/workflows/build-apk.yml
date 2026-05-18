@@ -120,8 +120,11 @@ jobs:
           ANDROID_KEY_ALIAS: nutriplan
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: |
-          V_NAME=$(node -p "require('./twa-manifest.json').appVersion")
-          V_CODE=$(node -p "require('./twa-manifest.json').versionCode")
+          # Auto-increment version on every CI run so each APK has a unique, human-readable version.
+          V_CODE=${{ github.run_number }}
+          V_NAME="1.0.${V_CODE}"
+          echo "V_CODE=${V_CODE}" >> "$GITHUB_ENV"
+          echo "V_NAME=${V_NAME}" >> "$GITHUB_ENV"
           ICON_SRC="icon-512x512.png"
           if [ ! -f "$ICON_SRC" ]; then ICON_SRC="icon-512.png"; fi
 
@@ -394,5 +397,6 @@ jobs:
           else
             APK_FILE="android/app/build/outputs/apk/debug/app-debug.apk"
           fi
-          cp "$APK_FILE" NutriPlan.apk
-          gh release create "$TAG" NutriPlan.apk --title "NutriPlan Build $TAG" --notes "Автоматичен билд."
+          APK_NAME="NutriPlan-v${V_NAME}.apk"
+          cp "$APK_FILE" "$APK_NAME"
+          gh release create "$TAG" "$APK_NAME" --title "NutriPlan v${V_NAME} ($TAG)" --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."
