@@ -1947,6 +1947,7 @@
             display: none;
         }
     </style>
+    <script src="./ui-images-cache.js"></script>
 </head>
 <body>
     <!-- Skip Navigation Link (Accessibility) -->
@@ -3654,8 +3655,6 @@
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
             const WORKER = 'https://aidiet.radilov-k.workers.dev';
-            const CACHE_KEY = 'uiImages:cache';
-            const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
             function applyData(data) {
                 const img = (data.images || {})['index_hero'];
                 if (!img) return;
@@ -3682,19 +3681,7 @@
                 });
                 observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
             }
-            try {
-                const cached = sessionStorage.getItem(CACHE_KEY);
-                if (cached) {
-                    const { data, expiry } = JSON.parse(cached);
-                    if (Date.now() < expiry) { applyData(data); return; }
-                }
-            } catch (_) {}
-            fetch(WORKER + '/api/ui-images')
-                .then(r => r.json())
-                .then(data => {
-                    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, expiry: Date.now() + CACHE_TTL })); } catch (_) {}
-                    applyData(data);
-                })
+            getCachedUIImages(WORKER).then(applyData)
                 .catch(() => {/* no-op: fall back to default design */});
         })();
         // ── End UI Zone Images ─────────────────────────────────────────────────────
@@ -4123,7 +4110,7 @@
             await signOut(auth).catch(() => {});
             const PLAN_KEYS = [
                 'dietPlan', 'userData', 'planSource', 'planHistory',
-                'userId', 'authKvSynced', 'np_profile_synced',
+                'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig',
                 'planJustification', 'longTermStrategy', 'modifierReasoning',
                 'hydrationStrategy', 'mealCountJustification',
                 'gameNotifierConfig',

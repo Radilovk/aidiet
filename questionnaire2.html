@@ -1109,6 +1109,7 @@
             });
         })();
     </script>
+    <script src="./ui-images-cache.js"></script>
 </head>
 <body>
     <!-- PWA Install Banner -->
@@ -3793,11 +3794,19 @@
                 if (scMsg) scMsg.style.opacity = '1';
 
                 console.log('Sending request to backend...');
-                const asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...planPayload, _jobId: jobId })
-                });
+                const startController = new AbortController();
+                const startTimeoutId = setTimeout(() => startController.abort(), 30000);
+                let asyncResponse;
+                try {
+                    asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...planPayload, _jobId: jobId }),
+                        signal: startController.signal
+                    });
+                } finally {
+                    clearTimeout(startTimeoutId);
+                }
 
                 if (!asyncResponse.ok) {
                     let serverMsg = '';
@@ -3948,16 +3957,6 @@
 
             if (typeof saveProfileToCookies === 'function') {
                 saveProfileToCookies(fbUserId || result.userId, result.plan, planPayload, 'questionnaire2', fbIdToken, savedClientId);
-            }
-
-            // If logged in with Firebase, also save plan under the Firebase UID so it can
-            // be restored on any other device where the user logs in.
-            if (fbUserId && fbUserId !== result.userId) {
-                fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: fbUserId, plan: result.plan, userData: planPayload, planSource: 'questionnaire2', ...(fbIdToken ? { idToken: fbIdToken } : {}), ...(savedClientId ? { clientId: savedClientId } : {}) })
-                }).catch(() => {});
             }
 
             if (savedClientId) {
@@ -4619,8 +4618,6 @@
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
             const WORKER = 'https://aidiet.radilov-k.workers.dev';
-            const CACHE_KEY = 'uiImages:cache';
-            const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
             function applyData(data) {
                 const img = (data.images || {})['questionnaire2_bg'];
                 if (!img) return;
@@ -4630,19 +4627,7 @@
                 document.body.style.backgroundRepeat = 'no-repeat';
                 document.body.style.backgroundAttachment = 'fixed';
             }
-            try {
-                const cached = sessionStorage.getItem(CACHE_KEY);
-                if (cached) {
-                    const { data, expiry } = JSON.parse(cached);
-                    if (Date.now() < expiry) { applyData(data); return; }
-                }
-            } catch (_) {}
-            fetch(WORKER + '/api/ui-images')
-                .then(r => r.json())
-                .then(data => {
-                    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, expiry: Date.now() + CACHE_TTL })); } catch (_) {}
-                    applyData(data);
-                })
+            getCachedUIImages(WORKER).then(applyData)
                 .catch(() => {});
         })();
         // ── End UI Zone Images ─────────────────────────────────────────────────────

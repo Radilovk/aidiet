@@ -1109,6 +1109,7 @@
             }
         })();
     </script>
+    <script src="./ui-images-cache.js"></script>
 </head>
 <body>
     <script type="module" src="./auth-guard.js"></script>
@@ -1703,8 +1704,7 @@
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
             const WORKER = 'https://aidiet.radilov-k.workers.dev';
-            fetch(WORKER + '/api/ui-images')
-                .then(r => r.json())
+            getCachedUIImages(WORKER)
                 .then(data => {
                     const img = (data.images || {})['guidelines_banner'];
                     if (!img) return;
