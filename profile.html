@@ -4663,9 +4663,15 @@
                     if (nameEl  && !qData?.name)  nameEl.textContent  = user.displayName || 'Потребител';
                     if (emailEl && !qData?.email) emailEl.textContent = user.email || '';
                     if (avatar) {
-                        if (user.photoURL) {
-                            // Google profile photo is always shown when available.
-                            avatar.style.backgroundImage = `url(${user.photoURL})`;
+                        const cachedPhotoUid = localStorage.getItem('profilePhotoUid');
+                        let cachedPhotoUrl = cachedPhotoUid === user.uid ? localStorage.getItem('profilePhotoURL') : '';
+                        if (!cachedPhotoUrl && user.photoURL) {
+                            cachedPhotoUrl = user.photoURL;
+                            localStorage.setItem('profilePhotoURL', cachedPhotoUrl);
+                            localStorage.setItem('profilePhotoUid', user.uid);
+                        }
+                        if (cachedPhotoUrl) {
+                            avatar.style.backgroundImage = `url(${cachedPhotoUrl})`;
                             avatar.style.backgroundSize  = 'cover';
                             avatar.textContent = '';
                         } else if (!qData?.name) {
@@ -4734,7 +4740,7 @@
                     'userId', 'authKvSynced', 'np_profile_synced',
                     'planJustification', 'longTermStrategy', 'modifierReasoning',
                     'hydrationStrategy', 'mealCountJustification',
-                    'hasSeenPlanJustification', 'gameNotifierConfig',
+                    'gameNotifierConfig',
                     'planJobId', 'planJobSource', 'pendingPlanPayload',
                     'pendingClientId', 'questionnaireAnswers', 'warningData',
                     'canProceedWithWarning', 'validationSource',
@@ -4742,7 +4748,9 @@
                     // user's conversation history on the same device.
                     'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
                     // Pending sync flag
-                    'planSyncPending'
+                    'planSyncPending',
+                    // Cached Firebase avatar URL (cleared on logout/new login)
+                    'profilePhotoURL', 'profilePhotoUid'
                 ];
                 PLAN_KEYS.forEach(k => localStorage.removeItem(k));
                 // Clear dynamically-named addedMeals_* keys

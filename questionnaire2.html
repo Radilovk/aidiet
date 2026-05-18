@@ -3947,7 +3947,7 @@
             localStorage.removeItem('pendingPlanPayload');
 
             if (typeof saveProfileToCookies === 'function') {
-                saveProfileToCookies(fbUserId || result.userId, result.plan, planPayload, 'questionnaire2', fbIdToken);
+                saveProfileToCookies(fbUserId || result.userId, result.plan, planPayload, 'questionnaire2', fbIdToken, savedClientId);
             }
 
             // If logged in with Firebase, also save plan under the Firebase UID so it can
@@ -3956,7 +3956,7 @@
                 fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: fbUserId, plan: result.plan, userData: planPayload, planSource: 'questionnaire2', ...(fbIdToken ? { idToken: fbIdToken } : {}) })
+                    body: JSON.stringify({ userId: fbUserId, plan: result.plan, userData: planPayload, planSource: 'questionnaire2', ...(fbIdToken ? { idToken: fbIdToken } : {}), ...(savedClientId ? { clientId: savedClientId } : {}) })
                 }).catch(() => {});
             }
 
@@ -3965,7 +3965,7 @@
                 fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ clientId: savedClientId, plan: result.plan })
+                    body: JSON.stringify({ clientId: savedClientId, plan: result.plan, userId: fbUserId || result.userId })
                 }).catch(e => console.error('Error saving plan to client record:', e));
             }
 
@@ -4655,7 +4655,7 @@
          * Uses the CompressionStream API (iOS 16.4+) to keep cookie count low.
          * Falls back silently on older browsers.
          */
-        async function saveProfileToCookies(userId, plan, userData, planSource, idToken) {
+        async function saveProfileToCookies(userId, plan, userData, planSource, idToken, clientId) {
             const COOKIE_OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
             // Always persist the userId cookie so the PWA can look the user up
             // in the backend even when cookie chunks or CompressionStream are unavailable.
@@ -4666,7 +4666,7 @@
             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, plan, userData, planSource: planSource || '', ...(idToken ? { idToken } : {}) })
+                body: JSON.stringify({ userId, plan, userData, planSource: planSource || '', ...(idToken ? { idToken } : {}), ...(clientId ? { clientId } : {}) })
             }).catch(e => console.warn('[PWA] Backend profile save failed:', e));
 
             if (typeof CompressionStream === 'undefined') return;
