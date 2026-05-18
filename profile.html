@@ -1815,6 +1815,7 @@
             });
         })();
     </script>
+    <script src="./ui-images-cache.js"></script>
 </head>
 <body>
     <script type="module" src="./auth-guard.js"></script>
@@ -2852,11 +2853,20 @@
                 localStorage.setItem('planJobSource', 'questionnaire');
                 localStorage.setItem('pendingPlanPayload', JSON.stringify(updatedData));
 
-                const asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...updatedData, _jobId: jobId })
-                });
+                const startController = new AbortController();
+                const startTimeoutId = setTimeout(() => startController.abort(), 30000);
+                let asyncResponse;
+                try {
+                    asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...updatedData, _jobId: jobId }),
+                        signal: startController.signal
+                    });
+                } finally {
+                    clearTimeout(startTimeoutId);
+                }
+                clearTimeout(startTimeoutId);
 
                 if (!asyncResponse.ok) {
                     localStorage.removeItem('planJobId');
@@ -2943,13 +2953,21 @@
 
             } catch (error) {
                 console.error('Error regenerating plan:', error);
-                localStorage.removeItem('planJobId');
-                localStorage.removeItem('planJobSource');
-                localStorage.removeItem('pendingPlanPayload');
+                const isNetworkError = error.name === 'AbortError' ||
+                    (error.message || '').includes('Failed to fetch') ||
+                    (error.message || '').includes('NetworkError') ||
+                    (error.message || '').toLowerCase().includes('network');
+                if (!isNetworkError) {
+                    localStorage.removeItem('planJobId');
+                    localStorage.removeItem('planJobSource');
+                    localStorage.removeItem('pendingPlanPayload');
+                }
                 const btn = document.getElementById('saveAndRegenerateBtn');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i> Запази и регенерирай план';
-                const errorMsg = error.message || 'Неизвестна грешка';
+                const errorMsg = isNetworkError
+                    ? 'Връзката беше прекъсната, но заявката може да продължава на сървъра. Отворете страницата отново, за да се възстанови проверката.'
+                    : (error.message || 'Неизвестна грешка');
                 showAlert(`⚠️ Грешка при регенериране на плана: ${errorMsg}`, 'warning');
             }
         }
@@ -3832,8 +3850,6 @@
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
             const WORKER = 'https://aidiet.radilov-k.workers.dev';
-            const CACHE_KEY = 'uiImages:cache';
-            const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
             function applyData(data) {
                 const img = (data.images || {})['profile_cover'];
                 if (!img) return;
@@ -3861,19 +3877,7 @@
                     if (!ch.classList.contains('ui-img-overlay')) ch.style.position = 'relative';
                 });
             }
-            try {
-                const cached = sessionStorage.getItem(CACHE_KEY);
-                if (cached) {
-                    const { data, expiry } = JSON.parse(cached);
-                    if (Date.now() < expiry) { applyData(data); return; }
-                }
-            } catch (_) {}
-            fetch(WORKER + '/api/ui-images')
-                .then(r => r.json())
-                .then(data => {
-                    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, expiry: Date.now() + CACHE_TTL })); } catch (_) {}
-                    applyData(data);
-                })
+            getCachedUIImages(WORKER).then(applyData)
                 .catch(() => {});
         })();
         // ── End UI Zone Images ─────────────────────────────────────────────────────
@@ -4737,7 +4741,7 @@
             function _clearUserPlanData() {
                 const PLAN_KEYS = [
                     'dietPlan', 'userData', 'planSource', 'planHistory',
-                    'userId', 'authKvSynced', 'np_profile_synced',
+                    'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig',
                     'planJustification', 'longTermStrategy', 'modifierReasoning',
                     'hydrationStrategy', 'mealCountJustification',
                     'gameNotifierConfig',
