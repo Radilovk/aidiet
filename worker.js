@@ -3285,50 +3285,8 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   }
 
   // Generate plan (multi-step AI)
-  let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
-  const { dynamicSubstitutions } = await getDynamicFoodListsSections(env);
-
-  let validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
-  let correctionAttempts = 0;
-  const maxAttempts = Math.max(0, MAX_CORRECTION_ATTEMPTS);
-
-  while (!validation.isValid && correctionAttempts < maxAttempts) {
-    correctionAttempts++;
-    try {
-      structuredPlan = await regenerateFromStep(
-        env, data, structuredPlan,
-        validation.earliestErrorStep, validation.stepErrors, correctionAttempts
-      );
-      validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
-    } catch (e) {
-      console.error(`generatePlanCore: Regeneration attempt ${correctionAttempts} failed:`, e);
-      if (correctionAttempts >= maxAttempts) break;
-    }
-  }
-
-  if (!validation.isValid) {
-    if (correctionAttempts >= maxAttempts) {
-      try {
-        const simplifiedPlan = await generateSimplifiedFallbackPlan(env, data);
-        const fallbackValidation = validatePlan(simplifiedPlan, data, dynamicSubstitutions);
-        if (fallbackValidation.isValid) {
-          const cleanPlan = removeInternalJustifications(simplifiedPlan);
-          if (clinicalProtocol && clinicalProtocol.hacks) {
-            cleanPlan.hacks = clinicalProtocol.hacks;
-          } else {
-            cleanPlan.hacks = await getGoalHacks(env, data.goal);
-          }
-          if (clinicalProtocol) cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
-          return { success: true, plan: cleanPlan, userId, correctionAttempts, fallbackUsed: true, note: 'Използван опростен план поради технически проблеми с основния алгоритъм' };
-        }
-      } catch (fallbackError) {
-        console.error('generatePlanCore: Fallback also failed:', fallbackError);
-      }
-    }
-    const err = /** @type {any} */ (new Error(`Планът не премина качествен тест след ${correctionAttempts} опити: ${validation.errors.join('; ')}`));
-    err.validationErrors = validation.errors;
-    throw err;
-  }
+  const structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
+  const correctionAttempts = 0;
 
   const cleanPlan = removeInternalJustifications(structuredPlan);
   if (clinicalProtocol && clinicalProtocol.hacks) {
