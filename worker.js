@@ -3252,7 +3252,7 @@ const JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
  * Returns the ready-to-send result object (same shape as the synchronous endpoint)
  * or throws on unrecoverable error.
  */
-async function generatePlanCore(env, data) {
+async function generatePlanCore(env, data, onAnalysisReady = null) {
   // Resolve clinical protocol
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
   if (clinicalProtocol) {
@@ -3285,7 +3285,7 @@ async function generatePlanCore(env, data) {
   }
 
   // Generate plan (multi-step AI)
-  let structuredPlan = await generatePlanMultiStep(env, data);
+  let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
   const { dynamicSubstitutions } = await getDynamicFoodListsSections(env);
 
   let validation = validatePlan(structuredPlan, data, dynamicSubstitutions);
@@ -3349,7 +3349,21 @@ async function generatePlanCore(env, data) {
 async function generatePlanAndSave(env, data, jobId) {
   console.log(`generatePlanAndSave: starting job ${jobId}`);
   try {
-    const result = await generatePlanCore(env, data);
+    const userId = data.email || generateUserId(data);
+    const result = await generatePlanCore(env, data, async (analysis) => {
+      await env.page_content.put(
+        PLAN_JOB_PREFIX + jobId,
+        JSON.stringify({
+          status: 'analysis_completed',
+          analysisCompletedAt: Date.now(),
+          success: true,
+          userId,
+          plan: { analysis }
+        }),
+        { expirationTtl: PLAN_JOB_TTL_SEC }
+      );
+      console.log(`generatePlanAndSave: job ${jobId} analysis saved to KV`);
+    });
     await env.page_content.put(
       PLAN_JOB_PREFIX + jobId,
       JSON.stringify({ status: 'completed', completedAt: Date.now(), ...result }),
@@ -5911,7 +5925,7 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 `;
 }
 
-async function generatePlanMultiStep(env, data) {
+async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
   
   // Generate a unique session ID for this plan generation
@@ -5974,6 +5988,13 @@ async function generatePlanMultiStep(env, data) {
     }
     
     console.log('Multi-step generation: Analysis complete (1/3)');
+    if (typeof onAnalysisReady === 'function') {
+      try {
+        await onAnalysisReady(analysis);
+      } catch (progressError) {
+        console.warn('Could not persist partial analysis status:', progressError);
+      }
+    }
     
     // Step 2: Generate dietary strategy based on analysis (2nd AI request)
     // Focus: Personalized approach, timing, principles, restrictions

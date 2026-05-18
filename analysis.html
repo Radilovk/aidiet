@@ -2377,7 +2377,115 @@
         }
 
         function goToPlan() {
+            if (localStorage.getItem('planSource') === 'questionnaire2') {
+                window.location.href = 'plan-pending.html';
+                return;
+            }
             window.location.href = 'plan.html';
+        }
+
+        function getStoredPlan() {
+            try {
+                return JSON.parse(localStorage.getItem('dietPlan') || 'null');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function updateQuestionnaire2PendingNotice(state) {
+            const notice = document.querySelector('.pending-notice');
+            if (!notice) return;
+            const icon = notice.querySelector('i');
+            const strong = notice.querySelector('strong');
+            const text = notice.querySelector('p');
+            if (state === 'generating') {
+                if (icon) icon.className = 'fas fa-microchip';
+                if (strong) strong.textContent = 'Планът се генерира във фонов режим';
+                if (text) text.textContent = 'Можете да разгледате анализа веднага. Хранителният пакет продължава да се създава скрито и ще бъде изпратен за одобрение автоматично.';
+            } else if (state === 'ready') {
+                if (icon) icon.className = 'fas fa-hourglass-half';
+                if (strong) strong.textContent = 'Планът ви предстои да бъде одобрен';
+                if (text) text.textContent = 'AI планът е готов и е изпратен към специалист за преглед. Ще получите известие по имейл.';
+            } else if (state === 'error') {
+                if (icon) icon.className = 'fas fa-exclamation-triangle';
+                if (strong) strong.textContent = 'Планът се забави';
+                if (text) text.textContent = 'Анализът е запазен, но финалният план не беше получен. Моля, отворете статуса или опитайте отново по-късно.';
+            }
+        }
+
+        async function applyCompletedBackgroundPlan(data) {
+            if (!data || !data.success || !data.plan) return;
+            const planPayload = JSON.parse(localStorage.getItem('pendingPlanPayload') || localStorage.getItem('userData') || '{}');
+            const savedClientId = localStorage.getItem('pendingClientId') || null;
+            const fbUserId = (function() {
+                const uid = localStorage.getItem('userId');
+                return (uid && uid.startsWith('fb_')) ? uid : null;
+            })();
+            const userId = fbUserId || data.userId;
+
+            localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+            if (userId) localStorage.setItem('userId', userId);
+            localStorage.setItem('userData', JSON.stringify(planPayload));
+            localStorage.setItem('planSource', 'questionnaire2');
+            localStorage.removeItem('planJobId');
+            localStorage.removeItem('planJobSource');
+            localStorage.removeItem('pendingPlanPayload');
+            localStorage.removeItem('hasSeenPlanJustification');
+            localStorage.removeItem('questionnaireAnswers');
+
+            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, plan: data.plan, userData: planPayload, planSource: 'questionnaire2', clientId: savedClientId })
+            }).catch(e => console.error('Error saving completed background plan:', e));
+
+            if (savedClientId) {
+                fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId: savedClientId, plan: data.plan, userId })
+                }).catch(e => console.error('Error saving completed plan to client record:', e));
+            }
+
+            updateQuestionnaire2PendingNotice('ready');
+        }
+
+        function startBackgroundPlanPolling() {
+            const jobId = localStorage.getItem('planJobId');
+            if (localStorage.getItem('planSource') !== 'questionnaire2' || !jobId) return;
+
+            const storedPlan = getStoredPlan();
+            updateQuestionnaire2PendingNotice(storedPlan && storedPlan._partial ? 'generating' : 'ready');
+
+            let polls = 0;
+            let stopped = false;
+            async function poll() {
+                if (stopped) return;
+                polls++;
+                if (polls > 72) {
+                    updateQuestionnaire2PendingNotice('error');
+                    return;
+                }
+                try {
+                    const resp = await fetch('https://aidiet.radilov-k.workers.dev/api/plan-job-status?jobId=' + encodeURIComponent(jobId));
+                    if (!resp.ok) throw new Error('Status ' + resp.status);
+                    const data = await resp.json();
+                    if (data.status === 'completed') {
+                        stopped = true;
+                        await applyCompletedBackgroundPlan(data);
+                        return;
+                    }
+                    if (data.status === 'failed' || data.status === 'not_found') {
+                        stopped = true;
+                        updateQuestionnaire2PendingNotice('error');
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Background plan polling failed:', e.message);
+                }
+                setTimeout(poll, Math.min(30000, 5000 * Math.pow(2, Math.min(polls - 1, 2))));
+            }
+            poll();
         }
 
         // Initialize on page load
@@ -2407,12 +2515,14 @@
                 if (ctaSection) {
                     const notice = document.createElement('div');
                     notice.className = 'pending-notice';
+                    const partialPlan = getStoredPlan();
+                    const isGenerating = partialPlan && partialPlan._partial && localStorage.getItem('planJobId');
                     notice.innerHTML = `
                         <div class="pending-notice-inner">
-                            <i class="fas fa-hourglass-half"></i>
+                            <i class="fas ${isGenerating ? 'fa-microchip' : 'fa-hourglass-half'}"></i>
                             <div>
-                                <strong>Планът ви предстои да бъде одобрен</strong>
-                                <p>Нашият специалист ще прегледа данните ви и ще активира плана. Ще получите известие по имейл.</p>
+                                <strong>${isGenerating ? 'Планът се генерира във фонов режим' : 'Планът ви предстои да бъде одобрен'}</strong>
+                                <p>${isGenerating ? 'Можете да разгледате анализа веднага. Хранителният пакет продължава да се създава скрито и ще бъде изпратен за одобрение автоматично.' : 'Нашият специалист ще прегледа данните ви и ще активира плана. Ще получите известие по имейл.'}</p>
                             </div>
                         </div>`;
                     ctaSection.insertBefore(notice, ctaSection.firstChild);
@@ -2423,6 +2533,7 @@
                         btn.innerHTML = '<i class="fas fa-hourglass-half"></i> Виж статуса на плана';
                     }
                 }
+                startBackgroundPlanPolling();
             }
         });
 
