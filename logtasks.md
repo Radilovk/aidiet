@@ -189,3 +189,12 @@ Questionnaire2 Submission
 - Извод: реалният бъг е, че Worker-ът записва готовия план само в `plan_job:*` KV (`analysis_completed`/`completed`), но НЕ го записва директно в `client:{id}`.
 - Извод: записът към клиента за админ става чак от фронтенда (`questionnaire2.html`/`analysis.html`) след polling на `completed`, чрез отделен fire-and-forget `fetch('/api/admin/update-client-plan')`.
 - Извод: ако потребителят затвори/app-ът заспи/постоянният polling не стигне до `completed` или последният `fetch` пропадне, в админ остават само отговорите без `plan`, въпреки че анализът вече е показан.
+
+## 2026-05-19 - Задача: Възстановяване на оригиналната икона на xbody.html PWA
+
+- **Проблем**: xbody.html използва `xbody-manifest.json` за PWA инсталация. Манифестът сочеше към `icon-192.png` и `icon-512.png` — споделени икони с NutriPlan. В commit `015626b` тези икони бяха заменени с NutriPlan брандинг, съответно XBody PWA започна да показва NutriPlan иконата.
+- **Решение**: 
+  1. Оригиналните XBody икони бяха извлечени от git история (commit `2a73e96`) и запазени като `xbody-icon-192.png` и `xbody-icon-512.png`.
+  2. `xbody-manifest.json` беше обновен да сочи към новите файлове вместо споделените.
+  3. NutriPlan иконите (`icon-192.png`, `icon-512.png`) остават непокътнати.
+- **Резултат**: XBody PWA вече ползва своята оригинална икона; NutriPlan не е засегнат.
