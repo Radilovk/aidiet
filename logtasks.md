@@ -2,14 +2,9 @@
 
 ## 2026-05-19
 
-- Задача: Разследване и поправка на липсващи планове за одобрение в админ панела след async генерация.
-- Проблем: `generatePlanAndSave` записва плана само в `plan_job:*` KV, но не и в `client:{id}` — записът в `client:` зависеше изцяло от браузъра (polling + fire-and-forget fetch). Ако браузърът се затвори или fetch-ът пропадне, в админа остават само отговорите без план.
-- Направено:
-  1. `questionnaire2.html` — предава `_clientId: savedClientId` към `/api/generate-plan-async`.
-  2. `worker.js handleGeneratePlanAsync` — извлича `_clientId`, подава го в queue message / `waitUntil`.
-  3. `worker.js generatePlanAndSave` — след `completed`, директно записва плана в `client:{id}` (backend owns persistence). При грешка записва `planStatus='failed'` + `planGenerationError` в `client:{id}`.
-  4. `worker.js queue consumer` — предава `clientId` от message body към `generatePlanAndSave`.
-  5. `admin.html` — показва и записи с `planStatus='failed'` с бейдж и текст на грешката.
+- Задача (продължение): Намиране на точния root cause: защо план не се появява за одобрение в admin панела въпреки завършена генерация.
+- Root cause: `save-client-data` от браузъра е fire-and-forget без retry. При провал (мрежова грешка, голям файл) `client:{id}` не се създава. Browser-side `update-client-plan` → 404 (`.catch()` не хваща HTTP грешки). Server-side `if (raw)` в `generatePlanAndSave` → тихо пропуска.
+- Направено: `generatePlanAndSave` сега при успех: ако `client:{id}` не съществува — СЪЗДАВА го от данните на планиращия payload + регистрира в `clients_list`. При провал — същото, с `planStatus='failed'` и `planGenerationError`.
 
 
 - Задача: Подобряване на loading екрана при генериране на анализа за `analysis.html`, оптимизация за телефон, светла/тъмна тема, светлосенки/цветове/елементи, хаптик при визуални операции и премахване на разминаването между края на loading екрана и реалното отваряне на `analysis.html`.
