@@ -489,18 +489,32 @@
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
 
-        /* ── Auto-translation ─────────────────────────────────────────────
-           NOTE: translate.goog proxy is NOT used for the Acuity iframe.
-           Acuity Scheduling blocks proxying via translate.goog (the domain
-           app-acuityscheduling-com.translate.goog is unreachable), which
-           causes ERR_ADDRESS_UNREACHABLE for non-English browser users.
-           The iframe always loads the original Acuity URL directly.
-           The translate badge is hidden (needTranslation = false).
-           window._xbodyResetSrc is still kept in sync with the active URL
-           so the back-navigation hard-reset works correctly. */
-        (function () {
-            var ORIGINAL_SRC = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+        /* ── Auto-translation via Cloudflare Worker proxy ─────────────────────
+           The worker fetches the Acuity page server-side, translates all visible
+           text with the Gemini AI, caches the result in KV for 6 hours, and
+           returns the translated HTML from the workers.dev origin – avoiding the
+           ERR_ADDRESS_UNREACHABLE errors that blocked the translate.goog approach.
 
+           The translate preference is persisted in localStorage so the choice
+           is remembered across visits (one toggle → cached for the session and
+           beyond; no repeated API requests because the worker uses KV caching). */
+        (function () {
+            var ORIGINAL_SRC  = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+            var WORKER_ORIGIN = 'https://aidiet.radilov-k.workers.dev';
+
+            /* 2-letter ISO language code from the browser */
+            function getLang() {
+                var raw = (navigator.languages && navigator.languages[0]) ||
+                           navigator.language || 'en';
+                return raw.split('-')[0].toLowerCase();
+            }
+
+            /* Worker-side translation proxy URL */
+            function toTranslateUrl(tl) {
+                return WORKER_ORIGIN + '/api/acuity-translate?tl=' + encodeURIComponent(tl);
+            }
+
+            var tl       = getLang();
             var frame    = document.querySelector('iframe');
             var badge    = document.getElementById('translate-badge');
             var badgeTxt = document.getElementById('translate-badge-text');
@@ -508,9 +522,12 @@
             var mobTxt   = document.getElementById('mob-translate-text');
             if (!frame) return;
 
-            /* translate.goog is incompatible with Acuity – always use original */
-            var needTranslation = false;
-            var isOn            = false;
+            var translatedUrl   = (tl && tl !== 'en') ? toTranslateUrl(tl) : ORIGINAL_SRC;
+            var needTranslation = (translatedUrl !== ORIGINAL_SRC);
+
+            /* Restore saved preference; default ON when browser language ≠ English */
+            var saved = localStorage.getItem('xbody_translate_on');
+            var isOn  = saved !== null ? saved === '1' : needTranslation;
 
             /* Friendly language display names */
             var LANG_NAMES = {
@@ -539,6 +556,8 @@
                     return;
                 }
 
+                var name = LANG_NAMES[tl] || tl.toUpperCase();
+
                 /* ── Top badge ── */
                 if (isOn) {
                     badgeTxt.textContent = name + ' ✕';
@@ -566,9 +585,33 @@
                 }
             }
 
-            /* Initial load – always original, no translation proxy */
-            applyUrl(ORIGINAL_SRC);
+            /* Toggle translation on/off and persist the choice */
+            function toggle() {
+                isOn = !isOn;
+                localStorage.setItem('xbody_translate_on', isOn ? '1' : '0');
+                applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
+                syncBadge();
+            }
+
+            /* Initial load */
+            applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
             syncBadge();
+
+            /* Toggle on badge tap */
+            if (badge && needTranslation) {
+                badge.addEventListener('click', toggle);
+                badge.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+                });
+            }
+
+            /* Toggle on mobile toolbar button tap */
+            if (mobBtn && needTranslation) {
+                mobBtn.addEventListener('click', toggle);
+                mobBtn.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+                });
+            }
         })();
 
         /* ── PWA Install Logic ── */
