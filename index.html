@@ -2698,6 +2698,9 @@
                 }
                 if (!alreadyLoggedIn) {
                     window.indexOpenLoginModal ? window.indexOpenLoginModal() : document.getElementById('loginModal')?.classList.add('active');
+                    // Make hero section visible when showing login modal
+                    const heroSection = document.querySelector('.hero');
+                    if (heroSection) heroSection.classList.add('visible');
                 }
                 // If already logged in, onAuthStateChanged in the module below handles the redirect.
                 return;
