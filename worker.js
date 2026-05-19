@@ -4489,10 +4489,10 @@ async function handleUpdateClientPlan(request, env, ctx) {
     clientData.plan = plan;
     if (userId) clientData.userId = userId;
     clientData.planUpdatedAt = new Date().toISOString();
-    // Mark as pending review whenever a plan is attached or updated
-    if (clientData.planStatus !== 'activated') {
-      clientData.planStatus = 'pending';
-    }
+    // Any new or replaced plan must go back to pending review so the admin panel
+    // can surface it for approval instead of leaving a previously activated plan active.
+    clientData.planStatus = 'pending';
+    clientData.planActivatedAt = null;
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
 
     // Notify admin that a new plan is pending review (fire-and-forget)
