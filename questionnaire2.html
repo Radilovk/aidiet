@@ -3869,7 +3869,7 @@
                     asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...planPayload, _jobId: jobId }),
+                        body: JSON.stringify({ ...planPayload, _jobId: jobId, _clientId: savedClientId || undefined }),
                         signal: startController.signal
                     });
                 } finally {

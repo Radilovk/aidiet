@@ -3304,8 +3304,8 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
  * Runs as a ctx.waitUntil() background task so the Worker stays alive even
  * after the HTTP client disconnects (e.g. Android app backgrounded/killed).
  */
-async function generatePlanAndSave(env, data, jobId) {
-  console.log(`generatePlanAndSave: starting job ${jobId}`);
+async function generatePlanAndSave(env, data, jobId, clientId) {
+  console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ''}`);
   try {
     const userId = data.email || generateUserId(data);
     const result = await generatePlanCore(env, data, async (analysis) => {
@@ -3328,6 +3328,29 @@ async function generatePlanAndSave(env, data, jobId) {
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
     console.log(`generatePlanAndSave: job ${jobId} completed and saved to KV`);
+
+    // Persist the completed plan directly to the admin-visible client record so
+    // that approval works even when the browser closes before the client-side
+    // polling can call /api/admin/update-client-plan.
+    if (clientId && result.success && result.plan) {
+      try {
+        const raw = await env.page_content.get(`client:${clientId}`);
+        if (raw) {
+          const clientData = JSON.parse(raw);
+          const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
+          clientData.plan = result.plan;
+          if (userId) clientData.userId = userId;
+          clientData.planUpdatedAt = new Date().toISOString();
+          clientData.planStatus = wasPreviouslyActivated ? 'activated' : 'pending';
+          if (wasPreviouslyActivated) clientData.planActivatedAt = new Date().toISOString();
+          else clientData.planActivatedAt = null;
+          await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+          console.log(`generatePlanAndSave: job ${jobId} plan saved to client record ${clientId}`);
+        }
+      } catch (e) {
+        console.warn(`generatePlanAndSave: failed to update client record ${clientId}:`, e.message);
+      }
+    }
   } catch (error) {
     console.error(`generatePlanAndSave: job ${jobId} failed:`, error);
     // Use try/catch instead of .catch() so a synchronous throw (e.g. env.page_content
@@ -3347,6 +3370,22 @@ async function generatePlanAndSave(env, data, jobId) {
       console.log(`generatePlanAndSave: job ${jobId} failure status written to KV`);
     } catch (e) {
       console.error(`generatePlanAndSave: job ${jobId} – failed to write failure status to KV:`, e);
+    }
+    // Record the failure reason in the admin-visible client record so the admin can
+    // see why no plan is ready without having to inspect Worker logs.
+    if (clientId) {
+      try {
+        const raw = await env.page_content.get(`client:${clientId}`);
+        if (raw) {
+          const clientData = JSON.parse(raw);
+          clientData.planStatus = 'failed';
+          clientData.planGenerationError = error.message || 'Неизвестна грешка';
+          clientData.planUpdatedAt = new Date().toISOString();
+          await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+        }
+      } catch (e) {
+        console.warn(`generatePlanAndSave: could not write failure to client record ${clientId}:`, e.message);
+      }
     }
   }
 }
@@ -3379,6 +3418,12 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       ? String(rawBody._jobId)
       : crypto.randomUUID();
     delete rawBody._jobId;
+    // Accept a client record ID so the backend can persist the completed plan
+    // directly into the admin-visible client record, regardless of whether the
+    // browser stays open long enough to do it client-side.
+    const clientId = (typeof rawBody._clientId === 'string' && rawBody._clientId.startsWith('client_'))
+      ? rawBody._clientId : null;
+    delete rawBody._clientId;
 
     const data = normalizeQuestionnaireData(rawBody);
     if (!data.name || !data.age || !data.weight || !data.height) {
@@ -3401,13 +3446,13 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       // with up to 15 minutes of execution time (see the queue handler below).
       // The queue binding is configured in wrangler.toml; see the comment at the
       // top of this function for the one-time setup command.
-      await env.PLAN_QUEUE.send({ jobId, data }, { contentType: 'json' });
+      await env.PLAN_QUEUE.send({ jobId, data, clientId }, { contentType: 'json' });
     } else {
       // Fallback: ctx.waitUntil() for local dev / environments without the queue.
       // WARNING: This path may be cancelled by Cloudflare after ~30 seconds on the
       // Bundled/Standard execution model.
       console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound – falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
-      ctx.waitUntil(generatePlanAndSave(env, data, jobId));
+      ctx.waitUntil(generatePlanAndSave(env, data, jobId, clientId));
     }
 
     return jsonResponse({ success: true, jobId });
@@ -13228,10 +13273,10 @@ export default {
    */
   async queue(batch, env) {
     for (const message of batch.messages) {
-      const { jobId, data } = message.body;
+      const { jobId, data, clientId } = message.body;
       console.log(`Queue consumer: received job ${jobId}`);
       try {
-        await generatePlanAndSave(env, data, jobId);
+        await generatePlanAndSave(env, data, jobId, clientId || null);
         message.ack();
         console.log(`Queue consumer: acked job ${jobId}`);
       } catch (err) {
